@@ -1,34 +1,29 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r11-pre-objective-function, at head 8af37bdf444d46715272a8bc2fdda02e1d8376e3. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r11-pre-objective-function, at head c987209cc7a891e0e4066d4ad8dc5cf55357c5ae. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 8af37bdf444d46715272a8bc2fdda02e1d8376e3 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch c987209cc7a891e0e4066d4ad8dc5cf55357c5ae for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r11-pre-objective-function before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r11-pre-objective-function, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r11-pre-objective-function, even with no code. Then push the code to refs/heads/handoff/r11-pre-objective-function, then write the PR body and run `bash tools/audit/seat/body_push.sh r11-pre-objective-function <body.md>`, which pushes refs/heads/handoff-body/r11-pre-objective-function; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r11-pre-objective-function`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r11-pre-objective-function and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r11-pre-objective-function and refs/heads/handoff-wip/r11-pre-objective-function-body. Never work around a hook or a refusal; report it in your result instead.
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-# Repair brief: r11-pre-objective-function (PR 3575, head 03c26201c773a087f5c119be61a357b721406bf5)
-
-Red step: `governance / instrument-self-tests`, step `python3 -I tools/pr/dependabot_merge.py --self-test` (classify: `INTRODUCED Show the Dependabot merge decision refusing its own fixtures`). Its failing lines, verbatim (job 132299214490):
-
-    Traceback (most recent call last):
-      File ".../tools/pr/dependabot_merge.py", line 122, in <module>
-        sys.exit(main(sys.argv[1:]))
-      File ".../tools/pr/dependabot_merge.py", line 101, in main
-        return self_test()
-      File ".../tools/pr/dependabot_merge.py", line 91, in self_test
-        check("the tree's CODEOWNERS parses", bool(rules(real.read_text())), True)
-      File ".../tools/pr/dependabot_merge.py", line 49, in rules
-        raise ValueError(f"CODEOWNERS pattern {pat!r} is not an anchored path; this reader refuses it")
-    ValueError: CODEOWNERS pattern '/dev/audit/rounds/*/EVALUATION.json' is not an anchored path; this reader refuses it
-
-This step is red at 03c26201 and green at the merge base, so the cause is in this branch's diff (the last commits touched check_scopes and its self-test): make the step pass in-seam without weakening the check it exercises, and show the step's command passing locally; then answer it in the body's Red checks.
+# Repair brief: R11-PRE-OBJECTIVE-FUNCTION, body push refused CARRY-LANDED
 
 resume=handoff/r11-pre-objective-function@018b520580cfd80b828687418f13672a4c03051d
 
-prepr's closures step fails on tests/features.py's weekend check until PR 3578 (R10-HOTFIX-FEATURES-WEEKEND-CLOCK) merges; run prepr with PREPR_SKIP_CLOSURES=1 and say so in the body's Red checks
+body_push.sh exited 4 at code head 018b520580cfd80b828687418f13672a4c03051d. The refused body is kept at handoff-wip/r11-pre-objective-function-body (39841fa8105e308546cfbc3ae44837f5114a9f92). Its refusal, verbatim:
 
-The body on handoff-body/r11-pre-objective-function (6e6fe763) carries two re-routed Carry markers by orchestrator ruling; keep them.
+body_push: REFUSED CARRY-LANDED (CARRY-MISSING R10-D5-D6-FULL-SCOPE body item 479c4962: not in its brief or carries)
+
+## What to do
+
+Change nothing else. Three steps:
+
+1. In the body's `## Forward-carry`, change the two `Carry: R10-DIMENSIONS-FULL-COVERAGE` lines (body items 36086213 and 916aff2d) to `Carry: R11-INTAKE-R10-RESIDUE`: R10-DIMENSIONS-FULL-COVERAGE is carries-open, so the roster refuses a carry to it, and the owner's ruling routes these to R11-INTAKE-R10-RESIDUE.
+2. Item 479c4962 (`Carry: R10-D5-D6-FULL-SCOPE`) has been queued for the roster (append-carry through the roster drain). Check that `origin/handoff/audit-r10-roster` holds 479c4962 in R10-D5-D6-FULL-SCOPE's brief or carries before the push; if it does not yet, wait for the drain (it runs each sweep) and do not edit the roster yourself.
+3. Re-run body_push.sh once the roster branch holds 479c4962.
+
+Run prepr with PREPR_SKIP_CODE unset as usual; the code head does not move.
 
 Carry 0: Owner requirement 2026-11-13, his words: "Basically, the objective function should be such that a perfect model that reads it, should be able to improve the dimensions, process and machinery so that that round is completed perfectly against all dimensions, in a perfect way". This is the acceptance test for the definition: it must be sufficient on its own. So the policy file (1) defines the perfect round as an end state, not only directions of improvement: for every dimension what a perfect result is (for objective defects: none remaining in the whole enumerated scope; for dimensions that need judgement, the owner-set acceptance criteria, listed as decisions for the owner where they do not exist yet), and for the process what perfect execution is (every item right first time, no waiting, no rework, no token spent that changes no outcome), each with the measured distance from it; (2) is self-contained: a reader with only the file and the tree can derive what to change in a dimension brief, a role contract or an instrument to close that distance, with no knowledge held in a session, a memory or an earlier round s conversation; (3) says for each term what the residual is that no reader could remove (a floor set by CI wall clock, by the owner s review, by information that does not exist), so perfect is distinguished from impossible. The body states, as its own check, what a perfect reader would change for round 11 from this file alone, and what it could not decide without asking the owner.
 
