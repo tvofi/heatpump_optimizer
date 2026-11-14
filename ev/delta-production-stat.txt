@@ -1,0 +1,16 @@
+ .../heatpump_optimizer/config_flow.py              |   7 +
+ custom_components/heatpump_optimizer/const.py      |   9 +
+ .../heatpump_optimizer/coordinator.py              |   5 +-
+ .../heatpump_optimizer/dhw_planner.py              | 182 ++++++++++++++++-----
+ .../heatpump_optimizer/entry_config.py             |   2 +
+ custom_components/heatpump_optimizer/inputs.py     | 149 ++++++++++++++---
+ custom_components/heatpump_optimizer/manifest.json |   2 +-
+ .../heatpump_optimizer/pump_arbiter.py             | 117 +++++++------
+ .../heatpump_optimizer/setpoint_check.py           |  35 ++++
+ custom_components/heatpump_optimizer/strings.json  |   8 +
+ .../heatpump_optimizer/thermal_model.py            |  69 ++++++++
+ .../heatpump_optimizer/translations/de.json        |   8 +
+ .../heatpump_optimizer/translations/en.json        |   8 +
+ .../heatpump_optimizer/translations/sv.json        |   8 +
+ .../www/heatpump-optimizer-card.js                 |   8 +-
+ 15 files changed, 501 insertions(+), 116 deletions(-)

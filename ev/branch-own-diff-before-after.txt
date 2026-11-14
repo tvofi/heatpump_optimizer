@@ -1,0 +1,155 @@
+2c2
+< index 9f16af6fe3..fa5fdc957b 100644
+---
+> index 3bb0dfe9d3..2536024d45 100644
+5c5
+< @@ -103,6 +103,8 @@ Built from outside pull request #3439 by Bankaifan, with thanks. With Pump duty
+---
+> @@ -127,6 +127,8 @@ Built from outside pull request #3439 by Bankaifan, with thanks. With Pump duty
+15c15
+< index 80e187f0af..cb67fea758 100644
+---
+> index c7afb1923a..7f4c4e5d4e 100644
+26c26
+< @@ -1696,7 +1697,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
+---
+> @@ -1698,7 +1699,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
+36c36
+< index a77cdc98b2..8a8f2da523 100644
+---
+> index 24f7060188..b7e63ff723 100644
+86c86
+< index 7ffaff4ccc..b629321692 100644
+---
+> index e3afe6c67d..f3cd3aa0a4 100644
+99c99
+< @@ -174,7 +175,9 @@ from .const import (
+---
+> @@ -176,7 +177,9 @@ from .const import (
+109c109
+< @@ -622,13 +625,16 @@ def _planned_room(
+---
+> @@ -615,13 +618,16 @@ def _planned_room(
+129c129
+< @@ -654,6 +660,25 @@ def _step_kw(result: Any, now: datetime) -> float | None:
+---
+> @@ -647,6 +653,25 @@ def _step_kw(result: Any, now: datetime) -> float | None:
+155c155
+< @@ -868,7 +893,38 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
+---
+> @@ -861,7 +886,38 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
+195,197c195,197
+< @@ -879,7 +935,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
+<      at full power, sliding to the measured inlet plus a minimum lift
+<      (``flow_min_lift_k``, else ``thermal_model.FLOW_MIN_LIFT_K``) at the
+---
+> @@ -873,7 +929,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
+>      (``thermal_model.start_flow_min_lift_k``: ``flow_min_lift_k``, never
+>      below the pump's own heating start hysteresis where one is read) at the
+207c207
+< @@ -891,17 +950,15 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
+---
+> @@ -885,7 +944,8 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
+215,216c215,217
+<              _flow_inlet_c(inp), _gate_c(inp), configured_flow_min_lift_k(inp.config),
+<          ), inp.config)
+---
+>              _flow_inlet_c(inp), _gate_c(inp),
+>              start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+> @@ -893,10 +953,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
+228c229
+< @@ -1060,7 +1117,7 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
+---
+> @@ -1055,7 +1112,7 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
+237c238
+< @@ -1218,7 +1275,10 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) ->
+---
+> @@ -1209,7 +1266,10 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) ->
+249c250
+< @@ -1469,7 +1529,24 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
+---
+> @@ -1460,7 +1520,24 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
+275c276
+< @@ -1600,33 +1677,34 @@ async def _held_back(
+---
+> @@ -1591,33 +1668,34 @@ async def _held_back(
+324c325
+< @@ -1740,7 +1818,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
+---
+> @@ -1759,7 +1837,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
+334c335
+< index 00095880b4..e2d709301d 100644
+---
+> index 5b5bba0267..923609ce12 100644
+351c352
+< index cefe0e204c..0102b5e683 100644
+---
+> index dfba34dc50..b5c101f8ef 100644
+368c369
+< index 00095880b4..e2d709301d 100644
+---
+> index 5b5bba0267..923609ce12 100644
+385c386
+< index a5bd2a1003..40e707eaf5 100644
+---
+> index ae8c426623..8c82f5896b 100644
+713c714
+< index 5aba0aca4a..b0349551d7 100644
+---
+> index d8ded8775a..ae14e979ce 100644
+725c726
+< @@ -854,8 +854,16 @@ writes, at every 15-minute plan step:
+---
+> @@ -856,8 +856,16 @@ writes, at every 15-minute plan step:
+744c745
+< @@ -874,9 +882,12 @@ writes, at every 15-minute plan step:
+---
+> @@ -876,9 +884,12 @@ writes, at every 15-minute plan step:
+761c762
+< index 1d12ff8abb..1c16bc7483 100644
+---
+> index 23e59f4c8b..d9c773fc84 100644
+764c765
+< @@ -4331,6 +4331,7 @@
+---
+> @@ -4351,6 +4351,7 @@
+773c774
+< index c582c70b28..b722084ad5 100644
+---
+> index 01a0f60761..25808db221 100644
+776c777
+< @@ -63054,7 +63054,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
+---
+> @@ -63056,7 +63056,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
+785c786
+< @@ -63460,17 +63460,131 @@ for _pa_gb_mode in ("boost", "comfort"):
+---
+> @@ -63462,17 +63462,131 @@ for _pa_gb_mode in ("boost", "comfort"):
+921c922
+< @@ -63650,17 +63764,127 @@ def _pa_upgraded(reading):
+---
+> @@ -63652,17 +63766,127 @@ def _pa_upgraded(reading):
+1052c1053
+< @@ -63809,13 +64033,17 @@ def _pa_restored_twice(via):
+---
+> @@ -63811,13 +64035,17 @@ def _pa_restored_twice(via):
+1073c1074
+< @@ -88188,7 +88416,7 @@ R.check(
+---
+> @@ -88193,7 +88421,7 @@ R.check(
+1082c1083
+< @@ -88196,23 +88424,35 @@ def _fb_own(moves, wrote=True):
+---
+> @@ -88201,23 +88429,35 @@ def _fb_own(moves, wrote=True):
+1126c1127
+< @@ -88225,12 +88465,12 @@ R.check(
+---
+> @@ -88230,12 +88470,12 @@ R.check(
+1142c1143
+< @@ -88260,29 +88500,32 @@ _fb_own_ends = {
+---
+> @@ -88265,29 +88505,32 @@ _fb_own_ends = {
+1185c1186
+< @@ -88290,11 +88533,11 @@ _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter
+---
+> @@ -88295,11 +88538,11 @@ _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter
