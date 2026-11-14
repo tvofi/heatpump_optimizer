@@ -1,0 +1,45 @@
+# sole-copy greps at head 9d3da28204b0683981252bff8651c19b8f89f3f7 (non-json tracked files)
+-- git grep -i 'instrument window' 9d3da28204b0683981252bff8651c19b8f89f3f7:
+-- at base 8c10361eb1fea539dc5acb8f7442eac2810faa47:
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:81:main or on one; the rest waits for an instrument window the owner opens. The
+-- git grep -i 'window the owner' 9d3da28204b0683981252bff8651c19b8f89f3f7:
+-- at base 8c10361eb1fea539dc5acb8f7442eac2810faa47:
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:81:main or on one; the rest waits for an instrument window the owner opens. The
+-- git grep -i 'owner opens' 9d3da28204b0683981252bff8651c19b8f89f3f7:
+-- at base 8c10361eb1fea539dc5acb8f7442eac2810faa47:
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:81:main or on one; the rest waits for an instrument window the owner opens. The
+-- HARNESSES.md at 757e164:
+fatal: path 'tools/audit/round2/HARNESSES.md' does not exist in '757e164'
+-- HARNESSES.md at d5d8c4a (first line):
+# The harnesses live on a tag, not on main
+-- head README cite:
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:296:`757e164` (`round2/HARNESSES.md` says which run), its numbers recorded at
+-- base README cite:
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:287:those harnesses still run is `round2/HARNESSES.md` at `d5d8c4a`, final at that
+-- restorations (base vs head):
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:179:  ambient floor at 1.86 (best of ten retries: 1.55), so a
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:203:  ambient floor at 1.86 (best of ten retries: 1.55); a timing is protected by
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:174:  `process_time` and not in `thread_time` (`h2_cycle.py`: 1.27–1.30 over
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:198:  can never meet the bare ratio (`h2_cycle.py`: 1.27–1.30 over four re-takes,
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:286:at `c398fc84`, and the tag, moved once by name, points at `757e164`. Which of
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:297:`c398fc84`; the tag `audit-round2-evidence` moved once, so cite the SHA. A
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:301:with `web-phase0.js` and `triage-quiet-judges.json`, are at `d5d8c4a` too; their
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:290:`wave-2-groups.json` and `wave-3-groups.json`, `web-phase0.js` and
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/audit/README.md:272:accused check fire has not refuted the finding; say which you could not separate.
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:283:make the accused check fire has not refuted it, and says which they could not
+8c10361eb1fea539dc5acb8f7442eac2810faa47:dev/governance/roles/orchestrator.md:204:  requests leave every open listing the moment they merge; twenty had no
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/governance/roles/orchestrator.md:206:  requests leave every open listing the moment they merge; twenty had no
+-- payment survivors:
+9d3da28204b0683981252bff8651c19b8f89f3f7:tests/closure.py:586:    "tools/pr/preflight.sh",
+9d3da28204b0683981252bff8651c19b8f89f3f7:CLAUDE.md:48:4. **Versions are assigned after the merge, by `tools/release/stamp.py`.** Never
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md:27:`rounds.py` takes one argument, a **directory** of per-PR `.tsv` files
+9d3da28204b0683981252bff8651c19b8f89f3f7:tests/README.md:431:  `../setup-qa/`, outside the repository, for a designer to eyeball — but it
+9d3da28204b0683981252bff8651c19b8f89f3f7:tests/closure.py:427:    # A manual QA render (writes ../setup-qa/). No gate script reads it.
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:74:  designers, pre-studies, root-cause and plan seats; about 500 k for the
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:31:| 2 dimensions and finders | a pinned baseline SHA | eve
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/README.md:295:on is in `dev/programme/register/audit-2026-09.md`. Rou
+-- honest CPU mechanism survives:
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/rounds/round4/D9/d9common.py:130:    thread's honest CPU lands in ``process_time`` and not in
+9d3da28204b0683981252bff8651c19b8f89f3f7:dev/audit/rounds/round4/D9/h2_cycle.py:55:the whole run can never come under 1.05: the executor thread's honest CPU
+-- K9 pointer:
+9d3da28204b0683981252bff8651c19b8f89f3f7:.github/workflows/ci.yml:42:  # The merge queue (D-3, K9): `gate` reports on the queue's merge commit.
