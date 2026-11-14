@@ -1,4 +1,4 @@
-head 07bd4ba031ce4934df99bf0d2a921a4fb75689c9
+head 74dbd998df706fc471cb150e571dca5dcad860a5
 == control, no edit: exit 0, 0 red
 == R1 _co_optimize does not restore the availability vector after a refused candidate: KILLED (exit 1, 1 red)
      FAIL a refused co-optimisation candidate leaves the vector its incumbent was scored with  [1 candidate solve(s), status first]
@@ -38,11 +38,11 @@ head 07bd4ba031ce4934df99bf0d2a921a4fb75689c9
      FAIL null control: a stopping switch with no measured off time on an install that prices no cycle moves nothing either
      FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live [29]]
      FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
-== R13 a two-leg step is not charged: KILLED (exit 1, 5 red)
+== R13 a two-leg step is not charged: KILLED (exit 1, 4 red)
      FAIL the block's own last step when it is a two-leg step, and then not the step after  [None]
      FAIL null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge  [None]
-     FAIL heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there  [None, None]
      FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live [7]]
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
 == R14 the reverse direction bans nothing: KILLED (exit 1, 1 red)
      FAIL the ban is the steps heating runs in or runs in next, for hot water to heating, and mirrors onto the previous step for the other direction
 == R15 the headroom on a clamped install carries the lost time too: KILLED (exit 1, 3 red)
@@ -58,4 +58,3 @@ head 07bd4ba031ce4934df99bf0d2a921a4fb75689c9
      FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
      FAIL the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector  [25.236331313277468 vs 25.236331313277468]
 RESULT reviewer_mutants=17 survived=0
-rc=0

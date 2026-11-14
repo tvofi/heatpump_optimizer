@@ -1,0 +1,70 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+  changed files (26), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/dhw_planner.py
+      custom_components/heatpump_optimizer/duty_legs.py
+      custom_components/heatpump_optimizer/duty_switch.py
+      custom_components/heatpump_optimizer/optimizer.py
+      custom_components/heatpump_optimizer/pump_arbiter.py
+      dev/audit/harnesses/r10_duty_switch_price_section.py
+      dev/audit/rounds/round4/D6/claims.json
+      dev/audit/rounds/round4/D6/claims.md
+      dev/audit/rounds/round4/D6/claims.py
+      dev/programme/delivery/3526.md
+      docs/architecture.md
+      tests/closures.json
+      tests/deployment_shape.py
+      tests/features.py
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._solve_hubs.BOOLOP.855f1fe1.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._solve_hubs.GUARD_OFF.855f1fe1.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._solve_space.CLAMP_DROP.4ad2d781.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/@module.CONST.eef42148.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_share.CMP_BOUND.4f254e46.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_share.GUARD_OFF.4f254e46.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_share.GUARD_OFF.8cc0b854.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_share.RETURN_DEL.0008eae9.json
+      tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.book.CMP_BOUND.3e106b06.json
+      tests/mutation_ledger/survivor_triage/pump_arbiter.py/_share.CMP_BOUND.8cc0b854.json
+      tests/structure_budgets.json
+
+      RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
+      RUN   tests/backtest.py (its tests/closures.json entry changed)
+      RUN   tests/block_duty.py (its tests/closures.json entry changed)
+      RUN   tests/boost_drift_replay.py (its tests/closures.json entry changed)
+      RUN   tests/config_flow_steps.py (its tests/closures.json entry changed)
+      RUN   tests/debug_collect.py (its tests/closures.json entry changed)
+      RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+      RUN   tests/doc_claims.py (its tests/closures.json entry changed)
+      RUN   tests/edge.py (its tests/closures.json entry changed)
+      RUN   tests/entities.py (its tests/closures.json entry changed)
+      RUN   tests/env_drift.py (its tests/closures.json entry changed)
+      RUN   tests/features.py (its tests/closures.json entry changed)
+      RUN   tests/finite_boundary.py (its tests/closures.json entry changed)
+      RUN   tests/golden.py (its tests/closures.json entry changed)
+      RUN   tests/guard_pins.py (its tests/closures.json entry changed)
+      RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+      RUN   tests/manual_plan.py (its tests/closures.json entry changed)
+      RUN   tests/md_tables.mjs
+      RUN   tests/optimality.py (its tests/closures.json entry changed)
+      RUN   tests/plan_view.py (its tests/closures.json entry changed)
+      RUN   tests/card.mjs (its tests/closures.json entry changed)
+      RUN   tests/card_drift.mjs (its tests/closures.json entry changed)
+      RUN   tests/solar_alignment.py (its tests/closures.json entry changed)
+      RUN   tests/stress.py (its tests/closures.json entry changed)
+      RUN   tests/structure.py (its tests/closures.json entry changed)
+      RUN   tests/typing_ruler.py (its tests/closures.json entry changed)
+      RUN   tests/validate.py (its tests/closures.json entry changed)
+      RUN   tests/wood_advisor.py (its tests/closures.json entry changed)
+
+      SKIP  tests/arch_score.py  (closure: 166 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0
