@@ -1,0 +1,60 @@
+R11-PRE-ROUND-METRICS stage not-started receivable True | objective-function mentions: 2 0017-objective: 1 0018: 0 | 'prints unread': True | 'NO-READ, never a partial': False | 'none` is a value': False | doc_claims: False | --population: False
+R11-PRE-TOKEN-LEDGER stage not-started receivable True | objective-function mentions: 2 0017-objective: 1 0018: 0 | 'prints unread': False | 'NO-READ, never a partial': True | 'none` is a value': False | doc_claims: False | --population: False
+R11-INTAKE-R10-RESIDUE stage not-started receivable True | objective-function mentions: 4 0017-objective: 2 0018: 0 | 'prints unread': False | 'NO-READ, never a partial': False | 'none` is a value': True | doc_claims: True | --population: True
+R11-PRE-OBJECTIVE-FUNCTION stage in-progress receivable True | objective-function mentions: 1 0017-objective: 0 0018: 1 | 'prints unread': False | 'NO-READ, never a partial': False | 'none` is a value': False | doc_claims: False | --population: False
+R10-D5-D6-FULL-SCOPE stage done receivable False | objective-function mentions: 4 0017-objective: 2 0018: 0 | 'prints unread': False | 'NO-READ, never a partial': False | 'none` is a value': False | doc_claims: True | --population: False
+roster-wide stale '0017' beside objective: 8
+... es. Carry: R11-INTAKE-R10-RESIDUE (items bd035b96)",
+    "From #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 2 and 4 owe from this group's convergence records: found-by and owning dimension per escape (`none` is a value), the cause of ...
+
+... n`. Carry: R11-INTAKE-R10-RESIDUE (items 2df48a3a)",
+    "From #3575 (r11-pre-objective-function), body item 7ce997a6: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1 owes these brief edits from this group. D12: its universe is `python3 tools/audit/check_scopes.py --repo . --population` plu ...
+
+... ULL-SCOPE (items d21035c2) [moved: R11-INTAKE-R10-RESIDUE]",
+    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO- ...
+
+... SCOPE (items 479c4962) [moved: R11-PRE-OBJECTIVE-FUNCTION]",
+    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO- ...
+
+... me/rosters/wave-r10-groups.json`. Carry: R11-PRE-ROUND-METRICS (items 0df1ac6e)",
+    "From #3575, body item 85db64f3: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 4 and 5 assign this group the two held-out instruments: planted-defect recall, counted after the judge so a plant lost at the ...
+
+... mme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items fc61d366)",
+    "From #3575, body item 69822206: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 2 defines `tokens_per_change` for the token ledger this group builds: every usage field kept apart, a seat keyed by group, rol ...
+
+escaped-backtick 0018: 0 | 'decision 0018' / 'Decision 0018': 1 | 'Decision 0017 (': 6
+R11-INTAKE-R10-RESIDUE /carry[114] stage=not-started | cites0017=True cites0018=False | 'From #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 2 and 4 ow' ... 'ev/programme/rosters/wave-r10-groups.json`. Carry: R11-INTAKE-R10-RESIDUE (items 2df48a3a)'
+
+R11-INTAKE-R10-RESIDUE /carry[115] stage=not-started | cites0017=True cites0018=False | 'From #3575 (r11-pre-objective-function), body item 7ce997a6: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1 owes thes' ... 'ev/programme/rosters/wave-r10-groups.json`. Carry: R11-INTAKE-R10-RESIDUE (items 7ce997a6)'
+
+R11-INTAKE-R10-RESIDUE /carry[172] stage=not-started | cites0017=False cites0018=False | 'From r10-playbook-round-start, body item 9f33edc5: The brief asks that the round start be refused by an instrument while any pickup line is undisposit' ... 'g change outside this one-file prose group. Carry: R11-INTAKE-R10-RESIDUE (items 9f33edc5)'
+
+R10-D5-D6-FULL-SCOPE /carry[2] stage=done | cites0017=True cites0018=False | "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6'" ... 'ps.json`. Carry: R10-D5-D6-FULL-SCOPE (items 479c4962) [moved: R11-PRE-OBJECTIVE-FUNCTION]'
+
+R10-D5-D6-FULL-SCOPE /carry[3] stage=done | cites0017=True cites0018=False | "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6'" ... 'dismissed: duplicate of carry 2 (body item 479c4962), moved to R11-PRE-OBJECTIVE-FUNCTION]'
+
+R11-PRE-ROUND-METRICS /carry[0] stage=not-started | cites0017=True cites0018=False | "From r11-pre-objective-function, body item 0df1ac6e: The three groups that build the enumerators build to 0017 section 2's definitions (clock, windows" ... 'dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-ROUND-METRICS (items 0df1ac6e)'
+
+R11-PRE-ROUND-METRICS /carry[1] stage=not-started | cites0017=True cites0018=False | 'From #3575, body item 85db64f3: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 4 and 5 assign this group the two held-' ... 'dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-ROUND-METRICS (items 85db64f3)'
+
+R11-PRE-TOKEN-LEDGER /carry[0] stage=not-started | cites0017=False cites0018=False | 'From r11-pre-objective-function, body item fc61d366: The same, for the token ledger: fields kept apart, a seat keyed by group, role and dimension. Lan' ... '`dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items fc61d366)'
+
+R11-PRE-TOKEN-LEDGER /carry[1] stage=not-started | cites0017=True cites0018=False | 'From #3575, body item 69822206: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 2 defines `tokens_per_change` for the to' ... '`dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items 69822206)'
+
+R11-PRE-OBJECTIVE-FUNCTION /carry[5] stage=in-progress | cites0017=False cites0018=True | 'From r10-playbook-round-start, body item 53cbebab: Pointers waiting on #3575 (R11-PRE-OBJECTIVE-FUNCTION): step 2 names decision 0018 and the group, u' ... 'lines inside the earlier carry bullets. Carry: R11-PRE-OBJECTIVE-FUNCTION (items 53cbebab)'
+
+R10-DIMENSIONS-FULL-COVERAGE /carry[2] stage=done | cites0017=False cites0018=False | 'From r11-pre-objective-function, body item 27f9ce96: The same, for found-by, cause and the per-step denominator; an off-cadence dimension reads 0. Lan' ... 'son`. Carry: R10-DIMENSIONS-FULL-COVERAGE (items 27f9ce96) [moved: R11-INTAKE-R10-RESIDUE]'
+
+groups holding a carry with "D6's distance":
+   R10-D5-D6-FULL-SCOPE 2 stage done receivable False |  in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-D5-D6-FULL-SCOPE (items 479c4962) [moved: R11-PRE-OBJECTIVE-FUNCTION]
+   R10-D5-D6-FULL-SCOPE 3 stage done receivable False | ogramme/rosters/wave-r10-groups.json`. [dismissed: duplicate of carry 2 (body item 479c4962), moved to R11-PRE-OBJECTIVE-FUNCTION]
+R11-PRE-OBJECTIVE-FUNCTION carries: 6
+   0 Owner requirement 2026-11-13, his words: "Basically, the objective function should be such that a perfect model that reads it, should be abl
+   1 Owner requirement 2026-11-13, his words: "Running that perfect audit round should result in perfect production code". So the function is anc
+   2 Owner requirement 2026-11-13, his words: "In the definition of perfect production code should also be that the integration is perfecty gener
+   3 Owner instruction 2026-11-13, his words: "Make sure the future rounds can use the audit playbook even with the addition of the objective fun
+   4 Owner ruling 2026-11-13 (tvofi, verbatim, on the supported install population and the comfort bounds: "For 5, this is yours to set using you
+   5 From r10-playbook-round-start, body item 53cbebab: Pointers waiting on #3575 (R11-PRE-OBJECTIVE-FUNCTION): step 2 names decision 0018 and th
+INTAKE carries: 175 | brief mentions doc_claims: False | brief mentions 3575: False
+  INTAKE carry 148 | From r10-sav-valuation-residue-p3, body item 5a1ba9c2: The one-channel recount (route (b) in the predecessor's BLOCKED question). On a combi store the three figures would count only hot water: the settled split in the coordinator'
+control: INTAKE carry holding the D12 item (--population): [115]
