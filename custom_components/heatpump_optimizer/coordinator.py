@@ -95,6 +95,7 @@ from .entry_config import EntryConfig, factory_settings, undo_point, undone_sett
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    HOUSE_LOSS_MAX_SAMPLE_HOURS,
     DOMAIN,
     PRICE_SOURCE_ENTITY,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -324,7 +325,7 @@ from .flow_lift import FlowCurveBias, curve_supply_temp
 from .flow_meter import cop_evidence, observe_water, replay_freeze, space_reference_cop
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
-from .learner_progress import LearnerInputs, learner_progress, snapshot_rates
+from .learner_progress import HELD_BY, Freeze, FreezeRecord, LearnerInputs, log_skip, learner_progress, snapshot_rates
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
@@ -1327,8 +1328,8 @@ def _zone_capacity(params: ThermalParameters) -> float:
 
 def _restored_stores(coord: Any) -> tuple[Any, ...]:
     """The stores ``_async_save_restored`` writes, each read before a restore applies."""
-    return (coord._thermal_learning_store, coord._dhw_learner.profile_store,
-            coord._dhw_learner.draws_store, coord._price_model_store, coord._accuracy_store)
+    return (coord._thermal_learning_store, coord._dhw_learner.profile_store, coord._dhw_learner.draws_store,
+            coord._price_model_store, coord._accuracy_store, duty_switch.record_for(coord).store)
 
 
 async def _async_save_restored(coord: Any) -> None:
@@ -1456,6 +1457,7 @@ _FACTORY_VOID: Final[tuple[tuple[str, tuple[str, ...] | None], ...]] = (
     ("dhw_draws", None),
     ("price_model", None),
     ("accuracy", ("accuracy", "dhw_accuracy", "defrost", "comfort")),
+    ("duty_switch", None),
 )
 
 
@@ -1631,7 +1633,6 @@ HOUSE_LOSS_ALPHA = 0.02
 # UA and dividing by it amplifies sensor noise without limit.
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
-HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
 #: The interval learners' ``(min, max)`` sample length, which a heat counter's span lands inside.
 HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS)
 # The re-anchor threshold gate: a nameplate edit within this fraction keeps
@@ -1722,11 +1723,14 @@ def learner_progress_view(
     config: Any,
     snapshots: Sequence[Mapping[str, Any]],
     samples: tuple[float, float, float],
+    frozen: Mapping[str, Freeze | None] | None = None,
 ) -> dict[str, LearnerProgress]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
     ``samples`` are the house, lower and solar learners' counts; a
-    non-finite one (a corrupted store) counts as none.
+    non-finite one (a corrupted store) counts as none. ``frozen``: the
+    freeze each learner recorded this cycle, with its end, by learner; a
+    card learner reads its own (``HELD_BY``).
     ``learner_progress`` owns the phases, this only gathers their inputs.
     """
     counts = {
@@ -1771,7 +1775,7 @@ def learner_progress_view(
             internal_gains_gate_open, None, house_wait, rates["house"],
         ),
     }
-    return {name: learner_progress(inputs) for name, inputs in learners.items()}
+    return {name: learner_progress(inputs, (frozen or {}).get(HELD_BY[name])) for name, inputs in learners.items()}
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -3877,7 +3881,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # --- Input health -------------------------------------------------
         self._input_health: InputHealth | None = None
-        self._learner_freeze_reason: str | None = None
+        self._learner_freezes = FreezeRecord()
 
     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
@@ -5441,7 +5445,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "learners_frozen": False,
                 "learner_freeze_reason": None,
             }
-        reason = self._learner_freeze_reason
+        reason = self._learner_freezes.last
         return {
             "input_health": stale_summary(health),
             "stale_inputs": health.stale_keys,
@@ -5640,7 +5644,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # this learner in particular has to be told, not left to infer.
         frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
         if frozen:
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note_freeze("buffer", frozen)
             return
 
         # With a mixing valve the tank is a store the house draws on while the
@@ -5772,11 +5776,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
-            self._learner_freeze_reason = frozen
-            return clean
+            self._learner_freezes.note_freeze("house", frozen)
+            return log_skip(clean, "house heat loss", "frozen (%s)", frozen)
 
         if interval is None or observed is None:
-            return clean
+            return log_skip(clean, "house heat loss", "%s", "no room reading" if interval else "no space interval (hot water, heater or power unread)")
         previous_state, previous_time, now, dt_h, previous_power = interval
 
         outdoor = previous_state.outdoor_temperature
@@ -5786,11 +5790,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         driving_temp = _learned_zone_temperature(previous_state, params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
-            return clean
+            return log_skip(clean, "house heat loss", "indoor-outdoor %.1f K below %s K", delta_t, HOUSE_LOSS_MIN_DELTA)
 
         predicted_state = await _replay_fabric(self, interval, heat_kw, "House heat loss")
         if predicted_state is None:
-            return clean
+            return log_skip(clean, "house heat loss", "the replay failed")
 
         # Compare like with like. `observed` is the indoor sensor, which in
         # two-zone mode is the *upper* floor -- while `room_temperature` on the
@@ -5823,7 +5827,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if vent_only:
             # The detector has been fed; the learner itself stays frozen
             # until the window closes.
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note_freeze("house", "ventilation")
             return clean
         if not fold:
             return clean
@@ -5837,7 +5841,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._fold_solar_aperture(previous_state, residual, dt_h)
         # #2223: dark only; a sunlit residual carries the aperture's error here.
         if is_sunlit_interval(previous_state.solar_radiation):
-            return clean
+            return log_skip(clean, "house heat loss", "sunlit interval")
         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
@@ -5927,7 +5931,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_LOWER_FLOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
         ))
         if frozen:
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note_freeze("lower", frozen)
             return clean
         if interval is None or observed is None or not fold:
             return clean
@@ -6815,7 +6819,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
         self._input_returns.arm(reader.health)
-        self._learner_freeze_reason = None
+        self._learner_freezes = FreezeRecord()
 
         # The defrost derate's humidity bucket is resolved from this, so it has
         # to be current before anything calls compute_cop.
@@ -6832,7 +6836,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tank = dhw.value if dhw.ok else None
         # A combi store's probe (#3225) also moves with the space side's draw.
         if tank is not None and not combi and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note_freeze("dhw", frozen)
         hours = await self._legionella.async_observe(tank, reader)
         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
 
@@ -7983,7 +7987,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "learner_progress": learner_progress_view(
                 ctx._current_state, ctx._thermal_params, ctx._config, snaps,
                 (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
-            ),
+                {k: boost.learning_freeze(self, r) for k, r in self._learner_freezes.items()}),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,

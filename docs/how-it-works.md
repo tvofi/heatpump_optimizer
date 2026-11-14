@@ -819,13 +819,25 @@ constraint would make it a mixed-integer program, not affordable inside a Home
 Assistant update.
 
 It defaults to **zero**, because the measurement came first: realistic plans
-make two to four starts a day, so most installs have nothing to fix, and the
-planned start count is published so the decision can be made from evidence. The
+make two to four starts a day, so most installs have nothing to fix. The plan's
+own projected start count is not published on any entity; the decision is made
+from the realised count. The
 **Compressor Starts** sensor counts realised starts from the power meter
 (debounced, and blind to the immersion element on purpose). Give it a
 replacement cost and a rated start count and every start books its share of the
 eventual swap — and an opt-in switch lets that realised wear price floor the
 cycling cost the optimizer plans with.
+
+A switch between hot water and heating at a steady draw is invisible to the
+cycling term, which prices swings in the total draw. On a pump that stops
+the compressor at such a switch, it is a stop and a start. With **Pump duty
+control** at Control the optimizer learns, per direction, how often a switch
+it wrote stopped the compressor and for how long; once that is established
+([Pump duty control](configuration.md#pump-duty-control)), the plan charges
+the switch `min(a, b) / p_max` cycles at the cycling cost (`a` and `b` the
+draws on either side, `p_max` the pump's maximum) times that probability;
+for a switch from hot water to heating it also counts the off time as heat
+not delivered.
 
 ---
 

@@ -823,6 +823,11 @@ SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
 #: :data:`pump_arbiter.FLOW_HEAT_C`.
 CONF_FLOW_HEAT_C: Final = "flow_heat_c"
 DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: The highest heating-flow ceiling the options flow offers, °C, and the
+#: highest set-point-entity maximum a boost writes (``pump_arbiter.
+#: _boost_ceiling_c``): above it the entity is no heating-flow set-point
+#: (a generic number helper reads 100), so a boost keeps the planned level.
+FLOW_HEAT_C_MAX: Final = 70.0
 #: The flow set-point's lift over the measured inlet water at the modulation
 #: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
 #: that takes the set-point as its return-water target modulates on the gap
@@ -1064,10 +1069,13 @@ DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
 # ever recorded, and the countdown latches overdue for ever. Long enough that
 # any healthy tank finishes well inside it; far shorter than the interval.
 DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
-#: The settling tail a space boost owes the interval learners, hours, whatever
-#: time it ran (#1935): ``boost.SPACE_SETTLE_TAIL`` and the store's look-ahead
-#: for the persisted tail.
+#: The longest settling tail a space boost owes the interval learners, hours
+#: (#1935): ``boost.SPACE_SETTLE_TAIL``, which ``boost.settle_tail`` scales to
+#: the boosted time, and the store's look-ahead for the persisted tail.
 BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
+#: The interval learners' longest sample, hours: the coordinator's sample bound
+#: and ``boost.settle_tail``'s floor, which must hold every sample a boost overlaps.
+HOUSE_LOSS_MAX_SAMPLE_HOURS: Final = 1.5
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.
