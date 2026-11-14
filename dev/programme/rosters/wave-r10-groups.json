@@ -21618,7 +21618,7 @@
    ],
    "resume": {
     "stage": "done",
-    "commit": "3713d5e0e31c06067cde8ee9c70c856e0e7d9fd4",
+    "commit": "a72ae19952e3dac9717a5be27c83f182be34c567",
     "branch": "fix/r10-closeout-prep",
     "last_step": null,
     "next_step": "dispatch fixer once R10-ARCH-DOCS and the round's tooling/process groups have merged; runs beside R10-ROUND-PLAYBOOK-FINAL",
