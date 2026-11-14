@@ -1,0 +1,10 @@
+RESULT combi_DHWHeatingCostSensor_dhw_split=0
+RESULT combi_DHWEnergySensor_dhw_split=0
+RESULT combi_DHWCostSensor_dhw_split=0
+RESULT combi_HeatPumpOptimizerClimate_dhw_split=0
+RESULT combi_SpaceEnergySensor_dhw_split=0
+RESULT separate_DHWHeatingCostSensor_dhw_split=0
+RESULT separate_DHWEnergySensor_dhw_split=0
+RESULT separate_DHWCostSensor_dhw_split=0
+RESULT separate_HeatPumpOptimizerClimate_dhw_split=0
+RESULT separate_SpaceEnergySensor_dhw_split=0

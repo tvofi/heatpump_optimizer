@@ -1,0 +1,1 @@
+cd /tmp/tmp.WkFFY8aD1d/wt && { sed -n '1,537p' tests/entities.py; sed -n '6036,6095p' tests/entities.py; echo 'sys.exit(R.close("C10"))'; } > /tmp/tmp.WkFFY8aD1d/c10.py && PYTHONPATH=tests/hastub:tests:custom_components python3 /tmp/tmp.WkFFY8aD1d/c10.py

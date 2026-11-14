@@ -1,0 +1,15 @@
+SURVIVED null | 
+KILLED guard_off | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED guard_on | FAIL and off a combi store none states it (Carry 10 null)  [{'DHWHeati
+SURVIVED guard_enabled_only | 
+KILLED const_text | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED cost_attr_none | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED cost_attr_empty | FAIL on a combi store each hot-water figure says it is the pump's hot-; FAIL and off a combi store none states it (Carry 10 null)  [{'DHWHeati
+KILLED cost_unrec | FAIL the split statement is shown but never recorded (Carry 10, #1462'
+KILLED acc_unrec | FAIL the split statement is shown but never recorded (Carry 10, #1462'
+KILLED acc_guard_space | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED acc_guard_true | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED acc_call_del | NO-CARRY10-OUTPUT (crash)
+KILLED climate_call_del | FAIL on a combi store each hot-water figure says it is the pump's hot-
+KILLED climate_unrec | FAIL the split statement is shown but never recorded (Carry 10, #1462'
+KILLED acc_call_del | FAIL on a combi store each hot-water figure says it is the pump's hot-
