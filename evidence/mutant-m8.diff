@@ -1,5 +1,5 @@
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
-index bbc270045..5b874fe18 100644
+index c30bbc57a..e88a85beb 100644
 --- a/tools/audit/seat/cloud_relay.sh
 +++ b/tools/audit/seat/cloud_relay.sh
 @@ -865,7 +865,7 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]

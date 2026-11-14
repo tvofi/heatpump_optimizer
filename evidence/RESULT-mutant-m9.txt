@@ -1,23 +1,7 @@
-RESULT m9 KILLED rc=1 failed=90
+MUTANT m9: KILLED rc=1 fails=90
   FAIL a handoff ahead of its PR runs update_pr with branch and code sha (rc=2, want 0)
   FAIL the issues come from the body's closing keywords (rc=2, want 0)
   FAIL the body handed to update_pr is the handoff-body BODY.md (rc=2, want 0)
   FAIL and that body's directory is removed after the update (rc=1, want 0)
   FAIL held runs are approved on the branch (rc=1, want 0)
-  FAIL dispatch runs at the NEW head (rc=1, want 0)
-  FAIL reviewer-fire is opened in the ledger with pr, head and nonce (rc=1, want 0)
-  FAIL and prints HELD with the handoff tip it did not apply (rc=1, want 0)
-  FAIL the HELD line is printed once per pass (rc=1, want 0)
-  FAIL and HELD names the moved tip (rc=1, want 0)
-  FAIL a hold outranks a recorded failed update: still HELD (rc=1, want 0)
-  FAIL an unheld PR is updated as before (null control) (rc=2, want 0)
-  FAIL a held #141 does not hold #41 (whole-line match) (rc=1, want 0)
-  FAIL an empty hold file holds nothing (rc=1, want 0)
-  FAIL comments and blank lines are allowed and hold nothing (rc=1, want 0)
-  FAIL no hold file holds nothing (rc=1, want 0)
-  FAIL a last line without a newline is read: it holds #41 (rc=1, want 0)
-  FAIL the same file newline-terminated holds #41 (null control) (rc=1, want 0)
-  FAIL and prints HELD-VERDICT with the handoff tip (rc=1, want 0)
-  FAIL and names the release (rc=1, want 0)
-  ok   ... with no body_push
-cloud_relay self-test: 424 checks, 90 failed
+cloud_relay self-test: 422 checks, 90 failed
