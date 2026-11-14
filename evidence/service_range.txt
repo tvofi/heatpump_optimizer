@@ -1,0 +1,5 @@
+        ),
+        vol.Optional("dhw_legionella_enabled"): cv.boolean,
+        vol.Optional("dhw_legionella_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=55, max=75)
+        ),
