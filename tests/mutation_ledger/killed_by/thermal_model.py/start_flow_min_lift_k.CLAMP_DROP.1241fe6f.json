@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:start_flow_min_lift_k CLAMP_DROP 1241fe6f",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return lift if hysteresis is None else max(lift, hysteresis)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return lift if hysteresis is None else (lift)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=2."
+}

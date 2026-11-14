@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_step_target_c CLAMP_DROP b7aa4192",
+  "killed_by": "tests/block_duty.py",
+  "old": "        return min(float(value), float(limit))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (float(value))`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=2."
+}
