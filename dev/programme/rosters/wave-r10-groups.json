@@ -27155,6 +27155,48 @@
     "next_step": "local sonnet fixer running; handoff then opus reviewer",
     "note": "intake: red required-family check on main at 50373173d486, tests / fast (3.14)"
    }
+  },
+  {
+   "group": "R10-FEEDBACK-SETTLE-LARGE-LIFT",
+   "lane": "IN",
+   "kind": "production",
+   "class": "check",
+   "severity": "low",
+   "size": "S",
+   "wave": 3,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/harnesses/r10_water_setpoint_feedback.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). Does the power-feedback loop in custom_components/heatpump_optimizer/pump_arbiter.py settle to the planned draw when a pump start hysteresis forces a large floor lift (custom_components/heatpump_optimizer/thermal_model.py, start_flow_min_lift_k)? Order: repair dev/audit/harnesses/r10_water_setpoint_feedback.py so it runs at main; measure settling per lift, feedback on and off, with a null control; confront with a recorded real trace; change pump_arbiter.py only if the over-draw is established beyond the synthetic controller, else record the measured refusal. A plan-side price of the lift is out of scope (owner: no).",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "r10-feedback-settle-large-lift",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local sonnet fixer; handoff then opus reviewer",
+    "note": "intake: orchestrator proposal 2026-11-14, owner ruled queue it; not on the critical path; overlap admitted (R10-DISINFECTION-STEP-NOTICE): orchestrator 2026-11-14: owner ruled queue the small non-gating group (power-feedback settling after a large floor lift)"
+   }
   }
  ]
 }
