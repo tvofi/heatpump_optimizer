@@ -355,6 +355,13 @@ def priority_pass(a: argparse.Namespace, api, prs: list, runs: list, now: float)
         h = pr.get("head") or {}
         g = rl.group_for_branch(roster, h.get("ref") or "") or rl.group_for_pr(roster, pr.get("number"))
         tiers[int(pr["number"])] = ci_priority.tier(g, crit, roster, setting)
+    return priority_act(a, api, prs, runs, tiers, setting, now)
+
+
+def priority_act(a: argparse.Namespace, api, prs: list, runs: list, tiers: dict, setting: dict,
+                 now: float) -> str:
+    """`priority_pass` past the roster read: the train's pins, the live verdict lookup (carry 6:
+    a PR holding a `Fix review: merge` comment is never cancelled), the cancels or re-runs."""
     protected = train_pinned(getattr(a, "train_state", None))
     plan_ = priority_plan(prs, runs, tiers, protected, setting, repo=a.repo)
     if plan_["victims"] and setting["priority_cancel"]:
@@ -783,6 +790,29 @@ def self_test() -> int:
     with contextlib.redirect_stdout(io.StringIO()):
         priority_step(pstub2, repo=REPO, plan_=pp, held={}, allow_cancel=False, now=1.0)
     check("priority carry 6: with priority_cancel off a queued priority run cancels nothing (hold)", pposts, [])
+    vposts: list[str] = []
+
+    def vstub(args, method="GET"):
+        if method == "POST":
+            vposts.append(args[0])
+            return {}
+        if "/comments" in args[-1]:
+            num = int(args[-1].split("issues/")[1].split("/")[0])
+            return None if num == 11 and "unread" in vposts else [[{"body": "Fix review: merge x" if num in (12, 13) else "hi"}]]
+        return []
+    vns = argparse.Namespace(repo=REPO, train_state=None, dry_run=False)
+    with contextlib.redirect_stdout(io.StringIO()):
+        priority_act(vns, vstub, pprs, base_runs, tiers, PS, 1.0)
+    check("priority carry 6: the live verdict lookup protects #12 and #13 (Fix review: merge comments); "
+          "only #11's queued run is cancelled", vposts, [f"repos/{REPO}/actions/runs/501/cancel"])
+    vposts[:] = ["unread"]
+    with contextlib.redirect_stdout(io.StringIO()):
+        priority_act(vns, vstub, pprs, base_runs, tiers, PS, 1.0)
+    check("priority carry 6: comments that cannot be read protect too (nothing cancelled)", vposts, ["unread"])
+    vposts.clear()
+    with contextlib.redirect_stdout(io.StringIO()):
+        priority_act(vns, vstub, pprs, base_runs, tiers, {**PS, "priority_cancel": False}, 1.0)
+    check("priority carry 6: with priority_cancel off the sweep cancels nothing", vposts, [])
     check("verdict guard: a Fix review: merge comment protects; none does not; unreadable is None",
           (has_merge_verdict(lambda a: [[{"body": "Fix review: merge abc"}]], REPO, 1),
            has_merge_verdict(lambda a: [[{"body": "hi"}]], REPO, 1),
