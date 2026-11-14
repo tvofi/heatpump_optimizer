@@ -1,0 +1,9 @@
+a27666c2 tree: 2545cf38505b28a3bc345c18caa865f1434b8ddd
+parents: ec9645014c773759edfbf632829c7cbef272ba33 cbc42e0924404b16cdee3b2dfc5bf51ab3630c6d
+cbc42e0924 Merge pull request #3569 from tvofi/fix/r10-duty-switch-planner-price-pr
+a2ef25b4b2 Merge pull request #3574 from tvofi/fix/r10-sav-valuation-residue-pr
+d051cb3edf Merge pull request #3576 from tvofi/fix/r10-docs-strings-residue
+1791869fdb Merge pull request #3584 from tvofi/fix/r10-hotfix-sweep-deferral-dispatch
+a77d71fb75 Merge pull request #3544 from tvofi/fix/r10-review-dispatch-residue-p5
+f7e7a0244a Merge pull request #3573 from tvofi/fix/r10-gate-defer-barrier-pr
+0f37833e21 Merge pull request #3547 from tvofi/fix/r10-prepr-residue-p2
