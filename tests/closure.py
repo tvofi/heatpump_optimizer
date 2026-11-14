@@ -680,6 +680,11 @@ INERT_EXCEPT = (
     "docs/ecl110.md",
     "docs/how-it-works.md",
     "docs/setup.md",
+    # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc
+    # like the four above, and CI's closures job recorded tests/doc_claims.py
+    # and tests/harness_headers.py opening it. Same route: out of the INERT
+    # prefix, into those two scripts' recorded closures.
+    "docs/CONTRIBUTING.md",
     "docs/img/model/dhw-demand-windows.svg",
     "docs/img/model/dhw-store-decay.svg",
     "docs/img/model/marginal-cop.svg",
