@@ -1,0 +1,6 @@
+worktrees=601 target=/tmp/tmp.vBS8qTFMvp/wtdemo/w1 false-negatives=50/50
+worktrees=601 target=/tmp/tmp.vBS8qTFMvp/wtdemo/w600 false-negatives=48/50
+worktrees=81 target=/tmp/tmp.vBS8qTFMvp/wtdemo/w1 false-negatives=48/50
+bytes=2021
+worktrees=21 target=/tmp/tmp.vBS8qTFMvp/wtdemo/w1 false-negatives=0/50
+PIPESTATUS=0 0

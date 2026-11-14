@@ -1,0 +1,18 @@
+lines=8001 pipe PIPESTATUS=141 0
+lines=8001 herestring rc=0
+lines=1 pipe PIPESTATUS=0 0
+lines=1 herestring rc=0
+lines=8001 pipe PIPESTATUS=141 0
+lines=8001 herestring rc=0
+lines=1 pipe PIPESTATUS=0 0
+lines=1 herestring rc=0
+lines=8001 pipe PIPESTATUS=141 0
+lines=8001 herestring rc=0
+lines=1 pipe PIPESTATUS=0 0
+lines=1 herestring rc=0
+-- SIGPIPE ignored:
+/tmp/tmp.vBS8qTFMvp/pipe.sh: line 3: printf: write error: Broken pipe
+lines=8001 pipe PIPESTATUS=1 0
+lines=8001 herestring rc=0
+lines=1 pipe PIPESTATUS=0 0
+lines=1 herestring rc=0

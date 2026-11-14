@@ -1,0 +1,8 @@
+grep -v >/dev/null PIPESTATUS=0 0
+grep -v >file PIPESTATUS=0 0
+grep -vq PIPESTATUS=141 0
+-- SIGPIPE ignored
+grep -v >/dev/null PIPESTATUS=0 0
+grep -v >file PIPESTATUS=0 0
+grep -vq PIPESTATUS=0 0
+(19798 'printf: write error: Broken pipe' lines elided, all from the grep -vq run with SIGPIPE ignored)

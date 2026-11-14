@@ -1,0 +1,235 @@
+tools/audit/seat/bus.sh:656:  printf '%s\n' "$body" | grep -q '^## Re-cut[[:space:]]*$' && return 0
+tools/audit/seat/bus.sh:827:  elif [ "$prc" = 1 ] && printf '%s\n' "$pmsg" | grep -q '^review_packet: REFUSE '; then
+tools/audit/seat/bus.sh:1267:  [ $rc != 0 ] && echo "$out" | grep -q "outside fix-review.md's grammar"; expect "push-verdict refuses a first line outside the grammar" $?
+tools/audit/seat/bus.sh:1269:  [ $rc != 0 ] && echo "$out" | grep -q "no 'bus-nonce"; expect "push-verdict refuses a verdict with no nonce line" $?
+tools/audit/seat/bus.sh:1271:  [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
+tools/audit/seat/bus.sh:1273:  [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
+tools/audit/seat/bus.sh:1277:  [ $rc != 0 ] && echo "$out" | grep -q "collide case-insensitively.*HEAD.txt and head.txt"; expect "push-verdict refuses evidence names that differ only by case, naming both" $?
+tools/audit/seat/bus.sh:1279:  ! echo "$out" | grep -q "collide case-insensitively"; expect "push-verdict lets distinct evidence names past the case check (null control)" $?
+tools/audit/seat/bus.sh:1281:  [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
+tools/audit/seat/bus.sh:1286:  [ $rc = 0 ] && echo "$out" | grep -q "baseline of 0 ref" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1298:  echo "$out" | grep -q "^BUS undispatched 11 $rf" && echo "$out" | grep -q "^BUS unsigned 12 $t" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1301:  echo "$out" | grep -q "^BUS undispatched 11 $rf" && [ "$(calls)" = 0 ] \
+tools/audit/seat/bus.sh:1313:  echo "$out" | grep -q "^BUS unsigned 13 $t" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1326:    && ! echo "$out" | grep -q "reviewer-fire 7 " && echo "$out" | grep -q "reviewer-fire 12 $h2"
+tools/audit/seat/bus.sh:1333:    && tail -n 1 "$W/state/dispatched" | grep -qE "^12 $h1 cmsg_Q2 $N1b [^ ]+Z opus\$"
+tools/audit/seat/bus.sh:1336:  [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12" && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ]
+tools/audit/seat/bus.sh:1344:  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/7.md"
+tools/audit/seat/bus.sh:1347:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+tools/audit/seat/bus.sh:1355:  [ $rc != 0 ] && echo "$out" | grep -q "dependabot\[bot\]'s alone and origin/main carries no $ROW_DIR/41.md"
+tools/audit/seat/bus.sh:1362:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+tools/audit/seat/bus.sh:1366:  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/41.md"
+tools/audit/seat/bus.sh:1393:  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" \
+tools/audit/seat/bus.sh:1394:    && echo "$out" | grep -q "reviewed head $h1" \
+tools/audit/seat/bus.sh:1395:    && ! echo "$out" | grep -q '^bus-nonce: ' \
+tools/audit/seat/bus.sh:1398:         | grep -q "reviewer-fire 31 "
+tools/audit/seat/bus.sh:1402:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
+tools/audit/seat/bus.sh:1403:    && echo "$out" | grep -qF "review-carry: $h1 was blocked, so a fresh review is owed" \
+tools/audit/seat/bus.sh:1406:  tail -n 1 "$W/packs" | grep -q "^render|--pr|31|--head|$hm|--out|[^|]*|--reviewed-head|$h1|\$"
+tools/audit/seat/bus.sh:1410:  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+tools/audit/seat/bus.sh:1414:  [ $rc = 0 ] && echo "$out" | grep -qF "review-carry: $h1 has no verdict, so a fresh review is owed" \
+tools/audit/seat/bus.sh:1419:  [ $rc != 0 ] && echo "$out" | grep -qF "cannot read verdict/31 to learn what the review at $h1 decided" \
+tools/audit/seat/bus.sh:1420:    && ! echo "$out" | grep -q '^bus-nonce: ' \
+tools/audit/seat/bus.sh:1428:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
+tools/audit/seat/bus.sh:1442:  [ $rc != 0 ] && echo "$out" | grep -q "already has a reviewer dispatched at $h1" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+tools/audit/seat/bus.sh:1445:  [ $rc != 0 ] && echo "$out" | grep -q "handoff/ht1 is at $h1, not $h2" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+tools/audit/seat/bus.sh:1451:  [ $rc != 0 ] && echo "$out" | grep -q "unknown nonce"; expect "before the re-key, the topic's nonce binds to no pull request (push-verdict refuses it)" $?
+tools/audit/seat/bus.sh:1453:  [ $rc = 0 ] && echo "$out" | grep -qx "BUS rekeyed ht1 -> #55 (1 record(s) added)" \
+tools/audit/seat/bus.sh:1457:  [ $rc = 0 ] && echo "$out" | grep -qx "BUS rekeyed ht1 -> #55 (0 record(s) added)" && [ "$(grep -c "^55 $h1 cmsg_H " "$W/state/dispatched")" = 1 ]
+tools/audit/seat/bus.sh:1478:  [ $rc != 0 ] && echo "$out" | grep -q "dispatch-handoff: --pr takes a pull-request number" && ! grep -q " cmsg_H8 " "$W/state/dispatched"
+tools/audit/seat/bus.sh:1490:  [ $rc = 3 ] && echo "$out" | grep -q "never has no handoff dispatch" && ! grep -q "^56 " "$W/state/dispatched"
+tools/audit/seat/bus.sh:1499:  [ $rc != 0 ] && echo "$out" | grep -q "unknown nonce"; expect "push-verdict refuses a nonce no dispatch minted" $?
+tools/audit/seat/bus.sh:1501:  [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12"; expect "push-verdict refuses another pull request's nonce" $?
+tools/audit/seat/bus.sh:1515:  echo "$out" | grep -qx "BUS handoff t1 $(git -C "$W/seat" rev-parse HEAD)"; expect "watch reports a new handoff ref" $?
+tools/audit/seat/bus.sh:1516:  echo "$out" | grep -qx "BUS review 7 $r1"; expect "watch reports a new review ref" $?
+tools/audit/seat/bus.sh:1517:  echo "$out" | grep -q "^BUS unconfirmed 7 $r1: read cmsg_R's own output .*bus.sh confirm 7 $r1" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1520:  echo "$out" | grep -q "^BUS refused 7 $ra: the tip of review/7 is $r1" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1523:  [ $rc != 0 ] && echo "$out" | grep -q "no hpo-approver key" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:1530:  echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts it once" $?
+tools/audit/seat/bus.sh:1541:  out=$(tadd 8 "$hm"); echo "$out" | grep -q "^BUS train-add 8 rc=0 " && [ -s "$W/train-argv" ]
+tools/audit/seat/bus.sh:1544:  out=$(tadd 7 "$hm"); echo "$out" | grep -q "^BUS train-add 7 rc=0 " && [ -s "$W/train-argv" ]
+tools/audit/seat/bus.sh:1551:  git -C "$W/origin.git" log -1 --format=%B "$v1" | grep -qx "bus-model: opus"
+tools/audit/seat/bus.sh:1561:  [ $rc = 0 ] && ! echo "$out" | grep -q "^BUS refused" && [ "$(calls)" = 1 ]; expect "watch passes over a verdict it already posted" $?
+tools/audit/seat/bus.sh:1565:  [ $rc != 0 ] && echo "$out" | grep -q "already posted" && [ "$(calls)" = 1 ]; expect "post refuses a commit already posted" $?
+tools/audit/seat/bus.sh:1569:  [ $rc != 0 ] && echo "$out" | grep -q "^BUS refused 7 $r1: this signed verdict was already posted on #7 (a replay)" \
+tools/audit/seat/bus.sh:1579:  [ "$rc" = 1 ] && echo "$out" | grep -q "(a replay)" && [ ! -d "$W/state/confirm.7.lock" ]; expect "null control: a dead holder's lock is taken over and released (P354)" $?
+tools/audit/seat/bus.sh:1588:  echo "$out" | grep -q "^BUS unsigned 15 $v1" && [ "$(calls)" = 1 ]
+tools/audit/seat/bus.sh:1590:  echo "$out" | grep -q "^BUS unsigned 7 $t"; expect "a signature over another tree does not post" $?
+tools/audit/seat/bus.sh:1596:  [ $rc != 0 ] && echo "$out" | grep -q "was dispatched at head $h1" && [ "$(tip review/7)" = "$r1" ]
+tools/audit/seat/bus.sh:1605:  echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
+tools/audit/seat/bus.sh:1608:  ! git -C "$W/origin.git" log -1 --format=%B "$v2" | grep -q "^bus-model:"
+tools/audit/seat/bus.sh:1610:  ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
+tools/audit/seat/bus.sh:1618:  echo "$out" | grep -q "^BUS refused 7 $t: this signed verdict was already posted on #7 (a replay)" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:1626:    echo "$out" | grep -q "^BUS \(refused\|unsigned\) 7 $t" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:1639:  echo "$out" | grep -q "^BUS refused 8 $t: the first line is outside" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:1646:  echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:1662:  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt"
+tools/audit/seat/bus.sh:1670:  echo "$out" | grep -q "^BUS refused 42 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt" \
+tools/audit/seat/bus.sh:1671:    && ! echo "$out" | grep -q "no file under evidence/ names the head"
+tools/audit/seat/bus.sh:1674:  [ "$r" = 0 ] && echo "$got" | grep -q "HEAD.txt and evidence/head.txt"
+tools/audit/seat/bus.sh:1681:  ! echo "$out" | grep -q "^BUS refused 41 .*collide case-insensitively" && echo "$out" | grep -q "^BUS undispatched 41 $t"
+tools/audit/seat/bus.sh:1690:  echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
+tools/audit/seat/bus.sh:1692:  ! echo "$out" | grep -q "^BUS train-add" && [ ! -s "$W/train-argv" ]
+tools/audit/seat/bus.sh:1695:  echo "$out" | grep -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
+tools/audit/seat/bus.sh:1701:  echo "$out" | grep -qx "BUS handoff t1 gone"; expect "watch reports a deleted ref" $?
+tools/audit/seat/bus.sh:1705:  [ $rc = 0 ] && echo "$out" | grep -q "^BUS body t1 "; expect "watch without --once exits on its first event" $?
+tools/audit/seat/bus.sh:1819:  [ $rc != 0 ] && echo "$out" | grep -q "no executable poster" \
+tools/audit/seat/bus.sh:1852:  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ]
+tools/audit/seat/bus.sh:1858:  ! echo "$out" | grep -q "^ORPHAN orph1 " && [ $rc = 0 ] && echo "$out" | grep -q "merged-pr=1"
+tools/audit/seat/bus.sh:1861:  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ] && echo "$out" | grep -q "merged-pr=0"
+tools/audit/seat/bus.sh:1864:  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ] && echo "$out" | grep -q "merged pull requests unread"
+tools/audit/seat/bus.sh:1868:  ! echo "$out" | grep -q "^ORPHAN orph1 " && [ $rc = 0 ] && echo "$out" | grep -q "young="
+tools/audit/seat/bus.sh:1874:  ! echo "$out" | grep -q "^ORPHAN nb1 " && echo "$out" | grep -q "no-body="
+tools/audit/seat/bus.sh:1883:  echo "$out" | grep -qx "ORPHAN r9-orp-upd $u2 .* repair=update"
+tools/audit/seat/bus.sh:1892:  echo "$out" | grep -qx "ORPHAN orp-exact $x2 .* repair=update"
+tools/audit/seat/bus.sh:1896:  ! echo "$out" | grep -q "^ORPHAN orp-exact " && echo "$out" | grep -q "named=[1-9]"
+tools/audit/seat/bus.sh:1904:  echo "$out" | grep -qx "ORPHAN r9-orp-rev $c2 .* repair=review"
+tools/audit/seat/bus.sh:1914:  echo "$out" | grep -qx "SUPERSEDED orp-super $s1 .*"
+tools/audit/seat/bus.sh:1917:  echo "$out" | grep -qx "ORPHAN orp-super $s1 .* repair=opener"
+tools/audit/seat/bus.sh:1926:  echo "$out" | grep -qx "SUPERSEDED orp-hunk $e1 .*"
+tools/audit/seat/bus.sh:1935:  echo "$out" | grep -qx "SUPERSEDED orp-rev2 $r1 .*"
+tools/audit/seat/bus.sh:1941:  echo "$out" | grep -qx "ORPHAN orp-rev3 $r2 .* repair=opener"
+tools/audit/seat/bus.sh:1952:  ! echo "$out" | grep -q "^ORPHAN orp-merge " && ! echo "$out" | grep -q "^SUPERSEDED orp-merge "
+tools/audit/seat/bus.sh:1961:  echo "$out" | grep -qx "ORPHAN orp-evil $q5 .*" && echo "$out" | grep -qx "ORPHAN orp-nonm $q6 .*"
+tools/audit/seat/bus.sh:1969:  echo "$out" | grep -q "^orphans: 0 stranded" && [ $rc = 0 ]
+tools/audit/seat/bus.sh:1980:  echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
+tools/audit/seat/bus.sh:1988:  echo "$out" | grep -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
+tools/audit/seat/bus.sh:1989:    && ! echo "$out" | grep -q "^ORPHAN "
+tools/audit/seat/bus.sh:1993:  [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "
+tools/audit/seat/bus.sh:1999:    && echo "$out" | grep -q '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' \
+tools/audit/seat/bus.sh:2018:  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
+tools/audit/seat/bus.sh:2031:  [ $rc = 3 ] && echo "$out" | grep -q "HOLD.*mutation-autofix" && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
+tools/audit/seat/bus.sh:2035:  [ $rc = 3 ] && echo "$out" | grep -q "HOLD.*closures-autofix"; expect "a queued closures-autofix holds the dispatch too (P344)" $?
+tools/audit/seat/bus.sh:2049:  [ $rc = 0 ] && echo "$out" | grep -q "could not be read, so the autofix hold was NOT checked" && echo "$out" | grep -q "check-runs read: gh: Not Found"
+tools/audit/seat/bus.sh:2062:  [ "$(tip verdict/33)" = "$vt1" ] && echo "$out" | grep -q "^BUS posted 33 $vt1 "
+tools/audit/seat/bus.sh:2089:  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "would publish this host (#2310)"
+tools/audit/seat/bus.sh:2109:  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "1 finding item(s) with no valid Carry: (carry_audit.py); first: UNROUTED review push-verdict item [0-9a-f]\{8\} (## Findings)"
+tools/audit/seat/bus.sh:2112:  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "first: BAD-DEST .*R10-GONE"
+tools/audit/seat/bus.sh:2119:  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "its post would refuse .* at line 7: home-directory"
+tools/audit/seat/bus.sh:2131:  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "UNLISTED custom_components/x/a.py:40 .*names 1 of the 2 survivor"
+tools/audit/seat/bus.sh:2154:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && ! grep -qx "api|repos/o/r/pulls/31|--jq|.body|" "$W/gh-argv"
+tools/audit/seat/bus.sh:2158:  [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] \
+tools/audit/seat/bus.sh:2163:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "the same fourth round dispatches once the body carries ## Re-cut" $?
+tools/audit/seat/bus.sh:2171:  [ $rc != 0 ] && echo "$out" | grep -q "re-cut.*blocked again.*split or close"
+tools/audit/seat/bus.sh:2174:  [ $rc != 0 ] && echo "$out" | grep -q "past-three needs a reason"; expect "--past-three without a reason is refused" $?
+tools/audit/seat/bus.sh:2179:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "five re-posts at one head count as one round and dispatch (#3247)" $?
+tools/audit/seat/bus.sh:2184:  [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut"; expect "null control: three distinct blocked heads are three rounds and refuse without a note" $?
+tools/audit/seat/bus.sh:2202:      *" $c "*) [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "a fourth round after a $c block dispatches with no note (carry 11)" $? ;;
+tools/audit/seat/bus.sh:2203:      *) [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a $c block refuses (carry 11)" $? ;;
+tools/audit/seat/bus.sh:2208:  [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a proof-class block still refuses (carry 11)" $?
+tools/audit/seat/bus.sh:2210:  [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: an unknown class refuses as before (carry 11)" $?
+tools/audit/seat/bus.sh:2220:  [ $rc = 0 ] && echo "$out" | grep -qx "review-packet: ~/state/packets/7-$h1.md" \
+tools/audit/seat/bus.sh:2221:    && tail -n 1 "$W/packs" | grep -q "^render|--pr|7|--head|$h1|--out|$W/state/packets/7-$h1.md|--harness|dev/audit/harnesses/x.py|\$"
+tools/audit/seat/bus.sh:2225:  [ $rc != 0 ] && echo "$out" | grep -q "REFUSE head-note: planted" && echo "$out" | grep -q "review packet refused" \
+tools/audit/seat/bus.sh:2229:  [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- .*does not name the head $h1" \
+tools/audit/seat/bus.sh:2233:  [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- review_packet: UNAVAILABLE: planted: no gh$" \
+tools/audit/seat/bus.sh:2240:  [ $rc = 5 ] && echo "$out" | grep -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! echo "$out" | grep -q "REFUSE" \
+tools/audit/seat/bus.sh:2241:    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
+tools/audit/seat/bus.sh:2244:  [ $rc = 5 ] && echo "$out" | grep -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
+tools/audit/seat/bus.sh:2245:    && ! echo "$out" | grep -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+tools/audit/seat/bus.sh:2248:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+tools/audit/seat/bus.sh:2254:  [ $rc = 0 ] && echo "$out" | grep -q '^bus: APPROVAL-OWED '"$h1"' 1 budget raise' \
+tools/audit/seat/bus.sh:2255:    && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+tools/audit/seat/bus.sh:2258:  [ $rc != 0 ] && echo "$out" | grep -q "cannot classify .*never green): REFUSE proof" \
+tools/audit/seat/bus.sh:2262:  [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
+tools/audit/seat/bus.sh:2264:    && echo "$out" | grep -q '^review_packet self-test: [1-9][0-9]* checks, 0 failed$'
+tools/audit/seat/bus.sh:2276:  [ $rc != 0 ] && echo "$out" | grep -q "is not letters, digits"; expect "push-design refuses a topic outside the ref grammar" $?
+tools/audit/seat/bus.sh:2280:  [ $rc = 0 ] && [ -n "$v1" ] && git -C "$W/origin.git" show "$v1:verdict.md" | head -n 1 | grep -qx "Design review: approve $d1"
+tools/audit/seat/bus.sh:2284:  [ $rc != 0 ] && echo "$out" | grep -q "moved under the review"; expect "a verdict naming a sha other than the design tip is refused" $?
+tools/audit/seat/bus.sh:2287:  [ $rc != 0 ] && echo "$out" | grep -q "outside design-review.md's grammar"; expect "a verdict first line outside the grammar is refused" $?
+tools/audit/seat/bus.sh:2289:  [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
+tools/audit/seat/bus.sh:2305:  [ $rc != 0 ] && echo "$out" | grep -q "^CARRY-MISSING R10-LIVE body item [0-9a-f]\{8\}: not in its brief or carries" \
+tools/audit/seat/bus.sh:2306:    && echo "$out" | grep -q "^  roster op: python3 tools/audit/seat/roster_edit.py append-carry R10-LIVE 'From #7, body item " \
+tools/audit/seat/bus.sh:2311:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+tools/audit/seat/bus.sh:2319:  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+tools/audit/seat/bus.sh:2322:  [ $rc != 0 ] && echo "$out" | grep -q '^CARRY-MISSING R10-LIVE'
+tools/audit/seat/bus.sh:2325:  echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
+tools/audit/seat/bus.sh:2333:  [ $rc = 0 ] && ! echo "$out" | grep -q 'CARRY-MISSING' && echo "$out" | grep -q '^bus-nonce: '
+tools/audit/seat/bus.sh:2341:  [ $rc != 0 ] && echo "$out" | grep -q "another watcher (pid $wl) holds"
+tools/audit/seat/bus.sh:2405:    && git -C "$A/origin.git" show "$(atip):VERDICT.md" | grep -q "^bus-adopted: #7 comment 31 by bankaifan (id 555001), review-commit $AC, main $AM (decision 0017)\$" \
+tools/audit/seat/bus.sh:2406:    && git -C "$A/origin.git" show "$(atip):evidence/run.log" | grep -q "$AH"
+tools/audit/seat/bus.sh:2415:  [ $rc = 0 ] && echo "$out" | grep -q "^BUS posted 7 .* Fix review: merge $AH"; expect "... and bus.sh confirm signs and posts it as any reviewer's proposal" $?
+tools/audit/seat/bus.sh:2419:    [ $rc != 0 ] && echo "$out" | grep -q -- "$2" && [ "$(atip)" = "$before" ]; expect "adopt refuses $1, moving nothing" $?
+tools/audit/seat/bus.sh:2441:  [ $rc != 0 ] && echo "$out" | grep -q "is not main's copy"; expect "adopt-from-main refuses to run from a tree that is not the main it was handed" $?
+tools/audit/seat/ci-watch.sh:337:        if printf '%s\n' "$reds_l" | grep -qx gate && gate_deferred "$sha"; then
+tools/audit/seat/cloud_relay.sh:229:  printf '%s' "$head" | grep -Eq '^[0-9a-f]{40}$' || { die "head must be 40 lowercase hex"; return; }
+tools/audit/seat/cloud_relay.sh:230:  printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$' || { die "nonce must be 32 hex"; return; }
+tools/audit/seat/cloud_relay.sh:276:    if ! printf '%s' "$live" | grep -Eq '^[0-9a-f]{40}$'; then echo "cloud_relay: #$pr's head could not be read, so its pending-ci draft is held" >&2; return 75; fi
+tools/audit/seat/cloud_relay.sh:348:  printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
+tools/audit/seat/cloud_relay.sh:429:  printf '%s' "$prhead" | grep -Eq '^[0-9a-f]{40}$' || { echo "cloud_relay: #$pr's head could not be read; $ref $sha retries next pass" >&2; return 0; }
+tools/audit/seat/cloud_relay.sh:731:    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { ledger_open dispatch "$pr" - "no new head read after the update"; continue; }
+tools/audit/seat/cloud_relay.sh:733:       && printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$'; then
+tools/audit/seat/cloud_relay.sh:967:  owes() { { ledger board 2>/dev/null || :; } | grep -qF -- "$1"; }  # the ledger beside the current LOG owes it
+tools/audit/seat/cloud_relay.sh:1139:      if printf '%s\n' "$list" | grep -qxF "$top"; then ents="$ents$(printf '100644 blob %s\t%s' "$blob" "$top")"$'\n'
+tools/audit/seat/handoff_push.sh:144:git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+tools/audit/seat/heartbeat.sh:75:  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q 'ref_privacy guard refused' \
+tools/audit/seat/heartbeat.sh:82:  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT FRESH'
+tools/audit/seat/heartbeat.sh:87:  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT STALE: .*TICK-PASS old'
+tools/audit/seat/heartbeat.sh:91:  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT STALE: no heartbeat/orchestrator'
+tools/audit/seat/heartbeat.sh:95:  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED: .'
+tools/audit/seat/open_pr.sh:125:  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+tools/audit/seat/pr_args.sh:454:        if ! printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_exit_trap([[:space:]]|$)'; then
+tools/audit/seat/pr_args.sh:457:             | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
+tools/audit/seat/pr_args.sh:459:        elif printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_branch_lock[[:space:]]' \
+tools/audit/seat/pr_args.sh:460:             && printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' | grep -qv 'pr_push_hold'; then
+tools/audit/seat/pr_args.sh:464:        if printf '%s\n' "$txt" | grep -qF '.terminate()' && printf '%s\n' "$txt" | grep -qE '^[[:space:]]+stop_on_signal\(\)'; then
+tools/audit/seat/pr_args.sh:471:    printf '%s\n' $found | grep -qxF "$f" || { echo "OPEN $f: stale -- the rule no longer returns it"; bad=1; }
+tools/audit/seat/pr_args.sh:1397:  sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
+tools/audit/seat/seat_venv.sh:164:    [ "$rc" != 0 ] && printf '%s' "$got" | grep -qF 'tools/audit/seat/seat_venv.sh'
+tools/audit/seat/seat_venv.sh:204:  echo "$out" | grep -q 'venv-ha' && [ "$rc" = 0 ]
+tools/audit/seat/seat_venv.sh:237:  [ -n "$lock_ha" ] && [ "$rc" = 0 ] && echo "$out" | grep -qF "homeassistant $lock_ha"
+tools/audit/seat/seat_venv.sh:248:  [ "$rc" != 0 ] && echo "$out" | grep -q 'venv-ha'
+tools/audit/seat/seat_venv.sh:254:  # A here-string, not `echo | grep -q`: under pipefail grep's early exit
+tools/audit/seat/tick_loop.sh:184:  [ -n "$g" ] && sed -n '2{p;q;}' "$g" 2>/dev/null | grep -qxF '# hpo-gh-shim' \
+tools/audit/seat/tick_loop.sh:224:  printf 'MATCH\n%s\n' "$out" | grep -q '^MATCH$'
+tools/audit/seat/tick_loop.sh:250:  case $(cat "$t/path") in "$t/state/bin:"*) [ "$(cat "$t/gh")" = "$t/state/bin/gh" ] && ! printf '%s\n' "$out" | grep -q '^TICK-GH' ;; *) false ;; esac
+tools/audit/seat/tick_loop.sh:259:  g=$(cat "$t/gh"); printf '%s\n' "$out" | grep -Eq "^TICK-GH [0-9T:-]+Z gh=${g:-none}: not the seat gh shim" \
+tools/audit/seat/tick_loop.sh:265:    && printf '%s\n' "$out" | grep -Eq '^TICK-PASS [0-9T:-]+Z relay=ok tick=0 code=none behind=unknown out=' && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ]
+tools/audit/seat/tick_loop.sh:269:  [ "$(cat "$t/order")" = "tick " ] && printf '%s\n' "$out" | grep -q 'relay=absent tick=0'
+tools/audit/seat/tick_loop.sh:273:  grep -q '^tick' "$t/order" && printf '%s\n' "$out" | grep -q 'relay=rc=3 tick=1'
+tools/audit/seat/tick_loop.sh:281:  ! grep -qx done "$t/slow" 2>/dev/null && [ "$(cat "$t/b.txt" 2>/dev/null)" = BOARD ] && printf '%s\n' "$out" | grep -q 'relay=running tick=0'
+tools/audit/seat/tick_loop.sh:284:  [ "$(cat "$t/slow")" = start ] && printf '%s\n' "$out" | grep -q 'relay=running tick=0' && [ "$(grep -c '^tick' "$t/order")" = 2 ]
+tools/audit/seat/tick_loop.sh:292:  printf '%s\n' "$out" | grep -Eq '^TICK-RELAY [0-9T:-]+Z relay=ok started=[0-9T:-]+Z$' \
+tools/audit/seat/tick_loop.sh:293:    && [ "$(printf '%s\n' "$out" | grep -c SLOW-LOG)" = 2 ] && printf '%s\n' "$out" | grep -q 'relay=ok tick=0' \
+tools/audit/seat/tick_loop.sh:314:  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED' && printf '%s\n' "$out" | grep -q 'tick=0'
+tools/audit/seat/tick_loop.sh:321:sweep" ] && printf '%s\n' "$out" | sed -n 2p | grep -Eq '^TICK-SWEEP [0-9T:-]+Z rc=0 SWEEP DONE: x$' \
+tools/audit/seat/tick_loop.sh:326:  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-SWEEP
+tools/audit/seat/tick_loop.sh:331:sweep" ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP '
+tools/audit/seat/tick_loop.sh:335:  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-SWEEP
+tools/audit/seat/tick_loop.sh:338:  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP .* rc=2 SWEEP REFUSED queue: x$' && printf '%s\n' "$out" | grep -q 'tick=0'
+tools/audit/seat/tick_loop.sh:345:  git -C "$t/remote.git" log -1 --format=%s heartbeat/orchestrator | grep -Eq '^TICK-PASS [0-9T:-]+Z relay=absent tick=0 code=none behind=unknown$' \
+tools/audit/seat/tick_loop.sh:346:    && ! printf '%s\n' "$out" | grep -q 'NOT PUSHED'
+tools/audit/seat/tick_loop.sh:350:  printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED: ' && printf '%s\n' "$out" | grep -q 'tick=0'
+tools/audit/seat/tick_loop.sh:367:  printf '%s\n' "$out" | grep -q "relay=ok tick=0 code=$at0 behind=0 out=" && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] \
+tools/audit/seat/tick_loop.sh:371:  printf '%s\n' "$out" | grep -q "code=$at0 behind=0 " && ! printf '%s\n' "$out" | grep -q 'TICK-STALE\|TICK-RESTART'
+tools/audit/seat/tick_loop.sh:374:  printf '%s\n' "$out" | grep -q "relay=ok tick=0 code=$at0 behind=1 " && ! printf '%s\n' "$out" | grep -q 'TICK-RESTART\|TICK-STALE' \
+tools/audit/seat/tick_loop.sh:385:  printf '%s\n' "$out" | grep -q '^TICK-STALE .* behind=2: a relay is in flight' && printf '%s\n' "$out" | grep -q 'relay=stale tick=0' \
+tools/audit/seat/tick_loop.sh:389:  printf '%s\n' "$out" | grep -q '^TICK-STALE .*: the tree is dirty' && printf '%s\n' "$out" | grep -q 'relay=stale' \
+tools/audit/seat/tick_loop.sh:393:  printf '%s\n' "$out" | grep -q '^TICK-STALE .*: a branch is checked out' && [ "$(git -C "$t/c" rev-parse --short=7 HEAD)" = "$at0" ]
+tools/audit/seat/tick_loop.sh:396:  printf '%s\n' "$out" | grep -q '^TICK-STALE .*: restarted once this pass' && [ "$(git -C "$t/c" rev-parse --short=7 HEAD)" = "$at0" ]
+tools/audit/seat/tick_loop.sh:399:  printf '%s\n' "$out" | grep -q "^TICK-STALE .*: bash -n refuses" && printf '%s\n' "$out" | grep -q 'relay=stale tick=0' \
+tools/audit/seat/tick_loop.sh:403:  printf '%s\n' "$out" | grep -q "^TICK-RESTART .* code=$at0 behind=4 -> " \
+tools/audit/seat/tick_loop.sh:404:    && printf '%s\n' "$out" | grep -qx "NEW-LOOP --once --out $t/f.txt --sweep" \
+tools/audit/seat/tick_loop.sh:428:      printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' && [ "$(git -C "$c" rev-parse HEAD)" = "$h" ]; }
+tools/audit/seat/tick_loop.sh:452:    [ -n "$names" ] && printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/poisoned.sh rc=0 network=0 remote_git=0 .* [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$" \
+tools/audit/seat/tick_loop.sh:473:      [ "$src" != 0 ] && [ -s "$t/shadow" ] && [ "$refs" = 0 ] && printf '%s\n' "$out" | grep -q -- '--self-test refused: the env -i re-exec' \
+tools/audit/seat/tick_loop.sh:474:        && ! printf '%s\n' "$out" | grep -q '^tick_loop self-test:'
+tools/audit/seat/tick_loop.sh:478:    [ "$src" = 0 ] && [ ! -e "$t/shadow" ] && [ "$refs" = 0 ] && printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$'
+tools/audit/seat/tick_loop.sh:485:    printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spied.sh rc=0 network=0 remote_git=0 git=[1-9][0-9]* .* offline [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$"
+tools/audit/seat/tick_loop.sh:488:    printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spyctl.sh rc=0 network=0 remote_git=1 git=1 .* REFUSED"
+tools/audit/seat/update_pr.sh:69:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && pr_busy "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"  # mut:elsewhere
+tools/pr/app_approve.sh:154:    403) printf '%s\n' "$status" | grep -qi 'secondary rate limit'; return ;;
+tools/pr/app_approve.sh:157:  printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
+tools/pr/app_approve.sh:303:    printf '%s\n' "$heads" | grep -q "^$h[[:space:]]refs/heads/" || ours=0
+tools/pr/app_approve.sh:440:          if printf '%s\n' "$bt" | grep -qxF "$e"; then
+tools/pr/app_push.sh:930:st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push INTed mid-prepr ends within 4 s, not behind prepr"
+tools/pr/app_push.sh:945:  st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push ${sig}ed mid-push, after the mint, ends within 4 s"
+tools/pr/app_push.sh:1088:# that quits at main's tip (`| grep -q`) kills rev-list with SIGPIPE, and
+tools/pr/prepr.sh:216:# No `| grep -q` below: under `pipefail` a grep that exits on its first match
+tools/pr/prepr.sh:1881:# `printf|echo ... | grep -q` under `set -o pipefail` reads a SIGPIPE'd writer
+tools/pr/prepr.sh:3198:  git --git-dir="$PDX/bodies.git" log -1 --format=%B refs/heads/handoff-body/zz-lint | grep -qx "Code: $(cd "$PDX/r" && git rev-parse HEAD)"
+tools/pr/prepr.sh:3200:  git --git-dir="$PDX/bodies.git" log -1 --format=%B refs/heads/handoff-body/zz-pnull | grep -q '^Code:'
+tools/pr/prepr.sh:3664:  # (1) An early match in a large input is still a match. `printf | grep -q`
+tools/pr/prepr.sh:3715:  # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
+tools/pr/push.sh:170:    "${1:-/dev/null}" | grep -qiF "$pfx"
+tools/pr/push.sh:206:    "$body" | grep -qE '^[[:space:]]*```' && return 2
