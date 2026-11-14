@@ -26,7 +26,7 @@ that does not is refused by name.
 steps, axis values, file. `rest` is resolved here, so a finder is handed files, not a rule.
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
---round <N> adds the start evaluation (dev/governance/decisions/0017-objective-function.md): round
+--round <N> adds the start evaluation (dev/governance/decisions/0018-objective-function.md): round
 N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
 --ref, every term is read or NO-READ with its reason, every object file has a verdict with
 evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
@@ -886,7 +886,7 @@ def main():
         # The two records --round reads are tracked files of the round that
         # writes them: with one of each in the tree the live scopes still cover
         # it, and an exclusion table without their directory names both. So a
-        # round that follows 0017 section 6 is not refused by coverage.
+        # round that follows 0018 section 6 is not refused by coverage.
         recs = set(records(11))
         bare_y = copy.deepcopy(scopes)
         bare_y["_coverage_excluded"] = {next(q for q in expand_braces(g) if not q.startswith(YARDSTICK)) if any(q.startswith(YARDSTICK) for q in expand_braces(g)) else g: r

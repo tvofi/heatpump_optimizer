@@ -1,4 +1,4 @@
-# 0017 — The objective function, and the evaluation that opens a round
+# 0018 — The objective function, and the evaluation that opens a round
 
 Status: proposed 2026-11-13 as roster group R11-PRE-OBJECTIVE-FUNCTION; in force
 from the owner's approving review of the pull request that lands it. Report-only
