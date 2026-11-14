@@ -86,7 +86,7 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
 | Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. In *auto* and *economy* mode it is never switched off less than 10 minutes after it came on, nor on less than 10 minutes after it went off, and a run the plan would end within 10 minutes is not started unless the step heats the tank and the tank needs heat now (below its minimum, or a disinfection hold); a held switch is retried every minute and changes once its 10 minutes have passed. The age is the switch's own, whoever switched it; after a Home Assistant restart it counts from the restart. A boost, the other modes and the measurement experiment are not held. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
-| Solar radiation sensor | none | Irradiance in W/m². Lets the plan skip heating before a sunny afternoon. |
+| Solar radiation sensor | none | Irradiance in W/m², the sun on the house now, which the learners read. The plan's later steps take the sun from the weather forecast; the sensor's reading stands in for the whole horizon only when no forecast is available. |
 | Solar irradiance source | Weather entity | `Weather entity` reads irradiance from your weather integration, which often does not publish any. `Open-Meteo` fetches a free forecast for the location below; no account needed. |
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
 | Floor heating return temperature sensor | none | Water coming back from the floor loops. Used to gauge how much heat the slab is holding. |
@@ -168,7 +168,7 @@ the wider it is, the further the house may coast through an expensive hour.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | What you actually want. The optimizer aims here and only drifts to avoid expensive hours. |
+| Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | The temperature the thermostat entity shows and sets; it must lie between the coldest and warmest acceptable temperatures. The plan aims at the daytime and night-time comfort temperatures below, and only drifts from them to avoid expensive hours. |
 | Coldest acceptable temperature | 19.0 °C | 14–25 | The coldest the plan will take the house. Priced, not fenced (see [how it works](how-it-works.md#the-objective-term-by-term)), but firm at any real price. |
 | Warmest acceptable temperature | 23.0 °C | 18–28 | A limit on pre-heating during cheap hours, never a target. Priced the same way; free solar gain can still carry a room past it. |
 | Daytime comfort temperature | 21.0 °C | 16–26 | Preferred temperature during waking hours. |
@@ -198,7 +198,7 @@ corrects them from how the house actually behaves, so they need not be exact.
 | Roughly when it was built | 1980–2005 | Before 1960 · 1960–1980 · 1980–2005 · After 2005 · Low-energy or passive house | A proxy for insulation standard, and a far better starting point than one global default. |
 | Foundation | Slab on ground | Slab on ground · Crawl space · Heated basement | A crawl space adds heat loss; a heated basement adds both loss area and mass. |
 | Heated floor area | 140 m² | 20–1000, 5 steps | Everything is scaled by this, so it is the number worth getting closest to right. |
-| Upper floor heating | Radiators | Radiators · Floor heating | Radiators respond in minutes, floor heating in hours. This sets how far ahead heat can usefully be shifted. |
+| Upper floor heating | Radiators | Radiators · Floor heating | Used only when the house is derived as two-zone: floor heating adds slab mass to the upper zone, and the share of the pump's output that goes to radiators follows it. A one-zone house ignores it. |
 | Lower floor heating | Floor heating | Radiators · Floor heating | A heated slab is a large store that gets actively charged, which makes pre-heating both more valuable and more necessary. |
 
 #### Your heat pump
@@ -229,7 +229,7 @@ declaration, and asks the model's own numbers:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| House thermal mass | 10.0 kWh/°C | 0.5–80, 0.5 steps | Heat stored per degree by the room air, furnishings and light fabric — roughly 0.02 kWh/°C per m² of heated area for timber, 0.05 or more for stone. Heavy floors are counted under the slab mass below, so this is not the whole building. |
+| House thermal mass | 10.0 kWh/°C | 0.5–80, 0.5 steps | Heat stored per degree by the room air, furnishings and light fabric — roughly 0.02 kWh/°C per m² of heated area for timber, 0.05 or more for stone. Where the house is derived from its description, a heated slab's heavy floor is counted under the slab mass below, so this is not the whole building; with radiators on a one-zone house the heavy floor is counted here. |
 | Heat loss coefficient | 0.15 kW/°C | 0.01–1.0, 0.01 steps | Heat lost per degree of indoor-outdoor difference. 0.25 kW/°C across a 20-degree gap means about 5 kW of demand. |
 | Slab floor thermal mass | 5.0 kWh/°C | 0.1–60, 0.5 steps | Heat stored per degree by whatever the heat is delivered through: the slab of a floor-heated house — the buffer that lets it be switched off through a price peak — or, with radiators, the water and steel of the radiator circuit, which is far smaller (about 0.2 kWh/°C for 100 m²). |
 | Slab-to-room heat transfer | 0.8 kW/°C | 0.02–5.0, 0.1 steps | How fast that store gives its heat to the room. Lower means a sluggish floor that must be charged further in advance; radiators sit far higher. |
@@ -275,7 +275,7 @@ the saving comes from.
 |---|---|---|---|
 | The house has a hot water tank | unticked, or your Quick setup answer | on/off | On: hot water is planned and the tank charged. Leave it off unless the heat pump really heats a tank; the other fields only apply while it is on. |
 | Hot water tank size | 200 L | 50–1500, 10 steps | A larger tank stores more cheap electricity and can skip more expensive hours. |
-| Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
+| Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. A disinfection cycle goes above it while the cycle runs. |
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames below. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Hot water used per day | 150 L/day | 50–1500 | Roughly your household's daily draw. Used to size what to store before each period. |
 | Tank heat loss | 0.3 °C/h | 0.05–3.0, 0.05 steps | Standby cooling at 45 °C in a 20 °C room. A starting point only: the real rate is measured and refined. |
@@ -381,7 +381,7 @@ weekday plan.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | What you actually want. The optimizer aims here and only drifts to avoid expensive hours. |
+| Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | The temperature the thermostat entity shows and sets; it must lie between the coldest and warmest acceptable temperatures. The plan aims at the daytime and night-time comfort temperatures below, and only drifts from them to avoid expensive hours. |
 | Coldest acceptable temperature | 19.0 °C | 14–25 | The coldest the plan will take the house. Priced, not fenced, but firm at any real price. |
 | Warmest acceptable temperature | 23.0 °C | 18–28 | A limit on pre-heating during cheap hours, never a target. |
 | Daytime comfort temperature | 21.0 °C | 16–26 | Preferred temperature during waking hours. |
@@ -471,7 +471,7 @@ The temperatures the schedule holds the tank to:
 |---|---|---|---|
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
-| Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
+| Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. A disinfection cycle goes above it while the cycle runs. |
 | Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` / `water_heater` | Optional. The pump's own DHW set-point, used to notice when it cannot be read and, with **Pump duty control** at Control, written with the hot water set-point above. |
 | Run an anti-legionella cycle | on | on/off | Because the tank spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
@@ -561,7 +561,7 @@ A pump integrated through `tuya_heat_pump` has a device and no package.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Heat pump device (optional) | — | device | The pump's own device. Its entities are mapped to settings by a table derived from that integration's published definitions — not from a reading of your unit — so check the suggestions before saving. A device the integration has no table for is refused, and you can name a prefix instead. This pick is never stored. |
+| Heat pump device (optional) | — | device | The pump's own device. Its entities are mapped to settings by a table derived from that integration's published definitions where one exists, and the settings the table leaves empty, or every setting of a device with no table, by each entity's type, unit and name — not from a reading of your unit — so check the suggestions before saving. A device from which nothing can be read is refused, and you can name a prefix instead. This pick is never stored. |
 | Modbus package entity prefix | `hp` | text | The start of the package's entity ids — `hp` for `sensor.hp_outdoor_air_temperature`. Used when no device is picked, and saved only when the package was found under it. |
 | Offer this pre-fill at setup | off | on/off | When on, creating a new entry offers this page while you are setting up, if a heat-pump device that has been added to the install can fill any of these settings. Nothing is written until you submit the offered page, leaving the device empty skips it, and the wizard is unchanged while this is off. Stored, so it applies to every entry and survives a restart. |
 
@@ -641,7 +641,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Heat pump thermal power meter | none | a `power` sensor in W or kW | The heat the pump delivers, from a heat meter. Published as `measured_heat_output_kw` on the Recommended Power sensor. With the power meter, COP is measured (heat over electricity) rather than inferred from the commanded draw, and the efficiency scale is judged at the supply temperature the pump actually ran at when a supply sensor is mapped, so it stops absorbing weather-driven lift as wear. The house heat-loss and lower-floor learners replay the measured heat for a space-heating interval, and the capacity curve takes it at every load as a floor (it may raise a bucket; only near-nameplate intervals count towards capping). When set it replaces the water flow sensor's estimate, also in a cycle where its own reading is unusable, and an unusable reading pauses the learners that read it. |
 | Heat pump power meter: meter or estimate (`heat_pump_power_source`) | auto | auto, meter or estimate | Whether the power meter measures or is the pump's own estimate (an "Estimated Power Draw" sensor). Auto reads an entity whose id contains `estimat` as an estimate. An estimate trains every learner as a meter does, but heat over estimated power is the vendor model's COP, so no COP is shown as measured and the heat pump is not graded. |
 | Heat pump thermal power meter: meter or estimate (`heat_pump_thermal_power_source`) | auto | auto, meter or estimate | The same answer for the thermal power meter (an "Estimated Heating Output" sensor is an estimate). |
-| Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
+| Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter of the pump's electricity: the electricity side of the efficiency measured with the heat energy meter, and the `energy_meter` attribute of the Measured Power sensor. On its own it changes no plan. |
 | Heat pump heat energy meter | none | an `energy` sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over each span of about an hour, so short compressor runs count, and when set it is used instead of the thermal power meter and the water flow sensor. With the energy meter on the same read instants, efficiency is measured as heat over electricity for the span; the house heat-loss learner replays the heat that was delivered. A span whose counter went backwards (a meter reset), jumped past the pump's nameplate, or whose counter resolution is too coarse for the heat expected in it is not learned from. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent in each mode; without that entity, or in a combined mode, the split falls back to the plan's, and an hour that heated the tank is not read as space heating. |
 | Heat reading covers hot water (`heat_meter_sees_dhw`) | off | on or off | Turn on only if the heat energy meter, or else the thermal power meter, also measures the heat sent to the hot-water tank (a meter ahead of the diverter valve). Off, a hot-water interval records no measured COP. A measured COP, and the heat pump grade, need metered heat over metered power; without a heat reading at all the Health tab says COP cannot be measured on this install. |
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
@@ -1178,7 +1178,7 @@ reads SEK, that is a label, not a constraint.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules and the peak-tariff fields. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
+| Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules, sets the grid transfer fee to Time-of-use rules, switches the peak tariff on and fills its fields. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
 | Grid transfer fee | None | None / Time-of-use rules / Live sensor | The fee your grid company adds per kWh. Spot prices do not include it, so with it configured the plan finally sees the whole marginal price. |
 | Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of the rules or the live sensor. Ignored while the grid transfer fee is None. |
 | Time-of-use fee rules | empty | one rule per line | For example `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`. Month, weekday and time parts are each optional; overlapping rules add together. A rate must be zero or above and at most 10 per kWh — a negative rate or one that size is refused when the page is saved, since the first is a sign slip and the second is öre typed where whole units were meant. |
