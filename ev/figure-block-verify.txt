@@ -1,0 +1,2 @@
+figure_block verify: 1 block(s), 0 refused
+rc=0
