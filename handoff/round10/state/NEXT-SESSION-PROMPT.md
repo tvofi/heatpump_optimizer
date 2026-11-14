@@ -14,7 +14,6 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-USER-DOCS-VERIFY (stage carries-open, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -28,7 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-REFERENCE-BASIS (stage in-progress, branch `handoff/r10-hotfix-reference-basis`): `git fetch origin handoff/r10-hotfix-reference-basis && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-HOTFIX-REFERENCE-BASIS, R10-USER-DOCS-VERIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-CLOSEOUT-CLEANUP, R10-HOTFIX-REFERENCE-BASIS
 
 ## Resume steps
 
