@@ -1,0 +1,4 @@
+selftest_scope static: 116 gated step(s), 0 problem(s)
+selftest_scope self-test: 120 checks, 0 failed
+at code head 1542231b10:
+selftest_scope self-test: 120 checks, 0 failed
