@@ -4,46 +4,39 @@ base: bb7dfb9bd6c68548d1a956adc411be91e02965e0
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
+## Gate digest: red
 CodeQL id=128746455645 success
-arch-score / arch-score id=128835968059 success
+arch-score / arch-score id=128746409691 success
 arm id=128746277536 skipped
-budget-raise-gate / budget-raise-gate id=128835952972 success
-cancel-superseded id=128835952160 success
-codeql id=128835979959 skipped
+budget-raise-gate / budget-raise-gate id=128746409837 success
+cancel-superseded id=128746279582 success
+codeql id=128746406435 skipped
 codeql / Analyze (actions) id=128746409750 success
 codeql / Analyze (javascript-typescript) id=128746409666 success
 codeql / Analyze (python) id=128746409800 success
-gate id=128835952032 success
-governance id=128835965826 skipped
+gate id=128746734275 failure
+governance id=128746406327 skipped
 governance / delivery-status id=128746409720 success
 governance / delivery-status-publish id=128746411273 skipped
-governance / env-matrix id=128746409744 success
-governance / instrument-self-tests id=128746409871 success
+governance / env-matrix id=128746409744 in_progress
+governance / instrument-self-tests id=128746409871 in_progress
 governance / policy-docs id=128746409767 success
 governance / record id=128746410585 skipped
 governance / wave-script id=128746409863 success
-hassfest id=128835983939 skipped
+hassfest id=128746406103 skipped
 hassfest / hassfest id=128746409611 success
-kernel-points id=128835985215 skipped
-pr-contract id=128835952765 skipped
-pr-contract / pr-contract id=128752423423 success
-prelude id=128835993336 success
-refresh id=128835981539 success
-tests id=128835966315 skipped
+kernel-points id=128746410377 skipped
+pr-contract id=128746735236 skipped
+prelude id=128746279502 success
+refresh id=128746279320 success
+tests id=128746406730 skipped
 tests / arch-instrument id=128746631025 success
 tests / briefs id=128746409736 success
 tests / browser id=128746630995 success
-tests / ci-ratchet id=128752288531 skipped
-tests / claims-autofix id=128750224159 skipped
 tests / closure-scope id=128746409755 success
-tests / closures id=128746630939 success
-tests / closures-autofix id=128750689117 skipped
-tests / coverage id=128746631039 success
-tests / coverage-ratchet id=128752287098 success
-tests / fast (3.14) id=128746631032 success
-tests / graders-head-copy id=128752287154 success
-tests / lane-proofs id=128752287092 success
+tests / closures id=128746630939 in_progress
+tests / coverage id=128746631039 in_progress
+tests / fast (3.14) id=128746631032 in_progress
 tests / mutation id=128746409727 success
 tests / mutation-autofix id=128746695471 skipped
 tests / mutation-pins id=128746695458 skipped
@@ -51,11 +44,12 @@ tests / nightly-ha id=128746632602 skipped
 tests / nightly-status id=128746409751 success
 tests / replay id=128746632200 skipped
 tests / typing id=128746631052 success
-validate id=128835952817 skipped
+validate id=128746406695 skipped
 validate / validate-hacs id=128746409640 success
 
 ## Refusals
-none
+red-unanswered: concluded red check `gate` is not named in ## Red checks
+required-red: required context `gate` concluded failure at 18850191756612458a8a83d581789e04c25802fb
 
 ## Advisories
 none
