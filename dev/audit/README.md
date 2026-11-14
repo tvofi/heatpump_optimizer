@@ -59,8 +59,7 @@ only after tvofi says they opened the card's tabs on it, never without.
 
 **Round 10's final shape** (owner cards 1, 2 and 6, 2026-10-24):
 
-- The standing set: the triage seat (`proposal-triage.md`) and the beat jobs
-  `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
+- The standing set: the beat jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
   `jobs/<row>`: the tick seat's `tick-digest` and `owed-check`, the roster
   seat's `roster-drain`; the merge seat runs `train.sh` under
   `tools/audit/seat/daemonize.py`; the dispatch and relay seat has no row and
@@ -89,8 +88,8 @@ machinery group names its ground; the merge seat checks it at admission. Of the 
 `tools/plan/replan.py`), 10 slots (the owner's count, not a tree value) are reserved for
 `custom_components/` pull requests; a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
-is accepted only when its friction blocks a production merge, else ruled LOG
-(`proposal-triage.md`). Exempt from all three: a proposal proving over 20% on
+is accepted only when its friction blocks a production merge, else ruled LOG.
+Exempt from all three: a proposal proving over 20% on
 CI time, programme completion time, right-first-time rate or token usage,
 against a measured baseline and a null control
 (`dev/governance/rules/ratchet-budgets.md`).

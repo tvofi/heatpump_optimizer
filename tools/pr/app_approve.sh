@@ -287,8 +287,19 @@ driver_wrote() {
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb
-  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb ob anc
+  # rc 1 is a measured non-ancestor, rc 128 a missing object: reading both as
+  # "not an ancestor" parked a verdict that did carry (the merge train's #3198
+  # park, a checkout without the objects). Fetch what is absent, then tell them apart.
+  for ob in "$v" "$h"; do
+    git cat-file -e "$ob^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$ob" >/dev/null 2>&1 || :
+  done
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null; anc=$?
+  [ "$anc" -eq 0 ] || {
+    if [ "$anc" -eq 1 ]; then echo "$v is not an ancestor of $h"
+    else echo "cannot read the ancestry of $v and $h (git merge-base rc=$anc: an object is missing after a fetch from origin); not judged"; fi
+    return 1
+  }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
   # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
@@ -1673,6 +1684,22 @@ st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content
 ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
 st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
+# A checkout that lacks the objects (the merge train's #3198 park): the carry
+# fetches V and the head by sha from origin before it judges the ancestry. The
+# clone is single-branch, so V and the head are on origin but not in it; they are
+# kept reachable on refs/test/* so a fetch by sha can serve them. A file:// URL,
+# since a plain path clones by copying every object.
+g push -q origin "$V:refs/test/v" "$H_MERGE:refs/test/h"
+throwaway_git_clone -q --single-branch --branch main "file://$W/remote.git" "$W/bare_clone" >/dev/null 2>&1
+carried_bare() { ( cd "$W/bare_clone" && bash "$SELF" --carry "$1" "$2" origin/main ) > "$W/carry.out" 2>&1; }
+st "$(git -C "$W/bare_clone" cat-file -e "$V^{commit}" 2>/dev/null && echo present || echo absent)" absent "the fresh clone lacks the verdict commit"
+carried_bare "$V" "$H_MERGE"; st $? 0 "CARRY: V and the head absent from the checkout are fetched, then judged"
+st "$(grep -c '^CARRY: yes' "$W/carry.out")" 1 "printing CARRY: yes"
+carried_bare "$M1" "$V"; st $? 1 "NO CARRY: a true non-ancestor still reads as one (null control)"
+st "$(grep -c "is not an ancestor of" "$W/carry.out")" 1 "naming the ancestry"
+carried_bare 0123456789012345678901234567890123456789 "$H_MERGE"; st $? 1 "NO CARRY: an object origin does not have is not judged"
+st "$(grep -c "cannot read the ancestry" "$W/carry.out")" 1 "saying it cannot read the ancestry"
+st "$(grep -c "is not an ancestor of" "$W/carry.out")" 0 "and not calling it a non-ancestor"
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.

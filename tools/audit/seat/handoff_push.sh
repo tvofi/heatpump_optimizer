@@ -1,24 +1,20 @@
 #!/bin/bash
 # handoff_push.sh <handoff-topic> <code-sha-full> "<title>" [merge-main]
 # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
-# retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
-# row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
+# retitles the PR and fixes ## Head. No delivery row is written (card C5, tvofi 2026-11-05).
 # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
 # dev/programme/HANDOVER.md names it.
-# --self-test runs delivery_row.sh's self-test and this script's own offline
-# one: the three push calls are driven over a scratch origin with a stub
-# app_push, so a push line replaced by `true` reddens it (#2444).
+# --self-test runs this script's own offline one: the push calls are driven
+# over a scratch origin with a stub app_push, so a push line replaced by `true`
+# reddens it (#2444).
 set -uo pipefail
 SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$SEAT/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
-# The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
-# writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
-. "$(dirname -- "$0")/delivery_row.sh"
 
-# The three push calls' own fixtures (#2444's fourth forward-carry). A scratch
+# The two push calls' own fixtures (#2444's fourth forward-carry). A scratch
 # origin carries handoff/g (open) and handoff/h (update, with fix/h on origin);
-# the clone holds this script, the row writer and head_note.py, and its
+# the clone holds this script and head_note.py, and its
 # tools/pr/app_push.sh is a stub that records every call. The open path must
-# push twice -- the pull request, then its row -- and the update path once.
+# push once, as does the update path.
 # This self-test copies THIS file into the clone, so the mutant proof is a
 # push line replaced by `true` in the real file: the null control then finds
 # a call missing and the step exits 1.
@@ -46,7 +42,7 @@ handoff_push_self_test() (
     && git -C "$o" update-ref refs/heads/handoff-body/t "$body" \
     && throwaway_git_clone -q "$o" "$m" \
     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
-    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
+    && cp "$src/handoff_push.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
     && printf '#!/bin/bash\n[ "$(git -C "$2" rev-parse HEAD)" = "$(git -C "$2" rev-parse --verify "refs/heads/$3")" ] || { echo "app_push: REFUSE: HEAD is not the committed tip of $3"; exit 1; }\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
     && chmod +x "$m/tools/pr/app_push.sh" \
@@ -64,7 +60,7 @@ handoff_push_self_test() (
       git -C "$m" worktree remove --force "$w" 2>/dev/null
     done
     git -C "$m" branch -D "fix/$topic" >/dev/null 2>&1
-    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/"
+    cp "$src/handoff_push.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/"
     [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
     [ "$exists" = "$t/pr-exists" ] && : > "$exists"
     : > "$t/push"
@@ -74,11 +70,11 @@ handoff_push_self_test() (
     echo $? > "$t/rc"
   }
   run open
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 2 ] \
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
     && grep -q 'RESULT pr=42 head=' "$t/out"
-  ck "null control: the open path pushes the pull request, then its row" $?
+  ck "null control: the open path pushes the pull request once" $?
   ! git -C "$t/wt$i/fix-g" symbolic-ref -q HEAD >/dev/null 2>&1 && [ -d "$t/wt$i/fix-g" ]
-  ck "the open path leaves its worktree detached at the row's pushed head (P64)" $?
+  ck "the open path leaves its worktree detached at the pushed head (P64)" $?
   run update
   [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
     && grep -q 'RESULT pr=42' "$t/out"
@@ -106,9 +102,7 @@ handoff_push_self_test() (
 
 if [ "${1:-}" = --self-test ]; then
   [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded handoff_push bash "$0" --self-test; }  # pr_args.sh's self-test bound
-  bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
-  handoff_push_self_test; h=$?
-  [ "$r" = 0 ] && [ "$h" = 0 ]; exit $?
+  handoff_push_self_test; exit $?
 fi
 # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
 # trap reaps it, and each push runs asynchronously (push_app) so an INT does not wait behind it.
@@ -180,14 +174,11 @@ echo "intended closes: ${ISSUES:-none}"
 if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # update an open PR to a new code head
   N=$(gh pr view "$BR" --json number --jq .number)
   ( cd "$WT" && git fetch -q origin "$BR" && git checkout -q --force -B "$BR" "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
-  # A previous head with no row (a refused second push below) gains it here, or it never would.
-  _added=$(ensure_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")") || { echo "ROW commit for #$N failed"; exit 1; }
   H=$(git -C "$WT" rev-parse HEAD)
-  PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" "$_added" <<'E3'
+  PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" <<'E3'
 import sys; from head_note import prefix
-p,H,C,N,A=sys.argv[1:6]; s=open(p).read()
-how="then adds one commit containing only its own row" if A else "which carried its own row"
-s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head, %s `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,how,N))
+p,H,C=sys.argv[1:4]; s=open(p).read()
+s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head.\n\n"%(H,C))
 open(p,'w').write(s)
 E3
   push_app 2  # mut:push-update
@@ -215,15 +206,6 @@ echo "$out" | cut -c1-200
 N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
 gh pr edit $N --title "$TITLE" >/dev/null
 [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
-export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
-commit_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")" >/dev/null || exit 1
 H=$(git -C "$WT" rev-parse HEAD)
-PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" <<'E'
-import sys; from head_note import prefix
-p,H,C,N=sys.argv[1:5]; s=open(p).read()
-s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
-open(p,'w').write(s)
-E
-push_app 1  # mut:push-row
 case $PUSH_OUT in *PUSHED*) pr_release_wt "$WT" "$BR" "$H" ;; esac  # mut:hprelease
 echo "RESULT pr=$N head=$H"

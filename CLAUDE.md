@@ -87,8 +87,8 @@ Codex); it states no policy and binds the seat to this file.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | a PR's row as `dev/programme/delivery/<N>.md`, roster `resume`, and one #3394 comment per state change — at each merge, not at session end; the record outranks any wave body |
-| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |
+| `delivery-status-tracking.md` | the record is the pull-request list and one #3394 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
+| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed at the latest at the producing pull request's merge — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
 | `writing-for-agents.md` | what a sentence in the development record must carry to stay; `README.md` and the rest of `docs/` are outside it; and the one living handover, durable in the tree against volatile on #3394 |
@@ -112,12 +112,11 @@ Under `dev/governance/roles/`.
 |---|---|
 | `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; Cursor turn `nudge.md` |
 | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
-| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
+| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; blocks on code, tests and harness, paperwork is a note; a verdict carries while the PR's own diff is unchanged |
 | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
 | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
 | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
 | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
-| `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
 | `standing.md` | the standing seats' shared terms |
 | `standing-merge.md` | runs merges, critical path first, never choosing them |
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
@@ -209,6 +208,6 @@ that far, established in its own seat beside the fix and never inside it. The
 two triggers, the four process states, the cost test, when recording that no
 countermeasure is worth building is a legitimate result, and the demonstration a
 check-shaped countermeasure owes are in `defect-root-cause.md` and
-`root-cause.md`. Only the red-check trigger is enforced: the fixer names the
-check in the pull-request body and answers it there, and the fix reviewer
-returns `blocked` on one the body left unanswered.
+`root-cause.md`. The fixer names a red check in the pull-request body and
+answers it there; an unanswered one is a reviewer's note resolved at merge (card
+C5).

@@ -27,9 +27,7 @@ cannot answer the second, you have not measured — you have expected.
 
 - Describing an artifact without opening it is the same defect. A wrong claim
   is corrected under `fixer.md` step 9.
-- **Never print a conclusion beside a command** (`fixer.md` step 3): the
-  `(empty means identical)` form shipped a commit message asserting untouched
-  files that carried fourteen changed lines.
+- **Never print a conclusion beside a command** (`fixer.md` step 3).
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Use `check && publish` — and for the body and the
   push, that `&&` is already wired as `tools/pr/push.sh` (#678).
@@ -37,8 +35,7 @@ cannot answer the second, you have not measured — you have expected.
 ## 2. Delegate what a seat can do; do only what only you can do
 
 **Work a worker can do is dispatched, not performed.** You hold context and
-authority no seat has — sequencing, merging, the record, the freeze, stamps,
-and speaking to the owner. Everything else is a seat's.
+authority no seat has; everything else is a seat's.
 
 The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
 with a harness they wrote is measuring themselves*. Work you perform needs a
@@ -67,15 +64,14 @@ target or the critical chain would feel goes back to the owner first.
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
 `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
-instance by you counts toward the third: three symptoms recorded separately are
-worth less than one analysis of why they were possible. The product, the four
+instance by you counts toward the third. The product, the four
 process states and the demonstration a check owes are `root-cause.md`'s and
 `defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
 
 ## 4. The merge message is a second closing surface
 
-A pull request's closing references describe its **body**, and no method on
-the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
+A pull request's closing references describe its **body**, and no GitHub
+tool method here exposes them. The merge message is a separate artifact, written by you at merge
 time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
 merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
@@ -93,7 +89,7 @@ whenever you merge.
   refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
   Opening or updating a pull request for an owed handoff is never refused by it.
 - **A ready critical-path group starts regardless of every cap** (tvofi,
-  2026-10-22, restated three times): a group in the current plan's
+  2026-10-22): a group in the current plan's
   `critical_path` whose `after` groups are all done, and whose design verdict
   is approved where it has one, is dispatched at the WIP cap, a drain-first
   hold, a coordinator K/2 limit or the seat cap alike, with `pr_cap.py
@@ -112,13 +108,20 @@ whenever you merge.
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
-- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
-  tooling or instrument proposal from the sweep, a seat's result or a verdict.
-  Where a mandate lets you act on a recommendation absent the owner, that means
-  sending it to triage; an ACCEPT reaches the roster citing its ruling.
+- **A proposal is ruled directly, by the owner or by you** (no standing triage
+  seat; card C6, tvofi 2026-11-05): a process, tooling or instrument proposal
+  from the sweep, a seat's result or a verdict is wired in only when its
+  measured benefit clearly outweighs its cost. A countermeasure policy requires
+  (root cause, red-check carry, finding fix; see Machinery) keeps its route. An
+  exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says so; its PR
+  records it. **Machinery:** a planned instrument/machinery group, or existing
+  non-production CI lane or seat, stays only on a measured gain of at least 10%
+  on them. Repair of such code (outside `custom_components/`) with roster
+  `severity` `low` or `normal` meets both (over 20% to add); `medium`, `high`,
+  `major`, `critical`, root-cause countermeasure, closeout, owner directive skip
+  them; unset is classified first, never assumed major.
 - **Establish the work is not already done or in flight.** One
-  `list_pull_requests` over the open set, and the issue's comments: a seat
-  was dispatched to fix what an open pull request fixed.
+  `list_pull_requests` over the open set, and the issue's comments.
 - **Give it the constraints that already exist**: findings carried into its
   stage, the numbers it must re-measure, and the destination its carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
@@ -138,11 +141,10 @@ whenever you merge.
   fixer only after `Design review: approve <sha>`, read back from
   `design-verdict/<group>`. The approved note is its architect note.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
-- **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
-  relative one resolves against the seat's cwd, which was yours for three seats.
-  Seats share one scratchpad, `/tmp` and process table, and a generic name at a
-  root has destroyed another seat's work. It stops only a PID it started, never
-  by pattern.
+- **Name its scratch directory ABSOLUTE, and its own worktree under it.** Seats
+  share one scratchpad, `/tmp` and process table, and a generic name at a root
+  has destroyed another seat's work. It stops only a PID it started, never by
+  pattern.
 
 ## 5b. Before dispatching a seat to a lane, read the ref, not the record
 
@@ -151,8 +153,7 @@ opener, never a fresh implementer.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
-Not by reading the diff. A word-level diff licensed a union that silently dropped
-a clause, in a commit claiming nothing was dropped.
+Not by reading the diff.
 
 When both sides carry real content, **union rather than take a side**, and prove
 it: reconstruct both parents and read the merged result back for each side's
@@ -192,8 +193,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
-frozen by the handoff costs a record pull request; that is the price.
+`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #3394 line and roster `resume`,
+no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 **Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
 sets.
@@ -231,7 +232,7 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
-  <head>` names miss the branch's own diff bar its delivery row,
+  <head>` names miss the branch's own diff,
   or keep its patch (L6); else a resolution delta for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:

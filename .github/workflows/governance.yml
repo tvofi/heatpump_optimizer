@@ -25,7 +25,7 @@ name: Governance
 # Inside a called workflow `github.event_name` and `github.event` are the
 # caller's, so every job's `if:` and every `github.event.pull_request.*`
 # expression below reads the umbrella's event unchanged; the push guards on
-# `record` and `delivery-status-publish` are the same text they were.
+# `record` is the same text they were.
 #
 # The umbrella's pull_request types carry no `edited`, which the header above
 # explained for this file's own list (#1514): a body edit starts nothing here.
@@ -967,13 +967,12 @@ jobs:
           python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
           grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
 
-      - name: Show the handoff push and its row writer refusing their own fixtures
+      - name: Show the handoff push refusing its own fixtures
         id: handoff-push
         if: ${{ !cancelled() && steps.scope.outputs.handoff-push == 'true' }}
         run: |
           set -o pipefail
           bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
           grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
 
       - name: Show the handover prompt refusing its own fixtures
@@ -1859,7 +1858,7 @@ jobs:
       # not this file's judgement: #201 comment 5670207248 item 4 approves
       # `issues: write` on this one job. It is declared on the job that uses it
       # rather than the workflow floor precisely so no other lane inherits it:
-      # `policy-docs`, `env-matrix`, `wave-script` and `delivery-status` keep
+      # `policy-docs`, `env-matrix` and `wave-script` keep
       # the read-only floor, `pr-contract` (its own file) keeps what it holds,
       # and the set of overriding jobs is pinned in tests/entities.py as the
       # blast radius.
@@ -1939,6 +1938,8 @@ jobs:
       # here cannot block an unrelated merge.
       - name: Every merged pull request has a disposition
         id: refusal
+        # card C5 (tvofi 2026-11-05): the record no longer grades main; the verdict stays in the summary
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -2098,162 +2099,3 @@ jobs:
             echo "the record protocol promises, cleared by the next \`record:\` beat writing"
             echo "the row. The job is not a required context and must not become one."
           } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
-
-  # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
-  # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
-  # pointed at `record` instead of the nightly, because #533 and this are the
-  # same shape: a conclusion that lands on a commit nobody re-reads.
-  #
-  # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
-  # and the job above says why. The defect, when this job shipped, was that
-  # `record` -- then one of the required contexts the `main-protect` ruleset's
-  # endpoint returned, and since dropped from them by #884 -- reported
-  # `skipped` on the only event a seat reads it at: every other required
-  # context `success` and `record` alone `skipped` at #734's head `b63470b`.
-  # The live set is the required checks that endpoint returns, never a count
-  # from here. So the disposition rule is enforced only after a
-  # merge and the red lands on whoever pushes next: seven red-`main` events in
-  # the five days to 2026-09-10, the last of them #734 merging with no row nine
-  # hours after #708 landed the protocol saying the row precedes the merge.
-  # This does not prevent that merge. It converts "`main` is red and nobody
-  # looks" into "every open pull request says so". Root cause on #541 comment
-  # 5622000848; its home for the record is #678, where (c) is already recorded
-  # for the identical cause on a different surface.
-  #
-  # It must NOT be added to `main-protect`'s required contexts. That is a
-  # ruleset change and a separate owner decision, and requiring it would make
-  # one lane's unfixed red refuse every unrelated merge in the repository -- for
-  # a condition the pull request's author did not cause and usually cannot fix.
-  # The report says so on every run, green as well as red.
-  #
-  # Pull requests only. A lane reporting on `main`'s own state must not be able
-  # to turn `main` red: that would put the reporter inside the thing it reports
-  # on, and one unfixed row would redden every subsequent push.
-  # The delivery ledger, which replaced `record-status`'s predicate. See
-  # `tests/delivery_status.py` for the measurement that motivated it: `record`
-  # concluded `failure` on 28 of main's last 40 commits, in six streaks each
-  # ended by a `record:` leftover-row commit, because it asked whether every
-  # merge has a row RIGHT NOW while the protocol promises a row SOON, in a
-  # batch. This asks what the protocol actually promises.
-  #
-  # On a pull request it reports and does not gate: `--check` is passed so a
-  # genuinely stalled batch is red, and pending merges are printed by name,
-  # which is the part a seat can act on and which a tick never was.
-  #
-  # `--since` is deliberately not passed: the window is the last release tag,
-  # and a fixed one would report the same closed window for ever.
-  # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
-  # taking no `--run`.
-  delivery-status:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # The window is `<last tag>..origin/main`, so the tags and main's
-          # history both have to be here. A shallow clone would silently
-          # report an empty window, which is the vacuous green this check
-          # names as its own failure mode.
-          fetch-depth: 0
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-
-      # No `pip install`, the same reason `record-status` had none: a reporter
-      # whose job is to notice that something went dark must not be breakable
-      # by the dependency set, and it costs seconds beside a forty-minute gate.
-      # PINNED (decision 0013): restored from the base, checked byte-identical
-      # to the base's object, and run under `-I -S`, all in this one step.
-      # Nothing before it in this job runs the pull request's code: after
-      # anything that did, the job would be the pull request's (it could
-      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
-      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
-      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
-      # a lint that refuses the forms known to break it. The pull
-      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
-      # not required.
-      - name: Report what is pending and what is overdue a row
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          git checkout "$PINNED" -- \
-            'tests/delivery_status.py' \
-            'tests/layout.py'
-          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
-          git fetch --no-tags --quiet origin main
-          python -I -S tests/delivery_status.py --check
-
-  # #201's region, regenerated on every push to main. The ledger itself needs
-  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
-  # builds it from git alone, so any clone answers
-  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
-  # the same content in a delimited region so the issue's own text survives.
-  #
-  # THE LANE WRITES NOTHING THAT LANDS ON MAIN, and that is its fixed point.
-  # The ledger lists every merge in the window with `commits_after`, so it
-  # moves on EVERY push to main. #1011's Option 2 landed it through a
-  # `ci/delivery-ledger` PR, and merging that PR was itself a push to main
-  # that moved the ledger again: nine of the eleven ledger PRs were opened
-  # 14-22 s after the previous one merged, each a merge with no row, main
-  # churn, and an open PR that decision 0009 step 6's quiet moment never got
-  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
-  # this repository, so one push yields at most one edit and nothing else.
-  # The JSON goes to the job summary; `tests/entities.py` pins that no step
-  # pushes, opens a PR or holds SEAT_AUTHOR_TOKEN.
-  delivery-status-publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # `issues: write` edits #201's region; `contents: read` restates the
-    # workflow floor a job-level block replaces, for the checkout.
-    permissions:
-      contents: read
-      issues: write
-    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
-    # two runs' read-modify-write of #201's body must not interleave. Each run
-    # regenerates wholesale from its own push, so the newer supersedes the
-    # older outright and cancel-in-progress loses nothing.
-    concurrency:
-      group: delivery-status-publish
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-
-      - name: Regenerate the ledger and put it in #201's region
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
-          { echo '```json'; cat "$RUNNER_TEMP/ledger.json"; echo '```'; } \
-            >> "$GITHUB_STEP_SUMMARY"
-          python tests/delivery_status.py \
-            --from "$RUNNER_TEMP/ledger.json" --markdown > "$RUNNER_TEMP/region.md"
-          python - <<'PY'
-          import os, pathlib, subprocess, sys
-          sys.path.insert(0, "tests")
-          import delivery_status as ds
-          body = subprocess.run(
-              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
-              capture_output=True, text=True, check=True).stdout.rstrip("\n")
-          region = pathlib.Path(os.environ["RUNNER_TEMP"], "region.md").read_text()
-          updated = ds.splice(body, region.rstrip("\n"))
-          if updated == body:
-              print("#201's region is already current")
-          else:
-              pathlib.Path(os.environ["RUNNER_TEMP"], "body.md").write_text(updated)
-              subprocess.run(
-                  ["gh", "issue", "edit", "201", "--body-file",
-                   os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
-              print("#201's region updated")
-          PY

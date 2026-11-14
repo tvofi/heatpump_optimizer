@@ -151,7 +151,7 @@ ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
 REMOTE=${HPO_BUS_REMOTE:-origin}
 REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
 #: A pull request's own delivery row (`dev/programme/delivery/<N>.md`,
-#: delivery-status-tracking.md). `dispatch` reads it off the head.
+#: delivery-status-tracking.md). `dispatch` no longer reads it (card C5); delivery_row.sh's self-test pins it here.
 ROW_DIR=dev/programme/delivery
 POSTER=${HPO_BUS_POSTER:-}
 if [ -z "$POSTER" ]; then
@@ -202,11 +202,25 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
   [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
   return 0
 }
-bot_only() { # head -> rc 0 when the commits in <remote>/main..head are all, and at least one, dependabot[bot]'s
-  local a
-  git fetch -q "$REMOTE" main 2>/dev/null
-  a=$(git log --format=%an "$REMOTE/main..$1" 2>/dev/null) || return 1
-  [ -n "$a" ] && [ -z "$(grep -vxF 'dependabot[bot]' <<< "$a")" ]  # mut:botonly
+#: THE CHEAP CHECKS (card C8): a dispatch waits for these to conclude at the head, and no other check.
+#: Check-run names as GitHub reports them, `<caller job> / <called job>` for a reusable workflow
+#: (the form tools/policy/fixtures/required-contexts.json's gate_required lists).
+#: Each caller job in ci.yml needs only `prelude`: a job that needs another unit (pr-contract
+#: needs every one) has no check run while the head is WAIT, so it would never gate a dispatch
+#: (cheap_caller_ok; the self-test reads ci.yml for every entry).
+CHEAP_CHECKS=(
+  "tests / mutation"         # .github/workflows/tests.yml job `mutation`, called as `tests` by ci.yml
+  "tests / typing"           # .github/workflows/tests.yml job `typing`
+  "governance / policy-docs" # .github/workflows/governance.yml job `policy-docs`, called as `governance` by ci.yml
+)
+cheap_caller_ok() { # check-run name, ci.yml -> rc 0 when its caller job needs only prelude
+  awk -v j="${1%% / *}:" '$0 == "  " j { f = 1; next } f && /^  [^ ]/ { exit } f && /^    needs:/ { print $2; exit }' "$2" \
+    | grep -qx prelude
+}
+pending_checks() { # head -> the names of the head's check runs not yet completed, one per line; rc 1 unreadable
+  if [ -n "${HPO_BUS_PENDING:-}" ]; then ${HPO_BUS_PENDING} "$1"
+  else gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'
+  fi
 }
 numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
 approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
@@ -433,7 +447,7 @@ review_status() { # pr [want] -> prints BUS undispatched|unconfirmed|refused; al
 }
 
 post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned line; rc 0 posted
-  local pr c d first hsha body who sig
+  local pr c d first hsha body who sig cls rc
   unpack verdict "$1" "${2:-}" || return 1
   if grep -qx "$pr $c" "$S/posted" 2>/dev/null; then
     printf 'BUS refused %s %s: already posted\n' "$pr" "$c"; return 1
@@ -446,6 +460,20 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
   # review of PROC-4), or re-encode its signature line (round 3). What is
   # signed is "<pr> <tree>", so each tree posts once per pull request whatever
   # commit or encoding carries it; each round's nonce makes its tree distinct.
+  # THE MERGE VERDICT'S HEAD (card C8): refused at a head with a concluded red; only `classify` RED
+  # (rc 1) refuses a merge verdict that reached a clean answer, an unreadable one refuses too.
+  case $first in
+    "Fix review: merge "*)
+      hsha=$(verdict_sha "$first") || hsha=
+      cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$hsha" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
+      case $rc in
+        0|3|4) ;;
+        1) printf 'BUS refused %s %s: a merge verdict at %s whose head has a concluded red (%s) (card C8)\n' "$pr" "$c" "$hsha" \
+             "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')"; return 1 ;;
+        *) printf 'BUS refused %s %s: cannot classify %s, so a merge verdict there is not posted (card C8): %s\n' "$pr" "$c" "$hsha" \
+             "$(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)"; return 1 ;;
+      esac ;;
+  esac
   sig=$(git rev-parse "$c^{tree}")
   if grep -qxF -- "$pr $sig" "$S/posted-signed" 2>/dev/null; then
     printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
@@ -515,6 +543,12 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> 
   printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: \([a-z]*\) $2\( .*\)\{0,1\}\$/\1/p" | head -n 1
 }
 
+last_merge_verdict() { # pr -> the sha of verdict/<pr>'s latest `Fix review: merge <sha>`, or nothing; rc 1 unreadable
+  local subj
+  subj=$(verdict_log "$1") || return 1
+  printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: merge \([0-9a-f]\{40\}\)\( .*\)\{0,1\}\$/\1/p" | head -n 1
+}
+
 # THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
 # verdict/<pr>'s history, so its distinct blocked heads are the rounds already reviewed
 # (#3247: five re-posts at one head were one round). After three,
@@ -566,7 +600,7 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are 
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
   local force="" fixing=""
-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" why rh="" pend cheap name carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
@@ -582,27 +616,11 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   numeric "$pr" || die "dispatch: the pull request '$pr' is not a number"
   [[ $h =~ ^[0-9a-f]{40}$ ]] || die "dispatch: '$h' is not a 40-hex head"
   [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch: name the reviewer's thread or session as one token"
-  # THE ORDERING (#1990 class E). The row is the orchestrator's
-  # (delivery-status-tracking.md) and lands before the review. A row written
-  # after the verdict moves the head off the one the reviewer measured, and the
-  # carry refuses a commit of the branch's own, so it costs a re-review. This
-  # dispatch is the only way to start that review (a verdict posts only against
-  # a dispatch's nonce, below), so the head must carry its own row here. Fetch
-  # the head first when it is not local.
-  row=$ROW_DIR/$pr.md
+  # The head must be readable here; fetch it first when it is not local. (The per-PR delivery row
+  # it once had to carry is retired, card C5.)
   git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
   git cat-file -e "$h^{commit}" 2>/dev/null \
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
-  # A head whose every commit over main is dependabot[bot]'s (P100) takes no row commit: one moves
-  # it off the bot's head and reddens pr-contract against dependabot_contract.mjs (#2773, #2678).
-  # Its row is the orchestrator's on main, so it is read at origin/main; any other head reads its own.
-  if bot_only "$h"; then
-    git cat-file -e "$REMOTE/main:$row" 2>/dev/null \
-      || die "dispatch: #$pr's head $h is dependabot[bot]'s alone and $REMOTE/main carries no $row; land the row on main (a commit on the bot's head reddens pr-contract), then dispatch"
-  else
-    git cat-file -e "$h:$row" 2>/dev/null \
-      || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
-  fi
   # THE CARRY LANDING (CARRY 0, P310): a body item routed `Carry: <GROUP>` whose group's brief
   # and carries hold neither its id nor this pull request is refused here, before a reviewer
   # blocks on it (14 of 21 carry-missing blocks after #2838), with the roster ops that land it.
@@ -619,7 +637,14 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # replaces the command (the self-tests' stub).
   cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
   case $rc in
-    0|3) ;;
+    0) ;;
+    3) # THE CHEAP CHECKS (card C8): a head still in flight dispatches once the sub-10-minute checks concluded.
+       pend=$(pending_checks "$h") || die "dispatch: cannot read the check runs of #$pr's head $h (an unread head is never read as concluded), so no reviewer is dispatched"
+       cheap=
+       for name in "${CHEAP_CHECKS[@]}"; do  # never-empty: CHEAP_CHECKS is the literal three-entry array above
+         ! grep -qxF -- "$name" <<< "$pend" || cheap+="${cheap:+, }$name"
+       done
+       [ -z "$cheap" ] || die "dispatch: #$pr's head $h has cheap checks still running ($cheap) -- the review starts once they conclude (card C8)" ;;
     4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
     # CARRY 17 card 3: a required red is a repair owed to the fixer, not a refusal a
     # retry loop re-tries (190 REFUSE tries, 2026-11-07); rc 5 and no `REFUSE:` prefix.
@@ -644,6 +669,11 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # unreadable verdict ref refuses, never read as either.
   # --nonce mints nothing (a relay-minted nonce re-recorded for the seat
   # fired with it), so it is left alone.
+  # Card C4: with no --reviewed-head the latest merge verdict on verdict/<pr> is the reviewed head.
+  if [ -z "$rh" ] && [ -z "$n" ]; then
+    rh=$(last_merge_verdict "$pr") || die "dispatch: cannot read verdict/$pr to learn whether #$pr already holds a merge verdict, so no reviewer is dispatched"
+    [ "$rh" != "$h" ] || die "dispatch: #$pr's head $h already holds a merge verdict -- no second reviewer (card C4)"
+  fi
   if [ -n "$rh" ] && [ -z "$n" ]; then
     git cat-file -e "$rh^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$rh" 2>/dev/null
     carry=$(python3 -I "$ROOT/tools/audit/seat/review_carry.py" "$rh" "$h" \
@@ -1094,6 +1124,8 @@ esac
 exit "${BUS_CLASSIFY_RC:-0}"
 P
   export BUS_TEST_CLASSIFIES=$W/classifies
+  # The in-flight check-run reader stub (HPO_BUS_PENDING): the names in $BUS_PENDING, one per line; rc BUS_PENDING_RC.
+  printf '%s\n' 'printf "%b" "${BUS_PENDING:-}"' 'exit "${BUS_PENDING_RC:-0}"' > "$W/pending"
   export BUS_TEST_CALLS=$W/calls BUS_TEST_LAST=$W/last
   : > "$W/calls"
   # BUS_ID picks the identity directory: $W/ap holds the approver's key (the
@@ -1108,7 +1140,7 @@ P
   RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
            HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="${BUS_GH:-bash $W/ghstub}" HPO_BUS_PACKER="bash $W/packer" \
-           HPO_BUS_CLASSIFY="bash $W/classifier" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
+           HPO_BUS_CLASSIFY="bash $W/classifier" HPO_BUS_PENDING="bash $W/pending" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
   calls() { grep -c . "$W/calls"; }
@@ -1204,37 +1236,16 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(run dispatch 7 "$h1" cmsg_Q3 --nonce "$N1b"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12" && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ]
   expect "dispatch --nonce refuses a nonce minted for another pull request, and records nothing" $?
-  # #1990 class E, the ordering. A row written after the verdict moves the head
-  # off the one the reviewer measured and costs a re-review (the carry refuses a
-  # branch-own commit). dispatch reads the head's own delivery row, so a head
-  # without one is refused and the row cannot land late. `norow` is the base,
-  # with no rows; h1 is the null control, the same pull request with its row.
+  # Card C4: once verdict/<pr> holds a merge verdict at the head, a dispatch there is refused. The
+  # arms below that need a fresh dispatch for such a pull request set the verdict ref aside for it.
+  dhid() { local t; t=$(tip "verdict/$1" 2>/dev/null) && git -C "$W/seat" push -q origin ":refs/heads/verdict/$1"
+           run dispatch "$@"; local rc=$?
+           [ -z "$t" ] || git -C "$W/seat" push -q origin "$t:refs/heads/verdict/$1"; return $rc; }
+  # Card C5: the per-PR delivery row is retired, so a head without one dispatches. `norow` is the base.
   out=$(run dispatch 7 "$norow" cmsg_Z); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/7.md"
-  expect "dispatch refuses a head with no delivery row (the ordering, #1990 class E)" $?
-  out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
-  expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
-  # P100: a dependabot-only head reads its row on origin/main; any other head reads its own.
+  expect "dispatch no longer requires the head to carry a delivery row (card C5)" $?
   mb0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1); git -C "$W/seat" fetch -q origin main
-  bot() { GIT_AUTHOR_NAME=${3:-dependabot[bot]} git -C "$W/seat" \
-            commit-tree "$(git -C "$W/seat" rev-parse "$1^{tree}")" -p "$1" -m "$2"; }
-  hb=$(bot "$mb0" "bump x")
-  out=$(run dispatch 41 "$hb" cmsg_B0); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "dependabot\[bot\]'s alone and origin/main carries no $ROW_DIR/41.md"
-  expect "null control: a dependabot-only head with its row nowhere is refused (P100)" $?
-  rb41=$(printf -- '- [#41](https://github.com/o/r/pull/41) — **open**\n' | git -C "$W/seat" hash-object -w --stdin)
-  rt41=$(git -C "$W/seat" ls-tree "$mb0" | grep -v "	dev$"; printf '040000 tree %s\tdev\n' "$(printf '040000 tree %s\tprogramme\n' "$(printf '040000 tree %s\tdelivery\n' "$(printf '100644 blob %s\t41.md\n' "$rb41" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)")
-  m41=$(printf '%s\n' "$rt41" | git -C "$W/seat" mktree); m41=$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$m41" -p "$mb0" -m "row 41")
-  git -C "$W/seat" push -q origin "$m41:refs/heads/main"; hb=$(bot "$m41" "bump y")
-  out=$(run dispatch 41 "$hb" cmsg_B1); rc=$?
-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
-  expect "a dependabot-only head with its row on origin/main is dispatched (P100)" $?
-  hb=$(bot "$(bot "$mb0" "a hand fix" t)" "bump z")  # cut before the row landed on main
-  out=$(run dispatch 41 "$hb" cmsg_B2); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/41.md"
-  expect "a head with one non-bot commit and its row only on origin/main is refused (P100)" $?
-  git -C "$W/seat" push -q -f origin "$mb0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
   # head whose range against the named reviewed head is clean starts a second
   # reviewer for a proof that did not move. `hm` is a merge-only move (main
@@ -1278,6 +1289,19 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "P348: the latest verdict naming the reviewed head decides -- blocked then merge refuses, a blocked verdict at another head aside (#2962)" $?
+  # Card C4: no --reviewed-head derives it from verdict/<pr>'s latest merge verdict.
+  n=$(grep -c . "$W/state/dispatched")
+  out=$(seat dispatch 31 "$hm" cmsg_D1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "card C4: a dispatch without --reviewed-head derives it from the latest merge verdict and refuses a clean carry" $?
+  out=$(seat dispatch 31 "$h1" cmsg_D2); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict -- no second reviewer (card C4)" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "card C4: a second reviewer at the head that already holds a merge verdict is refused" $?
+  git -C "$W/seat" push -q origin :refs/heads/verdict/31; vc blocked "$h1" "metric-gamed: planted"
+  out=$(seat dispatch 31 "$hm" cmsg_D3); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+  expect "null control (card C4): a pull request whose only verdict is blocked dispatches without --reviewed-head" $?
+  vc merge "$h1"
   git -C "$W/seat" push -q origin :refs/heads/verdict/31
   out=$(seat dispatch 31 "$hm" cmsg_C5 --reviewed-head "$h1"); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -qF "review-carry: $h1 has no verdict, so a fresh review is owed" \
@@ -1437,7 +1461,7 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(seat push-verdict 7 "$W/stale.md" "$W/ev2"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "was dispatched at head $h1" && [ "$(tip review/7)" = "$r1" ]
   expect "round 1's nonce does not count at another head" $?
-  N2=$(run dispatch 7 "$h2" cmsg_R | sed -n 's/^bus-nonce: //p')
+  N2=$(dhid 7 "$h2" cmsg_R | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N2" > "$W/blocked.md"
   out=$(seat push-verdict 7 "$W/blocked.md" "$W/ev2")
   r2=$(tip review/7)
@@ -1528,6 +1552,13 @@ B
   out=$(seat push-verdict 9 "$W/merge9.md" "$W/ev1")
   r9=$(tip review/9)
   : > "$W/train-argv"
+  out=$(BUS_CLASSIFY_RC=1 run confirm 9 "$r9"); c9=$(calls)
+  echo "$out" | grep -q "^BUS refused 9 .*: a merge verdict at $h1 whose head has a concluded red (tests / fast gate) (card C8)" \
+    && ! grep -q "^9 " "$W/state/posted" && [ "$(calls)" = "$c9" ] && ! grep -q "^BUS posted" <<<"$out"
+  expect "card C8: a merge verdict at a head classify calls RED is refused, recorded nowhere and posts nothing (the arm below is its GREEN null control)" $?
+  out=$(BUS_CLASSIFY_RC=2 run confirm 9 "$r9")
+  echo "$out" | grep -q "^BUS refused 9 .*cannot classify" && ! grep -q "^9 " "$W/state/posted"
+  expect "card C8: an unreadable classification refuses a merge verdict" $?
   out=$(BUS_TEST_POSTER_FAIL=1 HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 9 "$r9")
   echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
   expect "a poster refusal is reported and not recorded as posted" $?
@@ -1859,8 +1890,13 @@ B
   out=$(run dispatch 30 "$h1" cmsg_S2); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
   expect "a second reviewer at a head holding a merge verdict is refused, recording nothing" $?
-  out=$(run dispatch 30 "$h2" cmsg_S3); rc=$?
-  [ $rc = 0 ]; expect "null control: a head with no verdict dispatches (the first dispatch at a head is accepted)" $?
+  # Card C4's derive refuses that dispatch first; card 3's own check is reached when the caller names a
+  # reviewed head with code since it (norow..h1 adds the rows), so C4's derive and carry both pass.
+  out=$(run dispatch 30 "$h1" cmsg_S2b --reviewed-head "$norow"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict, so no second reviewer is dispatched" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
+  expect "card 3 past card C4's derive: a named reviewed head with code since it still refuses a second reviewer at a merge-verdict head" $?
+  out=$(run dispatch 30 "$h2c" cmsg_S3); rc=$?
+  [ $rc = 0 ]; expect "null control: a head with no verdict, carrying code since the merge verdict (h2c; h2 alone carries under card C4), dispatches" $?
   # The stub stands in for `gh api` and prints the API's own JSON, so bus.sh's status filter runs:
   # $W/checks-in holds `name status` lines, rendered to {"check_runs":[{name,status}...]}.
   chk() { # name-status pairs... -> a check-runs response on $W/checks-in's stub
@@ -1925,7 +1961,7 @@ B
   # refusal of a second reviewer at a merge-verdict head is exercised on pull request 30 below).
   git -C "$W/seat" push -q origin :refs/heads/verdict/7
   r7=$(tip review/7)
-  NL=$(run dispatch 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
+  NL=$(dhid 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
   out=$(seat push-verdict 7 "$W/merge-leak.md" "$W/ev1" 2>&1); rc=$?
   [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "would publish this host (#2310)"
@@ -1945,7 +1981,7 @@ B
   m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
   git -C "$W/seat" push -q origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
   git -C "$W/seat" fetch -q origin main
-  NG=$(run dispatch 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
+  NG=$(dhid 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
   vg() { printf 'Fix review: merge %s\n\nbus-nonce: %s\n\n## Findings\n\n- %s\n' "$h1" "$NG" "$1" > "$W/vg.md"; seat push-verdict 7 "$W/vg.md" "$W/ev1" 2>&1; }
   out=$(vg "A defect in x is left in place, not blocking."); rc=$?
   [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "1 finding item(s) with no valid Carry: (carry_audit.py); first: UNROUTED review push-verdict item [0-9a-f]\{8\} (## Findings)"
@@ -2028,49 +2064,66 @@ B
   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
   # finder's harness through; a REFUSED head records nothing; a seat that cannot render
   # one dispatches anyway, names no packet, and says why (#2870).
-  out=$(run dispatch 7 "$h1" cmsg_P --harness dev/audit/harnesses/x.py); rc=$?
+  out=$(dhid 7 "$h1" cmsg_P --harness dev/audit/harnesses/x.py); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -qx "review-packet: ~/state/packets/7-$h1.md" \
     && tail -n 1 "$W/packs" | grep -q "^render|--pr|7|--head|$h1|--out|$W/state/packets/7-$h1.md|--harness|dev/audit/harnesses/x.py|\$"
   expect "dispatch renders the packet at its head with the finder's harness and names its path" $?
   n=$(grep -c . "$W/state/dispatched")
-  out=$(BUS_PACK_REFUSE=1 run dispatch 7 "$h1" cmsg_P); rc=$?
+  out=$(BUS_PACK_REFUSE=1 dhid 7 "$h1" cmsg_P); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "REFUSE head-note: planted" && echo "$out" | grep -q "review packet refused" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "a refused packet refuses the dispatch, names the signal, and records nothing" $?
-  out=$(BUS_PACK_HEAD=$h2 run dispatch 7 "$h1" cmsg_P); rc=$?
+  out=$(BUS_PACK_HEAD=$h2 dhid 7 "$h1" cmsg_P); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- .*does not name the head $h1" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
   expect "a packet naming another head dispatches, names no packet, and says why" $?
-  out=$(BUS_PACK_UNAVAILABLE=1 run dispatch 7 "$h1" cmsg_P); rc=$?
+  out=$(BUS_PACK_UNAVAILABLE=1 dhid 7 "$h1" cmsg_P); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- review_packet: UNAVAILABLE: planted: no gh$" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
   expect "a renderer this seat cannot run dispatches, names no packet, and says why" $?
   # THE REVIEWABLE HEAD (K15 (d)): the classifier's RED refuses and records nothing;
   # its GREEN and WAIT dispatch (the null controls); an unreadable answer refuses.
   n=$(grep -c . "$W/state/dispatched")
-  out=$(BUS_CLASSIFY_RC=1 run dispatch 7 "$h1" cmsg_K); rc=$?
+  out=$(BUS_CLASSIFY_RC=1 dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc = 5 ] && echo "$out" | grep -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! echo "$out" | grep -q "REFUSE" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
-  out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' run dispatch 7 "$h1" cmsg_K); rc=$?
+  out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc = 5 ] && echo "$out" | grep -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
     && ! echo "$out" | grep -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
-  out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
+  out=$(BUS_CLASSIFY_RC=0 dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
   expect "null control: the same dispatch at a GREEN-classified head mints and records" $?
-  out=$(BUS_CLASSIFY_RC=3 run dispatch 7 "$h1" cmsg_K); rc=$?
+  out=$(BUS_CLASSIFY_RC=3 dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
   expect "a head still in flight (classify WAIT) is reviewable and dispatches" $?
-  out=$(BUS_CLASSIFY_RC=4 run dispatch 7 "$h1" cmsg_K 2>&1); rc=$?
+  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING='tests / mutation\ntests / fast\n' dhid 7 "$h1" cmsg_K); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "has cheap checks still running (tests / mutation) -- the review starts once they conclude (card C8)" \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+  expect "card C8: WAIT with a cheap check still in flight refuses and names it" $?
+  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING='tests / fast\ntests / mutation-extra\n' dhid 7 "$h1" cmsg_K); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+  expect "null control (card C8): WAIT with only a non-cheap check in flight dispatches" $?
+  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING_RC=1 dhid 7 "$h1" cmsg_K); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "cannot read the check runs" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+  expect "card C8: an unreadable check-run read at WAIT refuses, never read as concluded" $?
+  ci="$(cd "$(dirname -- "$0")/../../.." && pwd)/.github/workflows/ci.yml" bad=
+  for name in "${CHEAP_CHECKS[@]}"; do cheap_caller_ok "$name" "$ci" || bad="$bad $name"; done  # never-empty: CHEAP_CHECKS is the literal three-entry array above
+  [ -f "$ci" ] && [ -z "$bad" ]
+  expect "card C8: every cheap check's ci.yml caller needs only prelude, so its run exists at WAIT (none of:$bad)" $?
+  ! cheap_caller_ok "pr-contract / pr-contract" "$ci" && ! cheap_caller_ok "nosuchjob / x" "$ci"
+  expect "null control (card C8): pr-contract, which needs every unit, and an absent job are not cheap callers" $?
+  n=$((n + 1))
+  out=$(BUS_CLASSIFY_RC=4 dhid 7 "$h1" cmsg_K 2>&1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus: APPROVAL-OWED '"$h1"' 1 budget raise' \
     && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
   expect "P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line" $?
-  out=$(BUS_CLASSIFY_RC=2 run dispatch 7 "$h1" cmsg_K); rc=$?
+  out=$(BUS_CLASSIFY_RC=2 dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "cannot classify .*never green): REFUSE proof" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
   expect "an unreadable classification refuses the dispatch, never green" $?
-  out=$(run dispatch 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
+  out=$(dhid 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
   out=$(python3 -I "$ROOT/tools/audit/seat/review_packet.py" --self-test 2>&1) \
     && echo "$out" | grep -q '^review_packet self-test: [1-9][0-9]* checks, 0 failed$'
@@ -2113,13 +2166,13 @@ B
     git -C "$W/seat" fetch -q origin main; }
   lroster '[]'; printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVE\n' > "$W/body31"
   nd=$(grep -c . "$W/state/dispatched")
-  out=$(run dispatch 7 "$h1" cmsg_L1); rc=$?
+  out=$(dhid 7 "$h1" cmsg_L1); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "^CARRY-MISSING R10-LIVE body item [0-9a-f]\{8\}: not in its brief or carries" \
     && echo "$out" | grep -q "^  roster op: python3 tools/audit/seat/roster_edit.py append-carry R10-LIVE 'From #7, body item " \
     && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
   expect "dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)" $?
   lroster '["From #7: the store seam."]'
-  out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
+  out=$(dhid 7 "$h1" cmsg_L2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
   # R10-CARRY-AUDIT-P5 carry 4 / P605: a part-N body's `Carry N: not built here. Carry: <own group>` line

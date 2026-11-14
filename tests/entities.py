@@ -28722,22 +28722,6 @@ R.check(
     "without bound, and a body-REPLACING version deletes the 2.6 kB of "
     "tracking text that is the reason anyone opens #201 at all",
 )
-_DS_JOB = _workflow_job(
-    Path(".github/workflows/governance.yml").read_text(), "delivery-status")
-R.check(
-    "the ledger is wired into a job that runs on pull requests",
-    "github.event_name == 'pull_request'" in _DS_JOB
-    and "tests/delivery_status.py" in _DS_JOB,
-    f"pull_request={'pull_request' in _DS_JOB}, "
-    f"invoked={'tests/delivery_status.py' in _DS_JOB}",
-)
-R.check(
-    "and the pull-request lane passes no --since that would pin its answer",
-    "--since" not in _DS_JOB,
-    "`--since` names the window, so a job passing a fixed one would report the "
-    "same closed window for ever -- the always-green knob "
-    "`nightly_status.py`'s `--run` is pinned against",
-)
 # The permission widening, checked as a PROPERTY rather than as its instance:
 # the whole set of jobs in governance.yml that override the workflow's
 # `contents: read` floor. A job-level block REPLACES the floor for that job and
@@ -28753,19 +28737,16 @@ R.check(
 # both files: the blast radius did not change because a job changed file.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
-_DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_OVERRIDES = sorted(
     _m.group(1) for _wf_text in (_DS_GOV, _PC_WF) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _wf_text, re.M | re.S)
 )
 R.check(
-    "exactly three governance jobs override the workflow's read-only floor",
-    _DS_OVERRIDES == ["delivery-status-publish", "pr-contract", "record"],
+    "exactly two governance jobs override the workflow's read-only floor",
+    _DS_OVERRIDES == ["pr-contract", "record"],
     f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
-    "for rather than land, and the reporting lane is deliberately NOT one: "
-    "`delivery-status` runs on pull requests with no widening at all, because "
-    "it only reads the tree it is already checked out in",
+    "for rather than land (card C5 deleted the publishing lane)",
 )
 # EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
 # Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
@@ -28776,7 +28757,7 @@ R.check(
 # walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
 # budgets. The guard is read off the registered job and evaluated over literals;
 # the plant is the unguarded text, the null controls are the arms that must run.
-_RW_GOV_WRITERS = ("record", "delivery-status-publish")
+_RW_GOV_WRITERS = ("record",)
 _RW_OLD_RECORD_IF = (
     "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
 _RW_PR_BRANCH = "refs/heads/claude/some-pr"
@@ -30411,7 +30392,7 @@ steps:
     run: |
       set -euo pipefail
       python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
-      for g in coverage_ratchet delivery_status; do
+      for g in coverage_ratchet; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
           echo "tests/$g.py changed: its own copy runs below"
@@ -30459,47 +30440,6 @@ steps:
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
-
-  - name: The pull request's delivery_status.py, as `delivery-status` runs it
-    if: always() && steps.changed.outputs.delivery_status == 'true'
-    run: |
-      git fetch --no-tags --quiet origin main
-      # A non-zero exit shared with the base copy on this tree is that
-      # copy's own. Exit with the pull request's code only when the two
-      # differ, and exit 1 when this copy prints OVERDUE and the base
-      # copy does not: both of those exits are 1, so the codes alone
-      # cannot separate them.
-      head_copy="$RUNNER_TEMP/delivery_status.head.py"
-      cp tests/delivery_status.py "$head_copy"
-      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
-      base_rc=$?
-      set -e
-      cp "$head_copy" tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
-      head_rc=$?
-      set -e
-      cat "$RUNNER_TEMP/delivery_status.base.out"
-      echo "----- head copy -----"
-      cat "$RUNNER_TEMP/delivery_status.head.out"
-      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
-      head_overdue=0
-      base_overdue=0
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
-        head_overdue=1
-      fi
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
-        base_overdue=1
-      fi
-      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
-        exit 1
-      fi
-      if [ "$head_rc" -ne "$base_rc" ]; then
-        exit "$head_rc"
-      fi
-      exit 0
 
   - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -30677,97 +30617,6 @@ R.check(
 )
 
 
-def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
-              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
-    """Run the delivery_status step under bash -e with stub git and python.
-
-    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
-    code for whichever copy the step has in tests/delivery_status.py, so the
-    step's own comparison is what the return code measures.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        (root / "tests").mkdir()
-        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
-        (root / "rt").mkdir()
-        bindir = root / "bin"
-        bindir.mkdir()
-        (bindir / "git").write_text(
-            "#!/bin/sh\n"
-            "case \"$1\" in\n"
-            "  fetch) exit 0 ;;\n"
-            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
-            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
-            "esac\n")
-        (bindir / "python").write_text(
-            "#!/bin/sh\n"
-            "f=$(cat tests/delivery_status.py)\n"
-            "case \"$f\" in\n"
-            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
-            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
-            "esac\n"
-            "case \"$f\" in\n"
-            f"  HEAD*) exit {head_rc} ;;\n"
-            f"  BASE*) exit {base_rc} ;;\n"
-            "  *) echo unreadable copy >&2; exit 9 ;;\n"
-            "esac\n")
-        os.chmod(bindir / "git", 0o700)
-        os.chmod(bindir / "python", 0o700)
-        _pt_ds_rc.modes = (
-            (bindir / "git").stat().st_mode & 0o777,
-            (bindir / "python").stat().st_mode & 0o777,
-        )
-        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
-        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
-                              capture_output=True, text=True)
-        return proc.returncode
-
-
-_PT_DS_RUN = next(
-    str(_s.get("run") or "")
-    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    if "tests/delivery_status.py" in str(_s.get("run") or ""))
-_PT_DS_CASES = {
-    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
-    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
-    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
-    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
-    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
-    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
-    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
-}
-R.check(
-    "the delivery_status stubs are owner-executable and neither group nor world accessible",
-    _pt_ds_rc.modes == (0o700, 0o700),
-    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
-)
-_PT_DS_DROP_EXIT = (
-    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
-_PT_DS_DROP_OVERDUE = (
-    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
-    '  exit 1\nfi\n')
-_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
-_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
-_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
-R.check(
-    "graders-head-copy's delivery_status step is red only when this copy's "
-    "exit differs from the base copy's, or this copy alone prints OVERDUE",
-    _PT_DS_CASES == {
-        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
-        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
-    }
-    and _PT_DS_SAME != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
-    and _PT_DS_ZERO != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
-    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
-    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
-    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
-    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
-    f"OVERDUE line makes a head-only OVERDUE green "
-    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
-)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -31284,53 +31133,6 @@ R.check(
     "and its bot identity, messages and paths are the ones the autofix jobs commit",
     _AH_CONST is not None and not _AH_DRIFT,
     f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
-)
-_DS_PUB_PERMS = re.search(
-    r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
-R.check(
-    "and the publishing lane's grant is the one write it uses",
-    bool(_DS_PUB_PERMS)
-    and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "read", "issues:", "write"]),
-    f"delivery-status-publish permissions: "
-    f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "`issues: write` edits #201's region and `contents: read` restates the "
-    "floor a job-level block replaces; the lane writes nothing else",
-)
-# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
-# to main, the push re-ran this lane, and the ledger moves on every push, so a
-# new ledger PR opened 14-22 s after each merge -- nine of eleven. The lane is
-# at a fixed point only while nothing it writes can land on main, which is
-# pinned on the wiring, over NON-COMMENT lines: no push, no PR write, no
-# machine token anywhere in the workflows (decision 0009 step 3b's only
-# consumer went with the PR), and no workflow that an issue-body edit starts.
-def _code_lines(text: str) -> str:
-    return "\n".join(
-        _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
-
-
-_DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
-_DS_WRITES = [_t for _t in (r"(?<![\w'])push\s", r"/pulls", r"gh pr ",
-                            r"git commit") if re.search(_t, _DS_PUB_CODE)]
-_SA_FILES = {
-    _f.name: _code_lines(_f.read_text())
-    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
-_SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
-_ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
-                    # Keyed inside `on:` alone: a top-level `permissions:`
-                    # block's `issues: read` starts nothing.
-                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
-R.check(
-    "the publishing lane writes nothing that lands on main, so its own "
-    "write cannot re-run it",
-    not _DS_WRITES and not _SA_REFS and not _ISSUE_TRIGGERED
-    and "persist-credentials: false" in _DS_PUB_CODE
-    and "#201's region is already current" in _DS_PUB_CODE,
-    f"writes in the lane: {_DS_WRITES}; workflows naming SEAT_AUTHOR_TOKEN: "
-    f"{_SA_REFS}; workflows an issue edit starts: {_ISSUE_TRIGGERED}. Each "
-    "must be empty: a commit, push or PR the lane makes lands on main as a "
-    "push that runs the lane again, and the ledger's `commits_after` moves "
-    "on every push, so no ledger it lands is ever the ledger it regenerates",
 )
 # #959 (option B): the `record` job -- already one of the three overrides for
 # its read grant -- WIDENED that grant with `issues: write` so its filing step
@@ -33467,15 +33269,6 @@ R.check(
     f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
 )
 R.check(
-    "the publishing lane runs on main alone, never on a pull request",
-    "github.event_name == 'push'" in _DS_PUB_JOB
-    and "refs/heads/main" in _DS_PUB_JOB
-    and "pull_request" not in _DS_PUB_JOB,
-    "a write-scoped job reachable from a pull request is a write-scoped job "
-    "reachable from a fork, and the ledger it publishes is about `main`'s "
-    "history rather than about any branch",
-)
-R.check(
     "the ledger script is classified: NOT_A_TEST, and not on INERT",
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
@@ -34447,8 +34240,8 @@ _REC_REFUSAL = _REC_JOB.split(
     "- name: Every merged pull request has a disposition")[1].split(
         "\n      - name:")[0]
 R.check(
-    "the disposition refusal can set the record job's conclusion",
-    "continue-on-error" not in _REC_REFUSAL,
+    "the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)",
+    "continue-on-error: true" in _REC_REFUSAL,
     f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
     "true` on this step is #958's split: the step fails and the job concludes "
     "success, so a merged pull request with no disposition is reported and stays "
@@ -42458,7 +42251,7 @@ _SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noq
 _SR_STANDING = _SR_TEXT("standing.md")
 _SR_FAIL = (
     [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
-                        "standing-roster.md", "proposal-triage.md")
+                        "standing-roster.md")
      if "`standing.md`" not in _SR_TEXT(n)]
     + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
                           "$HPO_STATE_DIR/alive/", "bus.sh orphans",

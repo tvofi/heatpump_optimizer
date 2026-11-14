@@ -4333,10 +4333,9 @@
    "git": []
   },
   "handoff-push": {
-   "run_sha": "6f2675909677bd166b3afeb42900c406946ff121e3decd3f80bb1927db92c038",
+   "run_sha": "f0f6cb2c0133b342e46866cd03c197a0d0ee41bbd672cc44435fee021100cdf6",
    "files": [
     "tests/throwaway_git.sh",
-    "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py",
@@ -4355,9 +4354,7 @@
     "tools/audit/seat",
     "tools/pr"
    ],
-   "dirs": [
-    "tools/audit/seat"
-   ],
+   "dirs": [],
    "index": false,
    "objects": false,
    "git": []

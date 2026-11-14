@@ -32,7 +32,7 @@ of anyone's; such a bot's comment is neither ours nor outside activity.
 LIST prints one line per submission owed this turn, rc 1 when any is, rc 0
 when none, rc 2 when a read failed (nothing printed but the UNREADABLE line):
   OUTSIDE #N owed=triage <kind> by=<login> since=<utc>   on no roster group and
-      not refused: triage or design it (`proposal-triage.md`, `designer.md`),
+      not refused: triage or design it (`designer.md`),
       then the roster seat wires it into a group, or `refuse`;
   OUTSIDE #N owed=answer group=<G> ...  on the roster, unanswered, and the
       plan page answers 200: the dispatch seat runs `answer`;

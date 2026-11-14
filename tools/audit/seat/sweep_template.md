@@ -84,7 +84,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
 
 (6) Verdicts and CI. Read any moved `review/*` or `probe/*` refs and the cloud runs; queue each verdict's confirmation at its exact head to the dispatch seat (its relay runs `bus.sh confirm`) and read its report (`dev/governance/roles/nudge.md` step 1). A red required check at an open head goes back to its fixer with the line `tools/audit/seat/failure_logs.sh` prints (`dev/governance/roles/nudge.md` steps 4 and 15).
 
-(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) is sent to triage on `dev/governance/roles/proposal-triage.md`, never implemented or routed before its ruling; an ACCEPT reaches the roster through the roster seat, citing its ruling.
+(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) goes to the orchestrator, who rules it directly (card C6 retired the triage seat; `dev/governance/roles/orchestrator.md` section 5), never implemented or routed before that ruling; an accepted one reaches the roster through the roster seat, citing its ruling.
 
 (8) Disk. The beat's `disk` row runs `tools/audit/worktree_gc.sh {{repo}}` whenever `/` has under {{disk_floor_gib}} GiB free; a `disk:` line in {{digest}}/digest.txt is a floor still not met after it: remove finished seat worktrees under {{seat_root}} by hand.
 

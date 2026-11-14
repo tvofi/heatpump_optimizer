@@ -289,8 +289,8 @@ never a bare assertion; the reviewer judges them (`fix-review.md` step 14).
 
 ## Before you hand off: carry what you found forward
 
-Your PR does not merge until any finding that **changes how a later stage must
-work** is in that stage's own brief — `finding-propagation.md` states the test,
+Put any finding that **changes how a later stage must work** in that
+stage's own brief — `finding-propagation.md` states the test,
 what to write and where it goes, and a comment on this PR discharges none of it.
 Name the destination in your PR body — which brief, contract, carry file or
 roster received it — so the reviewer checks the destination rather than takes

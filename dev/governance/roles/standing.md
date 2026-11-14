@@ -1,6 +1,6 @@
 # The standing seats' shared terms
 
-Binds `standing-merge.md`, `standing-dispatch.md` and `proposal-triage.md`.
+Binds `standing-merge.md` and `standing-dispatch.md`.
 
 ## Wait
 
