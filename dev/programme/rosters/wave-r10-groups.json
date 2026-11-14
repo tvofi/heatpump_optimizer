@@ -21722,8 +21722,8 @@
     "Moved from R10-CLOSEOUT-PREP carry 1 (0-based) by the orchestrator s14 carry triage 2026-11-13, so that the one documentation pass after the last merge (R10-ARCH-DOCS-DELTA, which already holds the dev/README.md carries) re-reads dev/README.md. Text verbatim:\n\nMoved from R10-CLOSEOUT-CLEANUP carry 9 (0-based) by the s13 closeout split (orchestrator, 2026-11-10, under mandate 6715477401; cp-compress spec L6/L6b), verbatim below: Owner ruling 2026-11-09 (tvofi, \"Drop them\"): R10-ARCH-DOCS no longer waits on the round's tooling and process groups: R10-PREPR-RESIDUE, R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE, R10-GH-READ-RESIDUE, R10-PLAN-PAGE-RESIDUE, R10-STANDING-CONTRACTS-P2, R10-SEAT-IDENTITY-P5, R10-CARRY-AUDIT-P5, R10-SUITE-ENV-RESIDUE, R10-WORKTREE-GC-LIVE. Before the closure stamp, re-read dev/README.md against every tooling merge that landed after R10-ARCH-DOCS merged (three-dot from its merge commit) and refresh the sections those merges changed, so the developer docs describe the tree at close."
    ],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "e901e9ef295471f85c4f86e84ee0686c38400bc6",
     "branch": "handoff/r10-arch-docs-delta",
     "last_step": null,
     "next_step": "dispatch a fixer once R10-ARCH-DOCS and every product group in after have merged",
