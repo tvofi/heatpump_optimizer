@@ -3964,9 +3964,12 @@ def _p2_registry(sources):
                  "climate.py::HeatPumpOptimizerClimate.hvac_action":
                      "a fraction of the plan's power range, ORed with the "
                      "action's heat_pump_on, which planned_draws_run set",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._detect_immersion":
-                     "a commanded-draw gate on a metered excess: whether any "
-                     "power was commanded, not whether the plan's step runs",
+                 # R10-START-COUNTER-EDGES moved the over test out of
+                 # _detect_immersion into one owner both readers share.
+                 "thermal_model.py::immersion_over":
+                     "a commanded-draw gate on a metered excess, and its "
+                     "nameplate guard: whether any power was commanded, not "
+                     "whether the plan's step runs",
                  "optimizer.py::HeatPumpOptimizer.get_current_action":
                      "dhw_heating_active: the DHW circuit's own activity, not "
                      "the pump's running verdict",

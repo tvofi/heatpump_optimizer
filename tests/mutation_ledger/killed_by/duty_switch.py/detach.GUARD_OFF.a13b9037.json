@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:detach GUARD_OFF a13b9037",
-  "killed_by": "tests/features.py",
-  "old": "    if rec is None or rec.unsub is None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

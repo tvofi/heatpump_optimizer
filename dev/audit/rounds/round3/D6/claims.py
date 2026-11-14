@@ -86,7 +86,7 @@ import yaml  # noqa: E402
 
 from heatpump_optimizer import config_flow, const, services, topology  # noqa: E402
 from heatpump_optimizer import boost, curve_learning, freq_control, snapshots  # noqa: E402
-from heatpump_optimizer import dhw_draws  # noqa: E402
+from heatpump_optimizer import dhw_draws, power_guard  # noqa: E402
 
 # ===========================================================================
 # Ground truth, measured by driving production code
@@ -775,6 +775,10 @@ for _cid, _src, _text, _name, _mod, _expected in [
      "BOOST_HOURS", boost, 2),
     ("C-RM-57", "README.md:~140", "heavy-day (90th percentile) target",
      "quantile default q", dhw_draws, 0.9),
+    # R10-START-COUNTER-EDGES: this claim read the start counter's retired
+    # const.START_HYSTERESIS_SAMPLES; the peak guard's own constant is power_guard's.
+    ("C-RM-58", "README.md:~640", "the peak guard needs two agreeing samples to engage and two "
+     "to clear", "HYSTERESIS_SAMPLES", power_guard, 2),
 ]:
     if _name == "quantile default q":
         import inspect
@@ -787,8 +791,6 @@ for _cid, _src, _text, _name, _mod, _expected in [
            (lambda n=_name, m=_mod: getattr(m, n)), _expected)
 
 for _cid, _src, _text, _name, _expected in [
-    ("C-RM-58", "README.md:~640", "the peak guard needs two agreeing samples to engage and two "
-     "to clear", "START_HYSTERESIS_SAMPLES", 2),
     ("C-HIW-02", "docs/how-it-works.md:578", "the learned cooling rate is clamped to 0.05-3.0 °C/h",
      ("DHW_COOLING_RATE_MIN", "DHW_COOLING_RATE_MAX"), (0.05, 3.0)),
     ("C-HIW-03", "docs/how-it-works.md:1010", "the COP scale is bounded to [0.5, 1.6]",
