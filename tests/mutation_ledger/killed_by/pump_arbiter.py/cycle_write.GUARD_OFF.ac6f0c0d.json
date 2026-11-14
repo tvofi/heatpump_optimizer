@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:cycle_write GUARD_OFF ac6f0c0d",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if grid is None or params.dhw_cycle_temp is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
