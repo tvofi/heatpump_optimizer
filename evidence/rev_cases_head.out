@@ -1,0 +1,9 @@
+RESULT A real red, no late source, green R2 covering: got=dispatch want=dispatch posts=['repos/o/r/actions/workflows/ci.yml/dispatches'] attempt_reads=0
+RESULT B real red, R2 report-only job finished after R1 gate start: got=dispatch want=dispatch posts=['repos/o/r/actions/workflows/ci.yml/dispatches'] attempt_reads=0
+RESULT C real red, another run's post-gate job finished after it: got=rerun-in-place want=dispatch posts=['repos/o/r/actions/jobs/435720500130/rerun'] attempt_reads=0
+RESULT D #3261 pair: both deferral reds, nothing green: got=dispatch want=dispatch posts=['repos/o/r/actions/workflows/ci.yml/dispatches'] attempt_reads=0
+RESULT E deferral at attempt 44: got=nothing want=nothing posts=[] attempt_reads=0
+RESULT E deferral at attempt 43: got=rerun-in-place want=rerun-in-place posts=['repos/o/r/actions/jobs/435720500130/rerun'] attempt_reads=0
+RESULT F dispatch red at attempt 2, attempt 1 unreadable (404): got=dispatch want=dispatch posts=['repos/o/r/actions/jobs/435123549000/rerun', 'repos/o/r/actions/jobs/435123559390/rerun', 'repos/o/r/actions/jobs/435314476390/rerun', 'repos/o/r/actions/jobs/435319155830/rerun', 'repos/o/r/actions/workflows/ci.yml/dispatches'] attempt_reads=4
+RESULT F2 dispatch red at attempt 2, attempt-1 listing without a gate row: got=dispatch want=dispatch posts=['repos/o/r/actions/jobs/435123549000/rerun', 'repos/o/r/actions/jobs/435123559390/rerun', 'repos/o/r/actions/jobs/435314476390/rerun', 'repos/o/r/actions/jobs/435319155830/rerun', 'repos/o/r/actions/workflows/ci.yml/dispatches'] attempt_reads=4
+SUMMARY: 8 cases, 1 differ from want: ["C real red, another run's post-gate job finished after it"]

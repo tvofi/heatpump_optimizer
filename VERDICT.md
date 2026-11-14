@@ -1,48 +1,77 @@
-Fix review: blocked b17c78773410c7e1d77dcbbe39e8c817edf87454 class-open: covered_deferral reads a real verdict red as a deferral when any other run's job finishes after the red gate started (reviewer cases B, C), undispositioned in the body and contradicted by the module doc
+Fix review: merge 805bf6d00f18d70613dd5e3575fbea91c22bb2a8
 
-bus-nonce: 2bf0ce32e008066a13845a2c987ee9c6
+bus-nonce: b0a8abd4b82802ff36864a9f0ce1a8a9
+pending-ci: gate
 
-## Block
+## Summary
 
-- Round 1, full review, at head b17c78773410c7e1d77dcbbe39e8c817edf87454 (the PR body's head, its code head 2fa16a7e plus the delivery row).
-- The deferral predicate is a timing proxy: `source_after(gate.started_at, others)` is true for ANY job of ANY other run that finished after the red gate started or has not finished. That includes a job outside gate's `needs` in the green covering run (I used `tests / nightly-status`), and a job that runs after its gate in a newer run. `gate()` defers only on `busy()`, and `busy()` never reads a higher-id run whose gate has started, a `judging` run, or a completed run. So a gate whose red is a real verdict (busy() read nothing) is classed as a deferral, and it loses the dispatch it got at the merge base.
-  - My cases (`ev/rev_cases.py`, not the fixer's; both ends in `ev/rev_cases.out` and `ev/rev_cases_base_sweep.out`): a real red on R1 that judged at 08:02:00, after every required source had finished, with R2 green and covering the newest event.
-  - B: R2 has a report-only job that finished at 08:02:10. At base: dispatch. At head: re-run in place.
-  - C: a newer review run's post-gate job finished at 08:04. At base: dispatch. At head: re-run in place.
-  - A, the same real red with no late job: dispatch at both ends.
-- The module doc's sentence "a red judged while another run's source was unfinished is the deferral, no verdict" is false as stated, for the reason above. The body's null control is scoped to "judged after every other run's source finished", so the overlap domain of a real red is neither guarded nor dispositioned (fix-review.md step 6: class-open, a predicate's unguarded domain).
-- Harm, as I measured it: the misread red is re-run in place on the pinned programs and is not re-judged by fresh ones. I found no false green. The re-run re-reads the same failing source, so a persisting real red stays red and the PR stays blocked. A red that has since been resolved goes green, as #3400's in-place re-run already allows. The cost of the misread is the fresh-programs verdict, not correctness of the block. So either of these settles it:
-  - (a) Disposition it. Correct the module-doc sentence and state in the body that a real red that overlaps a later job of another run is re-run in place, and why that is outcome-equivalent. Add B or C as a self-test check pinning that behaviour.
-  - (b) Narrow the predicate to what busy() could have read: a lower-id run, or one whose gate had not started, that was unfinished at the red gate's start.
+- Round 2 is a delta review over the blocked head b17c78773410c7e1d77dcbbe39e8c817edf87454. The delta touches only `tools/ci/sweep.py` and `tools/ci/sweep_selftest.py`. Nothing under custom_components/ changed, so the scope does not widen.
+- The previous block is resolved. The reviewer offered option (b), and the fixer took it: a red is now a deferral only when `gate.busy()`, imported rather than restated, names a run in `listed_at`'s reconstruction of the head at the red gate's start.
+  - My case B now dispatches.
+  - My case C still re-runs in place. That is correct under gate.py, and my round-1 case was mis-specified. Reasoning under Evidence.
+  - The fixer's C variants dispatch, and A, D, E, F and F2 are unchanged.
+- The reconstruction still has error domains. They are all in the direction the body dispositions as conservative (a real red re-run in place, never a false green), except where noted. They are listed under Findings. None of them blocks: round 1 measured that a real red re-run in place has the same outcome, and the body's Residual adopts that measurement.
 
 ## Findings
 
-- Each stale red in one sweep calls `covered_deferral`, which lists jobs for every other run at the head, and `judged`, which reads attempt 1 for each completed non-green dispatch at attempt 2 or later. That is O(reds × runs) API reads per sweep with no cache. It was 5 reads per red at #3544's six runs. It is bounded by the 100-run listing and the rate-limit exit, but it is unmeasured on a busy head. Carry: R11-INTAKE-R10-RESIDUE
+- Reconstruction error G: a held run reads busy. `listed_at` ignores the run's status, so a held run (`action_required`, no jobs) at the head reads `in_progress`. gate.py's `busy()` skips it by status, and `read_api` lists it with `jobs={}`.
+  - Measured directly: `busy()` on read_api's row returns `[]`, and on listed_at's row returns `[43531447638]`.
+  - Through the sweep (`ev/rev2_cases.py` G): a real red beside a held run is re-run in place at this head, and dispatched at b17c7877.
+  - Conservative direction, but the body's Residual names only latest-attempt re-stamping, not this. The fix is one line: carry `action_required` through from `run["status"]`.
+  - Carry: R11-INTAKE-R10-RESIDUE
+- Reconstruction error I: read lag. `t0` is the gate job's `started_at`, but gate.py reads `busy()` later, inside `judge()` after `reaches()` (git first, API reads last). A source that finishes in that window was finished to `busy()` but reads unfinished at `t0`.
+  - Measured (`ev/rev2_cases.py` I): a lower-id unit finishing 10 s after the red gate started, 20 s before it completed, makes a real red re-run in place.
+  - The mirror direction: a run created between `started_at` and the read is excluded by the `created_at <= t0` filter. A true deferral from it then dispatches. That is origin/main's behaviour, so it is not a regression, but it is a residual cost of the #3544 class.
+  - A sound bound would use the read instant, which the gate does not stamp. Exposing it, or bracketing the read between `started_at` and `completed_at`, is follow-up work.
+  - Carry: R11-INTAKE-R10-RESIDUE
+- Reconstruction error J: a skipped job decided after `t0`. A skipped job always reads completed. A job GitHub listed pending at `t0` and skipped only after its needs resolved was unfinished to `busy()`. If it is a unit, a true deferral then reads as a verdict and dispatches, which is origin/main's behaviour. This is argued from the rule, not run: GitHub re-stamps skipped jobs, so no fixture stamp can tell the two apart. The body states the rule but not this direction.
+  - Carry: R11-INTAKE-R10-RESIDUE
+- Still unsettled from round 1: API cost. `covered_deferral` lists jobs for every other run at the head on each stale red, with no cache, so a sweep costs O(reds × runs) reads.
+  - Carry: R11-INTAKE-R10-RESIDUE
 
 ## Evidence
 
-- RESULT `python3 tools/ci/sweep.py --self-test` at head: `sweep self-test: 98 checks, 0 failed` (`ev/sweep_selftest_head.txt`). The body's figure re-derives.
-- RESULT `python3 -I tools/ci/gate.py --self-test` at head: `gate self-test: 106 checks, 0 failed`. The body's figure re-derives.
-- RESULT my targeted mutants on the diff's production lines (`ev/mut.py`, `ev/mutants.out`), all killed:
-  - covered_deferral forced False: 3 failed.
-  - source_after leg dropped: 9 failed.
-  - covers leg dropped: 1 failed.
-  - judged's first-attempt read disabled: 3 failed.
-  - any readable first attempt accepted: 1 failed.
-  - unreadable first attempt read as a judge: 1 failed.
-- I did not re-run the body's `mutant_run.py` counts (19 drawn, 18 killed; spec 13/13), so they are not verified by me. Its one survivor, `per_page` 101, is equivalent at GitHub's cap of 100, and I agree.
-- Attack (1), real red with a green from another event: see Block. Case A, the null control, dispatches at both ends.
-- Attack (2), the cap and the settle bound:
-  - Case E: a deferral at attempt 44 is left, and one at 43 is re-run in place. `must_rerun` runs before `stale_pin` in `judge()`.
-  - A re-run that defers again is left by `settled` in settle (bot attempt, no source after it). In run() it is re-run at most once per sweep (`rerun_ids`), up to the cap. The fixer's deferred_again checks pass at head.
-- Attack (3): case D, the #3261 pair (two deferral reds, nothing green), dispatches once at both ends.
-- Attack (4): case F (attempt 1 returns 404) and case F2 (an attempt-1 listing with no gate row) both dispatch at head, after 4 attempt reads each.
-- Attack (5), which copy of sweep.py runs, read in ci.yml at head:
-  - gate-sweep.yml checks out `${{ github.sha }}` (the default branch for workflow_run) and runs `gate.py --sweep`, so main's copy.
-  - ci.yml `sweep-self` restores `tools/ci/*.py` from `github.event.pull_request.base.sha`. For a dispatch it restores from `refs/heads/$INPUT_BASE` fetched at job start (ci.yml:378-396).
-  - So main's copy judges in gate-sweep and in a dispatch's sweep-self. A bot-actor pull_request run's sweep-self keeps the pinned copy. The body states that exception itself, so the claim holds as the body words it.
-- Merge with main: `git merge-tree --write-tree origin/main <head>` rc=0 (`ev/merge_tree.txt`).
-- VERSION, the manifest version and the RELEASE_NOTES.md heading are untouched. The three-dot diff touches only the delivery row, sweep.py and sweep_selftest.py.
-- No claim files or budgets moved. carry_audit at head (packet): 1 item, routed.
-- CI: classify printed `WAIT b17c78773410c7e1d77dcbbe39e8c817edf87454 pending: gate red: none` at three polls (`ev/classify.log`). CI is the authority for the code suites. There is no red on an owed-reds check at render: `tests / nightly-status` failed, and it is outside `merge_train.py owed-reds`, so nothing is owed for it.
-- The finder's harness is none named. The fixer's #3544 recording in the self-test is the fixer's instrument, and cases A–F2 are mine.
+- HEAD: `ev/HEAD.txt` holds 805bf6d00f18d70613dd5e3575fbea91c22bb2a8. The PR body's `## Head` names the same SHA.
+- Merge with main: `git merge-tree --write-tree origin/main 805bf6d0` rc=0 (`ev/merge_tree.txt`).
+- Previous verdict's cases (`ev/rev_cases.py`, round 1's, unchanged), at this head (`ev/rev_cases_head.out`):
+  - A: dispatch.
+  - B: dispatch. It re-ran in place at b17c7877, so it is resolved.
+  - C: re-run in place.
+  - D: dispatch.
+  - E: attempt 44 left, attempt 43 re-run in place.
+  - F and F2: dispatch after 4 attempt reads each.
+  - At b17c7877 (`ev/rev_cases_b17c.out`): B and C re-run in place, as recorded in round 1.
+- The fixer's claim about C, judged against gate.py: it holds.
+  - My C's newer run R3 was created at 07:59, before the red's `t0` of 08:02. Its gate had not started then: it started at 08:03 and is listed `waiting`, so `started()` is false.
+  - R3 lists `governance / delivery-status-publish`, unfinished at `t0`. `judging()` treats every listed job whose prefix is in UNITS as one that must be completed, and `governance` is a unit prefix, so `judging(R3)` is False.
+  - R3's id is higher, but its gate had not started, so the tie-break does not exclude it. `busy()` therefore names R3: the red gate deferred, and an in-place re-run is right.
+  - My round-1 C asserted a real red that gate.py would not have judged. With a non-unit job (the fixer's `refresh` variant), or with R3's gate already running at `t0`, it dispatches.
+  - Whether `judging()` should count a post-gate report job like delivery-status-publish is gate.py's question, outside this diff.
+- Reconstruction checks against `busy()` at the instant:
+  - Unstarted job: reads queued. Running job: in progress. Both are pinned by the self-test.
+  - Skipped job: always completed (J above).
+  - Re-stamped non-skipped job (my H, `ev/rev2_cases.py`): a lower-id run completed at `t0`, with one unit re-run after it, makes a real red re-run in place. This is the body's dispositioned Residual (latest-attempt stamps, conservative direction).
+  - Run created after `t0`: absent. A run with no jobs: busy, which matches busy() for `queued` but not for `action_required` (G).
+  - Ties to the second: a completion, a start or a creation in `t0`'s own second reads done, started or present. Since the real read is later than `t0`, that is the side consistent with it.
+- My mutants on listed_at and covered_deferral (`ev/mut2.py`, `ev/mutants_listed_at.out`), all killed:
+  - created_at filter dropped: 5 failed.
+  - skipped clause dropped: 1 failed.
+  - started-at tie made strict: 1 failed.
+  - completed-at tie made strict: 1 failed.
+  - busy leg forced True: 16 failed.
+  - jobless run read completed: 1 failed.
+- Body figures re-derived at this head (`ev/selftests_head.txt`, `ev/figures_head.txt`):
+  - `sweep self-test: 108 checks, 0 failed`
+  - `gate self-test: 106 checks, 0 failed`
+  - `STRUCTURE RATCHET PASSED`
+  - `RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no`
+  - `RESULT replay wait_s=0 first=FAIL swept=yes final=PASS`
+  - `SWEEP-ARM rc 0`
+  - All match the body.
+- Not re-run by me, so not verified: the body's `mutant_run.py` counts (30 drawn, 28 killed; spec 23, 22 killed) and its round-2 failing-test-first count (101 checks, 3 failed).
+  - Of its survivors, `per_page 101` and `others-include-self` are equivalent, and I agree.
+  - The `created_at <` survivor sits on the conservative side, as stated.
+- VERSION, the manifest version and the RELEASE_NOTES heading are untouched. No claim files or budgets are in the diff.
+- CI: classify printed `WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none` at every poll (`ev/classify.log`). The hotfix's prepr scope was owner-ruled, and CI is the authority for the code suites, so I am returning with `pending-ci: gate` and not waiting it out.
+- No red sits on an owed-reds check at render. `tests / nightly-status` failed, and it is not owed. Red checks: none owed.
+- Finder's harness: none named. The fixer's #3544 recording and C variants are the fixer's instruments. Cases A–F2 (round 1) and G–I (`ev/rev2_cases.py`) are mine.
