@@ -1,30 +1,28 @@
-Fix review: blocked aeb5f761cb62840ec481d9cb4df97bebadcbafbb carry-missing: not carried to R11-INTAKE-R10-RESIDUE; carry-201 entry 22's second half (window_work_minutes timing-inferred need edges) is still absent from the roster branch tip 05188a4777
+Fix review: merge aeb5f761cb62840ec481d9cb4df97bebadcbafbb
 
-bus-nonce: 4a84318df55e6c08ecc0ebc34c17bc07
+bus-nonce: 3baf5e50ca947d9632c995b02acca393
 
-## Block
+## Scope
 
-Round 3 is a delta round over da2d0fd3ad716359ae2af261e530398ded16b584, at head aeb5f761cb62840ec481d9cb4df97bebadcbafbb. The delta is d8ac2c0dc3, which changes tests/entities.py at 4+/1-, and the merge aeb5f761 of it, whose parents are da2d0fd3 and d8ac2c0dc3 (ev/delta.diff, ev/delta_commits.txt).
+This is round 4. It is a delta review at the same code head aeb5f761cb62840ec481d9cb4df97bebadcbafbb as round 3's blocked verdict. `git diff aeb5f761 aeb5f761` is empty, so the only delta is the PR body. It touches no line under custom_components/, so the review does not widen (fix-review.md step 12). Per the brief, everything round 3 resolved stands, and the code is not re-reviewed. Under "Say which round this is": this is the fourth round, so fixer.md's re-cut clause is reached. This round exists only because the carry was outside the fixer's power, and the code was settled at round 3. The orchestrator decides whether a re-cut is owed.
 
-0. **The round-2 block item 1 is still unresolved: carry-201 entry 22's second half is not in the tree.** The roster branch origin/handoff/audit-r10-roster now has tip 05188a477764 ("roster_edit append-carry R11-INTAKE-R10-RESIDUE"). That commit added two other carries: the exported_at wall-clock entry and the 11e9ad5a reference-basis digest. It did not add this one. The roster's `R11-INTAKE-R10-RESIDUE` holds 171 carry items. None of them contains `window_work_minutes`, and the roster file has 0 matches for `window_work_minutes|timing-inferred|QUEUE_EPS` (ev/carry_targets.txt, ev/roster_e22b.txt). The PR body still says "FOR THE ORCHESTRATOR TO FOLD ... then name the resulting SHA here", and it names no SHA. carry-201.json was the only file in the tree that held that text, and this PR deletes it. finding-propagation.md says "The producing PR does not merge until the carry is in the tree", so the block stands (fix-review.md step 10). The repair is outside the fixer's power: the orchestrator or relay appends the body's quoted text to R11-INTAKE-R10-RESIDUE's `carry` list on origin/handoff/audit-r10-roster, and the body then names that SHA. The code at this head needs nothing further. A round-4 review is the delta of that body change and one roster read.
+## Round-3 block item 0: resolved
 
-Resolved since round 2:
-- Round-2 block item 0, the cited-program arm (tests/entities.py:34601ff), is resolved. The `_sp_cog in _SP_CITED` clause is replaced by `_sp_cited([("x.md", f"run `{_sp_cog}`")]) == {_sp_cog: ["x.md"]}`, which plants the citation as the dora_keys and units legs already do. `len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)` is unchanged and still runs against codeowners_gap.py's real source, so the leg keeps its purpose. At the head, `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py` prints the arm `ok` and `ALL 2725 ENTITY CHECKS PASSED`, rc 0 (ev/entities_head_arm.txt, ev/entities_head_tail.txt).
-- The control is not weakened. Mutant C makes `_sp_faults` count literals a program only holds as opened (`_sp_literals(..., opened=False)`; ev/mutant_C.diff). Under it the arm FAILs and names codeowners_gap's 4 held stale literals as opens-faults: `1 of 2725 ENTITY CHECKS FAILED`, rc 1 (ev/entities_mC_arm.txt). Only the held-path leg catches that mutant.
+- The PR body now names the roster SHA. `## Head` says "the carry of carry-201 entry 22, second half, is on the roster branch at db1943958e3cde237393ad8493bd3bd577e7f9c5". `## Forward-carry` says "Folded: ... in the `carry` list of R11-INTAKE-R10-RESIDUE on origin/handoff/audit-r10-roster at db1943958e3cde237393ad8493bd3bd577e7f9c5" and quotes the appended text. The "FOR THE ORCHESTRATOR TO FOLD" placeholder is gone.
+- One roster read at db1943958e: the commit's subject is "roster_edit append-carry R11-INTAKE-R10-RESIDUE (carry-201 entry 22 second half, #3553 fix-review round 3)". It is an ancestor of origin/handoff/audit-r10-roster, whose tip is now 00e3c2f8c0. In dev/programme/rosters/wave-r10-groups.json, R11-INTAKE-R10-RESIDUE (resume.stage not-started, so live) has 175 carry items. Item 174 is the only item in the file matching `window_work_minutes|timing-inferred|QUEUE_EPS` (file-wide count 1; ev/roster_e22b.txt). Its text equals the body's quoted text.
+- The carry states its control as a precondition (finding-propagation.md): "Keep only edges to the workflow's declared needs:". It also gives a re-measurement instruction: "re-measure it at your merge base with dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py section 6". That harness path exists on origin/main and at db1943958e.
 
 ## Findings
 
-- Follow-up: the body's `## Red checks` re-answer for `tests / fast (3.14)` names the cheaper detector (the fixer's own full entities.py run, read to its count line) and process state (b). That settles round 2's root-cause follow-up, subject only to pr-contract's run at this head. Carry: dismissed: settled in this PR at this head
+- Follow-up: the roster carry item as appended has no trailing `Carry:` marker, while its neighbours have one. It already sits inside its destination group's own carry list, so a marker would only restate where it is. Carry: dismissed: the item is in its destination; nothing to route
 
 ## Evidence
 
-- RESULT head-measured: aeb5f761cb62840ec481d9cb4df97bebadcbafbb. The body's head line names the same SHA (ev/HEAD.txt).
-- RESULT scope: delta. The delta touches tests/entities.py only. No line under custom_components/ is in it, so the review does not widen (fix-review.md step 12).
-- RESULT entities-head: arm ok; ALL 2725 ENTITY CHECKS PASSED; rc=0.
-- RESULT mutant-C: arm FAIL; 1 of 2725 FAILED; rc=1. The mutant is killed.
-- RESULT carry-targets: R11-INTAKE-R10-RESIDUE is at resume.stage not-started, and R10-OUTSIDE-CONTRIBUTOR-CYCLE is at in-progress, so both are live. R10-CLOSEOUT-PREP is at done, so no `Carry:` in the body targets it. carry_audit at the head reports 33 routed, 0 unrouted, 0 bad destinations (review packet).
-- RESULT merge-tree: `git merge-tree --write-tree origin/main aeb5f761` exits 0 against origin/main 23cc7b8e1d (ev/merge_tree.txt).
-- RESULT version: VERSION, RELEASE_NOTES.md and custom_components/ are untouched three-dot from the merge base (ev/version_check.txt).
-- RESULT policy-drift: `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
-- RESULT CI: `merge_train.py classify aeb5f761... --pr 3553` printed `WAIT aeb5f761cb62840ec481d9cb4df97bebadcbafbb pending: gate red: none` on both polls (ev/classify_log.txt). This verdict blocks on content, so it does not wait for CI to settle. `gate` and `tests / nightly-status` read failure in the digest while other lanes were still running. I made no red-check finding, because the head's workflows have not concluded (step 11).
-- RESULT figure-not-re-derived: I did not re-run the body's "measured NOT answered" spot figures (min3_running_folded=3/15, selfmod_independent_4kw=0.789), as in rounds 1 and 2.
+- RESULT head-measured: aeb5f761cb62840ec481d9cb4df97bebadcbafbb. refs/pull/3553/head reads the same SHA at review time, and the body's head line names it (ev/HEAD.txt).
+- RESULT delta: `git diff aeb5f761cb62840ec481d9cb4df97bebadcbafbb aeb5f761cb62840ec481d9cb4df97bebadcbafbb` is empty. The delta is the body only.
+- RESULT roster-carry: db1943958e3cde237393ad8493bd3bd577e7f9c5 R11-INTAKE-R10-RESIDUE carry[174] matches window_work_minutes / timing-inferred / QUEUE_EPS. The file has 1 match (ev/roster_e22b.txt; diff from 05188a4777 in ev/roster_delta.diff).
+- RESULT carry-audit: the packet's carry_audit at the head reports `CARRY-AUDIT: 33 finding item(s): 33 routed, 0 unrouted, 0 bad destination(s)`. I ran the closing self-audit over this verdict as the comment, with a stub body because this seat has no gh to fetch the body file; the body's 33 items are the packet's run above. It printed `1 routed, 0 unrouted, 0 bad destination(s)`, rc 0 (ev/carry_audit_self.txt).
+- RESULT merge-tree: `git merge-tree --write-tree origin/main aeb5f761` gives rc 0 against origin/main 6abf88e617 (ev/merge_tree.txt).
+- RESULT policy-drift: `git diff merge-base...origin/main -- dev/governance/roles/` adds only the two outside-contributor bullets (decision 0017) to fix-review.md. They do not bear on this in-house review (ev/role_drift.diff).
+- RESULT owed-reds: the set is in ev/owed_reds.txt. `tests / nightly-status` reads failure in the packet digest and is outside the set, so it is not this PR's and blocks nothing.
+- RESULT CI: `merge_train.py classify aeb5f761... --pr 3553` printed WAIT (`pending: gate red: none`) from 23:27Z on, then `GREEN aeb5f761cb62840ec481d9cb4df97bebadcbafbb pending: none red: none`, rc 0, at 2026-11-14T23:36:12Z (ev/classify_log.txt). No required check is red, so no `## Red checks` answer is owed at this head beyond the body's existing ones.
