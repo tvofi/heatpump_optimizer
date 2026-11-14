@@ -823,6 +823,11 @@ SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
 #: :data:`pump_arbiter.FLOW_HEAT_C`.
 CONF_FLOW_HEAT_C: Final = "flow_heat_c"
 DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: The highest heating-flow ceiling the options flow offers, °C, and the
+#: highest set-point-entity maximum a boost writes (``pump_arbiter.
+#: _boost_ceiling_c``): above it the entity is no heating-flow set-point
+#: (a generic number helper reads 100), so a boost keeps the planned level.
+FLOW_HEAT_C_MAX: Final = 70.0
 #: The flow set-point's lift over the measured inlet water at the modulation
 #: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
 #: that takes the set-point as its return-water target modulates on the gap
