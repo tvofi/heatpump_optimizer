@@ -2972,7 +2972,7 @@ check("the hand-scheduled reason has a label",
   check("UX-6: unpriced wear says so instead of a zero",
     /Compressor wear/.test(rcpPage) && /212 starts/.test(rcpPage) && /not priced/.test(rcpPage));
   check("UX-6: the note names what the total covers",
-    /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares spot cost only\./.test(rcpPage));
+    /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares only the spot price and the per-kWh grid fee\./.test(rcpPage));
   check("UX-6: the saving against a thermostat is the month's own row",
     /Saved 148\.00 SEK \(19 %\) against a plain thermostat/.test(rcpPage));
   // R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so
@@ -3871,7 +3871,7 @@ check("the hand-scheduled reason has a label",
     (advPage.match(/estimated/g) || []).length >= 2,
     "a prior is a prior; the page must never read as a measurement");
   check("the page names what drove the replay",
-    /measured delivery/.test(advPage),
+    /measured power draw/.test(advPage),
     "the basis line distinguishes the history arm from the config arm");
   check("unpriced rows render after every priced one, with their reason",
     (() => {
@@ -4298,7 +4298,7 @@ const restartStates = (patch = {}) => {
   const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
   check("a drift alarm offers the refit with its band, and the restore point",
     /Restart the heat-loss model at 1\.14 \(now 0\.67\)/.test(rsPage)
-    && /3\.3 settled days \(180 intervals\)/.test(rsPage) && /±7-10 %/.test(rsPage)
+    && /3\.3 settled days \(180 intervals\)/.test(rsPage) && /±10 %/.test(rsPage)
     && /Nothing changes until you accept/.test(rsPage)
     && /Restore the model from 2026-03-01/.test(rsPage)
     && /data-act="adopt_refit"/.test(rsPage) && /data-act="restore_snapshot"/.test(rsPage));
@@ -4342,7 +4342,7 @@ const restartStates = (patch = {}) => {
   const rsv = mkInbox(restartStates(), "sv-SE").html();
   check("the restart rows speak Swedish",
     /Starta om värmeförlustmodellen på 1\.14 \(nu 0\.67\)/.test(rsv)
-    && /Godta omanpassning/.test(rsv) && /±7-10 %/.test(rsv) && /Återställ modellen från/.test(rsv));
+    && /Godta omanpassning/.test(rsv) && /±10 %/.test(rsv) && /Återställ modellen från/.test(rsv));
 }
 
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
@@ -11829,12 +11829,12 @@ const blockedStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
 blockedStates[DEFAULT_SPACE].attributes.space_blocked = true;
 const blockedCard = build(blockedStates);
 const blockedDump = collect(blockedCard.shadowRoot).join("\n");
-check("a space-blocked plan shows the DHW-only banner",
-  /DHW only/.test(blockedDump));
+check("a space-blocked plan shows the no-space-heating banner",
+  /No space heating in the pump&#39;s current mode|No space heating in the pump's current mode/.test(blockedDump));
 check("a space-blocked plan dims the promised house traces",
   /<g opacity="0\.35">/.test(blockedDump));
-check("an unblocked plan shows no DHW-only banner and no dimming",
-  !/DHW only/.test(dump) && !/<g opacity="0\.35">/.test(dump));
+check("an unblocked plan shows no no-space-heating banner and no dimming",
+  !/No space heating in the pump/.test(dump) && !/<g opacity="0\.35">/.test(dump));
 
 // The measured "now" temperature is read from the indoor sensor the same
 // derivation the history pan uses; a live reading renders the corner label,
@@ -12243,7 +12243,7 @@ check("without an indoor reading the corner now label is absent",
     !/data-health-pill/.test(nbHtml) && !/data-health-input/.test(nbHtml));
 
   check("still learning lists unavailable waiting sensors with a reason in words",
-    /Savings this month/.test(page) && /first settled month/i.test(page)
+    /Savings this month/.test(page) && /first month with a booked saving/i.test(page)
     && /Heat pump COP/.test(page) && /power meter/i.test(page)
     && /Optimization score/.test(page));
   check("a sensor that has evidence is not listed as learning",
@@ -13744,6 +13744,152 @@ check("without an indoor reading the corner now label is absent",
   const svDump = collect(sv.shadowRoot).join("\n");
   check("collapse: the headers speak the card language",
     svDump.includes(fn("STRINGS.sv")["fold.narrative_title"]) && svDump.includes("Varför nu") && /totalt/.test(svDump));
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
+}
+
+// R10-USER-TEXT-VERIFY-CARD: the card's claims a script can read back, each
+// against the artifact that decides it, in every card language (the record is
+// dev/audit/rounds/round10/user-text-card.md). The languages are STRINGS' own
+// keys, never a list kept here.
+{
+  const tbl = fn("STRINGS");
+  const langs = Object.keys(tbl);
+  const pkg = path.join(testsDir, "..", "custom_components", "heatpump_optimizer");
+  const read = (rel) => fs.readFileSync(path.join(pkg, rel), "utf8");
+  // 1. Navigation text names the options flow's own menu labels in the same
+  // language: a `setup.page_<step>` string is that step's label, and each
+  // comma clause of an `advisor.step_<step>` string ("Configure → A → B,
+  // then C → D") walks the menus -- an init page, or the init menu's
+  // advanced entry then an advanced page -- and one clause ends on the
+  // step's own page. The de drift this group fixed ("Wärmespeicherung",
+  // "Einsparungen vs. Komfort", "Netz-Spitzentarif") passed the en-only
+  // Configure-chip check.
+  const navBad = [];
+  let navSeen = 0;
+  for (const lang of langs) {
+    const st = JSON.parse(read(`translations/${lang}.json`)).options.step;
+    const init = st.init.menu_options;
+    const adv = st.advanced.menu_options;
+    const label = (step) => adv[step] ?? init[step];
+    for (const [key, text] of Object.entries(tbl[lang])) {
+      if (key.startsWith("setup.page_")) {
+        navSeen++;
+        const want = label(key.slice("setup.page_".length));
+        if (text !== want) navBad.push(`${lang} ${key}: ${JSON.stringify(text)} vs ${JSON.stringify(want)}`);
+      } else if (key.startsWith("advisor.step_")) {
+        navSeen++;
+        const own = label(key.slice("advisor.step_".length));
+        const walks = text.split(/,\s*\S+\s+/).map((c, i) => c.split("→").map((s) => s.trim()).slice(i === 0 ? 1 : 0));
+        for (const w of walks) {
+          const ok = w.length === 1
+            ? Object.values(init).includes(w[0]) && w[0] !== init.advanced
+            : w.length === 2 && w[0] === init.advanced && Object.values(adv).includes(w[1]);
+          if (!ok) navBad.push(`${lang} ${key}: ${JSON.stringify(w)} is no menu path`);
+        }
+        // A step id that is no options page (`metering` names the opt-in, not a
+        // page) is held to the walk alone.
+        if (own !== undefined && !walks.some((w) => w[w.length - 1] === own)) navBad.push(`${lang} ${key}: never names ${JSON.stringify(own)}`);
+      }
+    }
+  }
+  check("user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language",
+    navSeen >= 3 * langs.length && navBad.length === 0, `${navSeen} string(s); ${navBad.join("; ")}`);
+  // 2. The COP fold's refusal reasons quote the code's own thresholds.
+  const gate = Number((read("const.py").match(/^COP_TRACKING_ERROR_GATE\b[^=\n]*=\s*([0-9.]+)/m) || [])[1]);
+  const modelled = (read("coordinator.py").match(/if modelled_cop <= ([0-9.]+):\s*\n\s*return COP_REFUSED_MODELLED/) || [])[1];
+  const quotes = (text, v) => text.includes(v) || text.includes(String(v).replace(".", ","));
+  const copBad = langs.filter((l) =>
+    !tbl[l]["health.cop_reason_tracking_gate"].includes(`${Math.round(gate * 100)} %`)
+    || !quotes(tbl[l]["health.cop_reason_modelled_cop"], modelled));
+  check("user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language",
+    Number.isFinite(gate) && modelled !== undefined && copBad.length === 0,
+    `gate ${gate}, modelled floor ${modelled}; wrong in: ${copBad.join(",")}`);
+  // 3. The window-time error fires for silent/off windows too, so no
+  // language may call the window a hot-water one. Both handlers that refuse
+  // an invalid window -- Save (`onSaveSchedule`) and Simulate (`run`) -- are
+  // driven with a valid hot-water window and an invalid quiet one: each must
+  // print the error and call no service. A handler that checked hot-water
+  // windows only would let the quiet one through.
+  const hotWord = { en: /hot water/i, sv: /varmvatten/i, de: /warmwasser/i };
+  check("user text: the invalid-window error names no channel, in every card language",
+    langs.every((l) => hotWord[l]) && langs.every((l) => !hotWord[l].test(tbl[l]["errors.invalid_window_time"])),
+    langs.map((l) => `${l}: ${tbl[l]["errors.invalid_window_time"]}`).join(" | "));
+  const quietRefused = [];
+  for (const handler of ["onSaveSchedule", "run"]) {
+    const ed = build(slotStates, { what_if: true });
+    ed.dialog.open();
+    let served = 0;
+    ed._hass = mkHass(ed._hass.states, () => { served++; return {}; });
+    const panel = ed.whatIf;
+    panel.onSlotEdit = () => {}; // keep the draft below, not the DOM's rows
+    const draft = panel.draft();
+    draft.dhwWindows = [{ days: "daily", start: "06:00", end: "08:00" }];
+    draft.quietWindows = [{ days: "daily", start: "notatime", end: "08:00", action: "silent" }];
+    await panel[handler]({ stopPropagation: () => {} });
+    const got = ed.shadowRoot.querySelector(".wi-result").textContent;
+    const want = fn("L")("errors.invalid_window_time", { window: fn("windowRange")(draft.quietWindows[0]) });
+    if (got !== want || served !== 0) quietRefused.push(`${handler}: ${JSON.stringify(got)} vs ${JSON.stringify(want)}, ${served} service call(s)`);
+  }
+  check("user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error",
+    quietRefused.length === 0, quietRefused.join("; "));
+  // 4. The refit row's uncertainty is the band the refit publishes
+  // (`heat_loss_refit`'s `band_percent`, from accuracy.py's
+  // REFIT_BAND_PERCENT), rendered in every card language. A probe band the
+  // constant does not name proves the row reads the attribute, not a literal.
+  const band = Number((read("accuracy.py").match(/^REFIT_BAND_PERCENT\s*=\s*([0-9.]+)/m) || [])[1]);
+  const bandBad = [];
+  for (const lang of langs) {
+    for (const b of [band, 13]) {
+      const s = restartStates();
+      s[`${ADVISOR_PFX}_model_restart_advisor`].attributes.refit.band_percent = b;
+      const c = new Card();
+      c.setConfig({ type: "custom:heatpump-optimizer-card" });
+      c.hass = { states: s, language: lang, callService: async () => {} };
+      c._onCardClick({});
+      c.dialog.page = "advisor";
+      c._render();
+      const html = collect(c.shadowRoot).join("\n");
+      if (!html.includes(`±${b} %`) || !tbl[lang]["advisor.refit_detail"].includes("±{band} %")) bandBad.push(`${lang} band ${b}`);
+    }
+  }
+  check("user text: the refit row states the band_percent the refit publishes, in every card language",
+    Number.isFinite(band) && bandBad.length === 0, `REFIT_BAND_PERCENT ${band}; wrong: ${bandBad.join(", ")}`);
+  // 5. The opt-in rows: the options page turns the price of a degree on, but
+  // no page turns the wood, fuse or frequency advisor on -- each is a sensor
+  // created disabled (sensor.py's `_attr_entity_registry_enabled_default =
+  // False` in its class) -- so those rows say to enable the sensor, and the
+  // degree row does not. The classes are named here: the card's ids are not
+  // sensor keys.
+  const sensorPy = read("sensor.py");
+  const offByDefault = (cls) => {
+    const at = sensorPy.indexOf(`class ${cls}(`);
+    const next = sensorPy.indexOf("\nclass ", at + 1);
+    return at >= 0 && /_attr_entity_registry_enabled_default = False/.test(sensorPy.slice(at, next < 0 ? undefined : next));
+  };
+  const optClass = { wood: "WoodBurnAdvisorSensor", fuse: "MonthlyPeakSensor", frequency: "FrequencyAdvisorSensor" };
+  const optInIds = fn("ADVISOR_OPT_IN");
+  const optBad = [];
+  for (const id of optInIds) if (!offByDefault(optClass[id])) optBad.push(`${id}: ${optClass[id]} is not disabled by default`);
+  for (const lang of langs) {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    // Price tiles off, so the degree row is offered too: the note's control.
+    const st = inboxStates();
+    st[`${ADVISOR_PFX}_optimization_score`].attributes.price_tiles = {};
+    c.hass = { states: st, language: lang, callService: async () => {} };
+    c._onCardClick({});
+    c.dialog.page = "advisor";
+    c._render();
+    const rowsHtml = collect(c.shadowRoot).join("\n").split('class="fact-inbox-row');
+    const note = fn("esc")(tbl[lang]["advisor.optin_sensor_off"]);
+    for (const id of ["degree", ...optInIds]) {
+      const row = rowsHtml.find((r) => r.includes(fn("esc")(tbl[lang][`advisor.optin_${id}`])));
+      if (row === undefined) { optBad.push(`${lang} ${id}: no row`); continue; }
+      if (row.includes(note) !== optInIds.includes(id)) optBad.push(`${lang} ${id}: note ${row.includes(note)}`);
+    }
+  }
+  check("user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language",
+    optInIds.length === 3 && optBad.length === 0, optBad.join("; "));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
 }
 
