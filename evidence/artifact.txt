@@ -1,0 +1,4 @@
+artifact 14130285894 selftest-closures run 43632211631 @4058469d79 zip sha256:
+550d20b135ec239cb989493eeeb2563551206916b437db10a5d67eeeedf3b3f7  /tmp/claude-0/-home-user-heatpump-optimizer/a84fc217-5e63-5d11-a7bf-09552790ce71/scratchpad/art/a.zip
+artifact == head tools/ci/selftest_closures.json (byte-identical)
+artifact == code head 1542231b10 table (byte-identical)

@@ -1,0 +1,3 @@
+ dev/programme/delivery/3595.md  |  1 +
+ tools/ci/selftest_closures.json | 51 ++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 51 insertions(+), 1 deletion(-)

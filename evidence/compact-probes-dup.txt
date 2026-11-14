@@ -1,0 +1,1 @@
+RESULT compact_probes({a/**,a/x,a/y}, dirs={}, tracked={a/x,a/y}) = ['a/**', 'a/**']
