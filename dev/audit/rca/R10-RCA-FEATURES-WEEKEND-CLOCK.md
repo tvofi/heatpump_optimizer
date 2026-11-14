@@ -244,13 +244,16 @@ and calendar day.
 5. **It stays inside the ratchet**: no budget raise is expected.
    `nightly.yml` and the stub are non-production files.
 
-**Owner group: R10-SUITE-ENV-RESIDUE**, a live group at stage `carries-open`.
-Its seam is "where the suites run": the nightly heartbeat, the hastub and
-cloud environments. Size S, as a carry. It is an instrument group, so under the
-closure ruling it does not hold the stamp or the catalog PR. If that group
-closes first, the carry goes to R11-INTAKE-R10-RESIDUE with this path. The
-nightly step is R10-SUITE-HOST-DETERMINISM's (done), so the carry builds on
-that group's step and does not reopen it.
+**Owner group: R11-INTAKE-R10-RESIDUE**, size S, as a carry. The seam's
+group is R10-SUITE-ENV-RESIDUE ("where the suites run": the nightly
+heartbeat, the hastub and cloud environments). It is at stage `carries-open`,
+and the carry audit refuses a carry to it (`BAD-DEST ... a carry goes to the
+live group owning the seam`). R10-SUITE-HOST-DETERMINISM, which owns the
+nightly step, is done. So the carry goes to the round-10 residue holding
+group, and the round-11 architect re-homes it, preferably onto whichever group
+inherits the suite-environment seam. This is an instrument change, so under
+the closure ruling it does not hold the stamp or the catalog PR. The test fix
+itself is R10-HOTFIX-FEATURES-WEEKEND-CLOCK's and is not part of this carry.
 
 **Not proposed: a rule or brief line saying "tests pin the clock".** That
 would be the (b) mistake. The author obeyed every rule in force and handled
