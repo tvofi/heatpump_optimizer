@@ -2397,9 +2397,10 @@ def valve_top_equilibrium(
             x[0], x[1], x[2], outdoor_temp, ua_rad * (t_rad - x[0]),
             ua_floor * (t_floor - x[2]), u_upper, u_lower, solar_radiation, None))
 
-    at_zero = rates(np.zeros(3))
-    upper, lower, slab = np.linalg.solve(
-        np.column_stack([rates(e) - at_zero for e in np.eye(3)]), -at_zero)
+    x0 = np.array([state.upper_floor_temperature, state.lower_floor_temperature, state.slab_temperature])
+    at_x0 = rates(x0)
+    upper, lower, slab = x0 + np.linalg.solve(
+        np.column_stack([rates(x0 + e) - at_x0 for e in np.eye(3)]), -at_x0)
     if upper >= t_rad or slab >= t_floor:
         return None
     return replace(

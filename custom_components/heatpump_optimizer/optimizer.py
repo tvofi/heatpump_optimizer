@@ -883,7 +883,7 @@ def _held_at_valve_top(
 ) -> ThermalState | None:
     """A two-zone house behind a valve whose curve cannot hold the target:
     the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
-    tank where it delivers that draw -- or ``None`` where the pump cannot
+    tank ``held``'s, already at the curve's top -- or ``None`` where the pump cannot
     make it, or on any other house, which the level-zone bisection holds
     (Carry 9: the floors held level sat below this ceiling, and the
     reference's day warmed to it)."""
@@ -894,9 +894,9 @@ def _held_at_valve_top(
     top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
     if top is None:
         return None
-    draw = valve_top_draw(model, top, outdoor, wind, rain)
-    top.buffer_tank_temperature = valve_hold_temperature(model, top, draw, outdoor, wind, rain)
-    made = valve_charge_demand(model, top, draw, outdoor, wind, rain, 1.0)
+    # A steady draw: the tank at its goal, charged over no finite step.
+    made = valve_charge_demand(
+        model, top, valve_top_draw(model, top, outdoor, wind, rain), outdoor, wind, rain, math.inf)
     return None if _pump_unreachable(model, top, made, outdoor, humidity) else top
 
 
