@@ -44,7 +44,7 @@ from .accuracy import HISTORY_LENGTH, LEAD_BUCKETS
 from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
-from .draw_range import RUNNING_FLOOR_KW
+from .draw_range import MAP_COLUMNS, RUNNING_FLOOR_KW
 from .price_tiles import TILE_NAMES
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
@@ -321,6 +321,10 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/ceiling/#/0": _RUNNING_KW,
     "draw/ceiling/#/1": _R,
     "draw/overdraws": _COUNT,
+    # R10-DRAW-MAP-EVIDENCE: the steady-run map rows, one comma-separated
+    # string per column, empty where one row's only cell is unread; a record
+    # without them reads empty (draw_range._stored_map).
+    **{f"draw/map_rows/{name}": Domain("text", null=True) for name in MAP_COLUMNS},
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }
