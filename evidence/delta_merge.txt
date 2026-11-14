@@ -1,0 +1,48 @@
+merge-tree origin/main 50373173d486faf394b24637c177ab38b691b394 vs head:
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1019 entries)
+  re-run the gate that owns this file before pushing
+bdf208bb490e636f08e15017bed72c641814e825
+rc=0
+
+main-merge c91412dfb9 resolution: auto merge-tree of 90eb45f69f51 + e23124ff6e = b742b6a5ba1334e3bd0affc6caf8477fcb5c9178, actual b742b6a5ba1334e3bd0affc6caf8477fcb5c9178
+
+review_carry:
+review_carry: FRESH-REVIEW
+
+owed-reds:
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+
+delta stat (branch-own, c91412dfb9..head):
+ .../harnesses/r10_arbiter_off_restore_mutants.py   | 61 ++++++++++++----------
+ dev/programme/delivery/3561.md                     |  1 +
+ docs/configuration.md                              |  4 +-
+ tests/features.py                                  | 10 ++--
+ .../_arbitrate.GUARD_OFF.87a4cba9.json             |  6 +++
+ .../_arm_space.GUARD_OFF.bc2b348d.json             |  6 +++
+ .../_arm_space.RETURN_DEL.ee5d5b70.json            |  6 +++
+ .../_held_back.BOOLOP.dd8cf122.json                |  6 +++
+ .../_held_back.RETURN_DEL.dd8cf122.json            |  6 +++
+ .../_own_space_write.RETURN_DEL.98fa5cc9.json      |  6 +++
+ 10 files changed, 79 insertions(+), 33 deletions(-)

@@ -107,16 +107,9 @@ Pump duty: the pump does not hold a write, number.fb_return_set: 27.6 (set by th
   ok   R10-WATER-SETPOINT-FEEDBACK: the loop's lower bound is the inlet - 0.4 K stop gap + 0.2 K (25.8 at a 26.0 inlet), the gate + 0.01 K (20.01) under a 15 degC return, and a 26.5 degC minimum-return cut over both; a 27.6 degC return-limit cut is the upper bound
   ok   R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading exactly the hold tolerance under the replaced record or over the write is a cut
   ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's baseline; a reading outside the bracket, or with no loop run, still is
-Traceback (most recent call last):
-  File "/tmp/tmp.SsbmTdlI06/base/tools/audit/seat/features_block.py", line 218, in <module>
-    sys.exit(_main(sys.argv[1:]))
-             ~~~~~^^^^^^^^^^^^^^
-  File "/tmp/tmp.SsbmTdlI06/base/tools/audit/seat/features_block.py", line 212, in _main
-    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
-  File "/tmp/tmp.SsbmTdlI06/base/tools/audit/seat/features_block.py", line 69, in run
-    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
-    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "tests/features.py[block]", line 920, in <module>
-  File "tests/features.py[block]", line 907, in _fb_own
-TypeError: _arm_space() takes 4 positional arguments but 5 were given
-rc=1
+  ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's dropped record still keeps the optimizer's own 26.0 from an unarmed key's baseline, after one move and after two with no write between, and the write is sent; a restore ends the run; an arbiter that never wrote captures it
+CARRY8-RUN-ENDS {'off pass': (30.0, None, True), 'no base': (30.0, None, True), 'compressor stop': (30.0, None, True), 'stale run': (30.0, None, True), 'restart': (30.0, None, True)}
+  ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the own-write fact survives every end of the loop run while the dropped write is held -- an off pass, a missing base, a compressor stop, a stale run, a restart: the arm after it sends the write and captures 30.0, not the own 26.0
+  ok   R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted once a write lands on the armed key, and ends when a restore writes the baseline; Off with nothing restored keeps it
+
+ALL 53 FEATURES BLOCK PASSED

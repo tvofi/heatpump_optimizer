@@ -56,18 +56,10 @@ Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the op
   ok   R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing
   ok   R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the fallback row without the space set-point over it
   ok   R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 the optimizer wrote
-Pump duty: number.water_set reads 30.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-  FAIL R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the person's own is captured, written over, and restored on off  [_pa_up_first=[] _pa_up_sent=0 _pa_up.writes()=[] / _pa_up_n_first=[25] _pa_up_n_sent=1 _pa_up_n.writes()=[('number', 'set_value', 31)]]
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; null control: the same passes with no record write 55 too  [_pa_stuck_rows={('-', True, False): [], ('-', True, True): [], ('s', False, False): [], ('s', False, True): []} _pa_stuck_null={('-', True): [55], ('s', False): [55]}]
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off (nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too  [_pa_stuck_cycle()=(0, 55.0, 1, [25]) _pa_dropped_over(55.0, 25.0)=25.0 _pa_dropped_over(55.0, 40.0)=55.0]
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
-  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is restored as set  [_pa_stuck_off()=(0, []) _pa_stuck_off('40')=(1, [40])]
+  ok   R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the person's own is captured, written over, and restored on off
+  ok   R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; null control: the same passes with no record write 55 too
+  ok   R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off (nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too
+  ok   R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is restored as set
   ok   R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off restores; null controls: the reading the entity held before the write (a refused write) and a reading after the pump was switched off (its own reset) leave the baseline at 53
   ok   R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no edit: off restores 53
 Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying
@@ -77,7 +69,6 @@ Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the op
   ok   R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and adopted; null control: one a second inside it is not, and off restores 53
   ok   R10-ARBITER-OFF-RESTORE: the space set-point's baseline is saved before the arbiter's first write to it is sent (write-ahead); null control: the store held no baseline before that pass
   ok   R10-ARBITER-OFF-RESTORE: an install with no space set-point has no restorer (the hook's 'None unconfigured'); null control: one with it has
-  ok   R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, a restart captures it again and the next off restores it
+  ok   R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, a restart captures it again and the next off restores it, 25, not the baseline row's 35
 
-4 of 57 FEATURES BLOCK FAILED
-rc=1
+ALL 57 FEATURES BLOCK PASSED
