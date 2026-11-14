@@ -1,4 +1,9 @@
-X10 >= -> >: SURVIVED rc=0 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] []
-X14 stamps[0] -> stamps[-1]: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P608 an entry with two valid stamps is dated by completedAt, not startedAt']
-X16 drop context fallback: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P608 a status-context entry (context key, no name) is keyed by its context']
-X17 drop real guard in record_drafts: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P609 record_drafts on a rehearsal (real false) reads nothing and records nothing']
+M4 record_drafts call in _batch -> pass: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P609 a batch records the draft key on a key-less entry before admission']
+M7 pending.add -> pass: KILLED rc=1 ['merge_train self-test: 661 checks, 1 failed'] ['FAIL P608 an unfinished entry older than a SUCCESS still makes the context pending']
+M8 zero-time filter dropped: KILLED rc=1 ['merge_train self-test: 661 checks, 1 failed'] ['FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order']
+M9 startedAt fallback dropped: KILLED rc=1 ['merge_train self-test: 661 checks, 2 failed'] ['FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order', 'FAIL P608 an entry with only startedAt is ordered by it, in either list order']
+X10 >= -> >: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+X14 stamps[0] -> stamps[-1]: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+X16 drop context fallback: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+X17 drop real guard in record_drafts: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+finished

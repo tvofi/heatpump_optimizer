@@ -266,17 +266,9 @@
   ok   P609 a batch records the draft key on a key-less entry before admission
   ok   P609 null: a non-draft entry is recorded False and makes no gh pr ready call
   ok   stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears
-  ok   stamp hold: every poll of a held wait refreshes train-hold (the record beat reads it stale at 3600 s)
-  ok   stamp hold: a future-dated hold (this clock behind the stamp's) is live, not absent
-  ok   stamp hold: a future-dated hold that never clears is taken over by the wait's own poll count
-  ok   stamp hold: an unreadable commit date is no wait (the age is unknowable), and the merge runs
   ok   stamp hold: null control, no hold runs the merge as today with no wait
   ok   stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs
   ok   stamp hold: a rehearsal batch (merges nothing into main) does not wait
-  ok   P608 an equal stamp keeps the later listed entry, in both list orders
-  ok   P608 an entry with two valid stamps is dated by completedAt, not startedAt
-  ok   P608 a status-context entry (context key, no name) is keyed by its context
-  ok   P609 record_drafts on a rehearsal (real false) reads nothing and records nothing
   ok   stamp hold: the ref names agree between the train and the stamp
   ok   a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, not returned red (the #3248 scene)
   ok   a sibling run that never finishes ends as TIMEOUT, bounded by the polls
@@ -395,7 +387,7 @@
   ok   carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (one call, no retry)
   ok   carry 2 null: through the same reader, a gate red on a non-infra job is never re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/tmp/tmp.begcwheWM5/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/root/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
@@ -670,8 +662,4 @@ REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>
   ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
   ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
   ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
-merge_train self-test: 669 checks, 0 failed
-
-real	0m56.843s
-user	0m22.730s
-sys	0m7.769s
+merge_train self-test: 661 checks, 0 failed
