@@ -13062,7 +13062,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r10-user-docs-verify",
-    "commit": "83e4e83d77593c609905dd76971ff72d69bb9229",
+    "commit": "d7004eaa775dd7b42aa392df0eb53aeec198b2b0",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done; run locally",
     "note": "live PR is 3568; resume.pr names merged 3513",
