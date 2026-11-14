@@ -3573,7 +3573,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             on_unload(self._release_registrations)
         # Part D: the running signal is heard from construction to release, in
         # every duty mode, by the start counter ``_init_grid`` subscribed.
-        running_signal.attach(self, *running_signal.source(hass, config, lambda: self._ctx._thermal_params, lambda kw: (
+        running_signal.attach(running_signal.signal_for(self), *running_signal.source(hass, config, lambda: self._ctx._thermal_params, lambda kw: (
             self._immersion_active or immersion_over(kw, self._ctx._thermal_params, self._commanded_power()))))
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
@@ -3613,7 +3613,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         also what every actuation point reads to decline (#237).
         """
         self._entry_released = True
-        running_signal.detach(self)
+        running_signal.detach(running_signal.signal_for(self))
         # #1755 r1: a released entry drops its worker-fallback latch, so a removed
         # entry cannot hold the shared repair issue or leak a key after it is gone.
         _clear_worker_fallback(self.hass, self.entry.entry_id)
@@ -8321,9 +8321,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         read; its restore replays them over the stored count, after the
         ledger, so the wear lines they book are not overwritten (part D).
         """
-        stored = None
+        stored = await load_mapping(self._ledger_store, "ledger")  # a failed read is None
         try:
-            stored = await load_mapping(self._ledger_store, "ledger")
             if stored is None:
                 return
             self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
@@ -9122,17 +9121,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         measured = self._measured_power
         params = getattr(self, "_ctx", self)._thermal_params
-        nameplate = float(params.max_electrical_power)
-        over = immersion_over(measured, params, self._commanded_power())
         now = dt_util.now()
-        if over:
+        if immersion_over(measured, params, self._commanded_power()):
             self._immersion_over_count += 1
             self._immersion_clear_count = 0
             if not self._immersion_active and self._immersion_over_count >= 2:
                 self._immersion_active = True
                 self._immersion_evidence.append(
                     f"{now.isoformat(timespec='seconds')}: measured "
-                    f"{measured:.1f} kW over {nameplate:.1f} kW nameplate; "
+                    f"{measured:.1f} kW over {params.max_electrical_power:.1f} kW nameplate; "
                     "immersion element running"
                 )
                 del self._immersion_evidence[:-6]
@@ -9142,7 +9139,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "Immersion element detected (%.1f kW measured, %.1f kW "
                     "nameplate)",
                     measured,
-                    nameplate,
+                    params.max_electrical_power,
                 )
         else:
             self._immersion_clear_count += 1
@@ -10504,12 +10501,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         energy, and a receipt that adds wear kWh to metered kWh double-counts.
         A released entry books and writes nothing.
         """
-        if not starts or self._entry_released:
-            return
-        wear = self._wear_price()
-        for at in starts if wear > 0 else ():
-            self._ledger.add(at, "wear", kwh=0.0, sek=wear)
-        self._schedule_ledger_save()
+        if starts and not self._entry_released:
+            wear = self._wear_price()
+            for at in starts if wear > 0 else ():
+                self._ledger.add(at, "wear", kwh=0.0, sek=wear)
+            self._schedule_ledger_save()
 
     def _roll_month(self, when: datetime) -> None:
         """#40: restate the capacity lines, then freeze closed months.
