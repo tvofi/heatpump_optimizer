@@ -27373,7 +27373,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "local Fable designer with web access now: study, baseline, design note at design/R11-PRE-PARALLEL-PIPELINE; Fable design review; build only on approve and a passing cost test, after the round-10 closure stamp",
-    "note": "owner instruction 2026-11-14; round-11 pre-finder group; never holds round-10 closure"
+    "note": "owner instruction 2026-11-14; round-11 pre-finder group; never holds round-10 closure. Owner rulings 2026-11-14 about 10:20Z on the designer questions, his words: 1. Ruled out. 2. Every change must not stay its own PR. 3. Yes. 4. Three days is fine but about maximum. Meaning: organization transfer and the native merge queue are ruled out; main may advance by promotion per proved batch, a change need not be its own pull request into main; a reviewed change may land on the integration branch on its verdict plus scoped checks with the full required set proved once per batch (policy change to the orchestrator contract merge section, his review); the build window is three days from the round-10 closure stamp. Build test: programme wall clock."
    }
   }
  ]
