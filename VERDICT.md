@@ -1,48 +1,58 @@
-Fix review: merge aa70efdd076bd5d6468060ca20638675c2fb9dd6
+Fix review: merge d7347d0cbfeccbfdf4e9d7a19ecafcb59ba2cb34
 
-bus-nonce: 7055a1b1179464bd9228f498c313c70b
-pending-ci: the relay has not yet applied aa70efdd to PR #3404 (live head d7347d0c), so no check run exists at this head; the required checks are owed there
+bus-nonce: 091e3d4343ed64fd2f85057b48283289
+pending-ci: gate
 
 ## Round
 
-This is round 4 of this group (R10-ARBITER-OFF-RESTORE). It is a delta review from the round-3 verdict `probe/rev-3404-091e3d43` (`Fix review: merge d7347d0c...`, findings none). Under fix-review.md step 12 I reviewed `git diff d7347d0c aa70efdd` with the finder's harness. I did not redo the earlier review of unchanged code. There was no review packet and no CI at this head to wait on.
+This is round 3 of this group (R10-ARBITER-OFF-RESTORE). It follows the round-2 verdict at `4a5abf4a`, which was blocked `class-open`. `review_carry.py 4a5abf4a d7347d0c` prints `FRESH-REVIEW` (`ev/review-carry.txt`). Under fix-review.md step 12 the round is reviewed as its delta: `git diff 4a5abf4a d7347d0c`, which is the production code in `ev/delta-production.diff`, plus the test, harness and ledger deltas. No main merge is in the delta: d7347d0c merges only e40e4594 into the branch. I measured at d7347d0c from a detached worktree.
 
 ## Evidence
 
-- Head. The body at `handoff-body/r10-arbiter-off-restore` (466d56a90a79) names `aa70efdd076bd5d6468060ca20638675c2fb9dd6` under `## Head`. That is the head I measured from a detached worktree (`ev/HEAD.txt`).
-- Contract. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract is current (`ev/roles-current.txt`).
-- The delta is exactly a clean merge of main (`ev/delta.txt`).
-  - `git merge-tree --write-tree d7347d0c a7887485` produces tree `2576d2ee`, with `LEDGER-MERGE: resolved tests/closures.json`.
-  - `git diff 2576d2ee aa70efdd` is empty. So the head equals the automatic merge of the reviewed head with main `a7887485`. The merge reverted nothing and carries no hand resolution.
-  - `BLOCKED.md` was added at `dacdacbf` and removed at `aa70efdd`, so it nets to zero.
-- Production under `custom_components/`.
-  - The branch's own changed lines are identical before the merge (`cbd23f1c8..d7347d0c`) and after it (`a7887485..aa70efdd`): `SAME-CHANGED-LINES`.
-  - The only main-side change to `pump_arbiter.py` in the merge is two comment lines from #3466 (the vendor name removed at `FEEDBACK_START_HOLD` and in `_clamp_cut`'s docstring). That is no functional risk to reviewed code, so the review is not widened.
-- Mutation proof with the finder's harness. I ran `python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` at aa70efdd (`ev/mutants-harness-aa70efdd.txt`).
-  - Result: `SURVIVED NULL` on both blocks, 37 `KILLED` (M01 to M20, M21 to M32, M34 to M38), rc 0.
-  - This matches the body's `## Mutation proof`.
-- Pins. The dispatch said this delta pins 7 new sites. I measured that it does not.
-  - `git diff --name-status d7347d0c aa70efdd -- tests/mutation_ledger` shows only five `diagnostics.py` pins deleted, and those are main's own deletions (`cbd23f1c8..a7887485`, the same five).
-  - The branch's own ledger files are unchanged from the head I reviewed in round 3.
-  - The body agrees: "no pin was written by hand". So there was no new pin to verify with `--pin-killed`, and I ran no `mutation_table.py`.
-- CI prediction. I ran `python3 tools/pr/ci_predict.py --base origin/main` at the head (`ev/ci_predict.txt`).
-  - It printed `no closures, fast, governance or instrument red predicted against a7887485deb7`, rc 0.
-  - It lists the same six unpinned sites with the same line numbers as the body's `## Unpinned sites` (`:1013`, `:1038`, `:1041` x2, `:1063`, `:1586`).
-  - Round 3 re-ran those sites' kills (U1, U2, S1 to S5) on unchanged production.
-- Merge with main.
-  - `git merge-tree --write-tree origin/main aa70efdd` exits 0 against origin/main `6cc15e9b` (`ev/merge-tree.txt`), so there is no conflict.
-  - The head lacks #3474. A `governance / instrument-self-tests` red there is main's old red: it is not in `merge_train.py owed-reds` (`ev/owed-reds.txt`) and blocks nothing.
-- Untouched files. `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are identical to origin/main. Both claim files are byte-identical to the merge base (`ev/version.txt`).
-- Carry check. `review_carry.py d7347d0c aa70efdd` prints `FRESH-REVIEW`, rc 1 (`ev/review-carry.txt`).
-  - The cause is history, not content. `7ea3053f` merges the stale step chain `handoff-wip` (`97a33f7d` and its `wip: step` ancestors) into the branch. Their tree contributions net to nothing (proof above).
-  - So the delta was reviewed by hand, as recorded here.
-- Red checks. No check run exists at aa70efdd. The PR's live head is still d7347d0c, so no red at this head is owed an answer yet.
-- Figures I could not re-derive at this head:
-  - The body's quoted round-3 gate, score and `prepr.sh` figures. Those are the round-3 head's, which round 3 checked.
-- Body inaccuracy (not a block). `## Head` says production "is unchanged from the round-3 head `4a5abf4a` except the merged main".
-  - `4a5abf4a` is round 3's dispatch head. `git diff 4a5abf4a d7347d0c -- custom_components` is round 3's own fix (`pump_arbiter.py`, `store.py`, 22+/9-), which round 3 reviewed.
-  - Measured against the reviewed head `d7347d0c`, the statement holds.
+- Head: the PR body's `## Head` names `d7347d0cbfeccbfdf4e9d7a19ecafcb59ba2cb34`, which is the head I measured (`ev/HEAD.txt`).
+- Merge: `git merge-tree --write-tree origin/main d7347d0c` exits 0 against origin/main `ee64358be7` (`ev/merge-tree.txt`). Its stderr reads `LEDGER-MERGE: resolved tests/closures.json`, so the ledger driver resolved that file. No conflict.
+- Prior block resolved. The round-2 block said `_arm_space` read the dropped record from `held.feedback.prev_c`, which `_feedback`'s run ends discard.
+  - At the head, the fact lives on `ArbiterState.dropped`. `_note_sent` sets it. `_arm_space` reads it only while `written["space_setpoint"]` is absent.
+  - Its lifetime is the one the block asked for. It is persisted beside `written` and loaded through `_writable`. It is cleared only by `_space_restored` (restore) and `_forget` (Off pass and release).
+  - The run-scoped `prev_c` is untouched at the reset sites, so `_cut_of` and `_clamp_cut` keep their meaning.
+- Class sweep: I re-ran the round-2 rule at the head (`git grep -n -E 'held.feedback = |rec = None|rec = held.feedback'`, `ev/class-sweep.txt`). It returns the same eight lines as the body: `:940`, `:943` (a read), `:945`, `:949`, `:952`, `:1062`, `:1065` and `:1904`.
+  - The four run ends at `:940`, `:945`, `:949` and `:952` are each closed. The harness re-injects the defect at each site (`held.dropped.clear()`, M27 to M30), and each injection is KILLED.
+  - `:1062` and `:1065` (`_clamp_cut`) are reached only through `hold` over present records. `:1904` is the restore. Both dispositions are unchanged from round 2.
+  - The restart path (the run is never persisted) is closed by persistence (M31, M32, M38).
+- Sibling rule: `git grep -n -E 'written\.pop\(|del held\.written'` returns `:1016`, `:1336` and `:1494`, matching the body's three sites.
+  - Can a stale `dropped` value reach an unarmed `_arm_space`? A space write lands only after `_arm_space` arms: `_held_back` returns `not await _arm_space(...)`, so a failed arm holds the write.
+  - `off_restore` disarms without the `restored` callback in two places: `_restore_baseline` with no writer (`off_restore.py:205-209`) and `async_restore` with no restorer or value (`:242-244`). Both leave the entity at the optimizer's value. A refusal of that value as a baseline is then correct, not stale.
+  - Unload order: `async_unload_entry` calls `off_restore.async_restore` (`__init__.py:426`), whose callback `_space_restored` clears `dropped`, before `coordinator.async_shutdown()` (`:429`). `release` then saves with `_persist` (`pump_arbiter.py:1772-1786`). I did not trace `async_shutdown` to `release` line by line.
+- Mutation proof, re-run by me at the head with `python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` on `git archive` copies (`ev/harness-mutants-head.txt`).
+  - Both blocks print `SURVIVED NULL`.
+  - 37 mutants are KILLED: M01 to M20 on the arbiter block, and M21 to M32 plus M34 to M38 on the feedback block. None survived. rc 0.
+  - This instrument is the fixer's (fix-review.md step 9). The group has no finder harness: it is an owner-ruled build (#201 comment 6708225978), as the body states.
+- Own mutants, built by me and not in the fixer's set, run on the harness's `SEAM_BLOCK` through `tools/audit/seat/mutant_run.py` (`ev/own-spec-X.json`, `ev/own-mutants-X.txt`). Each is SURVIVED NULL then KILLED, rc 0:
+  - X1 `_arm_space` reads `None` in place of `held.dropped`.
+  - X2 `_note_sent` sets `prev_c` but not `dropped`.
+  - X3 `_load` discards the stored `dropped`.
+- The body's unpinned-site kills, re-run by me (`ev/own-spec-U.json`, `ev/own-mutants-U.txt`). On `SEAM_BLOCK`: SURVIVED NULL, `KILLED U1_note_sent_guard_off` (`:1013`), `KILLED U2_release_guard_off` (`:1586`), rc 0. This agrees with the body.
+- Null control: SURVIVED NULL in every driver run above. The body's per-row control (`prev_c` None after every run end at both ends) is in the check the mutants kill. I did not separately re-run the base-side `1 of 37 FEATURES BLOCK FAILED` failing-first figure. M37 (round 2's reader) and my X1 put the base's reader back and both are KILLED, which is the same failure observed from the head side.
+- Cheap checks at the head (`ev/cheap-checks.txt`):
+  - `tests/finite_boundary.py`: `ALL 110 FINITE BOUNDARY CHECKS PASSED`. The new `dropped/space_setpoint` is declared in `store.DOMAINS`.
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `archscore --diff cbd23f1c8b`: `Architecture score: dS +0.0000 NULL`, as the body quotes.
+- Step 4 and step 5 checks:
+  - `VERSION`, `manifest.json`, `RELEASE_NOTES.md`, both claim files and every `*_budgets.json` are untouched three-dot against the merge base `cbd23f1c8b`.
+  - No golden fixture moves in the diff, so there is no claim to compare.
+- Metric movement (step 14): one ledger pin is deleted, `_arbitrate GUARD_OFF 87a4cba9`, a stale pin on the Off-pass guard line this diff edits. It is replaced in CI by `mutation-autofix`. The new line's mutant is shown KILLED by U2 above, so the deletion is earned by the line edit and is not a dropped disposition.
+- Figures I did not re-derive:
+  - The body's scoped-gate count (`MODE: SCOPED -- 23 script(s) run, 10 scoped out`).
+  - The full `tests/features.py` `1 of 5253` figure.
+  - The `ci_predict.py` output.
+  - These are CI's heavy runs, cited and not re-run.
+- Red checks (fix-review.md step 11; owed set in `ev/owed-reds.txt`):
+  - `tests / mutation`, job 130533725880, is red at this head: `MUTATION TABLE REFUSED -- 2632 unpinned site(s) against 2626 ... 7 of them added by this diff`. The sites are `:1013` GUARD_OFF, `:1038` GUARD_OFF, `:1041` CMP_BOUND*2, `:1041` RETURN_DEL, `:1063` GUARD_OFF and `:1586` GUARD_OFF.
+  - This is the body's six `## Unpinned sites` entries, CMP_BOUND*2 counting as two. The body's `## Red checks` names `mutation`, with `ci_predict.py` as the cheaper detector. These are killed unpinned sites that `mutation-autofix` repairs (ci-autofix.md), and the body shows each killed. I re-ran U1 and U2 above. The trigger is answered.
+  - `gate` is red as the aggregator of that red.
+  - `tests / nightly-status` is red but is not in the owed set, so it blocks nothing.
+- CI wait: from 13:05 to 13:35Z, `merge_train.py classify d7347d0c --pr 3404` printed `WAIT ... pending: gate red: none` (rc 3) on 30 runs at least 60 s apart (`ev/classify-log.txt`). I stopped waiting under the brief's 30-minute rule, so the relay posts this verdict only once CI is green at this head. `tests / fast (3.14)` was still running at my last read. The body answers its predicted inherited census red in `## Red checks` (main-vendor-census), and the brief rules it inherited from main.
 
 ## Findings
 
-- The six unpinned sites the body lists under `## Unpinned sites` (`pump_arbiter.py:1013`, `:1038`, `:1041` CMP_BOUND*2 and RETURN_DEL, `:1063`, `:1586`) are still unpinned at aa70efdd. They are shown killed by spec mutants (round 3), and pinning them is left to `mutation-autofix` on the PR head. Carry: dismissed: mutation-autofix writes the pins once the relay applies the head (ci-autofix.md); each site's kill is already shown, so it is not a survivor
+none
