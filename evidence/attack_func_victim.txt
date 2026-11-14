@@ -1,0 +1,2 @@
+victim refs after (func):
+refs/heads/heartbeat/orchestrator TICK-PASS 2026-11-12T23:30:36Z relay=absent tick=1 code=none behind=unknown

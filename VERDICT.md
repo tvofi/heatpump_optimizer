@@ -1,51 +1,42 @@
-Fix review: merge 434213ade270b7debbd299681e2586416c6ec64f
+Fix review: blocked 510c46643055f5f2f9f61b815258a960518eabe0 class-open: a caller's exported function named exec (or one a caller's BASH_ENV defines) shadows the env -i re-exec on line 61, and the fail-open --self-test branch then runs every row in the caller's whole environment; with HPO_HEARTBEAT_REMOTE set the self-test force-pushed heartbeat/orchestrator into it and 18 rows failed
 
-bus-nonce: 0bd1d0b8358aeffbcc6dedba6dd1a445
-pending-ci: gate
+bus-nonce: 2a27aa9a931e707729af5e66b9dae97d
 
-## Scope
+## Block
 
-Round 6. This is a delta review over c17c11af72a8af22fc19e5cd7360bf8adf0acabe, whose verdict blocked only on `merge-conflict` in `tools/audit/seat/tick_loop.sh`. `review_carry.py c17c11af72 434213ade2` printed `FRESH-REVIEW`, so this review covers the delta. The PR's own part of the delta is `tools/audit/seat/tick_loop.sh` (+11/-2) and `dev/audit/harnesses/r10_tick_selftest_checkout.sh` (+10/-5). Everything else is main's own commits. No `custom_components/` line is in the PR's three-dot diff, so the scope does not widen. `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched three-dot (`ev/structure_checks.txt`).
+Round 4, the re-cut's handoff review. The scope is the delta `git diff fbde167568 510c466430`, which touches `tools/audit/seat/tick_loop.sh`, its instrument page and the harness, plus round 3's findings. No `custom_components/` line moves, so the scope does not widen. The body has no `## Review scope` line, and there is no review packet.
 
-## Findings
+Round 3's two channels are closed (see Evidence). The re-cut closes variable names by construction, which the list rounds could not do. One seam of the class is still open, at the barrier itself.
 
-none
+- **The re-exec can be shadowed, and the branch behind it fails open.**
+  - `tick_loop.sh:61` reads `case ${1:-} in --self-test) exec /usr/bin/env -i ...`. `exec` is a bash builtin, and bash outside POSIX mode resolves a function before a builtin. A caller's environment can define that function: `BASH_FUNC_exec%%`, which `export -f exec` writes, is imported at startup. A `BASH_ENV` file can define it too, because bash sources that file before line 1.
+  - If `exec` is shadowed, line 61 calls the function and goes on. `$1` is still `--self-test`, so the argument loop reaches `tick_loop.sh:462`: `--self-test) shift; tick_loop_self_test "$@"; exit ;;  # reached only with the re-exec above taken out`. Every row then runs with the caller's full environment, `HOME`, `TMPDIR` and seat-bin `PATH`.
+  - The body says "`env` is called by absolute path, so an exported function cannot replace it". That covers `env` and not `exec`. The instrument page's "no caller variable, nor a value computed from one, reaches a row" (`tools/audit/seat/instruments/tick_loop.sh.md:23-26`) is false at this head.
+- **Measured at the head.** Both runs used a scratch copy of the five files, so no checkout was involved, and the same caller environment: `HPO_HEARTBEAT_REMOTE` set to a fresh scratch bare repository, and `TICK_RC=1`. The driver is `ev/attack_exec_func.sh`. This seat built it, not the finder.
+  - Control, with no function: `tick_loop self-test: 38 checks, 0 failed`, rc 0. The victim repository has no refs (`ev/attack_control_victim.txt`, `ev/attack_control_out_tail.txt`). The barrier holds against both variables.
+  - Attack, the same environment plus an exported `exec` that skips only the `/usr/bin/env` call and otherwise runs `builtin exec`: `tick_loop self-test: 38 checks, 18 failed`, rc 1 (`ev/attack_func_out.txt`). The victim then held `refs/heads/heartbeat/orchestrator TICK-PASS 2026-11-12T23:30:36Z relay=absent tick=1 code=none behind=unknown` (`ev/attack_func_victim.txt`). That is round 2's harm, back: the self-test force-pushed to a remote the caller named. `ev/attack_func_shadow.log` shows the outer re-exec and all four nested re-execs shadowed.
+  - The same function, defined but not exported, in a `BASH_ENV` file: `38 checks, 18 failed`, rc 1. The re-exec was shadowed (`ev/attack_bashenv.sh`, `ev/attack_bashenv_out.txt`, `ev/attack_bashenv_shadow.log`). This brief's own instruction to run `tests/entities.py` under `env -u BASH_ENV` shows that seat shells carry a `BASH_ENV`.
+- **Why this is the class and not one more instance.** The poison row cannot see this seam. It derives `$`-referenced and `environ` names, but a function name is neither. Its nested run gets a clean environment from the outer rows, so no row puts a function in front of line 61. All 4 mutants are killed and the null control is green, yet the barrier the four rounds converged on is bypassed by one name. The `--self-test)` branch at `:462` is the reason a bypass becomes the full caller environment instead of a refusal. It is kept only for the `envi` mutant's sake.
+- **Repair direction (not prescribed):** make the barrier fail closed. The `--self-test)` arm at `:462` refuses, with rc not 0 and no row run, instead of running the rows. The rows then run only from `--self-test-rows`, which is reached only through `env -i`. Add a row that runs the self-test nested with an exported `exec` function and a detectable `HPO_HEARTBEAT_REMOTE`, and requires a refusal and an untouched remote. Correct the body's "an exported function cannot replace it" sentence and the instrument page. Under that shape, the `envi` mutant (re-exec deleted) also yields a refusal, so the poison row still kills it.
 
 ## Evidence
 
-- **Head.** I measured 434213ade270b7debbd299681e2586416c6ec64f (`ev/HEAD.txt`) from a detached worktree. At verdict time `git ls-remote` still prints it as the branch tip (`ev/head_live.txt`). It is the head the body names. bab56d8017, the commit the body measured, is an ancestor of it. Between bab56d8017 and the head the three PR files have no diff.
-- **The previous block is resolved.** `git merge-tree --write-tree origin/main 434213ade2` exits 0 against origin/main e28a310d7d (`ev/merge_tree.txt`); the PR reports `mergeable_state: blocked`, not `dirty`.
-  - The resolution follows the direction of the previous verdict: no `--self-test` arm runs rows. `grep -- '--self-test)'` matches only lines 66 (the `env -i` re-exec) and 67 (the refusal).
-  - Main's bound from 38aee2235a now sits on the `--self-test-rows` entry at line 72. It runs after the `env -i` re-exec, so `PR_BOUND` is set by `pr_bounded` inside the cleaned process and does not depend on a caller variable that `env -i` would drop.
-  - `pr_bounded` is `exec python3 -I ...` (pr_args.sh:384-386). If it returns, or the `.` of `pr_args.sh` fails, the entry prints its refusal and exits 1.
-  - Main's line 372 clauses (guard, source, `pr_bounded tick_loop`) are all on line 72. Its `tick_loop_self_test; exit` arm moves to the branch's own line 503 `--self-test-rows)` arm. This is the union the body describes (`ev/structure_checks.txt`).
-- **Harness arms at the head**, each a scratch copy that is not a checkout (`ev/harness_arms.txt`):
-  - `whole: 42 checks, 0 failed rc=0`
-  - `envi`: the line-67 refusal, rc=1
-  - `bound: 1 failed` (the new bound row)
-  - `failopen: 2 failed` (fail closed func and bashenv)
-  - `carry: 1 failed` and `pathfirst: 1 failed` (the poison row)
-  - `pipefail`: several nested FAILs, rc 1
-  - Every row of the body's round-6 mutation table reproduces.
-- **The channels arm at the head**:
-  - fn-all, bashenv-all, env, ifs, opts, path and shellopts-posix each read `42 checks, 0 failed`, with fn-calls=0 and victim-refs=0.
-  - fn-exec is refused at line 67 (rc 1).
-  - posix exits rc 2 on the special-builtin error.
-  - noexec reads rc 0 with fn-calls=0.
-  - The null controls read fn 4, bashenv 4, env 1 and path 1, over a corpus of 85 names.
-  - The round-4 attack class stays closed after the merge.
-- **The five shape arms** (branch, detached, gitdir, shim, level) each read `31 checks, 0 failed HEAD-UNMOVED`.
-- **My own mutants on the new bound line** (not the fixer's arms). I deleted the `exit 1` after the bound's refusal message:
-  - With `pr_args.sh` absent, the rows ran unbounded, and the bound row plus the offline_spy row failed: `42 checks, 2 failed`, rc 1 (`ev/own_mutant_noexit.txt`). The bound fails closed through the row even when the explicit exit is gone.
-  - With `pr_args.sh` present, the run read `42 checks, 0 failed`, rc 0 (`ev/own_mutant_noexit_withpr.txt`). That mutant is equivalent where the bound takes, because `pr_bounded` execs and never reaches the exit. It is not a survivor of the fix's own claim.
-- **The poison row's label at this head counts 93 names.** The body's "90 at this head" sits under the section headed "Round 5's figures, at 12ead5feae", so it is a dated figure, and its round-6 sections state no count. I did not re-derive 90 at 12ead5feae.
-- **bash -n**: rc 0 on both shell files (`ev/bash_n.txt`).
-- **CI**: `merge_train.py classify 434213ade2 --pr 3520` read `WAIT 434213ade270b7debbd299681e2586416c6ec64f pending: gate red: none` on every run from 13:31 to 14:02 UTC, about 30 minutes (`ev/classify.log`). The `rc=0` on that log's last line is the `date` substitution's status, not classify's, because the line reads the same WAIT.
-  - No red was read, so no `## Red checks` answer is owed at this head. The owed set is in `ev/owed_reds.txt`.
-  - The body's answer for `tests / briefs` at c17c11af72 concerns an earlier head. I did not re-check it.
-  - The review packet's `REFUSE introduced-red: unreadable` came from `instrument-self-tests` being in progress at render time. Classify decides.
-- **Not re-derived**:
-  - the body's `real 1m41.178s` (a host timing)
-  - `ci_predict.py`, `structure.py`, `doc_claims.py` (348) and `entities.py` (2711), which the scoped gate runs in CI
-  - the main-side `30 checks` at 5288db5dad
-  - the reviewer-driver re-run at bab56d8017. The channels arm drives the same `exec` shadow, func and bashenv, at this head.
+- Head reviewed: 510c46643055f5f2f9f61b815258a960518eabe0 (`ev/HEAD.txt`), from a detached worktree. It was re-read before return: `handoff/r10-hotfix-tick-selftest-checkout` and `handoff-wip/...` both point at it. The body's `## Head` names the same SHA.
+- No pull request exists and no review packet was issued. No CI has run at this head, so no check run was read. `merge_train.py owed-reds` printed its set (`ev/owed_reds.txt`), none of which has run. The body's `## Red checks: none` has nothing to answer.
+- Role files: `git diff 8c10361eb1...origin/main -- dev/governance/roles/` is empty.
+- Merge: `git merge-tree --write-tree origin/main 510c466430` exited 0 against origin/main f44e761c19, with `LEDGER-MERGE: resolved tests/closures.json` and tree 037583b045 (`ev/merge_tree.txt`). The head is behind main and merges cleanly.
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched in the three-dot diff from 8c10361eb1 (`ev/version_untouched.txt` is empty).
+- Mutation proof, re-run with the in-tree harness at the head, one arm per run. It reproduces the body row for row:
+  - `whole: 38 checks, 0 failed rc=0`
+  - `carry: 1 failed`
+  - `pathfirst: 1 failed`
+  - `envi: 1 failed`, the poison row each time
+  - `pipefail: 7 failed`
+  - Logs: `ev/arm_*.txt`.
+- Round 3's channels are closed at this head. The `carry` and `pathfirst` arms put each channel back, and each is killed. The control run above set `HPO_HEARTBEAT_REMOTE` and `TICK_RC` in the caller and stayed green with the remote untouched.
+- The harness is the fixer's, landed in this branch. This review's attack driver is this seat's own (`ev/attack_exec_func.sh`, `ev/attack_bashenv.sh`).
+- Derived names: the body's rule, run from `tools/audit/seat/`, printed 88 names (`ev/derived_names.txt`). All 7 names the body lists are in it.
+- `closure.py select --diff 8c10361eb1` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`ev/select.txt`).
+- `doc_claims.py` printed `ALL 343 checks PASSED` and `structure.py` printed `STRUCTURE RATCHET PASSED` (`ev/cheap_checks.txt`).
+- `env -u BASH_ENV python3 tests/entities.py`: printed `ALL 2709 ENTITY CHECKS PASSED`, rc 0, matching the body (`ev/entities.txt`).
+- Not re-derived: the body's `real 1m31.974s` (host timing). Its "evil_git_calls=0" replay of round 3's attack was not re-run separately. The `carry`/`pathfirst` arms and the control above cover those channels.
