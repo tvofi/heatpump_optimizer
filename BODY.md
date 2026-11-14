@@ -30,6 +30,14 @@ Alternatives. Keeping the time-share in `_share` and passing the coordinator to 
 
 ## Head
 
+`5e1fac78adb59b0d5b4b86ffc7dce58f55936155`, on `handoff/r10-duty-switch-restart-learning-pr-b-p2`: the PR head 3ab3d5b5ab4b21d147977652f14d5cf0de280006 with origin/main 237fad44532d1927cf65612d395cc5833c60ce99 merged into it (no rebase). Main had moved by PR 3562 (round-10 user-facing strings), which conflicted with this head in four files; everything else merged clean (`tests/closures.json` by the ledger driver, `tests/features.py` auto-merged).
+
+- **The conflict.** One key, `options.step.entities.sections.indoor.data_description.space_setpoint_unit`, in `strings.json` and in `translations/en.json`, `de.json` and `sv.json`. Read against the merge base 0f37833e2194739b431656a70c652b0679c8fa58: this head changed its last sentence from "this integration never recommends a space set-point" to "the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one" (with the German and Swedish equivalents, and sv "framledningsentitet"); PR 3562 made the same change word for word and appended one sentence, "With Pump duty control at Control the optimizer writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity." (likewise in de and sv). The union is main's text, taken in all four files; no wording of this head is lost, and the appended sentence agrees with this head's `space_setpoint_entity` text.
+- **Read back.** The four files after the merge are byte-identical to origin/main's; their flattened key sets agree (1509 keys each, including main's new `issues.dhw_legionella_off_step` title and description), and `strings.json` equals `en.json`.
+- **Body.** The previous body carried a spliced duplicate (a broken "## Red checks`)." heading followed by an older copy of Mutation proof, Null control, Figures and Unpinned sites, whose sites the reviewed head 56b43dea already pinned); it is dropped, so each section appears once. No other section changes. The merge leaves `duty_switch.py` and `duty_legs.py` as this head had them and `_share`'s delegation in `pump_arbiter.py` untouched; main's own changes to `pump_arbiter.py`, `optimizer.py`, `coordinator.py` and the card auto-merged beside them, and the scoped gate below reran what they reach.
+
+Before this merge: `3ab3d5b5ab4b21d147977652f14d5cf0de280006` was this PR's head, its code already in it and main at that time merging cleanly, so the orchestrator's script set the body without a push.
+
 b142bcaacee1781eeb99086587c644cb823bd34f, on `handoff/r10-duty-switch-restart-learning-pr-b-p2`: the PR head 56b43dea847ee980c67604ccd7798dc88084d071 (the reviewed head 29370fdbb59aeb18da82ebe9612e7c036e9dc29c, a merge of main at the v7.1.13 stamp, the delivery row and "ci: pin killed mutants"), merged with PR 3561's head 30b069508f194240f90ddd05cb5cfee0613814e1, then origin/main 50373173d486faf394b24637c177ab38b691b394.
 
 Delta against the reviewed head 29370fdb, file by file (this round's own changes; the rest is main's and 3561's):
@@ -85,11 +93,14 @@ The reset check was failing first: at the commit before the coordinator change i
 
 ## Figures
 
-<!-- figure-block: scope-line mb=50373173d486faf394b24637c177ab38b691b394 head=b142bcaacee1781eeb99086587c644cb823bd34f -->
+<!-- figure-block: scope-line mb=237fad44532d1927cf65612d395cc5833c60ce99 head=5e1fac78adb59b0d5b4b86ffc7dce58f55936155 -->
 ~~~text
-MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
 <!-- /figure-block -->
+
+- At the merge head 5e1fac78 on macOS (seat venv venv-ci), `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=237fad44 ./tests/run.sh`: 23 of 27 scripts pass, `env_drift.py --all` (no golden drift) included; 4 fail, and none reads a line this merge resolved. Three reproduce identically at origin/main 237fad44532d1927cf65612d395cc5833c60ce99, run alone in a detached worktree as the control: `tests/optimality.py` (1 of 84, "one|summer_negative|shoulder: a recorded claim still has a gap": the claim reads closed at a 0.0000% gap under this machine's BLAS), `tests/stress.py` (2 of 116, "the interned-table fill perturbation lands" and "shoulder: cheaper than holding the setpoint [4.67 vs 3.96]") and `node tests/card.mjs` (V8 "JavaScript heap out of memory" after "the census records through the navigation surface the card loaded against"; the same at the head run alone). The fourth, `tests/entities.py` (1 of 2724, "a measured script's late-writing descendant is waited for, not recorded as nodata"), is a timing check on the gate's metrics run while three other gates loaded this machine; it was not re-run, and main's push CI for 237fad44 is green on `tests / fast (3.14)`. CI is the authority for all four.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED at the merge head. `node tools/policy/policy_lint.mjs`: 0 errors. `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`: rc=0, claim files byte-identical to origin/main, CI PREDICT: no closures, fast, governance or instrument red.
 
 - `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`: all section checks pass at the head; the mutants above as listed.
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL` at the head; `coord_footprint 2506 -> 2517` WORSENS at the commit where `_share` kept the time-share and the reader took the coordinator, the control.
@@ -122,76 +133,6 @@ Survivors of that run on lines the diff touches, none of them a behaviour:
 - custom_components/heatpump_optimizer/duty_legs.py:41 STMT_DEL and custom_components/heatpump_optimizer/duty_legs.py:43 STMT_DEL: the `LegRule` and `Legs` type aliases; read only in annotations, which `from __future__ import annotations` never evaluates, so no runtime check can kill them; `tests / typing` (mypy) refuses the undefined name.
 - custom_components/heatpump_optimizer/coordinator.py:1448 STMT_DEL: the `_FACTORY_VOID` statement, outside both section harnesses; the factory-reset block (`tools/audit/seat/features_block.py`, the reviewed head's second `MUTANT_CMD`) fails on it, as the reviewed head's mutation proof records for its `("duty_switch", None)` row; this round does not change the line.
 
-## Red checks`).
-
-## Mutation proof
-
-This round, each applied alone to `duty_legs.py`, both section harnesses run, restored after:
-
-- `switch_ban` ignoring the rule: 2 of 95 planner-price checks fail.
-- `leg_ends` ignoring the rule's order: 1 of 71 duty-switch and 5 of 95 planner-price checks fail.
-- No whole step in `leg_ends`: 1 of 71 fails ("planner and arbiter read one leg rule…").
-- The inside switch always weighed hot water to heating: 2 of 95 fail.
-- `availability` charging every two-leg step: 4 of 95 fail.
-- `leg_rule` never serving space first: 3 of 71 and 3 of 95 fail.
-- `r10_duty_switch_price_section.py --mutants` on the four re-anchored mutants: 3, 3, 1 and 3 red, control 0 red, `mutants_not_killed=0`.
-
-From the reviewed head (unchanged in kind; `split`'s order and whole-step mutants now land on `leg_rule` and `both_step_legs`):
-
-Each mutant applied alone, then `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`, restored after (70 section checks at the head):
-
-- `split` order: space first whenever hot water to space is usable (`"dhw_space" in usable`): 6 fail, among them "null control, an empty learner…", "the first duty keeps the whole step only when…", "the split is latched per step…", "a record whose store is not read yet…" and "with the whole-step rule active…" (with both directions usable, space now goes first).
-- `split` order: space first where only space to hot water is usable: 2 fail, "where only hot water to space is usable the both step serves space first…" and "the split reads the latches and nothing published…".
-- The next-step condition dropped: 1 fails, "the first duty keeps the whole step only when…".
-- The off time dropped from the whole-step bound: 5 fail.
-- The whole-step bound made inclusive (`<=`): 1 fails, "the first duty keeps the whole step only when…" (its 150 s row sits on the bound).
-- The ceiling at booking dropped (`scale = 1.0`): 1 fails, "n has a ceiling…".
-- The share's end made inclusive (`<=`): 1 fails, "on the bounds…".
-- A censored direction counting one second off (`or 1.0`): 1 fails, "on the bounds…".
-- The ceiling on decay dropped: 1 fails, "n has a ceiling…" (the record stored over the cap).
-- `both_step_duty` ignoring `whole`: 5 fail.
-- An unloaded record latching: 1 fails, "a record whose store is not read yet splits as today and latches nothing…".
-- The latch decided on every read: 2 fail, "the split is latched per step…" and "null control, an empty learner…".
-- `("duty_switch", None)` dropped from `_FACTORY_VOID`, then the factory-reset block by `tools/audit/seat/features_block.py` from `from heatpump_optimizer import const as _fr_const` to `R.section("Runtime parameter updates")`, its prelude from `--emit-prelude`: 2 of 32 fail, "a learners reset drops every learned key…" and "a learners reset leaves no stored duty-switch estimate and no latch…".
-
-The reset check was failing first: at the commit before the coordinator change it failed with the stored record and its latch read back after the reset (`after (True, 6.0)`), while its null control (a plain restart keeps both) passed.
-
-## Null control
-
-- Below the threshold and on an install where no switch stops: an empty learner, one at `N_ON - 0.1` with p = 1, and one holding `N_CAP` of kept episodes split as today (`dddddddd` then `sssssss`) and write identical commands, with and without a stop on the install; the flat-price scenario `tests/golden/flat_prices.json` the same, both steps for all three. Non-vacuity: a latched learner splits the same step whole.
-- The latch: the re-solved plan and empty learner read from the step's start split as today, where the latched run stays whole.
-- Delivery: with the whole-step rule active, room and tank summed over the denied step and the next equal the plan's sum, the next step serving the denied duty whole. Per duty the two steps do not balance: the first duty is served the denied share and the denied duty gets back only its planned next step. This is the ruling's "delivery moves one step", not a per-duty catch-up.
-- Factory reset: a plain restart keeps the stored record, its weight and its latch.
-- No golden moves and neither claim file is touched.
-
-## Figures
-
-<!-- figure-block: scope-line mb=50373173d486faf394b24637c177ab38b691b394 head=b142bcaacee1781eeb99086587c644cb823bd34f -->
-~~~text
-MODE: SCOPED -- 28 script(s) run, 5 scoped out.
-~~~
-<!-- /figure-block -->
-
-- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`: all section checks pass at the head; the mutants above as listed.
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL` at the head; `coord_footprint 2506 -> 2517` WORSENS at the commit where `_share` kept the time-share and the reader took the coordinator, the control.
-- `python3 tests/structure.py`: the ratchet passes; `class_excess_loc` read +1 before `_restored_stores`' tuple went back to two lines, paid by that.
-
-## Unpinned sites
-
-Each killed by `MUTANT_CMD` in `prepr.sh` (the section harness, then the factory-reset block), which listed no survivor at this head; each is pinned by `mutation-autofix` once the pull request exists.
-
-- custom_components/heatpump_optimizer/duty_switch.py:193 CLAMP_DROP: the cap on decay; killed by "n has a ceiling…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:193 CMP_BOUND: the empty direction's guard; killed by the section (an empty learner divides by zero); pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:223 CLAMP_DROP: the cap at booking; killed by "n has a ceiling…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:403 GUARD_OFF: the whole-step precondition; killed by "the first duty keeps the whole step only when…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:406 CMP_BOUND: the whole-step bound; killed by "the first duty keeps the whole step only when…" (its 150 s row); pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:406 RETURN_DEL: the whole-step decision; killed by "the first duty keeps the whole step only when…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:551 GUARD_OFF: the unloaded record; killed by "a record whose store is not read yet…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:552 GUARD_OFF: the per-step latch; killed by "the split is latched per step…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:556 CMP_BOUND: the share's end; killed by "on the bounds…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:556 GUARD_OFF: the share's switch; killed by "null control, an empty learner…"; pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:558 RETURN_DEL: the second duty's leg; killed by "null control, an empty learner…"; pinned by mutation-autofix
-
 ## Red checks
 
 - `tests / fast (3.14)`, predicted by `prepr.sh` at this head: `tests/features.py`'s check "a charge-start dip that recovers is learned as neither a draw nor usage…" fails, and it fails identically at origin/main 50373173d486faf394b24637c177ab38b691b394 run in the same environment (`PYTHONPATH=tests/hastub python3 tests/features.py` in a detached worktree of main: the same single FAIL line), so it is main's, inherited by the merge and not made by this diff; the PR head 56b43dea's `tests / fast (3.14)` ran green in CI. Every other features check passes here, the 30-minute-step pin (R10-PROD-RESIDUE-PINS #2365) included after the step-width fix. Cheaper detector: none on this branch, since the red is reproduced on main before any of this round's commits; its own detector is main's push gate.
@@ -204,3 +145,4 @@ none
 ## Friction
 
 none
+
