@@ -1,0 +1,160 @@
+== strings config.step.user.data_description.name
+  HEAD : The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer.
+  3561 : (=head)
+  3564 : The name of this integration entry in Home Assistant's list of integrations. It is not part of entity names: they all start with "Heat Pump Optimizer".
+== strings config.step.device_prefill.data_description.space_setpoint_unit
+  HEAD : Suggested as flow when the pump's control mode register (100DH) is water temperature control.
+  3561 : (=head)
+  3564 : (=head)
+== strings options.step.entities.sections.indoor.data_description.space_setpoint_unit
+  HEAD : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one. With Pump duty control at Control the optimizer writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.
+  3561 : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one.
+  3564 : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit tells the optimizer what the number means: with Pump duty control at Control it writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.
+== strings options.step.solar_pv.data_description.pv_production_entity
+  HEAD : Optional. A live production sensor replaces the forecast's current step with what the roof delivers now, capped at the installed capacity; later steps stay modelled.
+  3561 : (=head)
+  3564 : Optional. A live production sensor replaces the forecast for the current step with the measured output (capped at the installed capacity); later hours stay on the forecast from solar irradiance.
+== strings options.step.away.data_description.away_dhw_min_temperature
+  HEAD : The anti-legionella cycle still runs on its usual interval; it is not timed to your return.
+  3561 : (=head)
+  3564 : The anti-legionella cycle still runs, on its usual schedule; it is not timed to your return.
+== strings options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled
+  HEAD : A wood boiler, solar coil or immersion heater that gets the tank to the anti-legionella temperature is counted as a completed cycle either way. Off, it counts at once; on, only after the tank has held that temperature for 20 minutes, so a short peak credits nothing.
+  3561 : (=head)
+  3564 : If a wood boiler, solar coil or immersion heater gets the tank to the anti-legionella temperature, that counts as a completed cycle instead of running another one. Off, reaching the temperature (within 1 °C) counts at once, however briefly; on, the tank has to hold it for 20 minutes first.
+== strings options.step.hot_water_pumps.data_description.vvc_pump_entity
+  HEAD : A switch controlling the hot water circulation (VVC) loop pump. When set, the pump only runs during your hot water time frames, plus the lead time below. With hot water off or no time frames, it is left on.
+  3561 : (=head)
+  3564 : A switch controlling the hot water circulation (VVC) loop pump. When set and hot water time frames are configured, the pump runs only during those time frames plus the lead time below; with no time frames, or with hot water off, it is kept on.
+== strings options.step.grid_connection.data_description.main_fuse_amperes
+  HEAD : The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant, and leaves the headroom sensor following the capacity-tariff peak alone, unavailable without a capacity tariff — there is no safe default to guess, and a wrong one would cap a bigger house.
+  3561 : (=head)
+  3564 : The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant; the headroom sensor then follows your capacity-tariff peak alone, and has no value if there is no capacity tariff either. There is no safe default to guess, and a wrong one would cap a bigger house.
+== strings options.step.learning_features.sections.weather.data_description.open_window_relax_enabled
+  HEAD : The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest indoor temperature the plan accepts by 1 °C, never below 15 °C, while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.
+  3561 : (=head)
+  3564 : The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest acceptable temperature by 1 °C (never below 15 °C) while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.
+== strings options.step.modbus_prefill.data_description.space_setpoint_unit
+  HEAD : Suggested as flow when the pump's control mode register (100DH) is water temperature control.
+  3561 : (=head)
+  3564 : (=head)
+== en config.step.user.data_description.name
+  HEAD : The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer.
+  3561 : (=head)
+  3564 : The name of this integration entry in Home Assistant's list of integrations. It is not part of entity names: they all start with "Heat Pump Optimizer".
+== en config.step.device_prefill.data_description.space_setpoint_unit
+  HEAD : Suggested as flow when the pump's control mode register (100DH) is water temperature control.
+  3561 : (=head)
+  3564 : (=head)
+== en options.step.entities.sections.indoor.data_description.space_setpoint_unit
+  HEAD : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one. With Pump duty control at Control the optimizer writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.
+  3561 : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one.
+  3564 : Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit tells the optimizer what the number means: with Pump duty control at Control it writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.
+== en options.step.solar_pv.data_description.pv_production_entity
+  HEAD : Optional. A live production sensor replaces the forecast's current step with what the roof delivers now, capped at the installed capacity; later steps stay modelled.
+  3561 : (=head)
+  3564 : Optional. A live production sensor replaces the forecast for the current step with the measured output (capped at the installed capacity); later hours stay on the forecast from solar irradiance.
+== en options.step.away.data_description.away_dhw_min_temperature
+  HEAD : The anti-legionella cycle still runs on its usual interval; it is not timed to your return.
+  3561 : (=head)
+  3564 : The anti-legionella cycle still runs, on its usual schedule; it is not timed to your return.
+== en options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled
+  HEAD : A wood boiler, solar coil or immersion heater that gets the tank to the anti-legionella temperature is counted as a completed cycle either way. Off, it counts at once; on, only after the tank has held that temperature for 20 minutes, so a short peak credits nothing.
+  3561 : (=head)
+  3564 : If a wood boiler, solar coil or immersion heater gets the tank to the anti-legionella temperature, that counts as a completed cycle instead of running another one. Off, reaching the temperature (within 1 °C) counts at once, however briefly; on, the tank has to hold it for 20 minutes first.
+== en options.step.hot_water_pumps.data_description.vvc_pump_entity
+  HEAD : A switch controlling the hot water circulation (VVC) loop pump. When set, the pump only runs during your hot water time frames, plus the lead time below. With hot water off or no time frames, it is left on.
+  3561 : (=head)
+  3564 : A switch controlling the hot water circulation (VVC) loop pump. When set and hot water time frames are configured, the pump runs only during those time frames plus the lead time below; with no time frames, or with hot water off, it is kept on.
+== en options.step.grid_connection.data_description.main_fuse_amperes
+  HEAD : The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant, and leaves the headroom sensor following the capacity-tariff peak alone, unavailable without a capacity tariff — there is no safe default to guess, and a wrong one would cap a bigger house.
+  3561 : (=head)
+  3564 : The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant; the headroom sensor then follows your capacity-tariff peak alone, and has no value if there is no capacity tariff either. There is no safe default to guess, and a wrong one would cap a bigger house.
+== en options.step.learning_features.sections.weather.data_description.open_window_relax_enabled
+  HEAD : The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest indoor temperature the plan accepts by 1 °C, never below 15 °C, while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.
+  3561 : (=head)
+  3564 : The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest acceptable temperature by 1 °C (never below 15 °C) while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.
+== en options.step.modbus_prefill.data_description.space_setpoint_unit
+  HEAD : Suggested as flow when the pump's control mode register (100DH) is water temperature control.
+  3561 : (=head)
+  3564 : (=head)
+== de config.step.user.data_description.name
+  HEAD : Der Titel dieses Eintrags unter Geräte & Dienste. Entitätsnamen verwenden den festen Gerätenamen Heat Pump Optimizer.
+  3561 : (=head)
+  3564 : Der Name dieses Integrationseintrags in der Integrationsliste von Home Assistant. Er ist nicht Teil der Entitätsnamen: Diese beginnen alle mit „Heat Pump Optimizer“.
+== de config.step.device_prefill.data_description.space_setpoint_unit
+  HEAD : Wird als Vorlauf vorgeschlagen, wenn das Register für den Regelmodus der Pumpe (100DH) auf Wassertemperaturregelung steht.
+  3561 : (=head)
+  3564 : (=head)
+== de options.step.entities.sections.indoor.data_description.space_setpoint_unit
+  HEAD : Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Der Optimizer leitet sie nie aus der Entität ab, nur das Vorausfüllen aus einem Wärmepumpengerät schlägt eine vor. Bei „Steuerung der Pumpenfunktion“ auf „Steuern“ schreibt der Optimizer die Raumtemperatur (Innentemperatur) bzw. die Wassertemperatur (Vorlauftemperatur, Rücklauftemperatur) des Plans in diese Entität.
+  3561 : Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Der Optimizer leitet sie nie aus der Entität ab, nur das Vorausfüllen aus einem Wärmepumpengerät schlägt eine vor.
+  3564 : Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit teilt dem Optimierer mit, was die Zahl bedeutet: Bei „Steuerung der Pumpenfunktion“ auf „Steuern“ schreibt er die Raumtemperatur (Innentemperatur) bzw. die Wassertemperatur (Vorlauftemperatur, Rücklauftemperatur) des Plans in diese Entität.
+== de options.step.solar_pv.data_description.pv_production_entity
+  HEAD : Optional. Ein Live-Erzeugungssensor ersetzt den aktuellen Schritt der Prognose durch das, was das Dach gerade liefert, begrenzt auf die installierte Leistung; spätere Schritte bleiben modelliert.
+  3561 : (=head)
+  3564 : Optional. Ein Live-Erzeugungssensor ersetzt die Prognose für den aktuellen Schritt durch die gemessene Leistung (begrenzt auf die installierte Leistung); spätere Stunden bleiben bei der Prognose aus der Sonneneinstrahlung.
+== de options.step.away.data_description.away_dhw_min_temperature
+  HEAD : Der Anti-Legionellen-Zyklus läuft weiterhin in seinem üblichen Intervall; er wird nicht auf deine Rückkehr abgestimmt.
+  3561 : (=head)
+  3564 : Der Anti-Legionellen-Zyklus läuft weiterhin nach seinem üblichen Zeitplan; er wird nicht auf deine Rückkehr getaktet.
+== de options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled
+  HEAD : Bringt ein Holzkessel, eine Solarspirale oder ein Heizstab den Speicher auf die Legionellentemperatur, wird das in jedem Fall als abgeschlossener Zyklus gezählt. Aus: sofort; ein: erst nachdem der Speicher diese Temperatur 20 Minuten gehalten hat, sodass eine kurze Spitze nichts anrechnet.
+  3561 : (=head)
+  3564 : Wenn ein Holzkessel, eine Solarspirale oder ein Heizstab den Speicher auf die Legionellentemperatur bringt, wird das als abgeschlossener Zyklus gezählt, statt einen weiteren auszuführen. Aus: Das Erreichen der Temperatur (innerhalb von 1 °C) zählt sofort, wie kurz auch immer; an: Der Speicher muss sie zuvor 20 Minuten halten.
+== de options.step.hot_water_pumps.data_description.vvc_pump_entity
+  HEAD : Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt, läuft die Pumpe nur in deinen Warmwasser-Zeitfenstern plus der unten genannten Vorlaufzeit. Ist Warmwasser aus oder gibt es keine Zeitfenster, bleibt sie an.
+  3561 : (=head)
+  3564 : Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt und Warmwasser-Zeitfenster konfiguriert sind, läuft die Pumpe nur in diesen Zeitfenstern plus der unten genannten Vorlaufzeit; ohne Zeitfenster oder bei ausgeschaltetem Warmwasser bleibt sie an.
+== de options.step.grid_connection.data_description.main_fuse_amperes
+  HEAD : Die Hauptsicherung des Hauses in Ampere, laut Netzanschlussvertrag. 0 lässt sie unkonfiguriert, wodurch der Sicherungsberater und der Sicherungswächter inaktiv bleiben und der Sensor für die Reserve allein der Spitze des Lastspitzentarifs folgt, ohne Lastspitzentarif nicht verfügbar – es gibt keinen sicheren Standardwert zum Raten, und ein falscher würde ein größeres Haus begrenzen.
+  3561 : (=head)
+  3564 : Die Hauptsicherung des Hauses in Ampere, laut Netzanschlussvertrag. 0 lässt sie unkonfiguriert, wodurch der Sicherungsberater und der Sicherungswächter inaktiv bleiben; der Sensor für die Reserve folgt dann allein deiner Spitzentarif-Spitze und hat keinen Wert, wenn es auch keinen Spitzentarif gibt. Es gibt keinen sicheren Standardwert zum Raten, und ein falscher würde ein größeres Haus begrenzen.
+== de options.step.learning_features.sections.weather.data_description.open_window_relax_enabled
+  HEAD : Die Erkennung offener Fenster pausiert das Lernen immer – das ist kostenlos und stets aktiv. Zusätzlich senkt diese Option die niedrigste Raumtemperatur, die der Plan zulässt, um 1 °C, nie unter 15 °C, solange ein Fenster offen zu sein scheint, damit die Wärmepumpe nicht dafür zahlt, den Garten zu heizen. Standardmäßig aus, weil sie echte Wärme verschiebt: Ein fälschlich erkanntes Fenster bedeutet ein etwas kühleres Haus.
+  3561 : (=head)
+  3564 : Die Erkennung offener Fenster pausiert das Lernen immer – das ist kostenlos und stets aktiv. Zusätzlich senkt diese Option die niedrigste akzeptable Temperatur um 1 °C (nie unter 15 °C), solange ein Fenster offen zu sein scheint, damit die Wärmepumpe nicht dafür zahlt, den Garten zu heizen. Standardmäßig aus, weil sie echte Wärme verschiebt: Ein fälschlich erkanntes Fenster bedeutet ein etwas kühleres Haus.
+== de options.step.modbus_prefill.data_description.space_setpoint_unit
+  HEAD : Wird als Vorlauf vorgeschlagen, wenn das Register für den Regelmodus der Pumpe (100DH) auf Wassertemperaturregelung steht.
+  3561 : (=head)
+  3564 : (=head)
+== sv config.step.user.data_description.name
+  HEAD : Titeln på den här posten under Enheter och tjänster. Entiteternas namn använder det fasta enhetsnamnet Heat Pump Optimizer.
+  3561 : (=head)
+  3564 : Namnet på den här integrationsposten i Home Assistants lista över integrationer. Det ingår inte i entitetsnamnen: de börjar alla med "Heat Pump Optimizer".
+== sv config.step.device_prefill.data_description.space_setpoint_unit
+  HEAD : Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.
+  3561 : (=head)
+  3564 : (=head)
+== sv options.step.entities.sections.indoor.data_description.space_setpoint_unit
+  HEAD : Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsentitet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: optimeraren härleder den aldrig från entiteten, och bara förifyllningen från en värmepumpsenhet föreslår en. Med Styrning av pumpens uppgift på Styrning skriver optimeraren planens rumstemperatur (Inomhustemperatur) eller vattentemperatur (Framledningstemperatur, Returtemperatur) till den här entiteten.
+  3561 : Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsentitet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: optimeraren härleder den aldrig från entiteten, och bara förifyllningen från en värmepumpsenhet föreslår en.
+  3564 : Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten talar om för optimeraren vad talet betyder: med Styrning av pumpens uppgift på Styrning skriver den planens rumstemperatur (Inomhustemperatur) eller vattentemperatur (Framledningstemperatur, Returtemperatur) till den här entiteten.
+== sv options.step.solar_pv.data_description.pv_production_entity
+  HEAD : Valfritt. En sensor med faktisk produktion ersätter prognosens aktuella steg med vad taket levererar just nu, högst den installerade effekten; senare steg förblir modellerade.
+  3561 : (=head)
+  3564 : Valfritt. En sensor med faktisk produktion ersätter prognosen för det aktuella steget med den uppmätta effekten (begränsad till den installerade effekten); senare timmar förblir på prognosen från solinstrålning.
+== sv options.step.away.data_description.away_dhw_min_temperature
+  HEAD : Legionellacykeln körs fortfarande med sitt vanliga intervall; den tidsätts inte efter din hemkomst.
+  3561 : (=head)
+  3564 : Legionellacykeln körs fortfarande, enligt sitt vanliga schema; den tidsätts inte efter din återkomst.
+== sv options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled
+  HEAD : En vedpanna, solslinga eller elpatron som får tanken till legionellatemperatur räknas som en genomförd cykel i båda lägena. Av: direkt; på: först när tanken har hållit den temperaturen i 20 minuter, så en kort topp räknas inte.
+  3561 : (=head)
+  3564 : Om en vedpanna, solslinga eller elpatron får tanken till legionellatemperatur räknas det som en genomförd cykel i stället för att köra en till. Av: att nå temperaturen (inom 1 °C) räknas direkt, hur kort stund det än är; på: tanken måste först hålla den i 20 minuter.
+== sv options.step.hot_water_pumps.data_description.vvc_pump_entity
+  HEAD : En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan. Med varmvattnet avslaget eller utan fönster lämnas den på.
+  3561 : (=head)
+  3564 : En brytare som styr VVC-pumpen. När den är satt och varmvattenfönster är konfigurerade körs pumpen bara under de fönstren plus förvarmningstiden nedan; utan fönster, eller med varmvatten av, hålls den på.
+== sv options.step.grid_connection.data_description.main_fuse_amperes
+  HEAD : Husets huvudsäkring i ampere, från ditt nätavtal. 0 lämnar den oinställd, vilket håller säkringsrådgivaren och säkringsvakten vilande medan utrymmessensorn bara följer effekttariffens topp, otillgänglig utan effekttariff — det finns inget säkert standardvärde att gissa, och ett felaktigt skulle strypa ett större hus.
+  3561 : (=head)
+  3564 : Husets huvudsäkring i ampere, från ditt nätavtal. 0 lämnar den oinställd, vilket håller säkringsrådgivaren och säkringsvakten vilande; utrymmessensorn följer då bara din effekttariffstopp och saknar värde om det inte finns någon effekttariff heller. Det finns inget säkert standardvärde att gissa, och ett felaktigt skulle strypa ett större hus.
+== sv options.step.learning_features.sections.weather.data_description.open_window_relax_enabled
+  HEAD : Fönsterdetektorn pausar alltid inlärningen — den delen är gratis och alltid på. Detta sänker dessutom den lägsta inomhustemperatur som planen godtar med 1 °C, aldrig under 15 °C, medan ett fönster verkar stå öppet, så att värmepumpen slutar betala för att värma trädgården. Av som standard eftersom det flyttar riktig värme: ett felaktigt flaggat fönster betyder ett något svalare hus.
+  3561 : (=head)
+  3564 : Fönsterdetektorn pausar alltid inlärningen — den delen är gratis och alltid på. Detta sänker dessutom den kallaste acceptabla temperaturen med 1 °C (aldrig under 15 °C) medan ett fönster verkar stå öppet, så att värmepumpen slutar betala för att värma trädgården. Av som standard eftersom det flyttar riktig värme: ett felaktigt flaggat fönster betyder ett något svalare hus.
+== sv options.step.modbus_prefill.data_description.space_setpoint_unit
+  HEAD : Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.
+  3561 : (=head)
+  3564 : (=head)

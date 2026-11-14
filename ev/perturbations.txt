@@ -1,0 +1,27 @@
+head a0784de911887f5690a6183123c556757cd63fe7
+## P1 strings: 'held that temperature for 20 minutes' -> 30
+  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled: quotes 30, the code holds 20.0]
+1 of 386 checks FAILED
+## P2 strings: 'accepts by 1 °C, never below' -> 2
+  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.learning_features.sections.weather.data_description.open_window_relax_enabled: quotes 2, the code holds 1.0]
+1 of 386 checks FAILED
+## P4 doc_claims: drop the planted owned sentence
+  FAIL null: the other group's sentence is found once it is not exempted
+1 of 386 checks FAILED
+## C1 const DHW_LEGIONELLA_HOLD_MINUTES 20->25
+  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled: quotes 20, the code holds 25.0]
+1 of 386 checks FAILED
+## C2 const OPEN_WINDOW_RELAX_C 1->2
+  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [config.step.temperature.data_description.min_temperature: quotes 1, the code holds 2.0; options.step.learning_features.sections.weather.data_description.open_window_relax_enabled: quotes 1, the code holds 2.0]
+  FAIL configuration.md's open-window row says the coldest accepted temperature drops by 2 °C, never below 15 °C
+  FAIL the open-window option text says by 2 °C, never below 15 °C
+3 of 386 checks FAILED
+## restored
+ALL 386 checks PASSED
+## at a117bad4 (merge before re-anchor)
+  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled: no sentence matches 'hold it for (\\d+) minutes'; options.step.learning_features.sections.weather.data_description.open_window_relax_enabled: no sentence matches 'by (\\d+) °C \\(never below']
+  FAIL null: the other group's sentence is found once it is not exempted
+2 of 386 checks FAILED
+## P3 strings: space_setpoint_unit tail replaced with the pre-fix 'never recommends' sentence
+  FAIL no flow help says a slot the arbiter writes is never written, unless it names Control  [options.step.entities.sections.indoor.data_description.space_setpoint_unit]
+1 of 386 checks FAILED
