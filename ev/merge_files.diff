@@ -1,0 +1,154 @@
+=== tests/golden/claimed_drift.txt vs branch parent
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index ff9683591d..e348abdc9e 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -62,11 +62,19 @@
+ # about one release's diff, it does not expire with the stamp and is not part
+ # of the inherited-claims comparison.
+ #
+-# claims-for: 7.1.15
++# claims-for: 7.1.16
+ #
+-# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
++# v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
++valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
++valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
++valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
++valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
++valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
++wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
++wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
++wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+@@ -778,11 +786,3 @@
+ # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
+ # with one are suspended above for this release (the wood_coil precedent).
+ # Direction per fixture, branch vs base:
+-valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
+-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
+-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
+-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+-valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
+-wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
+-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
+-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+=== tests/golden/claimed_drift.txt vs main parent
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 8b6433462b..e348abdc9e 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -67,6 +67,14 @@
+ # v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
++valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
++valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
++valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
++valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
++valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
++wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
++wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
++wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+@@ -92,11 +100,16 @@
+ # one was restored.
+ #
+ #
+-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+-# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
++# (R10-SAV-VALUATION-RESIDUE suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
++# (R10-SAV-VALUATION-RESIDUE suspends wood_two_tank's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
++# (R10-SAV-VALUATION-RESIDUE suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
++# (R10-SAV-VALUATION-RESIDUE suspends wood_coil's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
++# (R10-SAV-VALUATION-RESIDUE suspends valve_upper_direct_slab's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+ # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
+ # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
+ # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
+@@ -181,7 +194,8 @@
+ # byte-identical on the dev box), runner-conditional for the same reason;
+ # judged keys still fail. Remove when drift lanes are pinned or the polish
+ # improvement scale leaves 5e-5-2e-2.
+-# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
++# (R10-SAV-VALUATION-RESIDUE suspends valve_storage's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+ # the runner's union by the owner's ruling (i) on the options recorded in
+ # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
+ # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+@@ -763,3 +777,12 @@
+ # changes exactly two leaves (the plain and the seeded render of
+ # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
+ # it, so every other fixture is byte-identical. Re-recorded in the committed file.
++# R10-SAV-VALUATION-RESIDUE part 2: behind a valve the reference is booked as
++# simulated from its held state, no longer re-spread by steady demand
++# (_apportion_by_steady_demand removed). Measured with golden.py and
++# env_drift.py against the merge base in one environment: exactly these eight
++# valved fixtures move, in baseline_cost and the savings derived from it (plan
++# leaves exempt); every unvalved fixture is unmoved, which is the null.
++# baseline_cost is a judged key a may-drift entry cannot excuse, so the six
++# with one are suspended above for this release (the wood_coil precedent).
++# Direction per fixture, branch vs base:
+=== tests/golden/card_claimed_drift.txt vs branch parent
+diff --git a/tests/golden/card_claimed_drift.txt b/tests/golden/card_claimed_drift.txt
+index 4c50cb6178..4e3b2fb18e 100644
+--- a/tests/golden/card_claimed_drift.txt
++++ b/tests/golden/card_claimed_drift.txt
+@@ -19,9 +19,9 @@
+ #
+ # The state names are the ones `node tests/card_drift.mjs --list` prints.
+ #
+-# claims-for: 7.1.15
++# claims-for: 7.1.16
+ #
+-# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
++# v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
+ 
+=== tests/golden/card_claimed_drift.txt vs main parent
+=== tests/structure_budgets.json vs branch parent
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index b5a6383388..826262debe 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17481,
++ "class_excess_loc": 17470,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 139,
+  "coordinator_multiassigned_attrs": 108,
+=== tests/structure_budgets.json vs main parent
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index f0b2e8461e..826262debe 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17503,
++ "class_excess_loc": 17470,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 139,
+  "coordinator_multiassigned_attrs": 108,
+@@ -16,6 +16,6 @@
+  "methods_over_150": 15,
+  "methods_over_200": 8,
+  "name_kept_members": 38,
+- "recorded_at": "f44e761c19dc07fff222bbd6a323bdc847ea9f04",
++ "recorded_at": "e23124ff6e45bac1d48b4a775dad555a37965355",
+  "seam_cut_total": 421
+ }
