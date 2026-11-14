@@ -1415,7 +1415,7 @@ function assertCarryControl() {
   }
   const good = carryControlFindings('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
   if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
-  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
+  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-1645.json')
   if (legacy.length) problems.push(`a legacy carry file is refused (the narrowing): ${legacy[0].message}`)
   if (problems.length) {
     console.log('\nCONTROL VACUOUS: carry control:')
