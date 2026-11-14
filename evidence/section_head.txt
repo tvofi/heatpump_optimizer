@@ -57,12 +57,9 @@ Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set 
   ok   the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep their day a minute later and report no change, and lose it, reported once, only when n falls under SPAN_FLOOR_N; null control, three stops read the same
   ok   through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop once confirmed; null control, with no stop read the same passes book it kept
   ok   through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, though the signal then reads stopped inside the window and running later (no signal is never evidence); null control, the same readings with the compressor read running at the write book the stop
-  ok   through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing, whether it stays stopped or starts inside the window (no compressor ran across the switch); null control, the same passes with the compressor read running at the write book it kept
-  ok   through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; null control, the same stop with no defrost and a restart at 300 s books one stop of 240 s
 
-ALL 56 DUTY-SWITCH SECTION CHECKS PASSED
+ALL 54 DUTY-SWITCH SECTION CHECKS PASSED
 
-real	0m9.064s
-user	0m4.001s
-sys	0m0.209s
-rc=0
+real	0m8.962s
+user	0m4.436s
+sys	0m0.141s

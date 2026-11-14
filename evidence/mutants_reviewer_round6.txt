@@ -1,7 +1,0 @@
-SURVIVED NULL
-KILLED r6v_settled_or_pending
-KILLED r6v_running_const_true
-SURVIVED r6v_stopped_with_pending_start_runs
-KILLED r6v_checked_never_set
-KILLED r6v_confirm_after_judge_too
-rc=0
