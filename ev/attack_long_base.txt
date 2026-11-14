@@ -1,0 +1,3 @@
+RESULT rv_true0.6_max3_min3_x288=90/288_scale=0.632
+RESULT rv_true0.6_max3_min3_x384=122/384_scale=0.614
+RESULT rv_true0.6_max3_min3_x480=154/480_scale=0.605

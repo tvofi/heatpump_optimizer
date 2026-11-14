@@ -1,0 +1,5 @@
+FAIL class_excess_loc 17471 > 17469 (+2)
+FAIL coordinator_attrs 139 > 138 (+1)
+FAIL coordinator_multiassigned_attrs 108 > 107 (+1)
+FAIL max_class_loc 7916 > 7914 (+2)
+FAIL seam_cut_total 420 > 419 (+1)

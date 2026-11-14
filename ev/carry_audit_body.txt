@@ -1,0 +1,5 @@
+NOTE body item cf9d2161: R11-INTAKE-R10-RESIDUE
+NOTE body item b4659e0c: R10-COP-LEARNER-DRAW-FLOOR: R10-COP-LEARNER-DRAW-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE body item e62e4e52: dismissed:the lane exists and the diff's survivors are measured by prepr's mutant step
+NOTE body item 837668dc: R11-INTAKE-R10-RESIDUE
+CARRY-AUDIT: 15 finding item(s): 15 routed, 0 unrouted, 0 bad destination(s)

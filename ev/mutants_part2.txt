@@ -1,0 +1,17 @@
+MUTANT release:hold not cleared: KILLED | FAIL release: evidence empties the hold -- every row, oldest first, where the draw follows the ask; none where it does not  [([(2.0, 2.6), (5.0, 6.0)], 2) / ([], 2)]
+MUTANT release:base rule always folds: KILLED | FAIL release: where the evidence is unobtainable the hold empties by base's rule -- the row clearing the nameplate third folds, the other is dropped  [([(2.0, 2.6), (5.0, 6.0)], 0)]
+MUTANT judge_floor:no window: KILLED | FAIL judge_floor reads the capped floor on the window it is handed: 2.0 kW is refused without the window and folds with it, 1.7 kW is under the cap
+MUTANT diag:configured floor: KILLED | FAIL a 2.0 kW interval on a 3.0 kW minimum folds its COP and its flow lift once the window has metered the pump running at 1.8 kW, and the diagnostics name that floor; with an empty window all three r
+MUTANT diag:held count 0: KILLED | FAIL the diagnostics count the held intervals beside the evidence they wait on  [{'last_refusal': 'awaiting_draw_evidence', 'measured_cop': None, 'measured_at': None, 'power_floor_kw': 0.8, 'draw_foll
+MUTANT walk_ratio:returns walked: KILLED | FAIL walk_ratio hands back the value before the interval (1.0 the first time) and walks a tenth of the way
+MUTANT coord:no release: KILLED | FAIL a released interval folds against the scale it was read at, and the interval that released it keeps its own refusal  [held (1, 0.9, 0); after release 0 sample(s), scale 0.72, refusal duty_floor]
+MUTANT coord:replay at live scale: KILLED | FAIL a released interval folds against the scale it was read at, and the interval that released it keeps its own refusal  [held (1, 0.9, 0); after release 1 sample(s), scale 0.7156799999999999, refusa
+MUTANT coord:replay feeds tail: KILLED | FAIL a replayed interval folds the scale and not the capacity envelope; the same evidence folded live feeds the envelope (control)  [replay (None, 1, True) / live (None, 1, True)]
+MUTANT coord:row stamped live scale 1.0: KILLED | FAIL a released interval folds against the scale it was read at, and the interval that released it keeps its own refusal  [held (1, 1.0, 0); after release 1 sample(s), scale 0.7223999999999999, refusa
+MUTANT coord:fold floor no window: KILLED | FAIL a 2.0 kW interval on a 3.0 kW minimum folds its COP and its flow lift once the window has metered the pump running at 1.8 kW, and the diagnostics name that floor; with an empty window all three r
+MUTANT coord:flow-lift floor no window: KILLED | FAIL a 2.0 kW interval on a 3.0 kW minimum folds its COP and its flow lift once the window has metered the pump running at 1.8 kW, and the diagnostics name that floor; with an empty window all three r
+MUTANT coord:span-close floor no window: SURVIVED | ALL 33 FEATURES BLOCK PASSED
+MUTANT coord:save cadence %10: KILLED | FAIL a release that steps the fold count over a multiple of ten saves the learning (7 + 5 -> 12); one landing on it saves (9 + 1); one that crosses none does not (10 + 3, 3 + 0)  [([], [10], [], [])]
+MUTANT coord:replay reference = live curve: SURVIVED | ALL 33 FEATURES BLOCK PASSED
+MUTANT coord:learn passes no window: KILLED | FAIL a release that steps the fold count over a multiple of ten saves the learning (7 + 5 -> 12); one landing on it saves (9 + 1); one that crosses none does not (10 + 3, 3 + 0)  [([], [], [], [])]
+NULL unmutated rc 0 ALL 33 FEATURES BLOCK PASSED | ALL 34 FEATURES BLOCK PASSED

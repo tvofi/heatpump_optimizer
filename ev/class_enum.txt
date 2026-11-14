@@ -1,0 +1,21 @@
+custom_components/heatpump_optimizer/accuracy.py:819:#: (``MeasuredCop.judge_ratio``).
+custom_components/heatpump_optimizer/accuracy.py:857:    What ``MeasuredCop.judge_ratio`` judges, and what it holds when the
+custom_components/heatpump_optimizer/accuracy.py:899:    judges them: :meth:`judge_ratio` appends, :meth:`release` is the only way
+custom_components/heatpump_optimizer/accuracy.py:919:    def judge_floor(asked_kw: float, drawn_kw: float, params: Any, draw: DrawRange | None = None) -> str | None:
+custom_components/heatpump_optimizer/accuracy.py:929:        Seeded at 1.0, the model's own expectation. :meth:`judge_ratio` gates
+custom_components/heatpump_optimizer/accuracy.py:941:        clear the nameplate third (``nameplate_power_floor_kw``)."""
+custom_components/heatpump_optimizer/accuracy.py:942:        return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= params.nameplate_power_floor_kw)
+custom_components/heatpump_optimizer/accuracy.py:944:    def judge_ratio(
+custom_components/heatpump_optimizer/accuracy.py:1065:    ``flow_lift_power_floor_kw``, capped by the metered running draw) -- not
+custom_components/heatpump_optimizer/accuracy.py:1078:        "draw_follows_ask": follows_ask(draw),
+custom_components/heatpump_optimizer/coordinator.py:1183:        coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.
+custom_components/heatpump_optimizer/coordinator.py:5344:        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
+custom_components/heatpump_optimizer/coordinator.py:5370:        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
+custom_components/heatpump_optimizer/draw_range.py:503:def follows_ask(draw: DrawRange | None) -> bool | None:
+custom_components/heatpump_optimizer/draw_range.py:510:    itself (``MeasuredCop.judge_ratio``); diagnostics publish this.
+custom_components/heatpump_optimizer/draw_range.py:518:    ``flow_lift_power_floor_kw``, the configured figure, capped by the low end
+custom_components/heatpump_optimizer/draw_range.py:532:    floor = float(params.flow_lift_power_floor_kw)
+custom_components/heatpump_optimizer/thermal_model.py:733:    def flow_lift_power_floor_kw(self) -> float:
+custom_components/heatpump_optimizer/thermal_model.py:745:        the draw evidence besides (``MeasuredCop.judge_ratio``).
+custom_components/heatpump_optimizer/thermal_model.py:749:        return self.nameplate_power_floor_kw
+custom_components/heatpump_optimizer/thermal_model.py:752:    def nameplate_power_floor_kw(self) -> float:

@@ -1,0 +1,49 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:874 CLAMP_DROP: return float(self.drawn_kw) / max(self.asked_kw, 1e-6)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:874 RETURN_DEL: return float(self.drawn_kw) / max(self.asked_kw, 1e-6)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:922 CLAMP_DROP: if min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:922 CMP_BOUND: if min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:922 GUARD_OFF: if min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:936 RETURN_DEL: return before
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:942 CLAMP_DROP: return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= p
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:942 CMP_BOUND: return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= p
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:942 RETURN_DEL: return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= p
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:970 GUARD_OFF: if state == ASK_IGNORED:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:975 GUARD_OFF: if abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOL
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:977 GUARD_OFF: if state == ASK_PENDING:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:980 RETURN_DEL: return None if self._base_folds(row, params) else COP_REFUSE
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:997 GUARD_OFF: if state == ASK_FOLLOWS:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:999 GUARD_OFF: if state == ASK_IGNORED:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:1001 GUARD_OFF: if state == ASK_PENDING:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:1004 BOOLOP: if i >= over and 0.0 <= utc_elapsed_seconds(now, row.at) <= 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:1004 CMP_BOUND*3: if i >= over and 0.0 <= utc_elapsed_seconds(now, row.at) <= 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:1004 GUARD_OFF: if i >= over and 0.0 <= utc_elapsed_seconds(now, row.at) <= 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:1009 RETURN_DEL: return [r for r in rows if self._base_folds(r, params)]
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:962 CMP_BOUND: if commanded < draw_range.power_floor_kw(coord._accuracy.dra
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:962 GUARD_OFF: if commanded < draw_range.power_floor_kw(coord._accuracy.dra
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5344 BOOLOP: if self._measured_power is not None and (refusal := Measured
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5344 GUARD_OFF: if self._measured_power is not None and (refusal := Measured
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5370 BOOLOP: if heat_kw is None and (refusal := self._measured_cop.judge_
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5370 GUARD_OFF: if heat_kw is None and (refusal := self._measured_cop.judge_
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5377 RETURN_DEL: return self._fold_cop_evidence(commanded, row.drawn_kw, heat
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5422 GUARD_OFF: if read_scale is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5894 GUARD_OFF: if self._cop_samples // 10 != cop_samples_before // 10:  # a
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:246 BOOLOP: return [(d, a) for d, a, _ in self._evidence() if a >= floor
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:246 CMP_BOUND*2: return [(d, a) for d, a, _ in self._evidence() if a >= floor
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:246 RETURN_DEL: return [(d, a) for d, a, _ in self._evidence() if a >= floor
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:489 GUARD_OFF: if draw is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:492 CMP_BOUND: if len(pairs) < MIN_SAMPLES:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:492 GUARD_OFF: if len(pairs) < MIN_SAMPLES:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:493 CMP_BOUND: return ASK_UNOBTAINABLE if len(draw.samples) >= WINDOW else 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:495 CMP_BOUND: if high < FOLLOW_ASK_SPAN * low:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:495 GUARD_OFF: if high < FOLLOW_ASK_SPAN * low:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:500 CMP_BOUND: return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGN
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:500 RETURN_DEL: return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGN
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:512 RETURN_DEL: return {ASK_FOLLOWS: True, ASK_IGNORED: False}.get(ask_evide
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:534 CMP_BOUND: if draw is None or cfg_min <= 0.0 or draw.config != (cfg_min
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:534 GUARD_OFF: if draw is None or cfg_min <= 0.0 or draw.config != (cfg_min
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:537 CMP_BOUND: if len(drawn) < MIN_SAMPLES:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:537 GUARD_OFF: if len(drawn) < MIN_SAMPLES:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:540 CLAMP_DROP*2: return max(float(on_threshold_kw(params)), min(floor, low_kw
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:540 RETURN_DEL: return max(float(on_threshold_kw(params)), min(floor, low_kw
+CI PREDICT: 47 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 9fdba3b8547f (a data-file read is not seen)

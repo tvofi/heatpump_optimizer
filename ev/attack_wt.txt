@@ -1,0 +1,16 @@
+RESULT rv_true0.6_max4_min1=282/288_scale=0.603
+RESULT rv_true1.3_max4_min1=288/288_scale=1.307
+RESULT rv_true0.6_max6_min1.5=282/288_scale=0.603
+RESULT rv_true1.3_max6_min1.5=288/288_scale=1.307
+RESULT rv_true0.6_max14_min3=0/288_scale=1.000
+RESULT rv_true1.3_max14_min3=0/288_scale=1.000
+RESULT rv_true0.6_max14_min0=0/288_scale=1.000
+RESULT rv_true1.3_max14_min0=0/288_scale=1.000
+RESULT rv_true0.6_max3_min3=0/288_scale=1.000
+RESULT rv_true1.3_max3_min3=0/288_scale=1.000
+RESULT rv_true0.6_short40=0/40_scale=1.000
+RESULT rv_selfset_max4=10/192_scale=1.020
+RESULT rv_selfset_max6=14/192_scale=1.024
+RESULT rv_selfset_max14=12/192_scale=1.022
+RESULT rv_true0.6_reload30=282/288_scale=0.603
+RESULT rv_led0.6_min3=158/192_scale=1.600

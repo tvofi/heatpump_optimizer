@@ -1,0 +1,3 @@
+  FAIL a frozen cycle and one with no power reading release nothing and fold nothing; the next live cycle releases the held interval  [frozen (1, 0, 'learners_frozen'); no power (1, 0, 'no_measured_power'); live (1, 0)]
+1 of 33 FEATURES BLOCK FAILED
+ALL 34 FEATURES BLOCK PASSED

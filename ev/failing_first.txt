@@ -1,0 +1,2 @@
+ImportError: cannot import name 'CopInterval' from 'heatpump_optimizer.accuracy' (/tmp/rv/ft/custom_components/heatpump_optimizer/accuracy.py)
+AttributeError: 'MeasuredCop' object has no attribute 'held'
