@@ -92658,4 +92658,173 @@ R.check(
 )
 
 
+# The boundaries and wiring the block above does not reach on its way.
+_sw_pred_real = _sw_sid._predict_step_excursion_plant
+_sw_sid._predict_step_excursion_plant = lambda *args, **kw: (0.8, 5.0)
+try:
+    _sw_at_bound = _sw_cc(_SW_HEAVY, 2.0, 12.0)
+finally:
+    _sw_sid._predict_step_excursion_plant = _sw_pred_real
+R.check(
+    "the comfort bound reads the predicted peak, not the final, and a peak exactly on "
+    "the bound fits",
+    _sw_at_bound == 5,
+    f"{_sw_at_bound}",
+)
+_sw_night_of = lambda start, end: [  # noqa: E731
+    h for h in range(24) if _sw_sid._in_night(_sw_cfg(start_hour=start, end_hour=end), h)]
+R.check(
+    "the night window: 23 to 5 wraps midnight and excludes 5; 1 to 5 does not wrap; "
+    "a window whose two ends are the same hour is empty",
+    _sw_night_of(23, 5) == [0, 1, 2, 3, 4, 23] and _sw_night_of(1, 5) == [1, 2, 3, 4]
+    and _sw_night_of(3, 3) == [],
+    f"{_sw_night_of(23, 5)} {_sw_night_of(1, 5)} {_sw_night_of(3, 3)}",
+)
+_sw_hp = lambda price, horizon, spread=False, at=_SW_T0: _sw_sid._hour_price_refusal(  # noqa: E731
+    _sw_cfg(), at, price, horizon, spread)
+_SW_RAMP = np.linspace(0.5, 1.0, 96)
+R.check(
+    "the hour and the price: outside the window refuses first; a price above the "
+    "horizon's 30th percentile refuses and one on it does not; with no horizon no "
+    "price refuses; and only a kind that needs a spread (the probe) refuses a flat "
+    "horizon or none, a spread of half a krona being one",
+    _sw_hp(0.5, _SW_FLAT, at=_SW_T0.replace(hour=12)) == "outside the night window"
+    and _sw_hp(float(np.percentile(_SW_RAMP, 30.0)), _SW_RAMP) is None
+    and _sw_hp(float(np.percentile(_SW_RAMP, 30.0)) + 1e-9, _SW_RAMP) == "electricity is not cheap enough"
+    and _sw_hp(9.0, None) is None and _sw_hp(0.5, _SW_FLAT) is None
+    and _sw_hp(0.5, _SW_FLAT, True) == _sw_hp(0.5, None, True) == "a flat price has no cheap hour to probe in"
+    and _sw_hp(0.5, _SW_RAMP, True) is None,
+)
+R.check(
+    "the cheap-cycle count stops at a day: an all-day window with no horizon is 48",
+    _sw_sid.cheap_night_cycles(_sw_cfg(start_hour=0, end_hour=24), _SW_T0, None) == 48,
+)
+_sw_p_wee, _ = _sw_run(prices=np.linspace(0.5, 2.0, 96), sweep=False, house=_CP_WEE, cycles=4)
+_sw_edge8, _sw_edge8_out = _sw_run(band=8.0)
+_sw_two_wee, _ = _sw_run(house=_CP_WEE, at=_SW_T0.replace(hour=2, minute=30) + timedelta(days=1), cycles=4)
+R.check(
+    "after the settle: a probe no two cycles of which fit aborts with its own reason; "
+    "a sweep on a band of exactly 8 K runs; and with exactly two cheap cycles left a "
+    "sweep the comfort bound refuses says so, not that the night is short",
+    _sw_p_wee.phase == _sw_sid.PHASE_ABORTED
+    and _sw_p_wee.result.reason == "no probe step of two cycles fits within the comfort bound"
+    and _sw_edge8_out == _sw_full_out and _sw_edge8.phase == _sw_sid.PHASE_DONE
+    and _sw_two_wee.result.reason == "no sweep fits within the comfort bound",
+    f"{_sw_p_wee.result.reason!r} {_sw_edge8_out} {_sw_two_wee.result.reason!r}",
+)
+_sw_afc_draw = _mr_dr.DrawRange()
+_sw_afc_draw.map.rows.append((_MR_MIN0, 5) + (None,) * 4 + (2.5,) + (None,) * 8 + ("sweep", "space"))
+_sw_afc_plant = ThermalParameters(min_electrical_power=1.0, max_electrical_power=4.0)
+_sw_afc, _sw_afc_sweep = (_sw_sid.SystemIdentification(_sw_cfg()) for _ in range(2))
+_sw_afc_armed = (
+    _sw_sid.arm_from_config(_sw_afc, _SW_T0, _CpOnCfg(_CP_PROBE_CFG), _sw_afc_plant, 482, _sw_afc_draw),
+    _sw_sid.arm_from_config(_sw_afc_sweep, _SW_T0, _CpOnCfg(_CP_PROBE_CFG), _sw_afc_plant, 482, _sw_afc_draw, True),
+)
+R.check(
+    "arm_from_config arms no sweep unless told the press was the sweep button's; "
+    "told so, the levels are the plant's band, each beside the sweep rows the store "
+    "holds for it",
+    _sw_afc_armed == (True, True) and _sw_afc.kind == "ceiling_probe" and _sw_afc._sweep == ()
+    and _sw_afc_sweep.kind == "power_sweep"
+    and _sw_afc_sweep._sweep == ((0, 1.0), (1, 2.5), (0, 1.75), (0, 4.0), (0, 3.25)),
+    f"{_sw_afc.kind} {_sw_afc_sweep._sweep}",
+)
+_sw_c_sweep._sysid.phase = _sw_sid.PHASE_STEP
+_sw_c_sweep._sysid.phase_started = _cp_cmod.dt_util.now() - timedelta(minutes=30)
+_sw_c_sweep._sysid._baseline_temp = _sw_c_sweep._current_state.room_temperature
+_sw_c_sweep._sysid._step_hours = 2.5
+_sw_sid.hold_reason = lambda *args: None
+_sw_price_real = _sw_c_sweep._get_current_price
+_sw_c_sweep._get_current_price = lambda: 1.0
+try:
+    _cp_sysid_cycle(_sw_c_sweep)
+finally:
+    _sw_sid.hold_reason = _sw_hold_real
+R.check(
+    "a sweep's step cycle through the coordinator adopts the experiment's action: its "
+    "mode, the sweep kind and the first level's power",
+    _sw_c_sweep._current_action.get("mode") == "system_identification"
+    and _sw_c_sweep._current_action.get("kind") == "power_sweep"
+    and _sw_c_sweep._current_action.get("power") == _sw_c_sweep._sysid._sweep[0][1],
+    f"{_sw_c_sweep._current_action}",
+)
+R.check(
+    "the sweep's stored energy is rounded to four decimals, a ceiling sample to three",
+    _mr_dr.SweepRun(0.0, 0.0, 0.123456).as_dict()["kwh"] == 0.1235
+    and (lambda d: d.observe_ceiling(3.14159, 1.0) or d.as_dict()["ceiling"])(_mr_dr.DrawRange()) == [[3.142, 1.0]],
+)
+_sw_e = _mr_dr.DrawRange()
+_mr_dr.note_pass(_sw_e, _sw_level_pass(0, 1.0, 37.0, drawn=3.6))
+_mr_dr.note_pass(_sw_e, _mr_dc_replace(_sw_level_pass(0, 1.0, 37.0, drawn=1.2), at=_MR_T0 + timedelta(seconds=30)))
+_sw_e_30s = _sw_e.map.sweep.kwh
+_mr_dr.note_pass(_sw_e, _mr_dc_replace(_sw_level_pass(0, 1.0, 37.0, drawn=7.2), at=_MR_T0 + timedelta(seconds=10)))
+_sw_e_behind = _sw_e.map.sweep.kwh
+_mr_dr.note_pass(_sw_e, _mr_dc_replace(_mr_pass(0, origin="plan"),
+                                       at=_MR_T0 + timedelta(seconds=30, minutes=_mr_dr.SWEEP_GAP_MIN)))
+_sw_e_gap = _sw_e.map.sweep.kwh
+_sw_e2 = _mr_dr.DrawRange()
+_mr_dr.note_pass(_sw_e2, _sw_level_pass(0, 1.0, 37.0, drawn=3.6))
+_mr_dr.note_pass(_sw_e2, _mr_dc_replace(_mr_pass(0, origin="plan"),
+                                        at=_MR_T0 + timedelta(seconds=1, minutes=_mr_dr.SWEEP_GAP_MIN)))
+R.check(
+    "the energy between passes: a listener's pass 30 seconds on holds the reading for "
+    "those 30 seconds; a pass stamped behind the last holds it for none; the pass "
+    "that closes a sweep exactly SWEEP_GAP_MIN later counts that whole gap, one a "
+    "second later counts none",
+    abs(_sw_e_30s - 3.6 * 30 / 3600.0) < 1e-12 and _sw_e_behind == _sw_e_30s
+    and abs(_sw_e_gap - (_sw_e_behind + 7.2 * _mr_dr.SWEEP_GAP_MIN / 60.0)) < 1e-12
+    and _sw_e2.map.sweep.kwh == 0.0,
+    f"{_sw_e_30s} {_sw_e_behind} {_sw_e_gap} {_sw_e2.map.sweep.kwh}",
+)
+_sw_w = _mr_dr.DrawRange()
+for _sw_m in range(30):  # one stop at minute 13: two runs of one level
+    _mr_dr.note_pass(_sw_w, _mr_dc_replace(
+        _sw_level_pass(_sw_m, 2.0, 41.0, drawn=0.1 if _sw_m == 13 else 2.0 if _sw_m < 13 else 2.6),
+        inlet_c=30.0 if _sw_m < 13 else 32.0))
+for _sw_m in range(30, 40):
+    _mr_dr.note_pass(_sw_w, _mr_dc_replace(_sw_level_pass(_sw_m, 1.23456, 39.0), band_low_kw=4.0))
+_sw_w.map.take_pass(None)
+_sw_w.map.commit_runs(True)
+_sw_w.map.rows.append((_MR_MIN0 + 50, 5) + (None,) * 13 + ("sweep", "space"))
+_sw_w_y = _mr_dr.sweep_yield(_sw_w)
+R.check(
+    "the yield's arithmetic: two runs of one level weigh by their steady minutes (10 "
+    "and 13: the drawn mean 2.339, the inlet mean 31.13); the fraction is to three "
+    "decimals (a third is 0.333) and none on a band with no width; the level is to "
+    "three decimals; a sweep row with an unread level belongs to no level",
+    [lv["steady_minutes"] for lv in _sw_w_y["levels"]] == [23, 7]
+    and _sw_w_y["levels"][0]["drawn_mean_kw"] == round((10 * 2.0 + 13 * 2.6) / 23, 3) == 2.339
+    and _sw_w_y["levels"][0]["inlet_mean_c"] == round((10 * 30.0 + 13 * 32.0) / 23, 3)
+    and _sw_w_y["levels"][0]["fraction"] == 0.333
+    and (_sw_w_y["levels"][1]["fraction"], _sw_w_y["levels"][1]["level_kw"]) == (None, 1.235)
+    and _mr_dr.sweep_rows_at(_sw_w, 2.0) == 2 and _mr_dr.sweep_rows_at(_sw_w, 1.2346) == 1,
+    f"{_sw_w_y}",
+)
+R.check(
+    "a stored ceiling row drawing exactly RUNNING_FLOOR_KW is dropped, as one under "
+    "it; hot water asked at any level is no idle reading",
+    [c[0] for c in _mr_dr.DrawRange.from_dict(
+        {"ceiling": [[_mr_dr.RUNNING_FLOOR_KW, 1.0], [0.26, 2.0], [0.1, 3.0]]}).ceiling] == [0.26]
+    and _mr_dr.is_idle_reading(0.3, 0.5, _SW_GATE, blocked=False) is False,
+)
+_sw_loop = _fb_sim(minutes=30, unit="flow")
+R.check(
+    "the feedback loop still runs through desired on a water set-point (the state "
+    "it and the sweep's floor are read from)",
+    _sw_loop["held"].feedback is not None,
+)
+_sw_built = []
+_sw_c_first.config_entry.runtime_data = _sw_c_first
+_cp_aio.run(_sw_button.async_setup_entry(None, _sw_c_first.config_entry, _sw_built.extend))
+R.check(
+    "the platform adds the sweep button beside the system-identification one, under "
+    "its own key and translation key",
+    [type(b).__name__ for b in _sw_built].count("PowerResponseSweepButton") == 1
+    and len(_sw_built) == 7
+    and [(b._key, b._attr_translation_key) for b in _sw_built if type(b) is _sw_button.PowerResponseSweepButton]
+    == [("power_response_sweep", "learning_measure_power_response")],
+    f"{[type(b).__name__ for b in _sw_built]}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

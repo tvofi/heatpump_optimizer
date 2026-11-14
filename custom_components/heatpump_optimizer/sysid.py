@@ -1449,15 +1449,16 @@ def sweep_level_count(
     ``dev/audit/harnesses/draw_map_sweep.py``). The bound is the probe's.
     """
     bound, model = _whole_bound(cfg, two_zone)
-    for k in range(most, SWEEP_MIN_LEVELS - 1, -1):
-        if all(
+
+    def fits(k: int) -> bool:
+        return all(
             _predict_step_excursion_plant(
                 house, baseline, outdoor, q_kw, k * CYCLE_HOURS, cfg.relax_hours, model=model,
             )[0] <= bound
             for q_kw in (top_heat_kw, 0.0)
-        ):
-            return k
-    return None
+        )
+
+    return next((k for k in range(most, SWEEP_MIN_LEVELS - 1, -1) if fits(k)), None)
 
 
 def _in_night(cfg: SysIdConfig, hour: int) -> bool:
@@ -1486,9 +1487,7 @@ def _hour_price_refusal(
     cutoff = _cheap_cutoff(cfg, price_horizon)
     if needs_spread and (cutoff is None or np.ptp(price_horizon) <= 0.0):
         return "a flat price has no cheap hour to probe in"
-    if cutoff is not None and price > cutoff:
-        return "electricity is not cheap enough"
-    return None
+    return "electricity is not cheap enough" if cutoff is not None and price > cutoff else None
 
 
 def cheap_night_cycles(cfg: SysIdConfig, now: datetime, price_horizon: Any, skip: int = 0) -> int:
@@ -1501,7 +1500,7 @@ def cheap_night_cycles(cfg: SysIdConfig, now: datetime, price_horizon: Any, skip
     known cheap.
     """
     cutoff = _cheap_cutoff(cfg, price_horizon)
-    steps = max(1, round(CYCLE_HOURS * 60.0 / PLAN_STEP_MINUTES))
+    steps = round(CYCLE_HOURS * 60.0 / PLAN_STEP_MINUTES)
     count = 0
     while count < 24.0 / CYCLE_HOURS and _in_night(cfg, (now + timedelta(hours=(skip + count) * CYCLE_HOURS)).hour):
         span = () if cutoff is None else price_horizon[(skip + count) * steps:(skip + count + 1) * steps]
@@ -1526,10 +1525,9 @@ def _sweep_start_refusal(
         return "no flow set-point band is read"
     if band_k < SWEEP_MIN_BAND_K:
         return SWEEP_WARM_REASON
-    settle = math.ceil(cfg.settle_hours / CYCLE_HOURS - 1e-9) + 1
-    if cheap_night_cycles(cfg, now, price_horizon, settle) < SWEEP_MIN_LEVELS:
-        return "too few cheap night hours are left for a sweep"
-    return None
+    settle = math.ceil(cfg.settle_hours / CYCLE_HOURS) + 1
+    few = cheap_night_cycles(cfg, now, price_horizon, settle) < SWEEP_MIN_LEVELS
+    return "too few cheap night hours are left for a sweep" if few else None
 
 
 def _may_start(
@@ -1558,7 +1556,7 @@ def _begin_bounded(
     the arm, in run order; the band is read again here, because the water
     warmed through the settle (design review r15).
     """
-    baseline, top_heat_kw = experiment._baseline_temp, max_power_kw * max(cop, 0.1)
+    baseline, top_heat_kw = experiment._baseline_temp, max_power_kw * cop
     if experiment.kind == KIND_PROBE:
         hours = None if baseline is None else probe_step_hours(
             house, experiment._two_zone_plant, baseline, outdoor_temp, top_heat_kw, experiment.config,
@@ -1569,22 +1567,21 @@ def _begin_bounded(
         experiment._step_power, experiment._step_hours, experiment.probe_run = max_power_kw, hours, now
         return
     levels = experiment._sweep
-    if band_k is None or band_k < SWEEP_MIN_BAND_K:
-        experiment.abort(SWEEP_WARM_REASON)
-        return
+    warm = band_k is None or band_k < SWEEP_MIN_BAND_K
     most = min(len(levels), cheap_night_cycles(experiment.config, now, price_horizon, 1))
-    count = None if baseline is None else sweep_level_count(
+    count = None if warm or baseline is None else sweep_level_count(
         house, experiment._two_zone_plant, baseline, outdoor_temp, top_heat_kw, experiment.config, most,
     )
     if count is None:
         experiment.abort(
-            "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
+            SWEEP_WARM_REASON if warm
+            else "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
             else "too few cheap night hours are left for a sweep"
         )
         return
     keep = sorted(sorted(range(len(levels)), key=lambda i: levels[i][0])[:count])
-    experiment._sweep = tuple(levels[i] for i in keep)
-    experiment._step_power, experiment._step_hours = experiment._sweep[0][1], count * CYCLE_HOURS
+    # The level's power is ``_sweep_level``'s to set, at each command.
+    experiment._sweep, experiment._step_hours = tuple(levels[i] for i in keep), count * CYCLE_HOURS
 
 
 def _sweep_level(
@@ -1636,13 +1633,14 @@ def probe_step_hours(
     :func:`_whole_bound`'s. The peak includes the relax phase's overshoot; the
     relax's final cooling is the plan's, which resumes after a probe.
     """
+    cycle = DEFAULT_OPTIMIZATION_INTERVAL / 60.0
     bound, model = _whole_bound(cfg, two_zone)
-    for n in range(int(cfg.step_hours / CYCLE_HOURS + 1e-9), PROBE_MIN_CYCLES - 1, -1):
+    for n in range(int(cfg.step_hours / cycle + 1e-9), PROBE_MIN_CYCLES - 1, -1):
         peak, _ = _predict_step_excursion_plant(
-            house, baseline, outdoor, q_kw, n * CYCLE_HOURS, cfg.relax_hours, model=model,
+            house, baseline, outdoor, q_kw, n * cycle, cfg.relax_hours, model=model,
         )
         if peak <= bound:
-            return n * CYCLE_HOURS
+            return n * cycle
     return None
 
 
@@ -1944,7 +1942,7 @@ class SystemIdentification:
         self.phase = PHASE_STEP
         self.phase_started = now
         if self.kind != KIND_FIT:
-            _begin_bounded(self, now, outdoor_temp, max_power_kw, cop, house, price_horizon, band_k)
+            _begin_bounded(self, now, outdoor_temp, max_power_kw, max(cop, 0.1), house, price_horizon, band_k)
             return
         if (
             house.ua is not None

@@ -297,8 +297,9 @@ def _sweep_pass(run: SweepRun | None, rec: PassRecord) -> SweepRun | None:
     the sweep cost, not what its levels drew.
     """
     at = rec.at.timestamp()
-    if run is not None and run.open_kw is not None and 0.0 < at - run.last_s <= SWEEP_GAP_MIN * 60.0:
-        run.kwh += run.open_kw * (at - run.last_s) / 3600.0
+    if run is not None and run.open_kw is not None and at - run.last_s <= SWEEP_GAP_MIN * 60.0:
+        # A pass stamped behind the last one held its reading for no time.
+        run.kwh += run.open_kw * max(at - run.last_s, 0.0) / 3600.0
     if rec.origin != ORIGIN_SWEEP:
         if run is not None:
             run.open_kw = None
@@ -323,10 +324,14 @@ def _stored_sweep(raw: Any) -> SweepRun | None:
     return run if all(len(level) == 4 for level in levels) and bool(np.isfinite(numbers).all()) else None
 
 
+def _sweep_row_at(row: tuple[Any, ...], level_kw: float) -> bool:
+    """A sweep's row at one level, kW, to a stored cell's three decimals."""
+    return row[15] == ORIGIN_SWEEP and row[6] is not None and round(row[6], 3) == round(level_kw, 3)
+
+
 def sweep_rows_at(draw: "DrawRange | None", level_kw: float) -> int:
-    """How many sweep rows ``draw`` holds for one level, kW (a stored cell's precision)."""
-    rows = () if draw is None else draw.map.rows
-    return sum(1 for r in rows if r[15] == ORIGIN_SWEEP and r[6] is not None and abs(r[6] - level_kw) < 1e-3)
+    """How many sweep rows ``draw`` holds for one level, kW."""
+    return sum(1 for r in (() if draw is None else draw.map.rows) if _sweep_row_at(r, level_kw))
 
 
 def sweep_yield(draw: "DrawRange") -> dict[str, Any] | None:
@@ -344,8 +349,7 @@ def sweep_yield(draw: "DrawRange") -> dict[str, Any] | None:
         return None
     levels = []
     for level_kw, low_kw, high_kw, written_c in run.levels:
-        rows = [r for r in draw.map.rows if r[15] == ORIGIN_SWEEP and r[0] >= run.start_s // 60
-                and r[6] is not None and abs(r[6] - level_kw) < 1e-3]
+        rows = [r for r in draw.map.rows if _sweep_row_at(r, level_kw) and r[0] >= run.start_s // 60]
         minutes = sum(r[1] for r in rows)
 
         def mean(col: int) -> float | None:

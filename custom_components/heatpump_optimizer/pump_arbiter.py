@@ -1016,11 +1016,18 @@ def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool, sweep_floor_c:
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-    floor_c = sweep_floor_c if sweep_floor_c is not None else _or_hold(modulation_floor_flow_c(
+    floor_c = _live_floor_c(inp) if sweep_floor_c is None else sweep_floor_c
+    return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
+
+
+def _live_floor_c(inp: ArbiterInputs) -> float:
+    """The set-point that commands the modulation floor on the inlet as it
+    reads now, °C: the inlet (or the gate, where higher) plus the minimum
+    lift, or the rated hold with no inlet read."""
+    return _or_hold(modulation_floor_flow_c(
         _flow_inlet_c(inp), _gate_c(inp),
         start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
     ), inp.config)
-    return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 
 def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
@@ -1403,7 +1410,7 @@ def _experiment_kind(inp: ArbiterInputs) -> str | None:
     return str(action.get("kind") or "")
 
 
-def _hold_sweep(held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
+def _hold_sweep(held: ArbiterState, inp: ArbiterInputs) -> None:
     """Through a power-response sweep, hold the floor its levels map on.
 
     Read once, at the sweep's first pass, so every level maps to one
@@ -1416,7 +1423,7 @@ def _hold_sweep(held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
     if _experiment_kind(inp) != KIND_SWEEP:
         held.sweep_floor_c = None
     elif held.sweep_floor_c is None:
-        held.sweep_floor_c = _map_inputs(inp, now, False).floor_c
+        held.sweep_floor_c = _live_floor_c(inp)
 
 
 def sweep_band_k(coord: Any) -> float | None:
@@ -1425,8 +1432,7 @@ def sweep_band_k(coord: Any) -> float | None:
     inp = coord.arbiter_inputs()
     if not flow_setpoint_driven(inp.config):
         return None
-    m = _map_inputs(inp, dt_util.now(), False)
-    return m.heat_c - m.floor_c
+    return _heat_ceiling_c(inp.config) - _live_floor_c(inp)
 
 
 def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
@@ -2038,7 +2044,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     served = _served(coord, inp, duty, now)
-    _hold_sweep(held, inp, now)
+    _hold_sweep(held, inp)
     await _command(coord, inp, desired(coord, inp, served, now), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)
