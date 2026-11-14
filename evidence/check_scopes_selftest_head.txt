@@ -1,4 +1,4 @@
-ref=09c0bc5ce99c4ed0b27e780d08aa6be28bf06bbd seats=59
+ref=3230ac7113e513864159360d16a6fd35828997ad seats=59
 ok D0 mode=cells seats=3 universe=3 [s1:3f/22843loc, s2:3f/22843loc, s3:3f/22843loc]
 FAIL D1 mode=cells seats=3 universe=91 [s1:91f/72990loc, s2:91f/72990loc, s3:91f/72990loc]
    owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']
@@ -56,9 +56,13 @@ ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
    coverage arms dead/unreasoned exclusion: refused=True/True
    coverage arm exclude a covered path: refused=True; null control custom_components/heatpump_optimizer/optimizer.py covered=True
    harness-citation arms: True, null True
-   ledger arms: live True, cap refused True, line refused True/False/True/True
+   ledger arms: live True, cap refused True, line refused True/True/True/True
    D5 comment-line arms: plant measured True, outside refused True, D6 null refused True, no line refused True, narrow refused True, unstatic refused True
    default verdict: live True, no D10 refused True, uncited refused True
    default invocation: live rc=0, blueprints dropped rc=1
-SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {"drop D10's universe": True, 'strip tests/ and blueprints/ globs': True, 'exclude a covered path': True, 'an exclusion naming nothing': True, 'an exclusion with no reason': True, 'null control: optimizer.py covered': True, 'a harness the brief does not cite is refused': True, 'null control: the brief citing it passes': True, 'null control: the live D5 and D6 pass the cap and the line': True, 'a seat over ledger.max_units is refused by name': True, 'a classified path in neither universe nor static is refused': True, 'a static path in the universe is refused': False, 'a static entry naming nothing is refused': True, 'a static entry with no reason is refused': True, "the verdict's plant in .claude/workflows/ is a D5 unit": True, 'a comment carrier in neither D5 universe nor static is refused': True, 'null control: a document in neither D6 universe nor static is still refused': True, 'a ledger dimension with no classify line is refused': True, 'a D5 classify missing a comment carrier is refused': True, 'D5 without the round-evidence static is refused': True, 'the default verdict passes the live scopes': True, "and refuses them without D10's universe": True, 'and refuses an uncited brief-named harness': True, 'the default invocation exits 0 on the live scopes': True, "and exits 1 without D4's and D6's blueprints globs": True})
-rc=1
+SELF-TEST passed (every perturbed scope refused)
+
+real	1m2.936s
+user	0m58.304s
+sys	0m4.290s
+rc=0

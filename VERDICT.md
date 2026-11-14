@@ -1,46 +1,36 @@
-Fix review: blocked 09c0bc5ce99c4ed0b27e780d08aa6be28bf06bbd mutant-committed: check_scopes.py's "static and in the universe" refusal is replaced by `pass` (ff9b385bcd), so its own self-test fails at the head
+Fix review: merge 3230ac7113e513864159360d16a6fd35828997ad
 
-bus-nonce: fc1ede121a04a26556310bff7f4d1471
+bus-nonce: 9abb01b20734a599925774bf1fa1b3a3
+pending-ci: gate
 
-Round 2 (delta review). Reviewed head ac1607ad7344f75d619dd5f0b2f2c66d12663a3f, head measured 09c0bc5ce99c4ed0b27e780d08aa6be28bf06bbd (ev/HEAD.txt). Scope: delta. The branch's own commits are 3b7b45197a, afcb73580d, ff9b385bcd and 38f90d9be7, plus the hand-resolved merge 02d55e28 and the delivery row. The delta touches no production (custom_components/) code, so the review is not widened.
-
-## Block
-
-Commit ff9b385bcd ("D5.md: the scope line fits the brief's line cap") changes one line in `tools/audit/check_scopes.py` `classify_errors`, and that change has nothing to do with D5.md. The line that refused it went (ev/ff9b385bcd_check_scopes.diff):
-
-    -    errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
-    +    pass
-
-At the head, a path that is both in a ledger dimension's universe and in its `static` map is no longer refused, which removes half of the line this PR exists to draw. The instrument's own self-test catches it. At the head, `python3 -I tools/audit/check_scopes.py --self-test --repo .` prints `ledger arms: ... line refused True/False/True/True` and `SELF-TEST FAILED`, with the arm `'a static path in the universe is refused': False`, rc=1 (ev/check_scopes_selftest_head.txt).
-
-The body's `## Figures` says the same self-test prints `SELF-TEST passed`, which is false at this head. So is its claim that the line refuses "a path in both".
-
-The fix is to restore the deleted line and re-run the self-test. The figure_lint `ok` for this command means only that the command resolves, not that it passed.
-
-## Findings
-
-none
+Round 3, a delta review. The reviewed head was 09c0bc5ce99c4ed0b27e780d08aa6be28bf06bbd (blocked `mutant-committed`), and the head measured here is 3230ac7113e513864159360d16a6fd35828997ad (ev/HEAD.txt). Scope: delta, as the packet's `## Review scope` line gives it. `git diff 09c0bc5c 3230ac71` is one line in `tools/audit/check_scopes.py` and touches no production (custom_components/) code, so the review is not widened.
 
 ## Evidence
 
-- (a) The class-open block at ac1607ad is resolved (ev/class_open_plants.txt). I committed each plant on the head and ran `check_scopes.py --repo . --ref HEAD`:
-  - The verdict's plant `.claude/workflows/zz-planted.js` is now a D5 unit. It prints `ok D5 ... universe=854`, one more than the unplanted 853, and rc=0.
-  - The same comment at `.claude/zz-planted.js` gives `FAIL D5`, rc=1.
-  - The D6 null `dev/zz-planted.md` gives `FAIL D6` and `unclassified=1`, rc=1.
-  - The self-test's six D5 comment-line arms all print True.
-- (b) Hand-resolved merge 02d55e28, `tools/policy/check-wave-script.mjs`: I re-ran the planted cases in `.claude/workflows/audit-find.js` at the head (ev/cadence_plants_head.txt).
-  - Null: `227 passed, 0 failed`, rc 0.
-  - D5 off-round (`activeIn` true for D5 at any round): `226 passed, 1 failed` on the cadence arm.
-  - D11 off-cadence: `226 passed, 1 failed`.
-  - D13 off-cadence: `226 passed, 1 failed`.
-  - Extra plants, for what main's assertion refused and `byRound` alone would not, because `byRound` filters on `D.CADENCE[d]`:
-    - D11 dropped from CADENCE fails 4+ other arms (round-9 every-dimension, dispatch, box B7).
-    - D13 dropped from CADENCE fails the same way.
-    - D11 never active fails the cadence arm and 4+ others.
-  - Every plant main's six lines refused is still refused, so the resolution loses nothing measured. The `(probe, expected)` FAIL line is the checker's uncounted self-probe and appears in the null too.
-- Main's own copy of check-wave-script.mjs (origin/main 513a07dfdc) run over the head tree prints `227 passed, 0 failed` (ev/main_checker_over_head.txt), so the base-copy wave-script job should pass.
-- Merge: `git merge-tree --write-tree origin/main 09c0bc5c` (origin/main 513a07dfdc0daf09a054826974dbb64bfea9de27) printed one tree, rc 0, with no conflict (ev/merge_tree.txt).
-- `text_ledger.py --self-test` at the head: `17 checks, 0 failed`.
-- Figures: the D5 line at the head reads `seats=10 universe=853`; the body says 851. The difference is consistent with main's merge adding files. I have not attributed it further, and it is not a block.
-- Still at the head: `CADENCE` holds `D5: 2, D6: 2`, as the body states, with p2 carried. That was already reviewed at ac1607ad and is outside this delta.
-- CI: `merge_train.py classify 09c0bc5c --pr 3571` printed `WAIT 09c0bc5ce99c4ed0b27e780d08aa6be28bf06bbd pending: gate red: none`. I did not wait longer, because the block stands on a measured local failure. `## Red checks` was not assessed, since no red is reported yet.
+- (1) The refusal is restored. The delta replaces `pass` with `errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]` in `classify_errors`. `git diff ff9b385bcd^ HEAD -- tools/audit/check_scopes.py` prints nothing (0 lines, ev/restore_vs_premutant.txt), so the file is byte-identical to its text before the mutant.
+- (2) At the head, `python3 -I tools/audit/check_scopes.py --self-test --repo .` prints `SELF-TEST passed (every perturbed scope refused)`, rc=0, in 63 s (ev/check_scopes_selftest_head.txt).
+  - Mutation control, run in a separate detached worktree: putting ff9b385bcd's `pass` back gives `SELF-TEST FAILED` with the arm `'a static path in the universe is refused': False`, rc=1, and every other arm True (ev/mutant_selftest.txt). The worktree was restored afterwards, with 0 dirty paths.
+- (3) I re-took the body's figures at the head (ev/figures_head.txt). Each one matches:
+  - `text_ledger.py --self-test` prints `17 checks, 0 failed`.
+  - `check-wave-script.mjs` prints `227 passed, 0 failed`, with the cadence line `off at 11: D5, D6, D11, D13`.
+  - `selftest_wiring: 0 index gap(s)`.
+  - `selftest_scope self-test: 120 checks, 0 failed`.
+  - `check_scopes.py --repo . --ref HEAD` exits 0:
+    - `ok D5 ... seats=10 universe=853`, with s1 0u, s7 3809u and s10 `312f/0loc/1704u`.
+    - `ok D6 ... seats=7 universe=344`, from s6 2246u to s2 4005u.
+    - `unclassified=0`.
+  - The round-10 sentence counts 1 of 2250 strings.json units.
+  - `git grep` over the round 9/10 D6 outputs exits 1.
+  - `STRUCTURE RATCHET PASSED`.
+  - The sweep's "13 files, 849+/65-" is `git diff --shortstat c987209cc7...c2508883c4`, which I reproduced. At the head the same three-dot diff is 14 files, 850+/65-, and the extra file is the 1-line delivery row `dev/programme/delivery/3571.md`, as the body's `## Head` states (ev/threedot.txt).
+- (4) The fixer's account of how the mutant was committed is in the body, under `## Re-cut` "How the mutant got committed":
+  - Cause: a hand mutation in the branch worktree with no `mutant_guard`, swept into ff9b385bcd.
+  - Process state: (b).
+  - Cheaper detector: a local self-test run, 50 s. I measured 63 s here.
+  - The cost test is given, and the tree-wide countermeasure is routed to the root-cause seat with a `Carry:`. `## Red checks` answers the `gate` / `governance / instrument-self-tests` red at 09c0bc5c.
+- (5) I re-ran the leftover-mutant sweep (ev/leftover_sweep.txt) over the 10 non-merge commits in `c987209cc7..HEAD`, grepping each commit's added code lines for a bare `pass` / `return` / `continue` / `break` / `exit 0` / `|| true`.
+  - It returns exactly the body's list: ff9b385bcd's `pass`, which is reverted at the head, and e130ee97a4's `return None` (x2), `continue` (x3), `break`, `except ValueError: pass` and `return 1`, all new code in `text_ledger.py`.
+  - Every removed code line in the three-dot diff is the import, `check`/`verdict` signatures, `status`, `sizes`, `live = verdict(...)`, the final `sys.exit` and the cadence assertion, as the body lists. No other mutant was found.
+- Merge: `git merge-tree --write-tree origin/main 3230ac71` against origin/main f7e7a0244a3d5f7763c4ec15d193d03ef4bb3274 prints one tree, rc=0, with no conflict (ev/merge_tree.txt).
+- The delta commits' messages carry no attribution trailer.
+- CI: `merge_train.py classify 3230ac71 --pr 3571` printed `WAIT 3230ac7113e513864159360d16a6fd35828997ad pending: gate red: none` on each of 31 runs, about 60 s apart, from 04:58 to 05:28 UTC (ev/classify.log). No red has been reported, so no `## Red checks` answer is owed. The relay posts this verdict once `gate` is green at this head.
