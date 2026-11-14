@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/tmp/tmp.6NV6BwSn2p/wt2/tests/entities.py", line 48, in <module>
-    from harness import (
-    ...<11 lines>...
-    )
-  File "/tmp/tmp.6NV6BwSn2p/wt2/tests/harness.py", line 25, in <module>
-    from homeassistant.config_entries import ConfigEntryState
-ModuleNotFoundError: No module named 'homeassistant'

@@ -37,7 +37,7 @@ RESULT mutant=render-host-off failed=6 verdict=killed
 RESULT mutant=privacy-off failed=1 verdict=killed
     FAIL _publish itself refuses a ref that would publish the host, and pushes nothing
 RESULT mutant=head-ignored failed=-1 verdict=CRASHED
-RESULT mutant=prompt-wrong failed=26 verdict=killed
+RESULT mutant=prompt-wrong failed=25 verdict=killed
     FAIL a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract
     FAIL the designer's text allows design/<group> alone and no pull request, in its own words
     FAIL a design reviewer pins the design tip and the base, names its contract and its one ref
@@ -59,7 +59,6 @@ RESULT mutant=prompt-wrong failed=26 verdict=killed
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
     FAIL the reviewer's brief carries the packet render at the dispatched head for the seat's own machine
     FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
-    FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
     FAIL an explicit roster ref is read, not the round's roster branch
     FAIL the --group CLI passes --head and --roster-ref through
@@ -134,15 +133,13 @@ RESULT mutant=pointer-off failed=-1 verdict=CRASHED
     FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
     FAIL the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt
     FAIL the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present
-RESULT mutant=publish-ignored failed=4 verdict=killed
+RESULT mutant=publish-ignored failed=3 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to the flag path's --publish
     FAIL without --publish the flag path is unchanged: the whole prompt in its event, nothing published
     FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
-    FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce
-RESULT mutant=publish-ref-rev-dropped failed=3 verdict=killed
+RESULT mutant=publish-ref-rev-dropped failed=2 verdict=killed
     FAIL the reviewer's publish ref is dispatch/reviewer-rev-7
     FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
-    FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce
 RESULT mutant=wait-line-dropped failed=1 verdict=killed
     FAIL every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)
 RESULT mutant=claude-md-reread failed=1 verdict=killed
@@ -157,12 +154,10 @@ RESULT mutant=part-count failed=5 verdict=killed
     FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
     FAIL --part 1 keeps the group's own topic and names carries 0-4
     FAIL the split folds a remainder of one or two into the last part, and only that
-RESULT mutant=part-refusal-off failed=2 verdict=killed
+RESULT mutant=part-refusal-off failed=1 verdict=killed
     FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
-    FAIL a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)
-RESULT mutant=part-prefilter failed=2 verdict=killed
+RESULT mutant=part-prefilter failed=1 verdict=killed
     FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
-    FAIL a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)
 RESULT mutant=part-fold-off failed=5 verdict=killed
     FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
     FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
@@ -171,10 +166,9 @@ RESULT mutant=part-fold-off failed=5 verdict=killed
     FAIL the split folds a remainder of one or two into the last part, and only that
 RESULT mutant=part-fold-one failed=1 verdict=killed
     FAIL the split folds a remainder of one or two into the last part, and only that
-RESULT mutant=part-pending-raw failed=4 verdict=killed
+RESULT mutant=part-pending-raw failed=3 verdict=killed
     FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
     FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
-    FAIL a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)
     FAIL five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)
 RESULT mutant=part-topic-dropped failed=3 verdict=killed
     FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
@@ -214,9 +208,8 @@ RESULT mutant=seat-refused-dropped failed=1 verdict=killed
     FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
 RESULT mutant=poll-end-dropped failed=1 verdict=killed
     FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
-RESULT mutant=readback-dropped failed=2 verdict=killed
+RESULT mutant=readback-dropped failed=1 verdict=killed
     FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
-    FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce
 RESULT mutant=frugal-allowance-back failed=2 verdict=killed
     FAIL every role's prompt carries the frugal-routing line once, verbatim (P398)
     FAIL and no prompt grants an inline allowance the guard does not (tvofi 2026-11-09, Carry 9)
@@ -233,11 +226,5 @@ RESULT mutant=done-filter-dropped failed=1 verdict=killed
     FAIL a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one
 RESULT mutant=enum-line-dropped failed=1 verdict=killed
     FAIL and the group's class-enumeration command
-RESULT mutant=fixer-guard-off failed=1 verdict=killed
-    FAIL a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)
-RESULT mutant=readback-nonce failed=1 verdict=killed
-    FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce
-RESULT mutant=legacy-refusal-swallow failed=1 verdict=killed
-    FAIL a --part dispatch whose cut-over roster the clone cannot read refuses naming the cut-over, not crashing
-RESULT mutants=66 survived=0
+RESULT mutants=63 survived=0
 rc=0
