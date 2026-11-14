@@ -70,27 +70,45 @@ def cases(check) -> None:
     ps = lambda pid: cmds.get(pid, "")
     with tempfile.TemporaryDirectory() as d:
         sd = Path(d)
-        check("lock: a free lock is taken", sg.lock(sd, 100, 50.0, ps, lambda pid, now: 7)[0] == 0 and (sd / "session.lock").read_text() == "100 7\n")
-        check("lock null: the session's own pid is not a duplicate", sg.lock(sd, 100, 6.0, ps, lambda pid, now: 7)[0] == 0)
-        rc, msg = sg.lock(sd, 200, 7.0, ps)
+        check("lock: a free lock is taken", sg.lock(sd, 100, ps, lambda pid: 7)[0] == 0 and (sd / "session.lock").read_text() == "100 7\n")
+        check("lock null: the session's own pid is not a duplicate", sg.lock(sd, 100, ps, lambda pid: 7)[0] == 0)
+        rc, msg = sg.lock(sd, 200, ps, lambda pid: 8)
         check("lock: a live other holder whose command is the session binary refuses, naming both pids",
               rc == 1 and "100" in msg and "200" in msg and (sd / "session.lock").read_text() == "100 7\n")
         (sd / "session.lock").write_text("999 1\n")
-        check("lock null: a dead holder pid is taken over", sg.lock(sd, 200, 8.0, ps)[0] == 0)
+        check("lock null: a dead holder pid is taken over", sg.lock(sd, 200, ps, lambda pid: 8)[0] == 0)
         (sd / "session.lock").write_text("300 1\n")
-        check("lock null: a reused pid naming another command is taken over", sg.lock(sd, 200, 9.0, ps)[0] == 0)
+        check("lock null: a reused pid naming another command is taken over", sg.lock(sd, 200, ps, lambda pid: 8)[0] == 0)
+    tz = os.environ.get("TZ")
+    os.environ["TZ"] = "UTC"
+    time.tzset()
+    try:  # recorded lines, read as UTC: procps (Linux) prints the bare column, BSD ps (macOS) pads it
+        check("parse_lstart: a procps line is its epoch", sg.parse_lstart("Sat Nov 14 10:36:49 2026\n") == 1794652609)
+        check("parse_lstart: a padded macOS line is its epoch", sg.parse_lstart("Sat Nov 14 10:36:49 2026    \n") == 1794652609)
+        check("parse_lstart: a space-padded single-digit day is its epoch", sg.parse_lstart("Wed Nov  4 09:05:01 2026\n") == 1793783101)
+        check("parse_lstart null: an etimes figure, a localised line and nothing are 0",
+              [sg.parse_lstart(t) for t in ("1234\n", "sam. nov. 14 10:36:49 2026\n", "")] == [0, 0, 0])
+    finally:
+        os.environ.pop("TZ") if tz is None else os.environ.__setitem__("TZ", tz)
+        time.tzset()
     t0 = time.time()
-    st = sg.ps_start(os.getpid(), t0)
-    check("ps_start: this process's start time is now less its ps etimes, never 0",
-          int(t0) - 600 < st <= int(t0))
-    check("ps_start null: a pid ps cannot find is 0", sg.ps_start(2 ** 22 + 1, t0) == 0)
+    st, st2 = sg.ps_start(os.getpid()), sg.ps_start(os.getpid())
+    check("ps_start: this process's start time is at most 600 s before now, never 0", int(t0) - 600 < st <= int(t0))
+    check("ps_start: two reads of one live pid give the same start", st == st2)
+    check("ps_start null: a pid ps cannot find is 0", sg.ps_start(2 ** 22 + 1) == 0)
+    with tempfile.TemporaryDirectory() as d:
+        r = subprocess.run([sys.executable, "-I", str(HERE / "seat_gen.py"), "lock", "--pid", str(os.getpid())],
+                           env={"HPO_STATE_DIR": d, "PATH": os.environ.get("PATH", "")}, capture_output=True, text=True)
+        held = (Path(d) / "session.lock").read_text().split() if (Path(d) / "session.lock").exists() else []
+        check("the CLI lock --pid takes a free lock and records this pid's live start, never 0",
+              r.returncode == 0 and held == [str(os.getpid()), str(st)] and st > 0)
     par = {5: 4, 4: 3, 3: 2}.get
     check("session_pid: the first ancestor running the session binary, never the shell",
           sg.session_pid(5, lambda p: {2: "claude", 4: "bash"}.get(p, "x"), lambda p: par(p, 0)) == 2)
     check("session_pid null: no ancestor is the session binary", sg.session_pid(5, lambda p: "bash", lambda p: par(p, 0)) is None)
 
 
-#: one site, one mutant, the case that must fail (the comparison, the command match)
+#: one site, one mutant, the case that must fail (the comparison, the command match, the lstart parse)
 MUTANTS = {
     "gen_ge": ("    if held is not None and held > gen:", "    if held is not None and held >= gen:",
                "check null: the current generation passes"),
@@ -100,6 +118,12 @@ MUTANTS = {
                               "lock null: a reused pid naming another command is taken over"),
     "lock_own_pid": ("    if held and held != mine and SESSION_RE.search(command(held)):", "    if held and SESSION_RE.search(command(held)):",
                      "lock null: the session's own pid is not a duplicate"),
+    "lstart_strip": ('    return int(time.mktime(time.strptime(text.strip(), "%a %b %d %H:%M:%S %Y")))',
+                     '    return int(time.mktime(time.strptime(text, "%a %b %d %H:%M:%S %Y")))',
+                     "parse_lstart: a padded macOS line is its epoch"),
+    "lstart_utc": ('    return int(time.mktime(time.strptime(text.strip(), "%a %b %d %H:%M:%S %Y")))',
+                   '    return int(time.mktime(time.strptime(text.strip(), "%a %b %d %H:%M:%S %Y"))) + 3600',
+                   "parse_lstart: a procps line is its epoch"),
     "session_ppid": ("        if SESSION_RE.search(command(pid)):\n            return pid\n", "        if True:\n            return pid\n",
                      "session_pid: the first ancestor running the session binary, never the shell"),
 }

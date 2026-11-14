@@ -14,7 +14,7 @@ SUPERSEDED, so a superseded seat's lingering job cannot write. An unset `HPO_SEA
 before: the orchestrator's own calls carry none. Killing the old task is an agent tool, not scriptable here.
 
 `lock` records the session binary's pid -- the first ancestor whose command matches SESSION_RE, never
-`$PPID`, which dies with the call -- and its process start time (`ps -o etimes=` back from now; 0 if ps cannot say) in `$HPO_STATE_DIR/session.lock`. A holder pid
+`$PPID`, which dies with the call -- and its process start time (`ps -o lstart=` under LC_ALL=C, as a local-time epoch; 0 if ps cannot say) in `$HPO_STATE_DIR/session.lock`. A holder pid
 that is alive AND whose `ps -p <pid> -o command=` matches the session binary, and is not the caller's own
 session, refuses (exit 1, both pids printed); a gone pid, or one naming another command (a reused pid),
 is stale and taken over. Liveness is read from the pid, never from stop lines: a reboot leaves none.
@@ -91,13 +91,24 @@ def ppid_of(pid: int) -> int:
     return int(r.stdout.strip() or 0) if r.returncode == 0 else 0
 
 
-def ps_start(pid: int, now: float) -> int:
-    """The process start time (epoch): now minus `ps -o etimes=`; 0 when ps cannot say."""
-    r = subprocess.run(["ps", "-p", str(pid), "-o", "etimes="], capture_output=True, text=True)
+def parse_lstart(text: str) -> int:
+    """`ps -o lstart=` under LC_ALL=C (`Sat Nov  4 10:36:49 2026`, procps and BSD alike) as an epoch; 0 when unparsable.
+
+    macOS pads the column with trailing blanks, stripped here; strptime's blank matches the padded day."""
     try:
-        return int(now) - int(r.stdout.strip())
-    except ValueError:
+        return int(time.mktime(time.strptime(text.strip(), "%a %b %d %H:%M:%S %Y")))
+    except (ValueError, OverflowError):
         return 0
+
+
+def ps_start(pid: int) -> int:
+    """The process start time (epoch) from `ps -o lstart=`; 0 when ps cannot say.
+
+    lstart is the kernel's absolute start, so two reads of one live pid agree; `etimes` is procps-only
+    (macOS ps has no such keyword) and an elapsed time is subtracted from a clock read at another instant."""
+    r = subprocess.run(["ps", "-p", str(pid), "-o", "lstart="], capture_output=True, text=True,
+                       env={**os.environ, "LC_ALL": "C"})
+    return parse_lstart(r.stdout) if r.returncode == 0 else 0
 
 
 def session_pid(start: int, command=ps_command, parent=ppid_of) -> "int | None":
@@ -111,7 +122,7 @@ def session_pid(start: int, command=ps_command, parent=ppid_of) -> "int | None":
     return None
 
 
-def lock(sd: Path, mine: int, now: float, command=ps_command, start=ps_start) -> "tuple[int, str]":
+def lock(sd: Path, mine: int, command=ps_command, start=ps_start) -> "tuple[int, str]":
     sd.mkdir(parents=True, exist_ok=True)
     path = sd / "session.lock"
     with open(sd / ".session.lock.flock", "w") as lk:
@@ -123,7 +134,7 @@ def lock(sd: Path, mine: int, now: float, command=ps_command, start=ps_start) ->
         if held and held != mine and SESSION_RE.search(command(held)):
             return 1, f"seat_gen: REFUSED session lock held by pid {held} (this session is pid {mine}); stop and dispatch nothing"
         tmp = path.with_name(f".session.lock.{os.getpid()}")
-        tmp.write_text(f"{mine} {start(mine, now)}\n")
+        tmp.write_text(f"{mine} {start(mine)}\n")
         os.replace(tmp, path)
     return 0, f"seat_gen: session lock taken by pid {mine}" + (f" (stale holder {held})" if held and held != mine else "")
 
@@ -145,7 +156,7 @@ def main(argv: "list[str]") -> int:
         if not mine:
             print("seat_gen: UNREADABLE no ancestor is the session binary", file=sys.stderr)
             return 2
-        rc, msg = lock(state_dir(), mine, time.time())
+        rc, msg = lock(state_dir(), mine)
     else:
         print(__doc__, file=sys.stderr)
         return 2
