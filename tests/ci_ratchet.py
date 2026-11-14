@@ -1119,6 +1119,44 @@ def self_test() -> int:
             msg = f"crashed: {type(exc).__name__}"
         ck(f"a CI push run that {label} refuses (its wall is unknown, never its run's)",
            "fail closed" in msg, msg or "no refusal")
+    # Run 43602217369 (merge 97a3a921e0) as its job listing recorded it, cut to
+    # the fields read: the prelude cancelled, so the `tests` caller and every
+    # other unit were skipped and no `tests / *` job was ever created.
+    def pj(name, conclusion, created, completed):
+        return {"name": name, "conclusion": conclusion,
+                "created_at": f"2026-11-14T13:{created}Z", "started_at": f"2026-11-14T13:{created}Z",
+                "completed_at": f"2026-11-14T13:{completed}Z"}
+    pre_cut = {"id": 43602217369, "name": "CI code pr=- base=- sha=97a3a921e0",
+               "path": ".github/workflows/ci.yml", "status": "completed",
+               "created_at": "2026-11-14T13:55:56Z", "updated_at": "2026-11-14T13:59:29Z",
+               "jobs": [pj("prelude", "cancelled", "55:56", "59:28"),
+                        pj("refresh", "skipped", "55:56", "55:56"),
+                        pj("cancel-superseded", "skipped", "55:57", "55:56"),
+                        *(pj(n, "skipped", "59:28", "59:28") for n in (
+                            "hassfest", "governance", "codeql", "arch-score",
+                            "budget-raise-gate", "validate", "kernel-points")),
+                        pj("gate", "cancelled", "59:29", "59:28"),
+                        pj("tests", "skipped", "59:29", "59:28"),
+                        pj("pr-contract", "skipped", "59:29", "59:28"),
+                        pj("sweep-self", "cancelled", "59:29", "59:28")]}
+    m, msg = safe(lambda: run_minutes(pre_cut))
+    ck("a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369)",
+       m is None and not msg, msg or f"got {m}")
+
+    def jobs_with(name, **change):
+        return {**pre_cut, "jobs": [dict(j, **change) if j["name"] == name else j for j in pre_cut["jobs"]]}
+    for label, r in (("whose prelude succeeded", jobs_with("prelude", conclusion="success")),
+                     ("whose prelude was cancelled but a tests job never completed",
+                      {**pre_cut, "jobs": pre_cut["jobs"] + [
+                          {"name": "tests / fast (3.14)", "completed_at": None}]}),
+                     ("whose prelude was cancelled but its tests caller failed",
+                      jobs_with("tests", conclusion="failure"))):
+        try:
+            msg = refused(lambda r=r: run_minutes(r))
+        except Exception as exc:  # a crash reddens this check by name, never the whole self-test
+            msg = f"crashed: {type(exc).__name__}"
+        ck(f"null: a CI push run with no completed tests job {label} still refuses",
+           "fail closed" in msg, msg or "no refusal")
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "runs.json"
         f.write_text(json.dumps({"workflow_runs": [tests_run, ci_run(2, "2026-10-22T00:00:00Z",
