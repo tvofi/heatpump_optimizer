@@ -1875,6 +1875,67 @@ def configured_flow_min_lift_k(config: Any) -> float:
         number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
+def start_flow_min_lift_k(config: Any, start_hysteresis_k: Any = None) -> float:
+    """The modulation floor's lift a heating write uses, K.
+
+    The configured lift (:func:`configured_flow_min_lift_k`), never below the
+    pump's own heating start hysteresis where one is read
+    (``ThermalState.space_start_hysteresis_k``): its controller starts only
+    once the target sits that far above the water, so a floor written closer
+    books heat on a step the pump never starts. The one lift every reader of
+    the floor takes; no hysteresis, or one at or below the configured lift,
+    is the configured lift.
+    """
+    lift = configured_flow_min_lift_k(config)
+    hysteresis = finite_float(start_hysteresis_k)
+    return lift if hysteresis is None else max(lift, hysteresis)
+
+
+def dhw_step_target_c(params: ThermalParameters, cycle: bool, grid: Any = None) -> float:
+    """The hot-water target a step holds on the pump, °C: the one statement
+    of it, which the write, the plan, the duty ledger and the start notice read.
+
+    On a ``cycle`` step (the plan books a disinfection cycle or the pump's
+    disinfection switch is held on) the cycle's temperature (``dhw_cycle_temp``,
+    the higher of the everyday set-point and the disinfection temperature) at
+    or below the tank's hard maximum (``dhw_hard_max_temp``, that temperature
+    capped at 70 °C), which no write exceeds. On any other, and where no cycle
+    is active, the everyday set-point at or below the charge limit
+    (``dhw_max_temp``): above it the tank would be held over the user's own
+    limit for good. Holding the everyday set-point through a cycle stopped the
+    pump's own thermostat short of the cycle's target (2026-11-01: 60 °C
+    planned, 55 °C written back within a minute).
+
+    ``grid`` is the set-point entity's (``inputs.SetpointGrid``): the value
+    goes on its step and never above the bound, which is rounded down (everyday
+    58, step 5: 55, not 60; everyday 57, disinfection 50, step 5: a cycle
+    writes 55). With none, no entity is written and the target stands as it is.
+    """
+    target = params.dhw_cycle_temp if cycle else None
+    value, limit = (
+        (params.dhw_setpoint, params.dhw_max_temp) if target is None
+        else (target, params.dhw_hard_max_temp)
+    )
+    if grid is None:
+        return min(float(value), float(limit))
+    return cast(float, grid.bounded(float(value), hi=limit))
+
+
+def dhw_start_below_c(target_c: Any, start_hysteresis_k: Any) -> float | None:
+    """The tank temperature below which the pump starts a charge, °C, or ``None``.
+
+    The target the step holds less the pump's own hot-water start hysteresis
+    (``ThermalState.dhw_start_hysteresis_k``): its tank thermostat starts a
+    charge only below that, whatever mode it is handed. ``None`` with no
+    target, no hysteresis read, or one not above zero: every charge is then
+    taken to start, which is the pump that starts on the mode alone.
+    """
+    target, hysteresis = finite_float(target_c), finite_float(start_hysteresis_k)
+    if target is None or hysteresis is None or hysteresis <= 0.0:
+        return None
+    return target - hysteresis
+
+
 def on_threshold_kw(params: ThermalParameters) -> float:
     """The MEASURED draw above which the compressor counts as running, in kW.
 
@@ -1929,6 +1990,14 @@ class ThermalState:
     # Hours since the tank was last known to be at anti-legionella temperature.
     # None means "unknown" and is treated as not due.
     dhw_hours_since_legionella: float | None = None
+    # The pump's own start hysteresis per duty, K (``dhw_hysteresis_entity``,
+    # ``space_hysteresis_entity``). None: not configured or unread, and every
+    # planned charge and every heating write is taken to start the pump.
+    dhw_start_hysteresis_k: float | None = None
+    space_start_hysteresis_k: float | None = None
+    # The grid the hot-water set-point entity is written on
+    # (``inputs.SetpointGrid``); None with no entity to write.
+    dhw_setpoint_grid: Any = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift
