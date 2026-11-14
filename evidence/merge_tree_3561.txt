@@ -1,0 +1,22 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1019 entries)
+  re-run the gate that owns this file before pushing
+0f5b26ab6acfffce082c420c3ad85ce8735ba7f4
+custom_components/heatpump_optimizer/strings.json
+custom_components/heatpump_optimizer/translations/de.json
+custom_components/heatpump_optimizer/translations/en.json
+custom_components/heatpump_optimizer/translations/sv.json
+
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/translations/de.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/de.json
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/sv.json
+Auto-merging docs/configuration.md
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+rc=1

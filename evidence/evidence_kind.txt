@@ -1,3 +1,0 @@
-Counter({('true', True): 284, ('no-claim', False): 36, ('false', True): 27, ('stale', True): 12, ('unverifiable', True): 4, ('no-claim', True): 4, ('true', False): 2})
-true options.step.init.description [('noref', 'custom_components/heatpump_optimizer/strings.json:options.step.advanced.menu_options')]
-true options.step.advanced.description [('noref', 'custom_components/heatpump_optimizer/strings.json:options.step.advanced.menu_options')]
