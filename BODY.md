@@ -6,7 +6,7 @@ Round 4, body replaced. Cut: no code. Both reads the round-4 verdict named untes
 
 ## Head
 
-34dae66f17d5b511646ff51f3607d0fa6110bbfe
+bc06133f86bdb0ccd62db8fbef2f5c80f32678e8 — origin/main merged into the PR head 09fac908; the one conflict, tools/audit/seat/beat_jobs.py, resolved as a union (loop-cwd from this branch, darwin-selftest from main, in ROWS and RUN); no other file touched by hand. The merge verdict at 34dae66f does not carry; a delta review follows.
 
 ## Mutation proof
 
@@ -68,9 +68,10 @@ All at head 34dae66f17d5, origin/main d1def1ea6307, 2026-11-12T21:39:05Z:
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: FULL` (`tests/closure.py` changes the gate), so the scope is CI's.
 - `git merge-tree --write-tree origin/main HEAD`: rc 0 after the merge (rc 1, `beat_jobs.py`, before it).
 - `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: rc 0, run under venv-ci (`/opt/hpo/venv-ci/bin/python3`).
-- `bash tools/pr/prepr.sh <this body>` at the head: `PRE-PR: 34dae66f17d5 ... rc=0`.
+- `bash tools/pr/prepr.sh <this body>` at the head: `PRE-PR: bc06133f86bd ... rc=0` (hotfix-scoped: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`).
 
 ## Red checks
+- `tests / briefs`: red at ece5ee3b, a merge of origin/main into this branch, on `carry-1067.json` carry controls (`lift_consistency.py` not in the tree) that main itself carried in; not this diff's content, and `brief_lint.mjs` is clean at the current head. Cheaper detector: `brief_lint.mjs`, which `prepr.sh` runs; its standing cost is one local run, so no new detector. Carry: dismissed: inherited from main, clean at head
 - `tests / closures`: red at an earlier head because `seat_gen.py` and `seat_gen_selftest.py` sat on the INERT `tools/audit/seat/` prefix while `tests/entities.py` read them; repaired by excepting both in `tests/closure.py` `INERT_EXCEPT` and recording them into the `tests/entities.py` closure. Cheaper detector: `closure.py orphan_files()` locally, which `prepr.sh` runs; standing cost is the recording itself, so no new detector. Carry: dismissed: repaired in this diff
 - `tests / fast (3.14)`: red on main's ancestry, not on a file this diff touches. Cheaper detector: none for a main-side red; the scoped gate runs only this diff's closure. Carry: dismissed: inherited from main, outside this diff
 
@@ -88,3 +89,7 @@ All at head 34dae66f17d5, origin/main d1def1ea6307, 2026-11-12T21:39:05Z:
 
 - policy-loop: stale: `agreement_py`'s restore list is hand-written; importing `seat_gen` from `merge_train.py` and `roster_queue.py` put two files in its closure, which `agreement_py.py --restore` named. Carry: dismissed: the detector already ran in prepr
 - selftest_wiring: contradiction: a selftest module spelling the self-test flag in text is predicted unwired; avoided by not spelling it (`"--self" "-test"`), as `open_driver_selftest.py` does. Carry: dismissed: existing convention
+
+## Resolution note
+
+Merging origin/main into 09fac908 conflicted only in `tools/audit/seat/beat_jobs.py` (`ROWS` and `RUN`): resolved as a union of `loop-cwd` (this branch) and `darwin-selftest` (main). Re-run: `beat_jobs.py --self-test` 250 checks 0 failed; `r10_open_driver_mutants.py` 24 mutants, 0 survived; `tests/structure.py` passed; policy_lint and brief_lint clean.
