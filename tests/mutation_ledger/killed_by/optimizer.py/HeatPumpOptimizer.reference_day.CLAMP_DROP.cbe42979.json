@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.reference_day CLAMP_DROP cbe42979",
+  "killed_by": "tests/features.py",
+  "old": "        day = min(n_steps, int(round(24.0 / dt)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`day = (n_steps)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
