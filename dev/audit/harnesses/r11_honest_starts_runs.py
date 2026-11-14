@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|descents|grid
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|descents|grid|gradient
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -30,9 +30,21 @@ prints that there is nothing to compare and exits 0.
 and clamped or not: steps under the floor, edges, energy and solve seconds
 (``time.process_time``) per cell. The unpriced duty-cycle cell is the null:
 it must never enter the candidate stage where the tree has one.
+
+``gradient``: what the batched finite-difference gradient simulates
+(``optimizer._batch_fd_gradient``, design note n6). Four goldens that fix
+part of the horizon (a committed mask, hot-water blocks) and one grid cell
+that fixes none, the null. Per solve: gradient calls, the share of their
+variables the bounds fix, the rows the batch objective was handed against
+the rows a batch of every variable holds, CPU seconds, and a sha1 over
+every gradient returned and over the shipped plan. Runs on a tree before
+the change too: there the two row counts are equal on every line, and the
+two digests are what the change must not move. Exits 1 when the null cell
+has a fixed variable or was handed fewer rows than the full batch.
 """
 from __future__ import annotations
 
+import hashlib
 import sys
 import time
 from datetime import datetime, timezone
@@ -176,5 +188,78 @@ def grid() -> int:
     return 1 if bad else 0
 
 
+def _metered(solve):
+    """Run ``solve`` with the batched gradient metered; its plan and the meter."""
+    kept = om._batch_fd_gradient
+    seen = {"calls": 0, "variables": 0, "fixed": 0, "rows": 0, "full": 0}
+    digest = hashlib.sha1()
+
+    def metered(batch_objective, args, x0, f0, eps, bounds):
+        def counted(rows, *a):
+            seen["rows"] += int(np.asarray(rows).shape[0])
+            return batch_objective(rows, *a)
+
+        grad = kept(counted, args, x0, f0, eps, bounds)
+        seen["calls"] += 1
+        seen["variables"] += len(bounds)
+        seen["fixed"] += sum(1 for lo, hi in bounds if not lo < hi)
+        seen["full"] += len(bounds) + (1 if f0 is None else 0)
+        digest.update(np.asarray(grad, float).tobytes())
+        return grad
+
+    om._batch_fd_gradient = metered
+    t = time.process_time()
+    try:
+        plan = solve()
+    finally:
+        om._batch_fd_gradient = kept
+    seen["seconds"] = time.process_time() - t
+    seen["gradients"] = digest.hexdigest()[:12]
+    seen["plan"] = hashlib.sha1(np.asarray(plan, float).tobytes()).hexdigest()[:12]
+    return seen
+
+
+def _null_cell():
+    params = ThermalParameters()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
+    params.min_electrical_power, params.max_electrical_power = 1.1, 5.5
+    params.dhw_enabled, params.house_heat_loss_scale = False, 0.4
+    opt = om.HeatPumpOptimizer(ThermalModel(params), om.OptimizationConfig())
+    outdoor = 8.0 + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
+    result = opt.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
+            dhw_temperature=50.0,
+        ),
+        prices=1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - 30) / 96.0),
+        outdoor_temps=outdoor, start_time=T0,
+    ))
+    return result.power_schedule
+
+
+def gradient() -> int:
+    import golden
+
+    def fixture(name):
+        got = golden.capture(name, golden.SCENARIOS[name])
+        return np.r_[got["power_schedule"], got.get("dhw_power_schedule") or []]
+
+    cells = [(name, lambda name=name: fixture(name))
+             for name in ("cycling_cost", "everything_on", "winter_two_zone_dhw", "valve_storage")]
+    cells.append(("null: unpriced duty-cycle, space only", _null_cell))
+    bad = 0
+    for name, solve in cells:
+        got = _metered(solve)
+        print(f"{name}: gradients {got['calls']}, variables fixed {got['fixed']} of {got['variables']},"
+              f" rows simulated {got['rows']} of {got['full']} in a full batch,"
+              f" cpu_s {got['seconds']:.2f}, gradients sha1 {got['gradients']}, plan sha1 {got['plan']}")
+        if name.startswith("null"):
+            bad += got["fixed"] != 0 or got["rows"] != got["full"]
+    print(f"null cell with a fixed variable or a short batch {bad}")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
-    sys.exit({"fixtures": fixtures, "descents": descents, "grid": grid}[sys.argv[1]]())
+    sys.exit({"fixtures": fixtures, "descents": descents, "grid": grid, "gradient": gradient}[sys.argv[1]]())
