@@ -1,30 +1,57 @@
-Fix review: merge 4980c565b0eed7463e081494bb9ad933b6747252
+Fix review: blocked 5dea8264f2c8712c15725884d00b99eea5b48d24 mutation-vacuous: 10 survivors of tests/features.py in full: supply_hold._passes mode, economy, space boost, dhw boost; _ends_soon both exemption and one-tick window; supply_tick released and stale-plan retry guards; _action_supply economy; supply_switch entity guard
 
-bus-nonce: f86a3249a5396fbd4e28df99c96cc933
-pending-ci: gate
+bus-nonce: 992b692642b107569b827cf06f38045d
 
-## Round
+## Block
 
-Later round over the merge-verdicted head 3d56953499ef23b0d51f2eee7d0cc782d05b572a. Scope is the delta `git diff 3d56953499ef 4980c565b0ee` (fix-review.md step 12). The branch's own commits in it are 1e1dae07d7 (tests/features.py, the #3420 part E rows with the minimum pause engaged) and 6ef4eda767 (dev/programme/delivery/3512.md). Everything else comes from merges of origin/main (#3530, #3534, #3524, #3441, #3505 and the v7.1.13/v7.1.14 stamps). review_carry.py was not needed: the head is not a carry of the reviewed patch, so this is a delta review.
+Round 1 of review, at handoff (no pull request yet). The body's mutation proof says it mutated "every predicate the fix adds or moves". It did not. I mutated the added predicates one at a time (`ev/mutants_head.txt`, driver `mut.py`). Ten mutants on added or moved production lines pass the group's mutation command, which is the two `features_block.py` blocks. They also pass the whole `tests/features.py`, which reported `ALL 5336 FEATURE CHECKS PASSED` under each mutant (`ev/full_mut_<i>.txt`). Here is every survivor:
 
-The one production conflict in the delta is coordinator.py `_write_supply`, resolved in 754a2b022d (merge of main 17ae732a4e, #3530). `git show --remerge-diff` keeps main's `pump_arbiter.write_supply(self, ...)` and this branch's `elif switch_entity and not held.supply_held:` (ev/remerge_754a2b022d_coordinator.diff). The other merges (4980c565b0, d5eb9f80e2, 4ae424099c, 390113cc66, 94421017fe) show no remerge diff under custom_components/, only the ledger drivers on tests/closures.json and tests/structure_budgets.json. That includes the merges that brought #3441 and #3505, up to main 3b9749dac5. Dropped clauses on either side: the branch's own production patch over each merge base (`git diff 43e95474559c...3d56953499ef` against `git diff 3b9749dac5...4980c565b0ee`, custom_components/) has byte-identical added and removed lines. Only the index and hunk-offset lines differ (ev/branch_patch_old_vs_new.diff). So no branch clause was lost, and no main line appears as removed by the branch.
+```
+SURVIVED supply_hold.py: _passes: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'False'              (a fixed/non-plan mode is held like a plan)
+SURVIVED supply_hold.py: _passes: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'inp.mode != MODE_AUTO' (economy passes unheld)
+SURVIVED supply_hold.py: _passes: 'boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now)' -> 'boosts.active(CHANNEL_DHW, now)'   (a live space boost is held up to MIN_PAUSE)
+SURVIVED supply_hold.py: _passes: same -> 'boosts.active(CHANNEL_SPACE, now)'                          (a live DHW boost is held up to MIN_PAUSE)
+SURVIVED supply_hold.py: _ends_soon: 'in ("dhw", "both") and tank_reason' -> '== "dhw" and tank_reason' (a "both" step with a cold tank loses rule three's exemption)
+SURVIVED supply_hold.py: _ends_soon: 'nxt - now >= MIN_RUN' -> 'nxt - now >= MIN_RUN - timedelta(minutes=1)' (rule three's window one tick short: minute 6 is not pinned)
+SURVIVED pump_arbiter.py: supply_tick: 'if on is None and held.supply_held and not inp.entry_released:' -> drop 'and not inp.entry_released' (a released entry retries the action's write)
+SURVIVED pump_arbiter.py: _action_supply: drop 'or inp.plan_stale'                                     (a stale plan retries the action's write)
+SURVIVED pump_arbiter.py: _action_supply: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'inp.mode != MODE_AUTO' (economy drops a held write)
+SURVIVED pump_arbiter.py: supply_switch: 'return inp.hass.states.get(entity) if entity else None' -> 'return inp.hass.states.get(entity)'
+```
 
-Widened to exactly one path: the coordinator.py `_write_supply` write path (the hold sits ahead of main's new `_lead_mode` mode write). The risk is that a pause-held switch-on writes the select mode with no switch write, or writes it again on the step tick that lands. That is behaviour the earlier review never saw, because `write_supply` did not exist at 3d56953499ef. Part E's new rows pin it, and the mutants below show the rows detect it.
+None of the first nine is equivalent. My probe block `probe_block.py` holds twenty checks, all `ok` at the head (`ALL 96 FEATURES BLOCK PASSED`, `ev/probe_head.txt`), and it kills each of the nine (`ev/mutants_probe.txt`). Each one changes control behaviour. Without the boost clauses, a boost the user asks for three minutes into a pause is held for up to MIN_PAUSE. Without the mode clause, a fixed mode is held like a plan. Without the released or stale guard, the step tick switches the pump after unload or on a stale plan.
 
-## Evidence
+The tenth is equivalent only under the stub: `FakeHass.states.get(None)` returns `None`. In real Home Assistant, `StateMachine.get(None)` raises, because it calls `.lower()` on the id. `hold_supply` now reaches `supply_switch` on every non-None write, including installs with no `heat_pump_switch_entity`, so this guard is load-bearing there. Pin it with a no-switch install through `_write_supply`, or say why it cannot be pinned.
 
-- Head reviewed: 4980c565b0eed7463e081494bb9ad933b6747252 (ev/HEAD.txt). `git ls-remote` shows refs/pull/3512/head and the branch at this SHA. The body's `## Head` names it.
-- RESULT features_head: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/features.py` printed `ALL 5466 FEATURE CHECKS PASSED`, rc 0 (ev/features_head.log).
-- RESULT mutant m1 (`_write_supply` bypasses `supply_hold.hold_supply` and writes `supply_write`'s value directly; ev/m1.diff): rc 1. FAIL `a cycle switch-on the minimum pause holds back writes no mode and no switch` [[select_option, turn_on]], FAIL `a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick` (nothing written at any minute), and two older min-run checks (ev/features_m1.log).
-- RESULT mutant m2 (the lead mode written ahead of the hold, then a bare `switch_supply`; ev/m2.diff): rc 1, 4 FAILs, including both new part E rows and `with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back` [[select_option, turn_off]] (ev/features_m2.log). The test commit's three checks are not vacuous.
-- RESULT entities: `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2711 ENTITY CHECKS PASSED`, rc 0 (ev/entities.log). Its `  FAIL a3:*` lines are self-test output over planted states (`sensor.x`, `sensor.not_ours`); the suite passes. The body's `ALL 2709` is quoted for 3d56953499ef. Main's merges added the two checks since then.
-- RESULT structure: `tests/structure.py` printed `STRUCTURE RATCHET PASSED`, with `class_excess_loc=17522` and `max_class_loc=7916` at their budgets (ev/structure.log). Against the merge base 3b9749dac5, `tests/structure_budgets.json` only lowers values (17523 to 17522 and 7918 to 7916), so no budget is raised. The body's `max_class_loc was recorded at 7919` is the 3d56953499ef figure. At this head the merge driver summed both sides' deltas to 7916, and the ratchet confirms that value.
-- Versions and claims: `git diff 3b9749dac5...4980c565b0ee` over VERSION, manifest.json, RELEASE_NOTES.md and both claim files is empty.
-- Merge with main: `git merge-tree --write-tree origin/main 4980c565b0ee` returned exit 0. origin/main is 3b9749dac5, the head's own base (ev/merge_tree.txt).
-- Evidence judged, not widened: since #3530, `async_publish_current_action(..., heat_pump_on=on)` sends the ECL110 legacy payload the cycle's pre-hold `on`. At 3d56953499ef the payload carried the action's equally pre-hold `heat_pump_on`. The payload was not hold-aware before the delta and is not after it. The delta changes which unheld value it carries, not whether it is held, so this does not widen the review.
-- Mutation table, golden drift, closures and the closed-loop harness were not re-run: no production line of the branch moved (the patch identity above), and fix-review.md step 11 has CI's heavy runs cited, not re-run.
-- Owed reds: `merge_train.py owed-reds` printed the 22 required contexts. CI at this head was still pending at every poll (`merge_train.py classify 4980c565b0ee --pr 3512`: `WAIT ... pending: gate red: none`), so no red at this head is read or answered here. Polled 11:18 to 11:47 UTC; last line `WAIT 4980c565b0eed7463e081494bb9ad933b6747252 pending: gate red: none`, hence the pending-ci line. The body's `## Red checks` answers the earlier heads' reds.
+Remedy: add killing checks for all ten, as `probe_block.py` does for nine. Then re-run the group's mutation command and `prepr.sh` step 6d'.
 
 ## Findings
 
-- Carried from the 701a18e26661 verdict, still open: rule three (`supply_hold._ends_soon`) awaits the owner's ruling. The body still states its cost (0.82 kWh/day booked and not delivered on LIGHT winter, and a HOT flat day with no run) and how to remove it. Carry: dismissed: surfaced in the PR body for the owner's code-owner review; no later stage changes
+## Evidence
+
+- Head reviewed: 5dea8264f2c8712c15725884d00b99eea5b48d24 (`ev/HEAD.txt`). The body's `## Head` names the same SHA. Its merge base is 26072317b5, and `git merge-tree --write-tree origin/main <head>` against origin/main fc2a7edcf2 exits 0. The ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`, so there is no conflict (`ev/cheap_checks.txt`).
+- Roles: `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- CI: there is no pull request, no review packet and no CI run, so no check was red or read. `merge_train.py owed-reds` prints coverage-ratchet, fast (3.14), mutation, typing and validate-hacs. Whether the body's `## Red checks` entry for `mutation` is owed is decided once a PR's checks exist.
+- Mutation proof, re-run: 47 single mutants against the group's command (`mut_cmd.sh`: the supply-switch blocks through the ceiling-probe marker, plus the early cut-off block). 37 were killed and the 10 above survived (`ev/mutants_head.txt`). Every survivor was re-run against the whole `tests/features.py` (`ev/full_mut_*.txt`) and survived there too. The head's whole `tests/features.py` passes: `ALL 5336 FEATURE CHECKS PASSED` in 7m23s.
+- Boundaries, one tick either side, from my probes at the head, all `ok`:
+  - MIN_RUN: an OFF to a run 9 min old is held; at 10 and 11 min it passes.
+  - MIN_PAUSE: an ON to a pause 9 min old is held; at 10 and 11 min it passes.
+  - Rule three: an ON at minute 4 or 5 passes; at minute 6 or 14 it is skipped.
+  - The early cut-off's MIN_ON `<` to `<=` mutant is killed, and MIN_OFF doubled is killed.
+  - Changing MIN_RUN or MIN_PAUSE to 9 or 11 is killed.
+- Closed loop: I re-ran `SUPPLY_HOLD=1 early_cutoff_closed_loop.py NULL HOT LIGHT`. At phase 7 (`ev/cl_phase7.txt`), at `CYCLE_PHASE_MIN=0` (`ev/cl_phase0.txt`), and with rule three forced off (`ev/cl_norule3.txt`, my own `no_rule3.py`, since the body's is out of tree), all 36 rows equal the body's tables after whitespace normalisation. The harness sha1 is 39a4867b2afda697d041add836d69a9fd3e37401, as quoted.
+- Flat-price null control: every quantified figure has a flat twin in the tables, and at phase 0 gate on equals gate off on all six pairs. Under the flat profile at phase 7 the gate costs comfort:
+  - HOT flat: pump 1.6 to 0.0 kWh/day, room minimum 20.18 to 19.68.
+  - NULL flat: room minimum 19.69 to 19.68.
+  - LIGHT flat: room minimum 18.97 to 18.90.
+  
+  On HOT flat, with rule three forced off, the pump runs 1.0 kWh and the room minimum is 19.99. The body states this and puts rule three to the owner, so it is not a review block. NULL and HOT winter rows are identical with and without rule three, as claimed.
+- Harness extension: the merge-base harness and the head harness, both run on the head's code with NULL in default mode, give byte-identical output (`ev/harness_identity.txt`: IDENTICAL).
+- Class: the body's rule, `git grep -n 'switch_supply(' -- custom_components`, returns the two call sites and the definition, matching the body's table. The other `turn_on`/`turn_off` writers (space pump `_async_set_pump`, the silent slot, disinfection) target other entities, so the class is closed.
+- VERSION, manifest, release notes, golden fixtures and both claim files are untouched against the merge base. `structure.py`: STRUCTURE RATCHET PASSED.
+- Not re-derived: `entities.py` 2709, the scoped-gate count and mode line, the closure set diff, and `ha_contract.py` under venv-ha. These are cheap checks a re-cut must re-take anyway, and none bears on the block.
+- Instruments: `early_cutoff_closed_loop.py`'s `SUPPLY_HOLD` mode is the fixer's extension of the finder's harness and is committed in this diff. The reviewer's drivers are `mut.py`, `mut_cmd.sh`, `probe_block.py`, `probe_cmd.sh`, `full_mut.py` and `no_rule3.py`, copied into `ev/`.
+
+## Friction
+
+none
