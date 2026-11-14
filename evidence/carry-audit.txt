@@ -1,3 +1,0 @@
-NOTE stale tree: 18850191756612458a8a83d581789e04c25802fb lacks origin/main 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a; roster read at origin/main
-NOTE review 0 item 7cf14ed4: dismissed:decided in tvofi's approving review of this policy PR, which no later stage owns
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
