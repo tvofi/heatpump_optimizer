@@ -204,6 +204,14 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
     return stops if max(stops) > 0 else None
 
 
+def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
+    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    return duty_legs.leg_rule(
+        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
+        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+    )
+
+
 def _stop_availability(
     opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
 ) -> np.ndarray | None:
@@ -224,7 +232,7 @@ def _stop_availability(
         np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
         dhw_plan, opt.model.params.min_electrical_power, p_max,
     )
-    return duty_legs.availability(space, tank, lost, _duty_floor(opt))
+    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
 
 
 def _with_stop_availability(
@@ -284,14 +292,14 @@ def _switch_cost_fn(
     ``None`` when no direction is priced or there is no hot-water plan, and
     :func:`_with_switch_cost` then adds no operand at all.
     """
-    stops, floor = _priced_stops(opt), _duty_floor(opt)
+    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
     p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
 
     def switch_cost(space: np.ndarray, dhw: np.ndarray | None) -> Any:
         if stops is None or dhw is None or not cost > 0:
             return None
         term = cost * duty_legs.switch_weights_batch(
-            np.atleast_2d(space), dhw, stops, p_max, floor)
+            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
         return term if np.ndim(space) == 2 else float(term[0])
 
     return switch_cost
@@ -359,10 +367,10 @@ def _avoid_priced_switches(
         opt.model.params.min_electrical_power, p_max,
     )
     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
-    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
+    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
         return incumbent
     try:
-        ban = duty_legs.switch_ban(shipped, stops, floor)
+        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
         plan, requirement = _dhw_build(
             planner, h, p_max,
             wood_temps=planner._dhw_coil_wood_forecast(h), placement_ban=ban,
