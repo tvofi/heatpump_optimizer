@@ -449,7 +449,7 @@ builds yields a card.
   harness that would read it) and `builder` (the roster group that builds
   it, or `card:` and a card's id). Recording a read is not grading it; the
   evaluator re-runs each.
-- **Writes**: `EVALUATION.json` in the opening round's directory there: `round`,
+- **Writes**: `EVALUATION.json` in the opening round's there: `round`,
   `reads`, `evaluator`, `reviewer`, `review` (the reviewer's `verdict` and
   the `sha` it was given at), `objects` (file to `verdict`, `evidence`, and
   `card` unless `keep`) and `cards` (id to the proposal; the `object` or
