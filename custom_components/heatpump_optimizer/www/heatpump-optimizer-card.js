@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.15";
+const CARD_VERSION = "7.1.16";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -126,6 +126,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Fault alarm",
     "health.input_heat_pump_heat_energy_entity": "Heat pump heat energy meter",
     "health.input_heat_pump_mode_entity": "Heat pump operating mode",
+    "health.input_space_hysteresis_entity": "Heating start hysteresis",
+    "health.input_dhw_hysteresis_entity": "Hot water start hysteresis",
     "health.input_heat_pump_online_entity": "Pump online",
     "health.input_heat_pump_power_entity": "Heat pump power meter",
     "health.input_heat_pump_return_temp_entity": "Return water temperature",
@@ -205,6 +207,9 @@ const STRINGS = {
     "health.learner_wait_colder": "it learns when it is cold enough outside",
     "health.learner_wait_darker": "it learns in the dark hours",
     "health.learner_wait_sunnier": "it learns in sunshine",
+    "health.learner_frozen": "Paused after a boost until {time}.",
+    "health.learner_frozen_any": "Paused while a boost runs.",
+    "health.learner_frozen_other": "Paused until its inputs are usable again.",
     "health.learner_waiting_any": "Waiting for conditions it can learn in.",
     "health.learner_counting": "Learning: {pct} % of the samples it needs.",
     "health.learner_eta": "About {d} days until learned.",
@@ -1027,6 +1032,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Felindikering",
     "health.input_heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen",
     "health.input_heat_pump_mode_entity": "Värmepumpens driftläge",
+    "health.input_space_hysteresis_entity": "Starthysteres uppvärmning",
+    "health.input_dhw_hysteresis_entity": "Starthysteres varmvatten",
     "health.input_heat_pump_online_entity": "Pumpen är uppkopplad",
     "health.input_heat_pump_power_entity": "Effektmätare för värmepumpen",
     "health.input_heat_pump_return_temp_entity": "Returtemperatur",
@@ -1106,6 +1113,9 @@ const STRINGS = {
     "health.learner_wait_colder": "den lär sig när det är tillräckligt kallt ute",
     "health.learner_wait_darker": "den lär sig under mörka timmar",
     "health.learner_wait_sunnier": "den lär sig i solsken",
+    "health.learner_frozen": "Pausad efter en boost till {time}.",
+    "health.learner_frozen_any": "Pausad medan en boost pågår.",
+    "health.learner_frozen_other": "Pausad tills dess indata är användbara igen.",
     "health.learner_waiting_any": "Väntar på förhållanden den kan lära sig i.",
     "health.learner_counting": "Lär sig: {pct} % av mätningarna den behöver.",
     "health.learner_eta": "Ungefär {d} dagar tills den är inlärd.",
@@ -1881,6 +1891,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Störungsmeldung",
     "health.input_heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe",
     "health.input_heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
+    "health.input_space_hysteresis_entity": "Starthysterese Heizen",
+    "health.input_dhw_hysteresis_entity": "Starthysterese Warmwasser",
     "health.input_heat_pump_online_entity": "Pumpe online",
     "health.input_heat_pump_power_entity": "Leistungsmesser der Wärmepumpe",
     "health.input_heat_pump_return_temp_entity": "Rücklauftemperatur",
@@ -1957,6 +1969,9 @@ const STRINGS = {
     "health.learner_wait_colder": "es lernt, wenn es draußen kalt genug ist",
     "health.learner_wait_darker": "es lernt in den dunklen Stunden",
     "health.learner_wait_sunnier": "es lernt bei Sonnenschein",
+    "health.learner_frozen": "Nach einem Boost pausiert bis {time}.",
+    "health.learner_frozen_any": "Pausiert, solange ein Boost läuft.",
+    "health.learner_frozen_other": "Pausiert, bis die Eingaben wieder brauchbar sind.",
     "health.learner_waiting_any": "Wartet auf Bedingungen, unter denen es lernen kann.",
     "health.learner_counting": "Lernt: {pct} % der benötigten Messwerte.",
     "health.learner_eta": "Noch etwa {d} Tage bis zum Abschluss des Lernens.",
@@ -10570,6 +10585,14 @@ function learnerPhase(p) {
   if (!p || typeof p !== "object") return undefined;
   const pct = readNumber(p.progress) === null ? null : Math.round(readNumber(p.progress) * 100);
   if (p.phase === "off") return null;
+  if (p.phase === "frozen") {
+    // Held by a boost, an open window or an unusable reading: only the boost has an end and a line of its own.
+    const until = p.frozen_until ? new Date(p.frozen_until) : null;
+    const boost = p.waiting_for === "boost_space";
+    return { text: !boost ? L("health.learner_frozen_other")
+      : until && !isNaN(until) ? L("health.learner_frozen", { time: fmtExpiry(until) }) : L("health.learner_frozen_any"),
+      share: (pct || 0) / 100 };
+  }
   if (p.phase === "waiting") {
     const why = `health.learner_wait_${p.waiting_for}`;
     return { text: STRINGS.en[why] !== undefined ? L("health.learner_waiting", { why: L(why) })

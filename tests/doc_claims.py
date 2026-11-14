@@ -927,6 +927,93 @@ def check_duty_switch_claims() -> None:
     )
 
 
+def _row(page: str, label: str) -> str:
+    """The table row of ``page`` whose first cell is ``label``, or ``""``."""
+    return next((line for line in DOCS[page].splitlines() if line.startswith(f"| {label} |")), "")
+
+
+def _late_delta_facts() -> dict[str, object]:
+    """What the code decides for each sentence the late user-docs pass corrected.
+
+    Read by driving the deciding symbol, never a comment: the disinfection
+    write on a 5 degC step, the wood tank's one-probe means, the flow-bias
+    bounds, the both-step leg order with only hot water to heating stopping
+    the compressor, and the fixed transfer fee with no fee mode.
+    """
+    from heatpump_optimizer import const, duty_legs, external_heat, flow_lift, grid_fee
+    from heatpump_optimizer.inputs import SetpointGrid
+    from heatpump_optimizer.thermal_model import ThermalParameters, dhw_step_target_c
+
+    cycle = ThermalParameters(dhw_legionella_temp=62.0, dhw_setpoint=50.0, dhw_enabled=True)
+    fee = grid_fee.GridFeeSchedule.from_config(
+        {const.CONF_GRID_FEE_MODE: grid_fee.MODE_NONE, const.CONF_GRID_FEE_FIXED: 0.3})
+    return {
+        "cycle_write": dhw_step_target_c(cycle, True, SetpointGrid("°C", 5.0, 30.0, 75.0)),
+        "top_alone_drop": 60.0 - (external_heat.wood_mean_temperature(60.0, None) or 0.0),
+        "bottom_alone": external_heat.wood_mean_temperature(None, 40.0),
+        "bias_below": flow_lift.FLOW_BIAS_CLAMP_K,
+        "supply_max": flow_lift.FLOW_SUPPLY_MAX_C,
+        "first_leg": duty_legs.leg_rule((1.0, 0.0), (60.0, 60.0))[0],
+        "default_first": duty_legs.leg_rule((0.0, 0.0), (0.0, 0.0))[0],
+        "fixed_fee_no_mode": fee.fixed,
+    }
+
+
+#: The pre-fix sentences, verbatim: each check below must refuse its own.
+_LATE_DELTA_BAD = {
+    "cycle": "on the entity's step rounded up and never above the entity's maximum.",
+    "wood": "| Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy "
+            "estimate; one alone is read conservatively. |",
+    "bias": "**The learned offset is capped at 15 °C**, so on a plant whose supply runs well "
+            "above the modelled curve only part of the extra work is priced.",
+    "split": "hot water first, for the step's hot-water power over its total power, times 15 "
+             "minutes, then heating for the rest.",
+    "fee": "| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every "
+           "hour, on top of any rules. |",
+}
+
+
+def _late_delta_true(facts: dict[str, object]) -> dict[str, object]:
+    """Per corrected sentence, a predicate over a text: does it say what ``facts`` decide?"""
+    drop, below, top = facts["top_alone_drop"], facts["bias_below"], facts["supply_max"]
+    return {
+        "cycle": lambda t: f"a 62 °C cycle writes {facts['cycle_write']:g} °C" in t,
+        "wood": lambda t: f"{drop:g} °C colder" in t and (
+            facts["bottom_alone"] is None and "bottom alone gives no" in t),
+        "bias": lambda t: f"at most {below:g} K below" in t and f"at most to a {top:g} °C supply" in t,
+        "split": lambda t: (facts["first_leg"], facts["default_first"]) == ("space", "dhw") and (
+            "Hot water runs first, unless the switch from hot water to heating" in t
+            and "then heating runs first" in t),
+        "fee": lambda t: facts["fixed_fee_no_mode"] == 0.0 and "Ignored while the grid transfer fee is None" in t,
+    }
+
+
+def check_late_delta_claims() -> None:
+    R.section("Late user-docs delta: corrected sentences match the code that decides them")
+    facts = _late_delta_facts()
+    says = _late_delta_true(facts)
+    config = DOCS["configuration.md"]
+    split = re.search(r"- \*\*A step the plan gives both duties is split\*\*.*?\n- ", config, re.S)
+    texts = {
+        "cycle": next(iter(_sentences_with(config, "62 °C cycle")), ""),
+        "wood": _row("configuration.md", "Wood tank bottom sensor"),
+        "bias": _row("configuration.md", "Price the supply temperature lift (no mixing valve)"),
+        "split": split.group(0) if split else "",
+        "fee": _row("configuration.md", "Fixed transfer fee"),
+    }
+    for key, text in texts.items():
+        R.check(f"docs/configuration.md {key}: the sentence states what the code decides",
+                says[key](text), f"{facts} {text[:300]!r}")
+        R.check(f"the {key} check refuses the pre-fix sentence (null control)",
+                not says[key](_LATE_DELTA_BAD[key]), _LATE_DELTA_BAD[key])
+    setup = DOCS["setup.md"]
+    R.check("docs/setup.md wood tank bottom sensor: one-probe readings as the code decides",
+            says["wood"](setup), repr(_sentences_with(setup, "bottom alone")))
+    R.check("docs/setup.md and docs/configuration.md no longer say both wood probes are needed",
+            "Both are needed" not in setup and "Both are needed" not in config,
+            repr(_sentences_with(setup + config, "Both are needed")))
+
+
 def check_disabled_by_default_without_hot_water() -> None:
     R.section(
         "Disabled-by-default census covers a no-hot-water install too "
@@ -4872,6 +4959,7 @@ def main() -> int:
     check_readme_marketplace()
     check_surface_coverage()
     check_power_feedback_claims()
+    check_late_delta_claims()
     check_stateless()
     return R.close("checks")
 

@@ -612,7 +612,10 @@ wood did not heat, and only where too few of those were metered is it scaled
 by the whole month, upwards only. A month whose booked baseline used under
 half the energy the meter recorded (`METER_FLOOR` in `ledger.py`, over at least
 1 kWh metered) keeps its two columns and states no saving, with the reason in
-the table and on the receipt. That is a low-side check, not a validation of
+the table and on the receipt. So does a month booked, wholly or in part,
+against an earlier baseline than the one in force (`REFERENCE_BASIS` in
+`ledger.py`), badged *old basis*: when an update changes how the baseline is
+booked, every month up to the update stops stating a saving. That is a low-side check, not a validation of
 the figure: a baseline above it can still be wrong.
 
 <picture>
@@ -757,8 +760,8 @@ figure of its own.* The page shows, top to bottom:
     heat than the settings estimated. Without a power meter on the heat pump
     the row says *Not observable without a power meter.* and its bar stays
     empty.
-  - **Solar gain** as a window scale, with "Learning: 6 of about 30 samples"
-    until the learner has the evidence it needs.
+  - **Solar gain** as a window scale, with where its learning stands until
+    the learner has the evidence it needs.
   - **Lower floor**, once learned.
   - **Hot-water tank cooling** in °C per hour, on a plant with a tank.
   - **Heat pump efficiency**: *Normal* with its COP scale and *No sign of
@@ -773,7 +776,15 @@ figure of its own.* The page shows, top to bottom:
     strip of the learned gains per hour that names the peak.
 
   The block is absent while the sensor is unavailable. The counts are
-  samples, not days: the learners count accepted observations.
+  samples, not days: the learners count accepted observations. A learner
+  still gathering evidence (house heat loss, solar gain, lower floor,
+  internal gains) says where it stands: waiting for weather it can learn in,
+  the share of the samples it needs with about how many days are left, or
+  settling on its value. It says it is paused while something holds it: after
+  a space boost, until a time it names (12 hours after a full two-hour boost
+  ends, less after a shorter one), and while Boost mode is selected, for as
+  long as it runs; held by an open window or an input it cannot use, until
+  its inputs are usable again.
 - **Something looks wrong?** **Download diagnostics** saves the integration's
   diagnostics file for a bug report; if the card cannot fetch it, the button
   opens the integration's page in Home Assistant, whose menu has the same
