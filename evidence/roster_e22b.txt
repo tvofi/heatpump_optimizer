@@ -1,0 +1,9 @@
+roster branch origin/handoff/audit-r10-roster tip 3c7578e6889fb621e95420bb586a5b5ab43c58e9
+window_work_minutes: 0
+QUEUE_EPS: 0
+timing-inferred: 0
+declared `needs:`: 0
+CRITPATH-4: 2
+unions timing: 0
+dict ['_comment', 'fork', 'fork_note', 'session', 'repo']
+carry entries 170
