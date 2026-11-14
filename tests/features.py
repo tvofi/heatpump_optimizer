@@ -75560,6 +75560,33 @@ R.check(
     _df_coord3(True) == (1, 1, 1.8, None) and _df_coord3(False) == (0, 0, 2.4, "duty_floor"),
     f"warm {_df_coord3(True)} / empty {_df_coord3(False)}",
 )
+
+
+# The flow-lift fold's floor is exclusive, like the COP fold's (judge_floor):
+# a plan asking exactly the floor is running, a nanowatt under it is not. At
+# both ends of the floor's range -- the window's own low end (warm, the cap)
+# and the configured figure (an empty window) -- with the floor read from
+# draw_range.power_floor_kw itself, so the ask is the very double compared.
+def _df_fl_at(warm, under_kw):
+    coord = _cf_coord(p_min=3.0)
+    if warm:
+        coord._accuracy.draw = _df_led(0.6)
+    floor = _df_floor(coord._accuracy.draw, coord._thermal_params)
+    coord._current_action = {"power": floor - under_kw, "dhw_power": 0.0}
+    coord._current_state.outdoor_temperature = 8.0
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    _fold_flow_lift(coord, _T6)
+    return round(floor, 9), coord._flow_bias.samples
+
+
+_df_fl_edge = [_df_fl_at(w, u) for w in (True, False) for u in (0.0, 1e-9)]
+R.check(
+    "the flow-lift fold takes an ask exactly at the floor and refuses one a "
+    "nanowatt under it, on the window's cap (1.8 kW) and on the configured "
+    "figure (2.4 kW)",
+    _df_fl_edge == [(1.8, 1), (1.8, 0), (2.4, 1), (2.4, 0)],
+    f"{_df_fl_edge}",
+)
 # The span close judges the floor only with no power entity, and with no
 # power entity nothing is metered per cycle: the window it is handed is empty.
 _df_nopower = _cf_coord(p_min=3.0)
@@ -75723,6 +75750,17 @@ R.check(
     _df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(seconds=1), (_DF_BIG, _CF_T0), (_DF_SMALL, _CF_T0))
     == ([_DF_BIG], 0)
     and _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(seconds=1), (_DF_BIG, _CF_T0)) == ([], 1),
+)
+# The wait is inclusive at age zero: a row released on the instant it was
+# stamped (a replayed cycle, a clock that did not advance) has a known age,
+# 0 s, and waits like any other; only a stamp AHEAD of the clock is unknowable.
+R.check(
+    "release: a row stamped at the clock itself is zero seconds old and "
+    "waits; a microsecond ahead of the clock it leaves by base's rule",
+    _df_release(_cf_drm.DrawRange(), _CF_T0, (_DF_BIG, _CF_T0)) == ([], 1)
+    and _df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(microseconds=1), (_DF_BIG, _CF_T0)) == ([_DF_BIG], 0),
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0, (_DF_BIG, _CF_T0))} / "
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(microseconds=1), (_DF_BIG, _CF_T0))}",
 )
 # A hot-water season adds no running sample, so the window never grows: only
 # the mixed ages decide, row by row, and the younger keeps waiting.
