@@ -65,9 +65,11 @@ only after tvofi says they opened the card's tabs on it, never without.
   stays. Owner, verbatim: "make sure the retirement of the standing seats dont
   cause you to run things inline": a seat stays until its job is live and
   verified, and its work never moves into the orchestrator's turns.
-- Context rotation between stages, never mid-task or mid-merge: sizes in
-  `fixer.md` and `standing.md`; the orchestrator at about 500 k tokens, through
-  `state_docs.py` and the resume.
+- Context rotation between stages, never mid-task or mid-merge: fixers,
+  reviewers and standing seats by `fixer.md`, `fix-review.md` and
+  `standing.md`; about 150 k tokens for mechanical and relay seats; about 300 k
+  for designers, pre-studies, root-cause and plan seats; about 500 k for the
+  orchestrator, through `state_docs.py` and the resume.
 - A blocked verdict of a mechanical class (carry-*, body or figure staleness,
   red-check answer, row-format, head-moved, conflict) goes to a script where
   one exists, else to a fresh sonnet or haiku seat on a short brief; a
@@ -160,7 +162,7 @@ Before phase 1, the pickup; each later step is its owner's rule.
 
 1. Pickup: read each line to none, a disposition per line by `tools/audit/seat/roster_edit.py` (scheduled, built before finders, refused with a reason):
    `python3 tools/audit/carry_audit.py roster`
-   `python3 -c "import glob,json;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in ('done','absorbed','refused')]"`
+   `python3 -c "import sys,glob,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in F+('refused',)]"`
 2. Evaluation before the baseline: decision 0018, R11-PRE-OBJECTIVE-FUNCTION, `check_scopes.py`.
 3. Denominator, unreached remainder, added dimensions, D11, D13: R10-DIMENSIONS-FULL-COVERAGE part 2, carried on R11-INTAKE-R10-RESIDUE.
 4. Scope: an owner-filed or outside-filed item folds into the ongoing round
@@ -248,11 +250,6 @@ moves.
   `stress.py` and `structure.py` have `__main__` guards.
   `entities.py`, `features.py`, `rolling.py`, `backtest.py` and
   `optimality.py` run every check at import and `sys.exit`.
-- `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
-  every Node harness reads it; `card.mjs` alone falls back to an unhashed
-  legacy path with a warning, the others fail. Set `HPO_PLANDATA` per harness.
-- `tests/env_drift.py` runs `git worktree add` in the repository it is run
-  from and refuses a ref that resolves to `HEAD`.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
   `tests/run.sh`'s wiring check does the same. A script in a subdirectory is
   invisible to both and to `no-copies`.
@@ -274,7 +271,7 @@ brief cited by it.
 A harness `tools/audit/seat/moved_paths.py` lists with a `[STALE?]` read is a
 record, not re-run at `main`, unless a bug class's `detector` or `barrier`, or
 the latest round's `ISSUES.json` or `JUDGE.json`, cites it: then it is
-repaired, old path first.
+repaired, old path first. A seat re-running a retired one repairs it first.
 
 ## A defect in an instrument is a finding
 
@@ -283,8 +280,9 @@ gate's checks and budgets, the harness contract, the lint lanes, this toolkit)
 is a finding **of your dimension** under the same bar as any other. It goes
 panel, judge, then issue, and **filing waits for the judge**, who re-measures
 with the accused instrument; a verifier who cannot make the accused check fire
-has not refuted it. `CLAUDE.md`'s order still governs: a one-line instrument
-repair is made in place, with no issue.
+has not refuted it, and says which they could not separate. `CLAUDE.md`'s
+order still governs: a one-line instrument repair is made in place, with no
+issue.
 
 ## Rounds 1-3 are at a SHA
 
