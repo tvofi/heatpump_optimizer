@@ -489,6 +489,8 @@ PUSH_RUNS_URL = "repos/{repo}/actions/workflows/{wf}/runs?event=push&branch=main
 JOBS_URL = "repos/{repo}/actions/runs/{run}/jobs?per_page=100"
 PUSH_WINDOW = 16
 TESTS_JOB_PREFIX = "tests / "
+TESTS_CALLER = "tests"      # ci.yml's job calling tests.yml; its jobs read `tests / *`
+PRELUDE_JOB = "prelude"     # ci.yml's root: every unit needs it
 
 
 def _at(stamp: str) -> datetime:
@@ -509,8 +511,9 @@ QUEUE_EPS = 2.0      # seconds: the API's 1 s timestamps round a ready edge
 def run_minutes(r: dict) -> "float | None":
     """One completed push run's tests WORK in minutes: its critical path with
     every runner wait removed. None for a run that is neither the umbrella's
-    nor a pre-umbrella Tests run, not completed, or with a counted job that
-    was cancelled (its work was cut short, so it is unknown, not small).
+    nor a pre-umbrella Tests run, not completed, with a counted job that
+    was cancelled (its work was cut short, so it is unknown, not small), or
+    cancelled at its prelude (cut before any tests work: _cut_at_prelude).
 
     A job's `created_at` is when its last need finished (the API creates a
     job when it becomes ready), so `started_at - created_at` is its runner
@@ -529,6 +532,18 @@ def run_minutes(r: dict) -> "float | None":
     if walked is None:
         return None
     return round(max(j["end"] for j in walked if j["counted"]) / 60, 3)
+
+
+def _cut_at_prelude(jobs: list) -> bool:
+    """A CI run cancelled at its prelude: the prelude concluded cancelled and
+    every tests job -- the `tests` caller and any `tests / *` -- concluded
+    skipped, so its tests did no work and the run is out of the window as a
+    cancelled one is. A tests job not concluded skipped (one that never
+    completed, or failed) keeps the run's refusal (run 43602217369)."""
+    tests = [j for j in jobs if str(j.get("name") or "") == TESTS_CALLER
+             or str(j.get("name") or "").startswith(TESTS_JOB_PREFIX)]
+    return (any(j.get("name") == PRELUDE_JOB and j.get("conclusion") == "cancelled" for j in jobs)
+            and bool(tests) and all(j.get("conclusion") == "skipped" for j in tests))
 
 
 def _walk(r: dict) -> "list[dict] | None":
@@ -556,7 +571,7 @@ def _walk(r: dict) -> "list[dict] | None":
                            "has no conclusion; whether its work prices is unknown "
                            "(fail closed)")
     if any(counted(str(j.get("name") or "")) and j.get("conclusion") == "cancelled"
-           for j in ran):
+           for j in ran) or (kind == "CI" and _cut_at_prelude(jobs)):
         return None
     ran.sort(key=lambda j: (_at(j["created_at"]), _at(j["completed_at"])))
     walked: list[dict] = []
@@ -1118,6 +1133,46 @@ def self_test() -> int:
         except Exception as exc:  # a crash reddens this check by name, never the whole self-test
             msg = f"crashed: {type(exc).__name__}"
         ck(f"a CI push run that {label} refuses (its wall is unknown, never its run's)",
+           "fail closed" in msg, msg or "no refusal")
+    # Run 43602217369 (merge 97a3a921e0) as its job listing recorded it, cut to
+    # the fields read: the prelude cancelled, so the `tests` caller and every
+    # other unit were skipped and no `tests / *` job was ever created.
+    def pj(name, conclusion, created, completed):
+        return {"name": name, "conclusion": conclusion,
+                "created_at": f"2026-11-14T13:{created}Z", "started_at": f"2026-11-14T13:{created}Z",
+                "completed_at": f"2026-11-14T13:{completed}Z"}
+    pre_cut = {"id": 43602217369, "name": "CI code pr=- base=- sha=97a3a921e0",
+               "path": ".github/workflows/ci.yml", "status": "completed",
+               "created_at": "2026-11-14T13:55:56Z", "updated_at": "2026-11-14T13:59:29Z",
+               "jobs": [pj("prelude", "cancelled", "55:56", "59:28"),
+                        pj("refresh", "skipped", "55:56", "55:56"),
+                        pj("cancel-superseded", "skipped", "55:57", "55:56"),
+                        *(pj(n, "skipped", "59:28", "59:28") for n in (
+                            "hassfest", "governance", "codeql", "arch-score",
+                            "budget-raise-gate", "validate", "kernel-points")),
+                        pj("gate", "cancelled", "59:29", "59:28"),
+                        pj("tests", "skipped", "59:29", "59:28"),
+                        pj("pr-contract", "skipped", "59:29", "59:28"),
+                        pj("sweep-self", "cancelled", "59:29", "59:28")]}
+    m, msg = safe(lambda: run_minutes(pre_cut))
+    ck("a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369)",
+       m is None and not msg, msg or f"got {m}")
+
+    def jobs_with(name, **change):
+        return {**pre_cut, "jobs": [dict(j, **change) if j["name"] == name else j for j in pre_cut["jobs"]]}
+    for label, r in (("whose prelude succeeded", jobs_with("prelude", conclusion="success")),
+                     ("whose prelude was cancelled but a tests job never completed",
+                      {**pre_cut, "jobs": pre_cut["jobs"] + [
+                          {"name": "tests / fast (3.14)", "completed_at": None}]}),
+                     ("whose prelude was cancelled but its tests caller failed",
+                      jobs_with("tests", conclusion="failure")),
+                     ("whose prelude was cancelled and whose listing holds no tests job",
+                      {**pre_cut, "jobs": [j for j in pre_cut["jobs"] if j["name"] != "tests"]})):
+        try:
+            msg = refused(lambda r=r: run_minutes(r))
+        except Exception as exc:  # a crash reddens this check by name, never the whole self-test
+            msg = f"crashed: {type(exc).__name__}"
+        ck(f"null: a CI push run with no completed tests job {label} still refuses",
            "fail closed" in msg, msg or "no refusal")
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "runs.json"
