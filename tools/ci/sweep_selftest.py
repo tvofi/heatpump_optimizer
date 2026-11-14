@@ -191,7 +191,9 @@ def world3544(v_id=R2_3544, edit=None, ids=tuple(REC3544)):
     for rid in ids:
         ev, created, attempt, actor, rows = REC3544[rid]
         js = [job(rid * 10 + k, *row) for k, row in enumerate(rows)]
+        kind = "review" if ev == "pull_request_review" else "code"       # ci.yml's run-name (prelude.title)
         runs.append({"id": rid, "event": ev, "created_at": stamp(created), "status": "completed", "run_attempt": attempt,
+                     "display_title": f"CI {kind} pr=7 base=main sha=H",
                      "conclusion": js[0]["conclusion"], "triggering_actor": {"login": actor}, "gate": js[0], "units": js[1:]})
     w = World(runs, v_id)
     if D3544 in w.runs:
@@ -574,7 +576,7 @@ def run_checks():
 
     def old_red(runs):       # a third, older review run whose red gate is beside R2's green one, not covering
         r0 = dict(runs[R1_3544], id=R1_3544 - 1, created_at="2026-11-14T07:30:00Z")
-        r0["gate"] = dict(r0["gate"], id=r0["id"] * 10, started_at="2026-11-14T07:35:00Z", completed_at="2026-11-14T07:36:00Z")
+        r0["gate"] = dict(r0["gate"], id=r0["id"] * 10, started_at="2026-11-14T07:50:00Z", completed_at="2026-11-14T07:51:00Z")
         r0["units"] = []
         runs[r0["id"]] = r0
     w = world3544(ids=(R1_3544, R2_3544), edit=old_red)
@@ -590,6 +592,35 @@ def run_checks():
     rc, out = w.sweep()
     ok("#3544 null: a real red on a stale pin, no dispatch at the head, still takes one dispatch",
        w.posts == [dispatch3544] and "dispatches=1" in out)
+    # Fix review of #3584 at b17c7877, cases B and C: a job of another run that busy() never reads, finishing after a
+    # real red's start, made it a deferral. Deferral means busy() was true at the red gate's start, nothing wider.
+    def late_report_job(runs):     # B: R2, green, covering, a higher id whose gate had started: busy() skips it
+        real_red(runs)
+        runs[R2_3544]["units"].append({"name": "tests / nightly-status", "conclusion": "failure",
+                                       "started_at": "2026-11-14T08:01:50Z", "completed_at": "2026-11-14T08:02:10Z"})
+    w = world3544(ids=(R1_3544, R2_3544), edit=late_report_job)
+    w.sweep()
+    ok("#3584 B: a real red beside the covering run's report-only job finishing after its start still dispatches",
+       w.posts == [dispatch3544])
+    for gate_start in ("2026-11-14T08:01:00Z", "2026-11-14T08:03:00Z"):
+        def newer_run(runs, gs=gate_start):   # C: a newer review run, its budget-raise-gate done, a job after its gate
+            real_red(runs)
+            r3 = {"id": R2_3544 + 1, "event": "pull_request_review", "created_at": "2026-11-14T07:59:00Z",
+                  "status": "completed", "run_attempt": 1, "conclusion": "success", "triggering_actor": {"login": "tvofi"},
+                  "display_title": "CI review pr=7 base=main sha=H",
+                  "gate": {"id": (R2_3544 + 1) * 10, "name": "gate", "status": "completed", "conclusion": "success",
+                           "started_at": gs, "completed_at": "2026-11-14T08:03:30Z"},
+                  "units": [{"name": "prelude", "conclusion": "success", "started_at": "2026-11-14T07:59:10Z",
+                             "completed_at": "2026-11-14T07:59:40Z"},
+                            {"name": "budget-raise-gate / budget-raise-gate", "conclusion": "success",
+                             "started_at": "2026-11-14T07:59:45Z", "completed_at": "2026-11-14T08:00:20Z"},
+                            {"name": "governance / delivery-status-publish", "conclusion": "success",
+                             "started_at": "2026-11-14T08:03:31Z", "completed_at": "2026-11-14T08:04:00Z"}]}
+            runs[r3["id"]] = r3
+        w = world3544(ids=(R1_3544, R2_3544), edit=newer_run)
+        w.sweep()
+        ok(f"#3584 C: a real red beside a newer run (gate started {gate_start[11:19]}) whose job after its gate finished "
+           "after the red's start still dispatches", w.posts == [dispatch3544])
     w = world3544(edit=real_red)
     rc, out = w.sweep()
     ok("#3544: a real red on a stale pin beside a dispatch whose first gate was green dispatches nothing",
