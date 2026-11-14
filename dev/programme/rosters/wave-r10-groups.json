@@ -27620,6 +27620,49 @@
     "note": "non-gating by owner order: never delays closure; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): owner order 2026-11-14 after the issue 3106 linearity measurement: build the supported correction and the collection and experiment improvements, never gating closure; same seam as R10-COP-LEARNER-DRAW-FLOOR, ordered after it"
    },
    "source": "user"
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-SELFTEST-SCOPE-2",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "ci",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, 2026-11-14: main is red again since the merge of pull request 3532 (run 43632211631, governance / instrument-self-tests, the step that refuses a self-test read set the committed table misses: 13 UNDER-SCOPED lines in tools/ci/selftest_closures.json, among them tools/audit/seat/ci_pause.py and tools/audit/seat/ci_priority.py from pull request 3560). Same drift and same repair as R10-HOTFIX-MAIN-SELFTEST-SCOPE (pull request 3589): take the selftest-closures artifact of the newest finished main push run, which is the committed table unioned with that run's measurement, confirm it only adds paths, and commit it as the table. It gates the v10.0.0 stamp. The structural barrier stays with R10-SELFTEST-SCOPE-UNION-GUARD and R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-main-selftest-scope-2",
+    "commit": null,
+    "pr": null,
+    "last_step": "dispatched 2026-11-14",
+    "next_step": "handoff, open PR, review, land before the stamp",
+    "note": null
+   },
+   "source": "programme"
   }
  ]
 }
