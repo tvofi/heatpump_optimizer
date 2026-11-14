@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_held_unreachable CMP_BOUND ebd24b04",
-  "old": "    return bool(power_for_heat_per_cop_kw(p, made / cop) > p.max_electrical_power)",
-  "reason": "Equivalent on every reachable input, and measured (CMP_BOUND, `>` -> `>=`). The two arms differ only where the steady heat's draw equals `max_electrical_power` to the last bit, which is the pump-bound equilibrium itself. At the target the mutant then bisects and lands within 2**-40 of the span below it; inside the bisection either branch keeps a bracket holding that equilibrium. Both move the held zones by under the final bracket, 4e-11 K. The group's block (the 4 kW and 9 kW pumps at -25 C, valved and not, both zonings) reads `ALL 10 FEATURES BLOCK PASSED` under the mutant.",
-  "verdict": "equivalent"
-}
