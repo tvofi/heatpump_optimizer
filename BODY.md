@@ -2,7 +2,7 @@ R10-DISINFECTION-STEP-NOTICE: product ruling (2) of origin/handoff-body/r10-prod
 
 What changed, by owner:
 - `pump_arbiter.py`: `cycle_write` exposes the cycle write for the parameters in force — `thermal_model.dhw_step_target_c` on a cycle step, on the hot-water entity's `inputs.SetpointGrid`, the one statement `_dhw_write` itself reads — with the disinfection temperature on the step down and up (`SetpointGrid.bounded`) and the entity's step (`SetpointGrid.step`); `None` outside control, with no set-point entity state, or with no cycle temperature. The quantisation has one owner (`SetpointGrid`) and the guard never restates it.
-- `legionella.py`: `OffStepNotice`, a small class beside `LegionellaGuard`, in `check_ceiling`'s signature-and-`set_issue` shape, not persistent, raises `dhw_legionella_off_step`. Active when hot water and the cycle are active, the arbiter writes a set-point entity, and that write is under target less `CREDIT_INSTANT_MARGIN_K` (1.0), or less `CREDIT_HOLD_MARGIN_K` (0.5) under `dhw_free_disinfection_enabled`. The margins are the guard's own credit literals named, values unchanged, read by `async_track`, `async_track_cycle` and the notice alike.
+- `legionella.py`: `OffStepNotice`, a small class beside `LegionellaGuard`, in `check_ceiling`'s signature-and-`set_issue` shape, not persistent, raises `dhw_legionella_off_step`. Active when hot water and the cycle are active, the arbiter writes a set-point entity, and that write is under target less `CREDIT_INSTANT_MARGIN_K` (1.0), or less `CREDIT_HOLD_MARGIN_K` (0.5) under `dhw_free_disinfection_enabled`. The margins are the guard's own credit literals named, values unchanged, read by `async_track`, `async_track_cycle` and the notice alike. Only a step gap: the notice also requires the step above the target to be writable (`write.above_c >= target`). Where the entity's own maximum binds (a hot-water set-point capped at 60 under a 65 disinfection temperature), no step is the remedy, so no off-step notice rises and `dhw_legionella_unreachable` keeps its immersion-heater advice, as at base.
 - Which notice shows: the off-step one. Raising it clears `dhw_legionella_unreachable`, and `raise_unreachable_issue` clears instead of raising while it stands, so its immersion-heater advice never shows for a rounding gap.
 - `strings.json`, `translations/en.json`, `de.json`, `sv.json`: the notice text (placeholders `legionella_temp`, `written`, `step`, `below`, `above`); `README.md`'s notice list beside "Hot water is not reaching the disinfection temperature". User-facing text for its own text review: it names the cause, says no hardware is needed, and offers the step above (at least as hot as chosen) before the step below.
 - No change to the arbiter's write, `dhw_hard_max_temp`, the thresholds or `DHW_LEGIONELLA_RETRY_HOURS`.
@@ -14,6 +14,8 @@ Carry 0 of the brief (from #3452, item 9ac8c410) is discharged here: the shortfa
 Carry 1 of the brief (the owner ruling of 2026-11-13 folding this outside-sourced group into round 10) is a scheduling ruling, not a change: this pull request is that fold, and it carries no code of its own.
 
 ## Head
+
+`ebc79b0e86c9924707db0ff41082258b2f38f653` (measured `2026-11-14T03:25Z`, origin/main `c987209cc7a891e0e4066d4ad8dc5cf55357c5ae`): `47dd9c3594` plus the fix review's block repaired (verdict on `probe/revt-r10-disinfection-step-notice-591f84c2`: an entity range cap read as a step gap), in two commits, test first: `9d9fc02b38` (`tests/guard_pins.py` only) and `ce4b63531c` (`legionella.py`, `OffStepNotice.check`'s predicate and its docstring). Then a clean merge of origin/main c987209cc7, which carries PR 3578's weekend-clock fix (no file of this group). The reviewer's delta is `git diff 47dd9c3594 ebc79b0e86 -- custom_components/heatpump_optimizer/legionella.py tests/guard_pins.py`. The rest of that range is main's. At this head a full `tools/pr/prepr.sh` (no skip flags; `MUTANT_CMD` is `tests/guard_pins.py`) printed `PRE-PR: ebc79b0e86... rc=0`, with `diff mutants`: no survivor among the diff's first 40 mutants. Its closures step skipped as the non-Linux seat's default: the scoped recordings are left to CI's `closures` context.
 
 `47dd9c3594bd1a365a274cc6d5949e91b3d1b834` (measured `2026-11-14T02:34Z`, origin/main `8af37bdf444d46715272a8bc2fdda02e1d8376e3`): `a07c37b273744ade8cc2c48d07d4a79c58365196` plus a clean merge of origin/main 8af37bdf44 (`git merge-tree --write-tree` reported no conflict), whose only change under `custom_components/` is the v7.1.16 stamp (`manifest.json`, the card's version string). At this head `tests/guard_pins.py` prints `ALL 79 GUARD PIN CHECKS PASSED`, `tests/block_duty.py` `ALL 153 BLOCK DUTY CHECKS PASSED`, and `tests/structure.py` `class_excess_loc 17502 <= 17502`. `ci_predict.py --only mutation` lists the same 13 sites as at a07c37b273, and `pump_arbiter.py:1224 GUARD_OFF` is `cycle_write`'s guard, which this branch adds. The opener's 7d refusal of that key came from a pre-repair body that still keyed 5c961851a2's lines (1257, 1259); this body names it.
 
@@ -37,7 +39,33 @@ The merged `cycle_write`, at the merged head, `tests/guard_pins.py` (driver `/ro
 - `if grid is None or params.dhw_cycle_temp is None:` to `if False:`: rc=1, `AttributeError: 'NoneType' object has no attribute 'bounded'` in `cycle_write`.
 - `dhw_step_target_c(params, True, grid)` to `grid.bounded(float(params.dhw_cycle_temp))` (the hard maximum dropped): FAIL the four count pins of M1.
 - `grid.step` to `1.0`: FAIL `55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step`.
-- `rounding="down"` dropped from `below_c` (nearest): **survives**, `ALL 79 GUARD PIN CHECKS PASSED`; the same survivor holds at 5c961851a2 (`_bounded_on(..., rounding="down")`), so the merge neither opens nor closes it, and this repair round, scoped to the conflict, adds no pin for it. Not a ledger operator site (`mutation_table.py` draws no keyword-argument mutant), so no ledger row or `## Unpinned sites` line names it; disclosed here for the fix reviewer's step 2 judgement.
+- `rounding="down"` dropped from `below_c` (nearest): survived at a07c37b273 (`ALL 79 GUARD PIN CHECKS PASSED`). Now killed by the `63 on step 5` row below.
+
+The repair at `ebc79b0e86` was checked with `python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd 'env PYTHONPATH=tests/hastub python3 tests/guard_pins.py'` (a git-archive copy; NULL first): `SURVIVED NULL`. The following were KILLED:
+- `range_gate_off` (the `write.above_c >= target` clause dropped, the head's predicate as reviewed)
+- `below_rounding_nearest` (the finding's mutant)
+- `above_rounding_nearest`
+- `margins_swapped`
+- `cycle_true`
+- `memo_off`
+- `unreachable_not_cleared`
+- `unreachable_raised_under_off_step`
+- `hold_edge_strict`
+- `instant_edge_le`
+- `cycle_write_guard_off`
+- `hard_max_dropped`
+- `step_constant` (`grid.step` to `1.0`)
+
+Two SURVIVED, both equivalent on the configuration's domain:
+- `range_gate_cmp_strict` (`above_c >= target` to `above_c > target`). `above_c == target` means the target is on the step, so the write (`dhw_step_target_c`, the cycle temperature at least the target, bounded with `hi` at the hard maximum, itself at least the target) is not under it, and the first clause is already false.
+- `range_gate_above_minus_margin` (`above_c >= target - margin`). `above_c < target` only where the entity's maximum binds, and then `written_c` and `above_c` are both that maximum on the step: `written_c` is the cycle temperature at or above the target, clamped there, so `written_c == above_c`, and the two clauses cannot both hold.
+- Both rest on `dhw_legionella_temp` <= 70 (`config_flow.py`'s slider, 55-70), so the hard maximum is never under the target.
+
+Ledger operator sites of the new predicate, measured by `python3 tests/mutation_table.py --anchor "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check <KIND> 03f00051" --scripts tests/guard_pins.py` (baseline rc=0 failed=0, NULL_COMMENT null control survived):
+- `killed by tests/guard_pins.py: custom_components/heatpump_optimizer/legionella.py:100 CMP_BOUND` (2 sites)
+- `killed by tests/guard_pins.py: custom_components/heatpump_optimizer/legionella.py:100 GUARD_OFF`
+
+Failing test first, repair: `9d9fc02b38` (the pins) on `47dd9c3594`'s production code: `3 of 84 GUARD PIN CHECKS FAILED`, namely `a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule`, `a range-capped write leaves the unreachable notice's hardware advice standing` and `entity-range census: 683 of 1632 rows raise, ...`. At `ce4b63531c` and at `ebc79b0e86`: `ALL 84 GUARD PIN CHECKS PASSED`.
 
 Failing test first: the pins landed in 028dae841d ahead of the fix. The head's `tests/guard_pins.py` run against the base's production code: `8 of 79 GUARD PIN CHECKS FAILED`; at 5c961851a2 and at the merged head `ALL 79 GUARD PIN CHECKS PASSED`.
 
@@ -45,15 +73,32 @@ Failing test first: the pins landed in 028dae841d ahead of the fix. The head's `
 
 In `tests/guard_pins.py`, `_off_step_notice_pins`, every count asserted beside the rows it drove (the census asserts its own preconditions): 0 notices over the 1314 on-step slider rows and over the 169 on-step harness-grid rows, under both rules; 0 at steps 0.1 and 0.5; 0 with the cycle disabled, with hot water disabled, with no set-point entity, and with an arbiter that writes nothing (`pump_duty_mode` observe); the stock 55/60 raises none on any step under either rule. All pass at the merged head.
 
+Entity-range enumeration (fixer.md step 8; `_range_census` in `tests/guard_pins.py`), 1632 rows:
+- entity min 30 or 60
+- entity max 55, 58, 60, 62, 64, 65, 66, 68, 70 or 80 (above the min)
+- step 0.5, 1 or 5
+- disinfection 55-70
+- everyday 55
+- both credit rules
+
+This covers min-capped rows (min 60 over a 55-59 target), max-capped rows (max under the target), rows capped at both ends (min 60, max 62-66), and free rows.
+
+Each row is compared with an oracle the test computes itself (`math.floor`/`math.ceil` on the step, no production import): the notice is owed exactly where `min <= floor_step(target) < target - margin` and `ceil_step(target) <= max`. Every raised row must also read `below < target <= above <= max` and `above - below == step`. So `{below}` and `{above}` can no longer be equal, and `{above}` can no longer sit under the chosen temperature.
+
+Result: `154 of 1632` rows raise and 0 disagree with the oracle. At `47dd9c3594`, 683 raised and 1058 rows disagreed.
+
+The range-cap pin uses the reviewer's probe: entity `{"min":30,"max":60,"step":1}`, everyday 55, disinfection 65. Under both rules no off-step notice rises, and after a short cycle `dhw_legionella_above_setpoint` and `dhw_legionella_unreachable` stand, as at base 50373173d4. Its null is a max-80, step-5 entity at 62: the off-step notice still rises and stands in place of the unreachable notice.
+
 Harness, base against 5c961851a2: `dev/audit/harnesses/r10_disinfection_setpoint.py` (sha1 6ced0aeb71d5fc00734eaf4098e65e5e665891e8, unchanged by this diff) run with `--grid` and in its default mode from the base worktree and the head worktree, compared by `cmp`: both byte-identical. Not re-run at the merged head: the merge changes no file the harness's credit thresholds come from.
 
 ## Figures
 
 Rows: the slider grid is the config flow's integer sliders (everyday 40-65, disinfection 55-70, disinfection above everyday) on a 30-80 °C number of step 0.1, 0.5, 1, 2, 5; the harness grid is `r10_disinfection_setpoint.py`'s `GRID_TEMPS` cycle rows (disinfection above everyday, at most 70) on the same steps. A row raises when `OffStepNotice` raises after one `LegionellaGuard.async_observe` pass.
 - `201 of 1750` slider rows under the instant rule, all at step 5; `436 of 1750` under the hold rule; `0 of 1314` on-step slider rows; `34 / 71 of 330` harness-grid rows; `0 of 169` on-step harness-grid rows: `PYTHONPATH=tests/hastub python3 tests/guard_pins.py` (`ALL 79 GUARD PIN CHECKS PASSED` at the merged head)
-- `PYTHONPATH=tests/hastub python3 tests/block_duty.py`: `ALL 153 BLOCK DUTY CHECKS PASSED` at the merged head
+- `PYTHONPATH=tests/hastub python3 tests/block_duty.py`: `ALL 153 BLOCK DUTY CHECKS PASSED` at `ebc79b0e86`
+- `154 of 1632` entity-range census rows raise, 0 against the oracle; `ALL 84 GUARD PIN CHECKS PASSED` at `ebc79b0e86`
 - `class_excess_loc` 17502 <= 17502: `python3 tests/structure.py`
-- Architecture score: dS +0.0000 NULL: `python3 tools/audit/archscore/score.py --diff 50373173d486faf394b24637c177ab38b691b394`
+- Architecture score: dS +0.0000 NULL: `python3 tools/audit/archscore/score.py --diff origin/main` at `ebc79b0e86` (origin/main c987209cc7)
 
 Not measured: money (no flat-price arm); Fahrenheit entities, where `step` is in the entity's unit.
 
@@ -61,23 +106,22 @@ Not measured: money (no flat-price arm); Fahrenheit entities, where `step` is in
 
 - custom_components/heatpump_optimizer/legionella.py:56 CONST: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
 - custom_components/heatpump_optimizer/legionella.py:57 CONST: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:92 BOOLOP: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:97 BOOLOP: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:97 CMP_BOUND: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:97 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:99 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:95 BOOLOP: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:100 CMP_BOUND*2: pinned by mutation-autofix; killed by `tests/guard_pins.py`, measured at ebc79b0e86 by `mutation_table.py --anchor "...legionella.py:OffStepNotice.check CMP_BOUND 03f00051" --scripts tests/guard_pins.py` (see `## Mutation proof`)
+- custom_components/heatpump_optimizer/legionella.py:100 GUARD_OFF: pinned by mutation-autofix; killed by `tests/guard_pins.py`, measured at ebc79b0e86 by `mutation_table.py --anchor "...legionella.py:OffStepNotice.check GUARD_OFF 03f00051" --scripts tests/guard_pins.py` (see `## Mutation proof`)
 - custom_components/heatpump_optimizer/legionella.py:102 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:277 CMP_BOUND: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:277 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:296 CMP_BOUND: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
-- custom_components/heatpump_optimizer/legionella.py:296 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:105 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:280 CMP_BOUND: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:280 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:299 CMP_BOUND: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
+- custom_components/heatpump_optimizer/legionella.py:299 GUARD_OFF: pinned by mutation-autofix; killed locally by `tests/guard_pins.py` under prepr.sh's MUTANT_CMD
 - custom_components/heatpump_optimizer/pump_arbiter.py:1224 GUARD_OFF: pinned by mutation-autofix; killed by `tests/guard_pins.py`, measured at 47dd9c3594 by `python3 tests/mutation_table.py --anchor "custom_components/heatpump_optimizer/pump_arbiter.py:cycle_write GUARD_OFF ac6f0c0d" --scripts tests/guard_pins.py`: `killed by tests/guard_pins.py: custom_components/heatpump_optimizer/pump_arbiter.py:1224 GUARD_OFF` (baseline rc=0 failed=0, the NULL_COMMENT null control survived)
 
 ## Red checks
 
-`mutation`: the diff adds sites no ledger pin names yet (the named margins, the new notice and `cycle_write`), so the mutation lane is red until mutation-autofix pins them after the push. The cheaper detector is prepr.sh step 6d, which listed every site before the push; its standing cost is one static read. The merge removed the branch's own `_bounded_on` and `_cycle_c` sites (main's `SetpointGrid` owns them), so the earlier body's `pump_arbiter.py` lines at 595-621, 1221 and 1259 are gone from the list, and main's `_bounded` rows stand.
+`tests / mutation`: the diff adds sites no ledger pin names yet (the named margins, the new notice and `cycle_write`), so the mutation lane is red until mutation-autofix pins them after the push. The cheaper detector is prepr.sh step 6d, which listed every site before the push; its standing cost is one static read. The merge removed the branch's own `_bounded_on` and `_cycle_c` sites (main's `SetpointGrid` owns them), so the earlier body's `pump_arbiter.py` lines at 595-621, 1221 and 1259 are gone from the list, and main's `_bounded` rows stand.
 
-`tests / closures` and `tests / fast (3.14)`: prepr's closures step was skipped at this head (PREPR_SKIP_CLOSURES=1) because tests/features.py's charge-start-dip day-type check ("a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked") reads the real clock and fails on Saturdays and Sundays at origin/main (from PR 3444); the fix is PR 3578, owned by R10-HOTFIX-FEATURES-WEEKEND-CLOCK; no cheaper detector in this group; CI's closures job judges the head once the hotfix is on main.
+`tests / closures` and `tests / fast (3.14)`: prepr's closures step was skipped at this head (PREPR_SKIP_CLOSURES=1) because tests/features.py's charge-start-dip day-type check ("a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked") reads the real clock and fails on Saturdays and Sundays at origin/main (from PR 3444); the fix is PR 3578, owned by R10-HOTFIX-FEATURES-WEEKEND-CLOCK; no cheaper detector in this group; CI's closures job judges the head once the hotfix is on main. PR 3578 merged at origin/main c987209cc7, which `ebc79b0e86` contains; the closures step's result at that head is in `## Head`.
 
 ## Forward-carry
 
