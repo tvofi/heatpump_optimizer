@@ -1,0 +1,42 @@
+commit 4edd4f2d24108139bdedf2bce07841e31a4a7e63
+Merge: 8341359750 fafd6a9ff5
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 15:37:08 2026 +0100
+
+    Merge origin/main fafd6a9f into r10-sav-valuation-residue-p3
+    
+    tests/doc_claims.py resolved by hand: union of both sides. Kept main's
+    R10-CONFIG-FLOW-TEXT-VERIFY block (002bdfeafb, flow-text pins re-anchored)
+    whole, and this part's Carry 10 check_combi_dhw_split whole; both are
+    called from main().
+
+diff --git a/tests/doc_claims.py b/tests/doc_claims.py
+remerge CONFLICT (content): Merge conflict in tests/doc_claims.py
+index c478967fff..3bcafbd0aa 100644
+--- a/tests/doc_claims.py
++++ b/tests/doc_claims.py
+@@ -4871,7 +4871,6 @@ def check_stateless() -> None:
+ 
+ 
+ 
+-<<<<<<< 8341359750 (Merge remote-tracking branch 'origin/main' into work-p3)
+ # R10-SAV-VALUATION-RESIDUE Carry 10: on a combi tank the three hot-water
+ # figures publish ``dhw_split`` (entity.dhw_split_attributes). The README rows
+ # naming them and configuration.md's combi option must name that attribute and
+@@ -4914,7 +4913,7 @@ def check_combi_dhw_split() -> None:
+         and "`dhw_split`" in combi and claim in combi,
+         combi[-400:],
+     )
+-=======
++
+ 
+ # R10-CONFIG-FLOW-TEXT-VERIFY: the flow help text that quotes a number the
+ # code owns, and the flow help text on a slot the pump arbiter writes. Each pin
+@@ -5074,7 +5073,6 @@ def check_flow_text_claims() -> None:
+     R.check("null: the pre-fix space set-point unit sentence is found",
+             "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
+             in flow_write_findings(planted, slots))
+->>>>>>> fafd6a9ff5 (Merge pull request #3586 from tvofi/record/autofix)
+ 
+ 
+ def main() -> int:
