@@ -617,9 +617,10 @@ redundant cycle.
 
 Two opt-in refinements:
 
-- **Free disinfection**: if another heat source holds the tank at the
-  disinfection temperature *long enough*, that counts as a completed cycle. It
-  is hold-verified, so a momentary blip at 60 °C credits nothing.
+- **Hold-verified disinfection**: with *Credit disinfection from any heat
+  source* on, a heat source resets the timer only once the tank has held the
+  disinfection temperature for 20 minutes, so a momentary blip at 60 °C credits
+  nothing; with it off, any observation resets it at once, as above.
 - **A price-aware cycle**: inside its interval the cycle may run a day or two
   early (no sooner than a configurable minimum, default 5 days) when a known
   price beats what a typical remaining day is expected to bottom out at. The
@@ -646,7 +647,8 @@ Everything here is inert until configured or until evidence exists:
   Advisor** reports the cheapest setpoint that still covers your learned heavy
   days — read-only, the decision stays yours.
 - **Circulation pumps** (opt-in): a VVC loop pump runs only around your demand
-  frames, with a lead (default 20 minutes) so the loop is hot when they open.
+  frames, with a lead (default 20 minutes) so the loop is hot when they open;
+  with hot water off or no frames it is left on.
   The space circulation pump pauses only in provably idle, warm slots, and is
   forced on whenever heat is planned, the heat curve is being driven, any room
   is near its comfort floor, or it is freezing outside.
@@ -921,7 +923,7 @@ that cannot save them anything should not be able to cost them anything.
 
 A week away is the largest single saving a heating system can offer: a deep
 setback plus hot water held only at its away minimum (20 °C unless you change
-it), except for a legionella cycle timed to complete before you return.
+it), while the legionella cycle keeps its usual interval.
 
 What makes this more than a manual setpoint is the **return time**. Knowing when
 the house must be comfortable again lets the recovery heat be bought in the
