@@ -86118,7 +86118,7 @@ R.check(
         _cp_latch_s, _cp_params(), _CpNS(plan_writes_power=lambda: False, can_duty_cycle=lambda: False),
         _CP_NOW + 47 * 1800.0,
     ) == {**_cp_latch_s.summary(), "effective_min_kw": None, "effective_max_kw": None,
-          "learned_max_kw": 3.0},
+          "learned_max_kw": 3.0, "last_sweep": None},
     f"window {_cp_latch_w.engaged} {_cp_latch_w.planned(1.0, 5.0)} store {_cp_latch_s.engaged}",
 )
 
@@ -86176,7 +86176,7 @@ _cp_junk = _cp_dr.DrawRange.from_dict({
 })
 R.check(
     "an unreadable store row is dropped, not the record; a non-count overdraw reads 0",
-    list(_cp_junk.ceiling) == [(3.0, _CP_NOW)] and _cp_junk.overdraws == 0,
+    list(_cp_junk.ceiling) == [(3.0, _CP_NOW, "probe")] and _cp_junk.overdraws == 0,
     f"{list(_cp_junk.ceiling)} {_cp_junk.overdraws}",
 )
 
@@ -86227,12 +86227,13 @@ _cp_armable = {
 }
 R.check(
     "the kind: the fit while unconverged (150, 199), the probe once converged where "
-    "the install can run one, and a published refusal where it cannot",
+    "the install can run one (its reason, since R10-DRAW-MAP-EVIDENCE part B: the "
+    "store here holds no learned top), and a published refusal where it cannot",
     _cp_armable["unconverged"] == ("fit", "") and _cp_armable["199"] == ("fit", "")
-    and _cp_armable["converged, probe"] == ("ceiling_probe", "")
+    and _cp_armable["converged, probe"] == ("ceiling_probe", "the pump's top is not learned yet")
     and _cp_armable["converged, no probe"][0] is None
     and "house already converged" in _cp_armable["converged, no probe"][1]
-    and _cp_armable["fit clock, probe"] == ("ceiling_probe", ""),
+    and _cp_armable["fit clock, probe"] == ("ceiling_probe", "the pump's top is not learned yet"),
     f"{_cp_armable}",
 )
 R.check(
@@ -86376,7 +86377,9 @@ def _cp_coord(samples=482, **config):
 
 _cp_c_probe = _cp_coord(**_CP_PROBE_CFG)
 _cp_c_none = _cp_coord()
-_cp_c_fit = _cp_coord(samples=150, **_CP_PROBE_CFG)
+# An unconverged install that cannot probe: one that can, with its top
+# unlearned, arms the probe first (R10-DRAW-MAP-EVIDENCE part B, checked there).
+_cp_c_fit = _cp_coord(samples=150)
 R.check(
     "the button's route: a converged flow-metered install arms the probe, a converged "
     "duty-cycling one is refused with the reason, an unconverged one arms the fit",
@@ -86839,7 +86842,8 @@ R.check(
 )
 R.check(
     "the probe's clock is inclusive: exactly 7 days after the newest store sample arms it",
-    _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 7), None) == ("ceiling_probe", ""),
+    _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 7), None)
+    == ("ceiling_probe", "the pump's top is not learned yet"),
 )
 _cp_fit200 = _cp_sid.SystemIdentification(_cp_cfg())
 _cp_fit200.arm(_CP_T0, learner_samples=0)
@@ -86943,7 +86947,8 @@ R.check(
 
 def _cp_begin(house, cop=3.0, kind="fit"):
     s = _cp_sid.SystemIdentification(_cp_cfg())
-    s.arm(_CP_T0, learner_samples=0 if kind == "fit" else 482, probe=_cp_dr.DrawRange())
+    # The fit on an install that cannot probe: one that can arms the probe first.
+    s.arm(_CP_T0, learner_samples=0 if kind == "fit" else 482, probe=None if kind == "fit" else _cp_dr.DrawRange())
     s.phase, s._baseline_temp = _cp_sid.PHASE_SETTLING, 21.0
     s._begin_step_phase(_CP_T0, 2.0, 5.0, cop, house)
     return s.phase == _cp_sid.PHASE_STEP, s._step_power, s.phase
