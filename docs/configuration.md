@@ -123,8 +123,8 @@ in [setup.md](setup.md#quick-setup-recommended).
 | Hot water tank | on | The pump keeps a domestic hot water tank. Off removes hot water from the plan. |
 | Wood furnace | off | A wood furnace heats the same water loop. |
 | Wood buffer tank | off | A second tank the wood furnace heats. |
-| Wood tank top sensor (optional) | none | With the bottom sensor, says how much a fire has left. |
-| Wood tank bottom sensor (optional) | none | See the top sensor. Both are needed for the remaining-energy estimate. |
+| Wood tank top sensor (optional) | none | Says how much a fire has left. Alone it is read as 5 °C colder than it shows, because a top probe over-reads a stratified tank; with the bottom sensor the two are averaged. |
+| Wood tank bottom sensor (optional) | none | See the top sensor. Alone it gives no remaining-energy estimate. |
 | What the house is built from | Timber frame on a concrete slab | As on [Describe your building](#describe-your-building). |
 | Roughly when it was built | 1980–2005 | As above. |
 | Foundation | Slab on ground | As above. |
@@ -622,7 +622,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Floor heating return temperature sensor | the setup value | a temperature sensor | As on Optional sensors. |
 | Lower floor temperature sensor | the setup value | a temperature sensor | As on Optional sensors. Two-zone houses only. |
 | Heat pump on/off switch | the setup value | a `switch` | As on Optional sensors. |
-| Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number (see below), never a recommended optimum. |
+| Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number, or during a space boost or Boost mode on a flow or return set-point the entity's own maximum (see below), never a recommended optimum. |
 | What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature / Return temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. *Return temperature* is a controller that takes the number as its return-water target (see [Pump duty control](#pump-duty-control)). |
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written while the plan is in charge. A space boost or Boost mode writes the set-point entity's own maximum instead (up to 70 °C), capped by a value here other than 55 °C. A stored value at or below the 25 °C gate is read as 55 °C. |
@@ -691,7 +691,7 @@ writes, at every 15-minute plan step:
 |---|---|---|---|
 | Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the space gate (below) |
 | Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the heating value |
-| Both | split: *DHW (Hot Water)* for the step's hot-water share of its 15 minutes, then *Heating* (see below) | as in those two rows | as in those two rows |
+| Both | split: *DHW (Hot Water)* for the step's hot-water share of its 15 minutes and *Heating* for the rest, hot water first unless a switch learned to stop the compressor orders them otherwise (see below) | as in those two rows | as in those two rows |
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
@@ -842,10 +842,15 @@ writes, at every 15-minute plan step:
   (*HP DHW normal setpoint*, register 404) to its minimum (never below 30 °C)
   on space-only steps.
 - **A step the plan gives both duties is split**, so the optimizer rather
-  than the pump's two thermostats decides which runs: hot water first, for
-  the step's hot-water power over its total power, times 15 minutes, then
-  heating for the rest. A share under 5 minutes goes to the other duty for
-  the whole step. On a pump with no single-duty mode, each part is *Heating
+  than the pump's two thermostats decides which runs: hot water for the
+  step's hot-water power over its total power, times 15 minutes, and heating
+  for the rest. A share under 5 minutes goes to the other duty for the whole
+  step. Hot water runs first, unless the switch from hot water to heating has
+  been learned to stop the compressor (see below) and the switch the other
+  way has not: then heating runs first. Where the switch into the second duty
+  has been learned to stop it and the next step serves that duty too, a second share shorter than 5 minutes plus that
+  switch's median measured off time is not split off: the first duty keeps
+  the whole step and the other follows in the next one. On a pump with no single-duty mode, each part is *Heating
   + DHW* with the other duty's set-point lowered to its gate. A boost or a
   disinfection cycle keeps *Heating + DHW* for the whole step.
 - **A switch that stops the compressor is priced.** Some pumps stop the
@@ -922,7 +927,8 @@ writes, at every 15-minute plan step:
   runs the anti-legionella cycle, or the integration holds the pump's
   disinfection switch on, the hot water set-point written is the disinfection
   temperature, or the everyday set-point where that is higher, on the
-  entity's step rounded up and never above the entity's maximum. Because the
+  entity's step at or below that temperature, never above 70 °C or the
+  entity's maximum: on a 5 °C step a 62 °C cycle writes 60 °C. Because the
   optimizer writes the cycle's temperature itself, the "set-point below the
   disinfection temperature" notice does not fire on any hot water set-point
   the optimizer wrote; it still fires on a value set by anybody else, and,
@@ -975,7 +981,7 @@ catalog below keys off.
 | Valve target sensor | none | a temperature sensor | Reads the valve's target instead of using the fixed value above. |
 | Valve control entity | none | `number`, `input_number` or `climate` | Required for *Commanded by the optimizer*. Written after each planning cycle, and only when the answer changes. |
 | What the control entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. *Indoor temperature* — a room set-point — is what has always been written, and the safe default. *Flow temperature* is for a valve or heat-pump controller whose set-point is a water temperature, derived from the same flow curve the model already uses for a dumb valve. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
-| Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plus the offset learned from the *Supply (flow) water temperature* sensor, if you set one. With that sensor the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading — **so while that sensor is dead the watch does not judge space heating at all**. Readings judged this way keep their own baseline, so switching the option or the sensor on or off starts that baseline afresh rather than comparing unlike numbers. **The learned offset is capped at 15 °C**, so on a plant whose supply runs well above the modelled curve only part of the extra work is priced. The lift is only charged above a 35 °C supply. Refused together with a throttling valve, whose tank temperature already sets the price. |
+| Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plus the offset learned from the *Supply (flow) water temperature* sensor, if you set one. With that sensor the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading — **so while that sensor is dead the watch does not judge space heating at all**. Readings judged this way keep their own baseline, so switching the option or the sensor on or off starts that baseline afresh rather than comparing unlike numbers. **The learned offset lowers the supply at most 15 K below the modelled curve and raises it at most to a 75 °C supply**; a reading above 75 °C is not learned from. The lift is only charged above a 35 °C supply. Refused together with a throttling valve, whose tank temperature already sets the price. |
 | Buffer tank size | 35 L | 10–1500, 5 steps | The tank between pump and circuits. It is only planned around as a store when a throttling valve exists and the volume is at least 100 L; below that it holds less than one optimizer step of heat. |
 | Maximum buffer tank temperature | 70 °C | 40–90 | A hard ceiling. The tank is never charged above this, however cheap electricity is. |
 | Hot water is made from the buffer tank (combi tank) | off | on/off | For one tank of heating water that serves both heating and hot water with no separate hot water tank: a multifunction or hygiene store with an internal coil, a tank-in-tank, or a fresh-water station on the buffer. The buffer and the hot water are then planned as **one** store, so its heat is counted once. Refused unless the buffer is a store (a throttling valve and at least 100 L), hot water is on and no wood coil heats the hot water. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K, assuming a 20 °C room. Example: 111 W over 504 L is 2.47 W/K, about 0.106 °C/h at the 25 K reference. One probe is read as the whole tank's mean, so point the buffer sensor at the middle well (with a hot water sensor only, that one is used). A tall, stratified store without a middle well has no single probe that reads its mean, and a top probe alone reads high, so the plan believes the tank holds more heat than it does. Make the buffer temperature entity a template sensor averaging a top and a bottom probe instead. That average is an estimate of the mean, not the mean itself: the temperature between the two probes does not change in a straight line. As an example, not a guarantee: on one user's 600 L store the top and bottom probes differed by a median 24.8 K, and the top probe alone overstated the stored heat by about 9 kWh. Two tanks in one shell, a buffer section under a hot water section, are not a combi tank: set them up as two tanks. While it is on, the hot water energy sensor counts the heat pump's hot-water-mode charge of the shared tank, which includes heat the heating later draws from it: it is one store, so no meter can split it by use. |
@@ -985,7 +991,7 @@ catalog below keys off.
 | Run the legionella cycle anyway | off | on/off | With 3 L or less of drinking water in the tank there is none standing to disinfect, so the cycle defaults off there; this forces it on. Drinking-water rules still expect delivery at 60 °C (large systems) or 50 °C (small). |
 | Temperature after the wood/heat-pump mixing valve | none | a sensor | With the tank sensors, this says how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing. |
 | Wood tank top sensor | none | a sensor | **The switch for the two-tank model.** Together with the bottom sensor it says how much a fire has left: a hot top over a cold bottom means the charge is nearly spent. |
-| Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy estimate; one alone is read conservatively. |
+| Wood tank bottom sensor | none | a sensor | With the top sensor the two are averaged for the remaining-energy estimate; the top alone is read as 5 °C colder than it shows, and the bottom alone gives no estimate. |
 | Wood tank volume | 500 L | 50–3000, 50 steps | Bounds how much free heat a fire can still deliver. The Quick setup question **Wood buffer tank** answers this with one toggle. |
 | Hot water refilled through the wood tank | off | on/off | The hot water tank's cold inlet passes through a coil in the wood tank, so refill water arrives preheated. Only takes effect when the wood tank is modelled as its own store. |
 | Wood furnace | off, unless a wood tank, coil or flue sensor is already set | on/off | Off hides the wood probes, detection and the four fuel-price fields; stored values are kept. A lone 500 L tank volume does not turn this on. |
@@ -1174,7 +1180,7 @@ reads SEK, that is a label, not a constraint.
 |---|---|---|---|
 | Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules and the peak-tariff fields. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
 | Grid transfer fee | None | None / Time-of-use rules / Live sensor | The fee your grid company adds per kWh. Spot prices do not include it, so with it configured the plan finally sees the whole marginal price. |
-| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of any rules. |
+| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of the rules or the live sensor. Ignored while the grid transfer fee is None. |
 | Time-of-use fee rules | empty | one rule per line | For example `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`. Month, weekday and time parts are each optional; overlapping rules add together. A rate must be zero or above and at most 10 per kWh — a negative rate or one that size is refused when the page is saved, since the first is a sign slip and the second is öre typed where whole units were meant. |
 | Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
 | Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Cost Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |

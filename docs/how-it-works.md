@@ -819,8 +819,9 @@ constraint would make it a mixed-integer program, not affordable inside a Home
 Assistant update.
 
 It defaults to **zero**, because the measurement came first: realistic plans
-make two to four starts a day, so most installs have nothing to fix, and the
-planned start count is published so the decision can be made from evidence. The
+make two to four starts a day, so most installs have nothing to fix. The plan's
+own projected start count is not published on any entity; the decision is made
+from the realised count. The
 **Compressor Starts** sensor counts realised starts from the power meter
 (debounced, and blind to the immersion element on purpose). Give it a
 replacement cost and a rated start count and every start books its share of the

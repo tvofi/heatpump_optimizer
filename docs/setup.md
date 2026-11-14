@@ -166,8 +166,9 @@ gate — the volume alone changes nothing the model reads:
 - **Wood tank top sensor (optional)** — with the bottom sensor, this says how
   much a fire has left. A hot top over a cold bottom means the charge is
   nearly spent.
-- **Wood tank bottom sensor (optional)** — see the top sensor. Both are needed
-  for the remaining-energy estimate; one alone is read conservatively.
+- **Wood tank bottom sensor (optional)** — see the top sensor. With both, the
+  two are averaged for the remaining-energy estimate; the top alone is read as
+  5 °C colder than it shows, and the bottom alone gives no estimate.
 
 ### The building questionnaire
 
