@@ -1,32 +1,12 @@
-## merge-tree
-b797a2d8a304f6b4f19ac1b6c5061192660eeac5
-rc=0
-origin/main=e23124ff6e45bac1d48b4a775dad555a37965355
-## version files touched?
-(empty=untouched)
-## claim files
-(empty=untouched)
-## null control
--- e23124ff6e45bac1d48b4a775dad555a37965355
--- 6295f868a4314316f5e12c72fa2d16ead4895d35
-6295f868a4314316f5e12c72fa2d16ead4895d35:README.md:1
-6295f868a4314316f5e12c72fa2d16ead4895d35:docs/configuration.md:3
-## doc_claims
-  ok   red fixture: a history-sense "used to" is a finding
-  ok   red fixture: an exemption that matches no fragment is a finding
-
-ALL 348 checks PASSED
-rc=0
-=== doc claims vs code facts (#1413) ===
-0 user-doc marker(s), 0 due
-## D6 claims rerun
-rc=0
-"result": "92 links, broken=[], of which removed-by-the-export=[]"
-## scope
+head 3fa750ea3861bf623ea3ff58e8e514321c511b52 reviewed-head 6295f868a4314316f5e12c72fa2d16ead4895d35
+merge-tree origin/main(50373173d4) HEAD: rc=0 tree a9a4c44e2e
+role contract diff mb...origin/main: empty
+null control at e23124ff6e:
+null control at 3fa750ea38:
+3fa750ea38:README.md:1
+3fa750ea38:docs/configuration.md:3
+3fa750ea38:docs/how-it-works.md:1
   MODE: SCOPED -- 6 script(s) run, 27 scoped out.
-## owed-reds
-tests / coverage-ratchet
-tests / fast (3.14)
-tests / mutation
-tests / typing
-validate / validate-hacs
+STRUCTURE RATCHET PASSED
+0 user-doc marker(s), 0 due
+mutants (each restored): M1 docs reverted to 6295f868a4 -> 3 of 356 FAILED; M2 lost_share index 1 -> 2 of 356 FAILED (both pages, 'heating to hot water'); M3 _ends_soon returns not tank_reason -> 1 of 356 FAILED [space=False dhw=False]; restored -> ALL 356 PASSED
