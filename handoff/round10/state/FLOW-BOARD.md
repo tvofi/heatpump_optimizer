@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-14T10:08:46+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-14T11:11:40+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 24 / 24.0 |
-| fly-ins closed | 0 | 6 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 22 / 2 / 2 / 6 |
-| first-pass fix-review yield | 4/5 (0.80) | 19/38 (0.50) |
-| blocked-class mix | class-open:1 | body:1, ci-red:4, class-open:5, comment-evidence:1, conflict:1, doc-claim-false:1, equivalence-refuted:1, evidence-comment:1, harness:1, introduced-red:4, main-conflict:1, merge-conflict:1, mutant-committed:1, mutation-vacuous:7, red-unanswered:1, reference-basis-unbumped:1, root-cause-unrecorded:1, self-test-red:1, sufficiency:1, under-scoped:1 |
-| lead time per size (h, n/p50/max) | M n=1 p50=27.23 max=27.23 | L n=3 p50=28.75 max=55.38; M n=9 p50=29.24 max=53.48; S n=10 p50=3.99 max=17.91 |
+| roster groups closed vs takt | 3 / 1.0 | 23 / 24.0 |
+| fly-ins closed | 0 | 5 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 18 / 2 / 2 / 5 |
+| first-pass fix-review yield | 0/0 (-) | 19/37 (0.51) |
+| blocked-class mix | carry-missing:1, class-open:2, darwin-red:1, doc-claim-false:2, hold-unrefreshed:1, mutation-survivor:1, mutation-vacuous:8 | body:1, carry-missing:1, ci-red:4, class-open:7, comment-evidence:1, conflict:1, darwin-red:1, doc-claim-false:3, equivalence-refuted:1, evidence-comment:1, harness:1, hold-unrefreshed:1, introduced-red:4, main-conflict:1, merge-conflict:1, mutant-committed:1, mutation-survivor:1, mutation-vacuous:14, red-unanswered:1, reference-basis-unbumped:1, root-cause-unrecorded:1, self-test-red:1, sufficiency:1, under-scoped:1 |
+| lead time per size (h, n/p50/max) | none | L n=3 p50=28.75 max=55.38; M n=7 p50=27.23 max=50.97; S n=8 p50=3.99 max=9.39 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 51 | 4 | 0 |
+| 0 | 49 | 4 | 0 |
 
 ## Rules
 
