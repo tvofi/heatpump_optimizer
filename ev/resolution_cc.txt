@@ -1,0 +1,85 @@
+commit f46642080b4665ce187b7b9f257f43f0c858b651
+Merge: 3324b6d910 6858b4abc1
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 18:11:14 2026 +0100
+
+    Merge remote-tracking branch 'origin/main' into fix/r10-advisor-steady-start
+    
+    optimizer.py resolved by hand as a union: the branch's _held_reference and
+    main's _held_bisected, _held_at_valve_top and _pump_unreachable were added
+    at the same point after _thermostat_held_state; all four are kept verbatim.
+
+diff --cc custom_components/heatpump_optimizer/optimizer.py
+index 2886785cd8,7ac339684d..211eda4f40
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@@ -868,20 -865,55 +865,69 @@@ def _thermostat_held_state
+      return held
+  
+  
+ +def _held_reference(
+ +    model: ThermalModel, state: ThermalState, weather: WeatherSeries,
+ +    comfort_targets: np.ndarray | None, default_target: float,
+ +) -> ThermalState:
+ +    """``state`` as a thermostat holding the solve's own schedule would have it, wood side as measured.
+ +
+ +    The one reference both the settlement's start gap and a held-start solve
+ +    (``SolveInputs.held_start``, #2257) use, so that solve's gap is zero.
+ +    """
+ +    return _sharing_wood_side(_thermostat_held_state(
+ +        model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+ +    ), state)
+ +
+ +
++ def _held_bisected(
++     held_at: Callable[[float], ThermalState], unreachable: Callable[[ThermalState], bool],
++     lo: float, hi: float,
++ ) -> ThermalState:
++     """The zones level at the highest temperature in ``[lo, hi]`` the step can
++     hold: unreachable needs heat, so the outdoor ``lo`` is below the target ``hi``."""
++     for _ in range(_HELD_BISECTIONS):
++         mid = 0.5 * (lo + hi)
++         lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
++     return held_at(lo)
++ 
++ 
++ def _held_at_valve_top(
++     model: ThermalModel, held: ThermalState, need_kw: float,
++     weather0: tuple[float, float, float, float], humidity: float | None,
++ ) -> ThermalState | None:
++     """A two-zone house behind a valve whose curve cannot deliver ``need_kw``,
++     the held zones' steady need at the target:
++     the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
++     tank ``held``'s, already at the curve's top -- or ``None`` where the pump cannot
++     make it, or on any other house, which the level-zone bisection holds
++     (Carry 9: the floors held level sat below this ceiling, and the
++     reference's day warmed to it)."""
++     p = model.params
++     outdoor, wind, rain, solar = weather0
++     if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)
++             and need_kw > valve_top_draw(model, held, outdoor, wind, rain)):
++         return None
++     top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
++     if top is None:
++         return None
++     # A steady draw: the tank at its goal, charged over no finite step.
++     made = valve_charge_demand(
++         model, top, valve_top_draw(model, top, outdoor, wind, rain), outdoor, wind, rain, math.inf)
++     return None if _pump_unreachable(model, top, made, outdoor, humidity) else top
++ 
++ 
++ def _pump_unreachable(
++     model: ThermalModel, held: ThermalState, made_kw: float, outdoor: float,
++     humidity: float | None,
++ ) -> bool:
++     """Whether making ``made_kw`` of heat at the step's own COP
++     (``_reference_cop``, defrost and part-load included) needs a draw past
++     ``max_electrical_power``, where the step clips."""
++     cop = _reference_cop(model, held, outdoor, humidity)
++     p = model.params
++     return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
++ 
++ 
+  def _held_unreachable(
+      model: ThermalModel, held: ThermalState, need_kw: float,
+      weather0: tuple[float, float, float, float], humidity: float | None,

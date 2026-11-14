@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 211eda4f40..f40c056987 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -4206,7 +4206,12 @@ class HeatPumpOptimizer:
+         )
+         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
+         if inputs.held_start:
+-            initial_state = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
++            _vt = globals()["_held_at_valve_top"]
++            globals()["_held_at_valve_top"] = lambda *a, **k: None
++            try:
++                initial_state = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
++            finally:
++                globals()["_held_at_valve_top"] = _vt
+             self._stash_buffer_seed(initial_state)
+ 
+         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
