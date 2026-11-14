@@ -27707,6 +27707,50 @@
     "note": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R10-HOTFIX-REFERENCE-BASIS",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "production",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/ledger.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, 2026-11-14, production, gates the v10.0.0 stamp: pull request 3587 (merge 931970141c) changed the savings reference the ledger books on a two-zone house behind a manual valve (measured: first-step reference power up 1.12 to 1.15 percent at +5, 0, -5 and -15 C without sun; unchanged with 300 W/m2 sun; three control houses bit-identical), and the basis stamp was not bumped although custom_components/heatpump_optimizer/ledger.py says to bump it when the booked reference changes and docs/dashboard-card.md promises that a month booked against an older baseline stops stating a saving. v7.1.17 shipped basis 2, so a month first booked on v7.1.17 would mix two references. Repair: bump the basis by one with its comment extended, move the tests/features.py basis pins and add a check that a stored stamp of the previous value reads as old basis, re-pin the stale mutation pin, and give the release notes their line. Evidence: the read-only verification of 2026-11-14 (its probe ran the baseline power function at both sides of the merge).",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-reference-basis",
+    "commit": null,
+    "pr": null,
+    "last_step": "dispatched 2026-11-14",
+    "next_step": "handoff, open PR, review, land before the stamp",
+    "note": "overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES): savings reference changed by pull request 3587 without a basis bump; verified defect; gates the v10.0.0 stamp"
+   },
+   "source": "programme"
   }
  ]
 }
