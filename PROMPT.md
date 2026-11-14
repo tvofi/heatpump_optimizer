@@ -1,60 +1,152 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-outside-contributor-cycle-p2, at head 402b0e76364e5befd6480946add4930cb410928e. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-outside-contributor-cycle-p2, at head 396b8caf9e658f0a2449a6738a2d2863eb3b74c4. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 402b0e76364e5befd6480946add4930cb410928e for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 396b8caf9e658f0a2449a6738a2d2863eb3b74c4 for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-outside-contributor-cycle-p2 before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-outside-contributor-cycle-p2, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r10-outside-contributor-cycle-p2, even with no code. Then push the code to refs/heads/handoff/r10-outside-contributor-cycle-p2, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-outside-contributor-cycle-p2 <body.md>`, which pushes refs/heads/handoff-body/r10-outside-contributor-cycle-p2; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-outside-contributor-cycle-p2`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r10-outside-contributor-cycle-p2 and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r10-outside-contributor-cycle-p2 and refs/heads/handoff-wip/r10-outside-contributor-cycle-p2-body. Never work around a hook or a refusal; report it in your result instead.
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-REPAIR of the handoff r10-outside-contributor-cycle-p2, blocked at 0d2dfd8b850441a1db42f4c88042dc5b27e88917 self-test-red by the fix review (probe/revt-r10-outside-contributor-cycle-p2-763c689d). No pull request yet. resume=handoff/r10-outside-contributor-cycle-p2@0d2dfd8b850441a1db42f4c88042dc5b27e88917 : merge origin/main (it conflicts in tools/ci/selftest_closures.json: re-record the table), repair on top; do not re-cut.
+Repair fixer for PR #3521 (R10-OUTSIDE-CONTRIBUTOR-CYCLE part 2, branch fix/r10-outside-contributor-cycle-p2, head 396b8caf9e658f0a2449a6738a2d2863eb3b74c4). The PR is CONFLICTING with main and part 1 (#3514) has now settled at head 99c3c1625923adaae044b8f1940344196a9b30af (handoff e4b68c37d939 merged into it). Resume from the PR head, hand off at first clean prepr, merge origin/main only on a merge-tree conflict, keep the body's every section, one of each heading.
 
-Owed: merge main with the closures table re-recorded; the four red self-test steps green at the head (outside-contract, app-verdict-poster, review-carry, obligations-ledger); pin the str(ln).startswith("OUTSIDE: ") site with a row that fails when the conjunct is deleted.
+Red checks to repair: tests / closures (INERT READS under-approximated: tests/doc_claims.py and tests/harness_headers.py read docs/CONTRIBUTING.md, so it must be classified into their closures, not INERT), instrument-self-tests, pr-contract, budget-raise-gate; the conflict with main and with part 1's settled head (merge part 1's live PR head into this branch).
 
-BLOCKED VERDICT, verbatim:
-
-Fix review: blocked 0d2dfd8b850441a1db42f4c88042dc5b27e88917 self-test-red: four instrument-self-tests steps are red at this head and green at the merge base (outside-contract 1 failed, app-verdict-poster 6, review-carry 4, obligations-ledger 1), all four selected for this diff
-
-bus-nonce: 763c689d2295a9d7014d1c99040208d6
-
-Round 2 of this part (round 1 blocked 40abc1bd0a at nonce 00b0ea32), a handoff review: no pull request exists, so there is no review packet and no CI run at this head to read or wait on. Measured from detached worktrees at the head `0d2dfd8b850441a1db42f4c88042dc5b27e88917` and the merge base `19baca76181cb019d9b1cfd93ee6bc0a08e20047`. The head was still the tip of `handoff/r10-outside-contributor-cycle-p2` when this was written. Because the head now carries part 1 by merge, the review is of the whole diff against main, not the repair delta alone.
-
-## Block
-
-1. **Four `instrument-self-tests` steps are red at the head and not at the merge base** (fix-review.md step 11). `selftest_scope.py select` over this diff prints `MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml', 'tools/ci/selftest_closures.json'])`, so each runs on the pull request (`ev/selftest_select.txt`).
-   - `outside-contract`, `python3 -I tools/pr/outside.py --self-test`: head `outside self-test: 208 checks, 1 failed`; part 1's own head e216e6c09878 `208 checks, 0 failed`. The failing check: `FAIL no program under tools/ or .github/ but this one writes the outside-read line (got ['tools/audit/seat/merge_train.py'], want [])`. The cause is this part's: merge_train.py line 6038, a self-test fixture holding the literal `"Outside read: " + H0`, added by this part's commit 23b943c987. The file does not exist at the merge base, so the step is new and red. The body's Figures run the three seat self-tests and never part 1's, which the merge put under this branch.
-   - `app-verdict-poster`, `bash tools/pr/app_comment.sh --self-test`: base `67 checks, 0 failed`, head `67 checks, 6 failed`.
-   - `review-carry`, `python3 -I tools/audit/seat/review_carry.py --self-test`: base `29 checks, 0 failed`, head `29 checks, 4 failed`.
-   - `obligations-ledger`, `python3 -I tools/audit/seat/ledger.py --self-test`: base `102 checks, 0 failed`, head `102 checks, 1 failed`.
-
-   The last three are the reds part 1's own review blocked on at 8e6e94427f (nonce 3d4aac33): `app_approve.sh --carry` now lists origin's branch heads, and those fixtures carry heads that are no branch tip of origin. This head merges part 1 at e216e6c09878, repairs the same defect for merge_train's two cases (body item 5) and leaves the other three callers red. The body's merge order is "part 1 and this part together", so this head is the pull request that would open red on them. The enumeration rule is part 1's reviewer's: every caller of `app_approve.sh --carry` whose self-test runs the real script.
-2. **`outside_contract`'s `str(ln).startswith("OUTSIDE: ")` is unpinned** (my mutant t15, `ev/mutants_all.txt`): with that conjunct deleted the train prints `merge_train self-test: 710 checks, 0 failed`. The line is this repair's own; with it gone, rc 0 beside any output line holding ` at <h>: ` admits.
-
-3. **The head no longer merges with main.** `git merge-tree --write-tree` of main `42828bf2540980a54ae4751b965384a9dc65d810` and the head exits 1: `CONFLICT (content): Merge conflict in tools/ci/selftest_closures.json` (`ev/merge_tree.txt`). It is no claim file and no merge driver printed a line for it, so it is the author's: merge main and re-record the table. At main `43e95474559c`, read when the review began, the same command exited 0.
-
-What the next head owes: main merged with the closures table re-recorded; the four steps green at the head (the fixture literal at line 6038 built so the file does not hold the outside-read words, or part 1's check scoped off self-test text by part 1; the three carry fixtures given an origin branch at the carried head or part 1's repaired head merged in), each re-run at both ends, and a failing check for item 2.
-
-## Findings
-
-- merge_pr.sh app mode merges a cross-repository head without asking outside.py's contract. Read, and shown by the file's own passing case `ok   null control: app mode on a cross-repository head passes the gates (the App's approval is app_approve.sh's)`: `gates` returns before `head_is_ours` unless the mode is owner, and no line of the script calls `check`. The train's `outside_contract` docstring gives the reason the contract is read at every step 6: class O holds unowned paths under tests/ on which app_approve.sh answers "app", and a mandate revoked since adoption must park the head. That reason holds for merge_pr.sh too, where an adopted verdict at the head is all app mode needs. Not run end to end here (no fork pull request exists); the body states the behaviour as a null control and dispositions no reason. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-- `Train.fork_head` executes the checkout's tools/pr/outside.py (`_outside_gate().pull_facts`) before `outside_is_mains` compares that file with origin/main's blob; the comparison runs only once the unverified copy has already answered "cross-repository". A checkout whose copy answered "ours" would never reach the comparison. The file is ours, not the fork's, so no fork-side actor reaches it; established by reading, no perturbation run. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-- `Train.land` calls `approve`, and so the outside contract, only when the base is main (`if self.real:`); on a `batch/` base the pinned merge runs without it. Admission still needs the approver App's verdict, which for a fork exists only through `bus.sh adopt` and its `check`. Read, not run. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-- No finder harness exists for this group (an owner report, triage batch 238 P714): every instrument is the fixer's self-test, and the mutants in `ev/` are the reviewer's (step 9). Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-- One figure of the body's mutation proof does not re-derive: `fork_head`'s `cross = False` prints 29 `FAIL` lines at this head, the body says 27. The mutant dies. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-- Part 1's published head moved to 8e6e94427f after this head merged e216e6c09878; it adds `cross_repository(facts, repo)` to outside.py, the one definition this part re-types as `facts["head_repo"] != repo` in `fork_head` and `head_is_ours`. The next head is cut on part 1's live head. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
-
-## Evidence
-
-- `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`: empty, the contract read is current.
-- `git merge-tree --write-tree`: exit 0 at main `43e95474559c` when the review began, exit 1 at main `42828bf25409` when it ended; block item 3.
-- RESULT self-tests at the head: merge_train `710 checks, 0 failed`; merge_pr `29 checks, 0 failed`; remerge_main `13 checks, 0 failed`; bus `203 checks, 0 failed`; app_approve rc 0, no FAIL line. These match the body.
-- RESULT mutants, 22 run, 21 killed, 1 survived (`ev/mutants_all.txt`, driver `ev/mutate.py`). Killed in merge_train.py: `cross = False` 29 FAIL; the head test in the admission 1; `rc in (0, 3)` 1; `no_fork_post` 3; `ok is not True` 11; the blob comparison 2; `contracted.pop` 1; `_approve`'s contract guard 2; `approve`'s contract call 4; `_approve`'s owner arm 1; the carry arm 1; the policy arm 1; the push park 1; the conflict park 1; the fork-name check 1; the main fetch 1; CODEOWNERS dropped from the main copies 2; the unread pulls object 3. merge_pr.sh `cross = False` 2. remerge_main.sh: the first-parent line 1, `p1 = old` 1, round 1's two survivors, now dead.
-- Not re-derived: the body's allowlist-path mutant (my target string occurs twice, not applied; the CODEOWNERS mutant kills the same two checks); the pre-repair null control (10 FAIL and a TypeError); `pr_args.sh --self-test` (not finished inside 230 s at this seat, stopped), `tests/structure.py`, the architecture score and the `selftest_scope.py record` figure; the budget raise, which is part 1's and was not judged here.
-- Boundary reads, by two subagents over the head's files, spot-checked by me on the lines quoted above. Verdict admission (`posted_verdict`, app_approve.sh) takes a `Fix review:` comment only from login `hpo-approver[bot]`, id 330097732, type Bot, so a contributor's own comment is no verdict until `bus.sh adopt` republishes it. `adopt` runs main's bus.sh and outside.py from a worktree at fetched main, copies VERDICT.md and ev/ as blobs and executes nothing fetched; the fork name and review commit are regex-matched before the fetch. The class-O owner is matched on login, id 70032254 and type User. Every merge call is pinned with `--match-head-commit`. `sweep_bots` finds the record pull request by owner. No fork or branch name reaches a shell string in merge_train.py or remerge_main.sh. None of these was executed against a live fork.
-- Red checks: no workflow has run at this head. `merge_train.py owed-reds` printed its set (`ev/figures.txt`); the block rests on step 11's instrument-self-tests clause, not on that set.
-- Step 10: the body's forward-carries were not opened at the roster; a blocked verdict does not turn on them.
+Body carry items to re-route. Start from the live body; the carry-fold rules refuse a carries-open destination and a done one.
+- carry 283207ca -> R10-GATE-DEFER-BARRIER is carries-open (carry_fold refuses a carries-open destination).
+- carry 48daf0c6 -> R10-SEAT-SCRIPT-OUTPUT is done.
+For each, find the live group that owns the seam from the `roster_lib.brief_lines` consumers (the live group owning the seam, not a done or carries-open one), or mark the item `dismissed: <reason>`. Run carry_audit.py check --body before the handoff.
 
 
-Re-run steps 2-8 of dev/governance/roles/fixer.md after any merge. Do not alter VERSION, the manifest or RELEASE_NOTES.md. If it cannot be done in scope, stop with BLOCKED.md.
+Corrected body draft (the orchestrator's; base your body on it and re-route the two items above in it):
 
-A BASH_ENV in the cloud environment runs the profile ahead of every nested bash: run tests/entities.py and any closures recording with `env -u BASH_ENV`.
+R10-OUTSIDE-CONTRIBUTOR-CYCLE part 2 of 2: section (E) of the approved design (`design/R10-OUTSIDE-CONTRIBUTOR-CYCLE` `142e70df1b77cf9e7f63d6675b9ad560941e20c9`, approved by `design-verdict/R10-OUTSIDE-CONTRIBUTOR-CYCLE` `fb36c832b6eeb3307bb07502d9a2529b36474535`). Merges with main stay ours on a fork head, and no program of the train turns a contributor's verdict into the owner's approval. No finder harness: the group is an owner report (triage batch 238, P714).
+
+**Repair of the blocked handoff `0d2dfd8b850441a1db42f4c88042dc5b27e88917`** (verdict `Fix review: blocked ... self-test-red`, nonce 763c689d). This head merges part 1's live head `87b116dd7bb0d42b244fcbf9beee8504802873db` (`refs/heads/handoff/r10-outside-contributor-cycle`) and origin/main `870238eb2194c99ae1ad6f1f78e0665e838c70f3` into 0d2dfd8b, then repairs on top. Part 1 is under this branch; the merge order is part 1 and this part together.
+
+What the repair changes, each against the verdict:
+
+1. **Block item 1, `outside-contract`.** The train self-test's `_post_carry` fixture body no longer holds the outside-read words: outside.py's self-test refuses them in any program under tools/ or .github/ but itself, and the fixture needed only some prior review body. Part 1's check is unchanged.
+2. **Block item 1, `app-verdict-poster`, `review-carry`, `obligations-ledger`.** Repaired by part 1 at its commit 6538f92df7 (each fixture puts the carried head on a branch of origin), merged here. The reviewer's enumeration rule, every caller of `app_approve.sh --carry` whose self-test runs the real script, returns those three and merge_train.py. The merge left merge_train's carry fixture adding `origin` twice (part 1's line and this part's round-2 line), which killed the self-test with `git remote add` exit 3; part 1's line stays and this part's goes.
+3. **Block item 2.** Two rows drive `outside_contract` with `check` exiting 0 beside a line that names the head and does not start with `OUTSIDE: `: a refusal's own words, and the admission's words mid-line. Each must park `[OUTSIDE]` with `admitted a head other than`. A third row is their null control: the same rc 0 beside the line starting `OUTSIDE: ` is admitted.
+4. **Block item 3.** origin/main merged; `tools/ci/selftest_closures.json` taken whole from main in the merge commit, then thirteen steps recorded on top by `selftest_scope.py record` (strace): `outside-contract`, new, and the twelve whose entry this diff moved against its former merge base.
+5. **The reviewer's finding on `cross_repository`, built here.** `Train.fork_head` and merge_pr.sh's `head_is_ours` call part 1's `cross_repository(facts, repo)`; neither re-types the comparison. The train's `OutsideStub` answers it through the real module's function.
+
+Alternatives, and why each lost (`fixer.md` step 17):
+- **Scope part 1's outside-read check off self-test text.** That weakens the check that no other program writes the line to fit a fixture that never needed the words.
+- **Keep this part's `git remote add origin <path>` and drop part 1's `.`.** Either lists the fixture's own branches; part 1's is the sibling's published line, and a re-applied delta is diffed against the sibling's head (`fixer.md` step 6).
+- **Pin the `OUTSIDE: ` conjunct through the real module only.** The real `check` never prints a head-naming line beside rc 0 that is not the admission, so no real-module row can separate the conjunct; the stubbed answer is the only driver of that shape.
+
+## Head
+
+`396b8caf9e658f0a2449a6738a2d2863eb3b74c4` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3521.md`. The authored code head is `b372f8e935365aaecbe6e74c68d3954e5a3ca1b1`.
+
+`b398e4cf2ccb80f64ca8e5c6347ed0a2bb1155cc` merges origin/main `d1def1ea63` into the authored code head `b372f8e935365aaecbe6e74c68d3954e5a3ca1b1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+`b372f8e935365aaecbe6e74c68d3954e5a3ca1b1`, measured against origin/main `870238eb2194c99ae1ad6f1f78e0665e838c70f3` (read 2026-11-12T19:43Z). `git merge-tree --write-tree origin/main HEAD` exits 0.
+
+## Mutation proof
+
+By hand at this head: one predicate replaced in the committed tree, the owning self-test run, the file restored by `git checkout`. A kill is the self-test's `FAIL` lines.
+
+merge_train.py, `python3 -I tools/audit/seat/merge_train.py --self-test`:
+- `outside_contract`'s `str(ln).startswith("OUTSIDE: ") and ` deleted (the reviewer's survivor t15): `merge_train self-test: 714 checks, 2 failed`, both new rows: `FAIL fork head: \`check\` exiting 0 beside a refusal's own words naming the head parks [OUTSIDE] ...` and `FAIL fork head: \`check\` exiting 0 beside the admission's words mid-line naming the head parks [OUTSIDE] ...`.
+- `fork_head`'s `cross = _outside_gate().cross_repository(facts, self.repo)` to `cross = False`: `714 checks, 31 failed`, among them every `fork head recarry:` case. The earlier body's 27 for this mutant did not re-derive (the reviewer counted 29 at 0d2dfd8b); the count is this run's.
+
+merge_pr.sh, `bash tools/audit/seat/merge_pr.sh --self-test`:
+- `head_is_ours`' `cross = mod.cross_repository(facts, repo)` to `cross = False`: `merge_pr self-test: 29 checks, 2 failed`: `FAIL owner mode on a cross-repository head refuses, naming the fork (decision 0017)` and `FAIL ... having read the pull request and neither the mandate nor a post`.
+
+The mutants of the lines this round does not change were run by the reviewer at 0d2dfd8b (22 run, 21 killed; the survivor is the first bullet) and are not re-run here.
+
+## Null control
+
+- **The four steps at both ends.** At 0d2dfd8b the reviewer measured `outside self-test: 208 checks, 1 failed`, `app_comment` `67 checks, 6 failed`, `review_carry` `29 checks, 4 failed`, `ledger` `102 checks, 1 failed`. At this head the same commands print 0 failed (Figures).
+- **The admission row.** With the conjunct in place, rc 0 beside the line starting `OUTSIDE: ` at the head is admitted (`ok ... null control: the same rc 0 beside the line starting \`OUTSIDE: \` at the head is admitted`), so the two new rows refuse on the line's start and not on rc 0.
+- **The doubled remote.** With both `git remote add origin` lines, as the merge left them, `merge_train.py --self-test` dies in `_add_self_test` with `CalledProcessError ... 'git', 'remote', 'add', 'origin' ... exit status 3` and prints no summary line; with one it prints `714 checks, 0 failed`.
+- **The closures table.** Against main's table the recorded one adds the step `outside-contract` and changes twelve entries; the other 101 of main's 113 are byte-equal (compared by loading both files and comparing each step's entry).
+
+## Figures
+
+At `b372f8e935365aaecbe6e74c68d3954e5a3ca1b1`, origin/main `870238eb2194c99ae1ad6f1f78e0665e838c70f3`, 2026-11-12T19:43Z:
+- `python3 -I tools/pr/outside.py --self-test`: `outside self-test: 212 checks, 0 failed`.
+- `bash tools/pr/app_comment.sh --self-test`: `app_comment self-test: 70 checks, 0 failed`.
+- `python3 -I tools/audit/seat/review_carry.py --self-test`: `review_carry self-test: 32 checks, 0 failed`.
+- `python3 -I tools/audit/seat/ledger.py --self-test`: `ledger self-test: 103 checks, 0 failed`.
+- `python3 -I tools/audit/seat/merge_train.py --self-test`: `merge_train self-test: 714 checks, 0 failed`.
+- `bash tools/audit/seat/merge_pr.sh --self-test`: `merge_pr self-test: 29 checks, 0 failed`.
+- `python3 -I tools/audit/seat/remerge_main_selftest.py`: `remerge_main self-test: 13 checks, 0 failed`.
+- `bash tools/audit/seat/bus.sh --self-test`: `bus self-test: 203 checks, 0 failed`.
+- `bash tools/pr/app_approve.sh --self-test`: `app_approve self-test: 350 checks, 0 failed`.
+- `python3 -I tools/pr/ci_predict.py --self-test`: `ci_predict self-test: 0 failed`.
+- `node tools/policy/field_coverage.mjs --self-test`: `FIELD COVERAGE SELF-TEST ok`. `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`.
+- `python3 -I tools/audit/seat/selftest_wiring.py --self-test` then `--check`: rc 0, `selftest_wiring: 0 index gap(s)`.
+- `bash tools/audit/seat/open_pr.sh --self-test`, `pr_args.sh --self-test`, `update_pr.sh --self-test`: each ends `pr_args self-test: 205 checks, 0 failed`, rc 0.
+- Those are the thirteen steps of the re-record, with `merge-train` and `app-approval`. All but the last two bullets' steps ran before the closures commit, at the code commit `0f033253f4c59fb023afc414c8f9a109a64e8273`; the head adds only `tools/ci/selftest_closures.json` to it, and `selftest_scope.py record` ran every one of the thirteen again on that tree, each `OK`.
+- `python3 -I tools/ci/selftest_scope.py record --step <each of the thirteen>`: `selftest_scope: recorded 13 step(s) into .../tools/ci/selftest_closures.json; 0 failed [], 0 broken trace(s)`.
+- `python3 -I tools/ci/selftest_scope.py select --base origin/main`: `MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml'])`. Every step runs on the pull request; only the ones above were run at this seat.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: FULL -- every test script runs, nothing is scoped out.`, `reason: .github/workflows/tests.yml changes the gate itself`. That file is part 1's. Under `MODE: FULL` there is no scope to run locally; the suite is CI's.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`.
+- `git diff --stat $(git merge-base origin/main HEAD)...HEAD`: 27 files, part 1's and this part's. `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are outside it; `dev/governance/config/policy_budgets.json` is in it, from part 1.
+
+## Red checks
+
+CI ran at this head on 2026-11-12 (21:10Z to 21:53Z); its failures are named below. The four `instrument-self-tests` steps the verdict blocked on are answered above. The cheaper detector for them existed and was not in this seat's path at round 2: the self-tests of the files a merged sibling brings under the branch, which the brief of this round now names ("run every instrument self-test the diff reaches") and which the Figures list. Named by prepr's pr-body step (its ci-predict step predicts no red at this head):
+
+- `budget-raise-gate / budget-raise-gate` at 396b8caf, job 131494044713 (21:10Z): `RAISE .claude/workflows/policy_budgets.json: files_tokens.tools/audit/briefs/fix-review.md: 2546 -> 2775 (a pinned value the gate cannot sign as routine)`, then `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`. Cause: part 1's raise carried in by the merge, with no approving review at this head. No cheaper detector exists for a missing approval: the gate is the check that reads it, and it clears only on the owner's (or a mandate's) approving review at the head, as below.
+- `tests / closures` at 396b8caf, job 131494487808 (21:49Z): `INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the committed inert_reads does not list for it`, naming `tests/doc_claims.py: docs/CONTRIBUTING.md` and `tests/harness_headers.py: docs/CONTRIBUTING.md`; the log's own repair is `./tests/derive_closures.sh --single <script>` for those two scripts. Cause: a file on the INERT list was read by two measured scripts, so their recorded `inert_reads` lack it. Not repaired in this body-only update; the `tests / closures-autofix` job (131517171614) that repairs it also ended red at this head. Cheaper detector: that `--single` re-derive for the two named scripts, which runs on the pusher's machine before the push; its standing cost was not measured here.
+- `budget-raise-gate / budget-raise-gate` (inherited, restated): inherited from part 1, not built here. The diff against main carries part 1's raise in `dev/governance/config/policy_budgets.json`. It is red by design until tvofi approves at the head (CLAUDE.md rule 2, `budget-raise-gate`, 0013); that approval is answered in part 1's body. The cheaper detector already ran: prepr named it before any pull request existed.
+
+## Raise justification
+
+This repair raises nothing: `git diff 87b116dd7b HEAD` names no `*_budgets.json`. The one raise in the diff against main is part 1's, carried by the merge of `87b116dd7bb0`: `files_tokens` for `dev/governance/roles/fix-review.md` (`tools/audit/briefs/fix-review.md` in the budget file), `2546 -> 2775`. That is the value `node tools/policy/policy_lint.mjs --budgets` measures.
+
+What the raise buys, in part 1's words (`handoff-body/r10-outside-contributor-cycle`, section `## Raise justification`): the class-O read seat's rule in the contract that seat reads, which the design verdict's item 27 requires there.
+
+Payments tried: four, by part 1, none taken. Each reason is part 1's:
+- cutting spent prose (every sentence is a verdict rule another seat is graded by);
+- a pointer-only text (no headroom, and it drops item 27's sentence);
+- moving the paragraphs to the instrument guide or `docs/CONTRIBUTING.md` (outside the measured corpus, the escape `ratchet-budgets.md` names);
+- a new role contract (more corpus tokens, a new cap, and a `CLAUDE.md` row with `CLAUDE.md` at its own cap).
+
+This part tried no payment of its own, because it adds no token to the file.
+
+Architecture score: dS +0.0000 NULL
+
+
+## Unpinned sites
+
+none: prepr's unpinned-sites step reported `the diff adds no unpinned mutation site`. Its diff-mutant draw was not taken: the first 40 added `.py` lines of this diff against main are part 1's `tools/pr/outside.py`, which merge_train's self-test does not own. This round's production predicates were mutated by hand (Mutation proof).
+
+## Approval
+
+This round adds no policy file: against part 1's head and main it changes merge_train.py, merge_pr.sh and `tools/ci/selftest_closures.json`. The last is code-owned.
+
+The diff against main also carries part 1's policy and code-owned files, by the merge of `87b116dd7bb0`:
+- decision 0017, `dev/governance/roles/fix-review.md`, `dev/governance/config/outside_contributors.json`, `dev/governance/config/policy_budgets.json`;
+- `.github/workflows/`, `.github/CODEOWNERS`.
+
+Their approval record is part 1's `## Approval` (`handoff-body/r10-outside-contributor-cycle`). All of them merge on the owner's approving review at this head. Under the owner's ruling of 2026-11-12 quoted in the design note ("a mandate made by me is valid for my machinery"), that review may be the programme's mandate approval.
+
+## Forward-carry
+
+<!-- Carries 0 to 6 keep the numbering of 40abc1bd's body, whose seven items the relay folded onto the roster. Each line says where it now stands. -->
+
+- Carry 0: **The interface to part 1's module.** Built in this diff (items 1 and 4): `fork_head`, `outside_contract` and `head_is_ours` call part 1's `pull_facts` and `check`, and each caller has a self-test on the real file. Carry: dismissed: built here, the verdict's block item 1
+- Carry 1: **`tools/ci/selftest_closures.json` re-record.** Built in this diff (item 6), for `pr-merger`, the one step whose self-test newly opens part 1's module. `merge-train` records `objects: true` and is selected on every diff. Carry: dismissed: built here, re-recorded with strace
+- Carry 2: **The live checks the design owes are not run.** This seat has no `gh`, no App key and no fork pull request. Three are owed:
+  - (a) whether GitHub lets the hpo-author installation token of our repository call `update-branch` on a maintainer-editable fork pull request, and which identity the resulting merge commit carries (carry 11);
+  - (b) app_approve.sh approving an adopted verdict end to end after that merge (carry 8);
+  - (c) which `commit_id` a class-O approval reports before and after it (carries 20, 25).
+
+  remerge_main.sh's fork arm is proved against a fake `curl` and a fake mint only. Run all three on a test fork before the owner adds the allowlist entry. If (a) is refused, the train parks `[OUTSIDE] ... no personal token is tried without the owner`, the designed stop. R10-CI-PRIORITY-PAUSE is the live group on the merge train's run control, and shares this part's files. Carry: R10-CI-PRIORITY-PAUSE
+- Carry 3: **The three instruments' guides and decision 0017 owe this part's surface:** remerge_main.sh's `--head-repo`, the `[OUTSIDE]` block class, and carry 29's sentence that no tool of ours pushes a fork head to a branch of origin. That sentence is true of this part: the fork head is fetched to `refs/remotes/pull/<pr>/head` only. The decision is policy, an owner-approved text, and not written by a fixer. Carry: R10-PROCESS-SLIM
+- Carry 4: **Carry 14, round 3:** `_post_agent_approval`'s body under a bare `--mandate` id reads "under <id>", which `MANDATE_CITE` does not read as a citation. Whether it should say "mandate comment <id>" for our own heads is the train's wording, unchanged here. R10-GATE-DEFER-BARRIER is the live group on merge_train.py's approval path. Carry: R10-GATE-DEFER-BARRIER
+- Carry 7: **merge_pr.sh app mode merges a cross-repository head without asking outside.py's contract** (the verdict at 763c689d, first finding): `gates` returns before `head_is_ours` unless the mode is owner, and nothing calls `check`. Established by the reviewer's read and the file's own passing case `null control: app mode on a cross-repository head passes the gates`; not run end to end, no fork pull request exists. Not built in this round, which the dispatch scopes to the repair; it is this group's seam and waits on the orchestrator's cut of a further part. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
+- Carry 8: **`Train.fork_head` executes the checkout's tools/pr/outside.py before `outside_is_mains` compares it with origin/main's blob** (the verdict's second finding, by reading, no perturbation run). A checkout whose copy answered "ours" never reaches the comparison. Same standing as carry 7. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
+- Carry 9: **`Train.land` asks the outside contract only when the base is main** (`if self.real:`); on a `batch/` base the pinned merge runs without it (the verdict's third finding, read, not run). Same standing as carry 7. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE
+
+## Friction
+
+- prepr-ci-predict: unenforced: Carry 5: `tools/pr/ci_predict.py` runs the base's `carry_audit.py` in a `--shared` clone that holds no `origin/handoff/audit-r<N>-roster`. A `Carry:` to a group that lives only on the round's roster branch therefore reads as a bad destination, while `pr-contract.yml` fetches that ref before the same check. It reproduced at this head: the prediction refused two destinations that main's own `carry_audit.py`, run on a main worktree with `--branch`, routes (`7 routed, 0 unrouted, 0 bad destination(s)`). As the last seat did, this seat gave the clone the ref CI fetches: a local branch `handoff/audit-r10-roster` at `origin/handoff/audit-r10-roster`, pushed nowhere. The predictor owes the fetch. Carry: R10-SEAT-SCRIPT-OUTPUT
+- brief: cost: Carry 6: the first dispatch asked for code against an interface part 1 had not published. That made the two calls a guess and cost this repair round. Read from part 1's published head here. Carry: dismissed: resolved in this round, the interface is read from e216e6c09878
+- fixer-step-6: cost: Carry 10: a sibling part merged under this branch brought four self-test steps red that this part's body never ran, because its Figures listed only the files this part edits. One review round. This round ran every step the closures diff names. Carry: dismissed: answered in this body's Red checks; the round's brief now states the rule
