@@ -4,6 +4,8 @@ Result: a null delta for `docs/architecture.md` beyond what the two stacked head
 
 ## Head
 
+Head 30314c72c566345767fc1781eb1cbf8708f84d5a = f919d224ca plus a merge of origin/main c987209cc7. The only hand resolution is tests/golden/claimed_drift.txt: the branch file plus main's three edits (claims-for 7.1.16, the v7.1.16 note, main's deletion of the config_flow R10-OUTSIDE-DHW-START-HYSTERESIS claim), byte-identical to the claim file at handoff/r10-sav-valuation-residue 3b64f939. The evidence below was measured at f919d22; the merge adds main's content only.
+
 f919d224caa9ecc39fad4f11434a8d0df7bbfacc (branch r10-arch-docs-delta; origin/main 50373173d486faf394b24637c177ab38b691b394 at 2026-11-14T00:48:12Z).
 
 ## Mutation proof
