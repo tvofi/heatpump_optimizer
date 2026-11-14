@@ -10,6 +10,15 @@ loads so the tick starts from learned state. It does not edit
 
     PYTHONPATH=tests/hastub:tests python3 tools/replay/debug_replay.py --bundle B.json
     PYTHONPATH=tests/hastub:tests python3 tools/replay/debug_replay.py --fixture F.json --start ISO --end ISO
+    PYTHONPATH=tests/hastub:tests python3 tools/replay/debug_replay.py --bundle B.json --trace --start ISO --end ISO
+
+``--trace`` replays from the minute trace (R10-DRAW-MAP-EVIDENCE part F): each
+column is mapped back to its entity through the replay half's own entry, the
+way ``debugger.trace_columns`` keyed it, and its minute values replace that
+entity's rows; every other entity keeps the replay half's rows. Attributes are
+the replay half's, in force at the minute (its first, before it begins), so a
+price forecast outside the replay half is not the one the install had. The
+document says which entities were rebuilt (``downsampled``).
 """
 from __future__ import annotations
 
@@ -103,18 +112,67 @@ def _carry_attrs(rows: list) -> list:
 
 def trim_replay(replay_doc: dict, start: datetime, end: datetime,
                 pad: timedelta = timedelta(hours=6)) -> dict:
-    """A windowed copy of an ``hpo-replay/1`` document (the smoke's tail-day)."""
+    """A windowed copy of an ``hpo-replay/1`` document (the smoke's tail-day): each
+    entity's row in force at the padded start, then every row after it. A trace
+    writes a row only on a change, so a value held all day has none inside the pad."""
     out = copy.deepcopy(replay_doc)
     out["window"] = {"start": start.isoformat(), "end": end.isoformat()}
     keep_from = start - pad
     for entity_id, rows in list((out.get("states") or {}).items()):
         filled = _carry_attrs(rows)
-        keep = [r for r in filled if datetime.fromisoformat(r[0]) >= keep_from]
+        before = [r for r in filled if datetime.fromisoformat(r[0]) < keep_from]
+        keep = before[-1:] + [r for r in filled if datetime.fromisoformat(r[0]) >= keep_from]
         if keep:
             out["states"][entity_id] = keep
         else:
             del out["states"][entity_id]
     return out
+
+
+def _attrs_in_force(rows: list, minutes: list[datetime]) -> list:
+    """The attributes in force at each of ``minutes`` (ascending) in carried rows; the
+    first row's before them."""
+    stamps = [datetime.fromisoformat(row[0]) for row in rows]
+    out, index, found = [], 0, rows[0][2] if rows else None
+    for minute in minutes:
+        while index < len(rows) and stamps[index] <= minute:
+            found, index = rows[index][2], index + 1
+        out.append(found)
+    return out
+
+
+def trace_document(bundle: dict) -> dict:
+    """The replay half's document with each traced input rebuilt from the trace."""
+    from heatpump_optimizer import debugger
+    skeleton = bundle.get("replay")
+    if not isinstance(skeleton, dict) or not isinstance(skeleton.get("entry"), dict):
+        raise SystemExit("REFUSED: no replay half to map the trace's columns through; "
+                         "its entry is the only key from a column to its entity")
+    entry = skeleton["entry"]
+    columns = debugger.trace_columns({**(entry.get("data") or {}), **(entry.get("options") or {})})
+    decoded = debug_ingest.decode_trace(bundle.get("trace") or [])
+    if not decoded["minutes"]:
+        raise SystemExit("REFUSED: the bundle carries no trace minute")
+    doc = copy.deepcopy(skeleton)
+    traced = []
+    for key, entity_id in sorted(columns.items()):
+        series = decoded["cols"].get(key)
+        if series is None or all(value is None for value in series):
+            continue
+        attrs = _attrs_in_force(_carry_attrs(skeleton.get("states", {}).get(entity_id, [])),
+                                decoded["minutes"])
+        rows, previous = [], None
+        for minute, value, held in zip(decoded["minutes"], series, attrs):
+            if value is not None and value != previous:
+                rows.append([minute.isoformat(), value, held, None])
+                previous = value
+        doc.setdefault("states", {})[entity_id] = rows
+        traced.append(entity_id)
+    first, last = decoded["minutes"][0], decoded["minutes"][-1] + timedelta(minutes=1)
+    doc["window"] = {"start": first.isoformat(), "end": last.isoformat()}
+    doc["downsampled"] = {"source": "trace", "entities": traced,
+                          "redacted_cells": sum(decoded["redacted"].values())}
+    return doc
 
 
 def run_seeded(replay_doc: dict, stores: dict | None = None,
@@ -192,11 +250,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--offender", action="store_true",
                         help="trim around the synthetic-week agreement instant")
     parser.add_argument("--step-minutes", type=int)
+    parser.add_argument("--trace", action="store_true",
+                        help="replay the bundle's minute trace, not its replay half")
     args = parser.parse_args(argv)
     stores: dict = {}
     if args.bundle:
         bundle = debug_ingest.load_bundle(args.bundle)
-        replay_doc = bundle.get("replay") or {}
+        replay_doc = trace_document(bundle) if args.trace else bundle.get("replay") or {}
         stores = bundle.get("stores") or {}
     elif args.fixture:
         replay_doc = json.loads(args.fixture.read_text())

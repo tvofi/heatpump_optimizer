@@ -252,8 +252,9 @@ custom_components/heatpump_optimizer/
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
 ├── services.py           # The domain's 15 services: schemas, handlers and registration
-├── debugger.py           # A week of cycle rows for one entry, kept across a
-│                         #   reload and carried by Download diagnostics
+├── debugger.py           # A week of cycle rows and a minute trace of the inputs
+│                         #   for one entry, kept across a reload and carried by
+│                         #   Download diagnostics
 ├── replay_doc.py         # The replay document's allowlist and sanitiser, one
 │                         #   copy for that bundle and the repository's export
 ├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Generate a synthetic-week ``hpo-debug/1`` debugger bundle.
+"""Generate a synthetic-week ``hpo-debug/2`` debugger bundle.
 
 Promoted from the R9-DBG-0 prototype at ``eae236d66``. Drives
 ``tests/replay.py:run_fixture`` over the committed DHW-only fixture repeated
 day by day, records a slim per-cycle row plus one payload snapshot per day,
 and harvests every ``heatpump_optimizer_*`` store document from the HA-stub
-disk.
+disk. Its minute trace is the fixture's mapped inputs sampled each minute
+through the collector's own encoder (``debugger.trace_cell``, ``trace_add``), so
+a replay of the trace and of the replay half read the same week.
 
     PYTHONPATH=tests/hastub:tests python3 tools/replay/dbg_bundle_gen.py --days 7 --out DIR
     PYTHONPATH=tests/hastub:tests python3 tools/replay/dbg_bundle_gen.py --days 1 --out DIR
@@ -67,6 +69,39 @@ def extend_fixture(days: int) -> dict:
     return fixture
 
 
+def _value_at(rows: list, minute) -> str | None:
+    """The state in force at ``minute`` in sorted export rows, ``None`` before them."""
+    from datetime import datetime
+    found = None
+    for updated, state, _attrs, _reported in rows:
+        if datetime.fromisoformat(updated) > minute:
+            break
+        found = state
+    return found
+
+
+def trace_blocks(fixture: dict) -> list[dict]:
+    """The fixture's window sampled each minute as the collector samples it."""
+    from datetime import datetime, timezone
+    from heatpump_optimizer import debugger
+    entry = fixture["entry"]
+    columns = debugger.trace_columns({**entry.get("data", {}), **entry.get("options", {})})
+    states = fixture["states"]
+    minute = datetime.fromisoformat(fixture["window"]["start"]).astimezone(timezone.utc)
+    end = datetime.fromisoformat(fixture["window"]["end"]).astimezone(timezone.utc)
+    blocks, block = [], None
+    while minute < end:
+        cells = {key: debugger.trace_cell(eid, _value_at(states.get(eid, []), minute))
+                 for key, eid in columns.items()}
+        if block is None or not debugger.trace_add(block, minute, cells):
+            if block is not None:
+                blocks.append(debugger.trace_encode(block))
+            block = debugger.trace_open(minute)
+            debugger.trace_add(block, minute, cells)
+        minute += debugger.TRACE_EVERY
+    return blocks + ([debugger.trace_encode(block)] if block else [])
+
+
 def build_bundle(days: int, drop: set[str] | None = None) -> dict:
     drop = drop or set()
     fixture = extend_fixture(days)
@@ -111,6 +146,8 @@ def build_bundle(days: int, drop: set[str] | None = None) -> dict:
             "outdoor_temp": data.get("outdoor_temperature"),
             "dhw_temp": data.get("dhw_temperature"),
             "accuracy_sample": sample,
+            "learners_frozen": data.get("learners_frozen"),
+            "input_health": data.get("input_health"),
         }
         for key in drop:
             row.pop(key, None)
@@ -145,9 +182,14 @@ def build_bundle(days: int, drop: set[str] | None = None) -> dict:
         diagnostics_view = diag_mod._coordinator_snapshot(coord)
 
     version = (ROOT / "VERSION").read_text().strip()
+    from heatpump_optimizer import debugger
+    trace = trace_blocks(fixture)
     return {
         "schema": SCHEMA,
         "manifest": {
+            "sections": dict(debugger.SECTION_VERSIONS),
+            "trace": debugger.trace_summary(trace),
+            "dropped": [],
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "generator": GENERATOR,
             "integration_version": version,
@@ -157,6 +199,8 @@ def build_bundle(days: int, drop: set[str] | None = None) -> dict:
             "dropped_slim_fields": sorted(drop),
         },
         "replay": fixture,
+        "trace": trace,
+        "lifecycle": [],
         "cycle_rows": rows,
         "payload_snapshots": payload_snapshots,
         "stores": stores,
@@ -170,8 +214,8 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     two = extend_fixture(2)
     entity = next(iter(one["states"]))
     return [
-        ("debug generator: schema id is hpo-debug/1",
-         SCHEMA == "hpo-debug/1", SCHEMA),
+        ("debug generator: schema id is hpo-debug/2",
+         SCHEMA == "hpo-debug/2", SCHEMA),
         ("debug generator: extend_fixture(1) keeps the committed window",
          one["window"] == json.loads(FIXTURE.read_text())["window"],
          str(one["window"])),

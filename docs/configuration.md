@@ -1116,7 +1116,7 @@ opt-in learners are on **Advanced learning features**.
 | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
 | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
 | Allow a one-off measurement experiment | off | on/off | Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly instead of inferring it over weeks. Kept too small to notice, and stopped if the temperature drifts. |
-| Collect a week of debug data | off | on/off | Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Download diagnostics then carries the week for a bug report. The `debug_collect` service and the Learning Finalize Debug Collection button drive the same collection. |
+| Collect a week of debug data | off | on/off | Records one small row per optimization cycle, one full snapshot a day, and once a minute the readings of the sensors and switches this entry reads, for seven days, then stops by itself. Download diagnostics then carries the week for a bug report. The `debug_collect` service and the Learning Finalize Debug Collection button drive the same collection. |
 | Estimate prices past the published horizon | on | on/off | Tomorrow's prices arrive around 13:00. Until then this uses your learned daily price shape instead of a flat repeat, and the plan marks which hours are estimated. |
 
 ### Advanced learning features
@@ -1459,8 +1459,20 @@ payloads (a price feed that is failing publishes nothing, so the gap is the
 only record of it) and the outage streak the collection ended in. Turning the
 option off deletes what was collected. Download diagnostics on the entry
 carries the week and those
-results; a week over 8 MiB is carried as its summary and the name of the store
-file under `.storage/` that holds the rows.
+results. While the collection runs it also records, once a minute, the reading
+of every sensor and switch the entry is set up to read. Each reading is stored
+under the entry's own setting name, such as `indoor_temp_entity`, never under
+an entity's name or id. A number is kept to two decimals, and the only text
+kept is an on/off or selector state; anything else is left blank, and so is
+any value the download's own redaction removes. The diagnostics file is kept
+within 8 MiB by dropping, in this order, all but the first and the newest
+daily snapshot, then hours of the recorded-history part, then the oldest days
+of minute readings, then the recorded-history part itself; the file lists what
+it dropped. A week still over 8 MiB is carried as its summary and the name of
+the store file under `.storage/` that holds the rows. The minute readings make
+the stored collection larger: on an entry reading about 27 sensors it rewrites
+several megabytes a day by its last day, so leave the option off when no bug
+report needs it.
 
 ---
 

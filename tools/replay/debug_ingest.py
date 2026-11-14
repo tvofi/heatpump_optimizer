@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Ingest and validate an ``hpo-debug/1`` debugger bundle.
+"""Ingest and validate an ``hpo-debug/1`` or ``hpo-debug/2`` debugger bundle.
 
 Generalises the R9-DBG-0 smoke (``dbg_ingest_smoke.py`` at ``eae236d66``):
 schema and manifest, ``export.violations`` over the replay half with a
 planted-credential null control, every store document through
 ``store._sanitize`` and ``AccuracyTracker.from_dict``, and the accuracy
 monitor re-derived from the store window vs the bundle's own cycle rows.
+Version 2 adds the minute trace and the lifecycle rows (R10-DRAW-MAP-EVIDENCE
+part F): every trace block decodes to its own count, the manifest's minutes and
+missing minutes are re-derived, no trace key is spelled like an entity id, and
+a cell either diagnostics pass redacted is counted as a flagged gap. On a
+version 1 bundle each of those checks is unfinished, never passed.
 
     PYTHONPATH=tests/hastub:tests python3 tools/replay/debug_ingest.py --bundle B.json
     PYTHONPATH=tests/hastub:tests python3 tools/replay/debug_ingest.py --bundle B.json --corrupt accuracy
@@ -18,6 +23,7 @@ import importlib.util
 import json
 import os
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -31,7 +37,13 @@ for _p in (ROOT / "tests" / "hastub", ROOT / "tests", ROOT / "custom_components"
     if s not in sys.path:
         sys.path.insert(0, s)
 
-SCHEMA = "hpo-debug/1"
+SCHEMAS = ("hpo-debug/1", "hpo-debug/2")
+SCHEMA = SCHEMAS[-1]
+#: ``homeassistant.components.diagnostics.REDACTED``: what both passes write.
+REDACTED = "**REDACTED**"
+TRACE_GAP = "~"  # ``debugger.TRACE_GAP``
+TRACE_CHECKS = ("trace-present", "trace-decodes", "trace-manifest", "trace-keys",
+                "trace-arbiter", "lifecycle-rows")
 PLANTED_SECRET = "sk-ant-api03-abcdefghijklmnop1234567890"
 
 
@@ -72,18 +84,103 @@ def unwrap_download(doc: dict) -> dict:
 class Results:
     def __init__(self) -> None:
         self.fails: list[str] = []
+        self.passed: list[str] = []
+        self.unfinished: list[str] = []
 
     def check(self, name: str, ok: bool, note: str = "") -> None:
         mark = "ok" if ok else "FAIL"
         print(f"  {mark}: {name}" + (f" -- {note}" if note else ""))
-        if not ok:
-            self.fails.append(name)
+        (self.passed if ok else self.fails).append(name)
+
+    def unfinish(self, name: str, why: str) -> None:
+        """A check the bundle cannot answer: neither passed nor failed."""
+        print(f"  unfinished: {name} -- {why}")
+        self.unfinished.append(name)
+
+
+def decode_trace(blocks: list) -> dict:
+    """The trace as ``minutes`` (each sampled minute) and ``cols`` (key -> the value
+    in force at each, ``None`` for a gap), with what could not be read.
+
+    An empty cell repeats the cell before it; ``TRACE_GAP`` is no reading; a cell
+    holding ``REDACTED`` is a gap counted under ``redacted``. A column whose cell
+    count is not its block's (a redaction that spanned a separator) is a gap
+    for that block, listed under ``broken``.
+    """
+    minutes: list[datetime] = []
+    cols: dict[str, list] = {}
+    redacted: dict[str, int] = {}
+    broken: list[str] = []
+    for index, block in enumerate(blocks):
+        n, gaps = block.get("n"), str(block.get("gap", "")).split(",")
+        if not isinstance(n, int) or len(gaps) != n:
+            broken.append(f"block {index}: gap")
+            continue
+        at = datetime.fromisoformat(block["start"])
+        offset = len(minutes)
+        if any(cell and not cell.isdigit() for cell in gaps):
+            broken.append(f"block {index}: gap")
+            continue
+        for i, cell in enumerate(gaps):
+            at += timedelta(minutes=(1 + int(cell or 0)) if i else 0)
+            minutes.append(at)
+        for series in cols.values():
+            series.extend([None] * n)
+        for key, text in (block.get("cols") or {}).items():
+            series = cols.setdefault(key, [None] * (offset + n))
+            cells = str(text).split(",")
+            if len(cells) != n:
+                broken.append(f"block {index}: {key}")
+                continue
+            value = None
+            for i, cell in enumerate(cells):
+                if REDACTED in cell:
+                    value, redacted[key] = None, redacted.get(key, 0) + 1
+                elif cell:
+                    value = None if cell == TRACE_GAP else cell
+                series[offset + i] = value
+    span = int((minutes[-1] - minutes[0]) / timedelta(minutes=1)) + 1 if minutes else 0
+    return {"minutes": minutes, "cols": cols, "redacted": redacted, "broken": broken,
+            "missing": span - len(minutes)}
+
+
+def trace_stage(bundle: dict, results: Results) -> dict | None:
+    """Stage 5: the trace and the lifecycle rows; unfinished on a version 1 bundle."""
+    print("stage 5: the minute trace and the lifecycle rows")
+    if bundle.get("schema") != "hpo-debug/2":
+        for name in TRACE_CHECKS:
+            results.unfinish(name, f"{bundle.get('schema')!r} carries no trace")
+        return None
+    summary = (bundle.get("manifest") or {}).get("trace") or {}
+    decoded = decode_trace(bundle.get("trace") or [])
+    keys = list(decoded["cols"])
+    print(f"RESULT trace_minutes={len(decoded['minutes'])} unit=count")
+    print(f"RESULT trace_missing_minutes={decoded['missing']} unit=count")
+    print(f"RESULT trace_columns={len(keys)} unit=count")
+    print(f"RESULT trace_redacted_cells={sum(decoded['redacted'].values())} unit=count")
+    results.check("trace-present", bool(decoded["minutes"]), f"{len(keys)} columns")
+    results.check("trace-decodes", not decoded["broken"], "; ".join(decoded["broken"][:3]))
+    results.check("trace-manifest", summary.get("minutes") == len(decoded["minutes"])
+                  and summary.get("missing_minutes") == decoded["missing"],
+                  f"manifest={summary.get('minutes')}/{summary.get('missing_minutes')} "
+                  f"decoded={len(decoded['minutes'])}/{decoded['missing']}")
+    results.check("trace-keys", not any("." in key for key in keys),
+                  ",".join(k for k in keys if "." in k)[:200])
+    if summary.get("arbiter") == "present":
+        results.check("trace-arbiter", any(k.startswith("arbiter/") for k in keys))
+    else:
+        results.unfinish("trace-arbiter", str(summary.get("arbiter")))
+    rows = bundle.get("lifecycle")
+    results.check("lifecycle-rows", isinstance(rows, list) and all(
+        isinstance(r, dict) and {"t", "event"} <= r.keys() for r in rows),
+        f"{len(rows) if isinstance(rows, list) else rows!r} rows")
+    return decoded
 
 
 def ingest(bundle: dict, *, corrupt: str = "") -> Results:
     results = Results()
     print("stage 1: schema and manifest")
-    results.check("schema", bundle.get("schema") == SCHEMA,
+    results.check("schema", bundle.get("schema") in SCHEMAS,
                   f"schema={bundle.get('schema')!r}")
     manifest = bundle.get("manifest") or {}
     results.check("manifest-cycles", isinstance(manifest.get("cycles"), int)
@@ -175,6 +272,7 @@ def ingest(bundle: dict, *, corrupt: str = "") -> Results:
                       f"shared={len(shared)}/{len(held)}")
     else:
         results.check("bias-rederived", False, "no accuracy samples to re-derive")
+    trace_stage(bundle, results)
     return results
 
 
@@ -189,8 +287,12 @@ def _mini_bundle() -> dict:
     }
     return {
         "schema": SCHEMA,
-        "manifest": {"cycles": 1, "integration_version": "gate", "days": 1},
+        "manifest": {"cycles": 1, "integration_version": "gate", "days": 1,
+                     "trace": {"minutes": 3, "missing_minutes": 1, "arbiter": "absent: gate"}},
         "replay": replay,
+        "trace": [{"start": "2026-01-15T12:00:00+00:00", "n": 3, "gap": "0,,1",
+                   "cols": {"indoor_temp_entity": "21.5,,21.75", "heat_pump_mode_entity": "heat,,~"}}],
+        "lifecycle": [{"t": "2026-01-15T12:00:00+00:00", "event": "start", "version": "gate"}],
         "cycle_rows": [{"t": sample["t"], "accuracy_sample": {
             k: sample[k] for k in sample if k != "t"}}],
         "payload_snapshots": [],
@@ -265,6 +367,13 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     repeat = _quiet_ingest(_tail_repeat_bundle())
     tampered = _quiet_ingest(_tail_repeat_bundle(tamper=True))
     disjoint = _quiet_ingest(_tail_repeat_bundle(disjoint=True))
+    older = _quiet_ingest({**copy.deepcopy(bundle), "schema": "hpo-debug/1"})
+    split = copy.deepcopy(bundle)
+    split["trace"][0]["cols"]["heat_pump_mode_entity"] = REDACTED + ",~"
+    cut = _quiet_ingest(split)
+    hidden = copy.deepcopy(bundle)
+    hidden["trace"][0]["cols"]["heat_pump_mode_entity"] = f"heat,{REDACTED},"
+    decoded = decode_trace(hidden["trace"])
     return [
         ("debug ingest: schema, stores, accuracy, bias, planted leak",
          not clean.fails, ",".join(clean.fails)),
@@ -284,6 +393,18 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          "bias-rederived" in tampered.fails, ",".join(tampered.fails)),
         ("debug ingest: rows sharing no sample with the store fail bias-rederived (not vacuous)",
          "bias-rederived" in disjoint.fails, ",".join(disjoint.fails)),
+        ("debug ingest: an hpo-debug/1 bundle leaves every trace check unfinished, none passed",
+         set(TRACE_CHECKS) <= set(older.unfinished)
+         and not set(TRACE_CHECKS) & set(older.passed + older.fails),
+         f"unfinished={older.unfinished} passed={older.passed}"),
+        ("debug ingest: a trace column a redaction shortened fails trace-decodes",
+         "trace-decodes" in cut.fails, ",".join(cut.fails)),
+        ("debug ingest: a redacted cell decodes as a counted gap, and the next empty cell "
+         "repeats the gap, not the value before it",
+         decoded["cols"]["heat_pump_mode_entity"] == ["heat", None, None]
+         and decoded["redacted"] == {"heat_pump_mode_entity": 1}
+         and decoded["cols"]["indoor_temp_entity"] == ["21.5", "21.5", "21.75"]
+         and decoded["missing"] == 1, str(decoded["cols"])),
     ]
 
 
@@ -294,7 +415,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     results = ingest(load_bundle(args.bundle), corrupt=args.corrupt)
     ok = not results.fails
-    print(f"RESULT stages_ok={12 - len(results.fails)}/12 unit=count")
+    ran = len(results.passed) + len(results.fails)
+    print(f"RESULT stages_ok={len(results.passed)}/{ran} unit=count")
+    print(f"RESULT unfinished={len(results.unfinished)} unit=count")
     print(f"RESULT smoke_verdict={'pass' if ok else 'fail'} unit=verdict")
     return 0 if ok else 1
 

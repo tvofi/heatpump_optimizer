@@ -783,7 +783,7 @@ figure of its own.* The page shows, top to bottom:
   the token, the entry name, every `person.*` and `calendar.*` entity id and
   the location removed.
 - **Debug collection.** Off until a bug report asks for one: **Start**
-  records a week of cycles into the diagnostics file, and the row counts the
+  records a week of cycles and minute readings into the diagnostics file, and the row counts the
   records and the days left. Once it has finished, the first press of
   **Start** only warns that starting again discards the finished collection;
   download the diagnostics first, then press it again.

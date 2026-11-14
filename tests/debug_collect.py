@@ -1083,7 +1083,9 @@ R.check(
 bare_size = debugger.download_bytes({**whole, "replay": None,
                                      "manifest": {**whole["manifest"],
                                                   "replay": "over the inline cap at every "
-                                                  "window tried"}})
+                                                  "window tried", "dropped": [
+                                                      "replay: over the inline cap at every "
+                                                      "window tried"]}})
 none_fit = asyncio.run(_replay_download(cap=bare_size + debugger.DOWNLOAD_HEADROOM_BYTES + 10))
 R.check(
     "when no window fits the inline cap the replay half is empty, the manifest says so, "
@@ -1534,6 +1536,10 @@ async def _planted_download(value_pass=True):
     collector.snapshots = [{"t": T0.isoformat(), "cycle": 1,
                             "data": json.dumps({"msg": _leak_text("snapshot")})}]
     collector.self_tests = {"feeds": {"error": _leak_text("self-test")}}
+    # Part F's sections: a trace cell and a lifecycle row, each carrying the text.
+    collector.trace = [{"start": T0.isoformat(), "n": 1, "gap": "0",
+                        "cols": {"heat_pump_mode_entity": _leak_text("trace")}}]
+    collector.lifecycle = [{"t": T0.isoformat(), "event": "load", "version": _leak_text("life")}]
     dt_util.freeze(T0 + timedelta(days=1))
     saved = _value_pass(value_pass)
     try:
@@ -2145,23 +2151,23 @@ def _literal_classes(tree):
 
 
 _census = []
-for _cls, _key, _state, _unit, _read in _PRECEDENCE_ROWS:
-    _pub = _published(_key, _state, _unit, _read, PUBLISHED)
+for _cls, _key, _reading, _unit, _read in _PRECEDENCE_ROWS:
+    _pub = _published(_key, _reading, _unit, _read, PUBLISHED)
     _entry = (_pub["input_problems"] or [{}])[0]
     _limit = _entry.get("max_age_minutes")
-    _row = f"{_cls}/{_key}"
+    _census_row = f"{_cls}/{_key}"
     _bounded = isinstance(_limit, (int, float))
     _ok_pre = (_entry.get("problem") == _cls and _entry.get("age_minutes") == 5.0
-               and _bounded == (_row not in _UNBOUNDED_ROWS))
+               and _bounded == (_census_row not in _UNBOUNDED_ROWS))
     if not _bounded:
-        _census.append({"row": _row, "pre": _ok_pre, "unbounded": True})
+        _census.append({"row": _census_row, "pre": _ok_pre, "unbounded": True})
         continue
     _at = PUBLISHED + timedelta(minutes=(_limit if _ok_pre else 0) - 5 + 1)
     _exported = diagnostics_mod._inputs_at(_pub, _at)
-    _reread = _published(_key, _state, _unit, _read, _at)
+    _reread = _published(_key, _reading, _unit, _read, _at)
     _at_read = diagnostics_mod._inputs_at(_pub, PUBLISHED)
     _census.append({
-        "row": _row, "pre": _ok_pre, "unbounded": False,
+        "row": _census_row, "pre": _ok_pre, "unbounded": False,
         "exported": _exported["input_problems"][0]["problem"] if _ok_pre else None,
         "reread": _reread["input_problems"][0]["problem"] if _ok_pre else None,
         "stale_agree": _ok_pre and _exported["stale_inputs"] == _reread["stale_inputs"],
@@ -2197,5 +2203,345 @@ R.check(
     "as published",
     all(row["null"] for row in _bounded_rows),
     str([row["row"] for row in _bounded_rows if not row["null"]]),
+)
+# -- part F (R10-DRAW-MAP-EVIDENCE): the minute trace, lifecycle rows, schema 2 --
+sys.path.insert(0, "tools/replay")
+import debug_ingest  # noqa: E402
+
+_cols = debugger.trace_columns({
+    "indoor_temp_entity": "sensor.indoor", "price_source": "entity",
+    "away_calendar": "calendar.family", "presence": ["person.anna", "sensor.b", "sensor.c"],
+    "zones": {"floor": "sensor.floor"}, "boost_minutes": 30})
+R.check(
+    "the trace's columns are the config keys holding an entity id, a list's indexed and a "
+    "mapping's by its sub-key; a person and a calendar are never a column, and no key "
+    "is spelled like an entity id",
+    _cols == {"indoor_temp_entity": "sensor.indoor", "presence[0]": "sensor.b",
+              "presence[1]": "sensor.c", "zones/floor": "sensor.floor"}
+    and not any("." in key for key in _cols),
+    str(_cols),
+)
+_cells = {
+    ("sensor.t", "21.456"): "21.46", ("sensor.t", "21.0"): "21", ("sensor.t", "-0.001"): "0",
+    ("sensor.t", "nan"): "~", ("sensor.t", "inf"): "~", ("sensor.t", None): "~",
+    ("sensor.t", "unavailable"): "unavailable", ("sensor.t", "cloudy"): "~",
+    ("select.m", "heat"): "heat", ("switch.b", "on"): "on", ("input_select.m", "Eco mode"): "Eco mode",
+    ("input_boolean.x", "off"): "off", ("binary_sensor.d", "on"): "on",
+    ("select.m", "59.334591"): "59.33", ("select.m", "59.334591,18.063240"): "~",
+    ("select.m", "person.anna"): "~", ("select.m", "Storgatan 12"): "~",
+    ("select.m", "tibber-secret-0123456789abcdef"): "~", ("select.m", ""): "~",
+    ("climate.c", "heat"): "~",
+}
+_got = {key: debugger.trace_cell(*key) for key in _cells}
+R.check(
+    "a trace cell: a number at two decimals (a full-precision coordinate leaves as the "
+    "replay half's), text only from an on/off or selector entity and only as the export "
+    "passes it, a gap for no state, a non-finite number, a comma, a person id, an "
+    "address, a token, empty text or another domain's text",
+    _got == _cells, str({k: v for k, v in _got.items() if v != _cells[k]}),
+)
+_T = T0.replace(hour=23, minute=55)
+_block = debugger.trace_open(_T)
+_steps = [debugger.trace_add(_block, _T, {"a": "1", "b": "x"}),
+          debugger.trace_add(_block, _T, {"a": "9", "b": "x"}),
+          debugger.trace_add(_block, _T + timedelta(minutes=2), {"a": "1", "b": "y", "c": "5"}),
+          debugger.trace_add(_block, _T + timedelta(minutes=3), {"a": "2", "c": "5"}),
+          debugger.trace_add(_block, _T + timedelta(minutes=5), {"a": "2"})]
+_enc = debugger.trace_encode(_block)
+R.check(
+    "a trace block: an unchanged cell is empty, a minute already written is skipped, a "
+    "skipped minute is counted in the gap column, a column new to the block opens with "
+    "a gap, one gone from it reads a gap, and the next UTC day opens a new block",
+    _steps == [True, True, True, True, False]
+    and _enc == {"start": _T.isoformat(), "n": 3, "gap": "0,1,",
+                 "cols": {"a": "1,,2", "b": "x,y,~", "c": "~,5,"}},
+    f"{_steps} {_enc}",
+)
+_summary = debugger.trace_summary([_enc, {**_enc, "start": (_T + timedelta(minutes=10)).isoformat()}])
+R.check(
+    "the manifest's trace summary counts the minutes held and the minutes between the "
+    "first and the last that are not, and says the arbiter column is absent",
+    _summary["minutes"] == 6 and _summary["missing_minutes"] == 14 - 6
+    and _summary["first_minute"] == _T.isoformat() and _summary["columns"] == ["a", "b", "c"]
+    and _summary["arbiter"].startswith("absent")
+    and debug_ingest.decode_trace([_enc, {**_enc, "start": (_T + timedelta(minutes=10)).isoformat()}])[
+        "missing"] == _summary["missing_minutes"],
+    str(_summary),
+)
+_had = getattr(debugger.pump_arbiter, "pass_record", None)
+_none = debugger.arbiter_cells(_coord())
+debugger.pump_arbiter.pass_record = lambda coord: {
+    "origin": "sweep", "written_c": 41.234, "defrost": True, "t": T0, "note": "Storgatan 12"}
+try:
+    _arb = debugger.arbiter_cells(_coord())
+    _arb_summary = debugger.trace_summary([{"start": T0.isoformat(), "n": 1, "gap": "0",
+                                            "cols": _arb}])
+finally:
+    if _had is None:
+        del debugger.pump_arbiter.pass_record
+    else:
+        debugger.pump_arbiter.pass_record = _had
+R.check(
+    "the arbiter's pass record becomes prefixed columns where the arbiter publishes one, "
+    "through the same cell rules; none where it does not, and the manifest says which",
+    _none == {} and _arb == {"arbiter/origin": "sweep", "arbiter/written_c": "41.23",
+                             "arbiter/defrost": "1", "arbiter/t": "~", "arbiter/note": "~"}
+    and _arb_summary["arbiter"] == "present",
+    f"{_none} {_arb}",
+)
+
+
+def _states(**values):
+    hass = FakeHass()
+    for entity_id, state in values.items():
+        hass.states.set(entity_id.replace("__", "."), types.SimpleNamespace(state=state))
+    return hass
+
+
+async def _traced():
+    """Setup with the option on and off; the minute callback, a reload, the store."""
+    storage._DISK.clear()
+    storage._VERSIONS.clear()
+    timers = []
+    saved = debugger.async_track_time_interval
+    debugger.async_track_time_interval = lambda hass, action, every: (
+        timers.append((action, every)) or (lambda: None))
+    try:
+        hass = _states(sensor__indoor="21.04", select__mode="heat")
+        off = FakeEntry(entry_id="toff", options={CONF_DEBUG_COLLECT: False},
+                        data={"indoor_temp_entity": "sensor.indoor"})
+        await debugger.async_setup_debugger(hass, off, FakeCoordinator())
+        off_timers, off_disk = len(timers), dict(storage._DISK)
+        entry = FakeEntry(entry_id="tr", options={CONF_DEBUG_COLLECT: True}, data={
+            "indoor_temp_entity": "sensor.indoor", "heat_pump_mode_entity": "select.mode"})
+        coord = _coord()
+        coord.async_add_listener = lambda listener: (lambda: None)
+        coord.integration_version = "9.9.9"
+        await debugger.async_setup_debugger(hass, entry, coord)
+        collector = debugger.collector_for(coord)
+        action, every = timers[-1]
+        action(T0)  # before the first payload: no collection yet
+        before = collector.trace_blocks()
+        collector.record(coord, {"mode": "auto", "learners_frozen": True,
+                                 "learner_freeze_reason": "defrost", "input_health": "stale"}, T0)
+        for minute in range(3):
+            if minute == 2:
+                hass.states.set("sensor.indoor", types.SimpleNamespace(state="21.5"))
+            action(T0 + timedelta(minutes=minute, seconds=30))
+        await debugger.async_unload_debugger(coord)
+        stored = json.loads(storage._DISK[f"{DOMAIN}_tr_debug"])
+        coord2 = _coord()
+        coord2.async_add_listener = lambda listener: (lambda: None)
+        coord2.integration_version = "9.9.10"
+        await debugger.async_setup_debugger(hass, entry, coord2)
+        again = debugger.collector_for(coord2)
+        action2, _every = timers[-1]
+        action2(T0 + timedelta(minutes=9))
+        return {"off_timers": off_timers, "off_disk": off_disk, "every": every,
+                "before": before, "stored": stored, "again": again}
+    finally:
+        debugger.async_track_time_interval = saved
+        for coord_ in list(debugger._COLLECTORS):
+            debugger._COLLECTORS.pop(coord_, None)
+
+
+_tr = asyncio.run(_traced())
+_stored_trace = _tr["stored"].get("trace") or [{}]
+R.check(
+    "with the debug option off no minute timer is registered and nothing is stored "
+    "(the trace's null control); with it on, one timer a minute",
+    _tr["off_timers"] == 0 and _tr["off_disk"] == {}
+    and _tr["every"] == debugger.TRACE_EVERY == timedelta(minutes=1),
+    str(_tr["off_timers"]),
+)
+R.check(
+    "the minute timer samples nothing before the collection starts, then each mapped "
+    "input once a minute, and the unload's flush stores the open block",
+    _tr["before"] == []
+    and _stored_trace == [{"start": T0.isoformat(), "n": 3, "gap": "0,,",
+                           "cols": {"heat_pump_mode_entity": "heat,,",
+                                    "indoor_temp_entity": "21.04,,21.5"}}],
+    str(_tr["stored"].get("trace")),
+)
+_life = [(row["event"], row.get("version")) for row in _tr["again"].lifecycle]
+R.check(
+    "lifecycle rows: the collection's start, the unload's close and the next load, "
+    "each with the release that ran it",
+    _life == [("start", "9.9.9"), ("close", "9.9.9"), ("load", "9.9.10")],
+    str(_tr["again"].lifecycle),
+)
+R.check(
+    "a reload keeps the stored trace block and opens the next one beside it",
+    [b["n"] for b in _tr["again"].trace_blocks()] == [3, 1]
+    and _tr["again"].trace_blocks()[1]["start"] == (T0 + timedelta(minutes=9)).isoformat(),
+    str(_tr["again"].trace_blocks()),
+)
+_row_f = _tr["stored"]["rows"][0]
+R.check(
+    "a cycle row carries the learner freeze, its reason and the input verdict, inside "
+    "the debug store's declared domain",
+    (_row_f.get("learners_frozen"), _row_f.get("freeze_reason"), _row_f.get("input_health"))
+    == (True, "defrost", "stale")
+    and admitted("debug", {"rows": [_row_f], "trace": _stored_trace,
+                           "lifecycle": _tr["stored"]["lifecycle"]}),
+    str(_row_f),
+)
+
+
+async def _bad_blocks():
+    storage._DISK.clear()
+    storage._VERSIONS.clear()
+    key = f"{DOMAIN}_dbg_debug"
+    good = {"start": T0.isoformat(), "n": 1, "gap": "0", "cols": {"a": "1"}}
+    storage._DISK[key] = json.dumps({"started_at": T0.isoformat(), "rows": [], "snapshots": [],
+                                      "trace": [good, {**good, "n": "x"}, {**good, "start": "no"},
+                                                {**good, "cols": {"a": 1}}, "x"]})
+    storage._VERSIONS[key] = 1
+    collector, _ = _collector()
+    await collector.async_load()
+    return collector.trace
+
+
+R.check(
+    "a stored trace block outside its domain is dropped alone; the rest loads",
+    asyncio.run(_bad_blocks()) == [{"start": T0.isoformat(), "n": 1, "gap": "0", "cols": {"a": "1"}}],
+)
+for _n in range(debugger.LIFECYCLE_ROWS + 3):
+    _tr["again"].mark("load", T0 + timedelta(minutes=_n))
+R.check(
+    "a reload storm keeps only the newest lifecycle rows",
+    len(_tr["again"].lifecycle) == debugger.LIFECYCLE_ROWS
+    and _tr["again"].lifecycle[-1]["t"] == (T0 + timedelta(minutes=debugger.LIFECYCLE_ROWS + 2)).isoformat(),
+)
+
+
+# The drop order at the inline cap: a perturbation that adds columns walks it.
+def _fit_bundle(days, snaps=7):
+    trace = [{"start": (T0 + timedelta(days=d)).isoformat(), "n": 1, "gap": "0",
+              "cols": {"k": "x" * 2000}} for d in range(days)]
+    return {"schema": debugger.BUNDLE_SCHEMA, "manifest": {"replay": None, "dropped": []},
+            "replay": None, "trace": trace, "cycle_rows": [],
+            "payload_snapshots": [{"t": str(i), "data": "s" * 3000} for i in range(snaps)]}
+
+
+def _doc_of(since, end=T0 + timedelta(days=7)):
+    hours = int((end - since).total_seconds() // 3600)
+    return {"window": {"start": since.isoformat(), "end": end.isoformat()}, "rows": "r" * (100 * hours)}
+
+
+def _fit(cap, build=_doc_of, **kw):
+    saved = debugger.INLINE_CAP_BYTES, debugger.DOWNLOAD_HEADROOM_BYTES
+    debugger.INLINE_CAP_BYTES, debugger.DOWNLOAD_HEADROOM_BYTES = cap, 0
+    try:
+        return debugger.fit_download(_fit_bundle(**kw), build, T0 + timedelta(days=7), T0)
+    finally:
+        debugger.INLINE_CAP_BYTES, debugger.DOWNLOAD_HEADROOM_BYTES = saved
+
+
+def _size(**kw):
+    bundle = _fit(10 ** 9, **kw)
+    return debugger.download_bytes(bundle)
+
+
+_full = _size(days=7)
+_cuts = {}
+_huge = lambda since: {**_doc_of(since), "rows": "r" * 10 ** 6}  # noqa: E731
+for _label, _cap, _build in (("all", _full, _doc_of), ("thin", _full - 1, _doc_of),
+                             ("window", _full - 20000, _doc_of), ("trace", _full - 33000, _doc_of),
+                             ("none", _full, _huge), ("over", 1000, _doc_of)):
+    _fitted = _fit(_cap, build=_build, days=7)
+    _cuts[_label] = (_fitted["manifest"]["dropped"], len(_fitted["payload_snapshots"]),
+                     len(_fitted["trace"]), (_fitted["replay"] or {}).get("window", {}).get("start"))
+R.check(
+    "at the inline cap the download is cut in the note's order, each cut listed: "
+    "snapshots thinned to the first and newest, then a shorter replay window, then the "
+    "trace's oldest blocks, then the replay half; the cycle rows never",
+    _cuts["all"] == ([], 7, 7, T0.isoformat())
+    and _cuts["thin"][0] == ["payload_snapshots: kept the first and the newest of 7"]
+    and _cuts["thin"][1:] == (2, 7, T0.isoformat())
+    and _cuts["window"][0][0].startswith("payload_snapshots") and len(_cuts["window"][0]) == 2
+    and _cuts["window"][0][1].startswith("replay: window cut to")
+    and _cuts["window"][2] == 7 and _cuts["window"][3] != T0.isoformat()
+    and _cuts["trace"][0][-1].startswith("trace: the oldest") and 0 < _cuts["trace"][2] < 7
+    and _cuts["trace"][3] == (T0 + timedelta(days=6, hours=18)).isoformat()
+    and _cuts["none"][0][-1] == "replay: over the inline cap at every window tried"
+    and _cuts["none"][2:] == (7, None)
+    and _cuts["over"][2] == 0,
+    "\n".join(f"{k}: {v}" for k, v in _cuts.items()),
+)
+_nobuild = _fit(_size(days=2, build=None) - 1, build=None, days=2)
+R.check(
+    "with no replay half the snapshots and then the trace are still cut to the cap",
+    _nobuild["manifest"]["dropped"] == ["payload_snapshots: kept the first and the newest of 7"]
+    and _nobuild["replay"] is None,
+    str(_nobuild["manifest"]),
+)
+
+
+# The planted leak: private values reach the trace through the mapped inputs.
+async def _trace_download(value_pass=True):
+    hass, entry, coord, collector = _replay_install(plant_entry={
+        "name": NAME, "heat_pump_mode_entity": "select.mode",
+        "heat_pump_backup_heater_entity": "switch.backup",
+        "heat_pump_defrost_entity": "binary_sensor.anna_defrost"})
+    collector.columns = debugger.trace_columns({**entry.data, **entry.options})
+    for minute, (mode, indoor) in enumerate((
+            (NAME, EXACT[0]), ("person.anna", "21.0"), (TOKEN, "21.0"), ("heat", "21.0"))):
+        hass.states.set("select.mode", types.SimpleNamespace(state=mode))
+        hass.states.set("sensor.indoor", types.SimpleNamespace(state=indoor))
+        hass.states.set("switch.backup", types.SimpleNamespace(state="on"))
+        collector.sample(coord, T0 + timedelta(minutes=minute))
+    dt_util.freeze(T0 + timedelta(days=1))
+    saved = _value_pass(value_pass)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        _value_pass_restore(saved)
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+def _trace_leaks(download):
+    blob = json.dumps((download.get("debug") or {}).get("trace"))
+    return [text for text in (*PRIVATE, "person.anna", "calendar.family", "sensor.indoor",
+                              "select.mode") if text in blob]
+
+
+_leaky = asyncio.run(_trace_download(value_pass=False))
+_clean_tr = asyncio.run(_trace_download())
+_decoded = debug_ingest.decode_trace(_clean_tr["debug"]["trace"])
+# Mapped back to entities through the download's own config, as a D15 seat maps them.
+_by_key = debugger.trace_columns(_clean_tr["config"])
+_traced_states = {_by_key[key]: [[m.isoformat(), v, None, None]
+                                 for m, v in zip(_decoded["minutes"], vals) if v is not None]
+                  for key, vals in _decoded["cols"].items()}
+R.check(
+    "the planted leak's control: with the value pass broken, the entry's name planted as "
+    "a selector's state reaches the download's trace (the probe is not vacuous)",
+    NAME in _trace_leaks(_leaky),
+    str(_trace_leaks(_leaky)),
+)
+R.check(
+    "planted in the trace's inputs, the entry's name, a full-precision coordinate, a "
+    "person id and a token appear nowhere in the download's trace, no entity id is a "
+    "trace key, the name's cell decodes as a flagged gap, and the decoded trace passes "
+    "export.violations",
+    _trace_leaks(_clean_tr) == []
+    and _decoded["redacted"] == {"heat_pump_mode_entity": 1}
+    and _decoded["cols"]["heat_pump_mode_entity"] == [None, None, None, "heat"]
+    and _decoded["cols"]["indoor_temp_entity"][0] == "59.33"
+    and not _decoded["broken"]
+    and export.violations({"states": _traced_states}) == []
+    and _clean_tr["debug"]["schema"] == "hpo-debug/2"
+    and _clean_tr["debug"]["manifest"]["trace"]["minutes"] == 4,
+    f"leaks={_trace_leaks(_clean_tr)} decoded={_decoded['cols']} redacted={_decoded['redacted']} "
+    f"broken={_decoded['broken']} violations={export.violations({'states': _traced_states})} "
+    f"manifest={_clean_tr['debug']['manifest'].get('trace')}",
+)
+R.check(
+    "the manifest names each section's version, and the debug download is version 2",
+    _clean_tr["debug"]["manifest"]["sections"] == debugger.SECTION_VERSIONS
+    and debugger.SECTION_VERSIONS["trace"] == 1 and debugger.SECTION_VERSIONS["cycle_rows"] == 2,
+    str(_clean_tr["debug"]["manifest"].get("sections")),
 )
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

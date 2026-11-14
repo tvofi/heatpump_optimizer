@@ -72501,7 +72501,8 @@ R.check("UX-5 an empty reason is no cause", _ok and _got is None, str(_got))
 
 # -- R9-DBG-1 (#1939): the debug collector -------------------------------------
 # A week of what the install saw and did, behind the learning page's option,
-# handed to Home Assistant's own diagnostics download as an hpo-debug/1 bundle.
+# handed to Home Assistant's own diagnostics download as an hpo-debug/2 bundle
+# (part F of R10-DRAW-MAP-EVIDENCE added the minute trace and lifecycle rows).
 # Driven through the real coordinator's listener API: one row per newly
 # published payload (a listener call that publishes nothing new adds none: the
 # null control), one payload snapshot a day, one save an hour, a reload
@@ -72798,10 +72799,10 @@ async def _dbg_bundle():
 
 _dbg_b, _dbg_dg, _dbg_dg_off = _dbg_aio.run(_dbg_bundle())
 R.check(
-    "DBG-1 the bundle has the pre-study's hpo-debug/1 sections",
-    _dbg_b["schema"] == "hpo-debug/1"
+    "DBG-1 the bundle has the pre-study's sections and part F's, as hpo-debug/2",
+    _dbg_b["schema"] == "hpo-debug/2"
     and set(_dbg_b) == {"schema", "manifest", "replay", "cycle_rows", "payload_snapshots",
-                        "stores", "diagnostics"}
+                        "stores", "diagnostics", "trace", "lifecycle"}
     and _dbg_b["manifest"]["cycles"] == 3 and len(_dbg_b["cycle_rows"]) == 3
     and _dbg_b["replay"] is None,
     str({k: _dbg_b.get(k) for k in ("schema", "manifest")}),
@@ -72825,7 +72826,7 @@ _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
     "and a coordinate are redacted inside a payload snapshot",
-    _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
+    _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/2"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
     and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],

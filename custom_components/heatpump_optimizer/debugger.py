@@ -1,7 +1,7 @@
 """The debug collector: a week of what the install saw and did (R9-DBG-1, #1939).
 
 An owner who turns on the learning page's debug-collection option gets an
-``hpo-debug/1`` bundle in Home Assistant's own Download diagnostics: one slim
+``hpo-debug/2`` bundle in Home Assistant's own Download diagnostics: one slim
 row per published payload, one whole payload a day, and this entry's own store
 documents -- what a maintainer needs to see a week the owner says went wrong.
 Like the notifier it listens to the coordinator's updates, so the coordinator
@@ -26,16 +26,30 @@ allowlist and sanitiser ``tools/replay/export.py`` uses (``replay_doc``). A
 person or calendar entity is left out of it, as diagnostics redacts their ids.
 A window too large for the inline cap gives way to the newest shorter one that
 fits (``REPLAY_SPANS``); the manifest says which ran, or why there is none.
+
+The minute trace (R10-DRAW-MAP-EVIDENCE part F) is what the replay half cannot
+carry for a whole week: once a minute, each input the entry maps (person and
+calendar left out) and, where the arbiter publishes one, its pass record, one
+text column per config key per day, an empty cell when unchanged. A number
+leaves at two decimals, the replay half's coordinate precision; text only from
+an on/off or selector entity, and only as ``replay_doc.text_ok`` passes it. It
+rides inside the payload both diagnostics passes walk, so a value they redact
+becomes a cell a reader decodes as a flagged gap. Version 2 adds it, a load and
+close row per collector lifetime, and each cycle row's learner freeze and input
+verdict; the manifest names each section's version and what the inline cap cut
+(``fit_download``).
 """
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import inspect
 import json
 import logging
+import math
 import statistics
 import time
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Mapping
 from datetime import date, datetime, timedelta
 from functools import partial
 from pathlib import Path
@@ -44,12 +58,13 @@ from weakref import WeakKeyDictionary
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder import history as recorder_history
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from . import const, replay_doc
+from . import const, pump_arbiter, replay_doc
 from .accuracy import AccuracyTracker
 from .const import (
     CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID,
@@ -67,7 +82,11 @@ from .store import (
 _LOGGER = logging.getLogger(__name__)
 
 DEBUG_STORE_VERSION = 1
-BUNDLE_SCHEMA = "hpo-debug/1"
+BUNDLE_SCHEMA = "hpo-debug/2"
+#: Each section's own shape version, so a reader can refuse one it does not
+#: know while reading the rest: version 2 rows carry the freeze and the verdict.
+SECTION_VERSIONS = {"cycle_rows": 2, "payload_snapshots": 1, "stores": 1, "replay": 1,
+                    "trace": 1, "lifecycle": 1, "diagnostics": 1}
 COLLECT_SPAN = timedelta(days=7)
 SAVE_EVERY = timedelta(hours=1)
 SNAPSHOT_EVERY = timedelta(days=1)
@@ -86,6 +105,18 @@ DOWNLOAD_HEADROOM_BYTES = 256 * 1024
 #: shorter ones tried when it does not fit the inline cap (#2271).
 REPLAY_SPAN = COLLECT_SPAN
 REPLAY_SPANS = (REPLAY_SPAN, timedelta(days=3), timedelta(days=1), timedelta(hours=6))
+TRACE_EVERY = timedelta(minutes=1)
+#: The domains whose text states the trace keeps; every other text is a gap.
+TRACE_TEXT_DOMAINS = frozenset({"select", "input_select", "switch", "input_boolean",
+                                "binary_sensor"})
+#: A cell with no reading: no state, a text the trace may not carry, a non-finite number.
+TRACE_GAP = "~"
+_TRACE_WORDS = frozenset({"unavailable", "unknown"})
+#: A pass record's columns are prefixed so no config key can collide with one.
+#: No trace key holds a dot, so none is spelled like an entity id.
+ARBITER_PREFIX = "arbiter/"
+#: A reload storm cannot grow the lifecycle rows past this; the newest are kept.
+LIFECYCLE_ROWS = 500
 _INPUTS = ("indoor_temp", "outdoor_temp", "dhw_temp")
 _HEALTH = ("problem_inputs", "input_ages_minutes", "learners_frozen")
 
@@ -139,6 +170,11 @@ def cycle_row(
         "outdoor_temp": data.get("outdoor_temperature"),
         "dhw_temp": data.get("dhw_temperature"),
         "accuracy_sample": samples[-1].as_dict() if samples else None,
+        # D15 M7: whether the learners were frozen this cycle, why, and the
+        # input watchdog's verdict, as the payload published them.
+        "learners_frozen": data.get("learners_frozen"),
+        "freeze_reason": data.get("learner_freeze_reason"),
+        "input_health": data.get("input_health"),
         # The release that wrote the row (#2209's forward-carry): attribution
         # by the gap a restart leaves needs no inference from it.
         "version": coordinator.integration_version,
@@ -208,6 +244,157 @@ def _parsed(text: str) -> Any:
         return json.loads(text)
     except ValueError:
         return None
+
+
+# -- the minute trace (part F): one column per config key, one block per day --
+def trace_columns(config: Mapping[str, Any]) -> dict[str, str]:
+    """Column key -> entity id for every value of ``config`` spelled as an entity id:
+    its config key, ``key[i]`` inside a list, ``key/sub`` inside a mapping. A person
+    or a calendar is never one (``_public``), so no column reads either."""
+    out: dict[str, str] = {}
+
+    def walk(node: Any, key: str) -> None:
+        if isinstance(node, str) and replay_doc.ENTITY_ID.match(node):
+            out[key] = node
+        elif isinstance(node, Mapping):
+            for sub, value in node.items():
+                walk(value, f"{key}/{sub}" if key else str(sub))
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{key}[{index}]")
+
+    walk(_public(dict(config)), "")
+    return out
+
+
+def _trace_number(number: float) -> str:
+    """At most two decimals (``replay_doc.MAX_COORDINATE_DECIMALS``), no trailing ``.0``."""
+    if not math.isfinite(number):
+        return TRACE_GAP
+    text = repr(round(number, replay_doc.MAX_COORDINATE_DECIMALS) + 0.0)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def _trace_text(text: str) -> str:
+    """``text`` when it may leave the install as a cell, else a gap: the export's
+    value rule, which also refuses a comma, the cell separator."""
+    ok = text and replay_doc.text_ok(text) and not PRIVATE_ENTITY_ID.search(text)
+    return text if ok else TRACE_GAP
+
+
+def trace_cell(entity_id: str, state: str | None) -> str:
+    """One minute's cell for ``entity_id`` reading ``state`` (``None``: no state)."""
+    if state is None:
+        return TRACE_GAP
+    try:
+        return _trace_number(float(state))
+    except ValueError:
+        pass
+    if state in _TRACE_WORDS:
+        return state
+    return _trace_text(state) if entity_id.split(".", 1)[0] in TRACE_TEXT_DOMAINS else TRACE_GAP
+
+
+def arbiter_cells(coordinator: Any) -> dict[str, str]:
+    """The arbiter's newest pass record as cells, where this release publishes one.
+
+    The record is the arbiter's (``pump_arbiter.pass_record``, part A's); a
+    release without it gives no column and the manifest says so.
+    """
+    reader = getattr(pump_arbiter, "pass_record", None)
+    record = reader(coordinator) if callable(reader) else None
+    if dataclasses.is_dataclass(record) and not isinstance(record, type):
+        record = dataclasses.asdict(record)
+    if not isinstance(record, Mapping):
+        return {}
+    return {f"{ARBITER_PREFIX}{name}": _arbiter_cell(value) for name, value in record.items()}
+
+
+def _arbiter_cell(value: Any) -> str:
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, (int, float)):
+        return _trace_number(float(value))
+    return _trace_text(value) if isinstance(value, str) else TRACE_GAP
+
+
+def trace_open(minute: datetime) -> dict[str, Any]:
+    """An empty block starting at ``minute``; each block decodes alone."""
+    return {"start": minute, "at": None, "n": 0, "gap": [], "cols": {}, "last": {}}
+
+
+def trace_add(block: dict[str, Any], minute: datetime, cells: Mapping[str, str]) -> bool:
+    """Append one minute; ``False`` when ``minute`` belongs to the next UTC day.
+
+    A minute already written is skipped. The gap cell is the minutes skipped
+    since the previous sample, empty for none, and ``0`` for the first (a
+    stored text is never empty). A column new to the block is
+    a gap until its first reading; one gone from it reads a gap from then on.
+    """
+    if minute.date() != block["start"].date():
+        return False
+    at = block["at"]
+    if at is not None and minute <= at:
+        return True
+    skipped = 0 if at is None else int((minute - at) / TRACE_EVERY) - 1
+    block["gap"].append("0" if at is None else str(skipped) if skipped else "")
+    cols, last = block["cols"], block["last"]
+    for key in cols.keys() | cells.keys():
+        if key not in cols:
+            cols[key] = [TRACE_GAP] + [""] * (block["n"] - 1) if block["n"] else []
+            last[key] = TRACE_GAP if block["n"] else None
+        cell = cells.get(key, TRACE_GAP)
+        cols[key].append("" if cell == last[key] else cell)
+        last[key] = cell
+    block["at"], block["n"] = minute, block["n"] + 1
+    return True
+
+
+def trace_encode(block: dict[str, Any]) -> dict[str, Any]:
+    """A block as stored and downloaded: one comma-joined string per column."""
+    start = block["start"]
+    return {"start": start.isoformat() if isinstance(start, datetime) else start,
+            "n": block["n"], "gap": ",".join(block["gap"]),
+            "cols": {key: ",".join(cells) for key, cells in sorted(block["cols"].items())}}
+
+
+def _block_last(block: dict[str, Any]) -> datetime | None:
+    """The block's last sampled minute, from its start, count and gap cells."""
+    start = stored_instant(block.get("start"))
+    if start is None:
+        return None
+    skipped = sum(int(cell) for cell in block["gap"].split(",") if cell.isdigit())
+    return start + TRACE_EVERY * (block["n"] - 1 + skipped)
+
+
+def trace_summary(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """The manifest's account of the trace: its first minute, the minutes it holds,
+    the minutes between its first and last that it does not, and its columns."""
+    spans = [(stored_instant(b["start"]), _block_last(b)) for b in blocks]
+    spans = [(first, last) for first, last in spans if first is not None and last is not None]
+    minutes = sum(b["n"] for b in blocks)
+    keys = sorted({key for b in blocks for key in b["cols"]})
+    if not spans:
+        return {"first_minute": None, "minutes": 0, "missing_minutes": 0, "columns": [],
+                "arbiter": "absent: no minute was traced"}
+    first, last = min(f for f, _l in spans), max(l for _f, l in spans)
+    arbiter = any(key.startswith(ARBITER_PREFIX) for key in keys)
+    return {
+        "first_minute": first.isoformat(), "minutes": minutes,
+        "missing_minutes": int((last - first) / TRACE_EVERY) + 1 - minutes, "columns": keys,
+        "arbiter": "present" if arbiter else "absent: this release's arbiter publishes no pass record",
+    }
+
+
+def _blocks(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """The stored trace blocks inside their domain, each bad one dropped alone."""
+    items = raw.get("trace")
+    return [
+        {**item, "start": start.isoformat()} for item in (items if isinstance(items, list) else ())
+        if isinstance(item, dict) and {"start", "n", "gap", "cols"} <= item.keys()
+        and admitted("debug", {"trace": [item]}) and item["n"] > 0
+        and (start := stored_instant(item["start"])) is not None
+    ]
 
 
 # -- the self-tests (pre-study section 4); each reads, none actuates -----------
@@ -459,21 +646,75 @@ def replay_document(
     return replay_doc.seal(raw, conf)
 
 
-def fit_replay(bundle: dict[str, Any], build: Callable[[datetime], dict[str, Any]],
-               end: datetime, start: datetime) -> tuple[dict[str, Any] | None, str]:
-    """The longest of ``REPLAY_SPANS`` (none starting before ``start``) whose document
-    keeps ``bundle``'s download inside the inline cap, and what ran (executor)."""
-    for since in dict.fromkeys(max(start, end - span) for span in REPLAY_SPANS):
-        doc = build(since)
-        ran = f"{doc['window']['start']} .. {doc['window']['end']}"
-        whole = {**bundle, "replay": doc, "manifest": {**bundle["manifest"], "replay": ran}}
-        if download_bytes(whole) + DOWNLOAD_HEADROOM_BYTES <= INLINE_CAP_BYTES:
-            return doc, ran
-    return None, "over the inline cap at every window tried"
+_OVER_CAP = "over the inline cap at every window tried"
+
+
+def _fits(bundle: dict[str, Any]) -> bool:
+    return download_bytes(bundle) + DOWNLOAD_HEADROOM_BYTES <= INLINE_CAP_BYTES
+
+
+def _placed(base: dict[str, Any], doc: dict[str, Any] | None, ran: str | None,
+            dropped: list[str]) -> dict[str, Any]:
+    """``base`` carrying ``doc`` as its replay half (none: as it is), and the cuts made."""
+    manifest = {**base["manifest"], "dropped": dropped, **({"replay": ran} if ran else {})}
+    return {**base, **({"replay": doc} if doc is not None else {}), "manifest": manifest}
+
+
+def _ran(doc: dict[str, Any]) -> str:
+    return f"{doc['window']['start']} .. {doc['window']['end']}"
+
+
+def _attempts(bundle: dict[str, Any], docs: list[dict[str, Any]]):
+    """Every download in the drop order, each cut deeper than the one before."""
+    snaps = bundle["payload_snapshots"]
+    variants = [(bundle, [])]
+    if len(snaps) > 2:
+        variants.append(({**bundle, "payload_snapshots": [snaps[0], snaps[-1]]},
+                         [f"payload_snapshots: kept the first and the newest of {len(snaps)}"]))
+    windows = [(doc, _ran(doc), [f"replay: window cut to {_ran(doc)}"] if index else [])
+               for index, doc in enumerate(docs)] or [(None, None, [])]
+    for doc, ran, cut in windows:
+        for base, notes in variants:
+            yield _placed(base, doc, ran, [*notes, *cut])
+    base, notes = variants[-1]
+    doc, ran, cut = windows[-1]
+    stages = [_placed(base, doc, ran, [*notes, *cut])]
+    if docs:
+        stages.append(_placed({**base, "replay": None}, None, _OVER_CAP,
+                              [*notes, f"replay: {_OVER_CAP}"]))
+    for index, placed in enumerate(stages):
+        if index:
+            yield placed
+        days = placed.get("trace") or []
+        for gone in range(1, len(days) + 1):
+            yield {**placed, "trace": days[gone:], "manifest": {
+                **placed["manifest"], "dropped": [
+                    *placed["manifest"]["dropped"], f"trace: the oldest {gone} of {len(days)} blocks"]}}
+
+
+def fit_download(bundle: dict[str, Any], build: Callable[[datetime], dict[str, Any]] | None,
+                 end: datetime, start: datetime) -> dict[str, Any]:
+    """``bundle`` with its replay half, cut to the inline cap in the note's drop order
+    (executor); the manifest's ``dropped`` lists each cut, ``replay`` what ran.
+
+    Payload snapshots thinned to the first and the newest go before a shorter
+    replay window, each window down ``REPLAY_SPANS`` before the trace's oldest
+    blocks, and those before the replay half itself. The cycle rows, the stores
+    and the manifest are never cut; when even the deepest cut is over the cap,
+    it is returned and ``capped`` makes it the summary.
+    """
+    docs = [] if build is None else [build(since) for since in dict.fromkeys(
+        max(start, end - span) for span in REPLAY_SPANS)]
+    attempt = bundle
+    for attempt in _attempts(bundle, docs):
+        if _fits(attempt):
+            return attempt
+    return attempt
 
 
 class DebugCollector:
-    """One entry's ring: its rows, its daily payload snapshots, and whether it is final."""
+    """One entry's ring: its rows, its daily payload snapshots, its minute trace, its
+    lifecycle rows, and whether it is final."""
 
     def __init__(
         self,
@@ -496,6 +737,12 @@ class DebugCollector:
         self._closed = False
         self.self_tests: dict[str, Any] | None = None
         self.self_tests_at: datetime | None = None
+        #: The trace's closed blocks as stored, the open one, and what it reads.
+        self.trace: list[dict[str, Any]] = []
+        self._block: dict[str, Any] | None = None
+        self.columns: dict[str, str] = {}
+        self.lifecycle: list[dict[str, Any]] = []
+        self.version: str | None = None
 
     async def async_load(self) -> None:
         raw = await load_mapping(self._store, "the debug collection") or {}
@@ -505,6 +752,8 @@ class DebugCollector:
         self.final = raw.get("final") is True
         self.rows = _kept(raw, "rows", {"t"})
         self.snapshots = _kept(raw, "snapshots", {"t", "cycle", "data"})
+        self.trace = _blocks(raw)
+        self.lifecycle = _kept(raw, "lifecycle", {"t", "event"})
         tests = raw.get("self_tests")
         self.self_tests = _parsed(tests) if isinstance(tests, str) else None
         self.self_tests_at = stored_instant(raw.get("self_tests_at")) if self.self_tests else None
@@ -515,7 +764,37 @@ class DebugCollector:
         if self.self_tests_at is not None and tests:
             tests["self_tests_at"] = self.self_tests_at.isoformat()
         return {**start, "final": self.final, "rows": list(self.rows),
-                "snapshots": list(self.snapshots), **tests}
+                "snapshots": list(self.snapshots), "trace": self.trace_blocks(),
+                "lifecycle": list(self.lifecycle), **tests}
+
+    def trace_blocks(self) -> list[dict[str, Any]]:
+        """Every block as stored, the open one encoded as it stands."""
+        return self.trace + ([trace_encode(self._block)] if self._block else [])
+
+    def mark(self, event: str, now: datetime) -> None:
+        """A lifecycle row while a collection runs: a load, a close or a start."""
+        if self.started_at is None or self.final:
+            return
+        row = {"t": now.isoformat(), "event": event, "version": self.version}
+        self.lifecycle = [*self.lifecycle, {k: v for k, v in row.items() if v is not None}
+                          ][-LIFECYCLE_ROWS:]
+
+    def sample(self, coordinator: Any, now: datetime) -> None:
+        """One minute of the trace: each mapped input's cell and the pass record's."""
+        if self._closed or self.final or self.started_at is None:
+            return
+        if now - self.started_at >= COLLECT_SPAN:
+            return
+        minute = now.replace(second=0, microsecond=0)
+        states = self._hass.states
+        cells = {key: trace_cell(eid, getattr(states.get(eid), "state", None))
+                 for key, eid in self.columns.items()}
+        cells.update(arbiter_cells(coordinator))
+        if self._block is None or not trace_add(self._block, minute, cells):
+            if self._block is not None:
+                self.trace.append(trace_encode(self._block))
+            self._block = trace_open(minute)
+            trace_add(self._block, minute, cells)
 
     async def async_save(self) -> None:
         try:
@@ -542,6 +821,7 @@ class DebugCollector:
     def record(self, coordinator: Any, data: Any, now: datetime) -> None:
         if self.started_at is None:
             self.started_at = now
+            self.mark("start", now)
         if now - self.started_at >= COLLECT_SPAN:
             self.finalize(coordinator)
             return
@@ -555,6 +835,7 @@ class DebugCollector:
             self._spawn(self.async_save())
 
     async def async_close(self) -> None:
+        self.mark("close", dt_util.utcnow())
         self._closed = True
         await self.async_save()
 
@@ -600,6 +881,7 @@ class DebugCollector:
     def restart(self) -> None:
         self.started_at, self.final, self.rows, self.snapshots = None, False, [], []
         self._saved_at, self.self_tests, self.self_tests_at = None, None, None
+        self.trace, self._block, self.lifecycle = [], None, []
         self._spawn(self.async_save())
 
     def status(self) -> dict[str, Any]:
@@ -612,7 +894,8 @@ class DebugCollector:
     async def async_bundle(
         self, coordinator: Any, diagnostics: Any = None, entry: Any = None
     ) -> dict[str, Any]:
-        """The ``hpo-debug/1`` bundle; with ``entry``, its replay half filled."""
+        """The ``hpo-debug/2`` bundle; with ``entry``, its replay half filled and the
+        whole cut to the inline cap (``fit_download``)."""
         stores = await self._read()
         now = dt_util.utcnow()
         bundle = {
@@ -634,23 +917,38 @@ class DebugCollector:
                 "self_tests_age_hours": (
                     round(age / 3600.0, 1)
                     if (age := stored_age_seconds(self.self_tests_at, now)) is not None else None),
+                "sections": dict(SECTION_VERSIONS),
+                "trace": trace_summary(self.trace_blocks()),
+                "dropped": [],
             },
             "replay": None,
+            "trace": self.trace_blocks(),
+            "lifecycle": list(self.lifecycle),
             "cycle_rows": list(self.rows),
             "payload_snapshots": [{**s, "data": _parsed(s["data"])} for s in self.snapshots],
             "stores": {key: data for key, (_v, data) in stores.items()},
             "diagnostics": diagnostics,
         }
-        if entry is not None:
-            bundle["replay"], bundle["manifest"]["replay"] = await self._async_replay(
-                entry, bundle)
+        if entry is None:
+            return bundle
+        start, end = replay_window(self.started_at, now)
+        build, bundle["manifest"]["replay"] = await self._async_history(entry, start, end)
+        for attempt in (build, None):
+            try:
+                return await self._hass.async_add_executor_job(
+                    fit_download, bundle, attempt, end, start)
+            except replay_doc.Refused as err:
+                bundle["manifest"]["replay"] = str(err)
+            except Exception as err:  # noqa: BLE001 - diagnostics never breaks
+                bundle["manifest"]["replay"] = f"the recorder could not be read: {err!r}"
         return bundle
 
-    async def _async_replay(self, entry: Any, bundle: dict[str, Any]) -> tuple[Any, str]:
-        """The replay half and what the manifest says of it; never raises."""
+    async def _async_history(
+        self, entry: Any, start: datetime, end: datetime
+    ) -> tuple[Callable[[datetime], dict[str, Any]] | None, str | None]:
+        """The replay half's builder over the recorder's history, or why there is none."""
         if "recorder" not in self._hass.config.components:
             return None, "no recorder is set up"
-        start, end = replay_window(self.started_at, dt_util.utcnow())
         registry = registry_rows(er.async_get(self._hass))
         wants = replay_entities({
             "entry_id": entry.entry_id, "version": entry.version,
@@ -665,16 +963,12 @@ class DebugCollector:
                 recorder_history.get_significant_states, self._hass, start, end, entity_ids,
                 include_start_time_state=True, significant_changes_only=False,
             )) if entity_ids else {}
-            build = partial(replay_document, wants, registry, history,
-                            time_zone=self._hass.config.time_zone,
-                            schema=instance.schema_version,
-                            conf=replay_doc.conf_keys(vars(const)))
-            return await self._hass.async_add_executor_job(
-                fit_replay, bundle, lambda since: build((since, end)), end, start)
-        except replay_doc.Refused as err:
-            return None, str(err)
         except Exception as err:  # noqa: BLE001 - diagnostics never breaks
             return None, f"the recorder could not be read: {err!r}"
+        build = partial(replay_document, wants, registry, history,
+                        time_zone=self._hass.config.time_zone, schema=instance.schema_version,
+                        conf=replay_doc.conf_keys(vars(const)))
+        return (lambda since: build((since, end))), None
 
 
 def collector_for(coordinator: Any) -> DebugCollector | None:
@@ -694,8 +988,17 @@ async def async_setup_debugger(hass: HomeAssistant, entry: Any, coordinator: Any
         ),
     )
     await collector.async_load()
+    collector.version = coordinator.integration_version
+    collector.columns = trace_columns({**entry.data, **entry.options})
+    collector.mark("load", dt_util.utcnow())
     _COLLECTORS[coordinator] = collector
     entry.async_on_unload(coordinator.async_add_listener(lambda: collector.observe(coordinator)))
+
+    @callback
+    def _minute(now: datetime) -> None:
+        collector.sample(coordinator, now)
+
+    entry.async_on_unload(async_track_time_interval(hass, _minute, TRACE_EVERY))
 
 
 async def async_unload_debugger(coordinator: Any) -> None:

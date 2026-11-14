@@ -555,6 +555,14 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "self_tests": _TEXT,
         # #2814: when they ran, so a download can say how old they are.
         "self_tests_at": _AT,
+        # Part F (R10-DRAW-MAP-EVIDENCE): each row's learner freeze and input
+        # verdict; the minute trace's blocks, one text column per config key;
+        # one row per collector load, close and start.
+        "rows/#/learners_frozen": _FLAG, "rows/#/freeze_reason": _TEXT,
+        "rows/#/input_health": _TEXT,
+        "trace/#/start": _AT, "trace/#/n": _COUNT, "trace/#/gap": _TEXT,
+        "trace/#/cols/~": _TEXT, "trace/#/cols/*": _TEXT,
+        "lifecycle/#/t": _AT, "lifecycle/#/event": _TEXT, "lifecycle/#/version": _TEXT,
     },
 }
 

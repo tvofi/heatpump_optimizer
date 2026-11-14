@@ -13,6 +13,12 @@ becomes SECONDS: the perturbation. On the synthetic week (30 min cadence)
 restart_gaps reads 0 unplanted, 0 at 3600 (one skipped cycle), 1 at 5400 and
 1 at 12054 (the owner's upgrade gap). Prints each gap's start, so a finder
 dates releases against it with ``git for-each-ref refs/tags``.
+
+An ``hpo-debug/2`` bundle also logs each collector load and close with the
+release that ran it (``lifecycle``, part F of R10-DRAW-MAP-EVIDENCE): each load
+after the first is printed as a ``RESTART`` with the close before it, so a
+restart is read, not inferred from spacing. A version 1 bundle has none and
+prints ``lifecycle=absent``: the spacing rule is then the only evidence.
 """
 from __future__ import annotations
 
@@ -60,7 +66,27 @@ def main() -> int:
     print(f"RESULT restart_gaps={len(gaps)} unit=count")
     for start, s in gaps:
         print(f"GAP from={start.isoformat()} seconds={s:g}")
+    lifecycle(bundle.get("lifecycle"))
     return 0
+
+
+def lifecycle(rows: object) -> None:
+    """Each logged restart: a load after the collection began, with the close before it."""
+    if not isinstance(rows, list):
+        print("RESULT lifecycle=absent unit=flag")
+        return
+    restarts, closed = [], None
+    for row in rows:
+        if row.get("event") == "close":
+            closed = row
+        elif row.get("event") == "load":
+            restarts.append((closed, row))
+            closed = None
+    print(f"RESULT lifecycle_rows={len(rows)} unit=count")
+    print(f"RESULT restarts_logged={len(restarts)} unit=count")
+    for close, load in restarts:
+        print(f"RESTART at={load['t']} version={load.get('version')} "
+              f"closed={close['t'] if close else 'unlogged'}")
 
 
 if __name__ == "__main__":
