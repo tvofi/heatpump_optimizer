@@ -38,8 +38,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with 
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
 forgotten with it. Every threshold
 here is a named constant from one day on one install, not a measurement.
-``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
-on decay, so
+``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+on each decay, so a record stored over it is held to it by the first pass,
 evidence from before a firmware change is outvoted in a bounded number of
 episodes and an install that stops switching unlatches in a bounded time.
 """
