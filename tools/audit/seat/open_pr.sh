@@ -45,7 +45,7 @@ pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_o
 # branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
 # (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
 # finished run's leftover, which takes the -pr name below as a lone run does.
-OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
+OP_REG=$(awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}' <<<"$(git -C "$M" worktree list --porcelain)")  # mut:opreg
 if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
 elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
 mkdir -p "$D"; cd "$M"
@@ -122,6 +122,7 @@ $(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
 op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
   git -C "$M" worktree prune
   git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
+  # A here-string, not a pipe: under pr_trap's pipefail a grep -q leaving at an early match SIGPIPEs a long list (141)
   if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
     [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
       || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
