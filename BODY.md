@@ -69,15 +69,15 @@ MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 
 ## Unpinned sites
 
-`tools/pr/ci_predict.py` lists 8 `ADDED UNPINNED` sites. Each is killed by the group's block named in `## Mutation proof`, and each is pinned by `mutation-autofix` once the pull request opens (`ci-autofix.md`):
-- `optimizer.py:860` CLAMP_DROP, `min(outdoor, target)` in the `_held_bisected` call. This is the line part 1's pin c7dd28c1 held (killed by `tests/features.py`); that pin went stale on the move and is deleted here.
-- `optimizer.py:877` RETURN_DEL `return held_at(lo)`.
-- `optimizer.py:897` GUARD_OFF `if top is None:`.
-- `optimizer.py:902` RETURN_DEL in `_held_at_valve_top`.
-- `optimizer.py:914` RETURN_DEL in `_pump_unreachable`.
-- `optimizer.py:940` RETURN_DEL in `_held_unreachable`.
-- `thermal_model.py:2392` CLAMP_DROP x2 (`KILLED CLAMP_DROP t_rad` / `t_floor`).
-- `thermal_model.py:2404` GUARD_OFF (`KILLED GUARD_OFF valve_top_equilibrium none`).
+`tools/pr/ci_predict.py` lists these `ADDED UNPINNED` sites. Each is killed by the group's block named in `## Mutation proof` and pinned by `mutation-autofix` once the pull request opens (`ci-autofix.md`):
+- custom_components/heatpump_optimizer/optimizer.py:860 CLAMP_DROP: `min(outdoor, target)` in the `_held_bisected` call. Part 1's pin c7dd28c1 (killed by `tests/features.py`) held this text before the move; that pin went stale on the move and is deleted here.
+- custom_components/heatpump_optimizer/optimizer.py:877 RETURN_DEL: `return held_at(lo)`.
+- custom_components/heatpump_optimizer/optimizer.py:897 GUARD_OFF: `if top is None:`.
+- custom_components/heatpump_optimizer/optimizer.py:902 RETURN_DEL: `_held_at_valve_top`'s return.
+- custom_components/heatpump_optimizer/optimizer.py:914 RETURN_DEL: `_pump_unreachable`'s return.
+- custom_components/heatpump_optimizer/optimizer.py:940 RETURN_DEL: `_held_unreachable`'s return.
+- custom_components/heatpump_optimizer/thermal_model.py:2392 CLAMP_DROP*2: `KILLED CLAMP_DROP t_rad` and `KILLED CLAMP_DROP t_floor` by spec.
+- custom_components/heatpump_optimizer/thermal_model.py:2404 GUARD_OFF: `KILLED GUARD_OFF valve_top_equilibrium none` by spec.
 
 The diff run reads every RETURN_DEL and GUARD_OFF above killed. The three survivors prepr's `MUTANT_CMD` run reports on the diff's added lines are CMP_BOUND equality bounds, triaged equivalent rather than pinned:
 - custom_components/heatpump_optimizer/optimizer.py `_held_at_valve_top` CMP_BOUND db7fdb5e
