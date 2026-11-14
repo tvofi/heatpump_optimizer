@@ -251,6 +251,10 @@ def _module(name: str, *candidates: str):
 #: The train's state classifier (R10-FLOW-MAIN-GATE, K15): the one owner of
 #: "is this head red", read by MAIN and PRS rather than restated here.
 mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
+#: The CI-priority rule (owner, tvofi 2026-10-28): the one order owed PRs print in.
+cpri = _module("ci_priority_tick", "tools/audit/seat/ci_priority.py")
+#: A paused.json record older than this with no train running is owed (P267).
+PAUSED_OWED_MIN = 60
 
 
 def verdict_kind(line: str, head: str) -> "str | None":
@@ -521,6 +525,8 @@ class Tick:
                   + ("" if len(preprs) < 4 else " -- do not start a fifth"),
                   flag=len(preprs) >= 4)
         queue, open_ = self._queue(), 0
+        if not live:
+            self.paused_unresumed(S)
         if queue is not None:
             if not queue:
                 self.line(S, "queue empty" if self.queues else "no --queue given")
@@ -925,7 +931,7 @@ class Tick:
                 # A fork head's branch is no group's; the roster's resume.pr maps it
                 # (as merge_train._roster_group does).
                 group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not None and roster else None
-                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 2  # RANK_OTHER, roster unread
+                rank = self._owed_rank(rl, roster, crit, group, files.get(n))
                 owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
@@ -934,6 +940,49 @@ class Tick:
                      if skipped else ""))
         self.payloads(S)
         self.blocked_stops(S, heads)
+
+    def _owed_rank(self, rl, roster, crit, group, files) -> tuple:
+        """ci_priority.rank of an owed PR: the one CI-priority order (cp/hotfix/outside, then
+        production or a major saving, then the rest), each group's mapping read from the roster.
+        An unread roster or setting ranks last, as before."""
+        last = (99, 0, 0, 0, 0)
+        if cpri is None or rl is None or not roster:
+            return last
+        try:
+            setting = cpri.load_setting()
+        except cpri.SettingError as e:
+            self.unreadable("OWED", "ci_priority setting", str(e)[:120])
+            return last
+        prod = any(str(f).startswith("custom_components/") for f in files or [])
+        return cpri.rank(group, {rl.norm_group(str(c)) for c in crit}, roster, setting,
+                         touches_production=prod)
+
+    def paused_unresumed(self, S: str) -> None:
+        """`paused.json` beside the train's state (ci_pause.py) holding a record older than
+        PAUSED_OWED_MIN while no train runs: that PR's CI is paused and nothing will resume it."""
+        dirs = {os.path.dirname(os.path.abspath(q)) for q in self.queues}
+        if self.train_log:
+            dirs.add(os.path.dirname(os.path.abspath(self.train_log)))
+        for d in sorted(dirs):
+            path = os.path.join(d, "paused.json")
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    recs = json.load(fh)
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError) as e:
+                self.unreadable(S, f"paused record {path}", str(e)[:120])
+                continue
+            for r in recs if isinstance(recs, list) else []:
+                try:
+                    age = (self.now.timestamp() - float(r["paused_at"])) / 60
+                except (KeyError, TypeError, ValueError):
+                    self.unreadable(S, f"paused record {path}", "a record without a numeric paused_at")
+                    continue
+                if age > PAUSED_OWED_MIN:
+                    self.line(S, f"OWED paused-ci #{r.get('pr')} {str(r.get('head') or '')[:12]} "
+                                 f"paused CI never resumed ({int(age)} min, runs {r.get('run_ids')}, "
+                                 f"no train running)", flag=True)
 
     def _dispatch_newer(self, topic: str, sha: str) -> "bool | None":
         """A `dispatch/fixer-<topic>` tip committed after the handoff-wip tip `sha`; None: a read failed."""
@@ -4419,6 +4468,27 @@ def self_test() -> int:
             ("a fork-head outside PR, mapped by resume.pr, shares the critical path's rank and orders by number "
              "(#98 first); unrecorded, it is the other rank, after it",
              [x.split()[2] for x in o_fk] == ["#98", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#98"])])
+        total, failed = total + a, failed + f
+        # Carry 2 (P267): a paused.json record older than PAUSED_OWED_MIN with no train running is owed.
+        with tempfile.TemporaryDirectory() as ptd:
+            qpath = os.path.join(ptd, "queue.json")
+            now_ts = datetime.datetime(2026, 11, 11, 12, 0, tzinfo=datetime.timezone.utc)
+
+            def paused_owed(age_min, write=True):
+                if write:
+                    with open(os.path.join(ptd, "paused.json"), "w") as fh:
+                        json.dump([{"pr": 7, "head": "a" * 40, "run_ids": [1],
+                                    "paused_at": now_ts.timestamp() - age_min * 60}], fh)
+                tt = Tick("o/r", ".", queue=[qpath], now=now_ts)
+                tt.paused_unresumed("TRAIN")
+                return [x["text"] for x in tt.sections.get("TRAIN", []) if x["text"].startswith("OWED paused-ci")]
+            o_old, o_young = paused_owed(PAUSED_OWED_MIN + 5), paused_owed(PAUSED_OWED_MIN - 5)
+            os.remove(os.path.join(ptd, "paused.json"))
+            o_none = paused_owed(0, write=False)
+        a, f = check("OWED paused CI", [
+            ("paused CI: a record older than the bound is owed, naming 'paused CI never resumed'",
+             len(o_old) == 1 and "#7" in o_old[0] and "paused CI never resumed" in o_old[0]),
+            ("null: a younger record, and no paused.json, owe nothing", o_young == [] and o_none == [])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).

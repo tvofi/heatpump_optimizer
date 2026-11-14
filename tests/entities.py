@@ -23843,6 +23843,16 @@ R.check(
     (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
+# --- R10-CI-PRIORITY-PAUSE: the tier rule, the train's pause and the sweep's priority/zombie rules ---
+for _cp_script in ("tools/audit/seat/ci_priority.py", "tools/audit/seat/ci_pause.py", "tools/pr/cancel_superseded.py"):
+    _cp_run = subprocess.run([sys.executable, "-I", str(_closure.ROOT / _cp_script), "--self-test"],
+                             capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+    R.check(
+        f"{_cp_script} --self-test passes",
+        _cp_run.returncode == 0 and ", 0 failed" in _cp_run.stdout,
+        (_cp_run.stdout + _cp_run.stderr).strip()[-400:],
+    )
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files

@@ -806,7 +806,13 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
 #: lists them). `roster_edit.py set-source` writes a word of SOURCES; absent
 #: means the programme's own audit or owner work.
 OUTSIDE = "outside"
-SOURCES = (OUTSIDE,)
+#: `source` values (intake, P268): "outside" is a contribution from outside the
+#: project; "user" an item the owner or an end user submitted (a report or a
+#: request, not a hotfix by itself); "audit" and "programme" are our own.
+SOURCES = (OUTSIDE, "user", "audit", "programme")
+#: the five rules under which `hotfix` may be true (owner rulings, P268).
+HOTFIX_RULES = ("user-production-bug", "owner-called", "fixing-phase-critical",
+                "main-red-required", "merge-deadlock")
 
 
 def is_outside(group: dict) -> bool:
@@ -820,11 +826,52 @@ def is_outside(group: dict) -> bool:
 
 
 def is_hotfix(group: dict) -> bool:
-    """Whether the group is a hotfix: `kind` "bug" (the user-reported finding) or
-    a `HOTFIX` in its name. A hotfix outranks an outside group (owner ruling
-    tvofi 2026-11-07, triage P420: "unless i call the owner one a hotfix")."""
+    """Whether the group is a hotfix: `hotfix` is True, `kind` "bug" (the
+    user-reported finding) or a `HOTFIX` in its name. A hotfix outranks an
+    outside group (owner ruling tvofi 2026-11-07, triage P420: "unless i call
+    the owner one a hotfix"). `set-field hotfix` admits True only under one of
+    HOTFIX_RULES, with its evidence."""
     return isinstance(group, dict) and (
-        group.get("kind") == "bug" or "HOTFIX" in str(group.get("group") or "").upper())
+        group.get("hotfix") is True or group.get("kind") == "bug"
+        or "HOTFIX" in str(group.get("group") or "").upper())
+
+
+def touches_production(group: dict) -> bool:
+    """Class production, or any of the group's files under custom_components/."""
+    if not isinstance(group, dict):
+        return False
+    return ("production" in str(group.get("class") or "").replace(",", " ").split()
+            or any(str(f).startswith("custom_components/") for f in group.get("files") or []))
+
+
+def savings_h(group: dict) -> "float | None":
+    """The group's recorded saving in hours (`savings`), or None when it is absent or not a number."""
+    v = group.get("savings") if isinstance(group, dict) else None
+    return None if isinstance(v, bool) or not isinstance(v, (int, float)) else float(v)
+
+
+def _replan_production(group: dict) -> bool:
+    """Whether replan.py puts the group in one of its PRODUCTION lanes; False when replan is unreadable."""
+    import importlib.util
+    try:
+        path = Path(__file__).resolve().parents[2] / "tools" / "plan" / "replan.py"
+        spec = importlib.util.spec_from_file_location("replan_lanes_for_roster_lib", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.roster_lane(group) in mod.PRODUCTION
+    except Exception:  # noqa: BLE001 - an unreadable replan is "not production", never a crash
+        return False
+
+
+def group_class(group: dict) -> str:
+    """The group's `class`, or with no class "production" when replan's lane for it is a
+    production lane, else "instrument". A class of several tokens ("owner,P2") is returned as written."""
+    if not isinstance(group, dict):
+        return "instrument"
+    c = group.get("class")
+    if isinstance(c, str) and c:
+        return c
+    return "production" if _replan_production(group) else "instrument"
 
 
 #: dispatch_rank's answers, best first.
@@ -1196,6 +1243,20 @@ def _self_test() -> int:
               and dispatch_rank(rk, "O1", set()) == RANK_TOP
               # no group id is RANK_OTHER even where a roster row carries no id and is a hotfix
               and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == RANK_OTHER)
+        check("P268 readers: hotfix True and an R10-HOTFIX- name are hotfixes; a source-user request touching only dev/ is not",
+              is_hotfix({"group": "A", "hotfix": True}) and is_hotfix({"group": "R10-HOTFIX-Q"})
+              and not is_hotfix({"group": "B", "source": "user", "files": ["dev/x.md"]}))
+        check("P268 readers: touches_production reads class and custom_components/ files",
+              touches_production({"class": "production"})
+              and touches_production({"files": ["tests/a.py", "custom_components/x/y.py"]})
+              and not touches_production({"class": "instrument", "files": ["dev/a.md"]}))
+        check("P268 readers: savings_h is the number or None (a bool and a string are None)",
+              (savings_h({"savings": 14}), savings_h({}), savings_h({"savings": True}), savings_h({"savings": "9"}))
+              == (14.0, None, None, None))
+        check("P268 readers: group_class is the class when present, lane-derived only when absent",
+              group_class({"group": "X", "class": "instrument", "lane": "CORE"}) == "instrument"
+              and group_class({"group": "X", "class": "production"}) == "production"
+              and group_class({"group": "X"}) in ("production", "instrument"))
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))

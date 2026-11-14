@@ -1032,6 +1032,17 @@ jobs:
           python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
           grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
 
+      # R10-CI-PRIORITY-PAUSE: the tier rule and the train's pause; seconds each, so no scope gate.
+      - name: Show the CI-priority rule and the train pause refusing their own fixtures
+        id: ci-priority
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_priority.py --self-test | tee "$RUNNER_TEMP/ci-priority-self-test.txt"
+          grep -Eq '^ci_priority self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-priority-self-test.txt"
+          python3 -I tools/audit/seat/ci_pause.py --self-test | tee "$RUNNER_TEMP/ci-pause-self-test.txt"
+          grep -Eq '^ci_pause self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-pause-self-test.txt"
+
       - name: Show the open driver refusing its own fixtures
         id: open-driver
         if: ${{ !cancelled() && steps.scope.outputs.open-driver == 'true' }}
@@ -1729,6 +1740,8 @@ jobs:
             'tools/audit/seat/gh_read.py' \
             'tools/audit/seat/ledger.py' \
             'tools/audit/seat/proof_watch.py' \
+            'tools/audit/seat/ci_pause.py' \
+            'tools/audit/seat/ci_priority.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/queue_pre_flight.py' \
             'tools/audit/seat/ref_privacy.py' \

@@ -47,6 +47,7 @@ rendered text that no overlay value supplied.
 | `seat_alives` | optional: `SEAT=FILE[:MIN]` entries, one per standing seat the session runs, whitespace-separated or a JSON list; each renders as `pulse.py --seat-alive ENTRY` (`FILE.d/<id>` holds the per-process entries). A seat listed with no alive file reads `UNREADABLE`, never skipped; none listed leaves the flag out |
 | `intake_since` | the UTC time the outside intake starts from (the round's opening); the beat's `outside-intake` row keeps its own cursor past it |
 | `launch_ledger` | optional: the launch ledger file (`<ts> <nonce> <role> ...` and `<ts> <nonce> stop` lines) for `pulse.py --launch-ledger`; empty leaves the flag out |
+| `train_state` | optional: the merge train's state dir; the `cancel-sweep` row passes it as `--train-state`, so a pull request in the train's queue or spool is never cancelled for a priority run; empty leaves the flag out |
 | `gantt_roster` | the roster the beat's `gantt` row reads, as `<branch>:<path>` (fetched to `refs/gantt/roster`, never a local branch) |
 | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
 | `fire_ledger` | the session's fire ledger, one line per seat fired with its leading UTC stamp, which the `gantt` and `verdict-audit` rows hand on as `--fired` (a line within 12 h holds the pull request or topic it names) |
