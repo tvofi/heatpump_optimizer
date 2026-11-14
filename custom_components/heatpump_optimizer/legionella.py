@@ -77,8 +77,11 @@ class OffStepNotice:
     names it with the two on-step temperatures the user can pick, in place of
     ``dhw_legionella_unreachable``, whose hardware advice does not apply to a
     rounding gap: raising this takes that one down, and the guard raises it
-    not while this stands. Not persistent: derived from configuration, and
-    re-raised on the next cycle while it stands.
+    not while this stands. Only a gap: where the step above the target is out
+    of the entity's range (``above_c`` under it, its maximum binding), no step
+    is the remedy and the unreachable notice's advice stands. Not persistent:
+    derived from configuration, and re-raised on the next cycle while it
+    stands.
     """
 
     def __init__(self, hass: HomeAssistant) -> None:
@@ -94,7 +97,7 @@ class OffStepNotice:
         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
         signature = None
-        if write is not None and write.written_c < target - margin:
+        if write is not None and write.written_c < target - margin and write.above_c >= target:
             signature = (target, write.written_c, write.step, write.below_c, write.above_c)
         if signature == self.signature:
             return

@@ -14,6 +14,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import asyncio
+import math
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -965,7 +966,84 @@ def _off_step_notice_pins() -> dict[str, bool]:
     out["null: the stock 55/60 raises none on any step"] = all(
         _step_notice(55.0, 60.0, s, hold=h) is None for s in _SLIDER_STEPS for h in (False, True)
     )
+    out["63 on step 5 is named below 60 and above 65, the step down and up, not the nearest"] = (
+        _step_notice(55.0, 63.0, 5) == {
+            "legionella_temp": "63", "written": "60", "step": "5", "below": "60", "above": "65",
+        }
+    )
+    capped = {"min": 30, "max": 60, "step": 1}
+    out["a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule"] = all(
+        _step_notice(55.0, 65.0, 1, hold=h, attrs=capped) is None for h in (False, True)
+    )
+    out["a range-capped write leaves the unreachable notice's hardware advice standing"] = (
+        _shortfall_standing(capped, 65.0) == {"dhw_legionella_above_setpoint", "dhw_legionella_unreachable"}
+    )
+    out["null: the same 65 on a max-80 step-5 entity off the step (62) still raises"] = (
+        _step_notice(55.0, 62.0, 5, attrs={"min": 30, "max": 80, "step": 5}) is not None
+        and _shortfall_standing({"min": 30, "max": 80, "step": 5}, 62.0)
+        == {"dhw_legionella_above_setpoint", _STEP_ISSUE}
+    )
+    rows, raised, bad = _range_census()
+    out[f"entity-range census: {raised} of {rows} rows raise, each with below < target <= above <= max"] = (
+        (rows, raised) == _RANGE_CENSUS and not bad
+    )
     return out
+
+
+#: (rows, notices) of `_range_census`: min 30 or 60, max 55-80, steps 0.5/1/5,
+#: disinfection 55-70, everyday 55, both credit rules.
+_RANGE_CENSUS = (1632, 154)
+
+
+def _shortfall_standing(attrs, disinfection) -> set:
+    """The issues standing after one observe pass and a short cycle (58 reached)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=disinfection,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes=attrs)})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    guard.raise_unreachable_issue(58.0, disinfection)
+    return _standing(hass)
+
+
+def _range_census():
+    """Every entity range against every disinfection target: (rows, raised, bad rows).
+
+    The notice is owed exactly where the step below the target is short of
+    credit and the step above it is writable (inside min and max): a range
+    cap is the unreachable notice's. A raised notice must name a writable
+    step above the target and one below it (below < target <= above <= max,
+    above - below == step).
+    """
+    rows = raised = 0
+    bad = []
+    for lo in (30, 60):
+        for hi in (55, 58, 60, 62, 64, 65, 66, 68, 70, 80):
+            if hi <= lo:
+                continue
+            for step in (0.5, 1, 5):
+                for d in range(55, 71):
+                    for hold in (False, True):
+                        rows += 1
+                        got = _step_notice(55.0, float(d), step, hold=hold,
+                                           attrs={"min": lo, "max": hi, "step": step})
+                        down, up = math.floor(d / step) * step, math.ceil(d / step) * step
+                        owed = lo <= down < d - (0.5 if hold else 1.0) and up <= hi
+                        if (got is not None) != owed:
+                            bad.append((lo, hi, step, d, hold, got))
+                        if got is None:
+                            continue
+                        raised += 1
+                        below, above = float(got["below"]), float(got["above"])
+                        if not (below < d <= above <= hi and abs(above - below - step) < 1e-9
+                                and hi >= d and lo <= d):
+                            bad.append((lo, hi, step, d, hold, got))
+    return rows, raised, bad
 
 
 def main() -> int:
