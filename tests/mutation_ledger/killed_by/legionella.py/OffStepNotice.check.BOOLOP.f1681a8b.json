@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check BOOLOP f1681a8b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        cycle = bool(params.dhw_enabled and params.legionella_cycle_active)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`cycle = bool(params.dhw_enabled or params.legionella_cycle_active)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
