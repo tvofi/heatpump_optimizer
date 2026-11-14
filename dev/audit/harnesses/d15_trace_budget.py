@@ -21,6 +21,11 @@ without a trace.
         python3 -I dev/audit/harnesses/d15_trace_budget.py --bundle B
     PYTHONPATH=tests/hastub:tests:custom_components:tools/replay \\
         python3 dev/audit/harnesses/d15_trace_budget.py --writes
+
+``--replay-null B`` (a ``dbg_bundle_gen.py`` bundle) is the trace's null control:
+the agreement offenders over ``debug_replay.offender_window`` from the replay
+half and from ``debug_replay.trace_document`` must be equal, and the
+perturbation (the hot-water column held at ``PERTURB_DHW_C``) must move them.
 """
 from __future__ import annotations
 
@@ -43,6 +48,7 @@ from heatpump_optimizer import debugger  # noqa: E402
 ARBITER_COLUMNS = 13  # the design's pass-record fields (part A)
 MAP_ROWS, MAP_FIELDS = 1008, 17
 COLUMNS = 27  # the owner bundle's mapped inputs (design P3)
+PERTURB_DHW_C = "20"
 
 
 def _indent(section: str, value: object) -> int:
@@ -152,15 +158,39 @@ def writes(enabled: bool, columns: int = COLUMNS, change: float = 0.3) -> list[i
     return written
 
 
+def replay_null(path: Path) -> None:
+    import copy
+    import debug_ingest
+    import debug_replay
+    bundle = debug_ingest.load_bundle(path)
+
+    def offenders(doc: dict) -> list:
+        verdict = debug_replay.run_seeded(debug_replay.offender_window(doc))
+        return (verdict.get("results") or {}).get("agreement") or []
+
+    half = offenders(bundle["replay"])
+    traced = offenders(debug_replay.trace_document(bundle))
+    moved = copy.deepcopy(bundle)
+    for block in moved["trace"]:
+        block["cols"]["dhw_temp_entity"] = ",".join([PERTURB_DHW_C] + [""] * (block["n"] - 1))
+    perturbed = offenders(debug_replay.trace_document(moved))
+    print(f"RESULT offenders_replay_half={len(half)} offenders_trace={len(traced)} "
+          f"equal={half == traced} unit=count")
+    print(f"RESULT offenders_perturbed={len(perturbed)} moved={perturbed != traced} unit=count")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bundle", type=Path)
     ap.add_argument("--writes", action="store_true")
+    ap.add_argument("--replay-null", type=Path)
     ap.add_argument("--columns", type=int, default=COLUMNS)
     ap.add_argument("--change", type=float, default=0.3, help="share of minutes a column changes")
     a = ap.parse_args()
     if a.bundle:
         budget(a.bundle)
+    if a.replay_null:
+        replay_null(a.replay_null)
     if a.writes:
         for enabled in (True, False):
             per_day = writes(enabled, a.columns, a.change)
