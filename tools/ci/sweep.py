@@ -238,8 +238,8 @@ class Sweep:
         """A source of another run finished after this red gate started, or has not (it deferred: gate()
         reads busy() first), and a green gate at the head covers the newest event (module doc)."""
         others = {r["id"]: self.jobs_of(r["id"]) for r in runs if r["id"] != run["id"]}
-        return source_after(gate.get("started_at") or "", others) and (
-            self.green is not None or any(covers_newest(latest_gate(js), runs) for js in others.values()))
+        return (source_after(gate.get("started_at") or "", others)
+                and any(covers_newest(latest_gate(js), runs) for js in others.values()))
 
     def runs_at(self, head):
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]
