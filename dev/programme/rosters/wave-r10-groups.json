@@ -26621,7 +26621,8 @@
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage per header for local seats and per session for cloud seats into a ledger beside the dispatch ledger. Establish first, by measurement, whether cloud usage is readable per session; if it is not, record that and deliver the local half. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 1 and section 6 row a4. Must merge before round 11 finders start.",
    "carry": [
-    "From r11-pre-objective-function, body item fc61d366: The same, for the token ledger: fields kept apart, a seat keyed by group, role and dimension. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items fc61d366)"
+    "From r11-pre-objective-function, body item fc61d366: The same, for the token ledger: fields kept apart, a seat keyed by group, role and dimension. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items fc61d366)",
+    "From #3575, body item 69822206: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 2 defines `tokens_per_change` for the token ledger this group builds: every usage field kept apart, a seat keyed by group, role and dimension, and the term printed NO-READ, never a partial, while one seat class is unledgered. Section 6, \"Cannot read\", owes from the same ledger a refusal in `tools/audit/check_scopes.py --round`, with its self-test arm, of an evaluator or reviewer seat that appears in the graded round's ledger. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items 69822206)"
    ],
    "resume": {
     "stage": "not-started",
