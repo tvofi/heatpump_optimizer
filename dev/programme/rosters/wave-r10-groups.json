@@ -27102,9 +27102,9 @@
     "From r10-user-text-verify-card, body item 3bbcabdc: `translations/de.json`'s `grid` options page is titled \"Netz-Spitzentarif\", but its menu entry is \"Lastspitzentarif des Netzes\". The card now names the menu entry, the label a user clicks. One page should have one de name. Re-measure: compare `options.step.init.menu_options.grid` with `options.step.grid.title` in de.json. Carry: R11-INTAKE-R10-RESIDUE (items 3bbcabdc)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r10-docs-strings-residue",
-    "commit": null,
+    "commit": "d051cb3edfb944649a1b13d898568123824fa26b",
     "last_step": null,
     "next_step": "fixer (M), now",
     "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group",
