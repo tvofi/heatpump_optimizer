@@ -1,0 +1,14 @@
+text_ledger self-test: 17 checks, 0 failed
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  ok   ...and the cadence is otherwise read from the round number (off at 11: D5, D6, D11, D13; every dimension on at 12 as its cadence says)
+227 passed, 0 failed
+selftest_wiring: 0 index gap(s)
+selftest_scope self-test: 120 checks, 0 failed
+ok D5 mode=cells seats=10 universe=853 [s1:14f/0loc/0u, s2:14f/0loc/74u, s3:45f/36871loc/2825u, s4:47f/52532loc/3244u, s5:68f/0loc/3168u, s6:251f/0loc/3524u, s7:3f/0loc/3809u, s8:44f/0loc/3548u, s9:69f/0loc/3725u, s10:312f/0loc/1704u]
+ok D6 mode=files seats=7 universe=344 [s1:13f/0loc/3765u, s2:105f/0loc/4005u, s3:92f/72990loc/3261u, s4:2f/16413loc/3854u, s5:130f/0loc/2750u, s6:1f/0loc/2246u, s7:1f/0loc/2628u]
+ok coverage tracked=10979 in_universe=1574 excluded=9405 unclassified=0
+rc=0
+1
+2250
+grep_rc=1
+STRUCTURE RATCHET PASSED

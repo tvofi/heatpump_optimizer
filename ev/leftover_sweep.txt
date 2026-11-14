@@ -1,0 +1,35 @@
+c2508883c4 check_scopes: restore classify_errors' static-and-in-the-universe refusal (a mutation proof left in by ff9b385bcd)
+38f90d9be7 D5.md: the scope line fits the brief's token cap
+ff9b385bcd D5.md: the scope line fits the brief's line cap
+afcb73580d audit: the D5 line's outside plant sits where coverage passes it, as the verdict's did
+3b7b45197a audit: D5 draws its comment line; the instruments' comment carriers are measured
+44ebe590c9 record: the delivery row for #3571
+ac1607ad73 audit: the cadence control reads off CADENCE; text_ledger counts letters in any script; layout places text_ledger.py
+dba4d2abc3 audit-find: D5 and D6 every round from round 11 (tvofi 2026-11-13); the cadence check's off arm is D11's
+41e0ef089a policy: D5 and D6 cover the full text scope every round (tvofi 2026-11-13): briefs row every unit by text_ledger.py, ledger seats boxed, self-test wired
+e130ee97a4 audit: text_ledger.py enumerates D5/D6 units; check_scopes caps a ledger seat and draws D6's static line
+---
+ff9b385bcd: 7:+    pass
+e130ee97a4: 393:+        return None
+e130ee97a4: 416:+            continue
+e130ee97a4: 419:+            continue
+e130ee97a4: 521:+                        break
+e130ee97a4: 531:+            continue
+e130ee97a4: 598:+        return None
+e130ee97a4: 650:+            pass
+e130ee97a4: 658:+        return 1
+---removed-lines-threedot
+-import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys, tempfile
+-def check(scopes, tree, loc):
+-        status = "ok" if not (dup or missing or extra) else "FAIL"
+-        sizes = ", ".join(f"{s}:{len(fs)}f/{sum(loc.get(f,0) for f in fs)}loc" for s, fs in seat_files.items())
+-def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
+-        ok = check(scopes, tree, loc)
+-        live = verdict(scopes, tree, loc, hs, bs, quiet=True)
+-    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree)) else 1)
+-  // D11 and D13 are held to the driver's own table, not to a number here: the
+-  // cadence a tree declares is the cadence it must run (tvofi 2026-11-13 made it
+-  // every round, in the pull request that lands the denominator).
+-  t(`...and the cadence is otherwise read from the round number (D5 off at ${off}, on at ${on6}; D0 on at ${off}; D11 and D13 follow their CADENCE entry)`,
+-    !!off && !!on6 && !D.activeIn(off, 'D5') && D.activeIn(on6, 'D5') && D.activeIn(off, 'D0')
+-      && ['D11', 'D13'].every((d) => D.activeIn(off, d) === (D.CADENCE[d] === 1) && D.activeIn(on6, d)), 'the cadence is not derived from the round')
