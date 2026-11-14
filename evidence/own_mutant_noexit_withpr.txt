@@ -1,5 +1,0 @@
-  ok   a refused sweep is reported with its rc and the pass still completes
-  ok   null control: a refused push is printed with its reason and the pass still completes
-  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
-tick_loop self-test: 42 checks, 0 failed
-rc(with pr_args, exit deleted)=0

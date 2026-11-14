@@ -1,0 +1,3 @@
+rev 510c46643055f5f2f9f61b815258a960518eabe0
+carry: tick_loop self-test: 38 checks, 1 failed rc=1
+    FAIL the poison row: the 88 names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call

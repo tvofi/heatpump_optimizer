@@ -1,0 +1,13 @@
+rev 510c46643055f5f2f9f61b815258a960518eabe0
+pipefail: tick_loop self-test: 38 checks, 7 failed rc=1
+    FAIL a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run from a branch checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run from a detached checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+    FAIL the poison row: the 88 names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call
+    FAIL the self-test's rows pass under offline_spy.py: no network call, no remote git call, their git calls seen
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL null control: a branch checkout at origin/main (behind 0) passes and stays put
