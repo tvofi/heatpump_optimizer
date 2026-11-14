@@ -1,0 +1,6 @@
+RESULT mutant covered_deferral->False: rc=1 sweep self-test: 98 checks, 3 failed
+RESULT mutant drop source_after leg: rc=1 sweep self-test: 98 checks, 9 failed
+RESULT mutant drop covers leg: rc=1 sweep self-test: 98 checks, 1 failed
+RESULT mutant judged first-attempt read->False: rc=1 sweep self-test: 98 checks, 3 failed
+RESULT mutant judged accepts any first attempt: rc=1 sweep self-test: 98 checks, 1 failed
+RESULT mutant judged unreadable->True: rc=1 sweep self-test: 98 checks, 1 failed
