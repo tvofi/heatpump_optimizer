@@ -1,0 +1,2 @@
+  FAIL  user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error
+1 CARD CHECK(S) FAILED
