@@ -16,6 +16,6 @@ hyst =lift lift 4.0 K  loop off  drew 6.52 kWh  last30 2.222 kW  settle min None
 hyst =lift lift 6.0 K  loop on   drew 5.31 kWh  last30 1.361 kW  settle min None  within one step False  starts 1  repeat identical True
 hyst =lift lift 6.0 K  loop off  drew 6.55 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
 
-real	0m4.974s
-user	0m3.329s
-sys	0m0.145s
+real	0m4.717s
+user	0m2.726s
+sys	0m0.134s

@@ -1,0 +1,4 @@
+lift 0.5: share of loop-off draw 60.2%  share of over-draw 83.2%
+lift 2: share of loop-off draw 54.6%  share of over-draw 72.5%
+lift 4: share of loop-off draw 27.1%  share of over-draw 35.9%
+lift 6: share of loop-off draw 18.9%  share of over-draw 25.0%
