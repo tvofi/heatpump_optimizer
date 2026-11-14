@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded BOOLOP ebd65023",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding=\"up\")):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if hi is not None or (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding=\"up\")):`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

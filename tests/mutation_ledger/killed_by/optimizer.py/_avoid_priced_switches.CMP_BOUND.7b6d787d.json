@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches CMP_BOUND 7b6d787d",
+  "killed_by": "tests/features.py",
+  "old": "    if stops is None or not opt.config.cycling_cost > 0 or opt.model.params.dhw_store.combi:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if stops is None or not opt.config.cycling_cost >= 0 or opt.model.params.dhw_store.combi:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

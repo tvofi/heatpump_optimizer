@@ -661,6 +661,14 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
 
 
+def fetch_round_rosters(run) -> None:
+    """CI's pr-contract fetches the round rosters' remote-tracking refs; a
+    --shared clone's own origin/handoff/* are root's local branches, so take
+    root's refs/remotes/origin ones. A glob matching nothing is harmless."""
+    run("git", "fetch", "-q", "--no-tags", "origin",
+        "+refs/remotes/origin/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster")
+
+
 def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
     """Run `steps` (each a function of the tree, its runner and a scratch
     directory) where CI's pull-request run of `job` runs them: the merge of
@@ -683,6 +691,7 @@ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = No
             return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
 
         run("git", "update-ref", "refs/remotes/origin/main", tip)
+        fetch_round_rosters(run)  # mut:roundrefs
         run("git", "checkout", "-q", "--detach", tip)
         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
             return "unmerged", None
@@ -1400,6 +1409,7 @@ def self_test() -> int:
     bad += mutant_self_test(root)
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
+    bad += roundref_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
@@ -1412,6 +1422,60 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def roundref_self_test(root: Path) -> int:
+    """ci_tree_run's clone gets root's refs/remotes/origin round-roster refs,
+    not root's stale local branch (fail-before / pass-after), a null with the
+    remote-tracking ref absent, and the call line itself pinned."""
+    import inspect
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundref-"))
+    bad = 0
+
+    def check(label, ok):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    try:
+        for tracking in (True, False):
+            src = tmp / f"src{tracking}"
+            senv = throwaway_git_init(src, "-q", "-b", "main")
+
+            def sgit(*a):
+                return subprocess.run(a, cwd=src, env=senv, capture_output=True, text=True, check=True).stdout.strip()
+            sgit("git", "commit", "-q", "--allow-empty", "-m", "stale")
+            stale = sgit("git", "rev-parse", "HEAD")
+            sgit("git", "branch", "handoff/audit-r10-roster")
+            sgit("git", "commit", "-q", "--allow-empty", "-m", "newer")
+            newer = sgit("git", "rev-parse", "HEAD")
+            if tracking:
+                sgit("git", "update-ref", ref, newer)
+            r = tmp / f"clone{tracking}"
+            env = throwaway_git_clone(src, r, "-q", "--shared", "--no-checkout")
+
+            def run(*a, input=None):
+                return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
+
+            def got():
+                return run("git", "rev-parse", "-q", "--verify", ref).stdout.strip()
+            check(f"clone's round ref is the stale local branch before the fetch (tracking={tracking})", got() == stale)
+            try:
+                fetch_round_rosters(run)
+                raised = False
+            except Exception:
+                raised = True
+            check(f"fetch_round_rosters {'takes root' + chr(39) + 's remote-tracking ref' if tracking else 'leaves the ref and does not raise'}",
+                  not raised and got() == (newer if tracking else stale))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    line = [l for l in inspect.getsource(ci_tree_run).splitlines() if "fetch_round_rosters" in l]
+    check("ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line", len(line) == 1 and "# mut:roundrefs" in line[0])
+    return bad
 
 
 def graders_self_test(root: Path) -> int:

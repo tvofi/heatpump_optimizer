@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:place_startable GUARD_OFF e4a2bfaa",
+  "killed_by": "tests/block_duty.py",
+  "old": "        if np.array_equal(fixed, plan):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

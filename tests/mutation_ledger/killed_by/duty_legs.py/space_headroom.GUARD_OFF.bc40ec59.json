@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:space_headroom GUARD_OFF bc40ec59",
+  "killed_by": "tests/plan_view.py",
+  "old": "    if avail is None or floor is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

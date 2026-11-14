@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._ctx_clamp CMP_BOUND 0b090e57",
+  "killed_by": "tests/block_duty.py",
+  "old": "        return np.where(plan < ctx.min_run_power - 1e-9, 0.0, plan)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return np.where(plan <= ctx.min_run_power - 1e-9, 0.0, plan)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._write_supply BOOLOP ae8bcf02",
+  "killed_by": "tests/features.py",
+  "old": "        elif switch_entity and not held.supply_held:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`elif switch_entity or not held.supply_held:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

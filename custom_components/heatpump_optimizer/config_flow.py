@@ -213,6 +213,7 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
+    FLOW_HEAT_C_MAX,
     CONF_FLOW_MIN_LIFT_K,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
@@ -412,6 +413,8 @@ from .const import (
     CONF_PUMP_DUTY_MODE,
     DEFAULT_PUMP_DUTY_MODE,
     PUMP_DUTY_MODES,
+    CONF_SPACE_HYSTERESIS_ENTITY,
+    CONF_DHW_HYSTERESIS_ENTITY,
     CONF_MOLD_GUARD_ENABLED,
     DEFAULT_MOLD_GUARD_ENABLED,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -1696,7 +1699,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
-    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
@@ -1725,6 +1728,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
+    # The pump's own start hysteresis per duty: one picker each, a number or a sensor.
+    *(
+        _F("entities_pump", key, _STORED, _entity_of(['sensor', 'number', 'input_number']))
+        for key in (CONF_SPACE_HYSTERESIS_ENTITY, CONF_DHW_HYSTERESIS_ENTITY)
+    ),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),

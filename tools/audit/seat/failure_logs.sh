@@ -111,7 +111,7 @@ FAKE
   [ "$failed" = 0 ]
 }
 
-[ "${1:-}" = "--self-test" ] && { self_test; exit $?; }
+[ "${1:-}" = "--self-test" ] && { [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded failure_logs bash "$0" --self-test; }; self_test; exit $?; }
 
 PR=${1:?usage: failure_logs.sh <pr-number> [out-dir]}
 OUT=${2:-${FAILURE_LOGS_STATE:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/failure-logs}/$PR}

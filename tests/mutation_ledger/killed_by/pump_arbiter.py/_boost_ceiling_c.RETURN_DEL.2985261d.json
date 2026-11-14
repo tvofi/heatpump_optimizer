@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_boost_ceiling_c RETURN_DEL 2985261d",
+  "killed_by": "tests/features.py",
+  "old": "    return min(caps)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
