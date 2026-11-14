@@ -101,7 +101,7 @@
   ok   rule 2: rest is used when gh is absent
   ok   rule 2: a source that cannot answer refuses, it does not raise
   ok   B3: the ci.yml push run's gate success is green, whatever the run concluded
-  ok   B3: a red push gate (a red coverage-ratchet reddens it) refuses, naming the gate
+  ok   B3: a red push gate (a red ci-ratchet reddens it) refuses, naming the gate
   ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
   ok   B3: a gate still running is not green
   ok   B3: once HEAD has a ci.yml push run, a green Tests run there does not stand in for a red gate

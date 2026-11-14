@@ -1,2 +1,0 @@
-NOTE body item 8e5e2067: dismissed:equivalent in practice at a 30 s poll against a 3600 s staleness bound; no behaviour the record beat can observe
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
