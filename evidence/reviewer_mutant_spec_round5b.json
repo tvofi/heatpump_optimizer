@@ -1,8 +1,0 @@
-[
- {"name": "r5v_pass_judges_before_confirm", "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    rec.feed(rec.tracker.confirm(when))\n    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n",
-  "new": "    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n    rec.feed(rec.tracker.confirm(when))\n"},
- {"name": "r5v_write_pending_ignored_when_stopped", "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
-  "new": "running = rec.tracker.settled is True and rec.tracker.pending is None or rec.tracker.settled is False"}
-]
