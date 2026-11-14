@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due GUARD_OFF c10d1d4b",
+  "killed_by": "tests/manual_plan.py",
+  "old": "                if candidates.size:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+}
