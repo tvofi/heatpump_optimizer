@@ -1,0 +1,2 @@
+RESULT M7 rc=1 2 of 380 checks FAILED :: FAIL _ADVISOR_DUTY_FRACTION is a fraction the page can name  [0.6] | FAIL dashboard-card.md names the measured mean power, else the configured maximum's fraction
+RESTORED True
