@@ -115,7 +115,8 @@ write the arbiter arms :mod:`off_restore` (:data:`CONSUMER`), which captures
 the entity's reading, persisted, as the person's baseline and writes it back
 on the change into Off and on every unload, a reload and a Home Assistant
 stop included (the hook's one rule). A reading equal to the arbiter's own
-last write is never captured (:func:`_arm_space`). What a person sets while
+last write is never captured: the baseline row's own target is, and the write
+is sent (:func:`_arm_space`). What a person sets while
 the optimizer is off is captured at the next arm; one set between writes is
 adopted as the baseline (:func:`_edited`), bounded to the entity's own
 range, and, while active, still written over. The mode, the hot-water set-point and the silent switch are not
@@ -1055,7 +1056,7 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
     moves at all drops the record, and an equal one is still not sent. The
     dropped record is the run's ``prev_c``, the bracket :func:`_cut_of`
     reads, and ``held.dropped`` until a restore ends it: it is still the
-    arbiter's last write, which the off restore's own-write refusal reads
+    arbiter's last write, which the off restore's own-write check reads
     (:func:`_arm_space`) after the run that dropped it has ended.
     """
     recorded = held.written.get("space_setpoint")
@@ -1460,7 +1461,24 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
 
 
 def _forget(held: ArbiterState) -> None:
-    held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None
+    """Let go of the pump: every record goes but the arbiter's own last space write.
+
+    That value stays on ``held.dropped`` until a restore replaces it on the
+    entity (:func:`_space_restored`): with no baseline armed, Off writes
+    nothing there, so the entity still reads the optimizer's number, and the
+    arm after On must not capture it as the person's (:func:`_arm_space`).
+    """
+    own = _own_space_write(held)
+    held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
+    held.dropped = {} if own is None else {"space_setpoint": own}
+
+
+def _own_space_write(held: ArbiterState) -> Any:
+    """The arbiter's own last space write, or ``None``: its record, else the
+    one a loop move dropped to be sent (:func:`_note_sent`), which
+    ``held.dropped`` keeps across the run's end and an Off (:func:`_forget`)."""
+    record = held.written.get("space_setpoint")
+    return record[0] if record is not None else held.dropped.get("space_setpoint")
 
 
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
@@ -1591,33 +1609,34 @@ async def _held_back(
         return True
     if slot == "mode" and entity.split(".", 1)[0] not in _MODE_DOMAINS:
         return True
-    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity)
+    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity, now)
 
 
-async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str) -> bool:
+async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str, now: datetime) -> bool:
     """Arm the off restore before a space write; False holds the write.
 
     The first arm captures the entity's reading as the baseline off restores
     (:mod:`off_restore`), but never one equal to the arbiter's own last write
     -- a record from before this restore existed: that number is the
-    optimizer's, not the person's, so the write is held, latched, until the
-    controller reads anything else.
+    optimizer's, not the person's. The baseline captured in its place is the
+    baseline row's own space target (:func:`_space_target` with no duty), the
+    value the arbiter holds when the plan is not in charge, and the write is
+    sent. It used to be held until the controller read anything else, which
+    on an upgrade held every space write, a boost's included, with the pump
+    left on the optimizer's last gate (R10-HOTFIX-FLOW-SETPOINT-STUCK).
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
-    record = held.written.get("space_setpoint")
-    # A loop move dropped the record to be sent (_note_sent); held.dropped
-    # keeps it across the run's end, which the loop resets on any stop.
-    last = record[0] if record is not None else held.dropped.get("space_setpoint")
+    last = _own_space_write(held)
     own = (armed is None or armed["entity_id"] != entity) and last is not None \
         and reading is not None and not _differs("space_setpoint", reading, last)
-    if log_held(inp.hass, f"space_baseline_own:{entity}", own,
-                "Pump duty: %s reads %s, the optimizer's own last write, which is no "
-                "baseline to restore on off; not writing it until it is set at the controller",
-                entity, reading):
-        return False
+    baseline = None
+    if own:
+        baseline = _space_target(inp, inp.plan, now, None)
+        _LOGGER.info("Pump duty: %s reads %s, the optimizer's own last write; turning the "
+                     "optimizer off restores %s instead", entity, reading, baseline)
     held.space_before = reading
-    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)
+    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER, baseline_c=baseline)
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
@@ -1759,7 +1778,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         # person's the moment the optimizer lets go of it. The space
         # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
         # "Arbiter too"), before this pass; its record is dropped here.
-        if held.written or held.retry or held.dropped or held.space_before is not None:
+        if held.written or held.retry or held.space_before is not None:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
             issues.clear_issue(coord.hass, ISSUE_IGNORED)
