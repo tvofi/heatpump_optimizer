@@ -604,14 +604,14 @@ gantt
 | R10-HOTFIX-BOOST-FLOW-CEILING | IN | 2 | in-progress | - | opus/opus | - | HOTFIX, production defect reported by the owner from his install on VERSION 7.1.15 (2026-11-13): with a space boost on, the flow set-point entity was written... |  |
 | R10-USER-TEXT-VERIFY-STRINGS | IN | 1 | in-progress | - | opus/opus | - | Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. |  |
 | R10-USER-TEXT-VERIFY-CARD | IN | 1 | in-progress | - | opus/opus | - | Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. |  |
-| R10-D5-D6-FULL-SCOPE | IN | 1 | not-started | - | opus/opus | - | Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-... |  |
+| R10-D5-D6-FULL-SCOPE | IN | 1 | in-progress | - | opus/opus | - | Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-... |  |
 | R11-PRE-TOOLCHAIN-PIN | IN | 5 | not-started | - | fable/fable | - | Owner ruling 2026-11-13 on decision card P1 (yes): seats and the beat run their tools from a promoted stable ref instead of the tip of main, main reports pro... |  |
 | R11-PRE-MACHINERY-LIMITER | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P2 (declining cap, one in one out, severity route narrowed): the machinery ratchet becomes a target that declines ov... |  |
 | R11-PRE-ROUND-METRICS | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P3 and P8 (yes): the scorecard gets a producer for its inputs and a row in the running job list, with lead-time perc... |  |
 | R11-PRE-TOKEN-LEDGER | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage... |  |
 | R11-PRE-RULINGS-FILE | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P6 (yes) and R3 (core in full, instrument pages by change): a file of the owner s standing rulings, verbatim and dat... |  |
-| R11-PRE-OBJECTIVE-FUNCTION | IN | 5 | not-started | - | fable/fable | - | Owner instruction 2026-11-13: an objective function for code quality, lead time and token use is defined as policy, and a step at the start of every audit ro... |  |
-| R10-DIMENSIONS-FULL-COVERAGE | IN | 2 | not-started | - | fable/fable | - | Owner rulings 2026-11-13: every audit dimension covers its whole scope each round with a reported denominator, two new dimensions are added (actuator write s... |  |
+| R11-PRE-OBJECTIVE-FUNCTION | IN | 5 | in-progress | - | fable/fable | - | Owner instruction 2026-11-13: an objective function for code quality, lead time and token use is defined as policy, and a step at the start of every audit ro... |  |
+| R10-DIMENSIONS-FULL-COVERAGE | IN | 2 | carries-open | - | fable/fable | - | Owner rulings 2026-11-13: every audit dimension covers its whole scope each round with a reported denominator, two new dimensions are added (actuator write s... |  |
 | R11-PRE-SHARED-FILES | IN | 5 | not-started | - | fable/fable | - | Owner ruling 2026-11-13 on decision card P9 (yes, design first): shared files stop coupling every pull request. |  |
 | R11-PRE-HANDOFF-BOOKKEEPING | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P10 (yes): carry, body and red-check items are decided mechanically at the handoff, and a reviewer blocks only on pr... |  |
 | R11-PRE-RELAY-REBUILD | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P12 (yes): the relay posts a returned verdict without waiting behind a pull request update. |  |
@@ -619,11 +619,11 @@ gantt
 | R11-PRE-STANDING-SCRIPTS | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card R1 (yes, keep one exception seat): the mechanical standing roles (merge operation after an approved verdict, reviewe... |  |
 | R11-PRE-PLAN-RENDER | IN | 5 | not-started | - | sonnet/opus | - | Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minute... |  |
 | R10-PLAYBOOK-ROUND-START | IN | 2 | not-started | - | sonnet/opus | - | Owner instruction 2026-11-13, his words: "Make sure the future rounds can use the audit playbook even with the addition of the objective function and the imp... |  |
-| R10-DOCS-STRINGS-RESIDUE | IN | 1 | not-started | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
+| R10-DOCS-STRINGS-RESIDUE | IN | 1 | in-progress | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
 | R10-COP-LEARNER-DRAW-FLOOR | IN | 1 | not-started | - | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
 | R10-HOTFIX-ENTITIES-REDACTION-FLAKE | IN | 1 | not-started | - | sonnet/opus | - | HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named "the location is redacted whole, from... |  |
-| R10-FEEDBACK-SETTLE-LARGE-LIFT | IN | 1 | not-started | - | sonnet/opus | - | Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). |  |
-| R10-HOTFIX-FEATURES-WEEKEND-CLOCK | IN | 1 | not-started | - | sonnet/opus | - | HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so th... |  |
+| R10-FEEDBACK-SETTLE-LARGE-LIFT | IN | 1 | in-progress | - | sonnet/opus | - | Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). |  |
+| R10-HOTFIX-FEATURES-WEEKEND-CLOCK | IN | 1 | in-progress | - | sonnet/opus | - | HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so th... |  |
 
 ## ETA
 
