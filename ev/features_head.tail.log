@@ -1,0 +1,40 @@
+  ok   a candidate with hot water on a banned step no pin forces on is refused before any solve
+  ok   the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score
+  ok   any hot water on a banned step refuses the candidate, 0.8 kW as much as a full block
+  ok   a candidate lower by exactly the 1e-9 margin, and so by no more than it, is a tie: refused after its solve, as _co_optimize refuses its own
+  ok   the incumbent's tank is walked once: the read past its excused step is handed the first walk's temperatures
+  ok   a configuration that never heard of the learner holds a zero pair in both fields, and an optimizer that has solved nothing holds no vector
+  ok   null control: with a zero pair the pass returns the incumbent without a build or a solve
+  ok   the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
+  ok   from each edge start the priced solve returns a score no higher than its start's, with a solver status no worse than the same start solved unpriced
+  ok   null control: with a zero pair the same starts return the arrays of a config that never heard of the fields
+  ok   a relaxed start carrying a vector is charged on its unrounded level, the rounded objective on the level that ships
+  ok   and with no vector the received draw is the shipped array itself
+  ok   the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+  ok   at the exact minute the hot-water share ends the arbiter serves heating (a strict <, as before the rule moved)
+  ok   modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+  ok   the vector is built once per space solve and never at publication, on every priced solve above
+  ok   modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+  ok   modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+  ok   the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector
+  ok   fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+  ok   fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+  ok   a priced install whose plan holds no priced switch builds no candidate
+  ok   a refused co-optimisation candidate leaves the vector its incumbent was scored with
+  ok   the co-optimisation reads the charged bound: on a duty-cycle install heating at avail x p_max - dhw in a charged step is pinned, and the replan is built against a full compressor there and nowhere else
+  ok   null controls: the same heating with no vector, or with the vector on a clamped install whose bound carries no lost time, is under its bound and builds no replan; at the uncharged bound each of the two builds one
+  ok   on a combi store the candidate pass asks its planner nothing and returns the incumbent, its requirement and its availability in place, on an incumbent holding a priced switch
+  ok   null control: the same install with the store's hot water in its own tank reaches the banned build
+  ok   the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)
+  ok   the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven
+  ok   from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11
+  ok   with no episodes a capped direction is latched at 28 days and not the day after
+  ok   a capped record round-trips through its stored form
+  ok   six stopping switches over two days, each off 501 s, latch the direction and the planner reads the acceptance fixture's pairs from the learner
+  ok   the read returns zeros while a direction is unlatched, its off times with it
+  ok   a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
+  ok   null controls from learner state: an empty learner, one under its on-threshold and an install whose every switch was kept each read a plan identical to today's on all three install classes
+  ok   and that arm has something to detect: the latched learner's read returns the priced plan on every install class
+
+1 of 5618 FEATURE CHECKS FAILED
+rc=1
