@@ -857,8 +857,8 @@ noreturn_arm() {
   rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
 }
 
-fold_judge() { # <memo> <level> <topic> <wip sha> <body sha> <outcome> <epoch> [<OWED level line>]: one judged topic, its level line set
-  printf '%s %s %s %s %s%s\n' "$3" "$4" "${5:--}" "$6" "$7" "${8:+ $8}" >> "$1"; [ -z "${8:-}" ] || printf '%s\n' "$8" >> "$2"; }
+fold_judge() { # <memo> <level> <topic> <wip sha> <body sha> <outcome> <epoch> <BODY.md blob|-> <handoff tip|-> [<OWED level line>]: one judged topic, its level line set
+  printf '%s %s %s %s %s %s %s%s\n' "$3" "$4" "${5:--}" "$6" "$7" "$8" "$9" "${10:+ ${10}}" >> "$1"; [ -z "${10:-}" ] || printf '%s\n' "${10}" >> "$2"; }
 fold_memo_stands() { # <outcome> <epoch> <now>: rc 0 while a judged outcome stands; a failure after the fold expires after 3600 s
   case $1:$2 in blocked:*|folded:*) return 0;; fold-failed:[0-9]*|push-failed:[0-9]*) [ $(($3 - $2)) -lt 3600 ];; *) return 1;; esac; }  # mut:foldttl
 carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md names CARRY-LANDED alone: fold the kept body's carries, re-run body_push.sh
@@ -867,13 +867,15 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
   # by hand (4 times on 2026-11-06, twice more on 11-07). The refusal is folded only when it is the ONLY kind the
   # BLOCKED.md names and the refused body is kept on handoff-wip/<topic>-body; any other BLOCKED.md prints a tick
   # line and folds nothing. carry_fold.py is the designated roster writer; HPO_RELAY_FOLD / HPO_RELAY_BODYPUSH replace the two steps.
-  # Every judged (wip sha, body sha) is memoed in cloud-fold-judged, `<topic> <wip> <body|-> <outcome> <epoch> [<OWED line>]`
-  # (P580); a (topic, body) cloud-folded holds is skipped unmemoed. A memoed pair is neither fetched nor shown, and its
+  # Every judged (wip sha, body sha) is memoed in cloud-fold-judged, `<topic> <wip> <body|-> <outcome> <epoch> <blob|-> <handoff tip|-> [<OWED line>]`
+  # (P580); a (topic, body) cloud-folded holds is skipped unmemoed. body_push.sh keeps every refused body as a NEW parentless
+  # commit, so a failure memoed under the kept commit never hits again (r10-train-residue: four kept commits in an hour,
+  # one BODY.md blob): a failed fold or push also stands for a later kept body with the same stop, BODY.md blob and handoff tip. A memoed pair is neither fetched nor shown, and its
   # stored line is set again, because level_set replaces the whole carry-fold level. A failure after the fold is judged
   # again once fold_memo_stands expires it: an ancestry red can clear with no ref moving. The body is pushed from a
   # worktree at a private ref fetched from handoff/<topic>, deleted after the push, never FETCH_HEAD, which a concurrent
   # fetch in this checkout overwrites, and only at that ref's ls-remote tip (P556).
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc memo now mo me ml htip head
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc memo now mo me ml htip head mb mh blob fo fe fb fh fl
   git ls-remote origin 'refs/heads/handoff-wip/*' 'refs/heads/handoff/*' > "$state/cloud-wip.$$" \
     || { echo "cloud_relay: could not list handoff-wip refs; the carry-fold level stays as it was" >&2; rm -f "$state/cloud-wip.$$"; return 0; }
   memo=$state/cloud-fold-judged; now=$(date +%s)
@@ -882,28 +884,40 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     case $ref in refs/heads/handoff-wip/*) topic=${ref#refs/heads/handoff-wip/};; *) continue;; esac
     case $topic in ''|*/*|*-body|*-carries|*-body-*) continue;; esac
     bsha=$(awk -v r="refs/heads/handoff-wip/$topic-body" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
-    mo= me= ml=; [ -f "$memo" ] && read -r _ _ _ mo me ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
+    htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$"); blob=-
+    mo= me= ml= mb= mh=; [ -f "$memo" ] && read -r _ _ _ mo me mb mh ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
+    [ "${#mb}" = 40 ] || [ "$mb" = - ] || mo=  # a record from before the blob and tip fields is judged again
     if [ -n "$mo" ] && fold_memo_stands "$mo" "$me" "$now"; then
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$mo" "$me" "$ml"; continue  # mut:foldmemo
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$mo" "$me" "$mb" "$mh" "$ml"; continue  # mut:foldmemo
     fi
+    # A failed fold or push stands over a moved kept body when its BODY.md blob, the stop and handoff/<topic>'s tip all
+    # equal the record's; the record keeps its first epoch, so the retry bound runs from the first failure.
+    fo= fe= fb= fh= fl=; [ -n "$bsha" ] && [ -n "$htip" ] && [ -f "$memo" ] \
+      && read -r _ _ _ fo fe fb fh fl < <(awk -v t="$topic" -v w="$sha" -v h="$htip" '$1 == t && $2 == w && ($4 == "fold-failed" || $4 == "push-failed") && $7 == h { print; exit }' "$memo")
+    if [ -n "$fo" ] && fold_memo_stands "$fo" "$fe" "$now" \
+      && git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && blob=$(git rev-parse "$bsha:BODY.md" 2>/dev/null) && [ "$blob" = "$fb" ]; then  # mut:foldblob
+      echo "cloud_relay: OWED carry-fold $topic unchanged since $(date -u -d "@$fe" +%FT%TZ): ${fl#*"$sha "}"
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$fo" "$fe" "$fb" "$fh" "$fl"; continue
+    fi
+    blob=-
     [ -f "$state/cloud-folded" ] && grep -qxF "$topic $bsha" "$state/cloud-folded" && continue
     git fetch -q origin "$ref" 2>/dev/null && bw=$(git show "$sha:BLOCKED.md" 2>/dev/null) || continue
     kinds=$(printf '%s\n' "$bw" | sed -n 's/^body_push: REFUSED \([A-Z-]*\)[[:space:]]*$/\1/p' | sort -u | tr '\n' ' ')
     if [ "$kinds" != "CARRY-LANDED " ] || [ -z "$bsha" ]; then  # mut:foldonly
       why="BLOCKED.md names ${kinds:-no refusal line}${bsha:+; }${bsha:-and no kept body}: not CARRY-LANDED alone, nothing folded"
       echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} $why"
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" blocked "$now" "$(level_line carry-fold "$ref" "$sha" "$why")"; continue
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" blocked "$now" - "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "$why")"; continue
     fi
     body=$state/cloud-fold-$topic.md
     git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && git show "$bsha:BODY.md" > "$body" 2>/dev/null \
       || { echo "cloud_relay: no BODY.md at handoff-wip/$topic-body; nothing folded" >&2; continue; }
+    blob=$(git rev-parse "$bsha:BODY.md" 2>/dev/null || echo -)
     rc=0; why=$(${HPO_RELAY_FOLD:-python3 -I "$HERE/carry_fold.py"} --body "$body" --topic "$topic" --worktree "$state/cloud-fold-wt" 2>&1) || rc=$?
     if [ $rc != 0 ]; then
       why=$(last_line "$why"); echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} carry_fold rc=$rc: $why"
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" fold-failed "$now" "$(level_line carry-fold "$ref" "$sha" "carry_fold rc=$rc: $why")"; continue
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" fold-failed "$now" "$blob" "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "carry_fold rc=$rc: $why")"; continue
     fi
     wt=$state/cloud-fold-code; rm -rf "$wt"; git worktree prune; rc=1
-    htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
     if [ -z "$htip" ] || ! git fetch -q origin "+refs/heads/handoff/$topic:refs/hpo-relay/fold/$topic" 2>/dev/null \
       || ! git worktree add -q --detach "$wt" "refs/hpo-relay/fold/$topic" 2>/dev/null; then  # mut:foldref
       why="no handoff/$topic to push the body from"; echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} $why"
@@ -917,8 +931,8 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     fi
     git worktree remove --force "$wt" 2>/dev/null; git update-ref -d "refs/hpo-relay/fold/$topic" 2>/dev/null
     if [ $rc = 0 ]; then echo "$topic $bsha" >> "$state/cloud-folded"; echo "cloud_relay: FOLDED $topic: carries landed, body_push.sh pushed handoff-body/$topic"
-      fold_judge "$memo.$$" /dev/null "$topic" "$sha" "$bsha" folded "$now"
-    else fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" push-failed "$now" "$(level_line carry-fold "$ref" "$sha" "$why")"
+      fold_judge "$memo.$$" /dev/null "$topic" "$sha" "$bsha" folded "$now" "$blob" "${htip:--}"
+    else fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" push-failed "$now" "$blob" "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "$why")"
     fi
   done < "$state/cloud-wip.$$"
   mv -f "$memo.$$" "$memo"; level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$"
@@ -2087,6 +2101,48 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "... with no cloud-folded entry" 1 grep -q "^cf-h " "$t/state/cloud-folded"
   chk "... no FOLDED announcement" 1 grep -q "FOLDED cf-h" <<< "$cfo"
   chk "... and no body_push.sh run" 1 grep -q "^cf-h " "$t/bps"
+  # Carry 17 (P566): body_push.sh keeps each refused body as a NEW parentless commit; a failed fold stands for a later kept
+  # body with the same stop, BODY.md blob and handoff tip, and runs again when any of the three moves.
+  printf '#!/bin/bash\necho "$@" >> %s/bpk\nexit 1\n' "$t" > "$t/bpfail"; chmod +x "$t/bpfail"; export HPO_RELAY_BODYPUSH=$t/bpfail
+  : > "$t/bpk"; cfref handoff/cf-k code.txt "code K"; cfref handoff-wip/cf-k BLOCKED.md "body_push: REFUSED CARRY-LANDED"
+  cfref handoff-wip/cf-k-body BODY.md "the body K"
+  cfo=$(carry_fold_arm 2>&1); kb1=$(cftip handoff-wip/cf-k-body)
+  chk "null control (carry 17): a stop with no record runs body_push.sh as today" 1 test "$(grep -c '^cf-k ' "$t/bpk")" != 1
+  GIT_AUTHOR_DATE="2001-01-01T00:00:00Z" GIT_COMMITTER_DATE="2001-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K"
+  chk "the train-residue shape: the refused body is kept again as a new commit with the same BODY.md blob" 1 test "$(cftip handoff-wip/cf-k-body)" = "$kb1"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "... and is not pushed again (same stop, blob and handoff tip)" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 1
+  chk "... the tick line says OWED, unchanged since the first failure" 0 grep -q "OWED carry-fold cf-k unchanged since 20[0-9-]*T[0-9:]*Z: body_push rc=1" <<< "$cfo"
+  chk "... and its OWED level line still stands" 0 grep -q "carry-fold refs/heads/handoff-wip/cf-k .*body_push rc=1" "$LOG.level"
+  cfref handoff-wip/cf-k-body BODY.md "the body K, edited"; carry_fold_arm >/dev/null 2>&1
+  chk "a changed BODY.md blob runs body_push.sh again" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 2
+  GIT_AUTHOR_DATE="2002-01-01T00:00:00Z" GIT_COMMITTER_DATE="2002-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"; carry_fold_arm >/dev/null 2>&1
+  chk "null control: the edited body kept again as a new commit is skipped" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 2
+  GIT_AUTHOR_DATE="2003-01-01T00:00:00Z" GIT_COMMITTER_DATE="2003-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"
+  cfref handoff/cf-k code.txt "code K, moved"; carry_fold_arm >/dev/null 2>&1
+  chk "a moved handoff/<topic> tip with the same blob runs body_push.sh again" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 3
+  GIT_AUTHOR_DATE="2004-01-01T00:00:00Z" GIT_COMMITTER_DATE="2004-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"
+  awk -v e=$(( $(date +%s) - 3601 )) '$1 == "cf-k" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  carry_fold_arm >/dev/null 2>&1
+  chk "a record an hour old no longer stands over a new kept commit" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 4
+  # A failed carry_fold.py (fold-failed) stands over a re-kept body alike, and the standing record keeps its first epoch.
+  printf '#!/bin/bash\necho "$@" >> %s/fk\necho "fold refused"; exit 1\n' "$t" > "$t/foldfail"; chmod +x "$t/foldfail"
+  fsave=${HPO_RELAY_FOLD:-}; export HPO_RELAY_FOLD=$t/foldfail; : > "$t/fk"
+  cfref handoff/cf-f code.txt "code F"; cfref handoff-wip/cf-f BLOCKED.md "body_push: REFUSED CARRY-LANDED"
+  cfref handoff-wip/cf-f-body BODY.md "the body F"; carry_fold_arm >/dev/null 2>&1
+  e0=$(( $(date +%s) - 1800 ))
+  awk -v e=$e0 '$1 == "cf-f" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  GIT_AUTHOR_DATE="2005-01-01T00:00:00Z" GIT_COMMITTER_DATE="2005-01-01T00:00:00Z" cfref handoff-wip/cf-f-body BODY.md "the body F"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "a failed carry_fold.py (fold-failed) stands over a re-kept body with the same blob and handoff tip" 0 test "$(grep -c 'topic cf-f ' "$t/fk")" = 1
+  chk "... its tick line says OWED, unchanged" 0 grep -q "OWED carry-fold cf-f unchanged since" <<< "$cfo"
+  chk "... and the standing record keeps its first epoch, so the retry bound runs from the first failure" 0 \
+    awk -v e=$e0 '$1 == "cf-f" && $5 == e { f = 1 } END { exit !f }' "$t/state/cloud-fold-judged"
+  if [ -n "$fsave" ]; then export HPO_RELAY_FOLD=$fsave; else unset HPO_RELAY_FOLD; fi
+  cfref handoff-wip/cf-l BLOCKED.md "the fixer is stuck, again"; carry_fold_arm >/dev/null 2>&1
+  awk '$1 == "cf-l" { $6 = ""; $7 = ""; gsub(/  +/, " ") } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  : > "$t/fetches"; cfo=$(git() { [ "$1" != fetch ] || echo "$*" >> "$t/fetches"; command git "$@"; }; carry_fold_arm 2>&1)
+  chk "a memo record from before the blob and tip fields is judged again, not read with shifted fields" 0 grep -q "handoff-wip/cf-l\$" "$t/fetches"
   unset HPO_RELAY_FOLD HPO_RELAY_BODYPUSH; cd "$t/w" || exit 1
   cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]

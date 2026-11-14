@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:startable_steps CMP_BOUND 1edfe326",
+  "killed_by": "tests/block_duty.py",
+  "old": "    on = np.asarray(plan, dtype=float) > 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`on = np.asarray(plan, dtype=float) >= 0.0`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=6."
+}

@@ -575,6 +575,13 @@ INVENTORY: dict[str, Entry] = {
         "Upstream needs hass.bus and an event loop, so what is pinned is the "
         "stub's own wiring"
     ),
+    "homeassistant.helpers.event.async_call_later": U(
+        "records [delay, action] on hass.timers and returns a cancel that "
+        "removes it, so an armed or a leaked timer is visible; nothing fires "
+        "it, a test calls the action. Refuses a plain function as the state "
+        "tracker does. Upstream needs an event loop, so what is pinned is the "
+        "stub's own wiring"
+    ),
     # -- helpers.issue_registry ---------------------------------------------
     "homeassistant.helpers.issue_registry.IssueSeverity": H("string constants, probed"),
     "homeassistant.helpers.issue_registry.async_create_issue": U(
@@ -2135,6 +2142,32 @@ def _state_change_refuses_executor_job():
     except TypeError:
         return
     raise AssertionError("an untagged plain listener was accepted")
+
+
+@contract(
+    "homeassistant.helpers.event.async_call_later",
+    "the returned callable cancels the timer, and twice is harmless",
+    cite="helpers/event.py -- async_call_later returns a cancel callable",
+    expect="stub",
+)
+def _call_later_cancel():
+    from homeassistant.core import callback
+    from homeassistant.helpers.event import async_call_later
+
+    class _Hass:
+        pass
+
+    hass = _Hass()
+    cancel = async_call_later(hass, 30.0, callback(lambda now: None))
+    assert len(hass.timers) == 1 and hass.timers[0][0] == 30.0
+    cancel()
+    assert hass.timers == []
+    cancel()
+    try:
+        async_call_later(hass, 1.0, lambda now: None)
+    except TypeError:
+        return
+    raise AssertionError("an untagged plain timer action was accepted")
 
 
 # -- helpers.issue_registry --------------------------------------------------

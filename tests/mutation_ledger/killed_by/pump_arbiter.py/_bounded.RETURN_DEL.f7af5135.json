@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded RETURN_DEL f7af5135",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return grid.bounded(value, floor, rounding=rounding, lo=lo, hi=hi)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=5."
+}

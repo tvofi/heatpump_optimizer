@@ -609,7 +609,7 @@ every sensor is created on every install regardless of which group it is in.
 | Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default unless the floor-return probe is configured at setup; unavailable without it |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default unless the floor-return probe is configured at setup; unavailable until it feeds the model |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
+| Buffer Tank Temperature | °C | Measured buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 
 #### Energy, power and efficiency
@@ -659,7 +659,7 @@ every sensor is created on every install regardless of which group it is in.
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 | Model Restart Advisor | — | A refitted house heat-loss scale, and the last known-good snapshot, while predictions are drifting | Diagnostic; the Advisor tab offers both; nothing is applied until you accept one; the refit's own uncertainty is about ±7-10 % |
 
-Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
+Disabled by default: Buffer Tank Temperature, Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
 Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
 ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
@@ -1064,6 +1064,7 @@ Each clears itself once the cause is gone.
 - **Hot water disinfection is overdue: the heat pump's mode blocks it** — the pump reports a mode that makes no hot water, so the cycle cannot be scheduled. Change the pump's mode.
 - **Hot water has not been disinfected for N days** — no cycle has been confirmed at temperature within the interval. An immersion heater for the last few degrees, or a disinfection temperature the system can hold, is the usual answer.
 - **Hot water is not reaching the disinfection temperature** — the cycle ran and the tank fell short. Same remedies as above; the cycle is retried about a day later.
+- **The disinfection temperature is between the hot water set-point's steps** — the set-point entity only takes coarse steps, and the cycle never writes above the disinfection temperature you chose, so it writes the step below, too low to count. Raised before the cycle runs, in place of the notice above: no hardware is needed. Set the disinfection temperature to one of the two on-step values the notice names.
 - **The disinfection cycle cannot be verified** — no tank temperature sensor confirms the cycle. Assign the *Hot water tank temperature sensor* to a real probe.
 - **Disinfection goes above your hot water charge limit** — the disinfection temperature is above the charge limit. That is allowed; the notice says so, so the one hot day per interval is no surprise.
 - **The price feed and Home Assistant name different currencies** — costs are published in the feed's currency. Set Home Assistant's currency to match, or choose a price sensor in it.
@@ -1078,6 +1079,7 @@ Each clears itself once the cause is gone.
 - **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.
 - **Stored learning could not be read** — stored data from another version could not be read, so that part of what was learned starts again from defaults. The integration keeps running.
 - **Silent windows are not enforced** — the capacity-limited slot is not a switch the integration can hold. Assign the pump's own night-mode switch, or remove the silent windows.
+- **The heat pump cannot hold the hot water minimum** — You named a *Hot water start hysteresis* entity, and the hot water minimum sits above the temperature the pump starts a charge at (its hot water target less that hysteresis). The plan places no charge the pump would not start, so it shows the tank falling under the minimum before each charge. Lower the minimum to the start temperature or less, raise the hot water set-point, or reduce the hysteresis on the pump.
 
 ## ECL110 heat-curve control
 

@@ -4500,6 +4500,9 @@ async def registry_walk_recurses():
         # #1067 again: the pump's own supply and return water, same page.
         const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
         const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+        # The pump's own start hysteresis per duty.
+        const.CONF_SPACE_HYSTERESIS_ENTITY,
+        const.CONF_DHW_HYSTERESIS_ENTITY,
     }
     check(
         "registry",

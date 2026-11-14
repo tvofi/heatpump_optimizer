@@ -19,11 +19,11 @@ at expiry, and **void** when anything else could explain a stop
 lost running signal). A stop's off time runs to the next start edge and is
 censored by any write of the arbiter, or the supply switch, in between.
 
-**The running signal** is ``wear.compressor_running`` over the reading the
-arbiter's reader hands in, its edges ``wear.EdgeTracker``'s. This module's
-own listener (:func:`attach`) feeds the tracker and never triggers an arbiter
-pass; the pass (:func:`note_pass`) confirms a pending edge. Everything below
-the registry takes the pump's :class:`_Record`, never the coordinator.
+**The running signal** is ``running_signal``'s, the one owner of the
+listener and its debounced edges in every duty mode. While the arbiter listens
+the record subscribes to its edges (:func:`attach`), which never trigger an
+arbiter pass; the pass (:func:`note_pass`) confirms a pending edge. Everything
+below the registry takes the pump's :class:`_Record`, never the coordinator.
 
 **Estimate.** Per direction two decayed counts, ``k`` stops over ``n``
 episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
@@ -34,7 +34,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with 
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
 forgotten with it. Every threshold
 here is a named constant from one day on one install, not a measurement.
-``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking, so
+``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+on each decay, so a record stored over it is held to it by the first pass,
 evidence from before a firmware change is outvoted in a bounded number of
 episodes and an install that stops switching unlatches in a bounded time.
 """
@@ -47,11 +48,9 @@ from datetime import date, datetime
 from typing import Any, Callable
 from weakref import WeakKeyDictionary
 
-from homeassistant.core import callback
-from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from . import pump_mode, wear
+from . import pump_mode, running_signal
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
 from .store import QuarantiningStore
@@ -192,7 +191,7 @@ class Direction:
     def decay(self, when: datetime) -> bool:
         """Age the counts to ``when``; whether the latch or the span's days moved."""
         n = self.n
-        factor = self.weights(when)[1] / n if n > 0.0 else 1.0
+        factor = min(self.weights(when)[1], N_CAP) / n if n > 0.0 else 1.0
         self.k, self.kept_w = self.k * factor, self.kept_w * factor
         if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
             self.decayed_at = when
@@ -413,23 +412,16 @@ class DutySwitchLearner:
             return cls()
 
 
-# -- the Home Assistant edge: listener, store, per-coordinator record ---------
-
-#: ``() -> (frequency Hz, power kW, threshold kW, by frequency)``, the
-#: arguments of ``wear.compressor_running``; built by the arbiter.
-Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]
-
+# -- the Home Assistant edge: subscription, store, per-coordinator record -----
 
 @dataclass
 class _Record:
-    """One pump's learner, running signal and store."""
+    """One pump's learner, its running signal and store."""
 
     hass: Any
     store: Any
     learner: DutySwitchLearner = field(default_factory=DutySwitchLearner)
-    tracker: wear.EdgeTracker = field(default_factory=wear.EdgeTracker)
-    reader: Reader | None = None
-    unsub: Callable[[], None] | None = None
+    signal: running_signal.Signal = field(default_factory=running_signal.Signal)
     loaded: bool = False
     dirty: bool = False
 
@@ -447,44 +439,30 @@ def record_for(coord: Any) -> _Record:
     rec = _RECORDS.get(coord)
     if rec is None:
         rec = _RECORDS[coord] = _Record(coord.hass, QuarantiningStore(
-            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch"))
+            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch"),
+            signal=running_signal.signal_for(coord))
     return rec
 
 
-def attach(rec: _Record, entity: str | None, reader: Reader) -> None:
-    """Listen on the running signal's ``entity``; idempotent, and a no-op without one."""
-    if rec.unsub is not None or not entity:
-        return
-    rec.reader = reader
-
-    @callback
-    def _changed(_event: Any) -> None:
-        note_signal(rec, dt_util.now())
-
-    rec.unsub = async_track_state_change_event(rec.hass, [entity], _changed)
-    note_signal(rec, dt_util.now())
+def attach(rec: _Record) -> None:
+    """Hear the running signal's confirmed edges from now on; idempotent."""
+    running_signal.subscribe(rec.signal, rec.feed)
 
 
 def detach(coord: Any) -> None:
-    """Stop listening; an open episode is dropped uncounted, the signal forgotten."""
+    """Stop hearing the edges; an open episode is dropped uncounted. The signal is the module's."""
     rec = _RECORDS.get(coord)
-    if rec is None or rec.unsub is None:
+    if rec is None:
         return
-    rec.unsub()
-    rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None
-
-
-def note_signal(rec: _Record, when: datetime) -> None:
-    """One reading of the running signal; never triggers an arbiter pass."""
-    if rec.reader is not None:
-        rec.feed(rec.tracker.note(when, wear.compressor_running(*rec.reader())))
+    running_signal.unsubscribe(rec.signal, rec.feed)
+    rec.learner.episode = None
 
 
 def note_mode_write(rec: _Record, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
     """The arbiter's mode write landed. A report before the load is dropped."""
     if not rec.loaded:
         return
-    running = rec.tracker.settled is True and rec.tracker.pending is None
+    running = running_signal.running_now(rec.signal) is True
     rec.dirty = rec.learner.mode_write(when, old, new, running, ctx) or rec.dirty
 
 
@@ -492,8 +470,8 @@ async def note_pass(rec: _Record, when: datetime, ctx: SwitchContext) -> None:
     """Each arbiter pass: load once, confirm a pending edge, judge the episode, save a change."""
     if not await _load(rec):
         return
-    rec.feed(rec.tracker.confirm(when))
-    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty
+    running_signal.confirm(rec.signal, when)
+    rec.dirty = rec.learner.note_pass(when, ctx, rec.signal.tracker.pending is not None) or rec.dirty
     if rec.dirty:
         await _persist(rec)
 
