@@ -1,0 +1,39 @@
+30314c72c5 tests/golden/claimed_drift.txt blob e348abdc9e1d94dd966ca5160a5d589243f8cf55
+f14a2fbcf5 tests/golden/claimed_drift.txt blob e348abdc9e1d94dd966ca5160a5d589243f8cf55
+3b64f9397e tests/golden/claimed_drift.txt blob e348abdc9e1d94dd966ca5160a5d589243f8cf55
+f919d224ca tests/golden/claimed_drift.txt blob 62e9839bd47816a56585d858e9a72c40789a036b
+c987209cc7 tests/golden/claimed_drift.txt blob 8b6433462b6481128ca415d8b1031edc9e1f4e77
+22e9330193 tests/golden/claimed_drift.txt blob 62e9839bd47816a56585d858e9a72c40789a036b
+
+## remerge-diff 30314c72c5
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides changed claims under different
+'claims-for:' stamps (base 7.1.15, this branch 7.1.15, incoming 7.1.16), so they describe different
+releases' diffs. Resolve it by hand: keep the claims that
+describe THIS branch's diff and delete the rest.
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+remerge CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
+index 8b52ceb3fd..e348abdc9e 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -67,8 +67,6 @@
+ # v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
+-<<<<<<< tests/golden/claimed_drift.txt (this branch)
+-config_flow # R10-OUTSIDE-DHW-START-HYSTERESIS: the entities_pump page gains the two start-hysteresis pickers (space_hysteresis_entity, dhw_hysteresis_entity), so the plain render, the seeded render and the seed each gain those two keys; every leaf that moves is "present on one side only" and ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads the options unset: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
+ valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
+ valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
+ valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
+@@ -77,8 +75,6 @@ valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
+ wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
+ wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
+ wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+-=======
+->>>>>>> tests/golden/claimed_drift.txt (incoming)
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+## merge-tree origin/main head
+b112b3ec8d9a20ed886f545aebbed6dda84252c0
+rc=0
