@@ -802,3 +802,30 @@
 # that renders the card moves; the inline states also lose the card-copy
 # legend and show the two fold headers in place of the list and panel.
 # editor_schema renders no card and is identical.
+
+# R10-USER-TEXT-VERIFY-CARD: the card's false and stale strings corrected in en,
+# sv and de (dev/audit/rounds/round10/user-text-card.md). advisor_page and
+# advisor_empty move on advisor.step_grid, advisor_page also on
+# advisor.basis_history, savings_page on receipt.covers; the other 18 render
+# the What-if panel and move on whatif.no_windows_hint. Text nodes only.
+advisor_empty  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+advisor_page  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+away_return  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+away_status  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+away_toggle  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+coarse_pointer  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+draft_dirty_menu_open  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+draft_mid_drag  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+expanded_plan  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+expanded_zoomed  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+history_deep_panned  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+history_no_power  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+history_panned  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+history_pending  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+history_unavailable  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+override_active  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+savings_page  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+shared_steps  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+shared_steps_hover  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+tooltip_hover  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
+wood_whatif  # corrected user text (R10-USER-TEXT-VERIFY-CARD)
