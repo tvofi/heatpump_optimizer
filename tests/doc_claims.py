@@ -4713,6 +4713,50 @@ def check_stateless() -> None:
 
 
 
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi tank the three hot-water
+# figures publish ``dhw_split`` (entity.dhw_split_attributes). The README rows
+# naming them and configuration.md's combi option must name that attribute and
+# say what the code's own sentence says, so the docs cannot drift from it; the
+# null is a space figure's row, which must not carry the note.
+def check_combi_dhw_split() -> None:
+    from heatpump_optimizer import entity
+
+    claim = "what the heat pump spends in hot-water mode"
+    rows = {
+        name: next((ln for ln in README.splitlines() if ln.startswith(f"| {name} |")), "")
+        for name in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                     "DHW Cost (lifetime)", "Lifetime Space Heating Energy")
+    }
+    R.check(
+        "the code's combi split sentence carries the claim the docs repeat (anchor)",
+        claim in entity.COMBI_DHW_SPLIT
+        and "space heat drawn from the" in entity.COMBI_DHW_SPLIT,
+        entity.COMBI_DHW_SPLIT,
+    )
+    missing = [n for n, ln in rows.items()
+               if n != "Lifetime Space Heating Energy"
+               and not ("`dhw_split`" in ln and claim in ln and "space heat drawn from the" in ln)]
+    R.check(
+        "README's three hot-water rows say which split they show on a combi tank (Carry 10)",
+        not missing and all(rows.values()),
+        f"rows without the note: {missing}",
+    )
+    R.check(
+        "and a space figure's row does not (Carry 10 null)",
+        "`dhw_split`" not in rows["Lifetime Space Heating Energy"],
+        rows["Lifetime Space Heating Energy"],
+    )
+    combi = next((ln for ln in DOCS["configuration.md"].splitlines()
+                  if ln.startswith("| Hot water is made from the buffer tank (combi tank) |")), "")
+    R.check(
+        "configuration.md's combi option names the three figures and their dhw_split (Carry 10)",
+        all(n in combi for n in ("DHW Heating Cost (next 24 h)", "DHW Energy (lifetime)",
+                                 "DHW Cost (lifetime)"))
+        and "`dhw_split`" in combi and claim in combi,
+        combi[-400:],
+    )
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -4757,6 +4801,7 @@ def main() -> int:
     check_surface_coverage()
     check_power_feedback_claims()
     check_stateless()
+    check_combi_dhw_split()
     return R.close("checks")
 
 
