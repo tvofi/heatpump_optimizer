@@ -27333,7 +27333,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "local opus fixer, scoped prepr, opus review, front of the train",
-    "note": "owner order 2026-11-14: hotfix merged asap, workarounds allowed; closure 15/11 is the top priority"
+    "note": "owner order 2026-11-14: hotfix merged asap, workarounds allowed; closure 15/11 is the top priority",
+    "pr": 3584
    }
   }
  ]
