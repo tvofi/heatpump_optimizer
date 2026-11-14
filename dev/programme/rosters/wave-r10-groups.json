@@ -25584,7 +25584,8 @@
     "Carry 0: in tools/ci/selftest_scope.py, `record` replaces rather than unions, which is what dropped these entries here and in #3409, #3419 and #3506; making record union per step and dimension belongs to the group that owns the record path. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
     "Carry 1: beatd and review-packet entries are unions of differing recordings, so a group that retires or moves a file they read (R10-NUDGE-RETIRE) re-records those two with `record --step` twice and unions, not once. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
     "`git` entry `?` dropped from three steps: not a path; restored by the union anyway. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
-    "tests/entities.py not runnable on the reviewer's seat (missing homeassistant): an environment fault, no finding on the head. Carry: R10-SELFTEST-SCOPE-UNION-GUARD"
+    "tests/entities.py not runnable on the reviewer's seat (missing homeassistant): an environment fault, no finding on the head. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
+    "From r10-hotfix-main-selftest-scope, body item 97a6b084: Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items 97a6b084)"
    ],
    "resume": {
     "stage": "in-progress",
