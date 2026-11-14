@@ -248,10 +248,17 @@ def pr_facts(repo: Path, tree: str, roster: str | None, verdicts: list[dict],
                 lines += (int(a) if a != "-" else 0) + (int(d) if d != "-" else 0)
         facts[pr] = dict(
             origin="none" if grp is None else "finding" if (grp.get("issues") or grp.get("findings") or grp.get("fixes")) else "group",
-            fixer=((grp or {}).get("model") or {}).get("fixer") or "none",
+            fixer=fixer_of(grp),
             size="?" if not mb else "S<150" if lines < 150 else "M<600" if lines < 600 else "L>=600",
             product=any(f.startswith(("custom_components/", "blueprints/")) for f in files))
     return facts
+
+
+def fixer_of(grp: dict | None) -> str:
+    """The group's fixer model: `model.fixer`, or a string `model` itself (a roster
+    group may hold `"model": "sonnet"`), else "none"."""
+    model = (grp or {}).get("model")
+    return (model if isinstance(model, str) else (model or {}).get("fixer")) or "none"
 
 
 def stratum(by: str, v: dict, facts: dict[int, dict], taught: tuple[str, ...] = ()) -> str:
@@ -576,6 +583,9 @@ def self_test() -> int:
               (f4[5]["origin"], f4[6]["origin"]) == ("finding", "group"))
         check("fixer: the joined group's model.fixer, opus for 5 and sonnet for 6",
               (f4[5]["fixer"], f4[6]["fixer"]) == ("opus", "sonnet"))
+        check("fixer: a string model is the fixer model (R10-REPLAY-OPEN-LOG's \"sonnet\"); null: the dict reads its fixer key, none reads none",
+              (fixer_of({"model": "sonnet"}), fixer_of({"model": {"fixer": "opus"}}), fixer_of({"model": {}}), fixer_of(None))
+              == ("sonnet", "opus", "none", "none"))
         check("size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)",
               (f4[5]["size"], f4[6]["size"]) == ("M<600", "S<150"))
         check("product: 5 touches custom_components/, 6 only docs/",

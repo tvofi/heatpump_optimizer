@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_ledger GUARD_OFF 258489b8",
+  "killed_by": "tests/features.py",
+  "old": "                if admitted(\"ledger\", {\"score_day\": cleaned}):  # finite, and in its domain",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # finite, and in its domain`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

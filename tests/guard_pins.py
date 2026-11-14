@@ -14,6 +14,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import asyncio
+import math
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -768,6 +769,297 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
     }
 
 
+_STEP_ISSUE = "dhw_legionella_off_step"
+#: The config flow's integer sliders (``config_flow.py``'s everyday and
+#: disinfection selectors) on a 30-80 degC number of each step: every row
+#: whose disinfection temperature is above the everyday set-point.
+_SLIDER_STEPS = (0.1, 0.5, 1, 2, 5)
+
+
+def _slider_rows():
+    for step in _SLIDER_STEPS:
+        for disinfection in range(55, 71):
+            for everyday in range(40, min(65, disinfection - 1) + 1):
+                yield step, float(everyday), float(disinfection)
+
+
+#: ``dev/audit/harnesses/r10_disinfection_setpoint.py``'s ``--grid``
+#: temperatures, its cycle rows: disinfection above everyday, at most 70.
+_GRID_TEMPS = (50.0, 55.0, 57.0, 58.0, 60.0, 60.2, 60.3, 60.4, 60.7, 62.0, 69.6, 70.0, 72.0)
+
+
+def _grid_rows():
+    for step in _SLIDER_STEPS:
+        for everyday in _GRID_TEMPS[:-1]:
+            for disinfection in _GRID_TEMPS:
+                if everyday < disinfection <= 70.0:
+                    yield step, everyday, disinfection
+
+
+def _disinfection_on_step(value, step):
+    return abs(value / step - round(value / step)) < 1e-9
+
+
+def _step_notice(everyday, disinfection, step, *, hold=False, cycle=True, dhw=True,
+                 entity="number.dhw", duty="control", attrs=None):
+    """The off-step notice's placeholders after one observe pass, or None."""
+    params = ThermalParameters(
+        dhw_setpoint=everyday, dhw_legionella_temp=disinfection,
+        dhw_legionella_enabled=cycle, dhw_enabled=dhw,
+    )
+    states = {} if entity is None else {
+        entity: FakeState("50", attributes=attrs or {"min": 30, "max": 80, "step": step}),
+    }
+    config = {"pump_duty_mode": duty, "dhw_setpoint_entity": entity,
+              "dhw_free_disinfection_enabled": hold}
+    hass = FakeHass(states)
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params, config, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    raised = [i for i in getattr(hass, "issues", []) if i[1] == _STEP_ISSUE]
+    return raised[-1][2].get("translation_placeholders") if raised else None
+
+
+def _slider_count(*, hold=False, on_step=None, steps=_SLIDER_STEPS, rows=_slider_rows):
+    """(rows driven, notices raised) over ``rows`` filtered by step and on-step."""
+    driven = raised = 0
+    for step, everyday, disinfection in rows():
+        if step not in steps or on_step not in (None, _disinfection_on_step(disinfection, step)):
+            continue
+        driven += 1
+        raised += _step_notice(everyday, disinfection, step, hold=hold) is not None
+    return driven, raised
+
+
+def _standing(hass):
+    """The issue ids standing on the stub registry (``hass.issues``)."""
+    return {i[1] for i in getattr(hass, "issues", [])}
+
+
+def _unreachable_yields_to_the_step_notice() -> bool:
+    """While the off-step notice stands, a short cycle raises no hardware advice, and raising it clears that."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    unreachable = "dhw_legionella_unreachable"
+    guard.raise_unreachable_issue(58.0, 62.0)
+    raised_before = unreachable in _standing(hass)
+    asyncio.run(guard.async_observe(None, None))
+    cleared = unreachable not in _standing(hass)
+    guard.raise_unreachable_issue(58.0, 62.0)
+    return raised_before and cleared and unreachable not in _standing(hass) and _STEP_ISSUE in _standing(hass)
+
+
+def _credit_edges() -> dict[str, bool]:
+    """The two credit rules at their edges, through ``async_track``: target less 1.0 credits at once, less 0.5 starts a hold."""
+    out: dict[str, bool] = {}
+    for free, margin, attr in ((False, 1.0, "last_cycle"), (True, 0.5, "hold_last")):
+        seen = []
+        for reading in (60.0 - margin, 60.0 - margin - 0.01):
+            params = ThermalParameters(dhw_legionella_temp=60.0, dhw_legionella_enabled=True, dhw_enabled=True)
+            guard = LegionellaGuard(
+                FakeHass(), "guard-pins-edge", lambda p=params: p, {"dhw_free_disinfection_enabled": free},
+                action=lambda: {}, disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+                dhw_blocked=lambda: False,
+            )
+            asyncio.run(guard.async_track(reading))
+            seen.append(getattr(guard, attr) is not None)
+        out[f"{'hold' if free else 'instant'} credit counts target less {margin} and not 0.01 under"] = seen == [True, False]
+    return out
+
+
+def _off_step_notice_is_deduplicated() -> bool:
+    """An unchanged off-step signature does not re-raise the notice (as ``check_ceiling``'s)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    calls: list[int] = []
+    ir = legionella_mod.ir
+    original = ir.async_create_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(a[2])
+    try:
+        asyncio.run(guard.async_observe(None, None))
+        asyncio.run(guard.async_observe(None, None))
+    finally:
+        ir.async_create_issue = original
+    return calls.count(_STEP_ISSUE) == 1
+
+
+def _off_step_notice_clears() -> bool:
+    """Raised at 62 on step 5, then gone after one pass at 65 (and only then)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    raised = _STEP_ISSUE in _standing(hass)
+    params.dhw_legionella_temp = 65.0
+    asyncio.run(guard.async_observe(None, None))
+    return raised and _STEP_ISSUE not in _standing(hass)
+
+
+def _off_step_notice_pins() -> dict[str, bool]:
+    """R10-DISINFECTION-STEP-NOTICE: a cycle write the entity's step leaves short of credit is named before it runs.
+
+    The arbiter writes a cycle on the step at or below ``dhw_hard_max_temp``
+    (``pump_arbiter.cycle_write``); where that write is under the credit
+    threshold in force (target less 1.0, or less 0.5 under free
+    disinfection) the guard raises ``dhw_legionella_off_step`` with the
+    configured, written and on-step temperatures, in place of the
+    after-the-fact ``dhw_legionella_unreachable``. Counts are over the
+    slider grid of ``_slider_rows``: the product ruling's 201 (instant, all
+    at step 5) and 436 (hold) of 1750; the 1314 on-step rows raise none.
+    """
+    out: dict[str, bool] = {}
+    case = _step_notice(55.0, 62.0, 5)
+    out["55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step"] = case == {
+        "legionella_temp": "62", "written": "60", "step": "5", "below": "60", "above": "65",
+    }
+    out["the slider grid raises 201 of 1750 under the instant rule"] = _slider_count() == (1750, 201)
+    out["the slider grid raises 436 of 1750 under the hold rule"] = _slider_count(hold=True) == (1750, 436)
+    out["the instant rule's 201 are all at step 5"] = _slider_count(steps=(5,))[1] == 201
+    out["null: the 1314 on-step slider rows raise none, either rule"] = (
+        _slider_count(on_step=True) == (1314, 0) == _slider_count(on_step=True, hold=True)
+    )
+    out["null: steps 0.1 and 0.5 raise none, either rule"] = (
+        _slider_count(steps=(0.1, 0.5))[1] == 0 == _slider_count(steps=(0.1, 0.5), hold=True)[1]
+    )
+    grid = dict(rows=_grid_rows)
+    out["the harness grid raises 34 / 71 of 330 (instant / hold)"] = (
+        _slider_count(**grid) == (330, 34) and _slider_count(hold=True, **grid) == (330, 71)
+    )
+    out["null: the 169 on-step harness grid rows raise none, either rule"] = (
+        _slider_count(on_step=True, **grid) == (169, 0) == _slider_count(on_step=True, hold=True, **grid)
+    )
+    out["the off-step notice shows, not the unreachable notice's hardware advice"] = (
+        _unreachable_yields_to_the_step_notice()
+    )
+    out["an unchanged off-step signature does not re-raise the notice"] = _off_step_notice_is_deduplicated()
+    out["the notice clears once the disinfection temperature is on the step"] = _off_step_notice_clears()
+    out.update(_credit_edges())
+    out["null: the cycle disabled raises none"] = _step_notice(55.0, 62.0, 5, cycle=False) is None
+    out["null: hot water disabled raises none"] = _step_notice(55.0, 62.0, 5, dhw=False) is None
+    out["null: no set-point entity raises none"] = _step_notice(55.0, 62.0, 5, entity=None) is None
+    out["null: an arbiter that writes nothing (observe) raises none"] = (
+        _step_notice(55.0, 62.0, 5, duty="observe") is None
+    )
+    out["null: the stock 55/60 raises none on any step"] = all(
+        _step_notice(55.0, 60.0, s, hold=h) is None for s in _SLIDER_STEPS for h in (False, True)
+    )
+    out["63 on step 5 is named below 60 and above 65, the step down and up, not the nearest"] = (
+        _step_notice(55.0, 63.0, 5) == {
+            "legionella_temp": "63", "written": "60", "step": "5", "below": "60", "above": "65",
+        }
+    )
+    capped = {"min": 30, "max": 60, "step": 1}
+    out["a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule"] = all(
+        _step_notice(55.0, 65.0, 1, hold=h, attrs=capped) is None for h in (False, True)
+    )
+    out["a range-capped write leaves the unreachable notice's hardware advice standing"] = (
+        _shortfall_standing(capped, 65.0) == {"dhw_legionella_above_setpoint", "dhw_legionella_unreachable"}
+    )
+    for step in (5, 1):
+        out[f"a hard-cap shortfall (75 over the 70 C hard maximum, step {step}) raises no off-step notice, either rule"] = all(
+            _step_notice(55.0, 75.0, step, hold=h) is None for h in (False, True)
+        )
+    out["a hard-cap shortfall leaves the unreachable notice's hardware advice standing"] = (
+        _shortfall_standing({"min": 30, "max": 80, "step": 5}, 75.0)
+        == {"dhw_legionella_above_setpoint", "dhw_legionella_unreachable"}
+    )
+    out["68 on step 5 is named: the step above, 70, is the hard maximum and writable"] = (
+        _step_notice(55.0, 68.0, 5) == {
+            "legionella_temp": "68", "written": "65", "step": "5", "below": "65", "above": "70",
+        }
+    )
+    out["null: the same 65 on a max-80 step-5 entity off the step (62) still raises"] = (
+        _step_notice(55.0, 62.0, 5, attrs={"min": 30, "max": 80, "step": 5}) is not None
+        and _shortfall_standing({"min": 30, "max": 80, "step": 5}, 62.0)
+        == {"dhw_legionella_above_setpoint", _STEP_ISSUE}
+    )
+    rows, raised, bad = _range_census()
+    out[f"entity-range census: {raised} of {rows} rows raise, each with below < target <= above <= max"] = (
+        (rows, raised) == _RANGE_CENSUS and not bad
+    )
+    return out
+
+
+#: (rows, notices) of `_range_census`: min 30 or 60, max 55-80, steps 0.5/1/3/5,
+#: disinfection 55-75 (the service's range), everyday 55, both credit rules.
+_RANGE_CENSUS = (2856, 277)
+
+
+def _shortfall_standing(attrs, disinfection) -> set:
+    """The issues standing after one observe pass and a short cycle (58 reached)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=disinfection,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes=attrs)})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    guard.raise_unreachable_issue(58.0, disinfection)
+    return _standing(hass)
+
+
+def _range_census():
+    """Every entity range against every disinfection target: (rows, raised, bad rows).
+
+    The notice is owed exactly where the step below the target is short of
+    credit and the step above it is writable (inside min and max, and at or
+    under the 70 C hard maximum a cycle never exceeds): a range cap or the
+    hard cap is the unreachable notice's. A raised notice must name a writable
+    step above the target and one below it (below < target <= above <= max,
+    above - below == step).
+    """
+    rows = raised = 0
+    bad = []
+    for lo in (30, 60):
+        for hi in (55, 58, 60, 62, 64, 65, 66, 68, 70, 80):
+            if hi <= lo:
+                continue
+            for step in (0.5, 1, 3, 5):
+                for d in range(55, 76):
+                    for hold in (False, True):
+                        rows += 1
+                        got = _step_notice(55.0, float(d), step, hold=hold,
+                                           attrs={"min": lo, "max": hi, "step": step})
+                        down, up = math.floor(d / step) * step, math.ceil(d / step) * step
+                        owed = lo <= down < d - (0.5 if hold else 1.0) and up <= min(hi, 70)
+                        if (got is not None) != owed:
+                            bad.append((lo, hi, step, d, hold, got))
+                        if got is None:
+                            continue
+                        raised += 1
+                        below, above = float(got["below"]), float(got["above"])
+                        if not (below < d <= above <= hi and abs(above - below - step) < 1e-9
+                                and hi >= d and lo <= d):
+                            bad.append((lo, hi, step, d, hold, got))
+    return rows, raised, bad
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -823,6 +1115,8 @@ def main() -> int:
         R.check(f"R9-SW-2 {name}", ok)
     for name, ok in _r10_arch_shapes_pins().items():
         R.check(f"R10-ARCH-SHAPES {name}", ok)
+    for name, ok in _off_step_notice_pins().items():
+        R.check(f"R10-DISINFECTION-STEP-NOTICE {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 

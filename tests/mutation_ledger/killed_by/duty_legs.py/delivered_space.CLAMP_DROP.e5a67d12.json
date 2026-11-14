@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:delivered_space CLAMP_DROP e5a67d12",
+  "killed_by": "tests/features.py",
+  "old": "    delivered: np.ndarray = np.maximum(0.0, space_kw - (1.0 - avail) * (space_kw + dhw_kw))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`delivered: np.ndarray = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:dhw_start_temps CMP_BOUND 6c096d09",
+  "killed_by": "tests/block_duty.py",
+  "old": "    if cycle_step is not None and 0 <= cycle_step < n_steps:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if cycle_step is not None and 0 < cycle_step < n_steps:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}

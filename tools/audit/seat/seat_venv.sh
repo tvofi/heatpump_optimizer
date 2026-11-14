@@ -289,7 +289,7 @@ STUB
 
 case ${1:-} in
   --check) check; exit 0 ;;
-  --self-test) self_test; exit $? ;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded seat_venv bash "$0" --self-test; }; self_test; exit $? ;;
   --install-shims)
     dest=${2:?--install-shims takes the bin directory}
     mkdir -p "$dest"
