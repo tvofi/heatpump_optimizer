@@ -1,3 +1,6 @@
-reviewed head: ff8b073827a8938d679ced28644cd28401f16dbc
-base (merge-base): 154dbb4c61652135381ce66646d23f7109d1c142
-merge-tree origin/main: clean, tree 71fc0cf6d89e2be80e2c4f2952c3ff96f7e229c0 (LEDGER-MERGE resolved tests/closures.json)
+reviewed head: 1506411191d3badde1868ef355055e84ead1bddb
+previous reviewed head: ff8b073827a8938d679ced28644cd28401f16dbc
+merge base: 154dbb4c61652135381ce66646d23f7109d1c142
+origin/main: 5cd7b874134350b87a72062f4d5df73404a58aff
+merge-tree tree: 133a59667b38829667665017ab9fa1f2fcef8d10 (rc 0)
+local merge commit tested: fb20cb7bc0f514beb2026d83c0b8e17188abbfeb
