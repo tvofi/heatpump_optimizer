@@ -20751,7 +20751,7 @@
     "branch": null,
     "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md', 'tools/ci/gate.py']",
     "pr": 3499,
-    "commit": "6142f48b7f95b1b2a6f3ad7fa83db65887f8f1dd"
+    "commit": "f7e7a0244a3d5f7763c4ec15d193d03ef4bb3274"
    }
   },
   {
