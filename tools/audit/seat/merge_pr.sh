@@ -337,6 +337,6 @@ gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
 bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main
-# The rest of nudge.md step 12 (the record-issue line, the roster stage, the state docs, main's
+# The post-merge bookkeeping (standing-merge.md; the record-issue line, the roster stage, the state docs, main's
 # suite state): a failure is printed OWED and never undoes the merge, but fails the script.
 python3 -I tools/audit/seat/postmerge.py "$PR" --repo $R --state-dir "${HPO_STATE_DIR:-$HOME/.local/state/hpo}"  # mut:postmerge

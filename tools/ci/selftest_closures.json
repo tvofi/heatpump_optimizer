@@ -4172,7 +4172,6 @@
     "dev/governance/roles/fix-review.md",
     "dev/governance/roles/fixer.md",
     "dev/governance/roles/judge.md",
-    "dev/governance/roles/nudge.md",
     "dev/governance/roles/orchestrator.md",
     "dev/governance/roles/root-cause.md",
     "dev/governance/roles/verifier.md",
@@ -6046,7 +6045,6 @@
   "post-merge-bookkeeping": {
    "run_sha": "7f9730626bce97831ee61c879e8b929c037930447bf2bd8c202bbac5e13ade99",
    "files": [
-    "dev/governance/roles/nudge.md",
     "tests/layout.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/record_beat.py",
@@ -8434,7 +8432,6 @@
     ".",
     "CLAUDE.md",
     "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md",
-    "dev/governance/roles/nudge.md",
     "dev/governance/roles/orchestrator.md",
     "dev/governance/roles/proposal-triage.md",
     "dev/governance/roles/standing-dispatch.md",

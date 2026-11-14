@@ -763,11 +763,6 @@
    "since": null
   },
   {
-   "old": "tools/audit/briefs/nudge.md",
-   "new": "dev/governance/roles/nudge.md",
-   "since": null
-  },
-  {
    "old": "tools/audit/briefs/orchestrator.md",
    "new": "dev/governance/roles/orchestrator.md",
    "since": null

@@ -81,7 +81,7 @@ NOTE=""
 if [ "$C" != "-" ]; then $G merge -q --no-edit $C; NOTE="merges the authored code head \`$C\`"; fi
 OLD=$(git rev-parse HEAD)
 # Ruling R4 (Lean flow K12): origin/main is merged only when the pull request is DIRTY or the merge
-# would conflict; a clean head is not moved to absorb main (fixer.md step 6, nudge.md step 9). An
+# would conflict; a clean head is not moved to absorb main (fixer.md step 6, orchestrator.md section 6). An
 # unread merge state is not DIRTY: the merge-tree reading below is the local proof either way.
 ST=$(gh pr view "$N" -R $R --json mergeStateStatus -q .mergeStateStatus 2>/dev/null) || ST=unread
 MAIN=""

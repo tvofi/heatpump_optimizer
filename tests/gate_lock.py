@@ -46,8 +46,8 @@ measure the machine, so their numbers are comparable only with nothing else
 running: ``stress.py`` and ``harness_headers.py``. Commands that are
 multi-minute CPU-bound but do not measure take instead from the heavy-slot
 POOL (``take_slot``/``release_slot``, ``heavy_slots()`` slots under the `slots`
-subdirectory; #2267), which is what makes nudge.md's four-prepr cap mechanical
-instead of advisory. ``needs_lease`` classifies a scope into the three answers
+subdirectory; #2267), which makes the four-prepr cap mechanical instead of
+advisory (``dev/governance/rules/gate-scoping.md``). ``needs_lease`` classifies a scope into the three answers
 ``run.sh`` dispatches on: ``lease``, ``slot`` or ``none``.
 
 A pool slot is held for the LIFE of its run, not for its lease: the taker's pid
@@ -88,7 +88,7 @@ TICKET_PREFIX = "ticket-"
 # The single lease above serialises one exclusive holder (stress.py). Proving a
 # branch is *runnable* is throughput-bound instead: several commands that each
 # load the box may share it up to a cap, and until now the cap was the
-# orchestrator's, held by hand (nudge.md step 8) and enforced by nothing. A pool
+# orchestrator's, held by hand and enforced by nothing. A pool
 # of HEAVY_SLOTS slots, taken by `take_slot`, is that cap made mechanical.
 #
 # THE POOL IS ITS OWN LOCK DIR, `lock_dir/<POOL_DIRNAME>`, for two reasons. Its

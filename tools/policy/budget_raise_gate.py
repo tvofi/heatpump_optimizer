@@ -238,6 +238,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("roles", "*", "cap"), MAX),
         (("roles", "*", "opens"), SUPERSET),
         (("files", "*"), CAPFILE),
+        (("files_tokens", "*"), CAPFILE),
     ],
     # The machinery ratchet (tools/audit/machinery_ratchet.py,
     # R10-MACHINERY-RATCHETS): both caps and both bands are caps; the window
@@ -865,6 +866,16 @@ def self_test() -> int:
                  head_has=lambda f: f != "old.md"), False)
     check("policy: a per-file cap up is a raise",
           raised(P, p0, {**p0, "files": {"CLAUDE.md": 212, "old.md": 10}}), True)
+    # files_tokens is the per-file token cap beside `files`' line cap, so it
+    # grades alike: with no rule it fell to `frozen` and even a deleted file's
+    # token cap dropped read as a raise.
+    tk0 = {**p0, "files_tokens": {"CLAUDE.md": 3605, "old.md": 120}}
+    check("policy: a deleted file's token cap dropped, a token cap down, are routine",
+          raised(P, tk0, {**tk0, "files_tokens": {"CLAUDE.md": 3600}}, head_has=lambda f: f != "old.md"), False)
+    check("policy: a per-file token cap up is a raise",
+          raised(P, tk0, {**tk0, "files_tokens": {"CLAUDE.md": 3606, "old.md": 120}}), True)
+    check("policy: a token cap removed while its file is in the tree is a raise",
+          raised(P, tk0, {**tk0, "files_tokens": {"CLAUDE.md": 3605}}), True)
     check("policy: the band widened is a raise", raised(P, p0, {**p0, "_band": 600}), True)
     check("policy: a role's sample narrowed is a raise",
           raised(P, p0, {**p0, "roles": {"fixer": {"opens": ["a"], "cap": 5852}}}), True)

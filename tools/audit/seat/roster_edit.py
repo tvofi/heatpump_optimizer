@@ -1457,7 +1457,7 @@ STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
 def lane_refusal(op, group):
     """The refusal text for a structural op called outside the roster queue
     runner, else None. set-stage, append-group and set-resume stay directly
-    callable (nudge.md and sweep_template.md run them by hand). A caller that
+    callable (sweep_template.md runs them by hand). A caller that
     sets the variable by hand is out of scope: the guard stops a caller that
     does not know the lane, not one that forges it."""
     if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:
