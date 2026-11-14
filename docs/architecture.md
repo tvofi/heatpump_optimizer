@@ -128,6 +128,8 @@ custom_components/heatpump_optimizer/
 │                         #   falls in, for the solve and the pump arbiter
 ├── duty_legs.py          # The legs a step is served in, the switches between
 │                         #   them, and what a stop at one costs the plan
+├── runs.py               # What a compressor start is in a plan, which runs of
+│                         #   a relaxed plan ship, and the shortest run and pause
 ├── plan_slots.py         # A channel's step schedule as the heating slots a plan publishes
 ├── slot_drivers.py       # Why each step runs or idles: five signed driver weights,
 │                         #   and the current step's "why now" for the card
@@ -336,7 +338,7 @@ solar  ─┘        │                                                    │
 ```
 
 Both optimizer paths share one set of cost terms — the comfort penalty, the
-terminal cost, the cycling and capacity charges — so enabling hot water cannot
+terminal cost, the start and capacity charges — so enabling hot water cannot
 change the space-heating objective. That is not hypothetical tidiness: it used
 to, and the two objectives had silently drifted apart.
 

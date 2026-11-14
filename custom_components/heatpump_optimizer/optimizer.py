@@ -201,8 +201,15 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
     return opt.config.cycling_cost > 0 or opt.config.clamp_planned_levels
 
 
+#: The objectives a multi-start descends on in place of the true one
+#: (:func:`_descent_pair`): without the start term, and without the
+#: duty-switch term as well.
+_RELAXED, _UNPRICED = "relaxed", "unpriced"
+
+
 def _descent_pair(
     opt: HeatPumpOptimizer, objective: Callable[..., float], objective_batch: Callable[..., np.ndarray],
+    descent: str = _RELAXED,
 ) -> tuple[Callable[..., float], Callable[..., np.ndarray]]:
     """The objective and batch twin a solve's multi-start descends on.
 
@@ -216,7 +223,35 @@ def _descent_pair(
     """
     if not _engaged(opt):
         return objective, objective_batch
-    return partial(objective, relaxed=True), partial(objective_batch, relaxed=True)
+    return partial(objective, descent=descent), partial(objective_batch, descent=descent)
+
+
+def _relaxed_plans(
+    opt: HeatPumpOptimizer, rescope: Callable[[np.ndarray | None], tuple[np.ndarray, _Scope]],
+    scope: _Scope, headroom: np.ndarray, starts: list[np.ndarray], dhw_plan: np.ndarray,
+) -> tuple[Any, list[np.ndarray]]:
+    """The multi-start's result for a space solve beside ``dhw_plan``, and the
+    relaxed plans the candidate stage commits.
+
+    The first is that result. Where a switch has a price (a stop is learned
+    and a start costs) the solve adds the plan a solve that prices no stop
+    descends to, in the bound no stop cuts: the relaxed descent weighs a switch at the combined draw and the
+    true objective in starts, so the descent that avoids a switch can commit
+    to a plan the true objective scores above the one that kept it (measured
+    on R10-DUTY-SWITCH-PLANNER-PRICE's fixture). The true objective judges
+    the candidates of both.
+    """
+    pair = _descent_pair(opt, scope[1], scope[2])
+    res = _multi_start_minimize(
+        pair[0], starts, scope[0], args=(dhw_plan,), maxiter=300, batch_objective=pair[1])
+    plans = [np.clip(res.x, 0.0, headroom)]
+    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:
+        free_room, free = rescope(None)
+        pair = _descent_pair(opt, free[1], free[2], _UNPRICED)
+        plans.append(np.clip(_multi_start_minimize(
+            pair[0], [np.minimum(x, free_room) for x in starts], free[0], args=(dhw_plan,),
+            maxiter=300, batch_objective=pair[1]).x, 0.0, free_room))
+    return res, plans
 
 
 def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
@@ -262,7 +297,7 @@ def _stop_availability(
 
 def _with_stop_availability(
     opt: HeatPumpOptimizer,
-    start: np.ndarray,
+    start: np.ndarray | None,
     dhw_plan: np.ndarray,
     p_max: float,
     objective: Callable[..., float],
@@ -275,9 +310,10 @@ def _with_stop_availability(
     it into the step that follows. The availability vector is constant for
     the solve and is kept on the optimizer beside the requirement, so the
     plan that is adopted publishes with the vector it was scored with. With
-    none, the bound is ``p_max - dhw`` and the objectives the ones handed in.
+    none, the bound is ``p_max - dhw`` and the objectives the ones handed in;
+    so with no ``start``, the solve of an install that prices no stop.
     """
-    avail = opt._space_avail = _stop_availability(opt, start, dhw_plan, p_max)
+    avail = opt._space_avail = None if start is None else _stop_availability(opt, start, dhw_plan, p_max)
     headroom = duty_legs.space_headroom(p_max, dhw_plan, avail, _duty_floor(opt))
     if avail is None:
         return headroom, objective, objective_batch
@@ -289,7 +325,7 @@ def _shipped_and_received(
     space: np.ndarray,
     dhw: np.ndarray | None,
     avail: np.ndarray | None,
-    relaxed: bool,
+    descent: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """The level each circuit ships at, and the space draw the house receives.
 
@@ -298,9 +334,9 @@ def _shipped_and_received(
     received draw is the shipped array itself, the same object. Space is
     scored as it stands, and what stands is a committed plan
     (:func:`_commit_runs`); hot water is its planner's, so a clamped install's
-    ships as its projection, which the relaxed descent leaves out.
+    ships as its projection, which a descent leaves out.
     """
-    if dhw is not None and opt.config.clamp_planned_levels and not relaxed:
+    if dhw is not None and opt.config.clamp_planned_levels and not descent:
         dhw = project_planned_levels(
             dhw, opt.model.params.min_electrical_power, opt.model.params.max_electrical_power)
     if avail is None or dhw is None:
@@ -310,7 +346,7 @@ def _shipped_and_received(
 
 def _switch_cost_fn(
     opt: HeatPumpOptimizer,
-) -> Callable[[np.ndarray, np.ndarray | None, bool], Any]:
+) -> Callable[..., Any]:
     """The duty-switch term of shipped plans, beside the start term.
 
     One entry per row of a ``[B, n]`` batch, a float for one plan: the
@@ -321,19 +357,19 @@ def _switch_cost_fn(
     a boundary's start share is ``1 - r`` and its switch weight at most
     ``p * r``, so one stop is never priced twice. The relaxed descent weighs
     it at the combined draw, which is never more and has a slope above the
-    floor, where the running share is flat.
+    floor, where the running share is flat; the unpriced descent has none.
     """
     stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
     p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
     p_min = opt.model.params.min_electrical_power
 
-    def switch_cost(space: np.ndarray, dhw: np.ndarray | None, relaxed: bool = False) -> Any:
-        if stops is None or dhw is None or not cost > 0:
+    def switch_cost(space: np.ndarray, dhw: np.ndarray | None, descent: str | None = None) -> Any:
+        if stops is None or dhw is None or not cost > 0 or descent == _UNPRICED:
             return None
         rows = np.atleast_2d(space)
         term = cost * duty_legs.switch_weights_batch(
             rows, dhw, stops, p_max, floor, rule,
-            level=None if relaxed else p_max * runs.running_share(rows + dhw, p_min))
+            level=None if descent else p_max * runs.running_share(rows + dhw, p_min))
         return term if np.ndim(space) == 2 else float(term[0])
 
     return switch_cost
@@ -344,17 +380,17 @@ def _with_switch_cost(level_cost: Any, switch_cost: Any) -> Any:
     return level_cost if switch_cost is None else level_cost + switch_cost
 
 
-def _start_cost_fn(opt: HeatPumpOptimizer, running: bool) -> Callable[[np.ndarray, bool], Any]:
+def _start_cost_fn(opt: HeatPumpOptimizer, running: bool) -> Callable[[np.ndarray, str | None], Any]:
     """The start term: ``cycling_cost`` per start of the combined draw (``runs``).
 
     One entry per row of a ``[B, n]`` batch, a float for one plan. ``None``
-    at zero cost and on the relaxed descent (:func:`_descent_pair`), and
+    at zero cost and on a descent (:func:`_descent_pair`), and
     :func:`_with_switch_cost` then adds no operand.
     """
     cost, p_min = opt.config.cycling_cost, opt.model.params.min_electrical_power
 
-    def start_cost(power: np.ndarray, relaxed: bool) -> Any:
-        if relaxed or not cost > 0:
+    def start_cost(power: np.ndarray, descent: str | None) -> Any:
+        if descent or not cost > 0:
             return None
         count = runs.start_count_batch if np.ndim(power) == 2 else runs.start_count
         return cost * count(power, p_min, running)
@@ -531,68 +567,144 @@ def _run_bounds(
     return [b if on[i] or off[i] else (float(plan[i]), float(plan[i])) for i, b in enumerate(pinned)]
 
 
+#: What one space solve is bounded and scored by: its bounds, its objective
+#: and batch twin, and the availability vector the two carry.
+_Scope = tuple[list[tuple[float, float]], Callable[..., float], Callable[..., np.ndarray], "np.ndarray | None"]
+
+
+def _space_scope(
+    opt: HeatPumpOptimizer, h: _Horizon, start: np.ndarray | None, dhw_plan: np.ndarray, p_max: float,
+    objective: Callable[..., float], objective_batch: Callable[..., np.ndarray],
+) -> tuple[np.ndarray, _Scope]:
+    """Space heating's headroom beside ``dhw_plan`` for a solve started from
+    ``start``, and the scope that solve is held to, pins applied. With no
+    ``start``, those of a solve that prices no stop."""
+    headroom, objective, objective_batch = _with_stop_availability(
+        opt, start, dhw_plan, p_max, objective, objective_batch)
+    if h.power_caps is not None:
+        headroom = np.minimum(headroom, h.power_caps)
+    if h.power_caps_extra is not None:
+        # power_caps bounds space heating alone, so during a DHW block
+        # space + DHW could still exceed an external *total* cap. The
+        # fuse guard's whole promise is that total draw stays under
+        # the limit, so subtract the block from the cap here too.
+        headroom = np.minimum(headroom, np.maximum(0.0, h.power_caps_extra - dhw_plan))
+    # Manual space pins apply here just as in the DHW-free path. Forcing
+    # a step on raises its lower bound, but only as far as the headroom
+    # the DHW block left it — a slot the user pinned for both channels
+    # cannot demand more than the compressor has.
+    bounds = _apply_pins_to_bounds(
+        [(0.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))
+    return headroom, (bounds, objective, objective_batch, opt._space_avail)
+
+
+def _stage_box(
+    opt: HeatPumpOptimizer, bounds: list[tuple[float, float]], dhw: np.ndarray | None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """A scope's bounds as the candidate stage reads them, the hot water
+    beside the plan, and the steps that stay as solved.
+
+    On a clamped install the tank ships as its projection, and space may not
+    pass what that leaves. Under a cap below the floor an install that can
+    duty-cycle delivers only by cycling: such a step stays as solved, in
+    every candidate.
+    """
+    p_min, p_max = opt.model.params.min_electrical_power, opt.model.params.max_electrical_power
+    lo, hi = (np.array(b, dtype=float) for b in zip(*bounds))
+    other = np.zeros_like(hi)
+    if dhw is not None:
+        other = project_planned_levels(dhw, p_min, p_max) if opt.config.clamp_planned_levels else dhw
+        hi = np.minimum(hi, np.maximum(p_max - other, 0.0))
+        lo = np.minimum(lo, hi)
+    cycled = (not opt.config.clamp_planned_levels) & (other <= 0.0) & (hi < runs.floor_kw(p_min))
+    return lo, hi, other, cycled
+
+
 def _resolved_runs(
-    objective: Callable[..., float], objective_batch: Callable[..., np.ndarray], args: tuple[Any, ...],
-    maxiter: int, plans: list[np.ndarray], boxes: list[list[tuple[float, float]]],
-) -> tuple[float, np.ndarray]:
-    """The best of one L-BFGS-B run per plan, each inside its own box,
-    polished once, with its score."""
+    opt: HeatPumpOptimizer, dhw: np.ndarray | None, maxiter: int,
+    scoped: list[tuple[np.ndarray, _Scope]],
+) -> tuple[float, np.ndarray, _Scope]:
+    """The best of one L-BFGS-B run per plan, each inside its own runs
+    (:func:`_run_bounds`) and scope, polished once: its score, the plan and
+    the scope it was scored in."""
+    floor, args = runs.floor_kw(opt.model.params.min_electrical_power), () if dhw is None else (dhw,)
     found = []
-    for plan, box in zip(plans, boxes):
-        run = _lbfgsb_run(objective, objective_batch, plan, box, args, maxiter)
-        found.append((float(objective(np.asarray(run.x, dtype=float), *args)), run, box))
-    _, run, box = min(found, key=lambda c: c[0])
-    x = np.asarray(_lbfgsb_restart(run, objective, box, args, maxiter, objective_batch).x, dtype=float)
-    return float(objective(x, *args)), x
+    for plan, scope in scoped:
+        lo, hi, _, _ = _stage_box(opt, scope[0], dhw)
+        box = _run_bounds(plan, lo, hi, floor)
+        run = _lbfgsb_run(scope[1], scope[2], plan, box, args, maxiter)
+        found.append((float(scope[1](np.asarray(run.x, dtype=float), *args)), run, box, scope))
+    _, run, box, scope = min(found, key=lambda c: c[0])
+    x = np.asarray(_lbfgsb_restart(run, scope[1], box, args, maxiter, scope[2]).x, dtype=float)
+    return float(scope[1](x, *args)), x, scope
+
+
+def _best_runs(
+    opt: HeatPumpOptimizer, h: _Horizon, scope: _Scope, space: np.ndarray, dhw: np.ndarray | None,
+    first: np.ndarray, maxiter: int, rescope: Callable[[np.ndarray], _Scope] | None,
+) -> tuple[float, np.ndarray, _Scope]:
+    """The lowest-scoring committed form of one relaxed plan: its score, the
+    plan and the scope it was scored in.
+
+    ``first``, the plan's projection, and :func:`_run_plans`' candidates are
+    scored on the true objective, start term included, and the best
+    :data:`_RESOLVED_CANDIDATES` have their levels re-solved inside their
+    own runs (:func:`_resolved_runs`). ``rescope`` gives each candidate the
+    scope of a solve started from it, and holds it to that bound: a priced
+    stop's lost running time belongs to the switches the candidate makes,
+    which are not those of the relaxed solve's start.
+    """
+    args = () if dhw is None else (dhw,)
+    lo, hi, other, cycled = _stage_box(opt, scope[0], dhw)
+    plans = [first, *_run_plans(opt, h, space, other, lo, hi, cycled)]
+    plans = [x for i, x in enumerate(plans) if not any(np.array_equal(x, y) for y in plans[:i])]
+    if rescope is None:
+        scoped = [(x, scope) for x in plans]
+        scores = np.asarray(scope[2](np.array(plans), *args), dtype=float)
+    else:
+        scopes = [rescope(x) for x in plans]
+        scoped = [(np.clip(x, *_stage_box(opt, sc[0], dhw)[:2]), sc) for x, sc in zip(plans, scopes)]
+        scores = np.array([float(sc[1](x, *args)) for x, sc in scoped])
+    order = np.argsort(scores, kind="stable")
+    resolved = _resolved_runs(opt, dhw, maxiter, [scoped[i] for i in order[:_RESOLVED_CANDIDATES]])
+    return min((float(scores[order[0]]), *scoped[order[0]]), resolved, key=lambda c: c[0])
 
 
 def _commit_runs(
     opt: HeatPumpOptimizer,
     h: _Horizon,
-    objective: Callable[..., float],
-    objective_batch: Callable[..., np.ndarray],
-    bounds: list[tuple[float, float]],
-    space: np.ndarray,
+    scope: _Scope,
+    relaxed: list[np.ndarray],
     dhw: np.ndarray | None,
     maxiter: int,
-) -> np.ndarray:
-    """The relaxed space plan as runs the pump can run (Bankaifan, pull request 3529).
+    rescope: Callable[[np.ndarray], _Scope] | None = None,
+) -> tuple[np.ndarray, _Scope]:
+    """A solve's relaxed plans as runs the pump can run, and the scope the
+    plan that ships was scored in (Bankaifan, pull request 3529).
 
-    Identity unengaged, and where no start has a price and the projection
-    changes nothing. The projection and :func:`_run_plans`' candidates are
-    scored in one batch on the true objective, start term included; the best
-    :data:`_RESOLVED_CANDIDATES` have their levels re-solved inside their own
-    runs (:func:`_resolved_runs`). The lowest score ships, so a committed
-    plan never scores above the projection, and a failure anywhere in this
-    stage ships the projection.
+    Identity on the first relaxed plan unengaged, and where no start has a
+    price and the projection changes nothing. Each relaxed plan is committed
+    on its own (:func:`_best_runs`) and the lowest score ships: a committed
+    plan never scores above the first plan's projection, one more relaxed
+    plan never raises the score, and a failure anywhere in this stage ships
+    that projection.
     """
     if not _engaged(opt):
-        return space
-    p_min, p_max = opt.model.params.min_electrical_power, opt.model.params.max_electrical_power
-    floor, args = runs.floor_kw(p_min), () if dhw is None else (dhw,)
-    lo, hi = (np.array(b, dtype=float) for b in zip(*bounds))
-    other = np.zeros_like(space)
-    if dhw is not None:
-        other = project_planned_levels(dhw, p_min, p_max) if opt.config.clamp_planned_levels else dhw
-        hi = np.minimum(hi, np.maximum(p_max - other, 0.0))
-        lo = np.minimum(lo, hi)
-    # Under a cap below the floor an install that can duty-cycle delivers
-    # only by cycling: such a step stays as solved, in every candidate.
-    cycled = (not opt.config.clamp_planned_levels) & (other <= 0.0) & (hi < floor)
-    first = _projection(opt, space, dhw, hi, cycled)
-    if not opt.config.cycling_cost > 0 and np.array_equal(first, space):
-        return space
+        return relaxed[0], scope
+    _, hi, _, cycled = _stage_box(opt, scope[0], dhw)
+    first = _projection(opt, relaxed[0], dhw, hi, cycled)
+    if not opt.config.cycling_cost > 0 and np.array_equal(first, relaxed[0]):
+        return relaxed[0], scope
     try:
-        plans = [first, *_run_plans(opt, h, space, other, lo, hi, cycled)]
-        plans = [x for i, x in enumerate(plans) if not any(np.array_equal(x, y) for y in plans[:i])]
-        scores = np.asarray(objective_batch(np.array(plans), *args), dtype=float)
-        best = [plans[i] for i in np.argsort(scores, kind="stable")[:_RESOLVED_CANDIDATES]]
-        resolved = _resolved_runs(
-            objective, objective_batch, args, maxiter, best, [_run_bounds(x, lo, hi, floor) for x in best])
-        return min((float(np.min(scores)), best[0]), resolved, key=lambda c: c[0])[1]
+        return min((
+            _best_runs(
+                opt, h, scope, space, dhw,
+                first if space is relaxed[0] else _projection(opt, space, dhw, hi, cycled), maxiter, rescope)
+            for space in relaxed
+        ), key=lambda c: c[0])[1:]
     except Exception as err:  # noqa: BLE001 - the stage is optional: the projection ships
         _LOGGER.debug("Committing runs failed, the projection ships: %s", err)
-        return first
+        return first, scope
 
 
 def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
@@ -4811,28 +4923,12 @@ class HeatPumpOptimizer:
     ) -> tuple[np.ndarray, str, float]:
         """Optimize space heating around a fixed DHW schedule."""
         guess = init_base if warm_start is None else warm_start
-        headroom, objective, objective_batch = _with_stop_availability(
-            self, guess, dhw_plan, p_max, objective, objective_batch)
-        if h.power_caps is not None:
-            headroom = np.minimum(headroom, h.power_caps)
-        if h.power_caps_extra is not None:
-            # power_caps bounds space heating alone, so during a DHW block
-            # space + DHW could still exceed an external *total* cap. The
-            # fuse guard's whole promise is that total draw stays under
-            # the limit, so subtract the block from the cap here too.
-            headroom = np.minimum(
-                headroom,
-                np.maximum(0.0, h.power_caps_extra - dhw_plan),
-            )
+        rescope = partial(
+            _space_scope, self, h, dhw_plan=dhw_plan, p_max=p_max,
+            objective=objective, objective_batch=objective_batch)
+        headroom, scope = rescope(guess)
+        bounds, objective, objective_batch, _ = scope
         guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
-        bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
-        # Manual space pins apply here just as in the DHW-free path. Forcing
-        # a step on raises its lower bound, but only as far as the headroom
-        # the DHW block left it — a slot the user pinned for both channels
-        # cannot demand more than the compressor has.
-        bounds = _apply_pins_to_bounds(
-            bounds, h.space_pins, self._pin_on_power(p_max)
-        )
         guess = self._seed_pinned_guess(guess, bounds)
         # A warm start is a genuinely good lead, so keep it first; the
         # extra structural candidates only matter on the initial solve.
@@ -4861,22 +4957,21 @@ class HeatPumpOptimizer:
                     headroom,
                 )
             )
-        descent, descent_batch = _descent_pair(self, objective, objective_batch)
+        descent = _descent_pair(self, objective, objective_batch)[0]
         try:
-            res = _multi_start_minimize(
-                descent, starts, bounds, args=(dhw_plan,), maxiter=300,
-                batch_objective=descent_batch,
+            res, relaxed = _relaxed_plans(self, rescope, scope, headroom, starts, dhw_plan)
+            power, shipped = _commit_runs(
+                self, h, scope, relaxed, dhw_plan, 300,
+                (lambda start: rescope(start)[1]) if _priced_stops(self) else None,
             )
-            power = _commit_runs(
-                self, h, objective, objective_batch, bounds,
-                np.clip(res.x, 0.0, headroom), dhw_plan, 300,
-            )
+            # The adopted plan publishes with the vector it was scored with.
+            self._space_avail = shipped[3]
             return (
                 power,
                 _solver_status(
                     res, lambda x: descent(x, dhw_plan), guess
                 ),
-                float(objective(power, dhw_plan)),
+                float(shipped[1](power, dhw_plan)),
             )
         except Exception as e:
             # On the first pass the ``failed (...)`` status below reaches the
@@ -4885,6 +4980,7 @@ class HeatPumpOptimizer:
             # keeps the first pass's status and stays at DEBUG, as its sibling
             # except does (R10-N-log-flood, #2337).
             _LOGGER.debug("Space heating optimization (with DHW) failed: %s", e)
+            self._space_avail = scope[3]
             return (
                 guess,
                 f"failed ({e})",
@@ -5231,11 +5327,11 @@ class HeatPumpOptimizer:
             dhw_plan_power: np.ndarray | None = None,
             buffer_exo_kw: np.ndarray | None = None,
             avail: np.ndarray | None = None,
-            relaxed: bool = False,
+            descent: str | None = None,
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
             space_power, dhw_plan_power, heat_power = _shipped_and_received(
-                self, space_power, dhw_plan_power, avail, relaxed)
+                self, space_power, dhw_plan_power, avail, descent)
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
                 _space_traj(heat_power, buffer_exo_kw)
             )
@@ -5271,8 +5367,8 @@ class HeatPumpOptimizer:
                 # does, or a non-default weight silently re-prices starts and
                 # peaks relative to the electricity they trade against.
                 + float(_with_switch_cost(
-                    _with_switch_cost(capacity(combined), start_cost(combined, relaxed)),
-                    switch_cost(space_power, dhw_plan_power, relaxed)))
+                    _with_switch_cost(capacity(combined), start_cost(combined, descent)),
+                    switch_cost(space_power, dhw_plan_power, descent)))
                 * self.config.price_weight
                 + terminal_cost(
                     room_temps,
@@ -5288,7 +5384,7 @@ class HeatPumpOptimizer:
             dhw_plan_power: np.ndarray | None = None,
             buffer_exo_kw: np.ndarray | None = None,
             avail: np.ndarray | None = None,
-            relaxed: bool = False,
+            descent: str | None = None,
         ) -> np.ndarray:
             """The same objective, for B schedules at once (issue #97).
 
@@ -5301,7 +5397,7 @@ class HeatPumpOptimizer:
             silently.
             """
             space_matrix, dhw_plan_power, heat_matrix = _shipped_and_received(
-                self, space_matrix, dhw_plan_power, avail, relaxed)
+                self, space_matrix, dhw_plan_power, avail, descent)
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
                 power_matrix=heat_matrix,
@@ -5319,8 +5415,8 @@ class HeatPumpOptimizer:
                 traj,
                 grid_power if heat_matrix is space_matrix else heat_matrix + dhw_plan_power,
                 level_cost=_with_switch_cost(
-                    _with_switch_cost(capacity_batch(grid_power), start_cost(grid_power, relaxed)),
-                    switch_cost(space_matrix, dhw_plan_power, relaxed)),
+                    _with_switch_cost(capacity_batch(grid_power), start_cost(grid_power, descent)),
+                    switch_cost(space_matrix, dhw_plan_power, descent)),
                 energy_cost_of=energy_cost_of,
                 terminal_cost_batch=terminal_cost_batch,
                 comfort_targets=comfort_targets,
@@ -5460,9 +5556,9 @@ class HeatPumpOptimizer:
                 batch_objective=descent_batch, move_starts=move_starts,
             )
             optimal_power = _commit_runs(
-                self, h, objective, objective_batch, bounds,
-                np.asarray(result.x, dtype=float), None, 200,
-            )
+                self, h, (bounds, objective, objective_batch, None),
+                [np.asarray(result.x, dtype=float)], None, 200,
+            )[0]
             status = _solver_status(result, descent, initial_power)
         except Exception as e:
             # The ``failed (...)`` status reaches the coordinator, which

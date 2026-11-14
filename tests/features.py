@@ -86067,7 +86067,8 @@ R.check(
 )
 # Only the arbiter (which reports and reads the split), the sensor (which
 # publishes) and the coordinator (whose factory reset voids the store, and which
-# hands the planner's read to a solve's configuration, R10-DUTY-SWITCH-PLANNER-PRICE)
+# hands the planner's read to a solve's configuration, R10-DUTY-SWITCH-PLANNER-PRICE,
+# and the settled running class to a solve's inputs, R11-OUTSIDE-HONEST-STARTS-RUNS)
 # name the module; arbiter and planner read the estimate through one leg rule.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
@@ -86087,11 +86088,13 @@ _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.
 R.check(
     "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
     "store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's "
-    "read; the module imports none of them; the pure half of wear stays pure",
+    "read, beside the running class a solve starts from; the module imports none of them; the pure half of wear "
+    "stays pure",
     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
-    and _ds_plan_uses == ["planner_fields", "record_for"]
+    and _ds_plan_uses == ["planner_fields", "record_for", "running_now", "solved_running"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
-                     "note_mode_write", "note_pass", "planner_fields", "record_for", "starts_attributes"]
+                     "note_mode_write", "note_pass", "planner_fields", "record_for", "running_now",
+                     "solved_running", "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
     f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
@@ -90252,13 +90255,23 @@ def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5
 _dsp_term_opt = _dsp_opt((0.8, 0.0), cyc=2.0, p_max=6.0)
 _dsp_term = _dsp_om._switch_cost_fn(_dsp_term_opt)
 _dsp_term_pair = (np.array([0.0, 3.0]), np.array([3.0, 0.0]))
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: the weight above is what the
+# relaxed descent prices (cycles of the combined draw); the true objective
+# weighs the same pair at p_max x the running share, in starts, so a switch
+# between two steps that both run is the probability of one start whatever
+# their level. Until then both read 2.0 x (0.8 x 3.0 / 6.0).
 R.check(
-    "the objective's term is cycling_cost x that weight, a float for one plan "
-    "and one entry per row for a batch",
-    _dsp_term(*_dsp_term_pair) == 2.0 * (0.8 * 3.0 / 6.0)
+    "the relaxed descent's term is cycling_cost x that weight and the true "
+    "objective's cycling_cost x the probability of one start, a float for one "
+    "plan and one entry per row for a batch; the unpriced descent has none",
+    _dsp_term(*_dsp_term_pair, _dsp_om._RELAXED) == 2.0 * (0.8 * 3.0 / 6.0)
+    and _dsp_term(np.stack([_dsp_term_pair[0]] * 2), _dsp_term_pair[1], _dsp_om._RELAXED).tolist()
+    == [2.0 * (0.8 * 3.0 / 6.0)] * 2
+    and abs(_dsp_term(*_dsp_term_pair) - 2.0 * 0.8) < 1e-12
     and _dsp_term(np.stack([_dsp_term_pair[0]] * 2), _dsp_term_pair[1]).tolist()
-    == [2.0 * (0.8 * 3.0 / 6.0)] * 2,
-    f"{_dsp_term(*_dsp_term_pair)}",
+    == [_dsp_term(*_dsp_term_pair)] * 2
+    and _dsp_term(*_dsp_term_pair, _dsp_om._UNPRICED) is None,
+    f"{_dsp_term(*_dsp_term_pair, _dsp_om._RELAXED)} {_dsp_term(*_dsp_term_pair)}",
 )
 R.check(
     "and it is no operand at all with a zero pair, a zero cycling cost or no "
@@ -90627,13 +90640,13 @@ R.check(
 )
 
 
-def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, **install):
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0, **install):
     """One full ``optimize``; the planner builds, the published simulation's
     inputs and the objective closures are recorded beside the result."""
     opt = _dsp_opt(pair, off, **install)
     seen = _DspNS(
         builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
-        energy=[None], vectors=[0], opt=opt,
+        energy=[None], vectors=[0], vectors_outside=[0], solving=[0], opt=opt,
     )
     real_build = _DspPlanner._build_dhw_requirements
     real_sim, real_objectives = opt.model.simulate_trajectory_with_dhw, opt._solve_objectives
@@ -90643,7 +90656,11 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
 
     def solve_space(*args):
         seen.solves.append(args)
-        seen.solved.append(real_solve(*args))
+        seen.solving[0] += 1
+        try:
+            seen.solved.append(real_solve(*args))
+        finally:
+            seen.solving[0] -= 1
         return seen.solved[-1]
 
     def energy_cost_fn(*args):
@@ -90656,6 +90673,7 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
 
     def vector(*args):
         seen.vectors[0] += 1
+        seen.vectors_outside[0] += not seen.solving[0]
         return real_vector(*args)
 
     def min_run(self, **kwargs):
@@ -90682,7 +90700,7 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
     _dsp_om._stop_availability = vector
     _DspPlanner._build_dhw_requirements = build
     _DspPlanner._apply_dhw_min_run = min_run
-    outdoor = 2.0 + 3.0 * np.sin(2 * np.pi * (_DSP_STEPS - 50) / 96.0)
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_DSP_STEPS - 50) / 96.0)
     try:
         seen.result = opt.optimize(inputs=solve_inputs(
             initial_state=_DspTS(
@@ -90715,8 +90733,13 @@ def _dsp_same_plan(a, b):
     )
 
 
+# The duty-cycle install's day is 2 K colder since R11-OUTSIDE-HONEST-STARTS-RUNS:
+# with a start priced as a start that install plans runs, and on the 2 degC day
+# the plan it ships makes no priced switch at all (the mild day of the two
+# descents below), so the checks of a charged step and of the banned candidate
+# had nothing to read there.
 _DSP_INSTALLS = {
-    "duty-cycle": dict(clamp=False),
+    "duty-cycle": dict(clamp=False, out_mean=0.0),
     "modulating clamped": dict(clamp=True),
     "fixed-speed": dict(clamp=True, p_min=5.5),
 }
@@ -90763,18 +90786,31 @@ R.check(
 
 
 # 5. Acceptance, on the contributor's table.
-def _dsp_plan_weight(seen, name):
+def _dsp_plan_weight(seen, name, starts=False):
+    """A plan's summed switch weight: at the combined draw, as the relaxed
+    descent prices it, or in starts, as the true objective does."""
     kw = {"clamp": False, "p_min": 1.5, **_DSP_INSTALLS[name]}
     return _dsp_dl.switch_weight(
-        seen.space, seen.dhw, _DSP_PAIR, 5.5, kw["p_min"] if kw["clamp"] else None
+        seen.space, seen.dhw, _DSP_PAIR, 5.5, kw["p_min"] if kw["clamp"] else None,
+        level=5.5 * _dsp_runs.running_share(seen.space + seen.dhw, kw["p_min"]) if starts else None,
     )
 
 
 def _dsp_old_under_new(name):
-    """The unpriced plan's score under the priced solve's own objective."""
+    """The unpriced plan's score under the priced solve's own objective, held
+    to the bound the stops it makes leave it.
+
+    Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: on a duty-cycle install the
+    bound, not the objective, carries a stop's lost running time
+    (``duty_legs.space_headroom``), so the plan as solved without the pair
+    was scored with heat its own stop does not let it deliver (3.36 kW in a
+    step the stop leaves 2.44 kW). On a clamped install the bound is
+    ``p_max - dhw`` and the clip moves nothing.
+    """
     old, new = _dsp_base[name], _dsp_priced[name]
     avail = _dsp_om._stop_availability(new.opt, old.space, old.dhw, 5.5)
-    return float(new.objectives[-1][1](old.space, old.dhw, None, avail))
+    bound = _dsp_dl.space_headroom(5.5, old.dhw, avail, _dsp_om._duty_floor(new.opt))
+    return float(new.objectives[-1][1](np.minimum(old.space, bound), old.dhw, None, avail))
 
 
 _dsp_accept = {
@@ -90784,11 +90820,25 @@ _dsp_accept = {
     )
     for name in ("duty-cycle", "modulating clamped")
 }
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS. The true objective weighs a
+# switch in starts, the probability of one start whatever the level, so a
+# priced solve no longer buys a lower weight by lowering the level at a
+# switch it keeps: on the clamped install it keeps both switches and ships a
+# cheaper plan (the check after this one), where it used to ship 1.03 -> 0.27
+# at the combined draw. What is asked of both installs is no more switches in
+# the objective's own unit; the duty-cycle install's weight at the combined
+# draw, which its relaxed descent prices, still falls.
+_dsp_accept_starts = {
+    name: (_dsp_plan_weight(_dsp_base[name], name, True), _dsp_plan_weight(_dsp_priced[name], name, True))
+    for name in _dsp_accept
+}
 R.check(
-    "acceptance: priced on the contributor's table the plan carries a lower "
-    "summed switch weight, on a duty-cycle and on a modulating clamped install",
-    all(new_w < old_w and old_w > 0 for old_w, new_w, _, _ in _dsp_accept.values()),
-    f"{_dsp_accept}",
+    "acceptance: priced on the contributor's table the plan carries no higher "
+    "a switch weight in starts on a duty-cycle and on a modulating clamped "
+    "install, and a lower one at the combined draw on the duty-cycle install",
+    all(new_w <= old_w + 1e-9 and old_w > 0 for old_w, new_w in _dsp_accept_starts.values())
+    and _dsp_accept["duty-cycle"][1] < _dsp_accept["duty-cycle"][0],
+    f"{_dsp_accept} {_dsp_accept_starts}",
 )
 R.check(
     "at no higher cost under the plan's own objective: the new plan scores no "
@@ -91186,6 +91236,7 @@ R.check(
 # steps either side of each, and one at the running threshold.
 _dsp_e = _dsp_solve(_DSP_PAIR, (0.0, 0.0))
 _dsp_e0 = _dsp_solve((0.0, 0.0), (501.0, 0.0))
+_dsp_e_plain = _dsp_solve(None)  # the same day as the two above, not the install table's
 _dsp_e_tank = np.zeros(96)
 _dsp_e_tank[[40, 41]] = 1.5
 _DSP_EPS = 2.0 * _dsp_om._LBFGSB_FD_EPS
@@ -91213,7 +91264,7 @@ def _dsp_e_solve(seen, start):
 
 
 _dsp_e_runs = {
-    label: (_dsp_e_solve(_dsp_e, start), _dsp_e_solve(_dsp_e0, start), _dsp_e_solve(_dsp_base["duty-cycle"], start))
+    label: (_dsp_e_solve(_dsp_e, start), _dsp_e_solve(_dsp_e0, start), _dsp_e_solve(_dsp_e_plain, start))
     for label, start in _DSP_E_STARTS.items()
 }
 R.check(
@@ -91245,23 +91296,27 @@ R.check(
     ),
 )
 
-# Item r14: a relaxed start of a clamped install scores unrounded levels; the
-# delivered draw gives it the clamped reading on that unrounded level.
+# Item r14, restated in R11-OUTSIDE-HONEST-STARTS-RUNS: no objective rounds
+# the space level any more (what the true objective scores is a committed
+# plan), so a descent and the true objective both charge the vector on the
+# level as it stands, with the clamped reading. What still differs is the
+# tank: the true objective scores hot water as a clamped install ships it,
+# projected, and a descent leaves it as planned. Until then the true
+# objective rounded 0.7 kW of space to 1.5 and a relaxed start did not.
 _dsp_rx_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=True)
-_dsp_rx_args = (np.array([0.7, 3.0]), np.array([0.0, 0.0]), np.array([0.5, 0.5]))
+_dsp_rx_args = (np.array([0.7, 3.0]), np.array([0.7, 0.0]), np.array([0.5, 0.5]))
 _dsp_rx_rounded = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args)
-_dsp_rx_opt._levels_relaxed = True
-try:
-    _dsp_rx_relaxed = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args)
-finally:
-    _dsp_rx_opt._levels_relaxed = False
+_dsp_rx_relaxed = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args, _dsp_om._RELAXED)
 R.check(
-    "a relaxed start carrying a vector is charged on its unrounded level, the "
-    "rounded objective on the level that ships",
-    _dsp_rx_relaxed[0].tolist() == [0.7, 3.0] and _dsp_rx_relaxed[2].tolist() == [0.35, 1.5]
-    and _dsp_rx_rounded[0].tolist() != [0.7, 3.0]
-    and _dsp_rx_rounded[2].tolist() == (_dsp_rx_rounded[0] * 0.5).tolist(),
-    f"{_dsp_rx_relaxed[2]}, {_dsp_rx_rounded[0]}, {_dsp_rx_rounded[2]}",
+    "a descent and the true objective both charge a vector on the space level "
+    "as it stands; the true objective reads the tank as it ships, projected, "
+    "and a descent as planned",
+    _dsp_rx_relaxed[0].tolist() == _dsp_rx_rounded[0].tolist() == [0.7, 3.0]
+    and _dsp_rx_relaxed[1].tolist() == [0.7, 0.0] and _dsp_rx_rounded[1].tolist() == [1.5, 0.0]
+    and _dsp_rx_relaxed[2].tolist() == [0.0, 1.5] and _dsp_rx_rounded[2].tolist() == [0.0, 1.5]
+    and _dsp_om._shipped_and_received(_dsp_rx_opt, _dsp_rx_args[0], np.zeros(2), _dsp_rx_args[2])[2].tolist()
+    == [0.35, 1.5],
+    f"{_dsp_rx_relaxed}, {_dsp_rx_rounded}",
 )
 _dsp_rx_plain = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args[:2], None)
 R.check(
@@ -91292,29 +91347,32 @@ _dsp_mc_live = (
     else [i for i in np.flatnonzero(_dsp_mc_avail < 1.0).tolist() if _dsp_mc.space[i] > 0]
 )
 _dsp_mc_obj, _dsp_mc_batch, _dsp_mc_energy = (_dsp_mc.objectives[-1][i] for i in (1, 2, 3))
-_dsp_mc_rebuilt = (
-    None if _dsp_mc_avail is None
-    else _dsp_om._stop_availability(_dsp_mc.opt, _dsp_mc.space, _dsp_mc.dhw, 5.5)
-)
+# Restated in R11-OUTSIDE-HONEST-STARTS-RUNS, whose approved design builds the
+# vector from the profile a committed candidate's re-solve starts from: a
+# candidate makes its own switches, and the lost running time of a switch
+# belongs to the plan that makes it. So a space solve builds one vector for its
+# start and one per candidate it scores, and the plan that ships carries the
+# one it was scored with. Until then: one per space solve, built from the
+# solve's start, "not the vector the final plan would rebuild". Kept: the
+# simulation is fed through the adopted vector, and none is built at
+# publication.
 R.check(
     "modulating clamped: the simulation is fed the delivered draw of the "
-    "vector the adopted solve scored with, which is not the vector the final "
-    "plan would rebuild",
+    "vector the adopted plan was scored with, whose charged steps hold "
+    "heating in that plan",
     bool(_dsp_mc_live)
     and np.array_equal(
         _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_avail, 1.5)
     )
-    and not np.array_equal(_dsp_mc_fed, _dsp_mc.space)
-    and (_dsp_mc_rebuilt is None or not np.array_equal(
-        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_rebuilt, 1.5)
-    )),
+    and not np.array_equal(_dsp_mc_fed, _dsp_mc.space),
     f"live {_dsp_mc_live}",
 )
 R.check(
-    "the vector is built once per space solve and never at publication, on "
-    "every priced solve above",
-    all(s.vectors[0] == len(s.solves) for s in [*_dsp_priced.values(), _dsp_mc]),
-    f"{[(s.vectors[0], len(s.solves)) for s in [*_dsp_priced.values(), _dsp_mc]]}",
+    "a vector is built inside a space solve, at least one per solve, and never "
+    "at publication, on every priced solve above",
+    all(s.vectors[0] >= len(s.solves) > 0 and s.vectors_outside[0] == 0
+        for s in [*_dsp_priced.values(), _dsp_mc]),
+    f"{[(s.vectors[0], s.vectors_outside[0], len(s.solves)) for s in [*_dsp_priced.values(), _dsp_mc]]}",
 )
 R.check(
     "modulating clamped (item r15): the achieved objective is the closure on "
@@ -91394,9 +91452,13 @@ def _dsp_co_solve(dhw_plan, warm_start):
 
 
 _dsp_co_kept = _dsp_co.opt._space_avail = np.ones(96)
+# The incumbent handed in asks for the whole compressor in every step, so the
+# re-plan differs from the first hot-water plan whatever the fixture's own
+# space plan is (R11-OUTSIDE-HONEST-STARTS-RUNS: the committed plan of this
+# install no longer presses a step the re-plan moves).
 _dsp_co_out = _dsp_co.opt._co_optimize(
     _dsp_co.builds[0][2],
-    space_power=_dsp_co.solved[0][0],
+    space_power=np.full(96, 5.5),
     dhw_power=np.asarray(_dsp_co.builds[0][1][0].schedule, float),
     status="first", best_score=-1e9, solve_space=_dsp_co_solve, p_max=5.5,
     planner=_dsp_co.builds[0][3],
@@ -91672,6 +91734,83 @@ R.check(
 )
 
 
+# R11-OUTSIDE-HONEST-STARTS-RUNS, the descents of a solve that prices a stop.
+# The relaxed descent weighs a switch at the combined draw and the true
+# objective in starts, so the descent that avoids a switch can commit to a
+# plan the true objective scores above the one that kept it. Such a solve
+# therefore descends twice, with the switch operand and as a solve that
+# prices no stop would, and the true objective judges the candidates of both.
+# Two duty-cycle days, one where each descent supplies the plan that ships.
+# The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
+# margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
+_dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
+_dsp_descents = []
+
+
+def _dsp_arm(arm, **kw):
+    """One priced duty-cycle solve with an arm of the two descents removed."""
+    def plans(*args):
+        res, relaxed = _dsp_real_plans(*args)
+        _dsp_descents.append(len(relaxed))
+        return res, {"operand": relaxed[:1], "unpriced": relaxed[-1:]}.get(arm, relaxed)
+
+    def term(opt):
+        inner = _dsp_real_term(opt)
+        return lambda space, dhw, descent=None: (
+            None if descent == _dsp_om._RELAXED else inner(space, dhw, descent))
+
+    _dsp_om._relaxed_plans = plans
+    if arm == "no operand":
+        _dsp_om._switch_cost_fn = term
+    try:
+        return float(_dsp_solve(_DSP_PAIR, _DSP_OFF, **kw).result.objective_value)
+    finally:
+        _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn = _dsp_real_plans, _dsp_real_term
+
+
+_dsp_days = {
+    day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
+    for day, kw in (("mild", {}), ("cold", {"out_mean": -4.0}))
+}
+R.check(
+    "a solve that prices a stop commits both descents and ships the lower: on "
+    "the mild day the unpriced descent's plan, which the operand's descent "
+    "alone scores above; on the cold day the operand's, which the unpriced "
+    "descent alone scores above",
+    _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
+    and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
+    and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
+    and _dsp_days["cold"]["both"] < _dsp_days["cold"]["unpriced"] - 0.01,
+    f"{_dsp_days}",
+)
+R.check(
+    "the relaxed descent still leaves a priced switch: with the switch operand "
+    "taken out of the relaxed closure the cold day's plan scores higher on the "
+    "true objective",
+    _dsp_days["cold"]["both"] < _dsp_days["cold"]["no operand"] - 0.01,
+    f"{_dsp_days['cold']}",
+)
+_dsp_descents.clear()
+_dsp_om._relaxed_plans = lambda *args: (
+    lambda out: (_dsp_descents.append(len(out[1])), out)[1])(_dsp_real_plans(*args))
+try:
+    _dsp_once = [_dsp_solve(*pairs, **kw) for pairs, kw in (
+        ((None,), {}), (((0.0, 0.0), (0.0, 0.0)), {}), ((_DSP_PAIR, _DSP_OFF), {"cyc": 0.0}))]
+    _dsp_once_n, _dsp_twice_n = set(_dsp_descents), None
+    _dsp_descents.clear()
+    _dsp_solve(_DSP_PAIR, _DSP_OFF)
+    _dsp_twice_n = set(_dsp_descents)
+finally:
+    _dsp_om._relaxed_plans = _dsp_real_plans
+R.check(
+    "null control: with no pair, an empty learner or no priced cycle every space "
+    "solve descends once, and the empty learner's plan is the plan of a config "
+    "that never heard of the pair; with the contributor's pair it descends twice",
+    _dsp_once_n == {1} and _dsp_twice_n == {2} and _dsp_same_plan(_dsp_once[0], _dsp_once[1]),
+    f"{_dsp_once_n} {_dsp_twice_n}",
+)
+
+
 # ===========================================================================
 # R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
 # priced as one start, and an engaged solve ships runs the pump can run.
@@ -91901,21 +92040,6 @@ R.check(
     and _hsr_count(_hsr_trickle, 1.1) == 6.5,
     f"{[m.astype(int).tolist() for m in _hsr_runs.candidates(_hsr_trickle, _hsr_flat, 1.1, 3.0, 0.25, dt=0.25)]}",
 )
-# Identity on a plan that already runs is the stage's, not the program's: the
-# program buys the cheapest mask inside half a floor step of the plan's
-# energy, so it may run a step at the floor where the plan asked for more. The
-# stage keeps the relaxed plan as a candidate, and where no start has a price
-# it is the identity (the null control below).
-R.check(
-    "the stage offers the relaxed plan itself where it already runs, and never "
-    "where a step sits under the floor",
-    any(c is _hsr_real for c in _hsr_om._run_plans(
-        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
-        _hsr_real, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool)))
-    and not any(c is _hsr_trickle for c in _hsr_om._run_plans(
-        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
-        _hsr_trickle, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool))),
-)
 _hsr_far = np.r_[np.full(6, 3.0), np.zeros(6)]
 _hsr_far_mask, _hsr_far_ok = _hsr_runs.commit(
     _hsr_far, _hsr_flat, 1.1, np.r_[np.zeros(6), np.full(6, 3.0)], 0.25, 2, dt=0.25)
@@ -92067,12 +92191,12 @@ R.check(
     "the relaxed objective is the true one less the start term, scalar and batch "
     "bit for bit, and it is the unpriced solve's own objective",
     all(
-        float(_hsr_obj_batch(_hsr_rows, relaxed=r)[i]) == float(_hsr_obj(_hsr_rows[i], relaxed=r))
-        for i in range(3) for r in (False, True)
+        float(_hsr_obj_batch(_hsr_rows, descent=d)[i]) == float(_hsr_obj(_hsr_rows[i], descent=d))
+        for i in range(3) for d in (None, _hsr_om._RELAXED, _hsr_om._UNPRICED)
     )
     and all(
-        float(_hsr_obj(row, relaxed=True)) == float(_hsr_free.objectives[-1][1](row))
-        and abs(float(_hsr_obj(row)) - float(_hsr_obj(row, relaxed=True))
+        float(_hsr_obj(row, descent=_hsr_om._RELAXED)) == float(_hsr_free.objectives[-1][1](row))
+        and abs(float(_hsr_obj(row)) - float(_hsr_obj(row, descent=_hsr_om._RELAXED))
                 - 0.25 * _hsr_count(row, 1.1)) < 1e-9
         for row in _hsr_rows
     ),
@@ -92120,24 +92244,43 @@ def _hsr_never(*_args, **_kw):
 
 _hsr_h = _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False)
 _hsr_box = [(0.0, 5.5)] * 12
+
+
+def _hsr_commit(opt, objective, batch, space, maxiter=5):
+    """The stage on one relaxed plan, in a scope with no priced stop: the plan it ships."""
+    return _hsr_om._commit_runs(opt, _hsr_h, (_hsr_box, objective, batch, None), [space], None, maxiter)[0]
+
+
 R.check(
     "null control, a realizable relaxed plan: a clamped install that prices no "
     "start ships it unchanged, the very array, and an unengaged solve any plan",
-    _hsr_om._commit_runs(_hsr_opt(0.0, True, 1.1), _hsr_h, _hsr_never, _hsr_never, _hsr_box, _hsr_real, None, 5)
-    is _hsr_real
-    and _hsr_om._commit_runs(_hsr_opt(0.0, False, 1.1), _hsr_h, _hsr_never, _hsr_never, _hsr_box, _hsr_trickle, None, 5)
-    is _hsr_trickle,
+    _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real
+    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle,
 )
 R.check(
     "and with a plan that is not realizable the same call ships the projection "
     "when its objective fails: every step at the floor, as a clamped install shipped before",
     np.array_equal(
-        _hsr_om._commit_runs(_hsr_opt(0.0, True, 1.1), _hsr_h, _hsr_never, _hsr_never, _hsr_box, _hsr_trickle, None, 5),
-        np.full(12, 1.1)),
+        _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_trickle), np.full(12, 1.1)),
 )
-# The candidates of one stage, on a quadratic that prefers the relaxed levels:
-# the projection first, then the masks, then the relaxed plan where it runs;
-# pins, an off window and a cap under the floor are held by every candidate.
+# Identity on a plan that already runs is the stage's, not the program's: the
+# program buys the cheapest mask inside half a floor step of the plan's
+# energy, so it may run a step at the floor where the plan asked for more. The
+# stage keeps the relaxed plan as a candidate, and where no start has a price
+# it is the identity (the null control below).
+R.check(
+    "the stage offers the relaxed plan itself where it already runs, and never "
+    "where a step sits under the floor",
+    any(c is _hsr_real for c in _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
+        _hsr_real, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool)))
+    and not any(c is _hsr_trickle for c in _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _HsrNS(prices=_hsr_flat, dt=0.25, compressor_running=False),
+        _hsr_trickle, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool))),
+)
+# The candidates of one stage: the projection, the masks, and the relaxed plan
+# where it runs; a pin, an off window and a cap under the floor are held by
+# every one.
 _hsr_lo = np.zeros(12)
 _hsr_lo[3] = 1.1
 _hsr_hi = np.full(12, 5.5)
@@ -92177,21 +92320,156 @@ class _HsrCoord:
 
 
 _hsr_coord = _HsrCoord()
-_hsr_reads = [_hsr_ds.running_now(_hsr_coord, kw) for kw in (0.0, _HSR_RUNS_AT, 0.11, 3.0)]
+_HSR_IDLE, _HSR_HEATS = {"power": 0.0, "dhw_power": 0.0}, {"power": 3.0}
+_hsr_reads = [_hsr_ds.running_now(_hsr_coord, action) for action in (
+    {}, _HSR_IDLE, {"power": _HSR_RUNS_AT}, {"power": 0.11}, _HSR_HEATS, {"power": 0.0, "dhw_power": 2.0})]
 _hsr_ds._RECORDS[_hsr_coord] = _hsr_rec = _HsrNS(unsub=None, tracker=_HsrNS(settled=True))
-_hsr_reads.append(_hsr_ds.running_now(_hsr_coord, 0.0))  # no signal attached: the step
+_hsr_reads.append(_hsr_ds.running_now(_hsr_coord, _HSR_IDLE))  # no signal attached: the step
 _hsr_rec.unsub = lambda: None
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, 0.0)]     # settled running beats an idle step
+_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_IDLE)]     # settled running beats an idle step
 _hsr_rec.tracker.settled = False
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, 3.0)]     # settled stopped beats a planned draw
+_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_HEATS)]    # settled stopped beats a planned draw
 _hsr_rec.tracker.settled = None
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, 3.0), _hsr_ds.running_now(_hsr_coord, 0.0)]
+_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_HEATS), _hsr_ds.running_now(_hsr_coord, _HSR_IDLE)]
 del _hsr_ds._RECORDS[_hsr_coord]
 R.check(
     "the running reading is the tracker's settled class where a signal is attached "
-    "and has settled, else the executing step's planned draw by the plan's running rule",
-    _hsr_reads == [False, False, True, True, False, True, False, True, False],
+    "and has settled, else the executing step's planned draw of either circuit by "
+    "the plan's running rule",
+    _hsr_reads == [False, False, False, True, True, True, False, True, False, True, False],
     f"{_hsr_reads}",
+)
+
+# At a 5-minute step ``candidates`` plans no unforced run or pause shorter
+# than the two-step minimums; the same plans committed with one-step lengths
+# do hold such a run or pause, so the lengths are what keeps them out.
+_hsr_len_short = {"candidates": 0, "one-step lengths": 0}
+for _hsr_i in range(60):
+    _hsr_q = np.where(_hsr_rng.random(48) < 0.5, 0.0, _hsr_rng.random(48) * 1.5)
+    _hsr_p = _hsr_rng.random(48) * 0.4
+    _hsr_masks = {
+        "candidates": _hsr_runs.candidates(_hsr_q, _hsr_p, 1.1, 3.0, 0.02, dt=1.0 / 12.0),
+        "one-step lengths": [_hsr_runs.commit(_hsr_q, _hsr_p, 1.1, 3.0, 0.02, b, dt=1.0 / 12.0)[0]
+                             for b in _hsr_runs.BANDS],
+    }
+    for _hsr_k, _hsr_ms in _hsr_masks.items():
+        _hsr_len_short[_hsr_k] += sum(
+            1 for m in _hsr_ms for keep in (m, ~m) for a, z in _hsr_stretches(keep)
+            if z - a < 2 and 0 < a and z < 48
+        )
+R.check(
+    "at a 5-minute step the stage's masks hold no run or pause shorter than the "
+    "10-minute minimums; committed at one-step lengths the same plans do",
+    _hsr_len_short["candidates"] == 0 and _hsr_len_short["one-step lengths"] > 0,
+    f"{_hsr_len_short}",
+)
+
+# Selection on a stand-in objective, the distance to a chosen plan: the stage
+# ships whichever candidate scores lowest, the projection included.
+
+
+def _hsr_toward(target):
+    def objective(x, *_args, **_kw):
+        return float(np.sum((np.asarray(x, float) - target) ** 2))
+
+    def batch(rows, *_args, **_kw):
+        return np.sum((np.atleast_2d(rows) - target) ** 2, axis=1)
+
+    return objective, batch
+
+
+_hsr_sel_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_sel_first = _hsr_om._projection(_hsr_sel_opt, _hsr_trickle, None, np.full(12, 5.5), np.zeros(12, dtype=bool))
+_hsr_sel_masks = _hsr_om._run_plans(
+    _hsr_sel_opt, _hsr_h, _hsr_trickle, np.zeros(12), np.zeros(12), np.full(12, 5.5), np.zeros(12, dtype=bool))
+_hsr_sel = {
+    name: _hsr_commit(_hsr_sel_opt, *_hsr_toward(target), _hsr_trickle, 20)
+    for name, target in (("projection", _hsr_sel_first), ("mask", _hsr_sel_masks[-1]))
+}
+R.check(
+    "selection on a stand-in objective: the stage ships the projection where it "
+    "scores lowest and a committed mask where that does, and the two differ",
+    np.allclose(_hsr_sel["projection"], _hsr_sel_first, atol=1e-6)
+    and np.allclose(_hsr_sel["mask"], _hsr_sel_masks[-1], atol=1e-6)
+    and not np.allclose(_hsr_sel_first, _hsr_sel_masks[-1]),
+    f"{_hsr_sel['projection'].round(3).tolist()} {_hsr_sel['mask'].round(3).tolist()}",
+)
+# The re-solve moves levels inside a candidate's runs: toward a plan that
+# keeps a mask's runs at a higher level, the shipped plan reaches that level
+# on the mask's on steps and stays off on the rest.
+_hsr_sel_high = np.where(_hsr_sel_masks[-1] > 0.0, 2.5, 0.0)
+_hsr_sel_lifted = _hsr_commit(_hsr_sel_opt, *_hsr_toward(_hsr_sel_high), _hsr_trickle, 50)
+R.check(
+    "the best candidates' levels are re-solved inside their own runs: toward the "
+    "same runs at 2.5 kW the shipped plan reaches it, off steps held shut",
+    np.allclose(_hsr_sel_lifted, _hsr_sel_high, atol=1e-3)
+    and not np.allclose(_hsr_sel_masks[-1], _hsr_sel_high),
+    f"{_hsr_sel_lifted.round(3).tolist()}",
+)
+# Several relaxed plans: each is committed on its own and the lowest ships,
+# so a second plan can lower the score and never raise it.
+_hsr_two_obj = _hsr_toward(_hsr_sel_high)
+_hsr_two = {
+    name: _hsr_om._commit_runs(_hsr_sel_opt, _hsr_h, (_hsr_box, *_hsr_two_obj, None), plans, None, 50)[0]
+    for name, plans in (
+        ("far", [np.zeros(12)]), ("far then near", [np.zeros(12), _hsr_trickle]),
+        ("near then far", [_hsr_trickle, np.zeros(12)]),
+    )
+}
+_hsr_two_score = {name: _hsr_two_obj[0](plan) for name, plan in _hsr_two.items()}
+R.check(
+    "each relaxed plan is committed on its own and the lowest score ships: a "
+    "second relaxed plan lowers the score where its runs are the better ones, in "
+    "either order, and never raises it",
+    _hsr_two_score["far then near"] == _hsr_two_score["near then far"] < _hsr_two_score["far"] - 1.0,
+    f"{_hsr_two_score}",
+)
+R.check(
+    "in the full solves the shipped plan scores no higher on the true objective "
+    "than any candidate the stage scored",
+    all(
+        float(v.objectives[-1][1](v.space))
+        <= min(float(v.objectives[-1][1](c)) for c in (v.first[-1], *v.plans[-1])) + 1e-12
+        for v in _hsr_engaged.values()
+    ),
+)
+
+# The coordinator hands the reading to the scheduled solve and keeps it for a
+# solve compared against that plan.
+from harness import FakeEntry as _HsrEntry  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_start as _hsr_pss  # noqa: E402
+
+_hsr_live = Coord(FakeHass(), _HsrEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+
+def _hsr_record_reading(action):
+    _hsr_live._current_action = action
+    now = _hsr_pss(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
+    read = _hsr_live._solve_record(now, _hsr_live._forecast_arrays(now)).inputs.compressor_running
+    return read, _hsr_ds.solved_running(_hsr_live)
+
+
+_hsr_wired = [
+    _hsr_ds.solved_running(_hsr_live),
+    _hsr_record_reading({"power": 3.0, "dhw_power": 0.0}),
+    _hsr_record_reading({"power": 0.0, "dhw_power": 2.0}),
+    _hsr_record_reading({}),
+]
+R.check(
+    "the coordinator's scheduled solve reads whether the compressor runs from "
+    "its executing step, either circuit, and keeps the reading; before any "
+    "solve the kept reading is not running",
+    _hsr_wired == [False, (True, True), (True, True), (False, False)],
+    f"{_hsr_wired}",
+)
+import inspect as _hsr_inspect  # noqa: E402
+
+R.check(
+    "the what-if solve takes the reading the live plan was solved with, not a "
+    "fresh one: the two start counts the card compares share r[-1]",
+    "compressor_running=duty_switch.solved_running(self)" in _hsr_inspect.getsource(Coord._whatif_solve)
+    and "compressor_running=duty_switch.running_now(self, self._current_action)"
+    in _hsr_inspect.getsource(Coord._solve_record),
 )
 
 

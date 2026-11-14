@@ -10,15 +10,16 @@ is held against is the shortest optimisation interval the options flow
 accepts (``config_flow``'s ``CONF_OPTIMIZATION_INTERVAL`` slider minimum,
 10 min); the default interval is 30 min.
 
-``relaxed``: the relaxed duty-cycle pass (``optimizer._relaxed_starts``) on
-R10-SETPOINT-BOOST's 16 installs, spread and flat price days, at ``d = 0``
-and at the central plant's derate (``r10_partload_pricing.solve``). Two arms
-per cell: production, and the pass removed (``_relaxed_starts`` as
-identity, ``r10_setpoint_boost.solve``'s own perturbation). Printed: the
-seconds spent inside ``_relaxed_starts`` and how many relaxed L-BFGS-B runs
-it started, and the whole solve's seconds at both arms. Null control: the
-cells whose levels do not ship clamped must start 0 relaxed runs; the
-harness exits 1 otherwise.
+``relaxed``: the candidate stage of an engaged solve
+(``optimizer._commit_runs``, which replaced the relaxed duty-cycle pass
+``_relaxed_starts`` in R11-OUTSIDE-HONEST-STARTS-RUNS) on R10-SETPOINT-BOOST's
+16 installs, spread and flat price days, at ``d = 0`` and at the central
+plant's derate (``r10_partload_pricing.solve``). Two arms per cell:
+production, and the stage removed (its candidates refused, so it ships the
+projection). Printed: the seconds spent inside ``_commit_runs`` and how many
+L-BFGS-B runs it started, and the whole solve's seconds at both arms. Null
+control: the cells whose levels do not ship clamped must start 0 such runs;
+the harness exits 1 otherwise.
 
 ``buffer N``: the live buffer store's solve cost, one lever at a time:
 ``r10_buffer_store.solve``'s owner shape (750 L behind a manual valve, slab,
@@ -99,26 +100,40 @@ def central_derate() -> float:
 
 
 def timed_solve(cell, prices, derate: float, relaxed: bool) -> tuple[float, float, int]:
-    """(solve s, seconds inside the relaxed pass, relaxed runs started)."""
-    kept = opt_mod._relaxed_starts
-    seen = {"s": 0.0, "runs": 0}
+    """(solve s, seconds inside the candidate stage, L-BFGS-B runs it started)."""
+    kept, kept_plans = opt_mod._commit_runs, opt_mod._run_plans
+    kept_run, kept_restart = opt_mod._lbfgsb_run, opt_mod._lbfgsb_restart
+    seen = {"s": 0.0, "runs": 0, "inside": False}
 
-    def wrapped(opt, objective, objective_batch, bounds, first, args, cands, maxiter):
-        if not relaxed:
-            return cands
+    def refused(*_args):
+        raise RuntimeError("control arm: the stage ships its projection")
+
+    def counted(real):
+        def run(*args, **kwargs):
+            seen["runs"] += seen["inside"]
+            return real(*args, **kwargs)
+        return run
+
+    def wrapped(*args):
+        seen["inside"] = True
         t = time.process_time()
-        out = kept(opt, objective, objective_batch, bounds, first, args, cands, maxiter)
-        seen["s"] += time.process_time() - t
-        seen["runs"] += len(out) - len(cands)
-        return out
+        try:
+            return kept(*args)
+        finally:
+            seen["s"] += time.process_time() - t
+            seen["inside"] = False
 
-    opt_mod._relaxed_starts = wrapped
+    opt_mod._commit_runs = wrapped
+    opt_mod._lbfgsb_run, opt_mod._lbfgsb_restart = counted(kept_run), counted(kept_restart)
+    if not relaxed:
+        opt_mod._run_plans = refused
     try:
         t = time.process_time()
         pp.solve(cell, prices, derate)
         return time.process_time() - t, seen["s"], seen["runs"]
     finally:
-        opt_mod._relaxed_starts = kept
+        opt_mod._commit_runs, opt_mod._run_plans = kept, kept_plans
+        opt_mod._lbfgsb_run, opt_mod._lbfgsb_restart = kept_run, kept_restart
 
 
 def relaxed() -> int:
@@ -133,9 +148,9 @@ def relaxed() -> int:
                 on, inside, runs = timed_solve(cell, prices, d, True)
                 off, _, _ = timed_solve(cell, prices, d, False)
                 clamped = cell[3]
-                print(f"  {tag} {cell} d={d} clamped {clamped} relaxed_runs {runs}"
-                      f" relaxed_pass_s {inside:.3f} solve_s {on:.3f}"
-                      f" pass_removed_solve_s {off:.3f} delta_s {on - off:+.3f}")
+                print(f"  {tag} {cell} d={d} clamped {clamped} stage_runs {runs}"
+                      f" stage_s {inside:.3f} solve_s {on:.3f}"
+                      f" stage_removed_solve_s {off:.3f} delta_s {on - off:+.3f}")
                 if clamped:
                     clamped_solves.append(on)
                     clamped_pass.append(inside)
@@ -143,9 +158,9 @@ def relaxed() -> int:
                     null_bad += 1
     a, b = np.array(clamped_solves), np.array(clamped_pass)
     print(f"clamped solves {a.size}: solve_s p50 {np.median(a):.3f} max {a.max():.3f};"
-          f" relaxed_pass_s p50 {np.median(b):.3f} max {b.max():.3f};"
+          f" stage_s p50 {np.median(b):.3f} max {b.max():.3f};"
           f" worst solve share of budget {a.max() / BUDGET_S:.5f}")
-    print(f"null (unclamped) cells with a relaxed run {null_bad}")
+    print(f"null (unclamped) cells with a stage run {null_bad}")
     return 1 if null_bad else 0
 
 
