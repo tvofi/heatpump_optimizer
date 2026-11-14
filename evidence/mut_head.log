@@ -1,0 +1,9 @@
+
+=== features block ===
+  ok   a month's first savings booking stamps the reference in force, once
+  ok   a month stamped 1, the spread reference, states no saving after the change
+  ok   a v1 ledger migrates to v2: every month on the old basis, every line as stored
+  ok   an old-basis row keeps both columns and states no saving and no percent
+  ok   an old-basis month stays old when it books on: its total is mixed
+
+ALL 5 FEATURES BLOCK PASSED

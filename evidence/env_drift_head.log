@@ -1,0 +1,60 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from scratch
+  key       b9c7d0509716581bf02700bd523c85ba0af58731a60bed265967659acca1e060
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/b9c7d0509716581bf02700bd523c85ba0af58731a60bed265967659acca1e060.json
+    baseline_commit  22fc13c82072
+    baseline_tree    5b3479145c96
+    cache_format     391552c099c1
+    driver_sha256    b1cf91aa5f06
+    environment      6c0b911d7e89
+    interpreter      2c0d5a52c59a
+    mode             294c1d09adfd
+    numeric_probe    554d2f4cd907
+    numpy_build      7d455919a5ef
+    packages         8ed25f7e2f3a
+    platform         902687261aa0
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 5 scenarios from branch
+  captured 5 scenarios from baseline
+  cached   the origin/main baseline under key b9c7d0509716581b in /root/.cache/heatpump_optimizer/drift-baseline/b9c7d0509716581bf02700bd523c85ba0af58731a60bed265967659acca1e060.json
+
+########## committed fixtures: staleness (#347) ##########
+  5 fixture(s) compared against this tree's capture; 0 of them float-free and compared exactly.
+
+  values (reported, never failed): 5 fixture(s), 3452 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  CLAIMED valve_storage_smart_write: 659 leaves moved (baseline_cost LOWER (129.949 -> 129.189))
+         valve_storage_smart_write.baseline_cost: 129.18872 vs 129.949456
+         valve_storage_smart_write.buffer_temp_trajectory[1]: 32.960146 vs 32.552488
+         valve_storage_smart_write.buffer_temp_trajectory[2]: 33.901366 vs 33.566406
+  CLAIMED valve_upper_direct_slab: 3 leaves moved (baseline_cost HIGHER (126.301 -> 129.925))
+         valve_upper_direct_slab.baseline_cost: 129.924919 vs 126.300702
+         valve_upper_direct_slab.predicted_savings: 62.274641 vs 58.650424
+         valve_upper_direct_slab.savings_percentage: 47.931252 vs 46.437132
+  CLAIMED wood_coil: 3 leaves moved (baseline_cost LOWER (144.781 -> 144.020))
+         wood_coil.baseline_cost: 144.019883 vs 144.780619
+         wood_coil.predicted_savings: 77.11203 vs 77.872766
+         wood_coil.savings_percentage: 53.542628 vs 53.786734
+  CLAIMED wood_two_tank: 688 leaves moved (baseline_cost LOWER (129.949 -> 129.189))
+         wood_two_tank.baseline_cost: 129.18872 vs 129.949456
+         wood_two_tank.buffer_temp_trajectory[1]: 35.002957 vs 35.429852
+         wood_two_tank.buffer_temp_trajectory[2]: 38.416384 vs 38.813801
+  CLAIMED wood_two_tank_smart_write: 648 leaves moved (baseline_cost LOWER (129.949 -> 129.189))
+         wood_two_tank_smart_write.baseline_cost: 129.18872 vs 129.949456
+         wood_two_tank_smart_write.buffer_temp_trajectory[1]: 35.452575 vs 35.452724
+         wood_two_tank_smart_write.buffer_temp_trajectory[2]: 38.836518 vs 38.836657
+  unjudged claim for valve_storage: not captured in this mode
+  unjudged claim for valve_storage_low_target: not captured in this mode
+  unjudged claim for valve_storage_small_tank: not captured in this mode
+
+NOT EVALUATED: 3 claim(s) name scenarios that
+this mode does not capture, so they were neither honoured
+nor called stale here: valve_storage, valve_storage_low_target, valve_storage_small_tank
+Only the five sensitive fixtures are captured without
+--all; run with --all (as CI does) to judge the rest.
+
+NO UNCLAIMED DRIFT: 5 scenario(s) checked against origin/main
+NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes
