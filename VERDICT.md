@@ -1,18 +1,37 @@
-Fix review: merge fdab889cedf99332ce48b86347eb271d1bea4787
+Fix review: merge bd93b5634bd7cd9cb7614121132b1597966154fc
 
-bus-nonce: 3627190069bbeff46b3a0557d3566914
+bus-nonce: ae4ddd06f2f57a558974d068984ce3ec
 
-Round 2 delta review of bd93b563..fdab889c (resume: probe/revt-r10-hotfix-replay-class-cut-ae4ddd06@ae4ddd06f2f5, round 1 merge, not redone).
+## Round
+
+First review of this handoff tip (round 1). HOTFIX, no pull request yet: there is no review packet, no PR check runs and no CI to read; the red-check answer (step 11) is therefore not yet observable and is the train's to re-read once the PR opens. Measured from detached worktrees at the tip and at the merge base ee64358be7.
 
 ## Evidence
 
-- No pull request and no CI exist yet, so no review packet or CI state was available.
-- Delta is one file, dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md (+39); no code, no goldens, no claim files (ev/delta-stat.txt).
-- `git merge-tree --write-tree origin/main fdab889c` is clean (tree 0b39f04c).
-- Body Head section names fdab889cedf99332ce48b86347eb271d1bea4787; its Forward-carry carry is `dismissed:` (built in this PR), so nothing for the roster.
-- RCA shape: named cause (re-record unit is the drawn class; level shift on undrawn classes), process state (c), countermeasure level_shift_offenders, demonstration table. Re-ran `replay_draws.py shift` at the head: d08ed31049 table with --no-cuts red (ref31/38/40/53 shown in the tail; doc lists ref23/28 too); 6715d97332 and 078780e687 green, 7 classes examined; head green with 7 classes; head --no-cuts red. Matches the doc and body.
-- Red checks: body claims none owned; owed-reds printed main-wide names (coverage-ratchet, fast 3.14, mutation, typing, validate-hacs) that I did not tie to this diff, which touches only a markdown file.
+- Head: the body's `## Head` names bd93b5634bd7cd9cb7614121132b1597966154fc, the handoff ref `refs/heads/handoff/r10-hotfix-replay-class-cut` still points there at verdict time (ev/head_live.txt). ev/HEAD.txt.
+- Merge: `git merge-tree --write-tree origin/main <head>` exits 0, no conflict (ev/HEAD.txt).
+- VERSION, the manifest version, RELEASE_NOTES.md and tests/golden are untouched (`git diff <mb>...<head> --stat` over them is empty). The diff touches tests/replay.py, tests/replay_cost_draws.tsv, tools/audit/seat/replay_draws.py and tools/policy/field_coverage.mjs only; no new tracked file; no production code under custom_components/.
+- Controls at the head: every `control:cycle_cost:*` arm of `replay.controls()` passes, 0 failing controls in the whole set, including the new `control:cycle_cost:level_shift` (7 classes examined, no offenders, planted shift names 6 of 6 other classes) (ev/controls_head.txt).
+- RESULT derive_cost_classes(cost_draws(), synthetic) == COST_CLASS_BUDGETS at the head: True; the bands equal COST_RUNNER_CLASSES (ev/controls_head.txt).
+- Mutation proof (step 1), ev/mutants.txt, each run against class_rule, draws, level_shift and `field_coverage.mjs --only replay_cuts`: M1 COST_CUTS emptied -> class_rule, draws and level_shift FAIL, field_coverage REFUSED; M2 the projection line in cost_draws dropped -> class_rule and draws FAIL, field_coverage REFUSED; M3 factor 0.6339 -> 0.70 -> class_rule and draws FAIL; M4 a declared cut never explains a shift -> level_shift FAIL; M5 the evidence requirement dropped from level_shift_offenders -> field_coverage BLIND=1, REFUSED. M6 survives (see Findings). The body's mutation claim (dropping the cut turns level_shift and the per-class re-derivation red) reproduces.
+- Null control (step 3): at the merge base COST_CLASS_BUDGETS ref40 is 3.9874 (floor 1.9937) and derive_cost_classes reproduces it on the base table; the new clean 1.7266 sits under that floor. At the head the table read with no cut (`cost_draws(cuts=())`) derives ref23 3.7539, ref28 3.189, ref31 3.2877, ref38 3.4579, ref47 2.7713, ref53 2.076 (the old budgets) and ref40 3.1541 (ev/figures.txt). The body's "the budget returns to 3.9874" holds for dropping the whole re-record (the base), not for dropping only COST_CUTS at the head, where the appended draw gives 3.1541; so that part of the body is wrong at the head: under 3.1541 the clean 1.7266 sits above the floor 1.577. What the body's mutation claim rests on still holds: dropping the cut turns class_rule, draws and level_shift red (M1).
+- Per-class budgets old -> new (body figure): re-derived exactly, ev/figures.txt. One-sided down in every class; loop_cpu_ratio 0.1527 and the class-free/peak budgets {peak_kib 2686.0, loop_cpu_ratio 0.1527} identical at base and head; owner fixture budget {cpu_ratio 332.7976, peak_kib 3740.0, loop 0.2154} unmoved, and its clean cpu_ratio shows no level shift across the cut (236.8-269.7 before, 254.3 and 257.6 after).
+- Factors 0.6124 / 0.6562 / 0.6339: re-derived from the committed table, not from `replay_draws.py parse` (that needs gh job logs): ref40 pre-cut extremes 2.7594, 2.8809 (n 2), post 1.7266 -> 0.6124; ref47 pre-cut extremes 2.2558, 2.4762 (n 48), post 1.5508 -> 0.6562; geometric midpoint 0.6339, 3.51 % / 3.39 % from each (the code comment's "3.4 % from each" rounds the first) (ev/figures.txt).
+- Grading the new job exactly as the lane does (`replay_draws.py grade --job 130240315059`): synthetic clean passes in class ref40; cpu doubled refused 3.591 > 2.511; loop doubled refused 0.2009 > 0.1527; memory doubled refused 3871 > 2686; owner clean passes; rc 0. The body's "3.5914 > 2.5112" holds.
+- The roster carry's owed demonstration, which the body says it did not re-run, re-run here (ev/shift_history.txt): `replay_draws.py shift --no-cuts --table <d08ed31049's table>` rc 1 naming exactly ref23, ref28, ref31, ref38, ref40, ref53 (shift ref47 at 2026-11-08T21:05:57Z); the healthy tables at 6715d97332 and 078780e687 green with 7 examined; the head table green with COST_CUTS and red with --no-cuts (both ref40 and ref47 shifts named).
+- Interleave (box arm, step 2): `replay_draws.py interleave --pre 17bb738485^ --post 17bb738485 --pairs 4` on this 4-core box: medians pre 2.3462 post 2.016, post/pre 0.8593 (ev/interleave.txt), against the body's 0.8715 over 12 pairs: same direction and size, not the same draw. The body's A/A 1.0090 (6 pairs) was not re-derived.
+- Uniform factor (step 6, other configurations): five classes (ref23, ref28, ref31, ref38, ref53) hold no post-cut draw and are projected by the factor measured on two others, as the brief directs. Were a class's true cut only the box's 0.8593, 11 of 18 ref23, 1 of 2 ref28, 27 of 33 ref31 and 2 of 48 ref47 projected clean draws would exceed the new budgets (ev/uniform_factor.txt). Not a finding: no CI draw of those classes exists after the cut to measure it, and the next nightly in each class is that measurement.
+- Class enumeration (step 6): the rule is every key of COST_CLASS_BUDGETS (one fixture, seven classes); all seven are re-derived and level_shift examines all seven. Owner fixture carries no class budgets and shows no shift.
+- Structure ratchet at the head: `tests/structure.py` STRUCTURE RATCHET PASSED (ev/structure.txt). `field_coverage.mjs --self-test` ok; `--only replay_cuts` read=5 ignored=1 blind=0 refused=0.
+- Not re-run here: tests/entities.py (this seat's interpreter lacks homeassistant for the harness), closures (skipped by the fixer under the owner ruling; CI's closures job records them), the gate and the mutation table (CI's).
+- Red checks: no PR and no check runs exist yet; `merge_train.py owed-reds` lists the required set. Main's two known reds (`tests / fast (3.14)` combi census, `governance / instrument-self-tests`) are not this diff's.
+- Forward-carry: the roster carry (handoff/audit-r10-roster 84184ae668) asks for the control, its registration, the declared cut and the RCA file; all but the RCA file are in this diff and demonstrated above.
 
 ## Findings
 
-- Follow-up: the RCA's Cost section gives only the countermeasure's cost ("one pass over a 7-class TSV, no extra CI job") and no cost(defect) x P(recurrence) figure, and there is no explicit class-reach search, though the demonstration shows six classes affected. root-cause.md section 4 asks for numbers; the countermeasure is a few lines in an existing test, so it passes any plausible test and the omission does not change the outcome. Carry: dismissed: countermeasure cost is negligible and already built; documentation gap only
+- Residual: M6, a surviving mutant in the new control: dropping the lower bound `last < c["from"]` in level_shift_offenders (so a cut dated before the shifted class's last pre-shift draw still explains the shift) leaves class_rule, draws, level_shift and field_coverage replay_cuts green. With the one declared cut it changes no verdict; it would let a second, mis-dated cut excuse a later shift. Carry: dismissed: instrument guard boundary, no consequence while one correctly dated cut is declared
+- Follow-up: dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md, which the roster carry asks to land with the fix, is not in this diff; its source text is the orchestrator's session scratch, out of the fixer's reach, so the orchestrator lands it beside or after this merge. The countermeasure it describes is built and its owed red/green demonstration reproduces (Evidence). Carry: R10-HOTFIX-REPLAY-CLASS-CUT | dismissed: not this seat's to land, the RCA source text is the orchestrator's scratch
+
+## Friction
+
+none
