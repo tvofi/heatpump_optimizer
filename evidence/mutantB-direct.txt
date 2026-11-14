@@ -1,3 +1,0 @@
-mutant B: PW stub without its tr -d strip; stub output for printf 'x\n' | wc -l
-GNU host: 0000000                               1  \n
-BSD-emulated host: 0000000                               1  \n

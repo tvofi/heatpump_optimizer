@@ -1,3 +1,0 @@
-  why: the branch's own commits c8780ea33 change its content: c8780ea33db1c31ff1d38144c70af3d1b3f25eda is not the reviewed head 1386441425905fd0d7bb0571f1bac61ff5d7777b merged onto 6d16af36c26ad5a3d9610a9c8412cc54dc3c12dd
-  c8780ea33  prepr self-test: make the wc padding stubs host-independent, and drive the clean-tree comparison under a padding and a non-padding wc
-review_carry: FRESH-REVIEW
