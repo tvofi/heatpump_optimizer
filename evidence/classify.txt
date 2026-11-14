@@ -1,9 +1,2 @@
-2026-11-11T23:45:23Z
-WAIT a32f2e0bf405e4245c1864c294599c976f90a1cf pending: gate red: none
+WAIT f0f6b47f2c8f402e6d35b461c06760318576b01a pending: gate red: none
 rc=3
-2026-11-11T23:46:26Z
-WAIT a32f2e0bf405e4245c1864c294599c976f90a1cf pending: gate red: none
-rc=3
-head re-read:
-a32f2e0bf405e4245c1864c294599c976f90a1cf	refs/heads/fix/r10-standing-contracts-p2
-a32f2e0bf405e4245c1864c294599c976f90a1cf	refs/pull/3464/head

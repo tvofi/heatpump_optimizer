@@ -1,8 +1,2 @@
-$ carry_audit.py check --body <PR body at a32f2e0b> --comments <verdict.md> --branch fix/r10-standing-contracts-p2
-NOTE body item 70ba2a8b: R10-STANDING-CONTRACTS-P2: R10-STANDING-CONTRACTS-P2 resolved on origin/handoff/audit-r10-roster
-NOTE body item d5bd97f0: R10-STANDING-CONTRACTS-P2: R10-STANDING-CONTRACTS-P2 resolved on origin/handoff/audit-r10-roster
-NOTE body item e8e05480: R10-STANDING-CONTRACTS-P2: R10-STANDING-CONTRACTS-P2 resolved on origin/handoff/audit-r10-roster
-NOTE body item f87a5756: dismissed:resolved here by citing web-fragments.md
-NOTE body item 58b071d5: dismissed:first instance, resolved here by leaving the line untouched; no mechanism change is asked, and a second instance goes to root-cause.md
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 rc=0
