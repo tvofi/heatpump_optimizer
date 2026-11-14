@@ -155,10 +155,10 @@ def _publish(sig: Signal, edge: Edge | None) -> None:
     if edge is not None:
         for hear in list(sig.subscribers):
             hear(edge)
-    _arm(sig)
+    _arm_timer(sig)
 
 
-def _arm(sig: Signal) -> None:
+def _arm_timer(sig: Signal) -> None:
     """Hold one timer for the pending change, none without one; a held one is kept."""
     pending = sig.tracker.pending if sig.unsub is not None else None
     if sig.timer is not None and sig.timer[0] == pending:
