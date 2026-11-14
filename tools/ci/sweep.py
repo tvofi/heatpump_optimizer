@@ -56,10 +56,12 @@ token's -- re-runs each stale red once (`fresh` returns False); the re-run's com
 where V is no green judge, and is left. A dispatch whose first gate attempt was green stays that judge
 after a refresh re-ran its gate red (R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH, #3544: a review event re-ran it,
 it deferred, and a second code run went out); its own red is re-run in place, never pinned. Nor does a
-DEFERRAL red dispatch where a green gate covers the newest event (`covered_deferral`): gate() reads busy()
-before any source, so a red judged while another run's source was unfinished is the deferral, no verdict,
-and is re-run in place, within ATTEMPT_CAP and `settled` like any red; with nothing green (#3261's pair)
-it still dispatches. This sweep runs main's copy
+DEFERRAL red dispatch where a green gate covers the newest event (`covered_deferral`): a red whose gate
+started while gate.busy() -- the gate's own predicate, called on the runs at the head as their stamps list
+them at that start (`listed_at`) -- names a run is the deferral, no verdict, and is re-run in place, within
+ATTEMPT_CAP and `settled` like any red. A job busy() never reads (a report-only job, a higher-id run whose
+gate had started, #3584's review cases B and C) makes none. With nothing green (#3261's pair) it still
+dispatches. This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
@@ -137,6 +139,20 @@ def undecided(gate, run_id, others):
                 or (i < run_id and g.get("conclusion") == "success" and gs <= t1 and ge >= t0)):
             out.append(i)
     return sorted(out)
+
+
+def listed_at(run, jobs, t0):
+    """A run as gate.read_api would have listed it at `t0`, from its latest jobs' stamps: a job not started
+    then is queued, one started and unfinished in progress; a skipped job reads skipped whenever (GitHub
+    re-stamps it at each gate re-run). The run was completed then only if every job was."""
+    def one(j):
+        if j.get("conclusion") == "skipped" or (j.get("completed_at") or "~") <= t0:
+            return "completed", j.get("conclusion")
+        return ("in_progress" if (j.get("started_at") or "~") <= t0 else "queued"), None
+    listed = {j["name"]: one(j) for j in jobs}
+    done = bool(listed) and all(st == "completed" for st, _ in listed.values())
+    return {"id": run["id"], "title": run.get("display_title") or "", "jobs": listed,
+            "status": "completed" if done else "in_progress"}
 
 
 def covers_newest(v_gate, runs):
@@ -235,11 +251,13 @@ class Sweep:
         return st == 200 and (latest_gate((body or {}).get("jobs") or []) or {}).get("conclusion") == "success"
 
     def covered_deferral(self, run, gate, runs):
-        """A source of another run finished after this red gate started, or has not (it deferred: gate()
-        reads busy() first), and a green gate at the head covers the newest event (module doc)."""
+        """gate.busy() named a run when this red gate started (it deferred), and a green gate at the
+        head covers the newest event (module doc)."""
+        from gate import busy        # the gate's own predicate, never restated here
+        t0 = gate.get("started_at") or ""
         others = {r["id"]: self.jobs_of(r["id"]) for r in runs if r["id"] != run["id"]}
-        return (source_after(gate.get("started_at") or "", others)
-                and any(covers_newest(latest_gate(js), runs) for js in others.values()))
+        then = [listed_at(r, others[r["id"]], t0) for r in runs if r["id"] in others and r.get("created_at", "~") <= t0]
+        return bool(busy({"run_id": run["id"]}, then)) and any(covers_newest(latest_gate(js), runs) for js in others.values())
 
     def runs_at(self, head):
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]

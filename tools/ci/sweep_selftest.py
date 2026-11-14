@@ -614,13 +614,18 @@ def run_checks():
                              "completed_at": "2026-11-14T07:59:40Z"},
                             {"name": "budget-raise-gate / budget-raise-gate", "conclusion": "success",
                              "started_at": "2026-11-14T07:59:45Z", "completed_at": "2026-11-14T08:00:20Z"},
-                            {"name": "governance / delivery-status-publish", "conclusion": "success",
-                             "started_at": "2026-11-14T08:03:31Z", "completed_at": "2026-11-14T08:04:00Z"}]}
+                            {"name": "refresh", "conclusion": "success",      # no unit: busy() never reads it
+                             "started_at": "2026-11-14T07:59:05Z", "completed_at": "2026-11-14T08:04:00Z"}]}
             runs[r3["id"]] = r3
         w = world3544(ids=(R1_3544, R2_3544), edit=newer_run)
         w.sweep()
-        ok(f"#3584 C: a real red beside a newer run (gate started {gate_start[11:19]}) whose job after its gate finished "
+        ok(f"#3584 C: a real red beside a newer run (gate started {gate_start[11:19]}) whose non-unit job finished "
            "after the red's start still dispatches", w.posts == [dispatch3544])
+    w = world3544(ids=(R1_3544, R2_3544), edit=newer_run)
+    w.runs[R2_3544 + 1]["units"][-1]["name"] = "governance / delivery-status-publish"
+    w.sweep()
+    ok("#3584 C null: that newer run, its gate not started, with a governance job unfinished at the red's start "
+       "(busy() reads it as a unit) makes the red a deferral: re-run in place", w.posts == [rerun_of(R1_3544)])
     w = world3544(edit=real_red)
     rc, out = w.sweep()
     ok("#3544: a real red on a stale pin beside a dispatch whose first gate was green dispatches nothing",
