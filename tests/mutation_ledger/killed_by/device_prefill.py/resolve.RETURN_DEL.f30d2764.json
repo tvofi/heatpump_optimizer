@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/device_prefill.py:resolve RETURN_DEL f30d2764",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    return resolved",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
-}

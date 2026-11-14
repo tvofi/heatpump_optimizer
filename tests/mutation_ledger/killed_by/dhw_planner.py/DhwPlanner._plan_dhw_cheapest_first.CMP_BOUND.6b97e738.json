@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CMP_BOUND 6b97e738",
-  "killed_by": "tests/features.py",
-  "old": "        if n_steps == 0 or c_dhw <= 0.0:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if n_steps == 0 or c_dhw < 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

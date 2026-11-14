@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback_bounds RETURN_DEL 25b575f1",
-  "killed_by": "tests/features.py",
-  "old": "    return (max(v for v in lows if v is not None), min(highs))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

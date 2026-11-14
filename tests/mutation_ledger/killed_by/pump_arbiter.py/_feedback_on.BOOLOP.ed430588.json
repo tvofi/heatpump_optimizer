@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback_on BOOLOP ed430588",
-  "killed_by": "tests/features.py",
-  "old": "    if duty != \"space\" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if duty != \"space\" or not (cfg.space_setpoint_power_feedback or cfg.heat_pump_power_entity):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

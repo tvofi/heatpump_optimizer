@@ -25585,7 +25585,8 @@
     "Carry 1: beatd and review-packet entries are unions of differing recordings, so a group that retires or moves a file they read (R10-NUDGE-RETIRE) re-records those two with `record --step` twice and unions, not once. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
     "`git` entry `?` dropped from three steps: not a path; restored by the union anyway. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
     "tests/entities.py not runnable on the reviewer's seat (missing homeassistant): an environment fault, no finding on the head. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
-    "From r10-hotfix-main-selftest-scope, body item 97a6b084: Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items 97a6b084)"
+    "From r10-hotfix-main-selftest-scope, body item 97a6b084: Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items 97a6b084)",
+    "Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD"
    ],
    "resume": {
     "stage": "in-progress",
@@ -27487,9 +27488,9 @@
    "brief": "HOTFIX for a red main, 2026-11-14: the instrument-self-tests job on main has failed since merge f7e7a0244a at the step that refuses a self-test read set the committed table misses. The scope check counted 11 refusals, under-scoped, accumulated over five merges (pull requests 3573, 3544, 3584, 3567 and 3565); the last green main was merge 0f37833e21. The drift step traces only on a push to main, so no pull request run can show the drift or its repair. Fix: re-record tools/ci/selftest_closures.json by the union of main's traced push measurements, through the instrument's own writer in tools/ci/selftest_scope.py, never by hand and never by weakening the check. Proof owed: an offline replay of the drift check with a traced push run's artifact as the measurement prints the 11 refusals against main's table and none against the branch's. State in the body what a pull request run does and does not prove. The beat-job-rows step reads almost the whole tree since pull request 3565; record that read set as measured and name it as a finding with its carry. Pull request 3551 edits the same table: whichever lands second re-unions. Root-cause analysis: the root-cause seat's report of 2026-11-14, process state (c).",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-main-selftest-scope",
-    "commit": null,
+    "commit": "f42e518c71238ca71477db5b4796f28f01835f93",
     "last_step": "local opus fixer handed off 2b889381",
     "next_step": "open the pull request, opus review, land first among hotfixes",
     "note": "main red since f7e7a0244a; hotfix priority",

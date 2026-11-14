@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:spec_problem CMP_BOUND a35e3a61",
-  "killed_by": "tests/features.py",
-  "old": "    if any(window_minutes(w) < MIN_WINDOW_MINUTES for w in windows):",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if any(window_minutes(w) <= MIN_WINDOW_MINUTES for w in windows):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

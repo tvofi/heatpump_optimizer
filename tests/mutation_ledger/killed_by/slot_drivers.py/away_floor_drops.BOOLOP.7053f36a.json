@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:away_floor_drops BOOLOP 7053f36a",
-  "killed_by": "tests/features.py",
-  "old": "    on_holiday = [bool(hol) and t.date() in hol for t in times]",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`on_holiday = [bool(hol) or t.date() in hol for t in times]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

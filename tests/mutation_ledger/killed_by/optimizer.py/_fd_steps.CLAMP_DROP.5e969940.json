@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_fd_steps CLAMP_DROP 5e969940",
-  "killed_by": "tests/features.py",
-  "old": "    fitting = np.abs(h) <= np.maximum(lower_dist, upper_dist)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`fitting = np.abs(h) <= (lower_dist)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

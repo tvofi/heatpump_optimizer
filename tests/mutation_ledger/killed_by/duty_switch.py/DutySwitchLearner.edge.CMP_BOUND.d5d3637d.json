@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:DutySwitchLearner.edge CMP_BOUND d5d3637d",
-  "killed_by": "tests/features.py",
-  "old": "        if since_s > STOP_WINDOW_S:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if since_s >= STOP_WINDOW_S:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_signals.py:read GUARD_OFF 9c5b3b6d",
-  "killed_by": "tests/features.py",
-  "old": "    elif mode_reading.problem == \"unknown_value\":",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

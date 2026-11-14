@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard._retry_hours RETURN_DEL 0c990871",
-  "killed_by": "tests/features.py",
-  "old": "        return min(interval_h, DHW_LEGIONELLA_RETRY_HOURS) if self._has_probe() else interval_h",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

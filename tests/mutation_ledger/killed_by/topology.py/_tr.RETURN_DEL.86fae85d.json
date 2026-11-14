@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 86fae85d",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    return _TRANSLATIONS.get(code, {}).get(text, text)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

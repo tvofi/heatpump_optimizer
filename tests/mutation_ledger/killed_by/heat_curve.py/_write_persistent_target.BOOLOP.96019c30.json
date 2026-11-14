@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:_write_persistent_target BOOLOP 96019c30",
-  "killed_by": "tests/features.py",
-  "old": "    retry = seen == \"missed\" and state[\"written\"] == target",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`retry = seen == \"missed\" or state[\"written\"] == target`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

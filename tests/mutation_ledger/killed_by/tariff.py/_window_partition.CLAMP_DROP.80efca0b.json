@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_partition CLAMP_DROP 80efca0b",
-  "killed_by": "tests/features.py",
-  "old": "    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`per_window = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4. Each of the 2 sites under this anchor was killed."
-}

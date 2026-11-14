@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step RETURN_DEL 2c47a8b9",
-  "killed_by": "tests/features.py",
-  "old": "    return target, updated",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}

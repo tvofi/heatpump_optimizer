@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/services.py:handle_simulate_plan BOOLOP 81143c85",
-  "killed_by": "tests/entities.py",
-  "old": "        if isinstance(answer, dict) and answer.get(\"error\")",
-  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: BOOLOP (`if isinstance(answer, dict) or answer.get(\"error\")`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

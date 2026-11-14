@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency CMP_BOUND 6f2165fd",
-  "killed_by": "tests/features.py",
-  "old": "                planned_draw_runs(self._commanded_power()) and reported >= hz_min",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`planned_draw_runs(self._commanded_power()) and reported > hz_min`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

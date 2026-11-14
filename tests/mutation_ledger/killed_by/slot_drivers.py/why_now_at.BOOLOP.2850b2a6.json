@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:why_now_at BOOLOP 2850b2a6",
-  "killed_by": "tests/features.py",
-  "old": "    if result.price_known and (i >= len(result.price_known) or not result.price_known[i]):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if result.price_known or (i >= len(result.price_known) or not result.price_known[i]):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

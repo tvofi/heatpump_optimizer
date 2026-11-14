@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_baseline_power_list RETURN_DEL b21e6d97",
-  "killed_by": "tests/features.py",
-  "old": "    return [float(v) for v in np.asarray(baseline_power, dtype=float)]",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

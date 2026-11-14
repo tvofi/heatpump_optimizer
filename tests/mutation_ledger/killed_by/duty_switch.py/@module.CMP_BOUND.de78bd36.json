@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CMP_BOUND de78bd36",
-  "killed_by": "tests/features.py",
-  "old": "    \"off_s\": lambda v: isinstance(v, list) and len(v) <= OFF_SAMPLES_MAX and all(_stored_number(o, _OFF_MAX_S) for o in v),",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`\"off_s\": lambda v: isinstance(v, list) and len(v) < OFF_SAMPLES_MAX and all(_stored_number(o, _OFF_MAX_S) for o in v),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

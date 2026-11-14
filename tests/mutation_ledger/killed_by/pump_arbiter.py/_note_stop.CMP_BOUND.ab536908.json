@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_note_stop CMP_BOUND ab536908",
-  "killed_by": "tests/features.py",
-  "old": "    if rec.sent_c is None or rec.sent_c >= base:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if rec.sent_c is None or rec.sent_c > base:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

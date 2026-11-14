@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_clock RETURN_DEL be8235ff",
-  "killed_by": "tests/features.py",
-  "old": "    return f\"{hour:02d}:{minute:02d}\"",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

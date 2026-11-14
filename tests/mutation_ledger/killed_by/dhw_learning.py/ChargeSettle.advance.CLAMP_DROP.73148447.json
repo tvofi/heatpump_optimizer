@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:ChargeSettle.advance CLAMP_DROP 73148447",
-  "killed_by": "tests/features.py",
-  "old": "                cut = min(left, max(0.0, deferred[1]))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`cut = (left)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
-}

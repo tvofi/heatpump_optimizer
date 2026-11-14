@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:<module> CONST f548920d",
-  "killed_by": "tests/entities.py",
-  "old": "MAX_COORDINATE_DECIMALS = 2",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: CONST (`MAX_COORDINATE_DECIMALS = 4`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

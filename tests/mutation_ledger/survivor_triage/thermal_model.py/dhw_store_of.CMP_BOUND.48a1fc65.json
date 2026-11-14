@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_store_of CMP_BOUND 48a1fc65",
-  "old": "    eps = min(1.0, eps) if eps >= COMBI_DHW_EFFECTIVENESS_FLOOR else COMBI_DHW_EFFECTIVENESS_FLOOR",
-  "reason": "Equivalent (CMP_BOUND, `eps >=` -> `eps >` COMBI_DHW_EFFECTIVENESS_FLOOR): the arms differ only at eps == the floor, where the head's `min(1.0, eps)` and the mutant's else arm are both the floor (0.1, below the 1.0 cap); NaN fails both comparisons alike. Measured by ``: the operator's own text compiled over `dhw_store_of`, against the head, over 11 effectiveness values holding the tie, NaN, inf and both of the floor's float neighbours: equiv_eps_differ=0. The tie-only control (`(min(1.0, eps) if eps != FLOOR else 0.5)` in the first arm) differs on the 1 tie and on 0 of the 10 others, so the grid reaches the tie.",
-  "verdict": "equivalent"
-}

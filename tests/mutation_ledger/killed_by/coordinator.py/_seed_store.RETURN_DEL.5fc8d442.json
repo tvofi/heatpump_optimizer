@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_seed_store RETURN_DEL 5fc8d442",
-  "killed_by": "tests/features.py",
-  "old": "    return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}

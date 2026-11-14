@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_mixed_litres CLAMP_DROP a416a8fd",
-  "killed_by": "tests/features.py",
-  "old": "    usable_kwh = store.capacity_kwh_per_c * max(0.0, tank_c - store.store_temp_for_tap(mixed_c))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`usable_kwh = store.capacity_kwh_per_c * (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:<module> CONST 9c74fb54",
-  "killed_by": "tests/features.py",
-  "old": "HELD_GRACE_S = 90.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`HELD_GRACE_S = 180.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

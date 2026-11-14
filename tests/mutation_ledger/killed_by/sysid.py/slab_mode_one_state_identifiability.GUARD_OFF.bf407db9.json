@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability GUARD_OFF bf407db9",
-  "killed_by": "tests/features.py",
-  "old": "    if FAST_MODE_SETTLE_TAUS * tau_fast <= settle_band:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

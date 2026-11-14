@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.check_ceiling GUARD_OFF 93bc9c5f",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        if signature == self.ceiling_notice:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

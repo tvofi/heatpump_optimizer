@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_relaxed_starts CMP_BOUND 7615699d",
-  "killed_by": "tests/features.py",
-  "old": "    if not opt.config.clamp_planned_levels or first >= len(cands):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against fb9b3fc1fe16a174476c8571c40b4b7d2d3c089c: CMP_BOUND (`if not opt.config.clamp_planned_levels or first > len(cands):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

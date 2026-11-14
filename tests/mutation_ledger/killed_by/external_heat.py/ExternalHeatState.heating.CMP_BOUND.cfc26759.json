@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatState.heating CMP_BOUND cfc26759",
-  "killed_by": "tests/features.py",
-  "old": "        return self.active or self.fading or self.displacement > 0.0 or self.free_heat_kw > 0.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return self.active or self.fading or self.displacement >= 0.0 or self.free_heat_kw > 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_floor_demand_at_target RETURN_DEL 0590dec2",
-  "killed_by": "tests/plan_view.py",
-  "old": "    return u * (target - outdoor_temp) - a - b",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

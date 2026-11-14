@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/services.py:handle_apply_schedule RETURN_DEL 037aef6b",
-  "killed_by": "tests/features.py",
-  "old": "    return {\"updated\": updated}",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

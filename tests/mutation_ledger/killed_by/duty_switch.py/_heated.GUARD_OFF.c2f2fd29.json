@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_heated GUARD_OFF c2f2fd29",
-  "killed_by": "tests/features.py",
-  "old": "    if direction == \"dhw_space\" and ctx.inlet_c is not None and ctx.water_setpoint_c is not None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

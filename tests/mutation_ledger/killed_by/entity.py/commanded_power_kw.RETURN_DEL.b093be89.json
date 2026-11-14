@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw RETURN_DEL b093be89",
-  "killed_by": "tests/entities.py",
-  "old": "    return round(float(space) + float(dhw), 2)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
-}

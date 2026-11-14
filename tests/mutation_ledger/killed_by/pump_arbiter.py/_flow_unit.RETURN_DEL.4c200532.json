@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_unit RETURN_DEL 4c200532",
-  "killed_by": "tests/features.py",
-  "old": "    return EntryConfig.from_mapping(config).space_setpoint_unit in SPACE_SETPOINT_WATER_UNITS",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling. RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 with 30 FAIL lines and an uncaught TypeError: a flow entity is written the planned room temperature, so the pump-duty step, gate, lease and ceiling-probe checks fail before the R10-CEILING-PROBE section raises on the missing flow."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:hold GUARD_OFF 8ebde20f",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        if not _differs(slot, observed, value) or _clamp_cut(held, slot, value, observed, at):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

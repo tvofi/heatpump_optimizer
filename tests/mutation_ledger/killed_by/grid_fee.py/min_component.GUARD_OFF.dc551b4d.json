@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:min_component GUARD_OFF dc551b4d",
-  "killed_by": "tests/features.py",
-  "old": "    if schedule.mode == MODE_NONE:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

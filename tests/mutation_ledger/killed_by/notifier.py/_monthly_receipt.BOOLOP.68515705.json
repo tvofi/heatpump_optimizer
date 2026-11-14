@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/notifier.py:_monthly_receipt BOOLOP 68515705",
-  "killed_by": "tests/features.py",
-  "old": "        \"saving_below_meter_floor\": bool(saving and saving.get(\"below_meter_floor\")),",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`\"saving_below_meter_floor\": bool(saving or saving.get(\"below_meter_floor\")),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

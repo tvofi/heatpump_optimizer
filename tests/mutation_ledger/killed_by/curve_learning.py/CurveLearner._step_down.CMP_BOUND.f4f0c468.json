@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner._step_down CMP_BOUND f4f0c468",
-  "killed_by": "tests/features.py",
-  "old": "        if step <= 0.0:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if step < 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

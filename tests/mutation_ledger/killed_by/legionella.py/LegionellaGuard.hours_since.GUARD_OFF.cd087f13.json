@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since GUARD_OFF cd087f13",
-  "killed_by": "tests/features.py",
-  "old": "        if since is None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

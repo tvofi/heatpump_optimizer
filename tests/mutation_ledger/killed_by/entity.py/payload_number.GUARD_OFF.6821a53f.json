@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/entity.py:payload_number GUARD_OFF 6821a53f",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "    if isinstance(value, np.generic):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
-}

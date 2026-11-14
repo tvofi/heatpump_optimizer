@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/store.py:LedgerStore._async_migrate_func RETURN_DEL b83e79cc",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "        return await super()._async_migrate_func(old_major_version, old_minor_version, old_data)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
-}

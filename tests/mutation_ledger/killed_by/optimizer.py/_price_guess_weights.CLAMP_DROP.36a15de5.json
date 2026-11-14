@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_price_guess_weights CLAMP_DROP 36a15de5",
-  "killed_by": "tests/features.py",
-  "old": "        smooth: np.ndarray = np.clip(1.5 - prices / (np.mean(prices) + 1e-6), 0.2, 1.0)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`smooth: np.ndarray = (1.5 - prices / (np.mean(prices) + 1e-6))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

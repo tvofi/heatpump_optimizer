@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_comfort_bounds CLAMP_DROP 33813897",
-  "killed_by": "tests/features.py",
-  "old": "                temp_min_bounds = np.maximum(temp_min_bounds, mold_floors)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`temp_min_bounds = (temp_min_bounds)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

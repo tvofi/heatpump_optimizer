@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion._end RETURN_DEL 7cd3858b",
-  "killed_by": "tests/features.py",
-  "old": "        return float(t_ss + (temp - t_ss) * np.exp(-hours / tau))",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

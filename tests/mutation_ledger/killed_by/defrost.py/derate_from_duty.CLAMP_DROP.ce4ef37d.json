@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/defrost.py:derate_from_duty CLAMP_DROP ce4ef37d",
-  "killed_by": "tests/features.py",
-  "old": "    return min(DERATE_MAX, max(DERATE_MIN, 1.0 - duty * DEFROST_LOSS_MULTIPLIER))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (DERATE_MAX)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5. Each of the 2 sites under this anchor was killed."
-}

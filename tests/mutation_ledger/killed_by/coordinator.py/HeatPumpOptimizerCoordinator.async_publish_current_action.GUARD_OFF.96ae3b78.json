@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_current_action GUARD_OFF 96ae3b78",
-  "killed_by": "tests/features.py",
-  "old": "        if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # off writes nothing`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

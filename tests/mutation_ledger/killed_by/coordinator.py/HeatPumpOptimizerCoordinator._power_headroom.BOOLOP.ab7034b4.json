@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom BOOLOP ab7034b4",
-  "killed_by": "tests/features.py",
-  "old": "        elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`elif tariff.enabled or tariff.sample_factor(dt_util.now()) > 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

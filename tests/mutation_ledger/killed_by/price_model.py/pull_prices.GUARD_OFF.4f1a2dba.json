@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:pull_prices GUARD_OFF 4f1a2dba",
-  "killed_by": "tests/entities.py",
-  "old": "        if isinstance(parsed, str):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
-}
