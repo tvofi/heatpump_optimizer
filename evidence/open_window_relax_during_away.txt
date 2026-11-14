@@ -1,0 +1,4 @@
+RESULT widen= () min_temp= 10.0
+RESULT widen= (1.0,) min_temp= 15.0
+RESULT home widen= () min_temp= 19.0
+RESULT home widen= (1.0,) min_temp= 18.0

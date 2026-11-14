@@ -1,0 +1,4 @@
+RESULT strings.json: leaves=1507 eight-conflict-leaves=8 other both-changed=0 mismatches=0
+RESULT translations/en.json: leaves=1507 eight-conflict-leaves=8 other both-changed=0 mismatches=0
+RESULT translations/de.json: leaves=1507 eight-conflict-leaves=8 other both-changed=0 mismatches=0
+RESULT translations/sv.json: leaves=1507 eight-conflict-leaves=8 other both-changed=0 mismatches=0
