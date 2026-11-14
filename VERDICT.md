@@ -1,69 +1,69 @@
-Fix review: blocked 7c7f06081827bbf9c52da7b2345b3a5a81048649 carry-missing: own-group
+Fix review: blocked d712c2ba4a834afcb5d722468676d52ce3762681 ci-red: classify RED at the head, gate red; tests / fast (3.14) red on a features.py check main's own tree fails too
 
-bus-nonce: c0d2fd500ce5e388dc83abbf917ceb02
+bus-nonce: b1a3df8bf73f585759b44a139c970262
 
-Round 1 (first adversarial review of R10-ADVISOR-STEADY-START). Measured head 7c7f06081827bbf9c52da7b2345b3a5a81048649, which is the PR head (`git ls-remote origin refs/pull/3481/head`) and the body's `## Head`.
+Round 2 of the review (a delta review over the reviewed head 7c7f06081827bbf9c52da7b2345b3a5a81048649). Measured head d712c2ba4a834afcb5d722468676d52ce3762681. At 01:12Z it was still `refs/pull/3481/head`, and the body's `## Head` names it.
 
 ## Block
 
-fix-review.md step 10 and fixer.md ("A finding in your own group's seam is built in this PR, not carried. `Carry: <own group>` only names a pending owner or orchestrator ruling, or a split part the approved plan names"). Two of the body's three forward-carries route items of this group's own design to R10-ADVISOR-STEADY-START itself and name neither exception:
+`python3 tools/audit/seat/merge_train.py classify d712c2ba4a834afcb5d722468676d52ce3762681 --pr 3481` printed WAIT from 00:56Z. At 01:23Z it changed to `RED d712c2ba4a834afcb5d722468676d52ce3762681 pending: none red: gate`, rc 1 (ev/classify.log). A red CI never carries a merge (fix-review.md step 12), so this verdict is a block. The code review found no defect.
 
-- Body item 128b800e (roster carry index 6 at handoff/audit-r10-roster f4c4044aaa): design item pair-other-asks. The pair's money for a hot-water, weight or floor ask alone is not measured for sign on a tanked fixture.
-- Body item c33b6f10 (roster carry index 7): design items measured-fields, weekday-day and pv-price. The schedule figure is not measured on a throttling-valve two-tank fixture, across a weekday-to-weekend change, or on a PV house.
-
-These are verification items of design/R10-ADVISOR-STEADY-START 55f90c7c6, inside this group's seam (`whatif.py` / `price_tiles.py` / `reference_day`). Neither names an owner or orchestrator ruling, nor a split part the approved plan names. The PR closes #2257, so this group's stage ends when it merges and nothing would receive either carry. carry_audit accepts both (packet: 4 routed, 0 unrouted), but it checks that a destination exists, not that fixer.md's exception applies. This verdict does not rest on carry_audit for that reason.
+The cause of the red, as far as this seat can read it:
+- `tests / fast (3.14)` (job 132260951585, run 43534335461) concluded failure with `1 TEST SCRIPT(S) FAILED`. That check is in the `owed-reds` set. The job log the GitHub API returns is truncated to its last ~26 kB, so the failing script's name is not visible.
+- On this container, tests/features.py at the head fails one real check: "a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked". It fails both in-tree (ev/features_intree_head.txt) and on a `git archive` copy (ev/features_ctl.txt).
+- The same check fails the same way on a `git archive` copy of origin/main 50373173d (ev/features_main.txt). It came to main at 8fa60a926d, and this diff does not touch it (`git diff origin/main...d712c2ba -- tests/features.py | grep -c "charge-start dip"` prints 0).
+- So the most likely red is main's, inherited through the merge, and not this branch's. That is not confirmed against CI's own log.
+- `tests / mutation` (job 132259821824) also concluded failure. Its readable log tail shows only the shard setup (`count=2`), so the cause is unreadable here. `tests / mutation-pins (1)` was still in progress at 01:12Z.
 
 Any one of these settles it:
-- Measure the items in this PR. The tree has tanked fixtures, and the weekday and PV cases can be built synthetically, as the bracket harness does.
-- Record an orchestrator ruling that defers them, and cite it in the carry.
-- Route them to a destination that is not this group (finding-propagation.md: a sibling seam goes to a new issue filed by this PR, or a carry file).
+- main's check is repaired and main is merged in again;
+- the orchestrator confirms the fast red is main's and re-runs the lane;
+- the gate goes green at this head.
 
-Body item b4048305 (roster carry 5, the real high-spread price day) is not part of this block. It names the condition of the owner-side ruling of 2026-11-11 that is still unmet, and the ruling already sets the consequence (the range is built unconditionally). I read that as the "pending owner or orchestrator ruling" exception. If the orchestrator reads it otherwise, it joins the block.
-
-Everything else this review checked holds. A re-cut that settles the two carries and changes no production code should need only a delta review (step 12).
+A re-dispatch at an unchanged head needs only the live checks re-read. Every code finding below holds at d712c2ba.
 
 ## Findings
 
-- Body `## Head` is stale. It says "Merge base ee64358be... (`git merge-tree` reports no conflict, so main is not merged in)", but the head's parent 6c7b8fa35 is a merge of origin/main 61afd4f2d. That merge is a clean automatic merge: `git merge-tree --write-tree 5b1078ea0 61afd4f2d` gives tree 088725a86, which equals 6c7b8fa35^{tree}. So nothing was resolved by hand, and the Figures' merge base ee64358be is the code tip's, not the head's. The fix is to correct the body line on the re-cut. Carry: dismissed: body bookkeeping corrected in the same re-cut as the block; no later stage reads it
+- main's tests/features.py check "a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked" fails at origin/main 50373173d on this container (3 of 5571 red on a `git archive` copy; the other two reds are copy artifacts, the #363 `recorded_at` and `_bootstrap` checks, which fail on every copy). It also fails in-tree at this head. Control to carry: run `PYTHONPATH=tests/hastub:tests:custom_components python3 tests/features.py` at origin/main and read that title's line. A repair is shown red before it and green after. Whether CI's fast lane at this head fails on this check is not confirmed: the API log is truncated. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Evidence
 
-- Setup: `cloud-setup.sh --check` OK. Role pack rendered. `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the role contract is current. Review packet rendered with no refusals.
-- Merge with main: `git merge-tree --write-tree origin/main 7c7f0608` exits 0 with tree 4d3c8b2a1 (origin/main = 61afd4f2d = merge base).
-- Step 5: `git diff 61afd4f2d...HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md tests/golden/` is empty.
-- Step 4: `tests/env_drift.py --all origin/main` printed "NO UNCLAIMED DRIFT: 56 scenario(s)" and "NO STALE FIXTURE: 56", rc 0 (ev/env_drift.txt). The claim files are untouched by the diff.
-- Suite at head: `tests/features.py` printed ALL 5278 FEATURE CHECKS PASSED, rc 0 (ev/features_head.tail.log). main's combi census is green here because main is merged in. After `tests/plan_view.py`, `node tests/card.mjs` printed ALL CARD CHECKS PASSED. `tests/closure.py no-copies` passed.
-- Step 1, mutation proof. Each mutant ran on a copy of the head tree with no `.git`. "stamps a resolvable recorded_at (#363)" fails on every copy and is not counted (ev/mutant_*.txt).
-  - RESULT mutant A, `whatif.py:173` replaced by `return None` (schedule_days always None): 9 checks red. The body says 9.
-  - RESULT mutant B, `price_tiles.py:166` sides exchanged (`live_kwh - sim_kwh`): 6 red. The body says six.
-  - RESULT mutant C, `optimizer.py:5666` second pass without `start=settled`: 6 red, including "the energy is the second pass's". The body says six.
-  - RESULT mutant D, card `heatpump-optimizer-card.js:13352` reading `monthly_cost_delta` instead of the steady key: 6 card checks red, including "#2257: an answer without the steady figure shows no money at all".
-  - No mutant survived.
-- Step 2, the finder's harness `dev/audit/harnesses/r10_advisor_residue.py`.
-  - RESULT base 61afd4f2d (base's own copy), `whatif`: plan_moves_by_start 24, held_moves_by_start 0, cap figures reading a saving plan 18/36, settled 1/36. Its `steadysign` arm does not exist at the base (KeyError).
-  - The head's copy cannot run at the base: it imports `whatif`, which the base lacks. So the body's "before" figure (`steady_wrong_sign 1` at 20da1edf6) was not re-derived. Not verified.
-  - RESULT head `whatif`: steady rows 24, steady_moves_by_start 0, degree figures against the held sign 0/36, cap figures reading a saving 0/36. The cap line is plan 18/36, settled 1/36. All as the body states.
-  - RESULT head `steadysign`: rows 48, steady_wrong_sign 0, held_wrong_sign 0.
-- Bracket harness at head:
-  - RESULT PRICES=peaks: ratio 2.104..3.136, above 1.5 on 96/96, second figure = realised within 0.01 on 96/96, round apart 96.
-  - RESULT PRICES=flat (null): ratio 1.000, three pricings within 0.2 on 96/96, round apart 0.
-  - RESULT PRICES=spread2 (perturbation): 1.433..1.793, above 1.5 on 93/96.
-  - `reference_day` wall: median 2.3–2.4 ms, max 8.8 ms on this host.
-  - All match the body. The sawtooth and diurnal runs were not re-run.
-- Carrier harness at head:
-  - RESULT AGE=2 STEP=4 built: against the ask 0, solved once on 96. Alternatives: `off` 18, `offm` 24, `at` 3, `atm` 0, `m2` -11.8..-2.6.
-  - RESULT AGE=0 STEP=0: every arm 0, zero ask 0.0 on 12/12.
-  - These match the body's (2,4) and (0,0) columns. (0,4) and (1,4) were not re-run.
-- Step 6, class. The body names the readers. I re-derived them with a census (`git grep -E 'monthly_(steady_|held_)?cost_delta|SHIFTED_KEY'` at head and at the base, via a scout subagent):
-  - The card's what-if summary reads the steady key and the shifted key (card.js:13352-13359).
-  - The degree tiles read the published tile's `monthly_cost_delta`. `price_tiles.monthly_figure` fills that from held for degrees and from steady for the cap (price_tiles.py:204).
-  - The fuse advisor reads `whatif.STEADY_KEY` (coordinator.py:9016).
-  - At the base the card read `monthly_cost_delta`, and the tile figure read settled/held.
-  - No reader is left outside the diff, and none is undispositioned.
-- Step 14: every `tests/structure_budgets.json` key in the diff moves down, and `tests/structure.py` passes (ev/structure.log). The diff does not touch `tests/structure.py`. The three ledger deletions are stale pins on lines this diff rewrites. The archscore dS was not re-run; CI `arch-score` and `tests / arch-instrument` concluded success at this head.
-- Step 11: `merge_train.py owed-reds` prints `tests / mutation`, `tests / typing` and `validate / validate-hacs`.
-  - `tests / mutation` (run 130791289529) concluded failure at this head. The body names it and answers it: unpinned sites listed for `mutation-autofix`, cheaper detector `ci_predict.py`. Answered.
-  - `tests / typing` and `validate / validate-hacs` are success.
-  - `tests / replay`, `tests / nightly-status`, `CodeQL` and an earlier `gate` run are red but outside the owed set, so they are not answered and block nothing.
-- CI at block time: `merge_train.py classify 7c7f0608 --pr 3481` printed `WAIT 7c7f06081827bbf9c52da7b2345b3a5a81048649 pending: gate red: none` on every run from 21:36Z to 22:06Z, and again at return (ev/classify.log). `tests / mutation-pins (1..7)` and a re-queued `budget-raise-gate` were still running. This verdict is a block, so no pending-ci line is set.
-- Step 10, carry destinations: f4c4044aaa is an ancestor of origin/handoff/audit-r10-roster. Carries 5–7 hold body items b4048305, 128b800e and c33b6f10 verbatim (ev/roster_carries.txt). Indices 2–4 are the known duplicates, dismissed, and are not a finding.
+- Setup: `cloud-setup.sh --check` printed OK. Role pack rendered. `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
+- Each prior finding:
+  - The block (own-group carries 128b800e and c33b6f10) is resolved. The four design items are measured in this PR by dev/audit/harnesses/r10_advisor_steady_seams.py. weekday-day is fixed; pair-other-asks, measured-fields and pv-price are disclosed in docs/dashboard-card.md. The body's carries now read 5 to R11-INTAKE-R10-RESIDUE and 1 dismissed, and none names this group. `carry_audit.py check --body` gives 5 routed, 0 unrouted, 0 bad.
+  - The stale `## Head` finding is resolved: the body now states that main is merged in.
+- Delta, isolated from the main merges. `git merge-tree --write-tree origin/main 7c7f0608` builds the reviewed head on today's main. Its one conflict is optimizer.py, `_held_reference` beside main's `_held_unreachable`, and the head keeps both and changes nothing else in that hunk. Diffing that tree against d712c2ba's leaves 60 files. The production part is:
+  - `reference_day`: the week loop.
+  - `price_tiles.take`: the `Rotation` dataclass and the 6-hour steady clock.
+  - the coordinator's None-spec return.
+  - `whatif.state_for` as `setdefault`.
+- The production review found no defect.
+  - `reference_day` now calls `_build_comfort_bounds` with no margins or floors. The function's `[0]` return (comfort_targets) reads neither, so this changes nothing.
+  - The only caller of `reference_day` is `whatif.schedule_days` (whatif.py:188), which compares setpoint lists element by element, so the week-length list is consistent there.
+  - The cap tile's six-hour clock and the restart cost of up to six hours with no cap refresh are disclosed in the body and docs.
+  - Nothing outside this was widened.
+- Merge with main: `git merge-tree --write-tree origin/main d712c2ba` exits 0 (ev/merge_tree.txt).
+- Step 5: `VERSION`, the manifest, `RELEASE_NOTES.md` and tests/golden/ are untouched (three-dot diff empty).
+- Step 14: `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED (ev/structure.log). CI `arch-score / arch-score` and `budget-raise-gate` are success at this head.
+- Step 1, mutation proof: tests/features.py whole, on `git archive` copies of the head. The control (no edit) has 3 reds: the copy's #363 `recorded_at` check, `_bootstrap`, and main's charge-start-dip check. Each mutant's extra reds over the control:
+  - RESULT w1, the day offset dropped from `reference_day`'s step clock (seven copies of the asked day): +2, "#2257: with weekend temperatures the day energy is the week's average day ..." and "#2257: a weekend ask moves a setpoint on every weekday it is asked on ...".
+  - RESULT w2, `reference_day` pricing the first day only (`range(1)`, divided by 1): +5, including "#2257: reference_day's setpoints open with ... a week of days", "a horizon under a day prices no day" and the two weekday checks.
+  - RESULT t1, `take` not moving the stamp on a taken turn: +1, "#2257: the cap tile's steady pair is off the per-solve path ...".
+  - RESULT t2, the first cap turn taken at once (stamp set 7 h back): +2, "a tile rotation: each degree tile is one solve ..." and the #2257 off-path check.
+  - No survivor.
+- Step 2 and the body's figures, re-derived with `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_steady_seams.py weekday fields` at the head (ev/seams_head_weekday_fields.log):
+  - RESULT weekday with weekend comfort: 0 asks move with the weekday, 0 leave the schedule branch.
+  - RESULT weekday null: 0 and 0.
+  - RESULT weekday Friday sweep: 96 rows, 0 against the ask, 0 rounding to 0.00, 0 reading the pair.
+  - RESULT fields, single-zone: holds 21.00, 0 against the ask.
+  - RESULT fields, two-zone: holds 21.33, buffer moves 0.15 and 0.22.
+  - RESULT fields, valve one tank: holds 19.88, 24 of 72 at 0 or against the ask.
+  - RESULT fields, two-zone valve two-tank: holds 21.01, 0 against the ask.
+  - Every null (same start) reads 0.00.
+  - All of these match the body.
+- The body's "before" figure (8 asks move with the weekday, 12 leave the branch) came from d120504a7, where this harness does not exist, so I did not re-derive it at that commit. I re-ran it on mutant w2, the head with `reference_day` restricted to the first day (ev/seams_mutant_firstday_weekday.log): 8 and 12, and the Friday sweep with 18 rounding to 0.00 and 6 reading the pair. That matches the body's before figures.
+- Not re-run: the `pair` and `pv` arms, the bracket and carrier harnesses (unchanged since round 1's review, which re-ran them), tests/replay.py (CI `tests / replay` is success at this head) and card.mjs (CI fast lane).
+- Step 11: `merge_train.py owed-reds` prints `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / typing`, `validate / validate-hacs`.
+  - At this head `tests / fast (3.14)` and `tests / mutation` are red. The body's Red checks section answers earlier runs of both, not these runs.
+  - I make no root-cause-* call: not all of the head's workflows had concluded when I read them (`tests / mutation-pins (1)` was in progress), and the fast red reads as main's.
+  - `tests / typing`, `validate / validate-hacs` and `tests / coverage-ratchet` are success.
