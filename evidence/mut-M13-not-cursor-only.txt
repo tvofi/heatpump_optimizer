@@ -1,3 +1,0 @@
-mutant M13-not-cursor-only: '        if not more or not cursor:' -> '        if not cursor:'
-rc=1
-IndexError: tuple index out of range

@@ -47,8 +47,8 @@
   custom_components/heatpump_optimizer/topology.py: 36
   custom_components/heatpump_optimizer/comfort_band.py: 23
   custom_components/heatpump_optimizer/quick_setup.py: 21
-  custom_components/heatpump_optimizer/pump_arbiter.py: 20
   custom_components/heatpump_optimizer/modbus_prefill.py: 19
+  custom_components/heatpump_optimizer/pump_arbiter.py: 16
   custom_components/heatpump_optimizer/sensor.py: 16
   custom_components/heatpump_optimizer/wood_fuel.py: 15
   custom_components/heatpump_optimizer/inputs.py: 13
@@ -86,7 +86,6 @@
   custom_components/heatpump_optimizer/binary_sensor.py: 1
   custom_components/heatpump_optimizer/button.py: 1
   custom_components/heatpump_optimizer/dhw_planner.py: 1
-  custom_components/heatpump_optimizer/duty_switch.py: 1
   custom_components/heatpump_optimizer/frontend.py: 1
   custom_components/heatpump_optimizer/heat_energy.py: 1
   custom_components/heatpump_optimizer/issues.py: 1
@@ -180,7 +179,7 @@
   custom_components/heatpump_optimizer/inputs.py:983 read  ==  custom_components/heatpump_optimizer/inputs.py:1024 read_state
   custom_components/heatpump_optimizer/optimizer.py:4891 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:5154 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:4356 _solve_space
   custom_components/heatpump_optimizer/price_model.py:191 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:237 observe_day_quarters
-  custom_components/heatpump_optimizer/pump_arbiter.py:610 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:530 _step_index
+  custom_components/heatpump_optimizer/pump_arbiter.py:606 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:526 _step_index
   custom_components/heatpump_optimizer/tariff.py:778 _smooth_topk_sum_batch  ==  custom_components/heatpump_optimizer/tariff.py:1154 peak_cost_batch
 
 ########## coordinator private reach (outside its methods and helpers) ##########

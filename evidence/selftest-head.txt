@@ -292,15 +292,10 @@
   ok   A5 platform: no required gate run (another app's gate, or none) is red; GitHub requiring anything besides gate is red; a non-required red is not counted (null)
   ok   A5 platform: a rollup of another head, or one not read whole, is unread, never agreement
   ok   A5 platform: a required context on page 2 that is red reads RED, green reads GREEN (null: the one-page head makes the same single read, [None]; a walk past the page cap and a later page at another head are unread)
-  ok   A5 platform: a later page whose oid differs from the first page's is unread, never merged in (null: the same listing at one oid reads red from its page 2)
-  ok   A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)
   ok   A5 serial: train green, GitHub green: it merges
   ok   A5 serial: train green, GitHub red (a suite the train never saw): a disagreement stops it
   ok   A5 serial: train green, the rollup unreadable: stopped, never agreement
   ok   A5 serial: head (i) at the train: an older red suite stops it before any cross-check
-  ok   A5 serial: the train passes each page's endCursor on the next read, so a red required gate on page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)
-  ok   A5 serial: the query the train sends asks for the page cursor and takes the `after` argument (a real GitHub would otherwise serve page 1 forever, or refuse the unused variable)
-  ok   A5 serial null: a one-page rollup is read once, with no cursor, and merges
   ok   defer-wait table: a code run with a unit in progress is busy (gate_busy == gate.py busy == [42237558473])
   ok   defer-wait table: a held run (action_required) is not busy (gate_busy == gate.py busy == [])
   ok   defer-wait table: a completed run is not busy (gate_busy == gate.py busy == [])
@@ -388,7 +383,7 @@
   ok   carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (one call, no retry)
   ok   carry 2 null: through the same reader, a gate red on a non-infra job is never re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/root/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/home/user/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
@@ -663,8 +658,8 @@ REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>
   ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
   ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
   ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
-merge_train self-test: 662 checks, 0 failed
+merge_train self-test: 657 checks, 0 failed
 
-real	0m59.555s
-user	0m24.195s
-sys	0m9.792s
+real	1m8.468s
+user	0m28.763s
+sys	0m12.075s

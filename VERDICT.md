@@ -1,29 +1,28 @@
-Fix review: merge fbda69ef770330e43de3f2202c4bfc18eaa97671
+Fix review: blocked dbe75142ac7cc3e505aebfc9758102132a102804 mutation-survivor: rollup_walk per-page oid guard and Train fetch cursor argument survive the self-test
 
-bus-nonce: 93521581a91005e4bad77f888de5fc65
-pending-ci: gate
+bus-nonce: 2bc16771dbbafec2a13211b60c1f9591
 
-## Review
+## Block
 
-Round 3, a delta review over 853c9f47ccb8704697c96afcce0d3916919acab0 (`review_carry.py` prints FRESH-REVIEW, so the round-2 block does not carry). The PR's own delta is commit 7090e74587bb, self-test code in `tools/audit/seat/merge_train.py` only: a `rollup_queries` record in the faked `gh api graphql`, a page-merge row and a query-text row. The rest of `git diff 853c9f47 fbda69ef` is main's merge (#3448, #3461), not this PR's patch; the three-dot diff against the merge base is `tools/audit/seat/merge_train.py` and `dev/programme/delivery/3516.md` only. No `custom_components/` line is in the PR's patch, so the scope is not widened.
+Round 1, handoff review at dbe75142ac7cc3e505aebfc9758102132a102804 (BODY.md at handoff-body ref 547acf1eb998, `## Head` names this sha). Two of four targeted mutants on lines this diff adds survive `python3 tools/audit/seat/merge_train.py --self-test` (657 checks, 0 failed):
 
-Each round-2 survivor is now killed at this head: M5 (page-1 nodes dropped) 1 failed, M8 (`after:$after` removed from `ROLLUP_Q`) 1 failed, M9 (`endCursor` removed from `ROLLUP_Q`) 1 failed. The body's mutation-proof figures (1 red each for the oid guard, cursor argument, M5, M8, M9) and its null control (662 checks, 0 failed) re-derive exactly.
+- M2, fail-open. Deleting `if commit.get("oid") != head: return payload` from `rollup_walk` leaves the self-test green (ev/mut-M2-no-oid-check-in-walk.txt). Under that mutant a page 2 that answers at another head is merged into page 1 and reads **green** (ev/mut-M2-no-oid-check-in-walk-probe.txt, case `p2 at another head`). That is the case where a push lands between page reads. The new A5 check's text and the body's `## Null control` both claim "a later page at another head ... unread". The fixture does not test that: `f_old` is built with `oid="f"*40` on **every** page, so page 1 is already at another head and the unchanged `platform_gate` oid check refuses it without the walk's guard. The code behaves correctly at the head (ev/probe-head.txt: `unread`), but the check claims coverage it does not give. Fix: page 1 at H0 and page 2 at another oid in the fixture.
+- M4, the fix undone in production. Deleting `+ (["-f", f"after={cursor}"] if cursor else [])` from `Train.cross_check`'s `fetch` leaves the self-test green (ev/mut-M4-cursor-not-sent.txt). The train then re-reads page 1 until MAX_PAGES and reads every >100-context head `unread`, which is exactly the defect this hotfix closes. This fails closed, but the Train-level wiring of the walk is not pinned. No Train scenario feeds a multi-page rollup through `self.run` (the scenario table's `rollup=(0, json)` answers every call alike). Fix: one Train scenario whose fake `gh api graphql` answers by its `after` argument, green on page 2.
+
+The named mutant (M1 `if True:`) and M3 (drop the `pageInfo` update) both turn the self-test red on the new A5 check, as the body says.
 
 ## Findings
 
-- M12, `if not more or not cursor:` made `if not more:`, survives (662 checks, 0 failed). It is equivalent in verdict: a page answering hasNextPage true and no endCursor then re-reads page 1 with no cursor up to the page cap and returns a merge still carrying hasNextPage true, which `platform_gate` reads unread, as the unmutated walk does after one read. Only the read count differs (fail-closed both ways). Carry: dismissed: equivalent in verdict, fail-closed; only extra reads on a malformed answer GitHub does not serve once the query asks endCursor (M9 is killed)
-- M15, the train's `if code: raise OSError` made `if False and code:`, survives (0 failed). A failed `gh` read then reaches `json.loads` on its error text, raising ValueError, which reads `unread` with the reason "the rollup answer is not JSON" rather than gh's text; the gate verdict is the same. Carry: dismissed: equivalent in verdict, only the logged reason differs
-- M6 and M10 remain equivalent, as round 2 found (0 failed each; the changed return still carries hasNextPage true or no rollup, read unread). Carry: dismissed: equivalent mutants, no verdict changes under either
+- The train's other check-run readers that do not page, enumerated over merge_train.py, its imports and its callers (ev/readers.md). In the train itself: `Train.policy_refusal` (`gh pr view --json statusCheckRollup`, gh's own single page) runs only after GitHub has refused a merge. A context it misses there misnames the refusal as pending (a retry) but never lands a merge. `Train._selftest_runs` is one `per_page=100` read filtered to one check name. `record_row.py`'s automerge check is one `per_page=100` read, where a missing required check reads as pending, which fails closed. `_check_runs` and the ancestry read page through `gh_read.read_pages`, which returns `(code, None, out)` on a mid-walk failure, never a partial list. None of these fails open, so none is owed by this hotfix. Carry: dismissed: each fails closed or only misdiagnoses a refusal GitHub already made; no merge reads green from a truncated listing
 
 ## Evidence
 
-- RESULT self-test at head: `merge_train self-test: 662 checks, 0 failed` (ev/selftest-head.txt).
-- RESULT mutants at head, tree restored after each and `git status` clean (ev/mutants-summary.txt, ev/mut-*.txt): M1 early return 4 failed; M2 oid guard off 1; M3 pageInfo update dropped 3; M4 cursor not sent 1; M5 page-1 nodes dropped 1; M5b page-2 nodes dropped 4; M6 0 (equivalent); M7 OSError reads green 1; M8 no `after:$after` 1; M9 no `endCursor` 1; M10 0 (equivalent); M12 0 (equivalent, above); M13 `if not cursor:` only, self-test crashes (IndexError), killed; M14 one-page cap 4; M15 0 (equivalent, above); M16 endCursor read as None 4. M8 and M9 were applied to the `ROLLUP_Q` production line alone, as the body states; the test's own literal is unchanged.
-- The new query-text row reads the `query=` argument the train actually sends through `self.run`, so it pins production text, not a copy.
-- RESULT `env -u BASH_ENV` `PYTHONPATH=tests/hastub python3 tests/entities.py` at head: `ALL 2709 ENTITY CHECKS PASSED`, rc 0 (ev/entities.txt).
-- RESULT `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, rc 0 (ev/structure.txt).
-- RESULT `git merge-tree --write-tree origin/main fbda69ef770330e43de3f2202c4bfc18eaa97671`: rc 0, merges cleanly (ev/merge-tree.txt).
-- VERSION, the manifest, the notes heading, the claim files and golden fixtures are untouched (ev/changed-files.txt). `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty: the contract is current.
-- The body's `## Head` names fbda69ef770330e43de3f2202c4bfc18eaa97671, the head reviewed. Forward-carry, Figures, Friction: none; carry_audit at the head reports 0 finding items.
-- `## Red checks`: no required check has concluded red at this head (owed-reds set in ev/owed-reds.txt); nothing owed.
-- CI at this head: `merge_train.py classify fbda69ef770330e43de3f2202c4bfc18eaa97671 --pr 3516` printed `WAIT fbda69ef770330e43de3f2202c4bfc18eaa97671 pending: gate red: none` on every poll from 00:13 to 00:42 UTC (rc 3); no required check had concluded red. The relay posts this verdict once CI is green at this head.
+- No pull request exists, so there is no review packet and no CI to read. `merge_train.py owed-reds` has no PR run set to grade, and `## Red checks` is owed nothing.
+- RESULT self-test at head: `merge_train self-test: 657 checks, 0 failed` (ev/selftest-head.txt). This matches the body's figure.
+- RESULT `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, rc 0 (ev/structure.txt). This matches the body.
+- RESULT mutants: M1 red (1 failed), M2 survives, M3 red (1 failed), M4 survives (ev/mut-*.txt). The tree was restored after each run (`git status` clean).
+- RESULT probes at head (ev/probe.py, ev/probe-head.txt). Required context on page 2: red reads red, pending reads wait, green reads green. A required context absent on both pages reads red. A non-gate required context on page 2 reads red. A last page holding exactly 100 contexts with hasNextPage false reads green. A page-2 read failing with OSError or ValueError reads unread through `cross_check`'s handlers, never green. A page 2 with GraphQL errors reads unread. hasNextPage true with no endCursor reads unread. A never-ending listing reads unread at the MAX_PAGES cap. Gate green on page 1 and red on page 2 reads red.
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` rc 0 (ev/merge-tree.txt). It merges cleanly.
+- Only `tools/audit/seat/merge_train.py` changed (ev/changed-files.txt). VERSION, the manifest and the notes heading are untouched, and no claim file or golden fixture moved.
+- `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
+- The null control "one-page head makes one read, [None]" is reproduced (probe and self-test). The control "later page at another head reads unread" holds in the code but is not pinned (see Block).
