@@ -38,6 +38,7 @@ M = [
  ("element-both-sources", "running_signal.py", "        if sensor:\n            return resolve_reading", "        if sensor and not element(0.0 if True else 0):\n            return resolve_reading"),
  ("element-reader-guard", "running_signal.py", "        if kw is not None and element(kw):\n", "        if False:\n"),
  ("timer-arm", "running_signal.py", "    sig.timer = (pending, async_call_later(sig.hass, delay, _due))", "    sig.timer = None"),
+ ("timer-delay-zero", "running_signal.py", "    delay = max(0.0, wear.EDGE_DEBOUNCE_S - utc_elapsed_seconds(dt_util.now(), pending[1]))", "    delay = 0.0"),
  ("timer-cancel-on-detach", "running_signal.py", "    if timer is not None:\n        timer[1]()\n", "    if False:\n        timer[1]()\n"),
  ("per-refresh-reread", "coordinator.py", "        running_signal.note(running_signal.signal_for(self), dt_util.now())\n", ""),
  ("attach-in-init", "coordinator.py", "        running_signal.attach(running_signal.signal_for(self), *running_signal.source(", "        (lambda *a: None)(running_signal.signal_for(self), *running_signal.source("),
