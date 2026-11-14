@@ -1,10 +1,16 @@
-R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH (owner order 2026-11-14, merge as soon as possible). When a review or edit event arrives at an unchanged head, its `refresh` job re-runs every green gate at that head, and each of those gates fails at once as a deferral. The sweep then read a deferral red on a stale-pinned pull-request run as a real verdict and dispatched a whole new code run. A dispatched run whose first gate was green also stopped counting as the head's fresh judge once refresh had turned its latest attempt red. This change is in `tools/ci/sweep.py`'s fresh-run decision only. `tools/ci/gate.py` is not changed, and neither is `refresh`.
+R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH (owner order 2026-11-14, merge as soon as possible). When a review or edit event arrives at an unchanged head, its `refresh` job re-runs every green gate at that head, and each of those gates fails at once as a deferral. The sweep then read a deferral red on a stale-pinned pull-request run as a real verdict and dispatched a whole new code run. A dispatched run whose first gate was green also stopped counting as the head's fresh judge once refresh had turned its latest attempt red. This change is in `tools/ci/sweep.py`'s fresh-run decision only. `tools/ci/gate.py` is not changed, and neither is `refresh`; the sweep imports `gate.busy`.
 
 - `Sweep.judged(r)`: a dispatch at the head is its fresh judge while it is not completed, while it is green, or when its first attempt's gate concluded `success`. It reads `actions/runs/<id>/attempts/1/jobs` with `per_page` 100, and only for a completed, non-green dispatch past attempt 1. #3544's gate was job 41 of 41, so a default page of 30 misses it. If that read is unreadable (not HTTP 200, no gate) it is no judge, so the sweep dispatches as today and is never silent. A rate limit propagates as before (`RATE-LIMITED`).
-- `Sweep.covered_deferral(run, gate, runs)` is the deferral predicate, read structurally (ruled by the orchestrator, option B). The deferral text is in the gate's stdout and step summary only, and the API the sweep uses does not expose either. Check run 132385059558, run 43531915583 attempt 3, shows `output` null and its two annotations are "Process completed with exit code 1." and a runner notice. The predicate has two parts:
-  - a source of another run finished after this red gate started, or has not finished (`source_after`, settle's own reading; `gate()` reads `busy()` before any source);
-  - some gate at the head is green and covers the newest event (`covers_newest`).
-  When both hold, `fresh()` posts no dispatch. It prints `STALE-PIN ... is a deferral ...; re-run in place` and returns False, so `judge()` re-runs the gate in place within `must_rerun`'s ATTEMPT_CAP. With nothing green, #3261's pair keeps its dispatch, and that self-test check is unchanged. The test runs after the existing `later` and `self.dispatches` checks, so a head that already has a fresh judge still leaves its reds to it, as before.
+- `Sweep.covered_deferral(run, gate, runs)` is the deferral predicate, narrowed after #3584's fix review (blocked at b17c7877, cases B and C; the orchestrator ruled for the reviewer's option (b)). A red is a deferral only if `gate.busy()` was true when its gate started. The sweep imports the gate's own `busy()` and does not restate it. It calls `busy()` on the runs at the head as `listed_at(run, jobs, t0)` reconstructs them from their job stamps at the red gate's start `t0`:
+  - a job that had not started by then reads queued;
+  - one that had started and was unfinished reads in progress;
+  - a skipped job reads skipped whatever its stamps say, because GitHub re-stamps skipped jobs at every gate re-run;
+  - a run counts as completed only if it had jobs and all of them were done, and a run created after `t0` is absent;
+  - the title is the run's `display_title`, which `judging()` reads.
+
+  So a higher-id run whose gate had started, a judging run, a completed run and any job `busy()` never reads (a report-only job) make no deferral. The second condition is unchanged: some gate at the head is green and covers the newest event (`covers_newest`). When both hold, `fresh()` posts no dispatch, prints `STALE-PIN ... is a deferral ...; re-run in place` and returns False, so `judge()` re-runs the gate in place within `must_rerun`'s ATTEMPT_CAP. With nothing green (#3261's pair, reviewer case D) it still dispatches. The test runs after the existing `later` and `self.dispatches` checks.
+  - Residual, in the conservative direction: `listed_at` reads the latest attempt's stamps, so a run whose own later gate re-run re-queued jobs reads unfinished at an earlier `t0`, and the red is re-run in place. #3584's reviewer measured an in-place re-run as outcome-equivalent: no false green, and a persisting real red stays red. Carry: dismissed: conservative direction, outcome-equivalent by the review's measurement
+- Deferral cannot be read from the gate's text. That text is in stdout and the step summary only; check run 132385059558, run 43531915583 attempt 3, shows `output` null and only "Process completed with exit code 1." among its annotations.
 - Which copy of sweep.py judges an open PR's reds after this merges:
   - `gate-sweep.yml` (`workflow_run`) checks out `${{ github.sha }}`, which is the default branch. So main's copy judges at once for every completed CI run whose actor is not the bot. That covers review and edit runs, App pushes, and every recorded dispatching sweep below.
   - `ci.yml`'s `sweep-self` restores `tools/ci/*.py` from `github.event.pull_request.base.sha` for a pull_request run. That is the PR's pinned base, an old copy, used only for a bot-actor pull_request run (a token push). For a `workflow_dispatch` run it restores from `origin/<base>` fetched at job start, which is main's copy at once.
@@ -17,28 +23,48 @@ R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH (owner order 2026-11-14, merge as soon as pos
 
 ## Head
 
-2fa16a7eac0b32a25a4c20205286579257d77d55, on origin/main f7e7a0244a.
+54e622286520d349f921879be62310625555bdd0. It fast-forwards the PR head b17c78773410 (code 2fa16a7e plus the delivery row) and is on origin/main f7e7a0244a. The repair round after the fix review blocked at b17c7877 narrows the deferral predicate to `gate.busy()` at the red gate's start.
 
 ## Mutation proof
 
-Harness: `python3 tools/ci/sweep.py --self-test`, 98 checks, 0 failed at the head.
-- Failing test first, a68d95d4e4 (test alone): `sweep self-test: 94 checks, 3 failed` at origin/main's sweep.py. The final self-test against origin/main's sweep.py gives `98 checks, 7 failed`, and those are the seven new `#3544` checks that need the fix. The recorded replay at origin/main reproduces gate-sweep run 43573334631's log line for line: one dispatch, three `left to this sweep's dispatched run`, D re-run in place, `dispatches=1`.
-- `tools/audit/seat/mutant_run.py --diff origin/main...HEAD --path tools/ci/sweep.py --cmd 'python3 tools/ci/sweep.py --self-test'` drew 19 mutants and killed 18. One survivor: `sweep.py:234 CONST_SWAP {"per_page": 101}`. It is equivalent, because GitHub caps `per_page` at 100. A deleted `per_page` is killed by the fake's 30-job default page. Carry: dismissed: equivalent at GitHub's page cap
-- Spec pass, `mutant_run.py --spec` with the same command: 13 of 13 hand mutants on the two predicates killed, NULL survived. They are: the deferral test dropped or negated; the cover test dropped, `all` for `any`, and `or` for `and`; the deferral read from `completed_at`; the run's own jobs read as others'; `judged` reverted to today's predicate; any first-attempt conclusion accepted; attempt 2 read instead of 1; `per_page` dropped; the deferral checked before the fresh judge; and the deferral returning True (no re-run).
+Harness: `python3 tools/ci/sweep.py --self-test`, 108 checks, 0 failed at the head.
+- Failing test first, round 1, a68d95d4e4 (test alone): `sweep self-test: 94 checks, 3 failed` at origin/main's sweep.py. The #3544 replay of gate-sweep run 43573334631 reproduces its live log line for line at main (one dispatch, `dispatches=1`) and dispatches nothing at the head.
+- Failing test first, round 2, bbf951963e (test alone, on b17c7877): `sweep self-test: 101 checks, 3 failed`. The failures are #3584 B and C (C at two gate starts): a real red beside a job `busy()` never reads, re-run in place at b17c7877's code. The final self-test against b17c7877's sweep.py fails the same three B/C checks.
+- `tools/audit/seat/mutant_run.py --diff origin/main...HEAD --path tools/ci/sweep.py --cmd 'python3 tools/ci/sweep.py --self-test'` drew 30 mutants and killed 28. Two survivors:
+  - `per_page 101` is equivalent at GitHub's cap of 100. Carry: dismissed: equivalent at GitHub's page cap
+  - `created_at < t0` for `<=` changes only a run created in the very second the red gate started. Reading that run as listed is the conservative side (in-place re-run). A fixture that observes it needs a second green gate covering a run created after the first green. Carry: dismissed: a same-second boundary on the conservative side
+- Spec, `mutant_run.py --spec` with the same command: 23 hand mutants, 22 killed, NULL survived.
+  - One mutant per leg of the narrowed predicate: busy never, always, negated; cover dropped, `all`, and `or`; created filter dropped; `t0` from `completed_at`; skipped read by stamp; completion strict; no job ever completed; always in progress; always queued; a jobless run done; status always open or always done; title dropped.
+  - Plus the earlier `judged` mutants (today's predicate, any conclusion, attempt 2, no per_page) and the deferral returning True.
+  - Survivor `others-include-self` is equivalent: `busy()` drops the red's own run by `ctx["run_id"]`, and that run's red gate never covers. Carry: dismissed: equivalent by busy()'s own-run exclusion
 
 ## Null control
 
-Each passes at origin/main and at the head:
-- A real red on a stale pin with no dispatch at the head takes one dispatch. The red gate here judged after every other run's source finished, even with its own run's job finishing later.
-- A real red beside a dispatch whose first attempt was red dispatches once, and so does one beside a dispatch whose first attempt cannot be read (404).
-- A red dispatch at attempt 1 makes 0 attempt reads.
-- #3261's settle pair, two deferrals with nothing green, takes one dispatch.
-- Every earlier stale-pin check is unchanged: fork head, non-tools/ci base move, 300-file cap, two reds one dispatch, the dispatched judge's in-place re-runs (#3400), and the #3446 one-judge-per-head checks.
+Over the overlap domain, where a real red's gate started while another run still had a job unfinished. Each of these dispatches at origin/main, at b17c7877 only where noted, and at the head:
+- B: the covering green run's report-only job (`tests / nightly-status`) finished after the red started.
+- C: a newer review run with a non-unit job (`refresh`) finishing after the red, its gate started before the red or after it.
+- The reviewer's C: a newer run whose gate was running at the red's start, with `governance / delivery-status-publish` unfinished after it.
+- A newer gate that started in the red's own second.
+- A lower-id completed run with a skipped job re-stamped after the red, or a unit completed in the red's own second.
+
+B and both C variants are re-run in place at b17c7877, the defect.
+
+The deferral side, re-run in place at the head:
+- the #3544 recording and its replay;
+- a governance unit of a newer, gate-not-started run unfinished at the red's start;
+- a run listed with no job yet;
+- a source finishing in the red gate's window.
+
+The other nulls:
+- A (a real red, no dispatch at the head) dispatches once, and so do a red-first dispatch and an unreadable attempt 1 (404). A red dispatch at attempt 1 makes 0 attempt reads.
+- D (#3261-shaped: a deferral with nothing green) dispatches.
+- Attempt 44 is left at the cap.
+- Every earlier stale-pin check is unchanged.
 - `python3 -I tools/ci/gate.py --self-test`: 106 checks, 0 failed.
 
 ## Figures
 
-- `python3 tools/ci/sweep.py --self-test`: 98 checks, 0 failed.
+- `python3 tools/ci/sweep.py --self-test`: 108 checks, 0 failed.
 - `python3 -I tools/ci/gate.py --self-test`: 106 checks, 0 failed.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - `python3 -I dev/audit/harnesses/r10_rca_sweep_settle_loop.py replay`: `RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no`.
