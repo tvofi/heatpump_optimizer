@@ -90979,6 +90979,27 @@ R.check(
     f"{_sce_hold_pending} {_sce_hold_before} {_sce_hold.counter.lifetime}",
 )
 
+# The debounce with its timer armed: a meter blip over the on-threshold that
+# reverts before EDGE_DEBOUNCE_S is no start, one that outlasts it is one.
+# Every trace above reads at 60 s or longer, so its timer is always due before
+# the next reading; here the revert lands while the timer is still pending.
+def _sce_blip(seconds):
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=seconds), unit="kW")
+    rig.at(_SCE_T0 + timedelta(minutes=20))
+    return rig.counter.lifetime, len(getattr(rig.c.hass, "timers", []))
+
+
+_sce_blips = {s: _sce_blip(s) for s in (5, _SCE_DEBOUNCE_S - 1, _SCE_DEBOUNCE_S + 1)}
+R.check(
+    "a meter blip shorter than the debounce counts no start (5 s and one second under it), and one "
+    "second over it counts one; no timer outlives either",
+    _sce_blips == {5: (0, 0), _SCE_DEBOUNCE_S - 1: (0, 0), _SCE_DEBOUNCE_S + 1: (1, 0)},
+    f"{_sce_blips}",
+)
+
 # An unavailable or non-numeric signal counts nothing, and is no transition:
 # running -> unavailable -> running is no start; stopped -> unknown -> running is one.
 _sce_words = _SceRig({"sensor.freq": FakeState("0")}, compressor_freq_sensor="sensor.freq")
