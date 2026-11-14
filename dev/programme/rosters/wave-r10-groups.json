@@ -25819,7 +25819,13 @@
     "docs/configuration.md:1083 does not say the price estimate is on by default. Carry: R11-INTAKE-R10-RESIDUE",
     "custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE",
     "custom_components/heatpump_optimizer/presets.py:11 has a docstring saying \"three answerable\" questions; the questionnaire has six. Carry: R11-INTAKE-R10-RESIDUE",
-    "custom_components/heatpump_optimizer/config_flow.py, setup step `device_prefill`: the second form renders `after_save` and `self._data.update(saved)` probably stores it into entry data, a stray key. The help text now says the choice has no effect there. Carry: R11-INTAKE-R10-RESIDUE"
+    "custom_components/heatpump_optimizer/config_flow.py, setup step `device_prefill`: the second form renders `after_save` and `self._data.update(saved)` probably stores it into entry data, a stray key. The help text now says the choice has no effect there. Carry: R11-INTAKE-R10-RESIDUE",
+    "The dashboard card repeats the two false narrative labels (`www/heatpump-optimizer-card.js` `reasons.dhw_window` \"Hot water needed now\", `reasons.dhw_preheat` \"Charging the tank while electricity is cheap\", and their sv/de); `classify_dhw_steps` reads neither the clock nor the price. Carry: R11-INTAKE-R10-RESIDUE",
+    "apply_schedule cannot set `silent_mode_power_fraction` back to 1.0: `_quiet_schedule_fields` drops an explicit 1.0 as \"the default\", so a stored lower fraction survives the call; the text now says so, the behaviour is a code decision for its owner. Carry: R11-INTAKE-R10-RESIDUE",
+    "simulate_plan's `min_temp`, `max_temp`, `comfort_weight`, `comfort_temp_night` and `dhw_min_temperature` selectors bound nothing the schema enforces, and disagree with the config flow's ranges for the same settings (RECORD.md, Unverifiable). Carry: R11-INTAKE-R10-RESIDUE",
+    "The corrected `rain_heat_loss_multiplier` thresholds (2 mm/h, 0.1 mm/h) can be pinned behaviourally through `effective_heat_loss_coefficient`, and run_optimization's \"four price steps\" by calling the handler with three prices; both are prose-only here. Carry: R11-INTAKE-R10-RESIDUE",
+    "Reverting `narrative.py` to the merge base survives `tests/entities.py`: the corrected `dhw_window`/`dhw_preheat` template sentences have no pin. Carry: R11-INTAKE-R10-RESIDUE",
+    "apply_manual_plan's services.yaml examples are 2024 datetimes: sent verbatim, `expires_at` is refused as not in the future and the slots overlap nothing; any absolute example ages the same way. Carry: R11-INTAKE-R10-RESIDUE"
    ],
    "resume": {
     "stage": "not-started",
@@ -26270,9 +26276,9 @@
    "brief": "Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. This group owns every user-visible string outside the config and options flows and outside the dashboard card: the entity, services, issues and exceptions keys of custom_components/heatpump_optimizer/strings.json and every translation, custom_components/heatpump_optimizer/services.yaml, and user-visible text built in Python. Owed, one pull request: enumerate mechanically; judge each behaviour claim against the code that decides it, never against a comment, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in every language as a real translation; pin each mechanically checkable claim with a test; state a planted-false-sentence null control; carry anything false outside the scope to the round-11 intake unless it misleads about what is written to the pump.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-user-text-verify-strings",
-    "commit": null,
+    "commit": "5e3274a19fea1bb153e897ebdd3784c1cbdadb06",
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer",
     "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY): owner ruling 2026-11-13: do option 1 (verify all user-facing production text against code behaviour) in round 10",
