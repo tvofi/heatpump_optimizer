@@ -27700,7 +27700,7 @@
     "stage": "in-progress",
     "branch": "handoff/r10-hotfix-main-selftest-scope-2",
     "commit": null,
-    "pr": null,
+    "pr": 3595,
     "last_step": "dispatched 2026-11-14",
     "next_step": "handoff, open PR, review, land before the stamp",
     "note": null
