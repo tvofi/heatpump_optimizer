@@ -1,6 +1,0 @@
-  ok   the build exits 0 with no FAIL line
-  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
-  ok   a build that dies without a FAIL line is red, naming its exit
-  ok   the placement checks fire on the baseline (wrong) claim (null control)
-  FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.entities_pump.data_description.pump_duty_mode: quotes 5, the code holds 6.0]
-rc=1
