@@ -1,0 +1,17 @@
+## throwaway clone of d3c536efe116fb7581c9ca80572ea5039d4991d5 + one commit adding dev/audit/yardstick/round10/OBJECTIVE.json (13 NO-READ terms)
+$ python3 tools/audit/check_scopes.py --repo .
+ref=9e046aa29bdd58375d83ebbb8dc871aba900fbb3 seats=48
+FAIL coverage tracked=10979 in_universe=1575 excluded=9403 unclassified=1
+   in no universe and not excluded: dev/audit/yardstick/round10/OBJECTIVE.json
+rc=1
+$ python3 tools/audit/check_scopes.py --repo . --round 11
+ref=9e046aa29bdd58375d83ebbb8dc871aba900fbb3 seats=48
+FAIL coverage tracked=10979 in_universe=1575 excluded=9403 unclassified=1
+   in no universe and not excluded: dev/audit/yardstick/round10/OBJECTIVE.json
+FAIL start evaluation round=11: 1 gap(s)
+   dev/audit/yardstick/round11/EVALUATION.json is not in the tree: the start evaluation has not run
+rc=1
+## control: the same record at the path the reviewed head f7efa4be88 used (dev/audit/rounds/round10/)
+ref=c23ea1943544fa84e3989728ad48346f7eec41fb seats=48
+ok coverage tracked=10979 in_universe=1575 excluded=9404 unclassified=0
+rc=0

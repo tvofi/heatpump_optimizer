@@ -1,0 +1,9 @@
+NOTE stale tree: d3c536efe116fb7581c9ca80572ea5039d4991d5 lacks origin/main 009643687b47bc51bda9b3fd98a99f0ece5307cc; roster read at origin/main
+CARRY-MISSING R11-PRE-ROUND-METRICS body item 85db64f3: not in its brief or carries: '- Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 4 and 5 assign this'
+CARRY-MISSING R11-PRE-TOKEN-LEDGER body item 69822206: not in its brief or carries: '- Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 2 defines `tokens_pe'
+CARRY-LANDED: 2 missing
+rc=1
+CARRY-MISSING R11-PRE-ROUND-METRICS body item 85db64f3: not in its brief or carries: '- Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 4 and 5 assign this'
+CARRY-MISSING R11-PRE-TOKEN-LEDGER body item 69822206: not in its brief or carries: '- Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 2 defines `tokens_pe'
+CARRY-LANDED: 2 missing
+rc=1

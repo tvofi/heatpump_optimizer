@@ -1,0 +1,23 @@
+ref=d3c536efe116fb7581c9ca80572ea5039d4991d5 seats=48
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22843loc, s2:3f/22843loc, s3:3f/22843loc]
+ok D1 mode=cells seats=3 universe=91 [s1:91f/72990loc, s2:91f/72990loc, s3:91f/72990loc]
+ok D2 mode=cells seats=3 universe=91 [s1:91f/72990loc, s2:91f/72990loc, s3:91f/72990loc]
+ok D3 mode=cells seats=3 universe=162 [s1:12f/31515loc, s2:18f/15829loc, s3:132f/42059loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20844loc, s2:15f/20844loc, s3:15f/20844loc]
+ok D5 mode=cells seats=3 universe=100 [s1:8f/0loc, s2:8f/0loc, s3:100f/89403loc]
+ok D6 mode=files seats=3 universe=86 [s1:5f/0loc, s2:7f/0loc, s3:74f/0loc]
+ok D7 mode=cells seats=3 universe=91 [s1:91f/72990loc, s2:91f/72990loc, s3:91f/72990loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4704loc, s2:6f/4704loc, s3:6f/4704loc]
+ok D9 mode=cells seats=3 universe=92 [s1:92f/89403loc, s2:92f/89403loc, s3:92f/89403loc]
+ok D10 mode=cells seats=3 universe=110 [s1:110f/89403loc, s2:110f/89403loc, s3:110f/89403loc]
+ok D11 mode=cells seats=3 universe=1330 [s1:1330f/0loc, s2:1330f/0loc, s3:1330f/0loc]
+ok D12 mode=cells seats=3 universe=91 [s1:91f/72990loc, s2:91f/72990loc, s3:91f/72990loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok coverage tracked=10978 in_universe=1575 excluded=9403 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 2 gap(s)
+   dev/audit/yardstick/round10/OBJECTIVE.json is not in the tree: round 10's close wrote no record to evaluate
+   dev/audit/yardstick/round11/EVALUATION.json is not in the tree: the start evaluation has not run
+rc=1

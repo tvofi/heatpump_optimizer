@@ -1,0 +1,24 @@
+RESULT C  control: complete record (NO-READ terms with builder, owner values carded, approve review): 0 gap(s) -> ACCEPTED
+RESULT C2 control: a real read with a tracked enumerator: 0 gap(s) -> ACCEPTED
+RESULT P0 round-1 control verbatim (all NO-READ 'x', all keep, no cards, no review): 36 gap(s) -> refused: dev/audit/yardstick/round10/OBJECTIVE.json term regret NO-READ carries no would_read
+RESULT P1 evaluator 'orchestrator-r10': 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json evaluator 'orchestratorr10' and reviewer 'evalreviewr11' must be t
+RESULT P2 evaluator 'the orchestrator', reviewer 'Orchestrator': 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json evaluator 'theorchestrator' and reviewer 'orchestrator' must be tw
+RESULT P3 accepted card merged at an ancestor of the review (the root commit): 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json card C1 merged root is not after the review at rev
+RESULT P4 a value whose enumerator is 'by hand': 1 gap(s) -> refused: dev/audit/yardstick/round10/OBJECTIVE.json term escapes enumerator names no file tracked at the ref
+RESULT P5 a null value with an enumerator: 1 gap(s) -> refused: dev/audit/yardstick/round10/OBJECTIVE.json term regret value is not a number or a non-empty dict of numbers
+RESULT P6 a remove on NO-READ evidence: 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json remove verdict for .claude/hooks/always-fails.sh rests on a NO-REA
+RESULT P7 unset owner values with no card: 9 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json threshold product_green_floor is unset and no card carries it
+RESULT P7b unowned read 2 with one unowned card: 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json carries 1 card(s) with an unowned item but dev/audit/yardstick/rou
+RESULT P8 an object row outside the globs: 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json grades README.md, which is no object of dev/audit/config/objective
+RESULT R12 a verdict outside keep/change/remove ('retain') with a card: 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for .claude/hooks/always-fails.s
+--- new probes
+RESULT N1 every NO-READ builder a group that does not exist ('R99-NOBODY'), all keep, owner cards all 'deferred': 0 gap(s) -> ACCEPTED
+RESULT N2 a remove whose evidence says NO-READ but does not start with it: 0 gap(s) -> ACCEPTED
+RESULT N2b a remove on lower-case 'no-read: none': 0 gap(s) -> ACCEPTED
+RESULT N3 evaluator 'orch-r10' (the orchestrator abbreviated), reviewer 'orch-r10-b': 0 gap(s) -> ACCEPTED
+RESULT N4 a read whose enumerator is 'CLAUDE.md by hand': 0 gap(s) -> ACCEPTED
+RESULT N5 a read of NaN: 0 gap(s) -> ACCEPTED
+RESULT N6 review 'approve' at a sha whose EVALUATION.json graded other objects: 1 gap(s) -> refused: dev/audit/yardstick/round11/EVALUATION.json at review sha rev is missing or graded other objects than this rec
+RESULT N7 keep rows with bare evidence 'NO-READ' (0017 s3: NO-READ: and the record that would score it): 0 gap(s) -> ACCEPTED
+RESULT N8 threshold card 'accepted', merged commit changes check_scopes.py and not objective.json (value still null): 0 gap(s) -> ACCEPTED
+objects by class: {'dimension': 16, 'role': 19, 'rule': 12, 'instrument': 119, 'gate': 27} total 193
