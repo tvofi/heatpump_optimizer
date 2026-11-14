@@ -472,7 +472,8 @@ builds yields a card.
   script; a NO-READ naming no `would_read`, or a `builder` that is neither
   such a group nor a card of the evaluation; an object without a verdict
   of the three and evidence; a `remove` whose evidence says NO-READ in any
-  spelling; an evaluator and
+  spelling, as words of its own (`no reader of this file` is not one); an
+  evaluator and
   reviewer that are one name under case and punctuation, or either the
   orchestrator; a review that is not `approve` at a commit holding these
   same verdicts; an unset owner value or an `unowned` item with no card; a

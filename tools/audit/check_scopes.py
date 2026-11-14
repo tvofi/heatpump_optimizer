@@ -259,8 +259,10 @@ def is_read(v):
 
 
 def is_no_read(text):
-    """The text says NO-READ, in any case, separator or position."""
-    return "noread" in norm(text)
+    """The text says NO-READ as words of its own, in any case, separator or
+    position: `no` then `read`, with only non-letters between them and no
+    letter or digit touching either end, so `no reader` and `piano read` are not one."""
+    return bool(re.search(r"(?<![^\W_])no[\W_]*read(?![^\W_])", str(text).casefold()))
 
 
 def full(v):
@@ -568,6 +570,7 @@ def evaluation_self_test(tree, show):
                  for sep in ("-", "_", " ", "", "\u2011", " - ", "\n") for pre, post in (("", ""), ("", ": no ledger"), ("unscored (", ": none)"), ("'", "'"), ("  ", ""))]
     return {
         "a complete record passes": bool(objs) and run() == [],
+        "round N reads round N-1's objective record and its own evaluation": records(8) == (YARDSTICK + "round7/OBJECTIVE.json", YARDSTICK + "round8/EVALUATION.json"),
         "every object class has a file": all(match(tree, [g]) and match(tree, [g]) <= set(objs) for v in spec["objects"].values() for g in ([v] if isinstance(v, str) else v)),
         "a missing evaluation is refused": only(run(drop=[path]), path + " is not in the tree"),
         "a missing previous record is refused": only(run(drop=[prev]), prev + " is not in the tree"),
@@ -600,6 +603,7 @@ def evaluation_self_test(tree, show):
                                                                for v in (float("nan"), float("inf"), True, "1", {}, {"a": "x"}, {"a": 1, "b": None})),
         "B5 an enumerator naming no tracked file is refused": only(term(t0, enumerator="by hand"), t0 + " enumerator names no script"),
         "B5 a tracked document is no enumerator": "CLAUDE.md" in tree and only(term(t0, enumerator="CLAUDE.md by hand"), t0 + " enumerator names no script"),
+        "B5 an untracked script is no enumerator": "no/such_script.py" not in tree and only(term(t0, enumerator="python3 no/such_script.py"), t0 + " enumerator names no script"),
         "B5 an enumerator that is an interpreter and no file is refused": only(term(t0, enumerator="python3 -I"), t0 + " enumerator names no script"),
         "B5 a dict of numbers is a value": run(tm=edit(lambda c: c[t0].update(value={"a": 1}), terms)) == [],
         "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read") and only(run(tm=edit(lambda c: c[t9].pop("builder"), terms)), t9 + " NO-READ carries no builder"),
@@ -610,6 +614,8 @@ def evaluation_self_test(tree, show):
             [g.partition(" builder G1 is no group the roster")[0].rsplit(" ", 1)[-1] for g in run(drop=[f for f in tree | {roster} if f.startswith(roster_lib.ROSTERS_DIR + "/")])] == [t8, "n"],
         "B7 a removal on a NO-READ is refused in every spelling":
             len(spellings) == 140 and all(only(last(verdict="remove", evidence=e, card="C2"), "rests on a NO-READ") for e in spellings),
+        "B7 a removal whose evidence has the letters inside other words passes":
+            all(last(verdict="remove", evidence=e, card="C2") == [] for e in ("no reader of this file exists in the tree", "casino readings", "the piano read 0", "piano reads 0")),
         "B7 a removal on a measured zero passes": last(verdict="remove", evidence="yield 0 in rounds 6 and 7", card="C2") == [],
         "B8 an unset threshold with no card is refused": only(run(card("C2", threshold="band")), "threshold floor is unset"),
         "B8 an unset owner criterion with no card is refused": only(run(card("C2", criterion="D7")), "owner criterion D4 is unset"),
