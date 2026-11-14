@@ -165,7 +165,10 @@ def world3308(v_id=42471173865, edit=None):
 # dispatch listed, dispatched run 43574296856: a full code run whose gate held the PR BLOCKED. Trimmed to the gates and
 # the sources that bound them. Rows: (name, conclusion, started, completed), times on 2026-11-14 UTC.
 D3544, R1_3544, R2_3544 = 43531915583, 43572050013, 43572059623
-REC3544 = {
+REC3544 = {     # the three bot-attempt pull_request runs: refresh re-ran their green gates, which deferred to R1 and R2
+    43512354900: ("pull_request", "2026-11-13T21:37:33", 5, BOT, [("gate", "failure", "07:50:57", "07:51:55")]),
+    43512355939: ("pull_request", "2026-11-13T21:37:34", 4, BOT, [("gate", "failure", "07:50:18", "07:51:01")]),
+    43531447639: ("pull_request", "00:02:37", 2, BOT, [("gate", "failure", "07:48:16", "07:48:59")]),
     D3544: ("workflow_dispatch", "00:06:36", 2, BOT, [
         ("gate", "failure", "07:41:32", "07:42:13"), ("tests / closures", "success", "00:08:46", "00:21:25"),
         ("pr-contract / pr-contract", "success", "01:10:24", "01:11:34")]),
@@ -181,7 +184,7 @@ D3544_FIRST_GATE = ("gate", "success", "01:12:52", "01:13:48")
 
 def world3544(v_id=R2_3544, edit=None, ids=tuple(REC3544)):
     """The #3544 recording as a World at a stale pin (main changed tools/ci/gate.py after the PR's base sha)."""
-    stamp = lambda t: f"2026-11-14T{t}Z"
+    stamp = lambda t: t + "Z" if "T" in t else f"2026-11-14T{t}Z"
     job = lambda k, n, c, s, e: {"id": k, "name": n, "status": "completed", "conclusion": c,
                                  "started_at": stamp(s), "completed_at": stamp(e)}
     runs = []
@@ -552,6 +555,11 @@ def run_checks():
     ok("#3544: the recorded shape (green dispatch, review events, deferral reds, stale pin) dispatches nothing; "
        "D is re-run in place and R1 left to it, D's first green attempt being the head's fresh judge",
        rc == 0 and w.posts == [rerun_of(D3544)] and f"run {D3544} re-judges" in out and "dispatches=0" in out)
+    w = world3544(v_id=R1_3544)
+    rc, out = w.sweep()
+    ok("#3544: gate-sweep run 43573334631, R1's settle, the sweep that dispatched run 43574296856, dispatches nothing; "
+       "D is re-run in place, every stale-pinned deferral left to it", rc == 0 and w.posts == [rerun_of(D3544)]
+       and "dispatches=0" in out and out.count(f"run {D3544} re-judges") == 4)
     w = world3544(ids=(R1_3544, R2_3544))
     rc, out = w.sweep()
     ok("#3544 without D: R1's deferral red under a stale pin, R2 green and newest-covering, is re-run in place, "
@@ -617,8 +625,8 @@ def run_checks():
     w.runs[D3544]["units"].append({"name": sweep.SELF_JOB, "conclusion": None, "completed_at": None})
     w.caller = D3544
     rc, out = w.sweep()
-    ok("#3544 bound: D, green, sweeping itself, re-runs R1's deferral once in place and dispatches nothing",
-       w.posts == [rerun_of(R1_3544)] and "dispatches=0" in out)
+    ok("#3544 bound: D, green, sweeping itself, re-runs each deferral at the head once in place and dispatches nothing",
+       w.posts == [rerun_of(i) for i in sorted(REC3544) if i != D3544 and i != R2_3544] and "dispatches=0" in out)
     return checks
 
 
