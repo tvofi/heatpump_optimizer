@@ -1953,6 +1953,27 @@ def on_threshold_kw(params: ThermalParameters) -> float:
     return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)
 
 
+def immersion_level_kw(params: ThermalParameters) -> float:
+    """The MEASURED draw over which the meter carries more than the compressor (#11), in kW."""
+    return float(params.max_electrical_power) * const.IMMERSION_FACTOR
+
+
+def immersion_over(measured_kw: float | None, params: ThermalParameters, commanded_kw: float) -> bool:
+    """Whether one reading is the immersion element wearing the pump's meter (#11).
+
+    Over :func:`immersion_level_kw` while the plan commands heat: no
+    compressor pulls that. The coordinator's latch counts two of these, and
+    the running signal reads the meter as no signal on one, so the two never
+    disagree on what over means.
+    """
+    return (
+        measured_kw is not None
+        and float(params.max_electrical_power) > 0.1
+        and measured_kw > immersion_level_kw(params)
+        and commanded_kw > 0.1
+    )
+
+
 def is_sunlit_interval(solar_radiation: float | None) -> bool:
     """Whether an interval's measured sun is past the dark gauge (#2223).
 

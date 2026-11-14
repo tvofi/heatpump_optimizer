@@ -188,11 +188,11 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
 )
 from .entry_config import EntryConfig
-from .freq_control import defrost_interval, resolve_reading
+from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c, state_power_kw,
+    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
     write_setpoint_c,
 )
 from .log_latch import log_held
@@ -2168,25 +2168,7 @@ def _listen(coord: Any) -> None:
         entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
-    duty_switch.attach(duty_switch.record_for(coord), *_running_signal(inp))
-
-
-def _running_signal(inp: ArbiterInputs) -> tuple[str | None, duty_switch.Reader]:
-    """The entity whose changes say the compressor started or stopped, and its reader.
-
-    The actual-frequency sensor where one is configured (never the number
-    entity, a set-point register that echoes the last write), else the meter
-    against ``on_threshold_kw``, the threshold :func:`_ran_kw` shares.
-    """
-    cfg = EntryConfig.from_mapping(inp.config)
-    sensor, meter, states, thermal = cfg.compressor_freq_sensor, cfg.heat_pump_power_entity, inp.hass.states, inp.thermal
-
-    def reader() -> tuple[float | None, float | None, float | None, bool]:
-        if sensor:
-            return resolve_reading(None, sensor, states.get, 0.0, 0.0)[0], None, None, True
-        return None, state_power_kw(states.get(meter), "clamp"), on_threshold_kw(thermal.params), False
-
-    return sensor or meter, reader
+    duty_switch.attach(duty_switch.record_for(coord))
 
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
