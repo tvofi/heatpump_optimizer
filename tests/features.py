@@ -91444,6 +91444,39 @@ R.check(
     _mr_one_row.as_dict()["map_rows"]["written_c"] == ""
     and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_one_row.as_dict()}}) == [],
 )
+_mr_a = [_mr_pass(m, inlet=None) for m in range(6)]
+_mr_b = [_mr_pass(m, written=40.0, inlet=inl) for m, inl in ((6, None), (7, None), (8, 31.0), (9, 31.0), (10, 31.0))]
+_mr_no_inlet = [_mr_rows(_mr_a), _mr_rows(_mr_a + [_mr_dc_replace(p, inlet_c=None) for p in _mr_b]), _mr_rows(_mr_a + _mr_b)]
+
+
+def _mr_reload(rows):
+    held = _mr_dr.DrawRange()
+    held.map.rows.extend(rows)
+    return list(_mr_dr.DrawRange.from_dict(held.as_dict()).map.rows)
+
+
+R.check(
+    "an unread cell is a stored value: a single row with unread cells, a column "
+    "unread in every row (no inlet sensor) and one row unread among read ones "
+    "each read back as the same rows",
+    _mr_reload(_mr_one_row.map.rows) == list(_mr_one_row.map.rows)
+    and [len(r) for r in _mr_no_inlet] == [1, 2, 2]
+    and [r[-1][10] is None for r in _mr_no_inlet] == [True, True, False]
+    and all(r[0][10] is None for r in _mr_no_inlet)
+    and all(_mr_reload(r) == r for r in _mr_no_inlet),
+    f"{[_mr_reload(r) for r in _mr_no_inlet]} / {_mr_reload(_mr_one_row.map.rows)}",
+)
+R.check(
+    "an unread start or steady minute is a bad cell and drops its row alone; a "
+    "record of empty columns holds no row",
+    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], start_min="," + _mr_doc["map_rows"]["start_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], steady_min="," + _mr_doc["map_rows"]["steady_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict.fromkeys(_mr_dr.MAP_COLUMNS, "")}).map.rows,
+)
 
 
 # The window is untouched: the same intervals folded with and without map

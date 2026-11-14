@@ -250,15 +250,16 @@ class MapRows:
 def _stored_map(data: Any) -> MapRows:
     """A stored record's map rows; a record without them reads empty.
 
-    Columns of unequal length cannot be aligned and are all dropped; a row
-    with an unreadable number is dropped alone.
+    Every column is split, an empty string being one unread cell (the record
+    is written only with rows). Columns of unequal length cannot be aligned
+    and are all dropped; a row with an unreadable number is dropped alone.
     """
     out = MapRows()
     raw = data.get("map_rows") if isinstance(data, dict) else None
     cols = [raw.get(name) if isinstance(raw, dict) else None for name in MAP_COLUMNS]
     if not all(isinstance(c, str) for c in cols):
         return out
-    split = [c.split(",") if c else [] for c in cols]
+    split = [c.split(",") for c in cols]
     if len({len(c) for c in split}) != 1:
         return out
     for cells in zip(*split):
@@ -271,10 +272,11 @@ def _stored_map(data: Any) -> MapRows:
 
 def _map_cell(name: str, cell: str) -> Any:
     """One stored cell: text kept, empty unread, else a finite number (the
-    first two columns whole minutes); anything else raises ``ValueError``."""
+    first two columns whole minutes, never unread); anything else raises
+    ``ValueError``."""
     if name in _MAP_TEXT:
         return cell
-    if cell == "":
+    if cell == "" and name not in MAP_COLUMNS[:2]:
         return None
     value = int(cell) if name in MAP_COLUMNS[:2] else float(cell)
     if not np.isfinite(value):
