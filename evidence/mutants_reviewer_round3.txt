@@ -1,0 +1,13 @@
+SURVIVED NULL
+KILLED r3v_aged_on_predecay_n
+SURVIVED r3v_span_floor_on_k
+KILLED r3v_unit_gate_return_only
+KILLED r3v_unit_gate_flow_only
+SURVIVED r3v_wrapper_pending_false
+KILLED r3v_wrapper_pending_true
+KILLED r3v_wrapper_dirty_dropped
+KILLED r3v_heated_margin_strict
+KILLED r3v_heated_falls_to_leg
+KILLED r3v_pass_expiry_ignores_pending
+KILLED r3v_ageout_keeps_reporting
+rc=0
