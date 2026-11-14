@@ -1,0 +1,4 @@
+stored True
+RESULT one_row_unread_cell stored_rows=1 reloaded_rows=0
+RESULT two_rows_unread_cell stored_rows=2 reloaded_rows=2
+RESULT one_row_all_read stored_rows=1 reloaded_rows=1

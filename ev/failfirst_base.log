@@ -1,0 +1,10 @@
+rc 1
+File "/home/user/wt-base/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/wt-base/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 45, in <module>
+  File "tests/features.py[block]", line 29, in _mr_pass
+AttributeError: module 'heatpump_optimizer.draw_range' has no attribute 'PassRecord'
+

@@ -1,0 +1,40 @@
+RESULT coordinator_attrs=138 count
+RESULT coordinator_multiassigned_attrs=107 count
+RESULT coordinator_private_reach=0 count
+RESULT dead_methods=0 count
+RESULT dead_top_level_symbols=1 count
+RESULT duplication_copies=9 count
+RESULT functions_cc_over_15=26 count
+RESULT functions_cc_over_25=8 count
+RESULT import_cycle_modules=0 count
+RESULT max_cc=44 count
+RESULT max_class_loc=7912 count
+RESULT max_method_loc=373 count
+RESULT methods_over_150=15 count
+RESULT methods_over_200=8 count
+RESULT name_kept_members=38 count
+RESULT seam_cut_total=417 count
+RESULT thread_factor=1.0 ratio
+
+########## ratchet vs structure_budgets.json (recorded_at 4058469d79a3) ##########
+  ok   class_excess_loc 17467 <= 17467
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 138 <= 138
+  ok   coordinator_multiassigned_attrs 107 <= 107
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 9 <= 9
+  ok   functions_cc_over_15 26 <= 26
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 7912 <= 7912
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 15 <= 15
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 417 <= 417
+
+STRUCTURE RATCHET PASSED
+rc=0
