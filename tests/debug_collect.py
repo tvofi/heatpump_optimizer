@@ -2085,6 +2085,7 @@ R.check(
 
 from harness import FakeState  # noqa: E402
 from heatpump_optimizer import inputs as inputs_mod  # noqa: E402
+from heatpump_optimizer.learner_progress import FreezeRecord  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_FLOW_METER_ENTITY, CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY,
     CONF_POWER_ENTITY, CONF_SOLAR_RADIATION_ENTITY,
@@ -2123,7 +2124,7 @@ def _published(key, state, unit, read, at):
     reader = InputReader(hass, {key: f"sensor.{key}"}, now=lambda: at)
     read(reader, key)
     view = coordinator_mod.HeatPumpOptimizerCoordinator._input_health_view(
-        types.SimpleNamespace(_input_health=reader.health, _learner_freeze_reason=None))
+        types.SimpleNamespace(_input_health=reader.health, _learner_freezes=FreezeRecord()))
     return view
 
 

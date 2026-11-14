@@ -3033,6 +3033,7 @@
    "dev/audit/rounds/round10/D14/period_rollover_seams.py",
    "dev/audit/rounds/round10/D14/probe_n_no_expiry.py",
    "dev/audit/rounds/round10/D14/sweep_n_no_expiry.py",
+   "dev/audit/rounds/round10/D6/flow_claims.py",
    "dev/audit/rounds/round10/D8/verify_indep_active_now.py",
    "dev/audit/rounds/round3/D0/arms_decomposition.py",
    "dev/audit/rounds/round3/D0/budget_slack.py",
@@ -4205,6 +4206,7 @@
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
    "dev/audit/harnesses/lane_reads_delivery.py",
+   "dev/audit/harnesses/learner_freeze_mutants.py",
    "dev/audit/harnesses/learner_inputs_swap.py",
    "dev/audit/harnesses/livehead_cancels.py",
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
@@ -4231,7 +4233,9 @@
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
    "dev/audit/harnesses/r10_buffer_store.py",
    "dev/audit/harnesses/r10_card_blocker_names.py",
+   "dev/audit/harnesses/r10_card_evidence_kinds.py",
    "dev/audit/harnesses/r10_card_harmony.mjs",
+   "dev/audit/harnesses/r10_card_user_text.mjs",
    "dev/audit/harnesses/r10_card_voice_states.mjs",
    "dev/audit/harnesses/r10_carry_field_figures.py",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
@@ -4675,6 +4679,7 @@
    "dev/audit/rounds/round10/study-reseed/live_store.py",
    "dev/audit/rounds/round10/study-reseed/reparam_sites.py",
    "dev/audit/rounds/round10/study-reseed/reseed_rolling.py",
+   "dev/audit/rounds/round10/user-text/enumerate.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
    "dev/audit/rounds/round3/D4/card_states_geometry.mjs",
@@ -5248,10 +5253,10 @@
   },
   "tests/env_drift.py": {
    "rc": 0,
-   "seconds": 0.9
+   "seconds": 0.4
   },
   "tests/features.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 1040.5
   },
   "tests/finite_boundary.py": {
@@ -5311,12 +5316,12 @@
    "seconds": 463.0
   },
   "tests/structure.py": {
-   "rc": 2,
+   "rc": 0,
    "seconds": 51.2
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 33.9
+   "seconds": 0.3
   },
   "tests/validate.py": {
    "rc": 0,

@@ -62,19 +62,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.16
+# claims-for: 7.1.17
 #
-# v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
+# v7.1.17: Stuck space set-point releases, disinfection step notice, savings reference basis, corrected texts. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
-valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
-wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -100,16 +92,11 @@ wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
 # one was restored.
 #
 #
-# (R10-SAV-VALUATION-RESIDUE suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-SAV-VALUATION-RESIDUE suspends wood_two_tank's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-SAV-VALUATION-RESIDUE suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-SAV-VALUATION-RESIDUE suspends wood_coil's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-SAV-VALUATION-RESIDUE suspends valve_upper_direct_slab's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
@@ -194,8 +181,7 @@ wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# (R10-SAV-VALUATION-RESIDUE suspends valve_storage's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
