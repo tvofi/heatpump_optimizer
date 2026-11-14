@@ -20846,7 +20846,7 @@
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): carries-open audit 2026-11-09: distinct seam from R10-GATE-DEFER-BARRIER, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md'] -> ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py'] | set-files files ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py'] -> ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py', 'tools/audit/seat/review_strength.py', 'dev/governance/roles/fixer.md']",
     "pr": 3448,
-    "commit": "a7887485deb7b41995b20a48fab2ae411d887954"
+    "commit": "a77d71fb755f231934e5e59ce1c38c51f86b6439"
    }
   },
   {
