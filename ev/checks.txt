@@ -1,0 +1,18 @@
+origin/main=0f37833e2194739b431656a70c652b0679c8fa58
+1db224b5fd3bd0f1f6af9a4480546880600ee1ce
+merge-tree rc=0
+--- roles diff (empty=current):
+0
+--- version/manifest/notes-heading three-dot:
+0
+--- claim files three-dot:
+--- review_carry:
+  673904aed  Merge commit 'b142bcaacee1781eeb99086587c644cb823bd34f' into fix/r10-duty-switch-restart-learning-pr-b-p2
+  49afbe9d0  Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-restart-learning-pr-b-p2
+review_carry: FRESH-REVIEW
+--- owed-reds:
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs

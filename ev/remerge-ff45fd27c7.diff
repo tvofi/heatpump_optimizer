@@ -1,0 +1,623 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+index 8c6ce5ba15..a25be3b7dd 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -256,11 +256,7 @@ from .accuracy import (
+ )
+ from .comfort_learning import ComfortLearner, OverrideEvent
+ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+-from . import duty_switch, early_cutoff, pump_arbiter, pump_signals
+-=======
+ from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
+ from . import issues, setpoint_check
+ from . import quiet_windows
+ from . import price_tiles
+diff --git a/custom_components/heatpump_optimizer/duty_legs.py b/custom_components/heatpump_optimizer/duty_legs.py
+index ecb3c6b38f..a2720f03b8 100644
+--- a/custom_components/heatpump_optimizer/duty_legs.py
++++ b/custom_components/heatpump_optimizer/duty_legs.py
+@@ -35,22 +35,60 @@ SPLIT_MIN_MINUTES = 5.0
+ #: Leg codes of :func:`leg_ends`.
+ IDLE, SPACE, DHW = 0, 1, 2
+ 
++#: How a both step is served: the duty served first, and the minutes past
++#: :data:`SPLIT_MIN_MINUTES` the second share must reach to be served when
++#: the switch into it stops the compressor (``None``: it is never merged).
++LegRule = tuple[str, "float | None"]
++#: The legs of one step, in order, each with its minutes.
++Legs = tuple[tuple[str, float], ...]
++#: The rule with no learned stop: hot water first, never merged.
++DEFAULT_RULE: LegRule = ("dhw", None)
++
++
++def leg_rule(stop_probability: tuple[float, float], off_seconds: tuple[float, float]) -> LegRule:
++    """The leg order and whole-step rule of a both step, from the per-direction pairs.
++
++    One rule for the arbiter, which serves the legs (``duty_switch``, fed by
++    the learner's latched pairs), and the planner, which prices them (fed by
++    the same pairs through its configuration). Space goes first only where
++    hot water to heating alone stops the compressor. Where the switch into
++    the second duty stops it, a second share shorter than
++    :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
++    first duty when the next step serves the second, so its delivery moves
++    one step and is not dropped. With no stop priced this is
++    :data:`DEFAULT_RULE`.
++    """
++    first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0 else "dhw"
++    into = 0 if first == "dhw" else 1
++    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)
++
+ 
+ def both_step_legs(
+-    space_kw: float, dhw_kw: float, step_minutes: float = PLAN_STEP_MINUTES
+-) -> tuple[tuple[str, float], ...]:
++    space_kw: float,
++    dhw_kw: float,
++    step_minutes: float = PLAN_STEP_MINUTES,
++    rule: LegRule = DEFAULT_RULE,
++    next_duty: str | None = None,
++) -> Legs:
+     """The legs of a step both circuits run in, in order, each with its minutes.
+ 
+     Hot water's share is the step's hot-water power over its total (tvofi,
+     2026-09-27); a share under :data:`SPLIT_MIN_MINUTES` on either side
+-    collapses the step onto the other duty. Hot water goes first.
++    collapses the step onto the other duty. Otherwise ``rule``
++    (:func:`leg_rule`) orders the legs, and merges them onto the first where
++    ``next_duty``, the next step's duty, serves the second.
+     """
+     dhw_min = step_minutes * dhw_kw / (space_kw + dhw_kw)
+     if dhw_min < SPLIT_MIN_MINUTES:
+         return (("space", step_minutes),)
+     if step_minutes - dhw_min < SPLIT_MIN_MINUTES:
+         return (("dhw", step_minutes),)
+-    return (("dhw", dhw_min), ("space", step_minutes - dhw_min))
++    first, extra = rule
++    second = "space" if first == "dhw" else "dhw"
++    first_min = dhw_min if first == "dhw" else step_minutes - dhw_min
++    if extra is not None and next_duty in (second, "both") and step_minutes - first_min < SPLIT_MIN_MINUTES + extra:
++        return ((first, step_minutes),)
++    return ((first, first_min), (second, step_minutes - first_min))
+ 
+ 
+ def _runs(kw: np.ndarray, floor: float | None) -> np.ndarray:
+@@ -64,13 +102,15 @@ def leg_ends(
+     dhw_kw: Any,
+     floor: float | None = None,
+     step_minutes: float = PLAN_STEP_MINUTES,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+     """Per step: the first leg, the last leg, and whether the step has two.
+ 
+     The arbiter's rule elementwise: ``step_duty`` reads each circuit alone
+     against the plan's ``floor``, and a both step splits by
+-    :func:`both_step_legs`. ``space_kw`` may be a ``[B, n]`` batch against one
+-    ``[n]`` hot-water plan.
++    :func:`both_step_legs` under ``rule``, the next step's duty read from the
++    plan itself (none after the last). ``space_kw`` may be a ``[B, n]`` batch
++    against one ``[n]`` hot-water plan.
+     """
+     space = np.asarray(space_kw, dtype=float)
+     dhw = np.asarray(dhw_kw, dtype=float)
+@@ -79,11 +119,21 @@ def leg_ends(
+     dhw_min = step_minutes * dhw / np.where(both, space + dhw, 1.0)
+     to_space = both & (dhw_min < SPLIT_MIN_MINUTES)
+     to_dhw = both & ~to_space & (step_minutes - dhw_min < SPLIT_MIN_MINUTES)
+-    two = both & ~to_space & ~to_dhw
++    split = both & ~to_space & ~to_dhw
++    first, extra = rule
++    lead, trail = (DHW, SPACE) if first == "dhw" else (SPACE, DHW)
++    whole = np.zeros(split.shape, dtype=bool)
++    if extra is not None:
++        second_on, second_min = (s_on, step_minutes - dhw_min) if first == "dhw" else (d_on, dhw_min)
++        next_second = np.zeros(np.shape(second_on), dtype=bool)
++        next_second[..., :-1] = second_on[..., 1:]
++        whole = split & next_second & (second_min < SPLIT_MIN_MINUTES + extra)
++    two = split & ~whole
+     single = np.where(
+-        (s_on & ~d_on) | to_space, SPACE, np.where((d_on & ~s_on) | to_dhw, DHW, IDLE)
++        (s_on & ~d_on) | to_space | (whole & (lead == SPACE)), SPACE,
++        np.where((d_on & ~s_on) | to_dhw | (whole & (lead == DHW)), DHW, IDLE),
+     )
+-    return np.where(two, DHW, single), np.where(two, SPACE, single), two
++    return np.where(two, lead, single), np.where(two, trail, single), two
+ 
+ 
+ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
+@@ -109,12 +159,13 @@ def switch_weights_batch(
+     stop_probability: tuple[float, float],
+     p_max: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> np.ndarray:
+     """Expected compressor stops at duty switches, in cycles, per row of plans.
+ 
+     Every pair of consecutive legs of different duty with no idle step
+-    between weighs ``p * level / p_max``: inside a two-leg step both legs run
+-    at the step's combined level; across a boundary the stop adds the smaller
++    between weighs ``p * level / p_max``, in the direction ``rule`` orders the
++    legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
+     of the two levels. ``row_sums`` reduces each row on its own, so a row is
+     :func:`switch_weight` of that plan bit for bit.
+     """
+@@ -122,7 +173,7 @@ def switch_weights_batch(
+     p_ds, p_sd = stop_probability
+     if p_max <= 0:
+         return np.zeros(space.shape[0])
+-    first, last, two = leg_ends(space, dhw_kw, floor)
++    first, last, two = leg_ends(space, dhw_kw, floor, rule=rule)
+     level = space + np.asarray(dhw_kw, dtype=float)
+     before, after = last[_BEFORE], first[_AFTER]
+     stops = np.where(
+@@ -131,7 +182,7 @@ def switch_weights_batch(
+         np.where((before == SPACE) & (after == DHW), p_sd, 0.0),
+     )
+     across = stops * np.minimum(level[_BEFORE], level[_AFTER])
+-    inside = np.where(two, p_ds * level, 0.0)
++    inside = np.where(two, (p_ds if rule[0] == "dhw" else p_sd) * level, 0.0)
+     return row_sums(np.concatenate([inside, across], axis=1)) / p_max
+ 
+ 
+@@ -141,10 +192,11 @@ def switch_weight(
+     stop_probability: tuple[float, float],
+     p_max: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> float:
+     """The one-row case of :func:`switch_weights_batch`."""
+     return float(switch_weights_batch(
+-        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor
++        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor, rule
+     )[0])
+ 
+ 
+@@ -166,19 +218,20 @@ def availability(
+     dhw_kw: np.ndarray,
+     lost: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> np.ndarray | None:
+     """Per step, the share of it the compressor can run after a priced stop.
+ 
+     One step is charged per hot-water block end: the step holding the heating
+-    leg that follows the hot-water leg in ``space_start_kw``, the profile the
++    leg that follows the hot-water leg in ``space_start_kw`` under ``rule``, the profile the
+     solve starts from, because which step that is is the solve's own variable.
+     ``None`` when nothing is charged, so the caller makes today's calls on
+     today's arrays instead of multiplying by ones.
+     """
+     if not lost > 0:
+         return None
+-    first, last, two = leg_ends(space_start_kw, dhw_kw, floor)
+-    charged = two.copy()
++    first, last, two = leg_ends(space_start_kw, dhw_kw, floor, rule=rule)
++    charged = two & (first == DHW)
+     charged[1:] |= (last[:-1] == DHW) & (first[1:] == SPACE)
+     if not charged.any():
+         return None
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/duty_switch.py
+index a30e6b619b..1de7ca8d17 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -5,16 +5,13 @@ part A. On some pumps a mode write from hot water to heating while the
+ compressor runs stops it: the controller judges the heating request on a
+ return the hot-water leg has just heated. Whether it does, and for how long
+ the pump then stays off, is learned per install and per direction. It is
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+-recorded, persisted and published on the compressor-starts sensor, and the
+-arbiter's split of a both step reads its latches through
+-:func:`both_step_duty` (part B); nothing else reads the estimate. A factory
+-reset voids the store like every other learned estimate.
+-=======
+-recorded, persisted and published on the compressor-starts sensor, and a
+-latched direction is read by the planner (:func:`planner_fields`), which
+-prices the switch through ``duty_legs``. No write reads it.
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++recorded, persisted and published on the compressor-starts sensor. Its
++latches are read twice, through one leg rule: the arbiter's split of a both
++step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
++which prices the switch through ``duty_legs``; both feed
++``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
++the plan prices the legs the arbiter serves. A factory reset voids the store
++like every other learned estimate.
+ 
+ **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
+ episode opens at a landed mode write between the two single duties while the
+@@ -39,9 +36,10 @@ at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
+ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+ :data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
+ the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
+-forgotten with it. ``n`` is held at :data:`N_CAP`. Every threshold
++forgotten with it. Every threshold
+ here is a named constant from one day on one install, not a measurement.
+-``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking, so
++``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
++on decay, so
+ evidence from before a firmware change is outvoted in a bounded number of
+ episodes and an install that stops switching unlatches in a bounded time.
+ """
+@@ -58,7 +56,7 @@ from homeassistant.core import callback
+ from homeassistant.helpers.event import async_track_state_change_event
+ from homeassistant.util import dt as dt_util
+ 
+-from . import pump_mode, wear
++from . import duty_legs, pump_mode, wear
+ from .const import DOMAIN
+ from .drift import stored_instant, utc_elapsed_seconds
+ from .store import QuarantiningStore
+@@ -80,17 +78,12 @@ HEATED_MARGIN_K = 2.0
+ SOURCE_LEG_MIN_S = 60.0
+ HALF_LIFE_DAYS = 14.0
+ N_ON, N_OFF = 5.0, 2.5
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+ #: The most decayed episodes a direction holds, twice the on-threshold, kept
+ #: by scaling both counts alike (``p`` does not move): a direction the split
+ #: avoids gets no episode, and from the cap ``n`` is under :data:`N_OFF` two
+ #: half-lives after its last one, so the default split runs and re-tests it.
+-=======
+-#: The most decayed episodes a direction holds, twice the on-threshold. With
+-#: every later episode kept, ``p`` falls from 1 by 10/11 per booking and is
+-#: under :data:`P_OFF` at the thirteenth; with none, ``n`` is under
+-#: :data:`N_OFF` just past two half-lives.
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++#: With every later episode kept, ``p`` falls from 1 by 10/11 per booking and
++#: is under :data:`P_OFF` at the thirteenth.
+ N_CAP = 2.0 * N_ON
+ P_ON, P_OFF = 0.5, 0.3
+ SPAN_DAYS_ON = 2
+@@ -236,14 +229,8 @@ class Direction:
+                 self.censored += 1
+             else:
+                 self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+         scale = min(1.0, N_CAP / self.n)
+         self.k, self.kept_w = self.k * scale, self.kept_w * scale
+-=======
+-        if self.n > N_CAP:
+-            scale = N_CAP / self.n
+-            self.k, self.kept_w = self.k * scale, self.kept_w * scale
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
+         self._latch()
+ 
+     def stored_row(self) -> dict[str, Any]:
+@@ -404,30 +391,6 @@ class DutySwitchLearner:
+             out.update({f"duty_switch_{name}_{key}": value for key, value in row.items() if value is not None})
+         return out
+ 
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+-    def split(self, dhw_min: float, step_min: float, min_share_min: float,
+-              next_duty: str | None) -> tuple[str, bool]:
+-        """``(duty served first, whether it takes the whole step)`` of a step
+-        both duties share, ``dhw_min`` of its ``step_min`` being hot water's.
+-
+-        Read only through the latches: ``n``, the tallies and ``span_days``
+-        are not read, so evidence accruing faster on one set-point unit than
+-        another moves nothing here until a latch moves. Space goes first only
+-        where hot water to space alone is usable; the first duty keeps the
+-        whole step only when the switch into the second is usable, the second
+-        share is shorter than ``min_share_min`` plus that direction's median
+-        off time, and ``next_duty`` (the plan's following step) serves the
+-        second, so its delivery moves one step and is not dropped. With no
+-        latch on this is ``("dhw", False)``: hot water first for its share.
+-        """
+-        usable = {name for name, d in self.directions.items() if d.usable}
+-        first, second = ("space", "dhw") if usable == {"dhw_space"} else ("dhw", "space")
+-        into = self.directions[f"{first}_{second}"]
+-        if not into.usable or next_duty not in (second, "both"):
+-            return first, False
+-        second_min = dhw_min if second == "dhw" else step_min - dhw_min
+-        return first, second_min < min_share_min + (into.median_off_s or 0.0) / 60.0
+-=======
+     def planner_pairs(self) -> tuple[tuple[float, float], tuple[float, float]]:
+         """Per direction, in :data:`DIRECTIONS`' order: the stop probability
+         and the median off seconds the planner prices a switch by. Zeros
+@@ -435,7 +398,16 @@ class DutySwitchLearner:
+         stop's was censored."""
+         read = [d if d.usable else Direction() for d in map(self.directions.__getitem__, DIRECTIONS)]
+         return (read[0].p, read[1].p), (read[0].median_off_s or 0.0, read[1].median_off_s or 0.0)
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++
++    def split(self) -> duty_legs.LegRule:
++        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
++        :meth:`planner_pairs`, the pairs the planner prices, so planner and
++        arbiter read one rule. Read only through the latches: ``n``, the
++        tallies and ``span_days`` are not read, so evidence accruing faster on
++        one set-point unit than another moves nothing here until a latch
++        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
++        first for its share."""
++        return duty_legs.leg_rule(*self.planner_pairs())
+ 
+     def stored_record(self) -> dict[str, Any]:
+         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
+@@ -476,9 +448,9 @@ class _Record:
+     unsub: Callable[[], None] | None = None
+     loaded: bool = False
+     dirty: bool = False
+-    #: The both step whose split was decided, and the decision, latched so
+-    #: neither the tick nor a re-solve inside the step flips it.
+-    order: tuple[datetime, tuple[str, bool]] | None = None
++    #: The both step whose legs were decided, and the legs, latched so
++    #: neither the tick nor a re-solve inside the step flips them.
++    order: tuple[datetime, duty_legs.Legs] | None = None
+ 
+     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
+         """Hand a confirmed edge, if any, to the learner."""
+@@ -572,27 +544,25 @@ def starts_attributes(coord: Any) -> dict[str, float]:
+     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
+ 
+ 
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+-def both_step_duty(rec: _Record, start: datetime, now: datetime, dhw_min: float, step_min: float,
+-                   min_share_min: float, next_duty: str | None) -> str:
+-    """The duty the both step starting at ``start`` serves at ``now``: the first
+-    for its share, then the other, or the first for the whole step, as
+-    :meth:`DutySwitchLearner.split` decided once per step. A record not yet
+-    loaded splits as before the learner existed, hot water first, and latches
+-    nothing."""
+-    first, whole = "dhw", False
++def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
++                   next_duty: str | None) -> str:
++    """The duty the both step starting at ``start`` serves at ``now``: its
++    first leg for that leg's minutes, then its last, the legs being
++    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
++    once per step. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
++    as before the learner existed, and latches nothing."""
+     if rec.loaded:
+         if rec.order is None or rec.order[0] != start:
+-            rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
+-        first, whole = rec.order[1]
+-    first_min = dhw_min if first == "dhw" else step_min - dhw_min
+-    if whole or now - start < timedelta(minutes=first_min):
+-        return first
+-    return "space" if first == "dhw" else "dhw"
+-=======
++            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, rule=rec.learner.split(),
++                                                         next_duty=next_duty))
++        legs = rec.order[1]
++    else:
++        legs = duty_legs.both_step_legs(space_kw, dhw_kw)
++    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
++
++
+ def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
+     """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
+     rec = _RECORDS.get(coord)
+     stops, off_s = (rec.learner if rec is not None else DutySwitchLearner()).planner_pairs()
+     return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s}
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index a7bb65b82e..f0c5654df7 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -204,6 +204,14 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
+     return stops if max(stops) > 0 else None
+ 
+ 
++def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
++    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
++    return duty_legs.leg_rule(
++        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
++        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
++    )
++
++
+ def _stop_availability(
+     opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
+ ) -> np.ndarray | None:
+@@ -224,7 +232,7 @@ def _stop_availability(
+         np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
+         dhw_plan, opt.model.params.min_electrical_power, p_max,
+     )
+-    return duty_legs.availability(space, tank, lost, _duty_floor(opt))
++    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
+ 
+ 
+ def _with_stop_availability(
+@@ -284,14 +292,14 @@ def _switch_cost_fn(
+     ``None`` when no direction is priced or there is no hot-water plan, and
+     :func:`_with_switch_cost` then adds no operand at all.
+     """
+-    stops, floor = _priced_stops(opt), _duty_floor(opt)
++    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
+     p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
+ 
+     def switch_cost(space: np.ndarray, dhw: np.ndarray | None) -> Any:
+         if stops is None or dhw is None or not cost > 0:
+             return None
+         term = cost * duty_legs.switch_weights_batch(
+-            np.atleast_2d(space), dhw, stops, p_max, floor)
++            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
+         return term if np.ndim(space) == 2 else float(term[0])
+ 
+     return switch_cost
+@@ -359,7 +367,7 @@ def _avoid_priced_switches(
+         opt.model.params.min_electrical_power, p_max,
+     )
+     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
+-    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
++    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
+         return incumbent
+     try:
+         ban = duty_legs.switch_ban(shipped, stops, floor)
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+index ae3af479d4..53e5a5a536 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -39,9 +39,11 @@ own tank thermostat must not spend them. A disinfection cycle the
+ integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
+ into Heating + DHW, so the planned anti-legionella run can make hot water.
+ *Idle* writes no mode: see :func:`desired`. A both step is split by
+-:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+-then Heating, each through its own row above; a share under
+-:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
++:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
++only for the step's hot-water share of its 15 minutes, then Heating, each
++through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
++to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
++legs by ``duty_legs.leg_rule``, the rule the planner prices.
+ A block drops its duty out of :func:`_planned_duty` and again out of
+ whatever :func:`_share` and the hot-water lease return, so a blocked
+ duty is served as idle and a lease expiry cannot hand it back. The
+@@ -194,7 +196,6 @@ from .log_latch import log_held
+ from .payload import REASON_LEGIONELLA, CurrentAction
+ from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
+ from .drift import utc_elapsed_seconds, utc_shift
+-from .duty_legs import both_step_legs
+ from .drift import stored_instant
+ from .store import QuarantiningStore, load_mapping
+ from .thermal_model import (
+@@ -1828,23 +1829,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
+         return duty
+     result = inp.plan
+     i = bisect.bisect_right(result.timestamps, now) - 1
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+-    space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
+-    dhw_min = PLAN_STEP_MINUTES * dhw / (space + dhw)
+-    if dhw_min < SPLIT_MIN_MINUTES:
+-        return "space"
+-    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
+-        return "dhw"
++    start = result.timestamps[i]
+     return duty_switch.both_step_duty(
+-        duty_switch.record_for(coord), result.timestamps[i], now, dhw_min, PLAN_STEP_MINUTES, SPLIT_MIN_MINUTES,
+-        step_duty(result, utc_shift(result.timestamps[i], timedelta(minutes=PLAN_STEP_MINUTES))))
+-=======
+-    legs = both_step_legs(
+-        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
+-    )
+-    first_ends = timedelta(minutes=legs[0][1])
+-    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
++        step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
+ 
+ 
+ def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
+diff --git a/tests/features.py b/tests/features.py
+remerge CONFLICT (content): Merge conflict in tests/features.py
+index e21d9f2cf7..62ccceb8dd 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -82555,6 +82555,7 @@ R.section("supply switch at step boundaries (#2492, R10-SAV-ACTUATION)")
+ from homeassistant.util import dt as _sa_dt
+ from heatpump_optimizer import boost as _sa_boost
+ from heatpump_optimizer import pump_arbiter as _sa_pa
++from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
+ from heatpump_optimizer import store as _sa_store
+ 
+ _SA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+@@ -84816,7 +84817,7 @@ R.check(
+     _ds_wholes["next serves space"] == _ds_wholes["off 151 s"] == _DS_WHOLE
+     and _ds_wholes["next serves hot water"] == _ds_wholes["next idle"] == _ds_wholes["off 150 s"]
+     == _ds_wholes["censored"] == _DS_TODAY
+-    and _sa_pa.SPLIT_MIN_MINUTES + 150.0 / 60.0 == 7.5,
++    and _ds_legs.SPLIT_MIN_MINUTES + 150.0 / 60.0 == 7.5,
+     str(_ds_wholes),
+ )
+ 
+@@ -84851,16 +84852,50 @@ R.check(
+     f"{_ds_unloaded} {_ds_unloaded_rec.order}",
+ )
+ _ds_censored = _ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)
+-_ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)),
+-             _ds_censored.split(9.99, 15.0, _sa_pa.SPLIT_MIN_MINUTES, "space"),
+-             _ds_censored.split(9.99, 15.0, _sa_pa.SPLIT_MIN_MINUTES + 0.02, "space"))
++_ds_cens_rule = _ds_censored.split()
++_ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)), _ds_cens_rule,
++             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, _ds_cens_rule, "space")],
++             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, (_ds_cens_rule[0], _ds_cens_rule[1] + 0.02),
++                                                         "space")])
+ R.check(
+     "on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a "
+     "direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share "
+     "split, under a 5.02 min minimum whole)",
+-    _ds_edges == ("ds", ("dhw", False), ("dhw", True)),
++    _ds_edges == ("ds", ("dhw", 0.0), ["dhw", "space"], ["dhw"]),
+     str(_ds_edges),
+ )
++# One leg rule (R10-DUTY-SWITCH-PLANNER-PRICE carry c3ad1545): the planner's
++# leg_ends, under the rule the learner's pairs give, reads the legs the
++# arbiter serves, for every order and whole-step case above.
++_DS_LEG = {"d": _ds_legs.DHW, "s": _ds_legs.SPACE}
++_ds_agree_cases = {
++    "space first": (_ds_learner(dhw_space=_DS_ON), 1.0, 0.0),
++    "today": (_ds_mod.DutySwitchLearner(), 1.0, 0.0),
++    "whole, next serves space": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 1.0, 0.0),
++    "split, next serves hot water": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 0.0, 1.0),
++    "split, off on the bound": (_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON), 1.0, 0.0),
++}
++
++
++def _ds_agree(learner, s_next, d_next, rule=None):
++    served = _ds_split(learner, _ds_plan((0, 1.0, 1.0), (900, s_next, d_next)))
++    first, last, _two = _ds_legs.leg_ends([1.0, s_next], [1.0, d_next],
++                                          rule=learner.split() if rule is None else rule)
++    return (_DS_LEG[served[0]], _DS_LEG[served[-1]]) == (int(first[0]), int(last[0])), served
++
++
++_ds_agreed = {name: _ds_agree(*case) for name, case in _ds_agree_cases.items()}
++_ds_agree_null = _ds_agree(*_ds_agree_cases["space first"], rule=_ds_legs.DEFAULT_RULE)
++R.check(
++    "planner and arbiter read one leg rule: leg_ends under the learner's split gives the first and last leg the "
++    "arbiter serves in each order and whole-step case; control, the planner on the default rule disagrees where "
++    "space goes first",
++    all(ok for ok, _served in _ds_agreed.values()) and not _ds_agree_null[0]
++    and {name: served for name, (_ok, served) in _ds_agreed.items()} == {
++        "space first": _DS_SPACE_FIRST, "today": _DS_TODAY, "whole, next serves space": _DS_WHOLE,
++        "split, next serves hot water": _DS_TODAY, "split, off on the bound": _DS_TODAY},
++    f"{_ds_agreed} {_ds_agree_null}",
++)
+ _ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
+ R.check(
+     "null control of the latch: the re-solved plan and learner read from the step's start split as today",
+@@ -84951,16 +84986,10 @@ R.check(
+     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
+     f"{[[split for _c, split in run] for run in _ds_flat_runs]}",
+ )
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+ # Only the arbiter (which reports and reads the split), the sensor (which
+-# publishes) and the coordinator (whose factory reset voids the store) name the module.
+-=======
+-# Both controls hold by construction: the arbiter (which reports) and the
+-# sensor (which publishes) never read the estimate. Its one reader is the
+-# coordinator, which hands the planner's read to a solve's configuration
+-# (R10-DUTY-SWITCH-PLANNER-PRICE): the estimate reaches a write only through
+-# the plan, and both controls hold the plan fixed.
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++# publishes) and the coordinator (whose factory reset voids the store, and which
++# hands the planner's read to a solve's configuration, R10-DUTY-SWITCH-PLANNER-PRICE)
++# name the module; arbiter and planner read the estimate through one leg rule.
+ _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
+ _ds_readers = sorted(
+     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
+@@ -84977,21 +85006,13 @@ _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.
+     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+ R.check(
+-<<<<<<< 56b43dea84 (ci: pin killed mutants)
+     "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
+-    "store calls, and the estimate is read only by the arbiter's split; the module imports none of them; the "
+-    "pure half of wear stays pure",
++    "store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's "
++    "read; the module imports none of them; the pure half of wear stays pure",
+     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
++    and _ds_plan_uses == ["planner_fields", "record_for"]
+     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
+-                     "note_mode_write", "note_pass", "record_for", "starts_attributes"]
+-=======
+-    "the arbiter and the sensor name duty_switch through its report, attach and publish calls and never a "
+-    "read of the estimate; the coordinator names it once, for the planner's read; the module imports none "
+-    "of the three; the pure half of wear stays pure",
+-    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"] and _ds_plan_uses == ["planner_fields"]
+-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
+-                     "starts_attributes"]
+->>>>>>> 30b069508f (Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck)
++                     "note_mode_write", "note_pass", "planner_fields", "record_for", "starts_attributes"]
+     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
+     f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",

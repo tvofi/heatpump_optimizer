@@ -1,0 +1,259 @@
+1,2d0
+< -from . import early_cutoff, pump_arbiter, pump_signals
+< +from . import duty_switch, early_cutoff, pump_arbiter, pump_signals
+8,20c6,115
+< -the pump then stays off, is learned per install and per direction. **Nothing
+< -reads the estimate to change a plan or a write**; it is recorded, persisted
+< -and published on the compressor-starts sensor.
+< +the pump then stays off, is learned per install and per direction. It is
+< +recorded, persisted and published on the compressor-starts sensor, and the
+< +arbiter's split of a both step reads its latches through
+< +:func:`both_step_duty` (part B); nothing else reads the estimate. A factory
+< +reset voids the store like every other learned estimate.
+< -at :data:`N_ON` episodes spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+< +at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
+< +weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+< -forgotten with it. Every threshold
+< +forgotten with it. ``n`` is held at :data:`N_CAP`. Every threshold
+---
+> +#: How a both step is served: the duty served first, and the minutes past
+> +#: :data:`SPLIT_MIN_MINUTES` the second share must reach to be served when
+> +#: the switch into it stops the compressor (``None``: it is never merged).
+> +LegRule = tuple[str, "float | None"]
+> +#: The legs of one step, in order, each with its minutes.
+> +Legs = tuple[tuple[str, float], ...]
+> +#: The rule with no learned stop: hot water first, never merged.
+> +DEFAULT_RULE: LegRule = ("dhw", None)
+> +def leg_rule(stop_probability: tuple[float, float], off_seconds: tuple[float, float]) -> LegRule:
+> +    """The leg order and whole-step rule of a both step, from the per-direction pairs.
+> +    One rule for the arbiter, which serves the legs (``duty_switch``, fed by
+> +    the learner's latched pairs), and the planner, which prices them (fed by
+> +    the same pairs through its configuration). Space goes first only where
+> +    hot water to heating alone stops the compressor. Where the switch into
+> +    the second duty stops it, a second share shorter than
+> +    :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
+> +    first duty when the next step serves the second, so its delivery moves
+> +    one step and is not dropped. With no stop priced this is
+> +    :data:`DEFAULT_RULE`.
+> +    """
+> +    first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0 else "dhw"
+> +    into = 0 if first == "dhw" else 1
+> +    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)
+> -    space_kw: float, dhw_kw: float, step_minutes: float = PLAN_STEP_MINUTES
+> -) -> tuple[tuple[str, float], ...]:
+> +    space_kw: float,
+> +    dhw_kw: float,
+> +    step_minutes: float = PLAN_STEP_MINUTES,
+> +    rule: LegRule = DEFAULT_RULE,
+> +    next_duty: str | None = None,
+> +) -> Legs:
+> -    collapses the step onto the other duty. Hot water goes first.
+> +    collapses the step onto the other duty. Otherwise ``rule``
+> +    (:func:`leg_rule`) orders the legs, and merges them onto the first where
+> +    ``next_duty``, the next step's duty, serves the second.
+> -    return (("dhw", dhw_min), ("space", step_minutes - dhw_min))
+> +    first, extra = rule
+> +    second = "space" if first == "dhw" else "dhw"
+> +    first_min = dhw_min if first == "dhw" else step_minutes - dhw_min
+> +    if extra is not None and next_duty in (second, "both") and step_minutes - first_min < SPLIT_MIN_MINUTES + extra:
+> +        return ((first, step_minutes),)
+> +    return ((first, first_min), (second, step_minutes - first_min))
+> +    rule: LegRule = DEFAULT_RULE,
+> -    :func:`both_step_legs`. ``space_kw`` may be a ``[B, n]`` batch against one
+> -    ``[n]`` hot-water plan.
+> +    :func:`both_step_legs` under ``rule``, the next step's duty read from the
+> +    plan itself (none after the last). ``space_kw`` may be a ``[B, n]`` batch
+> +    against one ``[n]`` hot-water plan.
+> -    two = both & ~to_space & ~to_dhw
+> +    split = both & ~to_space & ~to_dhw
+> +    first, extra = rule
+> +    lead, trail = (DHW, SPACE) if first == "dhw" else (SPACE, DHW)
+> +    whole = np.zeros(split.shape, dtype=bool)
+> +    if extra is not None:
+> +        second_on, second_min = (s_on, step_minutes - dhw_min) if first == "dhw" else (d_on, dhw_min)
+> +        next_second = np.zeros(np.shape(second_on), dtype=bool)
+> +        next_second[..., :-1] = second_on[..., 1:]
+> +        whole = split & next_second & (second_min < SPLIT_MIN_MINUTES + extra)
+> +    two = split & ~whole
+> -        (s_on & ~d_on) | to_space, SPACE, np.where((d_on & ~s_on) | to_dhw, DHW, IDLE)
+> +        (s_on & ~d_on) | to_space | (whole & (lead == SPACE)), SPACE,
+> +        np.where((d_on & ~s_on) | to_dhw | (whole & (lead == DHW)), DHW, IDLE),
+> -    return np.where(two, DHW, single), np.where(two, SPACE, single), two
+> +    return np.where(two, lead, single), np.where(two, trail, single), two
+> +    rule: LegRule = DEFAULT_RULE,
+> -    between weighs ``p * level / p_max``: inside a two-leg step both legs run
+> -    at the step's combined level; across a boundary the stop adds the smaller
+> +    between weighs ``p * level / p_max``, in the direction ``rule`` orders the
+> +    legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
+> -    first, last, two = leg_ends(space, dhw_kw, floor)
+> +    first, last, two = leg_ends(space, dhw_kw, floor, rule=rule)
+> -    inside = np.where(two, p_ds * level, 0.0)
+> +    inside = np.where(two, (p_ds if rule[0] == "dhw" else p_sd) * level, 0.0)
+> +    rule: LegRule = DEFAULT_RULE,
+> -        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor
+> +        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor, rule
+> +    rule: LegRule = DEFAULT_RULE,
+> -    leg that follows the hot-water leg in ``space_start_kw``, the profile the
+> +    leg that follows the hot-water leg in ``space_start_kw`` under ``rule``, the profile the
+> -    first, last, two = leg_ends(space_start_kw, dhw_kw, floor)
+> -    charged = two.copy()
+> +    first, last, two = leg_ends(space_start_kw, dhw_kw, floor, rule=rule)
+> +    charged = two & (first == DHW)
+> -    space_kw: np.ndarray, stop_probability: tuple[float, float], floor: float | None
+> +    space_kw: np.ndarray,
+> +    stop_probability: tuple[float, float],
+> +    floor: float | None,
+> +    rule: LegRule = DEFAULT_RULE,
+> -    a block can only end into a planned stop or into more hot water. For
+> -    heating to hot water it mirrors onto the previous step.
+> +    a block can only end into a planned stop or into more hot water; where
+> +    ``rule`` serves space first, a both step ends on its hot-water leg, so
+> +    only heating in the next step bans it. For heating to hot water it
+> +    mirrors onto the previous step.
+> -        ban |= on
+> +        if rule[0] == "dhw":
+> +            ban |= on
+> -recorded, persisted and published on the compressor-starts sensor, and a
+> -latched direction is read by the planner (:func:`planner_fields`), which
+> -prices the switch through ``duty_legs``. No write reads it.
+> +recorded, persisted and published on the compressor-starts sensor. Its
+> +latches are read twice, through one leg rule: the arbiter's split of a both
+> +step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
+> +which prices the switch through ``duty_legs``; both feed
+> +``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
+> +the plan prices the legs the arbiter serves. A factory reset voids the store
+> +like every other learned estimate.
+> -``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking, so
+> +``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
+> +on decay, so
+22a118,123
+> -from . import pump_mode, wear
+> +from . import duty_legs, pump_mode, wear
+> -#: The most decayed episodes a direction holds, twice the on-threshold. With
+> -#: every later episode kept, ``p`` falls from 1 by 10/11 per booking and is
+> -#: under :data:`P_OFF` at the thirteenth; with none, ``n`` is under
+> -#: :data:`N_OFF` just past two half-lives.
+27c128,129
+< +N_CAP = 2.0 * N_ON
+---
+> +#: With every later episode kept, ``p`` falls from 1 by 10/11 per booking and
+> +#: is under :data:`P_OFF` at the thirteenth.
+29a132,134
+> -        if self.n > N_CAP:
+> -            scale = N_CAP / self.n
+> -            self.k, self.kept_w = self.k * scale, self.kept_w * scale
+32,71c137,155
+< -        key: an install that never switches duty while running reads as before."""
+< +        key: an install that never switches duty while running reads as before.
+< +        Age alone moves ``n`` only, and only by a whole episode: ``n`` is the
+< +        whole episodes still weighing, and ``p`` does not decay (``k`` is ``p``
+< +        times ``n``, so it is not published)."""
+< -            k, n = d.weights(when)
+< -                "k": round(k, 2), "n": round(n, 2),
+< +                "p": round(d.p, 2), "n": float(math.floor(d.weights(when)[1])),
+< +    def split(self, dhw_min: float, step_min: float, min_share_min: float,
+< +              next_duty: str | None) -> tuple[str, bool]:
+< +        """``(duty served first, whether it takes the whole step)`` of a step
+< +        both duties share, ``dhw_min`` of its ``step_min`` being hot water's.
+< +        Read only through the latches: ``n``, the tallies and ``span_days``
+< +        are not read, so evidence accruing faster on one set-point unit than
+< +        another moves nothing here until a latch moves. Space goes first only
+< +        where hot water to space alone is usable; the first duty keeps the
+< +        whole step only when the switch into the second is usable, the second
+< +        share is shorter than ``min_share_min`` plus that direction's median
+< +        off time, and ``next_duty`` (the plan's following step) serves the
+< +        second, so its delivery moves one step and is not dropped. With no
+< +        latch on this is ``("dhw", False)``: hot water first for its share.
+< +        """
+< +        usable = {name for name, d in self.directions.items() if d.usable}
+< +        first, second = ("space", "dhw") if usable == {"dhw_space"} else ("dhw", "space")
+< +        into = self.directions[f"{first}_{second}"]
+< +        if not into.usable or next_duty not in (second, "both"):
+< +            return first, False
+< +        second_min = dhw_min if second == "dhw" else step_min - dhw_min
+< +        return first, second_min < min_share_min + (into.median_off_s or 0.0) / 60.0
+< +    #: The both step whose split was decided, and the decision, latched so
+< +    #: neither the tick nor a re-solve inside the step flips it.
+< +    order: tuple[datetime, tuple[str, bool]] | None = None
+< +def both_step_duty(rec: _Record, start: datetime, now: datetime, dhw_min: float, step_min: float,
+< +                   min_share_min: float, next_duty: str | None) -> str:
+< +    """The duty the both step starting at ``start`` serves at ``now``: the first
+< +    for its share, then the other, or the first for the whole step, as
+< +    :meth:`DutySwitchLearner.split` decided once per step. A record not yet
+< +    loaded splits as before the learner existed, hot water first, and latches
+< +    nothing."""
+< +    first, whole = "dhw", False
+---
+> +    def split(self) -> duty_legs.LegRule:
+> +        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
+> +        :meth:`planner_pairs`, the pairs the planner prices, so planner and
+> +        arbiter read one rule. Read only through the latches: ``n``, the
+> +        tallies and ``span_days`` are not read, so evidence accruing faster on
+> +        one set-point unit than another moves nothing here until a latch
+> +        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
+> +        first for its share."""
+> +        return duty_legs.leg_rule(*self.planner_pairs())
+> +    #: The both step whose legs were decided, and the legs, latched so
+> +    #: neither the tick nor a re-solve inside the step flips them.
+> +    order: tuple[datetime, duty_legs.Legs] | None = None
+> +def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
+> +                   step_min: float, next_duty: str | None) -> str:
+> +    """The duty the both step starting at ``start`` serves at ``now``: its
+> +    first leg for that leg's minutes, then its last, the legs being
+> +    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
+> +    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
+> +    as before the learner existed, and latches nothing."""
+74,79c158,188
+< +            rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
+< +        first, whole = rec.order[1]
+< +    first_min = dhw_min if first == "dhw" else step_min - dhw_min
+< +    if whole or now - start < timedelta(minutes=first_min):
+< +        return first
+< +    return "space" if first == "dhw" else "dhw"
+---
+> +            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
+> +                                                         next_duty=next_duty))
+> +        legs = rec.order[1]
+> +    else:
+> +        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
+> +    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+> +def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
+> +    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+> +    return duty_legs.leg_rule(
+> +        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
+> +        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+> +    )
+> -    return duty_legs.availability(space, tank, lost, _duty_floor(opt))
+> +    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
+> -    stops, floor = _priced_stops(opt), _duty_floor(opt)
+> +    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
+> -            np.atleast_2d(space), dhw, stops, p_max, floor)
+> +            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
+> -    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
+> +    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
+> -        ban = duty_legs.switch_ban(shipped, stops, floor)
+> +        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
+> -:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+> -then Heating, each through its own row above; a share under
+> -:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
+> +:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
+> +only for the step's hot-water share of its 15 minutes, then Heating, each
+> +through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
+> +to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
+> +legs by ``duty_legs.leg_rule``, the rule the planner prices.
+> -from .duty_legs import both_step_legs
+85c194,199
+< -    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+---
+> -    legs = both_step_legs(
+> -        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
+> -    )
+> -    first_ends = timedelta(minutes=legs[0][1])
+> -    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
+> +    start = result.timestamps[i]
+87,88c201,202
+< +        duty_switch.record_for(coord), result.timestamps[i], now, dhw_min, PLAN_STEP_MINUTES, SPLIT_MIN_MINUTES,
+< +        step_duty(result, utc_shift(result.timestamps[i], timedelta(minutes=PLAN_STEP_MINUTES))))
+---
+> +        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
+> +        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))

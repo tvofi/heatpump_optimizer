@@ -1,0 +1,13 @@
+M1 leg_rule first always dhw
+M2 leg_rule into always 0
+M3 both_step_legs merge disabled
+M4 leg_ends whole never set
+M5 switch_weights inside always p_ds
+M6 availability charges every two-leg step
+M7 switch_ban ignores rule
+M8 both_step_duty uses DEFAULT_RULE not learner.split()
+M9 both_step_duty next_duty=None
+M10 both_step_duty latch decided every read
+M11 optimizer switch_ban without rule
+M12 optimizer availability without rule
+M13 optimizer switch cost without rule
