@@ -79833,11 +79833,18 @@ for _sr_name in ("coordinator.py", "boost.py"):
             _sr_adopt_sites.append((_sr_name, _sr_node.lineno, "plan"))
             continue
         # A builder method (``_fixed_mode_action``) hands over one of its own
-        # mode-keyed dict literals, so each of those is a site.
+        # mode-keyed dict literals, so each of those is a site. A builder
+        # called on a sibling module (``sysid.override_action``) is read, and
+        # its reason names resolved, in that module.
         _sr_dicts = [_sr_arg]
+        _sr_home, _sr_home_tree = _sr_mod, _sr_tree
         if isinstance(_sr_arg, _sr_ast.Call):
+            _sr_owner = getattr(_sr_mod, getattr(getattr(_sr_arg.func, "value", None), "id", ""), None)
+            if getattr(_sr_owner, "__file__", None):
+                _sr_home = _sr_owner
+                _sr_home_tree = _sr_ast.parse(_sr_Path(_sr_owner.__file__).read_text())
             _sr_dicts = [
-                _d for _f in _sr_ast.walk(_sr_tree)
+                _d for _f in _sr_ast.walk(_sr_home_tree)
                 if isinstance(_f, _sr_ast.FunctionDef)
                 and _f.name == getattr(_sr_arg.func, "attr", None)
                 for _d in _sr_ast.walk(_f)
@@ -79865,7 +79872,7 @@ for _sr_name in ("coordinator.py", "boost.py"):
             for _sr_key in ("space_reason", "dhw_reason"):
                 _sr_value = _sr_keys.get(_sr_key)
                 _sr_code = (
-                    getattr(_sr_mod, _sr_value.id, None)
+                    getattr(_sr_home, _sr_value.id, None)
                     if isinstance(_sr_value, _sr_ast.Name)
                     else _sr_value.value
                     if isinstance(_sr_value, _sr_ast.Constant)
@@ -86089,7 +86096,7 @@ R.check(
     "nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same "
     "1.4 kW with the ceiling written does",
     _cp_dr.is_running_space(1.4, 5.0, 0.0, frozen=False, distorted=False, defrost=False)
-    and [d for d, _t in _cp_held.ceiling] == [1.4],
+    and [d for d, *_ in _cp_held.ceiling] == [1.4],
     f"{list(_cp_held.ceiling)}",
 )
 # The latch (F6, F7): 48 ceiling samples through ``observe`` on an empty
@@ -86874,7 +86881,7 @@ _cp_rows = _cp_dr.DrawRange.from_dict({
 })
 R.check(
     "a stored row at the standby floor is dropped, one above it kept; a negative count reads 0",
-    [d for d, _t in _cp_rows.ceiling] == [0.26] and _cp_rows.overdraws == 0,
+    [d for d, *_ in _cp_rows.ceiling] == [0.26] and _cp_rows.overdraws == 0,
 )
 _cp_plain = _cp_arbitrate({"mode": "eco", "power": 0.0}, power_schedule=(5.0,))
 R.check(
@@ -92764,6 +92771,15 @@ R.check(
     and _sw_hp(0.5, _SW_FLAT, True) == _sw_hp(0.5, None, True) == "a flat price has no cheap hour to probe in"
     and _sw_hp(0.5, _SW_RAMP, True) is None,
 )
+_SW_THIN = HousePlant(ua=0.05, capacity=0.8, gains=0.3, slab_mass=0.1, slab_transfer=1.0)
+R.check(
+    "the COP floor a probe's heat is sized on is 0.1, not more: at a COP of 0.15 the "
+    "thin house's top is 0.75 kW of heat, which holds no two cycles, and the probe "
+    "aborts; at 0.2 it is 1.0 kW and the probe steps",
+    _cp_begin(_SW_THIN, cop=0.15, kind="probe")[2] == _sw_sid.PHASE_ABORTED
+    and _cp_begin(_SW_THIN, cop=0.2, kind="probe")[0] is True,
+    f"{_cp_begin(_SW_THIN, cop=0.15, kind='probe')} {_cp_begin(_SW_THIN, cop=0.2, kind='probe')}",
+)
 R.check(
     "the cheap-cycle count stops at a day: an all-day window with no horizon is 48",
     _sw_sid.cheap_night_cycles(_sw_cfg(start_hour=0, end_hour=24), _SW_T0, None) == 48,
@@ -92776,11 +92792,13 @@ _sw_p_wee, _ = _sw_run(prices=np.linspace(0.5, 2.0, 96), sweep=False, house=_CP_
 _sw_edge8, _sw_edge8_out = _sw_run(band=8.0)
 _sw_two_wee, _ = _sw_run(house=_CP_WEE, at=_SW_T0.replace(hour=2, minute=30) + timedelta(days=1), cycles=4)
 R.check(
-    "after the settle: a probe no two cycles of which fit aborts with its own reason; "
-    "a sweep on a band of exactly 8 K runs; and with exactly two cheap cycles left a "
-    "sweep the comfort bound refuses says so, not that the night is short",
+    "after the settle: a probe no two cycles of which fit aborts with its own reason "
+    "and leaves its clock unset (it never ran); a sweep on a band of exactly 8 K "
+    "runs; and with exactly two cheap cycles left a sweep the comfort bound refuses "
+    "says so, not that the night is short",
     _sw_p_wee.phase == _sw_sid.PHASE_ABORTED
     and _sw_p_wee.result.reason == "no probe step of two cycles fits within the comfort bound"
+    and _sw_p_wee.probe_run is None
     and _sw_edge8_out == _sw_full_out and _sw_edge8.phase == _sw_sid.PHASE_DONE
     and _sw_two_wee.result.reason == "no sweep fits within the comfort bound",
     f"{_sw_p_wee.result.reason!r} {_sw_edge8_out} {_sw_two_wee.result.reason!r}",
