@@ -1,0 +1,16 @@
+== R11-INTAKE-R10-RESIDUE: 175 -> 176 carries
+  - From #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 2 and 4 owe from this group's convergence records: found-by and owning dimension per escape (`none` is a value), the cau
+  - From #3575 (r11-pre-objective-function), body item 7ce997a6: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1 owes these brief edits from this group. D12: its universe is `python3 tools/audit/check_scopes.py --repo . --population
+  + From #3575 (r11-pre-objective-function), body item be634ef8: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register i
+  + From #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) sections 2 and 4 owe from this group's convergence records: found-by and owning dimension per escape (`none` is a value), the cau
+  + From #3575 (r11-pre-objective-function), body item 7ce997a6: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 1 owes these brief edits from this group. D12: its universe is `python3 tools/audit/check_scopes.py --repo . --population
+== R11-PRE-HANDOFF-BOOKKEEPING: 0 -> 1 carries
+  + From r10-outside-contributor-cycle-p2, body item 75924676: prepr-ci-predict: unenforced: Carry 5: `tools/pr/ci_predict.py` runs the base's `carry_audit.py` in a `--shared` clone that holds no `origin/handoff/audit-r<N>-roster`. A `Carry:` to a group that lives
+== R11-PRE-ROUND-METRICS: 2 -> 2 carries
+  - From r11-pre-objective-function, body item 0df1ac6e: The three groups that build the enumerators build to 0017 section 2's definitions (clock, windows, denominators, the NO-READ rule for a partial ledger), add each enumerator to `.github/CODEOWNERS` in the pul
+  - From #3575, body item 85db64f3: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) sections 4 and 5 assign this group the two held-out instruments: planted-defect recall, counted after the judge so a plant lost at the verifier or the judge i
+  + From r11-pre-objective-function, body item 0df1ac6e: The three groups that build the enumerators build to 0018 section 2's definitions (clock, windows, denominators, the NO-READ rule for a partial ledger), add each enumerator to `.github/CODEOWNERS` in the pul
+  + From #3575, body item 85db64f3: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) sections 4 and 5 assign this group the two held-out instruments: planted-defect recall, counted after the judge so a plant lost at the verifier or the judge i
+== R11-PRE-TOKEN-LEDGER: 2 -> 2 carries
+  - From #3575, body item 69822206: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 2 defines `tokens_per_change` for the token ledger this group builds: every usage field kept apart, a seat keyed by group, role and dimension, and the
+  + From #3575, body item 69822206: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 2 defines `tokens_per_change` for the token ledger this group builds: every usage field kept apart, a seat keyed by group, role and dimension, and the

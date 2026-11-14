@@ -1,0 +1,11 @@
+182,183c182
+< `7c1f9e3a7a63d8c8afd97a1468566d57f96ec212` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+< 
+---
+> Round 6: the pull request head is `7c1f9e3a7a63d8c8afd97a1468566d57f96ec212`; the carries were landed on the roster branch at c6b8ae947c73906a7f1fd8d1b2bd1fd66055c913 with no code change. The measured-head line below is the authored head it descends from.
+297a297
+> - Round 6, carries landed with no code change: at roster branch c6b8ae947c73906a7f1fd8d1b2bd1fd66055c913 the D6 register item (be634ef8) is carry 173 of R11-INTAKE-R10-RESIDUE, and the five carries that cited the record as decision 0017 (R11-PRE-ROUND-METRICS 0 and 1, R11-PRE-TOKEN-LEDGER 1, R11-INTAKE-R10-RESIDUE 174 and 175) now cite 0018
+347c347
+< n/a: Orchestrator ruling 2026-11-14: items 36086213 and 916aff2d re-routed from R10-DIMENSIONS-FULL-COVERAGE (carries-open, not receivable) to R11-INTAKE-R10-RESIDUE. Repair round 4: the D6 register item is re-routed the same way, from R10-D5-D6-FULL-SCOPE, which the roster branch reads `carries-open` at 1e06a3b0c1 and `body_push.sh` therefore refused as a destination; the fixer's choice on that ruling's precedent, for the orchestrator to confirm.
+---
+> n/a: Orchestrator ruling 2026-11-14: items 36086213 and 916aff2d re-routed from R10-DIMENSIONS-FULL-COVERAGE (carries-open, not receivable) to R11-INTAKE-R10-RESIDUE. Repair round 4: the D6 register item is re-routed the same way, from R10-D5-D6-FULL-SCOPE, which the roster branch reads `carries-open` at 1e06a3b0c1 and `body_push.sh` therefore refused as a destination; the fixer's choice on that ruling's precedent, for the orchestrator to confirm. Landed at roster c6b8ae947c73906a7f1fd8d1b2bd1fd66055c913 as R11-INTAKE-R10-RESIDUE carry 173.

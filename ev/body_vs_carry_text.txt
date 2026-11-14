@@ -1,0 +1,15 @@
+forward-carry items: 6
+roster c6b8ae947c73906a7f1fd8d1b2bd1fd66055c913 (5eaef97ee4 is round 4's read, the null control)
+   R11-PRE-ROUND-METRICS stage not-started carries holding the body item's text verbatim: [0] | The three groups that build the enumerators build to 0018 se
+   R11-PRE-ROUND-METRICS stage not-started carries holding the body item's text verbatim: [1] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-PRE-TOKEN-LEDGER stage not-started carries holding the body item's text verbatim: [1] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [174] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [175] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [173] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+roster 5eaef97ee4 (5eaef97ee4 is round 4's read, the null control)
+   R11-PRE-ROUND-METRICS stage not-started carries holding the body item's text verbatim: [] | The three groups that build the enumerators build to 0018 se
+   R11-PRE-ROUND-METRICS stage not-started carries holding the body item's text verbatim: [] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-PRE-TOKEN-LEDGER stage not-started carries holding the body item's text verbatim: [] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [] | Decision 0018 (`dev/governance/decisions/0018-objective-func
+   R11-INTAKE-R10-RESIDUE stage not-started carries holding the body item's text verbatim: [] | Decision 0018 (`dev/governance/decisions/0018-objective-func
