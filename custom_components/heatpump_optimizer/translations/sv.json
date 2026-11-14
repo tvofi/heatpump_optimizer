@@ -343,7 +343,7 @@
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "silent_mode_windows": "Pumpens eget nattläge-schema",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
-          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+          "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
           "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
           "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
           "outdoor_temp_entity": "Utomhusgivare",
@@ -582,7 +582,7 @@
               "indoor_temp_entity": "Inomhusgivare",
               "outdoor_temp_entity": "Utomhusgivare",
               "space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning (valfritt)",
-              "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+              "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
               "flow_min_lift_k": "Minsta höjning över inkommande vatten (K)",
               "flow_heat_c": "Högsta framledning vid värme (°C)",
               "space_setpoint_power_feedback": "Följ planerad effekt efter uppmätt förbrukning",
@@ -593,7 +593,7 @@
               "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
               "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
               "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
-              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde.",
+              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsentitet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: optimeraren härleder den aldrig från entiteten, och bara förifyllningen från en värmepumpsenhet föreslår en.",
               "flow_min_lift_k": "Med Styrning av pumpens uppgift på Styrning skrivs vattenbörvärdet vid planens lägsta effekt som det uppmätta inkommande vattnet plus detta: värmepumpens retur, bufferttank, golvretur eller ventilens utlopp, och för en entitet med Returtemperatur bara de tre första. 5 K passar en styrenhet som håller sin framledning på börvärdet. En styrenhet som tar börvärdet som mål för returvattnet antas köra kompressorn hårdare ju högre målet ligger över returen och vill troligen ha mindre; 1–2 K är en startpunkt att kontrollera mot kompressorns uppmätta frekvens och effekt, inte ett uppmätt värde.",
               "flow_heat_c": "Vattenbörvärdet som skrivs vid full planerad effekt, och det högsta som skrivs medan planen styr. 55 °C passar ett framledningsmål. För en entitet med Returtemperatur väljs det över den högsta retur du ser vid normal uppvärmning plus höjningen, och inte högre än styrenheten accepterar; för en lågtemperatur-golvvärme kan 35–40 °C vara en startpunkt att kontrollera mot mätningar. Under 30 °C erbjuds inte: grinden som betyder av är 25 °C för ett framledningsmål och 20 °C för ett returmål.",
               "space_setpoint_power_feedback": "På som standard. Verkar bara med Styrning av pumpens uppgift på Styrning, enheten Framlednings- eller Returtemperatur och en effektgivare för värmepumpen; annars ändras ingenting. Efter 5 minuters starthållning sänks vattenbörvärdet medan den uppmätta förbrukningen ligger över planerad nivå, höjs medan den ligger under och hålls inom 10 %, i stället för att följa det stigande inkommande vattnet. Av skriver inkommande vatten plus höjningen. Krav på styrenheten: dess värmehysteres högst höjningen (Luxtronik: 0,5 K), annars startas inte en stoppad kompressor; dess lägsta returmål under returen under eldningssäsongen; dess integration läser den minst var 10:e minut och återställer värmeläget efter en omstart av styrenheten, eftersom ett Luxtronik Smart Home Interface släpper alla satta värden efter 600 s utan åtkomst; och inget annat verktyg skriver samma register (en Luxtronik kastar då skrivningar tyst).",
@@ -1122,7 +1122,7 @@
         },
         "data_description": {
           "away_presence_entity": "En person, enhetsspårare, kalender eller närvarosensor. Plan-sidans brytare vinner tills den slås av. Att en person är 'inte hemma' betyder fortfarande bortavaro när brytaren är av.",
-          "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka.",
+          "away_dhw_min_temperature": "Legionellacykeln körs fortfarande med sitt vanliga intervall; den tidsätts inte efter din hemkomst.",
           "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "holiday_calendar_entity": "När den här kalendern är på ersätter lovets komfort och varmvattenfönster vardag/helg för den dagen. Bortasänkning vinner om bortaläget är aktivt."
@@ -1348,7 +1348,7 @@
               "dhw_disinfection_mode": "Observera läser brytaren och skriver aldrig till den. Styra slår på den när en legionellacykel börjar och av den när cykeln är slut, men slår aldrig på den medan pumpens driftläge inte gör varmvatten. Den slår bara av en brytare som den själv slog på: en brytare som redan var på när cykeln började lämnas i fred. En begränsning: om du slår på brytaren för hand medan en cykel som optimeraren startade pågår, slås den av när cykeln är slut, eftersom de två inte går att skilja åt. Styra kräver brytaren ovan.",
               "dhw_disinfection_switch_entity": "En brytare eller hjälpare som startar värmepumpens eget legionellaprogram. I läget observera läses bara dess tillstånd och visas bland varmvattensensorns attribut; i läget styra slår integrationen på den när en desinfektionscykel börjar och av den när cykeln är slut.",
               "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
-              "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
+              "dhw_free_disinfection_enabled": "En vedpanna, solslinga eller elpatron som får tanken till legionellatemperatur räknas som en genomförd cykel i båda lägena. Av: direkt; på: först när tanken har hållit den temperaturen i 20 minuter, så en kort topp räknas inte.",
               "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
               "dhw_quantile_targets_enabled": "Lär in hur mycket varmvatten varje tidsfönster faktiskt använder en tung dag, och gör tanken redo för det i stället för för genomsnittsdagen. Kräver tanktemperaturgivare, konfigurerade varmvattenfönster och ett par veckors underlag."
             }
@@ -1364,7 +1364,7 @@
           "after_save": "Efter sparande"
         },
         "data_description": {
-          "vvc_pump_entity": "En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan.",
+          "vvc_pump_entity": "En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan. Med varmvattnet avslaget eller utan fönster lämnas den på.",
           "vvc_lead_minutes": "Hur långt före ett varmvattenfönster cirkulationspumpen startar, så att slingan redan är varm när fönstret öppnar.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
@@ -1530,7 +1530,7 @@
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "silent_mode_windows": "Pumpens eget nattläge-schema",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
-          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+          "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
           "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
           "outdoor_temp_entity": "Utomhusgivare",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
