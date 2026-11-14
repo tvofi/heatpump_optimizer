@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Process audit cards</title>
+<style>
+:root{--bg:#fbfaf7;--ink:#1d1f23;--mute:#5d636e;--line:#d9d6cf;--card:#fff;--acc:#0b5d6b;--warn:#9a4a00;--ok:#2c6b2f;--chip:#eef3f4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.2rem;margin:36px 0 10px;padding-top:14px;border-top:2px solid var(--ink)}
+h3{font-size:1rem;margin:0 0 6px}p{margin:8px 0}.mute{color:var(--mute);font-size:.92rem}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:8px 0}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--mute)}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wrap{overflow-x:auto}
+.card{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--acc);border-radius:6px;padding:14px 16px;margin:14px 0}
+.card.w{border-left-color:var(--warn)}.card.d{border-left-color:var(--ok)}
+.id{display:inline-block;font:600 .8rem ui-monospace,Menlo,monospace;background:var(--ink);color:#fff;border-radius:4px;padding:1px 7px;margin-right:8px}
+dl{margin:8px 0 0;display:grid;grid-template-columns:7.5em 1fr;gap:4px 12px;font-size:.94rem}dt{color:var(--mute)}dd{margin:0}
+.opt{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}.opt span{background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:.88rem}
+.opt span.r{border-color:var(--acc);font-weight:600}
+.flag{color:var(--warn);font-weight:600}
+ul{margin:6px 0;padding-left:20px}li{margin:3px 0}
+@media(max-width:560px){dl{grid-template-columns:1fr}dt{margin-top:6px}}
+</style></head><body><main>
+<h1>Process convergence audit: findings and decision cards</h1>
+<p class="mute">Round 10, written 2026-11-13. Source: <code>dev/audit/rounds/round10/process-convergence-audit.md</code> at commit d5d7ff81 on <code>handoff-wip/r10-process-convergence-audit</code> (pushed, not landed). Figures are the audit seat's; I read the whole report but re-derived none of them. Benchmarks against outside standards are from memory, unverified against current editions.</p>
+<p><strong>Nothing on a card is applied until you rule on it.</strong> Answer by card id, for example "P1 yes, P2 B, R3 no". One thing was already done before you asked for cards; it is card P5 so you can reverse it.</p>
+
+<h2>1. The answer</h2>
+<p>The process does not converge on lead time or token use, within round 10 or across rounds 8 to 10. On quality it removes product defects faster than it injects them, but the injection rate is rising and nothing measures escapes per round, so no quality trend can be drawn. None of the three has all four parts of a control loop: a target, a sensor, feedback faster than the disturbance, and a controller with bounded cost.</p>
+
+<h2>2. Trends</h2>
+<div class="wrap"><table>
+<tr><th>Measure</th><th>Round 8 (1.7 d)</th><th>Round 9 (18.3 d)</th><th>Round 10 (30 d, open)</th></tr>
+<tr><td>Merges</td><td class="n">64</td><td class="n">344</td><td class="n">1,089</td></tr>
+<tr><td>Production / machinery / record merges</td><td class="n">21 / 43 / 0</td><td class="n">91 / 236 / 17</td><td class="n">139 / 488 / 462</td></tr>
+<tr><td>Production share of merges</td><td class="n">32.8%</td><td class="n">26.5%</td><td class="n">12.8%</td></tr>
+<tr><td>Production merges per day</td><td class="n">12.1</td><td class="n">5.0</td><td class="n">4.6</td></tr>
+<tr><td>Production hotfixes per production merge</td><td class="n">0%</td><td class="n">2.2%</td><td class="n">7.2%</td></tr>
+<tr><td>Production lead time, median / 90th percentile</td><td class="n">13.3 / 22.0 h</td><td class="n">8.1 / 49.9 h</td><td class="n">21.7 / 49.3 h</td></tr>
+<tr><td>Machinery lead time, median</td><td class="n">3.2 h</td><td class="n">3.3 h</td><td class="n">10.7 h</td></tr>
+<tr><td>First review verdict is "merge"</td><td class="n">no record</td><td class="n">37% (partial)</td><td class="n">50%</td></tr>
+</table></div>
+<p class="mute">Round 8 was a two-day fix wave; treat it as context, not a trend point.</p>
+<p><strong>Within round 10, by week:</strong> production median lead time 15.4, 24.3, 16.2, 25.5, 27.4 h. Hotfix share of merges 0%, 1.3%, 3.2%, 16.1%, 24.5%. 63 of the 73 hotfix merges repair machinery, not the product.</p>
+<p><strong>Tokens</strong> (local sessions only, from session 12; cloud seats have no record):</p>
+<div class="wrap"><table>
+<tr><th>Session</th><th>Orchestrator</th><th>Local seats</th><th>Per merge</th><th>Per production merge</th></tr>
+<tr><td>12 (4–7 Nov)</td><td class="n">2.92 B</td><td class="n">1.49 B</td><td class="n">48 M</td><td class="n">368 M</td></tr>
+<tr><td>13 (7–10 Nov)</td><td class="n">3.90 B</td><td class="n">1.58 B</td><td class="n">54 M</td><td class="n">343 M</td></tr>
+<tr><td>14 (11–13 Nov)</td><td class="n">4.34 B</td><td class="n">2.14 B</td><td class="n">49 M</td><td class="n">249 M</td></tr>
+</table></div>
+<p>Over 95% of every total is cache reads. In session 14, 66% of local seat tokens went to standing seats (dispatch, merge, triage, tick) and 5% to fix or repair seats (the seat's own classification).</p>
+
+<h2>3. Self-feeding loops</h2>
+<div class="wrap"><table>
+<tr><th>Loop</th><th>Round-10 reading</th><th>State</th></tr>
+<tr><td>Root-cause seats</td><td>57 analyses on main. Nothing links an analysis to the change it produced or measures whether its defect class then fell. 12 of 18 classes barriered in round 9 recur.</td><td>Open on effect</td></tr>
+<tr><td>Proposal triage and the 20% bar</td><td>739 rulings: 450 accepted (61%), 134 rejected. 107 accepts cite a route that skips the bar (severity, owner directive, root-cause countermeasure). 88% of proposals return to an instrument already patched.</td><td>Self-amplifying</td></tr>
+<tr><td>Scorecard</td><td>Zero runs. The running job list has no row for it and nothing produces its inputs.</td><td>Open</td></tr>
+<tr><td>Bottleneck alert</td><td>Six alerts acted on; first-pass yield stayed at 0.58–0.59. It replays the first value of a breach: it showed merge wait 2.1 h while the live value was 4.2 h.</td><td>Wired, weak; hides worsening</td></tr>
+<tr><td>Machinery ratchet</td><td>488 non-production merges in the window against a cap of 521. No exemption ever used.</td><td>Never binds</td></tr>
+<tr><td>Forward-carries to round 11</td><td>About 100 unsorted carries in the round-11 intake group, no cap.</td><td>A sink, not a loop</td></tr>
+<tr><td>Re-plan</td><td>498 plan-page commits in 13 days. The planner itself changed 62 times; one +2 day jump came from a planner change, not from the work. A re-plan changed what was dispatched in 11 logged cases.</td><td>Mostly moves dates</td></tr>
+<tr><td>Policy budgets</td><td>Policy corpus grew from about 16,000 to 37,500 words in the round.</td><td>Ratchet, raised under mandate</td></tr>
+</table></div>
+<p>Machinery lines per product line rose from 0.89 at the round start to 1.86. The audit's judgement: the machinery is a positive-feedback system with no working limiter.</p>
+
+<h2>4. Rework and waiting, ranked</h2>
+<ol>
+<li><strong>CI queue and red main.</strong> 0 of 36 concluded main push runs green since 06:34Z today; 2.5 days red on 9–11 Nov; queues of 69–83 jobs on three nights.</li>
+<li><strong>Review repair rounds.</strong> Rounds per group: L 4.0, M 3.5, S 2.5, at 5.65 h a round.</li>
+<li><strong>Merge wait.</strong> Median 4.2 h from merge verdict to merge (worst 71.7 h). The train ended cleanly in 51 of 199 runs.</li>
+<li><strong>Train skips and parks.</strong> 357 skips on 160 PRs; 148 parks.</li>
+<li><strong>Head churn.</strong> Each fix branch absorbs main 3.6 times on average (production 6.5); shared files are touched by 94% of production merges.</li>
+<li><strong>First-pass review yield 0.50.</strong> 42% of blocks are bookkeeping (carries, body, CI state), 8% are product defects.</li>
+<li><strong>Re-reviews of unchanged code:</strong> about 204.</li>
+<li><strong>Relay stalls:</strong> 99 stuck and 83 busy lines; stalls of 57 and 94 minutes today.</li>
+<li><strong>Compactions and seat recycles:</strong> 36 compactions this session, each a 64k-token policy re-read.</li>
+</ol>
+
+<h2>5. Orchestrator stability and plan adherence</h2>
+<h3>Task slips</h3>
+<ul>
+<li>62 owed items stand now: median age 11.7 h, 10 older than a day, oldest 90.7 h.</li>
+<li>2,368 acknowledgement lines since 31 Oct. 134 items were acknowledged five or more times, one 142 times. Whether an acknowledged action then happened cannot be read: an acknowledgement names no completion event.</li>
+<li>139 slip or correction lines logged. By keyword: machinery caught 47%, a seat 24%, you 14% (about 14 genuine cases read by hand, including today's three actuator and product reports).</li>
+<li>Time to detect and act cannot be measured in general: a slip has no onset stamp.</li>
+</ul>
+<h3>Holding the objective</h3>
+<ul>
+<li>36 compactions in 66 h this session. The policy re-read proof passed within 2 minutes every time, with one refusal.</li>
+<li>The proof restores the policy files, not your rulings. Rulings live in my memory index, which is cut at line 200 on load: 112 entries were dropped, 49 of them rulings, including the current mandate and every ruling of 12–13 Nov. 108 of 406 memory files are not indexed at all.</li>
+<li>Three settled rulings were re-asked of you or violated (frugal-off, soak length, nudge.md).</li>
+</ul>
+<h3>Adapting to roadblocks</h3>
+<ul>
+<li>Workarounds come in minutes to hours. Permanent fixes lag: the relay stall recurred 4 times and CI starvation 3 times in three days with the fix unbuilt.</li>
+<li>Today's relay outage was detected 64 minutes after onset, after your question: the fault silenced its own detector.</li>
+<li>Estimated share of my logged lines: dispatch records 35%, machinery upkeep 21%, merge and stamp flow 21%, programme decisions 19%.</li>
+</ul>
+<h3>Following the plan</h3>
+<ul>
+<li>Planned closure moved from 3 Nov to 17 Nov across 498 plan renders: 13.6 days of slip in 12.9 days. 444 of 496 moves were later. The forecast stayed 3–7 days ahead the whole time.</li>
+<li>Against your dates: 16.1 days past 1 Nov, 6.1 past 11 Nov, 1.6 past 15 Nov.</li>
+<li>Groups grew from 52 at the register to 516. Largest intake classes: instrument 151, hotfix 71, accepted proposals 70, root-cause 38. Arrivals matched completions (0.71 against 0.70 per hour).</li>
+<li>The 66 baseline groups finished a median 19.6 h early. So the slip is added scope plus waiting on CI and merge, not slow execution. The exact split was not measurable.</li>
+<li>One acknowledgement line re-baselined closure on every pass, silently absorbing a slip.</li>
+<li>Not measured by any tool today, reconstructed by the audit: closure history, estimate against actual, scope growth by class, how long idle groups stood, dispatch order against plan order.</li>
+</ul>
+
+<h2>6. Against outside references</h2>
+<div class="wrap"><table>
+<tr><th>Reference</th><th>Gap the audit names</th></tr>
+<tr><td>DORA four keys</td><td>Lead time rising and not tracked per round. No time-to-restore measure: main was red 2.5 days, and the setpoint defect shipped 12 Nov and was still unfixed 31 hours later.</td></tr>
+<tr><td>Process capability levels (ISO/IEC 33000 style)</td><td>Review and verification "defined". Measurement "managed", not "measured". Process improvement is level 5 in form and level 1 in effect. Knowledge management level 1.</td></tr>
+<tr><td>AI governance (ISO/IEC 42001, NIST AI RMF)</td><td>Human oversight: the PR that introduced the setpoint hold was approved by an agent under the mandate. No evaluation of fixers per model; reviewer guardrail is report-only. No token accounting.</td></tr>
+<tr><td>Functional-safety practice (IEC 61508)</td><td>No hazard analysis per actuator write site; tests cover single states. (Addressed by the new actuator-write dimension you approved.)</td></tr>
+<tr><td>Statistical process control</td><td>Fixed thresholds, no control limits. Defect removal efficiency about 0.82 by hand, computed by no tool. No estimate of remaining defects: finders are partitioned, so nothing overlaps.</td></tr>
+<tr><td>Lean flow</td><td>Work-in-progress cap overridden 16 times; the queue never drains; merges continued by override while main was red.</td></tr>
+</table></div>
+
+<h2>7. Decision cards: changes the audit puts before round 11's finders</h2>
+
+<div class="card"><h3><span class="id">P1</span>Pin the toolchain and split main's status</h3><dl>
+<dt>Measured</dt><dd>Machinery goes live the moment it merges. Main red 2.5 days on 9–11 Nov and all of today; today's relay outage came from a merged instrument change.</dd>
+<dt>Change</dt><dd>Seats and the beat run tools from a promoted stable ref, not main's tip. Main reports product status and machinery status separately. No release stamp on a red product status.</dd>
+<dt>Cost</dt><dd>One ref and a promotion step per instrument change; workflow and stamp edits. Touches your ruling "stamp with allow-red while main's red is CI tooling": this makes that rule mechanical instead of an override.</dd>
+<dt>Shows it worked</dt><dd>Product-green share of the last 20 main runs at or above 90%.</dd>
+<dt>I recommend</dt><dd>Yes. It attacks the top source of waiting.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>Split status only, no pinning</span><span>No</span></div></div>
+
+<div class="card w"><h3><span class="id">P2</span>Turn the machinery ratchet into a declining target</h3><dl>
+<dt>Measured</dt><dd>Cap recorded at the status quo and never bound. Triage accepts 61%; 107 accepts skipped the 20% bar.</dd>
+<dt>Change</dt><dd>(A) Re-record the cap on a declining schedule, for example 10% lower each week of a round. (B) Machinery proposals lose the severity route around the 20% bar. (C) One gate in, one gate out.</dd>
+<dt>Cost</dt><dd><span class="flag">(B) reverses your 11 Nov ruling that the severity exemption stays.</span> A binding cap will refuse real instrument fixes late in a round unless an exemption is recorded.</dd>
+<dt>Shows it worked</dt><dd>Non-production merges per window falling week on week.</dd>
+<dt>I recommend</dt><dd>A and C. For B, keep the severity route only for a red required check on main or a blocked production PR.</dd></dl>
+<div class="opt"><span class="r">A + C, B narrowed</span><span>A + B + C as written</span><span>A only</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P3</span>Run the scorecard daily and add a per-round metrics script</h3><dl>
+<dt>Measured</dt><dd>The scorecard has never run; no quality, lead-time or token series exists across rounds; the audit had to rebuild every trend by hand.</dd>
+<dt>Change</dt><dd>Build the missing input producer, add the beat row, add lead-time percentiles per class, time-to-restore, and a token line. Land the audit's scripts as a tracked <code>round_metrics.py</code>.</dd>
+<dt>Cost</dt><dd>One daily job and about one batch of GitHub reads.</dd>
+<dt>I recommend</dt><dd>Yes. Every other card is unmeasurable without it.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P4</span>Token ledger by group, role and model</h3><dl>
+<dt>Measured</dt><dd>No token record for any cloud seat; local records are not keyed to a group. Coordination takes most of what is measured.</dd>
+<dt>Change</dt><dd>Every dispatch writes group, role and model in a header; a daily job sums usage per header for local transcripts and per session id for cloud seats.</dd>
+<dt>Cost</dt><dd>About 150 lines and a daily job. Whether cloud usage is readable per session is unverified.</dd>
+<dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>Local only first</span><span>No</span></div></div>
+
+<div class="card d"><h3><span class="id">P5</span>Memory index: already done, for your confirmation</h3><dl>
+<dt>Measured</dt><dd>112 of 314 index entries were cut on load, 49 of them your rulings.</dd>
+<dt>Done at 18:36Z</dt><dd>I split the index: 193 lines now, rulings since 1 Nov first, the mandate entry loads. 122 lesson and expired entries moved to a second index linked from the top. No memory file was deleted. A copy of the old index is kept.</dd>
+<dt>Still open</dt><dd>Review or delete the 108 unindexed files and the 30 marked superseded; add a check that fails when the index passes its load limit.</dd>
+<dt>I recommend</dt><dd>Keep the split; do the rest.</dd></dl>
+<div class="opt"><span class="r">Keep, do the rest</span><span>Keep, stop there</span><span>Revert</span></div></div>
+
+<div class="card"><h3><span class="id">P6</span>Owner rulings file in the repository</h3><dl>
+<dt>Measured</dt><dd>Every re-asked ruling was one stored only in my memory, never in the policy files the compaction proof restores.</dd>
+<dt>Change</dt><dd><code>dev/programme/RULINGS.md</code>: your standing rulings, verbatim and dated, read and proven by the same hook as the policy corpus. Policy file, so your review.</dd>
+<dt>Cost</dt><dd>A new policy file against the policy budgets; it must be kept current at each ruling.</dd>
+<dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P7</span>Record what caused and what found each defect</h3><dl>
+<dt>Measured</dt><dd>Escapes and injected defects are not attributed, so quality cannot be trended.</dd>
+<dt>Change</dt><dd><code>caused_by</code> and <code>found_by</code> on every hotfix and outside group; scorecard splits escapes by owning dimension per round.</dd>
+<dt>Note</dt><dd>Overlaps the convergence records already in the dimension-coverage PR you approved; I would build it there, once.</dd>
+<dt>I recommend</dt><dd>Yes, folded into that PR.</dd></dl>
+<div class="opt"><span class="r">Yes, fold in</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P8</span>Bottleneck alert prints the live value</h3><dl>
+<dt>Measured</dt><dd>It showed 2.1 h while the metric stood at 4.2 h.</dd>
+<dt>Change</dt><dd>Keep one alert per breach but print the current value when it is more than 25% worse.</dd>
+<dt>Cost</dt><dd>Trivial.</dd><dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<h2>8. Decision cards: changes that can land during round 11</h2>
+
+<div class="card"><h3><span class="id">P9</span>Stop shared files coupling every PR</h3><dl>
+<dt>Measured</dt><dd>94% of production merges touch shared files; 3.6 main absorbs per PR, each a CI cycle and often a re-review.</dd>
+<dt>Change</dt><dd>Generate <code>closures.json</code>, <code>structure_budgets.json</code> and the instruments index after merge, not inside PRs. Split <code>tests/features.py</code> by module.</dd>
+<dt>Cost</dt><dd>Large: changes how two of the four PR-refusing rules are enforced, so it needs a design first.</dd>
+<dt>I recommend</dt><dd>Yes, as a designed round-11 group.</dd></dl>
+<div class="opt"><span class="r">Yes, design first</span><span>Split features.py only</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P10</span>Decide bookkeeping mechanically before review</h3><dl>
+<dt>Measured</dt><dd>42% of review blocks are bookkeeping; 8% are product defects.</dd>
+<dt>Change</dt><dd>The handoff check decides carry, body and red-check items; a reviewer may block only on product classes.</dd>
+<dt>Cost</dt><dd>Changes the fixer and reviewer contracts (policy). Risk: a bookkeeping error no check covers reaches main.</dd>
+<dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<div class="card w"><h3><span class="id">P11</span>Freeze scope at the register; record closure as data</h3><dl>
+<dt>Measured</dt><dd>464 groups added after the register; closure slipped a day per day.</dd>
+<dt>Change</dt><dd>After the register, only production defects and your orders enter the round; machinery proposals go to the next round. Each re-plan writes closure, scope and capacity to a data file.</dd>
+<dt>Cost</dt><dd>Known-broken instruments stay broken for the rest of a round unless they block production. This is stricter than my current intake rule.</dd>
+<dt>I recommend</dt><dd>Yes, with one exception class: a red required check on main.</dd></dl>
+<div class="opt"><span class="r">Yes, with that exception</span><span>Data only, no freeze</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P12</span>Relay: verdicts never wait behind PR updates</h3><dl>
+<dt>Measured</dt><dd>Four stalls in three days, up to 94 minutes; I relayed by hand each time.</dd>
+<dt>Change</dt><dd>Per-branch updates run concurrently; posting a verdict is never queued behind one.</dd>
+<dt>I recommend</dt><dd>Yes. I would move it before round 11, not during.</dd></dl>
+<div class="opt"><span class="r">Yes, before round 11</span><span>Yes, during</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P13</span>Act on a reviewer-strength alarm within a day</h3><dl>
+<dt>Measured</dt><dd>The guardrail flagged sonnet reviewers (0 real catches in 20) and nothing followed.</dd>
+<dt>Change</dt><dd>A would-trip dispatches a planted-defect audit of that reviewer model within a day.</dd>
+<dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">P14</span>Acknowledgements must name a completion event</h3><dl>
+<dt>Measured</dt><dd>2,368 acknowledgement lines; 134 items re-acknowledged five or more times.</dd>
+<dt>Change</dt><dd>An acknowledgement names the event that closes it and may be renewed twice, then it escalates. Gantt "accept" lines get an expiry. Proposal candidates get an id.</dd>
+<dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>No</span></div></div>
+
+<h2>9. Decision cards: removals</h2>
+
+<div class="card w"><h3><span class="id">R1</span>Replace standing seats with scripts where the role is mechanical</h3><dl>
+<dt>Measured</dt><dd>Standing seats used 1.42 B tokens this session, 66% of local seat tokens.</dd>
+<dt>Change</dt><dd>Retire the merge and dispatch agents wherever a script can do the work, as was done for the roster seat.</dd>
+<dt>Cost</dt><dd>The scripts must exist first. Today those seats also absorb instrument faults by judgement (today's dispatch seat rewrote a broken watcher), which a script will not.</dd>
+<dt>I recommend</dt><dd>Yes for merge operation and reviewer rendering; keep one seat for exceptions.</dd></dl>
+<div class="opt"><span class="r">Yes, keep one exception seat</span><span>Yes, all</span><span>No</span></div></div>
+
+<div class="card"><h3><span class="id">R2</span>Stop the 30-minute plan-page commits</h3><dl>
+<dt>Measured</dt><dd>498 commits in 13 days; most only moved dates.</dd>
+<dt>Change</dt><dd>Render when scope or order changes; log closure as data (P11).</dd>
+<dt>Cost</dt><dd>The public plan page updates less often.</dd><dt>I recommend</dt><dd>Yes.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>Hourly instead</span><span>No</span></div></div>
+
+<div class="card w"><h3><span class="id">R3</span>Replace the full policy re-read at each compaction</h3><dl>
+<dt>Measured</dt><dd>About 64k tokens, 36 times this session.</dd>
+<dt>Change</dt><dd>Read only what changed since the last proof, plus the rulings file (P6).</dd>
+<dt>Cost</dt><dd><span class="flag">Reverses your standing directive to re-read the whole corpus after every compaction.</span> After a compaction I hold only a summary, so a diff-only read relies on that summary being faithful.</dd>
+<dt>I recommend</dt><dd>Keep the full re-read for the orchestrator contract, CLAUDE.md and the rulings file; diff-only for the instrument pages, which are about two thirds of the corpus.</dd></dl>
+<div class="opt"><span class="r">Partial, as recommended</span><span>Diff only</span><span>Keep the full re-read</span></div></div>
+
+<h2>10. Cards I add from the benchmark gaps</h2>
+<p class="mute">The audit names these as gaps but proposes no change. The proposals are mine.</p>
+
+<div class="card w"><h3><span class="id">X1</span>Actuator-write changes need your own review</h3><dl>
+<dt>Measured</dt><dd>PR #3404, which introduced the setpoint hold, was approved by me under the mandate.</dd>
+<dt>Change</dt><dd>A change to a pump write path or to persisted actuator state merges only on your approving review in person; the mandate does not cover it.</dd>
+<dt>Cost</dt><dd>Those PRs wait for you, including hotfixes like today's two.</dd>
+<dt>I recommend</dt><dd>Yes, once the actuator-write dimension exists to name the paths. Today's two hotfixes would then wait for you.</dd></dl>
+<div class="opt"><span class="r">Yes</span><span>Yes, but not today's two hotfixes</span><span>No, mandate stays as is</span></div></div>
+
+<div class="card"><h3><span class="id">X2</span>Estimate remaining defects with two overlapping finders</h3><dl>
+<dt>Measured</dt><dd>Finders are partitioned, so no overlap exists to estimate how many defects remain.</dd>
+<dt>Change</dt><dd>In round 11, two independent finder seats cover the same ground in D1 and D2; the overlap gives a first estimate of remaining defects per dimension.</dd>
+<dt>Cost</dt><dd>Roughly double the finder cost for those two dimensions.</dd>
+<dt>I recommend</dt><dd>Yes for round 11 as a trial: it is the only direct measure of your zero-bug target.</dd></dl>
+<div class="opt"><span class="r">Yes, trial</span><span>No</span></div></div>
+
+<h2>11. Already ruled, in progress</h2>
+<ul>
+<li><strong>Dimension coverage</strong> (your "do all the necessary changes, including yes on both"): one policy PR with the denominator rule, the brief edits, the two new dimensions as drafts for your wording, D11 and D13 every round, and the convergence records. Fixer running. Its policy budget raise comes to you with the PR.</li>
+<li><strong>D5 and D6 full scope:</strong> policy PR, fixer running.</li>
+<li><strong>Round-11 start gate:</strong> finders do not start until those two and the cards you approve from section 7 are merged.</li>
+</ul>
+
+<h2>12. What the audit could not measure</h2>
+<p>Tokens before session 12 and for all cloud seats. Round-9 judged findings. First-pass yield for rounds 8 and 9. Merge-to-release lead time. Whether a root-cause countermeasure merged or worked. Whether an acknowledged item was done in time. Slip time-to-detect and time-to-act. How long idle groups stood. Dispatch order against plan order. Carries per day. The split of the slip between scope and waiting. Handover freshness. Release provenance. What became of the 104 proposal candidates I logged this session.</p>
+</main></body></html>
