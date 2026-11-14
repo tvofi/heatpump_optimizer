@@ -6,8 +6,10 @@ MUTANTS = [
  ("M01",3,"power_guard.py","not self.suppressing and self._over_count >= HYSTERESIS_SAMPLES","not self.suppressing and self._over_count >= 1"),
  ("M02",3,"power_guard.py","    if mean_so_far_kw is None:\n        elapsed = 0.0\n","    if mean_so_far_kw is None:\n        pass\n"),
  ("M03",3,"power_guard.py","self.suppressing and self._clear_count >= HYSTERESIS_SAMPLES","self.suppressing and self._clear_count >= 1"),
- ("M04",2,"wear.py","if self._streak < START_HYSTERESIS_SAMPLES:","if self._streak < 1:"),
- ("M05",2,"wear.py","        if immersion_active:\n            self._streak = 0\n            return False\n","        if False:\n            self._streak = 0\n            return False\n"),
+ # M04 and M05 re-pointed by R10-START-COUNTER-EDGES: the streak and the immersion freeze they mutated
+ # were replaced by the edge tracker's debounce and the running signal's element rule.
+ ("M04",2,"wear.py","if pending is None or utc_elapsed_seconds(when, pending[1]) < EDGE_DEBOUNCE_S:","if pending is None or utc_elapsed_seconds(when, pending[1]) < 0.0:"),
+ ("M05",2,"running_signal.py","        if kw is not None and element(kw):\n","        if False:\n"),
  ("M06",3,"wear.py","return float(replacement_cost) / max(1, int(rated_starts))","return float(replacement_cost)"),
  ("M07",3,"silent_mode.py","cap = max(float(fraction), CAPACITY_FLOOR_FRACTION) * float(p_max)","cap = float(fraction) * float(p_max)"),
  ("M08",3,"early_cutoff.py","if now - held.cut_at >= MIN_OFF:","if now - held.cut_at >= MIN_OFF * 0:"),

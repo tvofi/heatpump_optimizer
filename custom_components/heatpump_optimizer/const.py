@@ -1034,8 +1034,10 @@ CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
 CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
 CONF_DHW_DISINFECTION_MODE: Final = "dhw_disinfection_mode"
 DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
-#: The pump-duty arbiter (pump_arbiter.py): off (the default) writes and
-#: reads nothing; observe classifies what the pump did on each planned step;
+#: The pump-duty arbiter (pump_arbiter.py): off (the default) makes the
+#: arbiter write nothing and read no pump entity; the compressor's running
+#: signal is observed in every mode, for the start counter, by
+#: running_signal.py. Observe classifies what the pump did on each planned step;
 #: control writes the pump's mode and set-points per step, retries a write
 #: the pump ignored and stands down to off on any other change it did not make.
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
@@ -1240,9 +1242,6 @@ DEFAULT_WEAR_AUTOTUNE_ENABLED: Final = False
 #: Off by default: the tile set is three extra solves of real CPU.
 CONF_PRICE_TILES_ENABLED: Final = "price_tiles_enabled"
 DEFAULT_PRICE_TILES_ENABLED: Final = False
-#: #55 — consecutive samples on the far side of the threshold before an
-#: edge counts. One noisy meter reading must not book a compressor start.
-START_HYSTERESIS_SAMPLES: Final = 2
 #: #65 — smoothing for the daily operation-score samples (~3 weeks).
 SCORE_ALPHA: Final = 0.05
 #: #908 — consecutive free-price days (mean spot <= 0.01) after which the
