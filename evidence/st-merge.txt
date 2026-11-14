@@ -1,0 +1,6 @@
+tools/audit/seat/ci_priority.py rc=0 ci_priority self-test: 14 checks, 0 failed 
+tools/audit/seat/ci_pause.py rc=0 ci_pause self-test: 25 checks, 0 failed 
+tools/pr/cancel_superseded.py rc=0 cancel_superseded self-test: 61 checks, 0 failed 
+tools/audit/seat/sweep_render.py rc=0 sweep_render self-test: 39 checks, 0 failed 
+tools/audit/seat/beat_jobs.py rc=0 beat_jobs self-test: 243 checks, 0 failed 
+tools/audit/seat/merge_train.py rc=0 merge_train self-test: 758 checks, 0 failed 
