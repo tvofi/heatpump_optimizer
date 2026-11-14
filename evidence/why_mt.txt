@@ -1,0 +1,44 @@
+== M4 rc 1
+  FAIL wait_ci logs the one-job pulse right after its beat, from the same listing
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+== M5 rc 1
+  FAIL a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline (last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)
+  FAIL elapsed past the max reads over max, a name with no completed run reads no baseline
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+== M5b rc 1
+  FAIL a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline (last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+== X-nosort rc 0
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+== X-namefilter rc 0
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line

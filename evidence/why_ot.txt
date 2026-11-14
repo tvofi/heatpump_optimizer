@@ -1,0 +1,11 @@
+== M8 rc 1
+  FAIL OWED handoffs held-last: 25 stranded with 14 held: all 11 others print within the cap, held ones after them
+== M9 rc 1
+  FAIL OWED handoffs held-last: the cap line counts the held refs
+== M10 rc 1
+  FAIL OWED handoffs held-last: 25 stranded with 14 held: all 11 others print within the cap, held ones after them
+  FAIL OWED handoffs held-last: the cap line counts the held refs
+== X-nobatch rc 0
+
+== X-sortrev rc 1
+  FAIL OWED handoffs held-last: 25 stranded with 14 held: all 11 others print within the cap, held ones after them
