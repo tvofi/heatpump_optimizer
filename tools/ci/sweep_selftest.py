@@ -626,6 +626,39 @@ def run_checks():
     w.sweep()
     ok("#3584 C null: that newer run, its gate not started, with a governance job unfinished at the red's start "
        "(busy() reads it as a unit) makes the red a deferral: re-run in place", w.posts == [rerun_of(R1_3544)])
+    w = world3544(ids=(R1_3544, R2_3544), edit=newer_run)
+    w.runs[R2_3544 + 1]["gate"]["started_at"] = "2026-11-14T08:01:00Z"
+    w.runs[R2_3544 + 1]["units"][-1].update(name="governance / delivery-status-publish", started_at="2026-11-14T08:03:31Z")
+    w.sweep()
+    ok("#3584 C (the reviewer's): a newer run whose gate was running at the red's start, a governance job after it "
+       "unfinished, is never read by busy(): dispatch", w.posts == [dispatch3544])
+    old3544 = 43531447639
+    for why, unit, want in (("a skipped job GitHub re-stamped after the red's start", ("governance / record", "skipped",
+                             "2026-11-14T08:05:00Z"), [rerun_of(old3544), dispatch3544]),
+                            ("a unit job completed in the second the red started", ("tests / fast (3.14)", "success",
+                             "2026-11-14T08:02:00Z"), [rerun_of(old3544), dispatch3544])):
+        def lower_run(runs, u=unit):     # a lower-id run, completed: busy() reads it finished whatever its stamps say
+            real_red(runs)
+            runs[old3544]["units"].append({"name": u[0], "conclusion": u[1], "started_at": u[2], "completed_at": u[2]})
+        w = world3544(ids=(old3544, R1_3544, R2_3544), edit=lower_run)
+        w.sweep()
+        ok(f"#3584: beside a lower-id run with {why}, the real red still dispatches", w.posts == want)
+
+    def queued_run(runs):    # a run listed at the head with no job yet: busy() counts it, so the red deferred
+        real_red(runs)
+        runs[old3544 - 1] = {"id": old3544 - 1, "event": "pull_request", "created_at": "2026-11-14T07:40:00Z",
+                             "status": "queued", "run_attempt": 1, "conclusion": None, "gate": None, "units": []}
+    w = world3544(ids=(R1_3544, R2_3544), edit=queued_run)
+    w.sweep()
+    ok("#3584: a run listed with no job at the red's start is busy() to it: a deferral, re-run in place",
+       w.posts == [rerun_of(R1_3544)])
+
+    def two_reds(runs):      # the reviewer's D: R1's recorded deferral, R2 red too: nothing green covers
+        runs[R2_3544]["gate"].update(conclusion="failure")
+        runs[R2_3544]["conclusion"] = "failure"
+    w = world3544(ids=(R1_3544, R2_3544), v_id=R2_3544, edit=two_reds)
+    w.sweep()
+    ok("#3584 D: a recorded deferral with nothing green at the head still dispatches", w.posts == [dispatch3544])
     w = world3544(edit=real_red)
     rc, out = w.sweep()
     ok("#3544: a real red on a stale pin beside a dispatch whose first gate was green dispatches nothing",
