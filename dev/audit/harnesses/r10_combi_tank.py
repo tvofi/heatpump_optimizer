@@ -28,7 +28,14 @@ valve draw over the four hours before a 19-21 window, combi and separate.
 
 ``exchange``: a joint solve at a two-tier price day: the rounds the flux
 exchange took, the worst shortfall below the hot-water requirement, and the
-same solve with zero exchange rounds (the null), plus the solve's seconds.
+same solve with zero exchange rounds (the null), plus the solve's seconds,
+the published ``dhw_heating_cost`` and the tap's draw on the same day.
+
+``split_attrs``: the four hot-water readers a user sees (DHW Heating Cost,
+DHW Energy and DHW Cost sensors, the climate's ``dhw_heating_cost``) and one
+space reader, on the issue's store with combi on and off: 1 where the reader
+publishes ``dhw_split`` (Carry 10; Home Assistant's default of None stands in
+for a class with no attributes).
 
 ``equiv``: the two comparison mutants the mutation ledger triages as
 equivalent, each the operator's own text compiled over the head's function
@@ -212,6 +219,11 @@ def arm_exchange():
         print(f"RESULT {label}_rounds={rounds_taken[-1] if rounds_taken else 0}")
         print(f"RESULT {label}_worst_shortfall_c={gap:.3f}")
         print(f"RESULT {label}_dhw_kwh={float(np.sum(r.dhw_power_schedule)) * 0.25:.3f}")
+        # What the user sees for the same day: the published DHW Heating Cost
+        # (next 24 h), and the tap's own draw the store serves (kWh_th).
+        print(f"RESULT {label}_published_dhw_heating_cost={r.dhw_heating_cost:.3f}")
+        draws = o.model.dhw_draw_rates(np.arange(96) * 0.25 % 24.0)
+        print(f"RESULT {label}_tap_draw_kwh_th={float(np.sum(draws)) * 0.25:.3f}")
         print(f"RESULT {label}_solve_s={secs:.2f}")
 
 
@@ -306,11 +318,25 @@ def arm_equiv():
     print(f"RESULT equiv_floor_tie_control_differ_off_ties={foff}")
 
 
+def arm_split_attrs():
+    from harness import FakeCoordinator, FakeEntry
+    from heatpump_optimizer import climate, sensor
+
+    data = {"dhw_heating_cost": 7.304, "dhw_enabled": True, "current_action": {"mode": "auto"}}
+    for kind, combi in (("combi", True), ("separate", False)):
+        coord = FakeCoordinator(data, _thermal_params=params(combi=combi),
+                                _month_totals={"dhw": (1.0, 1.0), "space": (1.0, 1.0)})
+        for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor, sensor.DHWCostSensor,
+                    climate.HeatPumpOptimizerClimate, sensor.SpaceEnergySensor):
+            attrs = getattr(cls(coord, FakeEntry()), "extra_state_attributes", None) or {}
+            print(f"RESULT {kind}_{cls.__name__}_dhw_split={int('dhw_split' in attrs)}")
+
+
 ARMS = {
     "issue": arm_issue, "off_identity": arm_off_identity, "balance": arm_balance,
     "ua_zero": lambda: arm_balance(ua_zero=True), "eps_null": arm_eps_null,
     "legionella_eps": arm_legionella_eps, "lp_flux": arm_lp_flux, "exchange": arm_exchange,
-    "equiv": arm_equiv,
+    "equiv": arm_equiv, "split_attrs": arm_split_attrs,
 }
 
 if __name__ == "__main__":
