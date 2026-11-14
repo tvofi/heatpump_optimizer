@@ -111,7 +111,7 @@ standing-seat liveness step keep the seats alive.
 - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
 - [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
 - [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
-- [`beat_jobs.py`](instruments/beat_jobs.py.md) — the rows of `beatd.jobs.json`: each beat job's predicate, writing only actionable lines to one digest the orchestrator's one wake reads
+- [`beat_jobs.py`](instruments/beat_jobs.py.md) — the rows of `beatd.jobs.json`: each beat job's predicate, writing only actionable lines to one digest the orchestrator's one wake reads; its `darwin-selftest` row is the macOS self-test leg
 - [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
 - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
@@ -127,7 +127,7 @@ standing-seat liveness step keep the seats alive.
 - [`sweep_gantt.py`](instruments/sweep_gantt.py.md) — compares the live state to the plan's Gantt and prints each unacknowledged `GANTT-SLIP`
 - [`verdict_audit.py`](instruments/verdict_audit.py.md) — maps every open PR to its latest verdict and holder; prints `UNHELD` lines
 - [`survivor_list.py`](instruments/survivor_list.py.md) — refuses a `mutation-vacuous` verdict that omits a survivor its evidence's driver output reports; `bus.sh push-verdict` runs it
-- [`bare_array.py`](instruments/bare_array.py.md) — refuses a bare `"${name[@]}"` in any tracked `tools/**/*.sh` script (a sourced library runs under its caller's `set -u`), which macOS bash 3.2 dies on when the array is empty (`--check`, `--self-test`)
+- [`bare_array.py`](instruments/bare_array.py.md) — refuses two macOS bash 3.2 failures in tracked `tools/**/*.sh`: a bare `"${name[@]}"` (empty under a caller's `set -u`) and a `case` pattern lacking its `(` in `$( )` (`--check`, `--self-test`)
 - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
 - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
 - [`wt_sync.sh`](instruments/wt_sync.sh.md) — snapshots every worktree whose state is not already on origin (unpushed commits, uncommitted or untracked files) to `origin/wip-sync/<slug>`

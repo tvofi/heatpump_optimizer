@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/const.py:topology_layout_valid GUARD_OFF b13b235e",
+  "killed_by": "tests/features.py",
+  "old": "    if key == TOPOLOGY_VALVE_UPPER_DIRECT_SLAB:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

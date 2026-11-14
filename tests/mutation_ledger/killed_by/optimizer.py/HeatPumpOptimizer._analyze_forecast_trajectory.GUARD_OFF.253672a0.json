@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory GUARD_OFF 253672a0",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if avg_future_precip > 0.1:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
+}

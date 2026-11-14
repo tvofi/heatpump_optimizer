@@ -1036,6 +1036,15 @@ DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")
+#: The pump's own start hysteresis per duty, K, read from an entity as a
+#: temperature difference (``inputs.read_temperature_delta_k``) with no age
+#: gate: a setting changes only when someone changes it. Hot water: the pump
+#: starts a charge only below its target less this, so the plan places no
+#: charge on a warmer tank. Heating: its controller starts only once the
+#: target sits this far above the water, so the floor's lift is never below
+#: it (``thermal_model.start_flow_min_lift_k``).
+CONF_SPACE_HYSTERESIS_ENTITY: Final = "space_hysteresis_entity"
+CONF_DHW_HYSTERESIS_ENTITY: Final = "dhw_hysteresis_entity"
 #: How long a switch the optimizer turned on may stay unreadable before its
 #: record is dropped with a repair, when it is no longer the configured
 #: switch or has no state at all (renamed or deleted). Not immediate: at
@@ -1055,6 +1064,10 @@ DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
 # ever recorded, and the countdown latches overdue for ever. Long enough that
 # any healthy tank finishes well inside it; far shorter than the interval.
 DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
+#: The settling tail a space boost owes the interval learners, hours, whatever
+#: time it ran (#1935): ``boost.SPACE_SETTLE_TAIL`` and the store's look-ahead
+#: for the persisted tail.
+BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.

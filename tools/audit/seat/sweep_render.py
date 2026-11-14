@@ -277,6 +277,11 @@ def self_test() -> int:
     check("the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered",
           not {"tick_alive", "tick_brief", "tick_stale_min"} & set(names) and "{tick_" not in rendered
           and not re.search(r"tick_(alive|brief|stale_min)", rendered))
+    check("the rendered sweep names no train launch for the orchestrator",
+          not re.search(r"merge_train\.py sweep|train\.sh", rendered))
+    mutant = tracked.replace("Queue one line per verdicted pull request", "Run `merge_train.py sweep`; queue one line per verdicted pull request")
+    check("null control: step (3) restored to a train launch is caught",
+          mutant != tracked and re.search(r"merge_train\.py sweep", render(mutant, full)) is not None)
     old_five = tracked.replace("Read {{digest}}/digest.txt whole", "Read {{tick_log}}'s newest pass unfiltered")
     check("null control: step (5) restored to the newest pass fails the read check",
           old_five != tracked and "<digest>/digest.txt whole" not in render(old_five, full))

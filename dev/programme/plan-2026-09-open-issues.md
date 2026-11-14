@@ -2092,6 +2092,11 @@ session reads this file first.
   record, outside it the gate fails, so a re-record can only loosen.
 - **Ownership.** `owner:<session>` and a `claimed-by:` comment before a branch
   is cut. An unlabelled issue is *unknown*, not free.
+- **Filing is the last resort**, `CLAUDE.md`'s fix-verify-file order, and this
+  is the measurement behind it, moved here from that file. Four issues filed
+  in one day needed three refutation seats and a judge to establish that one
+  was largely false and that a mechanism another asked for was already in the
+  tree, landed by a pull request listed in its own evidence table.
 - **Every fix PR body**: `Closes #N`, `Part of #201`, the head SHA measured,
   and every executed number.
 

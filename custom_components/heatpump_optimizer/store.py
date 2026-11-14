@@ -259,6 +259,7 @@ def in_domain(domain: Domain, value: Any) -> bool:
 #: Shorthands for the table below.
 _POS = math.nextafter(0.0, 1.0)
 _R, _Z, _N = Domain("real"), Domain("real", 0.0), Domain("real", null=True)
+_Z0 = Domain("real", 0.0, null=True)
 _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
@@ -288,7 +289,7 @@ _DRAW_KEY = "the configuration keys the record: unreadable, the samples and the 
 _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
 _ACCURACY: dict[str, Domain | str] = {
-    "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
+    "samples/#/t": _AT, "samples/#/predicted_power_kw": _Z0,
     **{f"samples/#/{k}": _N for k in (
         "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
         "humidity", "solar_radiation", "cop_residual")},
@@ -475,8 +476,11 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
     },
     "boost": {
-        "dhw/until": _AT, "space/until": _AT,
+        "dhw/until": _AT, "space/until": _AT, "space/since": _AT,
         "block_dhw/until": _AT, "block_space/until": _AT,
+        # #1935: the settling tail runs past the overlay's own two hours.
+        "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
+        "space_settle/boosted_h": _Z0,
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,
@@ -519,7 +523,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "snapshots/#/alarmed_at_capture": _FLAG,
         "snapshots/#/unhealthy_input": Domain("text", null=True),
         "snapshots/#/accuracy/samples": Domain("int", 0, HISTORY_LENGTH),
-        "snapshots/#/accuracy/temperature_mae": Domain("real", 0.0, null=True),
+        "snapshots/#/accuracy/temperature_mae": _Z0,
         **{f"snapshots/#/accuracy/{k}": _N for k in (
             "temperature_bias", "power_ratio", "cost_error_percent")},
         "snapshots/#/accuracy/realised_cost": _R, "snapshots/#/accuracy/predicted_cost": _R,

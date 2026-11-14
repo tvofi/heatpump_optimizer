@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_band.py:describe RETURN_DEL 5959622f",
+  "killed_by": "tests/entities.py",
+  "old": "    return \"; \".join(v.message for v in found)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=5."
+}

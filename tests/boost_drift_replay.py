@@ -88,6 +88,24 @@ FROZEN_SPAN = (boost_mod.BOOST_HOURS
                + SETTLE_TAIL.total_seconds() / 3600.0)
 
 
+# Press surfaces, driven only by dev/audit/harnesses/boost_press_tail_walk.py
+# (not the gate): ``press:<minutes>:<count>`` presses the space overlay
+# through the channel switch at each window start, held ``minutes`` and then
+# cancelled (a press of the whole window expires instead), ``count`` presses
+# one cycle apart; ``freeze:<minutes>:<count>`` runs the same presses with the
+# true house driven by the plan throughout, so the freeze has no boost heat
+# behind it.
+def press_windows(surface: str, day_index: int) -> list[tuple[float, float]]:
+    """The ``(start, end)`` local hours a ``press:`` surface boosts on this day."""
+    _kind, minutes, count = surface.split(":")
+    if day_index not in BOOST_DAYS:
+        return []
+    return [
+        (s + k * DT_MIN / 60.0, s + k * DT_MIN / 60.0 + int(minutes) / 60.0)
+        for s in BOOST_STARTS for k in range(int(count))
+    ]
+
+
 def day_arrays(day_index: int):
     """Prices (SEK/kWh) and weather for one day, at the solver's step."""
     n = int(24 * 60 / STEP_MIN)
@@ -303,12 +321,20 @@ def cycle(st: dict, i: int, surface: str) -> None:
             "displace_value": 0.0,
             "space_reason": "plan",
         })
+    press = press_windows(surface, day_index) if surface.startswith(("press:", "freeze:")) else []
+    step_h = DT_MIN / 60.0
+    # The share of this cycle a press held the overlay: the true house is
+    # driven by the overlay for that share, by the plan for the rest.
+    press_frac = sum(max(0.0, min(b, h_now + step_h) - max(a, h_now)) for a, b in press) / step_h
     if surface == "channel":
         # Enter through the real switch path at each window start; the
         # normal end is the expiry ``apply`` observes, not a cancel.
         if boosting and h_now in BOOST_STARTS:
             asyncio.run(boost_mod.set_channel(
                 coord, boost_mod.CHANNEL_SPACE, True, refresh=False))
+    elif press and any(a == h_now for a, _b in press):
+        asyncio.run(boost_mod.set_channel(
+            coord, boost_mod.CHANNEL_SPACE, True, refresh=False))
     elif surface == "mode":
         want = "boost" if boosting else "auto"
         if want != ("boost" if st["mode_is_boost"] else "auto"):
@@ -328,6 +354,14 @@ def cycle(st: dict, i: int, surface: str) -> None:
     if boosting and house_state.room_temperature >= setpoint - 0.1:
         # modulating near the ceiling rather than fully off
         applied = want * 0.35
+    if surface.startswith("press:"):
+        plan_want = float(result.power_schedule[0])
+        plan_applied = plan_want if house_state.room_temperature < 23.0 - 0.1 else 0.0
+        boost_applied = want if house_state.room_temperature < setpoint - 0.1 else want * 0.35
+        applied = (press_frac * boost_applied + (1.0 - press_frac) * plan_applied
+                   if press_frac > 0.0 else applied)
+    elif surface.startswith("freeze:"):
+        applied = float(result.power_schedule[0]) if house_state.room_temperature < 23.0 - 0.1 else 0.0
     house_state = house.simulate_step(
         house_state, applied, outdoor_now,
         wind_speed=2.0, precipitation=0.0,
@@ -347,6 +381,14 @@ def cycle(st: dict, i: int, surface: str) -> None:
         st["daily_bias"][day_index] = (
             round(bias, 4) if bias is not None else None)
         st["alarmed"] = st["alarmed"] or coord._snapshot_ring.alarmed
+    # A press shorter than the window is cancelled at its own end, inside
+    # this cycle or at its close; one of the whole window expires instead.
+    for a, b in press:
+        if h_now < b <= h_now + step_h and b - a < boost_mod.BOOST_HOURS:
+            dt_mod.freeze(t + timedelta(hours=b - h_now))
+            asyncio.run(boost_mod.set_channel(
+                coord, boost_mod.CHANNEL_SPACE, False, refresh=False))
+            dt_mod.freeze(t)
 
 
 def arm_summary(arm: str, st: dict) -> dict:
