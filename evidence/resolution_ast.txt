@@ -1,0 +1,14 @@
+RESULT branch-changed defs 10 ['HeatPumpOptimizer._compute_baseline_power', 'HeatPumpOptimizer._start_gap_cost', 'HeatPumpOptimizer._stash_buffer_seed', 'HeatPumpOptimizer._stash_price_horizon', 'HeatPumpOptimizer.optimize', 'HeatPumpOptimizer.reference_day', '_day_mean_weather', '_held_reference', '_horizon_weather', '_step_clock']
+RESULT main-changed defs 5 ['_held_at_valve_top', '_held_bisected', '_held_unreachable', '_pump_unreachable', '_thermostat_held_state']
+RESULT removed by branch [] removed by main []
+RESULT both-changed []
+RESULT merged f46642080b differs from its side on: []
+RESULT head d72636a7 differs from branch side on: []
+RESULT head vs main ee9e2337, main-side held defs identical: True
+RESULT line counts {'_held_reference': 12, '_held_bisected': 10, '_held_at_valve_top': 23, '_pump_unreachable': 10}
+RESULT with classes, nested=False: branch-changed 12 main-changed 5 mismatches [] both []
+   branch: ['HeatPumpOptimizer', 'HeatPumpOptimizer._compute_baseline_power', 'HeatPumpOptimizer._start_gap_cost', 'HeatPumpOptimizer._stash_buffer_seed', 'HeatPumpOptimizer._stash_price_horizon', 'HeatPumpOptimizer.optimize', 'HeatPumpOptimizer.reference_day', 'SolveInputs', '_day_mean_weather', '_held_reference', '_horizon_weather', '_step_clock']
+   main: ['_held_at_valve_top', '_held_bisected', '_held_unreachable', '_pump_unreachable', '_thermostat_held_state']
+RESULT with classes, nested=True: branch-changed 13 main-changed 5 mismatches [] both []
+   branch: ['HeatPumpOptimizer', 'HeatPumpOptimizer._compute_baseline_power', 'HeatPumpOptimizer._start_gap_cost', 'HeatPumpOptimizer._stash_buffer_seed', 'HeatPumpOptimizer._stash_price_horizon', 'HeatPumpOptimizer.optimize', 'HeatPumpOptimizer.reference_day', 'SolveInputs', '_day_mean_weather', '_day_mean_weather.flat', '_held_reference', '_horizon_weather', '_step_clock']
+   main: ['_held_at_valve_top', '_held_bisected', '_held_unreachable', '_pump_unreachable', '_thermostat_held_state']
