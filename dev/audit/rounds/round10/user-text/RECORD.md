@@ -4,7 +4,7 @@ The owner's ruling of 2026-11-13: verify all user-facing text in production agai
 
 ## Corpus
 
-`python3 -I dev/audit/rounds/round10/user-text/enumerate.py --json`, run at the merge base, prints every row; the judged text is the merge base's, the evidence is `file:line` at the merge base. Sources, each walked, none listed by hand:
+`python3 -I dev/audit/rounds/round10/user-text/enumerate.py --json`, run at the merge base (`90c6bc3b0756475e28d4ace8d8e31c4788474933`, the commit this branch was cut from; a later merge of `origin/main` moves `git merge-base` but not the record), prints every row; the judged text is that commit's, the evidence is `file:line` at that commit. Sources, each walked, none listed by hand:
 
 - `strings.json`: every leaf under `exceptions`, `issues`, `entity`, `services`;
 - `services.yaml`: every leaf string or number (examples, selector options, units, min, max, step);
@@ -17,7 +17,7 @@ The package makes no `persistent_notification` or `notify` call, and `diagnostic
 
 Each row was judged by a seat reading the deciding code (schema, handler, entity description, constant), never a comment or docstring, to `true`, `false`, `stale`, `unverifiable` or `no-claim` (a bare name). Every `false` the seats returned was re-read by the fixer at the cited code; the fixer also overrode three `true` verdicts to `false` (`judged_by` names each). Template rows carry the verdict of the Plan Narrative state label of the same reason code.
 
-Evidence rule: `python3 -I dev/audit/rounds/round10/user-text/enumerate.py --evidence dev/audit/rounds/round10/user-text/verdicts.json <merge base>` refuses a row cited outside the repository, and a row whose every cited Python line at the merge base is blank, a comment or inside a docstring; it prints no row for this record. Its control is the record as first handed off (four rows on a comment or blank line, 132 citations under an out-of-tree checkout path), which it refuses on exactly those.
+Evidence rule: `python3 -I dev/audit/rounds/round10/user-text/enumerate.py --evidence dev/audit/rounds/round10/user-text/verdicts.json 90c6bc3b0756475e28d4ace8d8e31c4788474933` refuses a row cited outside the repository, and a row whose every cited Python line at that commit is blank, a comment or inside a docstring; it prints no row for this record. Its control is the record as first handed off (four rows on a comment or blank line, 132 citations under an out-of-tree checkout path), which it refuses on exactly those.
 
 English fallbacks: a raise that passes a `translation_key` also passes an English message, which the exception's `str()` hands logs, traces and API callers, and which the line-based `PY_RE` does not read whole. `tests/entities.py` reads every such raise by its syntax tree, a key or message passed through the raising function's parameters (as `_raise_update_failed`'s) at each of its calls, and refuses a literal fallback that does not spell its catalogue message, the fallback's own placeholders standing for any text; a computed message (`str(err)`, a caller's `reason`) has no literal of its own and is counted. So each fallback is judged as its catalogue row. Three fallbacks differed and now equal their message: `factory_reset_not_applied` (the false "nothing was changed"), `process_worker_unusable` and `apply_topology_unsupported` (wording and quoting only).
 
