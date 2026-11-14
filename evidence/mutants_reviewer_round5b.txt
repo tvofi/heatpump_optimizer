@@ -1,4 +1,4 @@
 SURVIVED NULL
-SURVIVED r5v_pass_judges_before_confirm
-SURVIVED r5v_write_pending_ignored_when_stopped
+KILLED r5v_pass_judges_before_confirm
+KILLED r5v_write_pending_ignored_when_stopped
 rc=0

@@ -1,37 +1,18 @@
-head 42659b9711f2940aa54145b7b6e1b47e65717376
-origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c
+head 112f0d777b8f8c921a75982d36305e94ffd2f7f4
+origin/main 6e100ef6980216a81eaa0438bdc215d62b19271f
+merge-base ba544faa2dd25b75b0129879112d6409affe9662
 LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (999 entries)
+  closures.tests/doc_claims.py: merged as a set (212 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1004 entries)
   re-run the gate that owns this file before pushing
-6ab207361cc1b714ff447500c85ef7692d2d6981
+6debd72f1db069a4847bd502292445a4d382f4df
 merge-tree rc=0
-ls-remote:
-42659b9711f2940aa54145b7b6e1b47e65717376	refs/heads/fix/r10-duty-switch-restart-learning
-42659b9711f2940aa54145b7b6e1b47e65717376	refs/pull/3461/head
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
-classify rc=3
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
-classify rc=3 at 07:42Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
-classify rc=3 at 07:43Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:49Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:50Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:51Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:53Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:54Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:55Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:56Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:57Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:59Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:00Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:01Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:02Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:04Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:05Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:06Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:07Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:08Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:10Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:11Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:12Z
-WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:13Z
+head merge replay: parents 1b3707d0bf67416d6d70563beaa08b1022ce74f8 e169c167ea4a7f0adec363bb34f79b50b8e21377
+b82b86c89790f72f96a03ab712494f317f0b0c35
+committed tree b82b86c89790f72f96a03ab712494f317f0b0c35
+three-dot VERSION/manifest/notes/golden/budgets:
+(end)
+delta stat:
+ tests/closures.json |  2 +-
+ tests/features.py   | 26 ++++++++++++++++++++++----
+ 2 files changed, 23 insertions(+), 5 deletions(-)
