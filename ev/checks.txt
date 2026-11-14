@@ -1,0 +1,30 @@
+== python3 tools/ci/selftest_scope.py static
+selftest_scope static: 114 gated step(s), 0 problem(s)
+rc=0
+== python3 tools/ci/selftest_scope.py --self-test
+  ok   the live job settles the index in an untraced step before its first traced one
+selftest_scope self-test: 120 checks, 0 failed
+rc=0
+== bash tools/audit/seat/handoff_push.sh --self-test
+  ok   a code head carrying a co-author trailer is refused, and nothing is pushed
+handoff_push self-test: 6 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/postmerge.py --self-test
+postmerge self-test: 18 checks, 0 failed
+rc=0
+== node tools/policy/policy_lint.mjs
+
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== node tools/policy/policy_lint.mjs --budgets
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
+== node tools/policy/rules_sync.mjs --check
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+== python3 tests/structure.py
+
+STRUCTURE RATCHET PASSED
+rc=0

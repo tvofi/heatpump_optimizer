@@ -1,0 +1,10 @@
+297,298d296
+< +   "git": []
+< +   "objects": false,
+947a946
+> -    post -->|"runs"| docs
+972,973d970
+< -   "git": [],
+< -   "objects": false
+1352a1350
+> -| postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |

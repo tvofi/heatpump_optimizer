@@ -1,0 +1,2 @@
+  STALE tools/ci/selftest_closures.json: run text changed since it was recorded: ['handoff-push'] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 114 gated step(s), 1 problem(s)
