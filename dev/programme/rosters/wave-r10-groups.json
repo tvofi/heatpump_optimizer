@@ -23010,9 +23010,9 @@
     "The leg order and the minimum share of a both step have one owner now, `custom_components/heatpump_optimizer/duty_legs.py`: a part that changes the split order or adds a minimum-share rule edits the leaf's leg rule and nowhere else, or planner and arbiter disagree. Control: the harness mutant \"arbiter: the share serves the legs in reverse order\" turns three section checks red. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B [dismissed: duplicate of carry 7 (item b30e2dd2 without its source prefix); the work is answered in PR 3532 Reconcile round]"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "4058469d79a3b43d840921b82b23f31494ba14b2",
     "last_step": null,
     "next_step": "fixer after R10-DUTY-SWITCH-RESTART-LEARNING merges (size M, no design step): adopts the split function and split-order checks from outside pull request 3420 and narrows them to the rule-c ruling in the brief",
     "note": "feature triage f2 for the orchestrator under mandate 6715477401, 2026-11-11: part B of outside pull request 3420 by Bankaifan, placed this round (owner rulings 2026-11-06 outside intake, no deferral out of the round); overlap admitted (R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL): feature triage f2 2026-11-11 under mandate 6715477401: part B of outside PR 3420, placed this round",
@@ -26387,9 +26387,9 @@
     "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r10-d5-d6-full-scope",
-    "commit": null,
+    "commit": "5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db",
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer; owner review (policy)",
     "note": "intake: owner instruction 2026-11-13; must land before round 11's finders start",
@@ -27558,7 +27558,7 @@
     "stage": "in-progress",
     "branch": "handoff/r10-hotfix-carry-tip-sigpipe",
     "commit": null,
-    "pr": null,
+    "pr": 3592,
     "last_step": "handoff cb803e9e pushed; body awaits its carry",
     "next_step": "open PR, review, land",
     "note": null
