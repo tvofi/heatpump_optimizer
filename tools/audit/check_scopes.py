@@ -587,7 +587,7 @@ def population_self_test():
     hand, a missing symbol and an empty glob refused, a NO-READ axis kept."""
     flow = ("from .const import (\n    CONF_I_ENTITY,\n)\nS = {v.Required(CONF_A_ENTITY): 1, v.Required(CONF_B_ENTITY): 1, v.Optional(CONF_B_ENTITY): 1, v.Optional(CONF_C_ENTITY): 1}\n"
             "R = (_F('p', CONF_D_ENTITY, required=True), _F('p', CONF_E_ENTITY, required=True), _F('q', CONF_E_ENTITY), _F('q', CONF_F_ENTITY, required=False),\n"
-            "     *(_F('q', k) for k in (CONF_G_ENTITY,)), get(CONF_A_ENTITY), get(CONF_D_ENTITY), get(CONF_H_ENTITY))\n# CONF_Z_ENTITY\n")
+            "     *(_F('q', k) for k in (CONF_G_ENTITY,)), get(CONF_A_ENTITY), get(CONF_D_ENTITY), get(CONF_H_ENTITY), get(CONF_K_ENTITY_ID))\n# CONF_Z_ENTITY\n")
     files = {"p/flow.py": flow, "p/const.py": 'K = "k"\n', "p/m.py": 'T = (K, "w")\nD = {"d1": 1, "d2": 2}\nL = [*T, "v"]\nX = tuple(T)\n'
              'def f(profile):\n    if profile == "flat" or "ramp" == profile:\n        return 0\n    return profile in ("flat", "dip")\n',
              "p/cfg.py": "CONF_A_ENTITY CONF_B_ENTITY CONF_A_ENTITY", "t/en.json": "", "t/fi.json": ""}
@@ -615,6 +615,7 @@ def population_self_test():
             ["UNREADABLE a: p/none.py is not tracked at the ref", "LEVELS: 0", "PAIRS: 0", "NO-READ AXES: 0"], False),
         # A required everywhere, D a required row: no absent level. I import only, Z a comment: never presented.
         # B and E are required in one step and optional in another, G is generated, H only read: each stays.
+        # CONF_K_ENTITY_ID only starts like one: the pattern is the whole identifier.
         "a name axis drops a key required everywhere or never presented":
             pop({"axis": "o", "kind": "name", "file": "p/flow.py", "pattern": "CONF_[A-Z]_ENTITY", "binary": True})[0][0]
             == "o\t6 binary axes\tCONF_B_ENTITY,CONF_C_ENTITY,CONF_E_ENTITY,CONF_F_ENTITY,CONF_G_ENTITY,CONF_H_ENTITY",
