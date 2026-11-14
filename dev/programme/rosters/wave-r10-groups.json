@@ -27563,6 +27563,55 @@
     "next_step": "open PR, review, land",
     "note": null
    }
+  },
+  {
+   "group": "R10-DRAW-MAP-EVIDENCE",
+   "lane": "IN",
+   "kind": "production",
+   "class": "learner",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-COP-LEARNER-DRAW-FLOOR"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner order 2026-11-14, after the linearity measurement for issue 3106 item 4 on the owner's own install: build the correction the data supports now, and improve the data collection and the experiment mode so a later round can correct the set-point-to-draw map itself. It never holds the v10.0.0 stamp: whatever is unbuilt or unmerged when the stamp is ready goes to round 11 with its design. Built on top of R10-COP-LEARNER-DRAW-FLOOR's handoff (same judgement seam, its approved design binds), never beside it. Part 1, a fix, measure first: (a) the learned top of the draw range held no sample on an install with several hundred steady ceiling minutes drawing well under the configured ceiling, so the plan still books the configured figure; establish why no ceiling evidence was stored and fix the cause; (b) follows_ask in custom_components/heatpump_optimizer/draw_range.py passes on the slope of draw against ask alone while the level sits far above the ask; add the level judgement in the one place the draw-floor design makes that judgement, with the data's shape as the failing case and a flat install as the null control. The open-loop map in flow_setpoint_for_level is NOT changed here: the data is closed-loop, the middle of the band was never held and one install fits a constant, not a correction. Part 2, design first (owner rule: a new feature is designed and its design reviewed before it is built): what the debug week and the week-scale draw store must record for the map to be measurable (inlet temperature and time beside set point and draw, open-loop marking), and an experiment-mode sweep that steps the set point across the band and holds each level with power feedback off, bounded so comfort and the pump's limits hold. Production code: fixer.md steps 2 to 8, a flat-price null control on every cost figure, a synthetic fixture reproducing the derived shape (no row of the owner's file enters the tree), and the measurement scripts landed under dev/audit/harnesses. Re-measure every figure at this group's merge base; carry none.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-draw-map-evidence",
+    "commit": null,
+    "pr": null,
+    "last_step": "group added on owner order 2026-11-14; part 1 fixer and part 2 designer dispatched locally",
+    "next_step": "part 1 handoff then review; part 2 design review; PR opens when CI has room; unbuilt at the stamp goes to round 11",
+    "note": "non-gating by owner order: never delays closure; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): owner order 2026-11-14 after the issue 3106 linearity measurement: build the supported correction and the collection and experiment improvements, never gating closure; same seam as R10-COP-LEARNER-DRAW-FLOOR, ordered after it"
+   },
+   "source": "user"
   }
  ]
 }
