@@ -60,8 +60,7 @@
 /dev/governance/decisions/                @tvofi
 /dev/audit/README.md                      @tvofi
 /dev/audit/config/objective.json          @tvofi
-/dev/audit/rounds/*/EVALUATION.json       @tvofi
-/dev/audit/rounds/*/OBJECTIVE.json        @tvofi
+/dev/audit/yardstick/                     @tvofi
 /tools/audit/check_scopes.py              @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
