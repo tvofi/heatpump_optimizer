@@ -1,0 +1,62 @@
+e4b68c37d93956413e0014c25128502a2a46e3ff Merge origin/main into handoff/r10-outside-contributor-cycle
+
+diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+remerge CONFLICT (content): Merge conflict in tools/ci/selftest_closures.json
+index 8f4cc76929..2638cd2d00 100644
+--- a/tools/ci/selftest_closures.json
++++ b/tools/ci/selftest_closures.json
+@@ -9196,54 +9196,7 @@
+     "tests/structure_budgets.json",
+     "tests/throwaway_git.py",
+     "tests/throwaway_git.sh",
+-<<<<<<< e8c6bb06a2 (outside.py self-test: drive main(), the command line, under the same fakes)
+     "tools/**"
+-=======
+-    "tools/audit/carry_audit.py",
+-    "tools/audit/seat/a1_dispatch_arms.sh",
+-    "tools/audit/seat/autofix_statuses.sh",
+-    "tools/audit/seat/body_patch.sh",
+-    "tools/audit/seat/body_push.sh",
+-    "tools/audit/seat/bus.sh",
+-    "tools/audit/seat/ci-watch.sh",
+-    "tools/audit/seat/ci_predict_replay.sh",
+-    "tools/audit/seat/cloud-setup.sh",
+-    "tools/audit/seat/cloud_relay.sh",
+-    "tools/audit/seat/codeql-triage-poll.sh",
+-    "tools/audit/seat/delivery_row.sh",
+-    "tools/audit/seat/failure_logs.sh",
+-    "tools/audit/seat/gh_read.py",
+-    "tools/audit/seat/handoff_push.sh",
+-    "tools/audit/seat/heartbeat.sh",
+-    "tools/audit/seat/ledger.py",
+-    "tools/audit/seat/merge_pr.sh",
+-    "tools/audit/seat/merge_train.py",
+-    "tools/audit/seat/open_pr.sh",
+-    "tools/audit/seat/pr_args.sh",
+-    "tools/audit/seat/proof_watch.py",
+-    "tools/audit/seat/r9_rc_bus_fetchhead.sh",
+-    "tools/audit/seat/ref_privacy.py",
+-    "tools/audit/seat/remerge_main.sh",
+-    "tools/audit/seat/review_carry.py",
+-    "tools/audit/seat/review_packet.py",
+-    "tools/audit/seat/roster_lib.py",
+-    "tools/audit/seat/seat_venv.sh",
+-    "tools/audit/seat/survivor_list.py",
+-    "tools/audit/seat/tick_loop.sh",
+-    "tools/audit/seat/topic_grammar.py",
+-    "tools/audit/seat/train.sh",
+-    "tools/audit/seat/update_pr.sh",
+-    "tools/audit/seat/wt_sync.sh",
+-    "tools/policy/brief_lint.mjs",
+-    "tools/policy/counts.mjs",
+-    "tools/policy/dependabot_contract.mjs",
+-    "tools/policy/fixtures/required-contexts.json",
+-    "tools/policy/legacy_control_files.json",
+-    "tools/policy/policy_lint.mjs",
+-    "tools/policy/render_md.mjs",
+-    "tools/policy/vendor/markdown-it.min.js",
+-    "tools/pr/app_approve.sh"
+->>>>>>> 50373173d4 (Merge pull request #3557 from tvofi/fix/r10-hotfix-selftest-scope-table)
+    ],
+    "probes": [
+     ".",
