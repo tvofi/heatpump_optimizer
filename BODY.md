@@ -44,8 +44,12 @@ none owed by this pass beyond those 3582 already carries: the unpinned sites and
 
 ## Carries
 
-- Carry 5 (dev/README.md "requires only gate"): live read on 2026-11-14 of ruleset 23698884 (`main-protect-checks`, enforcement active): rules are `pull_request` and `required_status_checks` with the single context `gate`. The sentence is true; carry 5 and its duplicates 7 and 10 are dismissed on that read. dev/README.md is otherwise not this part's.
-- Carry 0, 1, 4: this pass; `doc_claims.py` and `--markers --roster` controls above. Carry 2, 3: untouched, as 3582's body records; user-doc markers left to R10-USER-DOCS-VERIFY.
+- Carry 0, Carry 1, Carry 4: this pass; the `doc_claims.py` and `--markers --roster` controls above. No unresolved target marker; no marker is added for a landed group.
+- Carry 2, Carry 3: untouched, as 3582's body records; user-doc markers stay with R10-USER-DOCS-VERIFY; the ledger kinds `dev/README.md` names were checked by 3582 against `tools/audit/seat/ledger.py` KINDS.
+- Carry 5: live read on 2026-11-14 of ruleset 23698884 (`main-protect-checks`, enforcement active): rules are `pull_request` and `required_status_checks` with the single context `gate`. The sentence "requires only gate" is true; dismissed on that read. dev/README.md is otherwise not this part's.
+- Carry 6, Carry 9: duplicates of carry 4, dismissed as the brief records. Carry 7, Carry 10: duplicates of carry 5, dismissed on the read above.
+- Carry 8, Carry 14: dev/README.md and the process-slim re-read are not this part's (3582 carried them; dev/README.md waits on pull request 3451).
+- Carry 11, Carry 12, Carry 13: duplicates of carries 1, 3 and 0, dismissed as the brief records.
 - The "One owner per concern" bullets: re-read against the six diffs only; none is contradicted (heat_energy's no-HA-import claim re-checked at 3556's head).
 
 ## Forward-carry
