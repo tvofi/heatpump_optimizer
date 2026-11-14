@@ -70,10 +70,7 @@ _SIGNALS: WeakKeyDictionary[Any, Signal] = WeakKeyDictionary()
 
 def signal_for(coord: Any) -> Signal:
     """The pump's signal, made on first use; one config entry is one pump."""
-    sig = _SIGNALS.get(coord)
-    if sig is None:
-        sig = _SIGNALS[coord] = Signal(coord.hass)
-    return sig
+    return _SIGNALS.get(coord) or _SIGNALS.setdefault(coord, Signal(coord.hass))
 
 
 def source(
@@ -98,9 +95,8 @@ def source(
     return sensor or meter, reader
 
 
-def attach(coord: Any, entity: str | None, reader: Reader) -> None:
+def attach(sig: Signal, entity: str | None, reader: Reader) -> None:
     """Listen on ``entity`` and read it once; idempotent, and a no-op without one."""
-    sig = signal_for(coord)
     if sig.unsub is not None or not entity:
         return
     sig.reader = reader
@@ -113,16 +109,13 @@ def attach(coord: Any, entity: str | None, reader: Reader) -> None:
     note(sig, dt_util.now())
 
 
-def detach(coord: Any) -> None:
+def detach(sig: Signal) -> None:
     """Stop listening, cancel the timer and drop the subscribers; idempotent.
 
-    The subscribers and the reader close over the coordinator, and this
+    The subscribers and the reader close over the coordinator, and the
     table's value would otherwise keep its own weak key alive: a released
     coordinator is collected only once they are gone. The settled class is kept.
     """
-    sig = _SIGNALS.get(coord)
-    if sig is None:
-        return
     unsub, timer, sig.unsub, sig.timer, sig.reader = sig.unsub, sig.timer, None, None, None
     sig.subscribers.clear()
     if unsub is not None:

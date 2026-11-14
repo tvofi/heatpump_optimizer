@@ -84280,7 +84280,7 @@ class _DsArb:
 
 def _ds_signal(self):
     """The coordinator's attach of the running signal, over this surface's frequency source."""
-    _ds_rs.attach(self, *_ds_rs.source(self.hass, _DsConfig.from_mapping(self._config), lambda: self.params,
+    _ds_rs.attach(_ds_rs.signal_for(self), *_ds_rs.source(self.hass, _DsConfig.from_mapping(self._config), lambda: self.params,
                                        lambda kw: False))
     return _ds_rs.signal_for(self)
 

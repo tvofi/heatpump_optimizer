@@ -452,10 +452,9 @@ def attach(rec: _Record) -> None:
 def detach(coord: Any) -> None:
     """Stop hearing the edges; an open episode is dropped uncounted. The signal is the module's."""
     rec = _RECORDS.get(coord)
-    if rec is None:
-        return
-    running_signal.unsubscribe(rec.signal, rec.feed)
-    rec.learner.episode = None
+    if rec is not None:
+        running_signal.unsubscribe(rec.signal, rec.feed)
+        rec.learner.episode = None
 
 
 def note_mode_write(rec: _Record, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
