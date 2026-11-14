@@ -396,22 +396,24 @@ seats for designer, design review and build (owner ruling for L and XL work,
 The owner's answers to the designer's questions, 2026-11-14 ~10:20Z (verbatim:
 "1. Ruled out. 2. Every change must not stay its own PR. 3. Yes. 4. Three days
 is fine but about maximum."), which the orchestrator read and relayed to the
-designer as: an organization transfer and the native merge queue are dropped; `main` may advance by a promotion per proved batch;
+designer as: an organization transfer and the native merge queue are dropped;
 reviewed work lands on the integration branch on its verdict and scoped checks,
-with the FULL suite per batch (a change to `orchestrator.md` section 11,
-which is the owner's review); the build window is three days from the closure
-stamp. They are on the group's `resume.note`, because a design-stage group with
-no files is a receiver only and the roster refused them as a carry. **They
-supersede the first item of `dev/audit/README.md`'s "Round 11's opening plan
-carries"** (the organization-transfer decision), which that file still lists as
-open and which is owed an amendment (see Owed), and make the held groups that
-item names moot only if the pipeline is built; the roster's note, not the README,
+with the FULL suite per batch (a change to `orchestrator.md` section 11, which
+is the owner's review). Answer 4 preceded the design review's five-to-six-day
+estimate and the later rulings, so it is not the plan; the state and the
+current rulings are in constraint 1 above. The answers are on the group's
+`resume.note`, because a design-stage group with no files is a receiver only
+and the roster refused them as a carry. **They supersede the first item of
+`dev/audit/README.md`'s "Round 11's opening plan carries"** (the
+organization-transfer decision), which that file still lists as open and which
+is owed an amendment (see Owed), and make the held groups that item names moot
+only if the integration branch is built; the roster's note, not the README,
 says which. The designer's baseline (a handoff-to-merge decomposition over the
 window 2026-11-07 to 2026-11-14) and harness are out of the tree: **the
 orchestrator holding the design must put the harness on the design ref**
 (`design/R11-PRE-PARALLEL-PIPELINE`) or the cost test has no enumerator and its
 figures are not figures (`writing-for-agents.md`).
-TODO-AT-CLOSURE: the design ref's head, the design review verdict if any, and whether anything was built; `git ls-remote origin 'refs/heads/design/R11-PRE-PARALLEL-PIPELINE'`, and the group's stage on the roster.
+TODO-AT-CLOSURE: whether the harness is on the design ref, and whether anything was built; the group's stage on the roster. The design head and verdict are the TODO in constraint 1.
 
 ### Rulings that bind round 11
 
