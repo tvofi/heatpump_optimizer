@@ -25439,7 +25439,7 @@
     "branch": null,
     "commit": null,
     "last_step": null,
-    "next_step": "designer (size XL): architect note at design/R11-OUTSIDE-HONEST-STARTS-RUNS from the contributor's note; design review; fixer only on Design review: approve",
+    "next_step": "designer round 2 in flight (fired 2026-11-14T00:10Z) answering design-verdict 46508318 revise class-open; fixer only on Design review: approve",
     "note": "round 11, triage P-OUTSIDE-3529, starts after the v10.0.0 stamp; overlap admitted (R10-ARCH-DOCS-DELTA): round 11, triage P-OUTSIDE-3529, starts after the v10.0.0 stamp; overlap admitted: docs/architecture.md with R10-ARCH-DOCS-DELTA in a different section, and the production files with the four groups it is after",
     "pr": null
    }
