@@ -1,0 +1,51 @@
+== G1 delete files_tokens schema line
+ tools/policy/budget_raise_gate.py | 1 -
+ 1 file changed, 1 deletion(-)
+  FAIL policy: a deleted file's token cap dropped, a token cap down, are routine: got True, want False
+budget_raise_gate self-test: 280 checks, 1 failed
+== P1 handed() returns []
+FAIL a contract handing an agent `state_docs.py --push` is caught (null control) (got: )
+postmerge self-test: 22 checks, 1 failed
+== P2 standing-merge.md hands state_docs.py
+FAIL orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3) (got: ['state_docs.py'])
+postmerge self-test: 22 checks, 1 failed
+== P3 orchestrator.md section 11 hands postmerge.py beat (roster_edit)
+postmerge self-test: 22 checks, 0 failed
+== C1 corpus with nudge.md restored
+corpus:        ~64893 tokens, cap 64899 +band 500 = 65399
+== C2 corpus at merge base
+corpus:        ~68707 tokens, cap 68618 +band 500 = 69118
+== beats set
+(pr: 'int', repo: 'str', state_dir: 'Path', sha: 'str', group: 'str') -> "'list[tuple[str, list, bool]]'"
+70:        return 1  # no full sha: nothing below can name its subject
+131:    full = "c" * 40
+146:                return 0, json.dumps({"state": "MERGED", "mergeCommit": {"oid": full},
+150:                return 0, full + "\n"
+171:          code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #{rb.RECORD_ISSUE} open."
+183:        check(f"... and opens postmerge-owed for the pull request and the full merge sha ({step})",
+184:              any(f"ledger.py open postmerge-owed 7 {full} " in c for c in log), log)
+187:          f"set-stage owed R10-X {full}" in lines, lines)
+198:          any(f"ledger.py close postmerge-owed 7 {full} " in c for c in log), log)
+207:        for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X")}
+43:def steps(pr: int, repo: str, state_dir: Path, sha: str, group: str) -> "list[tuple[str, list, bool]]":
+44-    """(name, argv, mutating): the commands after the comment, in order."""
+46-    return [
+47-        ("stage", [*PY, f"{seat}/roster_sync.py", "--repo", repo, "--apply"], True),
+48-        ("docs", [*PY, f"{seat}/state_docs.py", "--repo", repo, "--push"], True),
+49-        ("main", [*PY, f"{seat}/merge_train.py", "classify", sha, "--repo", repo, "--main"], False),
+56-    lines = [ln.strip() for ln in o.strip().splitlines()]
+59-    errs = [ln for ln in lines if ln.startswith("ERROR")][:3]
+60-    return " | ".join(errs + [lines[-1]])[:300]
+65-    owed: "list[tuple[str, str]]" = []
+71-    sha = f["sha"]
+72-    group = rb.resolve_group(roster if roster is not None else rb.load_roster(run), f["branch"], pr)
+77-    for name, argv, mutating in steps(pr, repo, state_dir, sha, group):
+79-            out(f"DRY-RUN {name}: " + " ".join(argv))
+81-        code, o = run(argv)
+== C1b corpus with nudge.md restored and staged
+dev/governance/roles/nudge.md                    115    -     3808     - 
+corpus:        ~68701 tokens, cap 64899 +band 500 = 65399
+== P3b orchestrator.md section 11 hands roster_sync.py
+FAIL orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3) (got: ['roster_sync.py'])
+FAIL a contract handing an agent `state_docs.py --push` is caught (null control) (got: )
+postmerge self-test: 22 checks, 2 failed

@@ -1,0 +1,5 @@
+== head
+selftest_scope self-test: 117 checks, 0 failed
+== merge base
+selftest_scope self-test: 117 checks, 0 failed
+d9677a53d55bcf114086b15ab97588b7fb429b22

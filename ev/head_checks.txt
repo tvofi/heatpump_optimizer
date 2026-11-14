@@ -1,0 +1,45 @@
+== python3 -I tools/audit/seat/postmerge.py --self-test
+rc=0
+postmerge self-test: 22 checks, 0 failed
+== python3 -I tools/policy/budget_raise_gate.py --self-test
+rc=0
+  ok   e2e: --check-body: a diff that cannot be read exits 2
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 280 checks, 0 failed
+== python3 -I tools/audit/seat/sweep_render.py --self-test
+rc=0
+  ok   a cited instrument that is not in the tree is refused
+  ok   a cited instrument that exists passes, arguments and all (null control)
+sweep_render self-test: 38 checks, 0 failed
+== node tools/policy/policy_lint.mjs
+rc=0
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== node tools/policy/policy_lint.mjs --budgets
+rc=0
+role policy    ~10008 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+== node tools/policy/rules_sync.mjs --check
+rc=0
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+== python3 tests/structure.py
+rc=0
+  ok   seam_cut_total 421 <= 421
+
+STRUCTURE RATCHET PASSED
+== python3 tests/layout.py
+rc=0
+  ok   gitignore self-test: rule 'config/': 2 finding(s), want 2
+  ok   gitignore self-test: rule '/config/': 0 finding(s), want 0
+layout self-test: ok
+== python3 -I tools/audit/seat/orchestrator_tick.py --self-test
+rc=0
+orchestrator_tick self-test: 317 checks, 0 failed
+== python3 -I tools/audit/seat/roster_edit.py --self-test
+rc=0
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at a06927ae548066081e8e16943afe78fc25754835
+roster_edit self-test: 294 checks, 0 failed
