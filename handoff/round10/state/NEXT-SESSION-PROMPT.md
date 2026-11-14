@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-D5-D6-FULL-SCOPE (stage in-progress, branch `fix/r10-d5-d6-full-scope`): `git fetch origin fix/r10-d5-d6-full-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OBJECTIVE-FUNCTION (stage in-progress, branch `fix/r11-pre-objective-function`): `git fetch origin fix/r11-pre-objective-function && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DIMENSIONS-FULL-COVERAGE (stage carries-open, branch `fix/r10-dimensions-full-coverage`): `git fetch origin fix/r10-dimensions-full-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DOCS-STRINGS-RESIDUE (stage in-progress, branch `fix/r10-docs-strings-residue`): `git fetch origin fix/r10-docs-strings-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-DOCS-STRINGS-RESIDUE (stage carries-open, branch `fix/r10-docs-strings-residue`): `git fetch origin fix/r10-docs-strings-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FEEDBACK-SETTLE-LARGE-LIFT (stage in-progress, branch `r10-feedback-settle-large-lift`): `git fetch origin r10-feedback-settle-large-lift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MAIN-SELFTEST-SCOPE (stage in-progress, branch `handoff/r10-hotfix-main-selftest-scope`): `git fetch origin handoff/r10-hotfix-main-selftest-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`

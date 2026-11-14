@@ -607,7 +607,7 @@ gantt
 | R11-PRE-STANDING-SCRIPTS | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card R1 (yes, keep one exception seat): the mechanical standing roles (merge operation after an approved verdict, reviewe... |  |
 | R11-PRE-PLAN-RENDER | IN | 5 | not-started | - | sonnet/opus | - | Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minute... |  |
 | R10-PLAYBOOK-ROUND-START | IN | 2 | not-started | - | sonnet/opus | - | Owner instruction 2026-11-13, his words: "Make sure the future rounds can use the audit playbook even with the addition of the objective function and the imp... |  |
-| R10-DOCS-STRINGS-RESIDUE | IN | 1 | in-progress | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
+| R10-DOCS-STRINGS-RESIDUE | IN | 1 | carries-open | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
 | R10-COP-LEARNER-DRAW-FLOOR | IN | 1 | not-started | - | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
 | R10-HOTFIX-ENTITIES-REDACTION-FLAKE | IN | 1 | done | - | sonnet/opus | - | HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named "the location is redacted whole, from... |  |
 | R10-FEEDBACK-SETTLE-LARGE-LIFT | IN | 1 | in-progress | - | sonnet/opus | - | Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). |  |
