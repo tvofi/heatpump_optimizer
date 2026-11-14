@@ -25440,7 +25440,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "designer round 2 in flight (fired 2026-11-14T00:10Z) answering design-verdict 46508318 revise class-open; fixer only on Design review: approve",
-    "note": "round 11, triage P-OUTSIDE-3529, starts after the v10.0.0 stamp; overlap admitted (R10-ARCH-DOCS-DELTA): round 11, triage P-OUTSIDE-3529, starts after the v10.0.0 stamp; overlap admitted: docs/architecture.md with R10-ARCH-DOCS-DELTA in a different section, and the production files with the four groups it is after",
+    "note": "round 11, triage P-OUTSIDE-3529; design at design/R11-OUTSIDE-HONEST-STARTS-RUNS 05aec035, design review 2026-11-13T20:20Z returned revise (46508318), designer round 2 fired 2026-11-14T00:10Z on claude-fable-5-2; fixer starts only on Design review: approve; overlap admitted (R10-ARCH-DOCS-DELTA): docs/architecture.md in a different section, and the production files with the four groups it is after",
     "pr": null
    }
   },
