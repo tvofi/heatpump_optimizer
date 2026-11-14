@@ -856,7 +856,7 @@ def _thermostat_held_state(
 
     held = held_at(target)
     if unreachable(held):
-        held = _held_at_valve_top(model, held, weather0, humidity) or _held_bisected(
+        held = _held_at_valve_top(model, held, need(held), weather0, humidity) or _held_bisected(
             held_at, unreachable, min(outdoor, target), target)
     if p.two_tank_modelled:
         # The reference has no wood: below every zone the valve takes nothing
@@ -878,10 +878,11 @@ def _held_bisected(
 
 
 def _held_at_valve_top(
-    model: ThermalModel, held: ThermalState,
+    model: ThermalModel, held: ThermalState, need_kw: float,
     weather0: tuple[float, float, float, float], humidity: float | None,
 ) -> ThermalState | None:
-    """A two-zone house behind a valve whose curve cannot hold the target:
+    """A two-zone house behind a valve whose curve cannot deliver ``need_kw``,
+    the held zones' steady need at the target:
     the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
     tank ``held``'s, already at the curve's top -- or ``None`` where the pump cannot
     make it, or on any other house, which the level-zone bisection holds
@@ -889,7 +890,8 @@ def _held_at_valve_top(
     reference's day warmed to it)."""
     p = model.params
     outdoor, wind, rain, solar = weather0
-    if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)):
+    if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)
+            and need_kw > valve_top_draw(model, held, outdoor, wind, rain)):
         return None
     top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
     if top is None:
