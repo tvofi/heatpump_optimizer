@@ -1378,13 +1378,19 @@ def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: Feedb
     return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK
 
 
-def _pass_record(coord: Any, held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> draw_range.PassRecord | None:
+def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
+    """Record this Control pass on ``held`` and hand it to the window ``inp.draw``."""
+    held.last_pass = _pass_record(held, inp, duty, boosted, now)
+    draw_range.note_pass(inp.draw, held.last_pass)
+
+
+def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> draw_range.PassRecord | None:
     """This Control pass as ``draw_range`` keeps it, or ``None`` where no
-    flow set-point is held (:func:`_flow_command`)."""
+    flow set-point is held (:func:`_flow_command`). ``boosted``: :func:`_boosted`."""
     command = _flow_command(inp, held)
     if command is None:
         return None
-    m = _map_inputs(inp, now, _boosted(coord, inp, now))
+    m = _map_inputs(inp, now, boosted)
     return draw_range.PassRecord(
         now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
         m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
@@ -1971,8 +1977,8 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     hold(coord, now)
     served = _served(coord, inp, duty, now)
     await _command(coord, inp, desired(coord, inp, served, now), now)
-    held.last_pass = _pass_record(coord, held, inp, served, now)
-    draw_range.note_pass(inp.draw, held.last_pass)
+    boosted = _boosted(coord, inp, now)
+    _note_pass(held, inp, served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 

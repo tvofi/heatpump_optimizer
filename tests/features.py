@@ -91542,7 +91542,7 @@ R.check(
 _mr_fresh = _FbCoord()
 R.check(
     "no pass record where no flow set-point is held (nothing written yet)",
-    _mr_pa._pass_record(_mr_fresh, _mr_pa.state_for(_mr_fresh), _mr_fresh.arbiter_inputs(), "space",
+    _mr_pa._pass_record(_mr_pa.state_for(_mr_fresh), _mr_fresh.arbiter_inputs(), "space", False,
                         _MR_T0) is None,
 )
 
