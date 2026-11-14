@@ -318,7 +318,7 @@ EOF'                                               "a heredoc body holding pkill
   gst refuse "git -C $gtmp/orch checkout main"  "$gtmp/other" "guard: git -C into the checkout is refused"
   gst refuse "cd $gtmp/orch && git reset --hard" "$gtmp/other" "guard: cd then reset is refused"
   gst refuse 'git -c x=y merge origin/main'     "$gtmp/orch"  "guard: git -c before the subcommand is read past"
-  # the fix review's five probes (verdict/3294): bodies the shared parser reads
+  # the fix review's five probes (PR 3294's fix review): bodies the shared parser reads
   gst refuse "bash -c 'git pull'"               "$gtmp/orch"  "guard: a bash -c body is read"
   gst refuse 'eval git pull'                    "$gtmp/orch"  "guard: an eval body is read"
   gst refuse "(cd $gtmp/orch && git pull)"      "$gtmp/other" "guard: a subshell's cd is followed"
