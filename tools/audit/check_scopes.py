@@ -217,8 +217,8 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
     OBJECTIVE at the ref, so the record is checked against the definition it
     was written under, and neither list is carried here."""
     spec = json.loads(show(OBJECTIVE))
-    prev = f"dev/audit/rounds/round{rnd - 1}/OBJECTIVE.json"
-    path = f"dev/audit/rounds/round{rnd}/EVALUATION.json"
+    prev = f"dev/audit/yardstick/round{rnd - 1}/OBJECTIVE.json"
+    path = f"dev/audit/yardstick/round{rnd}/EVALUATION.json"
     gaps, terms, builders = [], {}, []
     if prev not in tree:
         gaps.append(f"{prev} is not in the tree: round {rnd - 1}'s close wrote no record to evaluate")
@@ -422,7 +422,7 @@ def evaluation_self_test(tree, show):
     spec = {**live, "thresholds": {"floor": {"value": None}, "band": {"value": 0.2}},
             "owner_criteria": {"D4": None, "D7": ME},
             "population": [{"axis": "n", "kind": None, "no_read": "r", "builder": "G1"}]}
-    prev, path = "dev/audit/rounds/round7/OBJECTIVE.json", "dev/audit/rounds/round8/EVALUATION.json"
+    prev, path = "dev/audit/yardstick/round7/OBJECTIVE.json", "dev/audit/yardstick/round8/EVALUATION.json"
     objs = sorted(match(tree, object_globs(spec)))
     terms = {t: {"value": 1, "enumerator": "python3 " + ME} for t in spec["terms"]}
     terms[spec["terms"][-1]] = {"no_read": "no ledger", "would_read": "a ledger", "builder": "card:C2"}
