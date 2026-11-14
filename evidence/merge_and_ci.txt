@@ -1,27 +1,48 @@
-origin/main 2cfa3d7d6906632c2a842d898f8fe712a71baeb4
-merge-base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
 LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/entities.py: merged as a set (568 entries)
-  closures.tests/harness_headers.py: merged as a set (409 entries)
-  inert_reads.tests/harness_headers.py: merged as a set (996 entries)
+  closures.tests/doc_claims.py: merged as a set (212 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1002 entries)
   re-run the gate that owns this file before pushing
-239a46d6405d3c0aec7241a44f8a8be9b7719094
+6f11a681436fa047dcd07a4c40448647b024d7c8
 merge-tree rc=0
-classify at 2026-11-12T01:51:35Z: WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
+2026-11-12T09:49:51Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
 rc=3
-polled from 2026-11-12T01:27Z; poll log:
-2026-11-12T01:29:59Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:31:27Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:32:54Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:34:21Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:35:48Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:37:15Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:38:42Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:40:09Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:41:36Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:43:03Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:44:30Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:45:57Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:47:24Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:48:51Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
-2026-11-12T01:50:18Z rc=3 WAIT 3a47c7c156ff1ee55bd0a343023606f7655d2638 pending: gate red: none
+2026-11-12T09:53:12Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T09:54:00Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T09:56:58Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T09:59:05Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:00:48Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:02:43Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:04:34Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:06:29Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:08:19Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:10:15Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+2026-11-12T10:12:05Z
+WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
+rc=3
+re-check against origin/main fc2a7edcf2be8847037d9e8dc5bde460977befa8
+  closures.tests/doc_claims.py: merged as a set (212 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1003 entries)
+  re-run the gate that owns this file before pushing
+16800e710af2420c57b371c607f3dbe808d47099
+merge-tree rc=0

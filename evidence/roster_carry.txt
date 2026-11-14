@@ -1,5 +1,13 @@
-Read by a delegated read-only seat of this review at origin/handoff/audit-r10-roster 923e8cf1961fd5b9e5db402bf28ce4e6c15fa1b3 (2026-11-12T02:16:37+01:00), dev/programme/rosters/wave-r10-groups.json:
-R10-DUTY-SWITCH-RESTART-LEARNING-PR-B: 2 carry items (:22980 body item 1b22f416, the read interface, with dead_top_level_symbols and publish_only_observed; :22981 body item 3c666f5b, factory reset keeps the store).
-R10-DUTY-SWITCH-PLANNER-PRICE: 1 carry item (:23032, body item 3656875b).
-git grep at that SHA over dev/programme/rosters and dev/programme/carries: SPAN_FLOOR_N no hit; span_days no hit; r3_span_never_ages no hit; r3_unit_gate_dropped no hit; SOURCE_LEG_MIN_S no hit; fifth_episode no hit; N_ON no hit; attr_churn no hit.
-The design note's delta in 84405a2a..3a47c7c1 adds three "Part A as built" items: the heated gate per set-point unit, the span ageing with the evidence (span_days 0 beside non-zero tallies), the pass not judging a lost signal.
+handoff/audit-r10-roster tip c90f06340a73c3153cc697c909a86c71b671cf8e (descends from the body's ff2b33ab6e9f189db660efe364524a2f7dbc02ad); git grep -c -F <key> <sha> -- dev/programme/rosters/ dev/programme/carries/
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad N_ON -> dev/programme/rosters/wave-r10-groups.json:1 
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad span_days -> dev/programme/rosters/wave-r10-groups.json:1 
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad HEATED_MARGIN_K -> dev/programme/rosters/wave-r10-groups.json:1 
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad attr_churn -> dev/programme/rosters/wave-r10-groups.json:1 
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad fifth_episode -> dev/programme/rosters/wave-r10-groups.json:1 
+ff2b33ab6e9f189db660efe364524a2f7dbc02ad Controls as in the item above -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e N_ON -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e span_days -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e HEATED_MARGIN_K -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e attr_churn -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e fifth_episode -> dev/programme/rosters/wave-r10-groups.json:1 
+c90f06340a73c3153cc697c909a86c71b671cf8e Controls as in the item above -> dev/programme/rosters/wave-r10-groups.json:1 
