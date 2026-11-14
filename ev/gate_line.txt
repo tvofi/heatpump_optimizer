@@ -1,0 +1,3 @@
+        if write is not None and write.written_c < target - margin and write.written_c < write.above_c <= (
+            replace(params, dhw_legionella_temp=write.above_c).dhw_hard_max_temp
+        ):
