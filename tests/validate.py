@@ -8,8 +8,8 @@ from profiles import prices, weather, house, DT, N
 from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
-from heatpump_optimizer.optimizer import (
-    HeatPumpOptimizer, OptimizationConfig, count_compressor_starts)
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
+from heatpump_optimizer.runs import edge_count
 from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
 
 START = datetime(2026,1,15,0,0)
@@ -170,9 +170,7 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     # does not chatter does not need one, and the penalty is not free: it buys
     # smoothness with savings.
     starts = r.compressor_starts
-    total_starts = starts + count_compressor_starts(
-        np.asarray(r.dhw_power_schedule or [])
-    )
+    total_starts = starts + edge_count(np.asarray(r.dhw_power_schedule or []))
     if total_starts > N * DT:  # more than one start per hour of horizon
         issue(scen, f"plan chatters: {total_starts} compressor starts in "
                     f"{N*DT:.0f} h")

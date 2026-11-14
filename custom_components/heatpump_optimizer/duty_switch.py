@@ -562,17 +562,34 @@ def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float
     return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
 
 
-def running_now(coord: Any, planned_kw: float) -> bool:
-    """Whether the compressor runs as a solve starts, for the plan's start count.
+#: The running reading each pump's last scheduled solve started from.
+_SOLVED_RUNNING: WeakKeyDictionary[Any, bool] = WeakKeyDictionary()
+
+
+def running_now(coord: Any, action: Any) -> bool:
+    """Whether the compressor runs as a scheduled solve starts, for the plan's start count.
 
     The tracker's settled class where a running signal is attached and has
-    settled; otherwise the executing step's planned draw by the plan's own
-    running rule. Never the start counter, which follows one sample per
-    interval.
+    settled; otherwise the executing step's planned draw (``action``, the
+    coordinator's current one) by the plan's own running rule. Never the
+    start counter, which follows one sample per interval. The reading is
+    kept for :func:`solved_running`.
     """
     rec = _RECORDS.get(coord)
-    settled = rec.tracker.settled if rec is not None and rec.unsub is not None else None
-    return planned_draw_runs(planned_kw) if settled is None else settled
+    running = rec.tracker.settled if rec is not None and rec.unsub is not None else None
+    if running is None:
+        running = planned_draw_runs(float(action.get("power", 0.0)), float(action.get("dhw_power", 0.0)))
+    _SOLVED_RUNNING[coord] = running
+    return running
+
+
+def solved_running(coord: Any) -> bool:
+    """The reading the live plan was solved with, for a solve compared against it.
+
+    A what-if's start count stands beside the live plan's on the card: read
+    afresh, a compressor that started in between would move it by one.
+    """
+    return _SOLVED_RUNNING.get(coord, False)
 
 
 def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:

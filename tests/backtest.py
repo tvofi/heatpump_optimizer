@@ -38,8 +38,8 @@ from profiles import DT, house, prices, weather
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
-    count_compressor_starts,
 )
+from heatpump_optimizer.runs import edge_count
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
@@ -100,7 +100,7 @@ def score(model, opt_cfg, power, price_series, outdoor, wind, rain, solar, state
         # Degree-hours below the comfort floor: the honest way to compare
         # strategies, since a plan can always be made cheaper by being colder.
         "violation": float(np.sum(np.maximum(0.0, floor - indoor)) * DT),
-        "starts": count_compressor_starts(power),
+        "starts": edge_count(power),
         "peak": float(np.max(power)),
     }
 
