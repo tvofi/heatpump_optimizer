@@ -27496,6 +27496,51 @@
     "note": "main red since f7e7a0244a; hotfix priority",
     "pr": 3589
    }
+  },
+  {
+   "group": "R10-HOTFIX-CARRY-TIP-SIGPIPE",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/pr/app_approve.sh",
+    "tools/pr/pr_args.sh",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/handoff_push.sh"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, 2026-11-14: since the merge of pull request 3514 the carry check reads an own branch tip as a fork head, because the branch-heads test pipes every head of origin into an early-exit grep under pipefail and the pipeline fails on a match. Every verdict carry on main answers FRESH-REVIEW, and the same pipe shape makes one self-test row flaky in CI. Failing self-test row first (a head listed first among many thousand heads carries; its null control, the same heads without it, refuses), then the fix as a reader no closed pipe can kill, a sweep of the same shape under tools/pr and tools/audit/seat, and the mutation proof. The class barrier is carried, not built here.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-carry-tip-sigpipe",
+    "commit": null,
+    "pr": null,
+    "last_step": "handoff cb803e9e pushed; body awaits its carry",
+    "next_step": "open PR, review, land",
+    "note": null
+   }
   }
  ]
 }
