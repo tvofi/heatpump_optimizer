@@ -1,6 +1,0 @@
-tests/closures.json at merge base 61afd4f2db10 (b), reviewed head f0f6b47f2c8f (o), main 046736a49f8c (m), head a32f2e0bf405 (n).
-Every leaf that differs between o, m and n, compared as sets by a reviewer-built script (python, json.load, flatten):
-closures|tests/entities.py lens b/o/m/n 563 564 564 565 union(o,m)==n True 3way==n True sorted True dups 0
-closures|tests/harness_headers.py lens b/o/m/n 407 407 408 408 union(o,m)==n True 3way==n True sorted True dups 0
-inert_reads|tests/harness_headers.py lens b/o/m/n 993 993 994 994 union(o,m)==n True 3way==n True sorted True dups 0
-No scalar leaf differs.
