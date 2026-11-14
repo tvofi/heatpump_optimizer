@@ -27197,6 +27197,47 @@
     "next_step": "local sonnet fixer; handoff then opus reviewer",
     "note": "intake: orchestrator proposal 2026-11-14, owner ruled queue it; not on the critical path; overlap admitted (R10-DISINFECTION-STEP-NOTICE): orchestrator 2026-11-14: owner ruled queue the small non-gating group (power-feedback settling after a large floor lift)"
    }
+  },
+  {
+   "group": "R10-HOTFIX-FEATURES-WEEKEND-CLOCK",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so the fast tests are red for the whole weekend. The check is the one named \"a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked\". Its sequence helper starts from the real clock, so on a weekend the sample day is booked as a weekend day while the assertion expects a weekday. Owed: pin the helper's start to a fixed weekday (test only, production unchanged); demonstrate the block failing with the clock on a Saturday and on a Sunday and passing on each weekday after the fix; sweep the whole script for every other check whose result depends on the real day of the week, date or hour, list each with its disposition and pin those in the same seam; a mutation proof that the day-type assertion still fails when the production booking is wrong.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-features-weekend-clock",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local sonnet fixer running; handoff then opus reviewer; front of the train",
+    "note": "intake: red required check on every head since 2026-11-14T00:00Z (Saturday); diagnosis in s14/seat/diag-3551; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): orchestrator 2026-11-14: tests / fast red on every head each weekend, a features check reads the real clock (intake rule: red required check on main)"
+   }
   }
  ]
 }
