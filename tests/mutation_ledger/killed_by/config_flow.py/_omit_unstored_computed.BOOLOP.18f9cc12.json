@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_omit_unstored_computed BOOLOP 18f9cc12",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if key in current and _same_setting(current[key], value):",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if key in current or _same_setting(current[key], value):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -3904,7 +3904,8 @@ def _p2_registry(sources):
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
              owners=["inputs.py::state_stamp"], dispositions={
-                 "early_cutoff.py::_cycle_guard":
+                 # The supply gate's and the early cut-off's one clock.
+                 "supply_hold.py::switch_age":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
@@ -11113,7 +11114,7 @@ R.check(
 _pub_fails = FakeCoordinator(DATA)
 
 
-async def _raise_publish(reason=None):
+async def _raise_publish(reason=None, heat_pump_on=None):
     raise OSError("mqtt unreachable")
 
 
@@ -17772,6 +17773,7 @@ R.check(
     set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
     and set(_nightly.A4_INSIDE)
     == {
+        "a4:bridged",
         "a4:failed",
         "a4:unavailable",
         "a4:buttons",
@@ -17794,6 +17796,49 @@ R.check(
     and "send_response(500)" in _a4_serve_src
     and "send_response(401)" not in _a4_serve_src,
     "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+# The price source is exhausted at the counterparty (a 200 with an ended curve,
+# which pull_prices accepts), never by writing the coordinator's prices.
+_a4_end_src = _inspect.getsource(_nightly.end_price_curve)
+R.check(
+    "A4 exhausts the published prices at the counterparty, not the coordinator",
+    "end_price_curve(True)" in _a4_walk_src
+    and "end_price_curve(False)" in _a4_walk_src
+    and "_prices" not in _a4_walk_src
+    and "_PRICE_CURVE_ENDED" in _a4_end_src
+    and "_PRICE_CURVE_ENDED" in _a4_serve_src
+    and "_ENDED_CURVE_AGE" in _a4_serve_src
+    and _nightly._ENDED_CURVE_AGE >= _nightly.timedelta(days=1),
+    "A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve",
+)
+_a4_bridge_before = [
+    {"entity_id": "sensor.a", "state": "1"},
+    {"entity_id": "button.b", "state": "unknown"},
+]
+_a4_bridge_up = [dict(r) for r in _a4_bridge_before]
+_a4_bridge_down = [
+    {"entity_id": "sensor.a", "state": "unavailable"},
+    {"entity_id": "button.b", "state": "unavailable"},
+]
+_a4_br_ok = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_ok, True, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_failed = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_failed, False, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_norepair = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_norepair, True, False, _a4_bridge_before, _a4_bridge_up)
+_a4_br_down = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_down, True, True, _a4_bridge_before, _a4_bridge_down)
+_a4_br_empty = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_empty, True, True, (), _a4_bridge_up)
+R.check(
+    "a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set",
+    all(
+        "a4:bridged" in c.failures()
+        for c in (_a4_br_failed, _a4_br_norepair, _a4_br_down, _a4_br_empty)
+    )
+    and "a4:bridged" not in _a4_br_ok.failures(),
+    f"ok={_a4_br_ok.results.get('a4:bridged')} failed={_a4_br_failed.results.get('a4:bridged')} "
+    f"norepair={_a4_br_norepair.results.get('a4:bridged')} down={_a4_br_down.results.get('a4:bridged')}",
 )
 _a4_failed_ok = _nightly.Checks()
 _nightly.check_a4_failed(_a4_failed_ok, False)
@@ -17885,7 +17930,7 @@ R.check(
     "and passing A4 checks still keep their detail",
     all(
         v[1]
-        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok, _a4_br_ok)
         for n, v in c.results.items()
         if n.startswith("a4:")
     ),
@@ -25768,15 +25813,80 @@ R.check(
         if repr(_c) in _blob
     ),
 )
+def _diag_payload_at(when):
+    """The diagnostics payload with the clock pinned to ``when``."""
+    dt_util.freeze(when)
+    try:
+        _hass = FakeHass()
+        _entry = FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        _entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+            _hass, FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        )
+        return asyncio.run(_diag_mod.async_get_config_entry_diagnostics(_hass, _entry))
+    finally:
+        dt_util.freeze(None)
+
+
+def _clockless(a, b):
+    """``a`` with every value differing from ``b`` replaced by None, at any depth.
+
+    ``a`` and ``b`` are one payload taken at two pinned clocks, so what differs
+    is what the clock wrote (``exported_at``, the draw-range timestamp, any
+    later one) and no field is named here. A rounded coordinate such as "18.1"
+    is searched only in what is left, because a clock reading holds one by
+    chance (the check failed 1 of 2711 on main at 50373173).
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        return {k: _clockless(v, b.get(k)) for k, v in a.items()}
+    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return [_clockless(x, y) for x, y in zip(a, b)]
+    return a if a == b else None
+
+
+_CLOCK_A = datetime(2026, 1, 5, 3, 4, 5, tzinfo=UTC)
+_CLOCK_B = datetime(2026, 7, 9, 10, 11, 12, tzinfo=UTC)
+_ROUNDED = tuple(
+    str(round(_c, 1)) for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+)
+
+
+def _rounded_hits(first, second):
+    """Each rounded coordinate found in the clock-free payload, with its context."""
+    blob = _json.dumps(_clockless(first, second), default=str)
+    return [
+        f"{r!r} in ...{blob[max(0, i - 40) : i + 20]}..."
+        for r in _ROUNDED
+        for i in [blob.find(r)]
+        if i >= 0
+    ]
+
+
+_diag_a = _diag_payload_at(_CLOCK_A)
+_diag_b = _diag_payload_at(_CLOCK_B)
 R.check(
     "the location is redacted whole, from data and from options, not coarsened",
     _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
     and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
-    and not any(
-        str(round(_c, 1)) in _blob
-        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
-    ),
-    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
+    and not _rounded_hits(_diag_a, _diag_b),
+    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION))
+    + " / rounded matches: "
+    + "; ".join(_rounded_hits(_diag_a, _diag_b)),
+)
+# The flake, deterministically: a clock reading that holds a rounded coordinate
+# fails the whole-blob search and passes the clock-free one.
+_diag_p = _diag_payload_at(datetime(2026, 1, 5, 3, 4, 18, 100000, tzinfo=UTC))
+R.check(
+    "the rounded-coordinate search ignores a clock reading that contains one",
+    any(r in _json.dumps(_diag_p, default=str) for r in _ROUNDED)
+    and not _rounded_hits(_diag_p, _diag_a),
+    "poisoned clock: whole-blob hit expected, clock-free hit not",
+)
+# Null control: a genuinely coarsened coordinate still fails the new search.
+_coarse = {**_diag_a, "config": {**_diag_a["config"], "coarse_probe": _ROUNDED[0]}}
+_coarse_b = {**_diag_b, "config": {**_diag_b["config"], "coarse_probe": _ROUNDED[0]}}
+R.check(
+    "a genuinely coarsened coordinate in the payload still fails the clock-free search",
+    bool(_rounded_hits(_coarse, _coarse_b)),
 )
 R.check(
     "a coordinate nested below the top level, inside a list, is redacted",
