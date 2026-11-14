@@ -69,6 +69,14 @@ let pass = 0, fail = 0
 // This is exactly how the control run for the verdict grammar died.
 const J = (x) => JSON.stringify(x ?? null) ?? 'undefined'
 const t = (n, c, d = '') => { c ? (pass++, console.log('  ok   ' + n)) : (fail++, console.log('  FAIL ' + n + ' ' + d)) }
+// THE ONE SWITCH, READ FROM UNPINNED DATA. `wave-script` grades a pull request
+// with the BASE's copy of this file (decision 0013), so this file lands first and
+// must pass over the tree before the driver that carries the denominator (carryOf,
+// seatCarry, denominatorGaps) and over the tree after it. The switch is whether
+// the finder report schema's coverage rows require an enumerator -- a data file
+// the same pull request that lands the driver changes, never the driver's own text.
+// When it is on, the driver MUST export all three and every denominator test runs.
+const DENOM = (JSON.parse(fs.readFileSync(at('dev/audit/config/finding.schema.json'), 'utf8')).properties?.coverage?.items?.required ?? []).includes('enumerator')
 // A block that throws reports as a failure, never as a truncated run. Every
 // grouped assertion below runs inside it: without that the first unexpected
 // throw ends the process and the remaining assertions are silently unreported,
@@ -805,10 +813,10 @@ await block('the finder report schema', async () => {
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
   const idRe = re('id'), scopeRe = re('scope')
   const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
-  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D16-s1'), String(scopeRe))
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D18-s1') && (!DENOM || scopeRe.test('D17-s1')), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
   t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
-    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D16-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D18-s1') && (!DENOM || ownerRe.test('D17-s1')) &&!ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
   // A design choice, said so: the guess is refused unless it is a class the
   // ledger HAS, so a class the judge adds is added to bugclasses.json and to
   // this enum in one pull request -- this check fails until both carry it.
@@ -951,7 +959,9 @@ await block('the scoped round driver', async () => {
   if (!blk) return
   t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(blk[0]), 'found one')
   t('and no planSeats: seats come from the scopes, not a rotation over the ledger', !/planSeats/.test(rd), 'audit-find.js still names planSeats')
-  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps }`)()
+  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps, carryOf: typeof carryOf === 'function' ? carryOf : undefined, seatCarry: typeof seatCarry === 'function' ? seatCarry : undefined, denominatorGaps: typeof denominatorGaps === 'function' ? denominatorGaps : undefined }`)()
+  t('a schema that requires a denominator has a driver that enforces one (carryOf, seatCarry, denominatorGaps in the DISPATCH block)',
+    !DENOM || [D.carryOf, D.seatCarry, D.denominatorGaps].every((f) => typeof f === 'function'), `schema requires an enumerator; exported: ${['carryOf', 'seatCarry', 'denominatorGaps'].filter((k) => typeof D[k] === 'function')}`)
   // The seat ids and boxes below are read off the committed scopes and the
   // DISPATCH block, never named here: a re-cut of either (round 10 gave every
   // dimension three seats) must not turn a control into a test of old names.
@@ -1010,19 +1020,26 @@ await block('the scoped round driver', async () => {
   // export (or another seat's tree) is visible in its prompt.
   const isoDims = new Set(L.isolated)
   const PREP = { exportDir: '/x', worktrees: Object.fromEntries(fileSeats.filter((id) => isoDims.has(id.split('-')[0])).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+  // A closed denominator for a seat: one row per step it owns, every carried item answered examined.
+  const closed = (id, args) => {
+    const seat = D.seatsFromScopes(args.scopes, id.split('-')[0]).find((x) => x.id === id)
+    if (!seat) return []
+    const carry = D.seatCarry ? D.seatCarry(args.rotation, args.round, seat) : []
+    return seat.steps.map((m) => ({ step: `${seat.dim}.${m}`, depth: 'deep', enumerator: 'stub-enumerator', universe: 1, examined: 1, not_reached: [], redispatched: carry.filter((c) => c.step === m).map((c) => ({ item: c.id, state: 'examined' })), evidence: 'stub' }))
+  }
   const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {}, gather } = {}) => {
     const calls = []
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt, schema: o.schema })
       if (o.label === 'prepare') return { ...PREP, ...prep }
       if (o.label === 'gather' && gather) return gather(prompt)
-      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
+      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: closed(id, args), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
       if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [], ...leadsOut }
       if (nullSeats.includes(o.label)) return null
       if (o.label === 'intake') return { branch: 'b', registered: [], rejected: [] }
       if (o.label === 'quiet') return { quiet_path: '/q', d3_confirmed: [] }
       if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
-      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(o.label) }
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: closed(o.label, args), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(o.label) }
     }
     const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
     let out, error = ''
@@ -1073,7 +1090,7 @@ await block('the scoped round driver', async () => {
   const seatBoxes = Object.keys(D.BOXES).filter((b) => D.BOXES[b].heavy.length + D.BOXES[b].light.length)
   t(`from "intake" gathers once per box, each prompt naming its own box (${seatBoxes.length} boxes)`,
     gathers.length === seatBoxes.length && seatBoxes.every((b) => gathers.filter((c) => c.prompt.includes(`reports-${b}.json`)).length === 1), J(gathers.map((c) => (/reports-(B\d+)\.json/.exec(c.prompt) ?? [])[1])))
-  const rep = (id) => ({ dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] })
+  const rep = (id) => ({ dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: closed(id, base), unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] })
   const boxIn = (prompt) => (/reports-(B\d+)\.json/.exec(prompt) ?? [])[1]
   const own = (b) => Object.fromEntries([...D.BOXES[b].heavy, ...D.BOXES[b].light].map((id) => [id, rep(id)]))
   const cutBox = bx
@@ -1105,7 +1122,7 @@ await block('the scoped round driver', async () => {
   t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
   const both = await drive({ ...base, box: 'B1', from: 'intake' })
   t('box and from "intake" together are refused before Prepare', /exclusive/.test(both.error) && both.labels.length === 0, both.error || J(both.labels))
-  // Round `off` runs neither D5, D6, D11 nor D13 (cadence 2 and 3): a box
+  // Round `off` runs neither D5 nor D6 (cadence 2; D11 and D13 run every round): a box
   // holding both active and inactive seats carries only the active ones, and
   // the placement check is taken over the active seats.
   const mixed = Object.keys(D.BOXES).find((b) => { const ss = [...D.BOXES[b].heavy, ...D.BOXES[b].light].map((s) => D.activeIn(off, s.split('-')[0])); return ss.includes(true) && ss.includes(false) })
@@ -1210,6 +1227,82 @@ await block('the scoped round driver', async () => {
     /handoff\/audit-r9-find-<box>/.test(glp) && !/handoff\/audit-r9-find-<box>/.test(lp), glp.slice(-400))
   t('and the round\'s ledger entry names every active dimension, one step list per seat',
     Object.keys(r9.out?.rotation_round ?? {}).length === L.dims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
+
+  // The denominator (COMMON.md; tvofi 2026-11-13): a report names what its steps
+  // range over, how much it examined and what it left, and what the round before
+  // left is the first work of this one. Each refusal has its null control here.
+  if (!DENOM) console.log("  skip   the denominator block: the schema's coverage rows require no enumerator at this tree")
+  else await block('the denominator', async () => {
+    const seat = { dim: 'D1', steps: ['M1', 'M2'] }
+    const row = (m, o = {}) => ({ step: `D1.${m}`, enumerator: 'e', universe: 2, examined: 2, not_reached: [], redispatched: [], evidence: 'x', ...o })
+    const ok = { coverage: [row('M1'), row('M2')] }
+    const gaps = (rep, carry = []) => D.denominatorGaps(seat, rep, carry)
+    const refuses = (name, rep, re, carry = []) => { const g = gaps(rep, carry); t(`denominatorGaps refuses ${name}`, g.length > 0 && g.some((x) => re.test(x)), J(g)) }
+    t('denominatorGaps passes a closed report, one row per step (null control)', J(gaps(ok)) === J([]), J(gaps(ok)))
+    refuses('a step with no row', { coverage: [row('M1')] }, /M2/)
+    refuses('two rows for one step', { coverage: [row('M1'), row('M1'), row('M2')] }, /M1/)
+    refuses('an empty enumerator', { coverage: [row('M1', { enumerator: ' ' }), row('M2')] }, /M1/)
+    refuses('examined above universe', { coverage: [row('M1', { examined: 3 }), row('M2')] }, /M1/)
+    refuses('a non-integer universe', { coverage: [row('M1', { universe: 1.5, examined: 1 }), row('M2')] }, /M1/)
+    refuses('examined below universe with nothing listed not reached', { coverage: [row('M1', { examined: 1 }), row('M2')] }, /M1/)
+    refuses('examined equal to universe with a not_reached list', { coverage: [row('M1', { not_reached: ['a'] }), row('M2')] }, /M1/)
+    refuses('an absent coverage', {}, /M1/)
+    const c1 = { id: 'C1', step: 'M1', item: 'x', age: 1, overdue: false }
+    const withAns = (state) => ({ coverage: [row('M1', state ? { universe: 2, examined: state === 'examined' ? 2 : 1, not_reached: state === 'examined' ? [] : ['x'], redispatched: [{ item: 'C1', state }] } : {}), row('M2')] })
+    refuses('a carried item left unanswered', ok, /C1/, [c1])
+    t('...and passes it answered examined, or answered not_reached when not overdue and the counts close (null control)', J(gaps(withAns('examined'), [c1])) === J([]) && J(gaps(withAns('not_reached'), [c1])) === J([]), J([gaps(withAns('examined'), [c1]), gaps(withAns('not_reached'), [c1])]))
+    refuses('an overdue carried item answered not_reached', withAns('not_reached'), /C1/, [{ ...c1, overdue: true }])
+    t('...and passes the same overdue item answered examined (null control)', J(gaps(withAns('examined'), [{ ...c1, overdue: true }])) === J([]), J(gaps(withAns('examined'), [{ ...c1, overdue: true }])))
+
+    const led = { D1: { steps: ['M1', 'M2', 'M3'], rounds: {
+      9: { coverage: { M3: { enumerator: 'e', universe: 3, examined: 1, not_reached: ['a', 'b'] } } },
+      10: { coverage: { M1: 'spot', M2: 'deep', M3: { enumerator: 'e', universe: 3, examined: 2, not_reached: ['a'] } }, unfinished: [{ step: 'D1.M2', what: 'left' }] } } } }
+    const co = D.carryOf(led, 11, 'D1')
+    t('carryOf at round 11 reads round 10: the whole step for M1, "a" aged 2 for M3, the unfinished entry for M2; nothing for deep M2, "b" not carried',
+      co.length === 3 && co.filter((c) => c.step === 'M1').length === 1 && /whole step/.test(co.find((c) => c.step === 'M1')?.item ?? '') && co.find((c) => c.step === 'M3')?.item === 'a' && co.find((c) => c.step === 'M3')?.age === 2
+      && co.filter((c) => c.step === 'M2').length === 1 && co.find((c) => c.step === 'M2')?.item === 'unfinished: left' && !co.some((c) => c.item === 'b'), J(co))
+    const co10 = D.carryOf(led, 10, 'D1')
+    t('...at round 10 it reads round 9 only: a and b, each aged 1', co10.length === 2 && co10.every((c) => c.step === 'M3' && c.age === 1) && J(co10.map((c) => c.item)) === J(['a', 'b']), J(co10))
+    t('...and a dimension with no earlier round carries nothing (null control)', J(D.carryOf(led, 9, 'D1')) === J([]) && J(D.carryOf(led, 11, 'D2')) === J([]), J(D.carryOf(led, 9, 'D1')))
+
+    const sc = D.seatCarry(led, 11, { dim: 'D1', steps: ['M3', 'M2'] })
+    t('seatCarry numbers C1.. in order and keeps only the seat\'s steps', J(sc.map((c) => [c.id, c.step])) === J([['C1', 'M3'], ['C2', 'M2']]) && J(D.seatCarry(led, 11, { dim: 'D1', steps: ['M1'] }).map((c) => c.id)) === J(['C1']), J(sc))
+    const ov = (rotate) => D.seatCarry({ D1: { ...led.D1, ...(rotate ? { rotate } : {}) } }, 11, { dim: 'D1', steps: ['M3'] })[0].overdue
+    t('seatCarry marks the age-2 item overdue at bound 3, not at bound 4, not with no rotate', ov({ M3: { bound: 3 } }) === true && ov({ M3: { bound: 4 } }) === false && ov(undefined) === false, J([ov({ M3: { bound: 3 } }), ov({ M3: { bound: 4 } }), ov(undefined)]))
+
+    // Driven: the real committed scopes and ledger at round 11.
+    const b11 = { ...base, round: 11 }
+    const empty = await drive(b11, { report: (l) => (l === 'D1-s1' ? { coverage: [] } : {}) })
+    t('a seat whose report carries no denominator is dispatched twice, ends missing, and intake does not run',
+      empty.labels.filter((l) => l === 'D1-s1').length === 2 && J(empty.out?.missing) === J(['D1-s1']) && !empty.labels.includes('intake'), J({ n: empty.labels.filter((l) => l === 'D1-s1').length, missing: empty.out?.missing, error: empty.error }))
+    const full11 = await drive(b11)
+    t('...and with the default stub every seat reports and intake runs (null control)', full11.error === '' && J(full11.out?.missing) === J([]) && full11.labels.includes('intake') && full11.labels.filter((l) => l === 'D1-s1').length === 1, J({ error: full11.error, missing: full11.out?.missing }))
+
+    const fp = (l) => full11.calls.find((c) => c.label === l)?.prompt ?? ''
+    t('a seat with carry (D4-s1, whose round-10 M1 was "spot") is told FIRST WORK with its C ids', fp('D4-s1').includes('FIRST WORK') && fp('D4-s1').includes('C1') && !fp('D4-s1').includes('handed your steps nothing not reached'), fp('D4-s1').slice(-400))
+    const none = await drive({ ...b11, rotation: { ...ledger, D4: { ...ledger.D4, rounds: {} } } })
+    const np = (l) => none.calls.find((c) => c.label === l)?.prompt ?? ''
+    const d4 = none.labels.filter((l) => /^D4-s\d+$/.test(l))
+    t('a dimension with no earlier round is told it was handed nothing, and no FIRST WORK (null control)', d4.length > 0 && d4.every((l) => np(l).includes('handed your steps nothing not reached') && !np(l).includes('FIRST WORK')), J(d4))
+
+    // The ledger entry is the sum over the seats that own the step.
+    const owners = (d, m) => D.seatsFromScopes(scopes, d).filter((x) => x.steps.includes(m)).map((x) => x.id)
+    const [sd, sm] = L.dims.filter((d) => scopes[d]).flatMap((d) => scopes[d].steps.map((m) => [d, m])).sort((a, b) => owners(b[0], b[1]).length - owners(a[0], a[1]).length)[0]
+    const led11 = full11.out?.rotation_round?.[sd]?.coverage?.[sm]
+    const k = owners(sd, sm).length
+    t(`the round's ledger coverage is exactly {enumerator, universe, examined, not_reached}, summed over the ${k} seat(s) owning ${sd}.${sm}`,
+      J(Object.keys(led11 ?? {}).sort()) === J(['enumerator', 'examined', 'not_reached', 'universe']) && led11.universe === k && led11.examined === k && J(led11.not_reached) === J([]), J(led11))
+    const s41 = D.seatsFromScopes(scopes, 'D4').find((x) => x.id === 'D4-s1')
+    const carry41 = D.seatCarry(ledger, 11, s41)
+    const m41 = carry41[0]?.step
+    const answered = await drive(b11, { report: (l) => (l !== 'D4-s1' ? {} : { coverage: closed('D4-s1', b11).map((r) => (r.step !== `D4.${m41}` ? r : { ...r, examined: 0, universe: 1, not_reached: ['z'], redispatched: [...r.redispatched.filter((x) => x.item !== 'C1'), { item: 'C1', state: 'not_reached' }] })) }) })
+    const nr = answered.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []
+    t('a carried item answered not_reached stays in the ledger under its original words, beside the seat\'s own not_reached',
+      !!m41 && carry41[0].overdue === false && nr.includes('z') && nr.includes(carry41[0].item), J({ m41, nr, item: carry41[0]?.item, error: answered.error, missing: answered.out?.missing }))
+    t('...and the default run keeps neither (null control)', !(full11.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []).includes('z') && !(full11.out?.rotation_round?.D4?.coverage?.[m41]?.not_reached ?? []).includes(carry41[0]?.item), J(full11.out?.rotation_round?.D4?.coverage?.[m41]))
+
+    t('the cadence: D11, D13, D16 and D17 run at round 11, D5 does not', D.activeIn(11, 'D11') && D.activeIn(11, 'D13') && D.activeIn(11, 'D16') && D.activeIn(11, 'D17') && !D.activeIn(11, 'D5'), J(['D11', 'D13', 'D16', 'D17', 'D5'].map((d) => [d, D.activeIn(11, d)])))
+  })
 })
 
 // THE ROUND-9 VERIFY DRIVER, ADMITTED BEFORE IT LANDS -- R1a's route for the
