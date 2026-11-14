@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.12
+# claims-for: 7.1.15
 #
-# v7.1.12: Charge-dip draws, price-outage steering, disinfection set-point, off restore, card labels. The stamp empties the list; the
+# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -793,3 +793,12 @@
 # renamed fact-* (EasyList's generic ##.adv-text and ##.adv-label hid them),
 # which moves the same 44 states' stylesheet and the Advisor and Health
 # markup; no text or value moves with the rename.
+
+# R10-CARD-COLLAPSE (owner request 2026-11-09): the headline's plan-by-reason
+# list and Why-now panel become folds, collapsed by default (a header button
+# with aria-expanded and a summary line; the body unrendered), and the series
+# chips with their dashed-line notes render only in the expanded dialog. The
+# fold rules join the stylesheet every card render carries, so every state
+# that renders the card moves; the inline states also lose the card-copy
+# legend and show the two fold headers in place of the list and panel.
+# editor_schema renders no card and is identical.

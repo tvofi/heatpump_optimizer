@@ -167,6 +167,15 @@ MUTANTS = [
      "    if r.returncode == 0:\n        raise Refuse("),
     ("S22", "roster_lib.py", '    m = _ROSTER_NAME.match(path.rsplit("/", 1)[-1])\n    if not m:',
      '    m = _ROSTER_NAME.match(path.rsplit("/", 1)[-1])\n    if m:'),
+    # op_set_price: the no-op arm, the validity refusal, the cite strip; roster_lib's two owner_price_why
+    # arms are planted in roster_lib.py and graded by roster_edit.py's self-test (STEP_OF).
+    ("roster_edit-1", "roster_edit.py", "    if old == value and g.get(roster_lib.OWNER_PRICE_CITE) == price_cite:",
+     "    if False:"),
+    ("roster_edit-2", "roster_edit.py", '    if why:\n        raise Refuse(f"set-price: {group}: {why}")',
+     '    if False:\n        raise Refuse(f"set-price: {group}: {why}")'),
+    ("roster_edit-3", "roster_edit.py", "    price_cite = price_cite.strip()\n", "    pass\n"),
+    ("roster_lib-1", "roster_lib.py", "or not minutes > 0 or", "or"),
+    ("roster_lib-2", "roster_lib.py", "if not isinstance(cite, str) or not cite.strip():", "if False:"),
     ("S23", "run_twins.py", '    pr = [r for r in runs if r.get("event") == "pull_request"]\n    ts = {',
      '    pr = [r for r in runs if r.get("event") != "pull_request"]\n    ts = {'),
     ("S24", "seat_venv.sh", '|| die "$VENV_HA is missing a pinned homeassistant',
@@ -707,7 +716,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
            "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
-           "carry_audit-1": "tools/audit/seat/bus.sh"}
+           "carry_audit-1": "tools/audit/seat/bus.sh",
+           "roster_lib-1": "roster_edit.py", "roster_lib-2": "roster_edit.py"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
