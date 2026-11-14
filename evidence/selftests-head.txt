@@ -1,4 +1,4 @@
-gate self-test: 97 checks, 0 failed
-prelude self-test: 81 checks, 0 failed
-merge_train self-test: 753 checks, 0 failed
-merge_pr self-test: 28 checks, 0 failed
+gate self-test: 106 checks, 0 failed
+prelude self-test: 82 checks, 0 failed
+codescan_wait self-test: 25 checks, 0 failed
+ruleset_cutover self-test: 101 checks, 0 failed
