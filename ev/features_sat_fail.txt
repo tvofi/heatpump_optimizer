@@ -1,0 +1,2 @@
+5500:  FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), 
+rc=1

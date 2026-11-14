@@ -1,0 +1,155 @@
+== a missing bg trace skipped: self-test rc 1
+     FAIL check: missing trace bg-slow.trace is refused, naming it (None)
+   selftest_scope self-test: 148 checks, 1 failed
+== an empty trace read whole: self-test rc 1
+     FAIL record: an empty trace fails the record, naming it
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('')
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('--- SIGCHLD {si_sig)
+     FAIL check: empty trace step-a.trace is refused, naming it ('')
+   selftest_scope self-test: 148 checks, 4 failed
+== a partial trace read whole: self-test rc 1
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+   selftest_scope self-test: 148 checks, 2 failed
+== a signal death read as partial: self-test rc 1
+     FAIL fold: a first process killed by a signal ended its trace (null control: whole)
+   selftest_scope self-test: 148 checks, 1 failed
+== check drops the trace refusals: self-test rc 1
+     FAIL check: missing trace bg-slow.trace is refused, naming it (None)
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('')
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('--- SIGCHLD {si_sig)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: empty trace step-a.trace is refused, naming it ('')
+   selftest_scope self-test: 148 checks, 6 failed
+== record passes over a broken trace: self-test rc 1
+     FAIL record: an empty trace fails the record, naming it
+   selftest_scope self-test: 148 checks, 1 failed
+== settle never rewrites the index: self-test rc 1
+     FAIL record: a traced run of the job writes one entry per gated step (rc=1)
+     FAIL record: a step's open is a file, its failed test -f a probe, its ls a dir
+     FAIL record: a detached self-test's reads are its waiter's
+     FAIL record: it settles a racy index before tracing (racy before, none after)
+     FAIL record --step --out: the step is re-measured into that file, the other entries kept
+     FAIL record refuses with no strace (2), an unknown step (2), an inconsistent job (1), and fails a failing step (1), naming it
+     FAIL record: an empty trace fails the record, naming it
+     FAIL settle: no index entry is left racily clean (rc=1)
+     FAIL and a git status after it opens no tracked file
+     FAIL the `settle` command settles that racy index (rc=1; racy before it, none after)
+   selftest_scope self-test: 148 checks, 10 failed
+== the settle command a no-op: self-test rc 1
+     FAIL the `settle` command settles that racy index (rc=0; racy before it, none after)
+   selftest_scope self-test: 148 checks, 1 failed
+== settle_gaps reads no job: self-test rc 1
+     FAIL static: a job that never settles the index is refused (UNSETTLED)
+     FAIL settle_gaps: no settle call is refused
+     FAIL settle_gaps: a settle whose failure is swallowed is refused
+     FAIL settle_gaps: a settle only in a traced (gated) step is refused
+     FAIL settle_gaps: a settle only in launch, which starts traced steps, is refused
+   selftest_scope self-test: 148 checks, 5 failed
+== static skips the settle check: self-test rc 1
+     FAIL static: a job that never settles the index is refused (UNSETTLED)
+   selftest_scope self-test: 148 checks, 1 failed
+== record replaces the committed entry again: self-test rc 1
+     FAIL union_record: recording one step over an entry holding reads the trace lacks keeps them
+   selftest_scope self-test: 148 checks, 1 failed
+== the shrink guard exempts nothing deleted: self-test rc 1
+     FAIL shrink_drops: the file and probe drops are exempt for paths the diff deletes, the rest stay
+     FAIL shrink_drops: a git item or a flag is never exempt by deletion
+     FAIL shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not
+     FAIL shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not
+     FAIL shrink_gaps: the same drops with the paths deleted by the diff leave only git and the flag
+   selftest_scope self-test: 148 checks, 5 failed
+== the shrink guard exempts every drop: self-test rc 1
+     FAIL shrink_drops: a head entry dropping a file, a probe, a git item and a flag is refused, each named
+     FAIL shrink_drops: the file and probe drops are exempt for paths the diff deletes, the rest stay
+     FAIL shrink_drops: a git item or a flag is never exempt by deletion
+     FAIL shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not
+     FAIL shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not
+     FAIL shrink_drops: a probe whose directory the head lists is kept, the same head without it is not
+     FAIL shrink_drops: a probe of a path that exists nowhere is still a drop
+     FAIL shrink_gaps: a committed diff dropping reads is refused
+     FAIL shrink_gaps: the same drops with the paths deleted by the diff leave only git and the flag
+   selftest_scope self-test: 148 checks, 9 failed
+== static never runs the shrink guard: self-test rc 1
+     FAIL static: the shrink guard is part of it (rc 1, naming the step)
+   selftest_scope self-test: 148 checks, 1 failed
+== the shrink guard keeps no probe by its listed directory: self-test rc 1
+     FAIL shrink_drops: a probe whose directory the head lists is kept, the same head without it is not
+   selftest_scope self-test: 148 checks, 1 failed
+== prune writes nothing: self-test rc 1
+     FAIL prune: a held drop writes the table, less exactly that read
+   selftest_scope self-test: 148 checks, 1 failed
+== prune accepts an unknown drop: self-test rc 1
+     FAIL prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical
+   selftest_scope self-test: 148 checks, 1 failed
+== an unresolvable named base resolves to no problem: self-test rc 1
+     FAIL table_base: a named base that does not resolve is a problem, not a base
+     FAIL static: a base that does not resolve adds one problem line (2 -> 2, rc 1); one that resolves adds none (null control: the fixture's own lines only)
+   selftest_scope self-test: 148 checks, 2 failed
+== static drops the unresolved-base problem: self-test rc 1
+     FAIL static: a base that does not resolve adds one problem line (2 -> 2, rc 1); one that resolves adds none (null control: the fixture's own lines only)
+   selftest_scope self-test: 148 checks, 1 failed
+== check --write writes the bare measurement: self-test rc 1
+     FAIL check --write: a planted committed read and flag the run did not measure survive the write
+   selftest_scope self-test: 148 checks, 1 failed
+== the union drops a committed list entry: self-test rc 1
+     FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
+     FAIL check --write: a planted committed read and flag the run did not measure survive the write
+     FAIL static, ids and select over a fresh table
+     FAIL union_record: recording one step over an entry holding reads the trace lacks keeps them
+     FAIL shrink_drops: an additive head drops nothing (null control)
+     FAIL shrink_gaps: a committed additive table change passes (null control)
+   selftest_scope self-test: 148 checks, 6 failed
+== the union drops a committed flag: self-test rc 1
+     FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
+     FAIL check --write: a planted committed read and flag the run did not measure survive the write
+     FAIL static, ids and select over a fresh table
+     FAIL union_record: recording one step over an entry holding reads the trace lacks keeps them
+     FAIL shrink_drops: an additive head drops nothing (null control)
+     FAIL shrink_gaps: a committed additive table change passes (null control)
+   selftest_scope self-test: 148 checks, 6 failed
+== drift refuses a probe the run's own listed dir answers: self-test rc 1
+     FAIL drift: a probe under a directory the run listed is refused once, as the dirs miss, live and compacted alike (null control: the compaction dropped it)
+   selftest_scope self-test: 148 checks, 1 failed
+== CI never settles the index: self-test rc 1
+     FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
+     FAIL the live job settles the index in an untraced step before its first traced one
+   selftest_scope self-test: 148 checks, 2 failed
+== CI swallows a failed settle: self-test rc 1
+     FAIL drift: a probe under a directory the run listed is refused once, as the dirs miss, live and compacted alike (null control: the compaction dropped it)
+     FAIL the live job settles the index in an untraced step before its first traced one
+   selftest_scope self-test: 148 checks, 2 failed
+== only launch untraced (the incident's wrapper): self-test rc 1
+     FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+   selftest_scope self-test: 148 checks, 1 failed
+== no strace exec'd anyway: self-test rc 1
+     FAIL wrapper: no strace on PATH runs the step and the --as command untraced, saying so
+   selftest_scope self-test: 148 checks, 1 failed
+== exit lines suppressed (-qq): self-test rc 1
+     FAIL record: a traced run of the job writes one entry per gated step (rc=1)
+     FAIL record --step --out: the step is re-measured into that file, the other entries kept
+     FAIL wrapper: a gated step runs under strace -q into step-ID.trace (null control)
+     FAIL wrapper: --as NAME runs under strace -q into bg-NAME.trace
+   selftest_scope self-test: 148 checks, 4 failed
+== drift traced again: self-test rc 1
+     FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+     FAIL wrapper: its UNTRACED list is UNGATED
+   selftest_scope self-test: 148 checks, 2 failed
+== the self-test leaks the caller's base selectors: self-test rc 1
+     FAIL static, ids and select over a fresh table
+   selftest_scope self-test: 148 checks, 1 failed
+== the self-test wrapper returns nothing: self-test rc 1
+   selftest_scope self-test: 148 checks, 0 failed
+== a D/** item read as a slice off by one: self-test rc 1
+     FAIL shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not
+   selftest_scope self-test: 148 checks, 1 failed
+== an undiffable base passes the shrink guard: self-test rc 1
+     FAIL shrink_gaps: a base the repository cannot diff against is refused, not passed
+   selftest_scope self-test: 148 checks, 1 failed
+== the shrink guard judges a missing table: self-test rc 1
+   TypeError: 'NoneType' object is not subscriptable
+== prune goes on over an unreadable table: self-test rc 1
+   TypeError: 'NoneType' object is not subscriptable
+SELFTEST-SCOPE MUTANTS: every mutant refused
+rc=0

@@ -1,0 +1,2 @@
+  ok   the live job settles the index in an untraced step before its first traced one
+selftest_scope self-test: 148 checks, 0 failed

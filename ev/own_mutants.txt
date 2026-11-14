@@ -1,0 +1,5 @@
+KILLED pop-only-GITHUB_BASE_REF :: selftest_scope self-test: 148 checks, 1 failed rc 1
+KILLED pop-only-SELFTEST_BASE :: selftest_scope self-test: 148 checks, 1 failed rc 1
+SURVIVED int-guard-passes-None :: selftest_scope self-test: 148 checks, 0 failed rc 0
+KILLED union_entries-keeps-unmeasured-steps :: selftest_scope self-test: 148 checks, 1 failed rc 1
+KILLED drift-probe-own-dirs-removed :: selftest_scope self-test: 148 checks, 1 failed rc 1
