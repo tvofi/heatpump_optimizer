@@ -12,7 +12,7 @@
           "weather_entity": "Weather forecast"
         },
         "data_description": {
-          "name": "Shown in front of every sensor this integration creates.",
+          "name": "The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer.",
           "price_source": "Tibber uses your API token. Entity reads a Home Assistant price sensor such as Nord Pool.",
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed. Not required when the price source is an entity.",
           "price_entity": "Required when the price source is an entity. Typical attributes are raw_today and raw_tomorrow.",
@@ -21,7 +21,7 @@
       },
       "temperature": {
         "title": "Temperature Settings",
-        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the target and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
+        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the comfort temperatures and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
         "data": {
           "target_temperature": "Target indoor temperature",
           "min_temperature": "Coldest acceptable temperature",
@@ -32,9 +32,9 @@
           "day_end_hour": "Day ends at"
         },
         "data_description": {
-          "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
-          "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
-          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
+          "target_temperature": "The house's reference temperature: the thermostat (climate) entity shows and sets it. The plan itself aims for the daytime and night-time comfort temperatures below and only drifts away from them to avoid expensive hours. It has to sit between the coldest and warmest acceptable temperatures.",
+          "min_temperature": "The coldest the plan will take the house in the daytime; at night the limit is 0.5 K lower. The Economy optimization mode lowers it by a further 1.5 K, and a detected open window by 1 K when Ease heating while a window is open is on, never below 15 °C. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the comfort temperatures means more room to save.",
+          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the plan aims for the daytime and night-time comfort temperatures and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
@@ -65,7 +65,7 @@
           "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
           "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
           "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
-          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. Only used for a two-zone house, where it sets the upper floor's heat store and how its heat is delivered. A single-zone house is modelled from the lower floor heating answer alone.",
           "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary."
         }
       },
@@ -99,10 +99,10 @@
           "comfort_weight": "How strictly to hold the temperature"
         },
         "data_description": {
-          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. Heavy floors and a heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building.",
+          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. In a floor-heated house the heavy floor and heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building. In a one-zone radiator house the heavy floor is added to this figure instead, because the radiator circuit itself holds almost no heat.",
           "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
           "slab_thermal_mass": "Heat stored per degree in whatever the heat is delivered through: the concrete slab of a floor-heated house — the buffer that lets the floor be switched off during price peaks — or, with radiators, the water and steel of the radiator circuit, which is far smaller. A radiator house of 100 m² lands near 0.2 kWh/°C, a heated slab of the same size near 10.",
-          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance; radiators are much faster and sit far higher.",
+          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance. A radiator circuit is faster even though its value is lower, because it holds far less heat: about 0.2 for 100 m², against about 1 for a floor of the same size.",
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
@@ -136,7 +136,7 @@
           "inter_zone_heat_transfer": "How much heat drifts between the two floors. Higher values mean heating one floor warms the other as well, typical for an open stairwell.",
           "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
           "upper_floor_area_ratio": "Share of the total floor area that sits upstairs. 0.5 means the two floors are the same size.",
-          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
+          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. The optimizer plans around it as a store of cheap heat only once a throttling mixing valve is set up in Options and the tank holds at least 100 litres; otherwise the volume only sizes the tank in the model.",
           "window_area": "Square metres of glazing that gets direct sun. Used to predict free solar heating.",
           "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day.",
           "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days.",
@@ -165,7 +165,7 @@
           "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 °C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
-          "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
+          "dhw_setpoint": "An upper limit on charging, not a target. Before each hot water period the tank is brought to the temperature the expected hot water use needs, between Hot water temperature you need and this limit; it is filled higher than that only when storing extra cheap heat pays off. The anti-legionella cycle is the exception and can take the tank above this limit.",
           "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
           "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
           "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 °C in a 20 °C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
@@ -220,7 +220,7 @@
           "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
           "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
-          "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
+          "solar_radiation_entity": "Optional. Sunshine in W/m² measured at your house. It tells the optimizer how much solar heat the house is getting right now, which it uses for the current state and for learning. Expected sun later in the day comes from the Solar irradiance source, not from this sensor.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
@@ -254,7 +254,7 @@
             "data_description": {
               "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
               "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
-              "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
+              "solar_radiation_entity": "Optional. Sunshine in W/m² measured at your house. It tells the optimizer how much solar heat the house is getting right now, which it uses for the current state and for learning. Expected sun later in the day comes from the Solar irradiance source, not from this sensor."
             }
           },
           "plant": {
@@ -295,7 +295,7 @@
       },
       "quick_setup": {
         "title": "Quick setup",
-        "description": "Tell the optimizer what your system is and it does the rest. The heat pump's entities are read automatically on the next screen, and anything left out here starts from a sensible default you can refine later in Options.",
+        "description": "Tell the optimizer what your system is and it does the rest. The next screen offers to read a heat pump device's entities: pick the device and submit to see suggestions you can edit, or leave it empty to skip. Anything left out here starts from a sensible default you can refine later in Options.",
         "data": {
           "two_zone": "Two-zone house",
           "buffer_tank": "Buffer tank",
@@ -317,13 +317,13 @@
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
           "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
           "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
-          "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
-          "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
+          "wood_tank_top_entity": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it.",
+          "wood_tank_bottom_entity": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate.",
           "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
           "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
           "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
           "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
-          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. Only used for a two-zone house, where it sets the upper floor's heat store and how its heat is delivered. A single-zone house is modelled from the lower floor heating answer alone.",
           "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary."
         }
       },
@@ -370,7 +370,7 @@
           "heat_pump_supply_temp_entity": "The heat pump's leaving water temperature (T1) sensor, suggested only while this slot is empty.",
           "heat_pump_return_temp_entity": "The heat pump's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
           "heat_pump_capacity_limited_entity": "The heat pump's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
-          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+          "after_save": "Setup carries on to the next page whichever you choose; nothing is saved until setup finishes."
         }
       }
     },
@@ -391,7 +391,7 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty to skip the pre-fill and continue setup; the Modbus package prefix route is on the options page, under Pre-fill from a heat pump device.",
       "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
@@ -549,7 +549,7 @@
       },
       "entities": {
         "title": "Sensors and entities",
-        "description": "Choose which Home Assistant entities the optimizer reads. Clear a field to stop using that sensor. Only the price token and weather forecast are required; every other sensor makes the model more accurate but is optional.",
+        "description": "Choose which Home Assistant entities the optimizer uses: mostly sensors it reads, plus the heat pump on/off switch and the space-heating set-point entity, which it can write. Clear a field to stop using that entity. Only the weather forecast and the electricity price source are required: a Tibber token, or a price sensor when the price source is an entity. Every other entity makes the model more accurate or enables control, and is optional.",
         "data": {
           "after_save": "After saving"
         },
@@ -592,8 +592,8 @@
             "data_description": {
               "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
               "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
-              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
-              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one.",
+              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. With Pump duty control at Control the optimizer writes it on every plan step, as Pump duty control describes, and turning Optimizer active off writes back the value it read before its first write. With Pump duty control at Off or Observe it is only read, to notice when it cannot be read.",
+              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one. With Pump duty control at Control the optimizer writes the plan's room temperature (Indoor temperature) or water temperature (Flow temperature, Return temperature) to this entity.",
               "flow_min_lift_k": "With Pump duty control at Control, the water set-point written at the plan's lowest power is the measured inlet water plus this: heat-pump return, buffer tank, floor return or valve outlet, and for a Return temperature entity the first three only. 5 K suits a controller that holds its supply at the set-point. A controller that takes the number as its return-water target is assumed to run its compressor harder the further the target sits above the return, so it likely wants less; 1–2 K is a starting point to check against the compressor's measured frequency and power, not a measured value.",
               "flow_heat_c": "The water set-point written at full planned power, and the highest one written while the plan is in charge. 55 °C suits a supply target. For a Return temperature entity choose it above the highest return you see in normal heating plus the lift, and no higher than the controller accepts; on a low-temperature floor heating 35–40 °C may be a starting point to check against measurements. Below 30 °C is not offered: the gate that means off is 25 °C for a flow target and 20 °C for a return target.",
               "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature unit and a heat-pump power sensor; otherwise nothing changes. After a 5-minute start hold, the water set-point is nudged down while the measured draw is above the planned level and up while it is below, and held while it is within 10 %, instead of following the rising inlet water. Off writes the inlet plus the lift. Requirements on the controller: its heating hysteresis at most the lift (Luxtronik: 0.5 K), or a stopped compressor is not started; its minimum return target below the heating-season return; its integration polling it at least every 10 minutes, and restoring its heating mode after a controller restart, since a Luxtronik Smart Home Interface drops every set value after 600 s without access; and no second tool writing the same registers (a Luxtronik then silently discards writes).",
@@ -622,7 +622,7 @@
       },
       "comfort": {
         "title": "Comfort and temperatures",
-        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the target and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
+        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the comfort temperatures and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
         "data": {
           "after_save": "After saving"
         },
@@ -638,9 +638,9 @@
               "target_temperature": "Target indoor temperature"
             },
             "data_description": {
-              "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
-              "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
-              "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours."
+              "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the plan aims for the daytime and night-time comfort temperatures and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
+              "min_temperature": "The coldest the plan will take the house in the daytime; at night the limit is 0.5 K lower. The Economy optimization mode lowers it by a further 1.5 K, and a detected open window by 1 K when Ease heating while a window is open is on, never below 15 °C. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the comfort temperatures means more room to save.",
+              "target_temperature": "The house's reference temperature: the thermostat (climate) entity shows and sets it. The plan itself aims for the daytime and night-time comfort temperatures below and only drifts away from them to avoid expensive hours. It has to sit between the coldest and warmest acceptable temperatures."
             }
           },
           "schedule": {
@@ -762,7 +762,7 @@
             "data_description": {
               "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
               "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 °C is enough for a normal shower.",
-              "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
+              "dhw_setpoint": "An upper limit on charging, not a target. Before each hot water period the tank is brought to the temperature the expected hot water use needs, between Hot water temperature you need and this limit; it is filled higher than that only when storing extra cheap heat pays off. The anti-legionella cycle is the exception and can take the tank above this limit.",
               "dhw_setpoint_entity": "Optional. The number, helper, climate or water_heater entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
             }
           },
@@ -783,7 +783,7 @@
       },
       "building": {
         "title": "Heating system and heat storage",
-        "description": "Everything between the heat sources and the emitters: the mixing valve, the buffer tank as a store, and the wood furnace tank with its probes. Leave the valve at \"No mixing valve\" if you do not have one — the model is already correct for that case. The valve settings only take effect with the two-zone model configured.",
+        "description": "Everything between the heat sources and the emitters: the mixing valve, the buffer tank as a store, and the wood furnace tank with its probes. Leave the valve at \"No mixing valve\" if you do not have one — the model is already correct for that case. The valve settings work with the single-zone and the two-zone model; only writing a Flow temperature to the valve control entity needs the two-zone model.",
         "data": {
           "after_save": "After saving"
         },
@@ -802,7 +802,7 @@
               "mixing_valve_write_target_kind": "What the control entity expects"
             },
             "data_description": {
-              "flow_curve_cop_enabled": "Off by default. For a system with no mixing valve, where the pump feeds the radiators or floor loops directly. When on, plans and costs account for the pump working harder to make hotter water: the supply temperature is taken from the model's own weather curve, plus the offset learned from the supply water temperature sensor if you have one. With that sensor, the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading, so while that sensor is unavailable the watch does not judge space heating at all. The learned offset is capped at 15 °C, so on a system whose supply runs far above the model's curve only part of the extra work is priced. Not available with a mixing valve, whose tank temperature already sets the price.",
+              "flow_curve_cop_enabled": "Off by default. For a system with no mixing valve, where the pump feeds the radiators or floor loops directly. When on, plans and costs account for the pump working harder to make hotter water: the supply temperature is taken from the model's own weather curve, plus the offset learned from the supply water temperature sensor if you have one. With that sensor, the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading, so while that sensor is unavailable the watch does not judge space heating at all. The learned offset can lower the supply at most 15 K below the model's curve and can raise it at most to a 75 °C supply. Not available with a mixing valve, whose tank temperature already sets the price.",
               "mixing_valve_mode": "\"Set by hand\" is a valve you configure yourself; tell the integration below what you set it to. \"Read from a sensor\" means the integration can see the target but not change it. \"Commanded by the optimizer\" writes the recommended target to the valve's own controller through the control entity below.",
               "mixing_valve_target": "This is the indoor air temperature the mixing circuit holds, not a water temperature: never enter a flow temperature here. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
               "mixing_valve_target_entity": "Optional. Reads the valve's target rather than using the fixed value above.",
@@ -818,7 +818,7 @@
             },
             "data_description": {
               "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is.",
-              "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat."
+              "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. The optimizer plans around it as a store of cheap heat only once a throttling mixing valve is set up in Options and the tank holds at least 100 litres; otherwise the volume only sizes the tank in the model."
             }
           },
           "combi": {
@@ -869,8 +869,8 @@
               "wood_furnace_enabled": "Off hides the wood probes, detection and fuel price; stored values are kept. A lone 500 L tank volume does not turn this on.",
               "wood_packing": "Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed.",
               "wood_price_sek_m3": "What you pay per billed cubic metre. Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.",
-              "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
-              "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
+              "wood_tank_bottom_entity": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate.",
+              "wood_tank_top_entity": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it.",
               "wood_tank_volume": "The wood-side buffer tank, used to bound how much free heat a fire can still deliver.",
               "wood_type": "The billed species. Mixed is the default."
             }
@@ -918,7 +918,7 @@
               "wear_autotune_enabled": "Let realised wear tune the cycling cost"
             },
             "data_description": {
-              "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding.",
+              "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the Compressor Starts sensor (disabled until you enable it) counts the starts your pump actually makes, so you can look before deciding.",
               "compressor_rated_starts": "How many starts the manufacturer rates the compressor for. The replacement cost above is spread over this number.",
               "compressor_replacement_cost": "What a compressor swap costs, including labour. Divided by the rated starts below it prices every realised compressor start; leave at 0 to keep the start counter pure observation with no money attached.",
               "wear_autotune_enabled": "When on, the wear price per start (replacement cost divided by rated starts) becomes a floor under the compressor cycling cost above, so plans stop understating a cost you have made explicit. This is the only insight feature that changes plans."
@@ -979,7 +979,7 @@
       },
       "building_preset": {
         "title": "Building type and emitters",
-        "description": "Answer three questions about the building and the thermal model's numbers are worked out for you. These are starting values only — the self-learning model refines them from how your house actually behaves, so they do not have to be exact. Leave this off if you have real values from an energy declaration and prefer to enter them directly on the thermal model page.",
+        "description": "Describe the building — what it is built from, roughly when it was built, its foundation, heated area and how each floor is heated — and the thermal model's numbers are worked out for you. These are starting values only — the self-learning model refines them from how your house actually behaves, so they do not have to be exact. Leave this off if you have real values from an energy declaration and prefer to enter them directly on the thermal model page.",
         "data": {
           "after_save": "After saving"
         },
@@ -1003,7 +1003,7 @@
               "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
               "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
               "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary.",
-              "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted."
+              "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. Only used for a two-zone house, where it sets the upper floor's heat store and how its heat is delivered. A single-zone house is modelled from the lower floor heating answer alone."
             }
           },
           "derivation": {
@@ -1034,7 +1034,7 @@
       },
       "thermal_model": {
         "title": "Thermal model (expert)",
-        "description": "The raw numbers behind the thermal model, otherwise only asked during setup. A field left empty keeps its current value and is never saved, so a single-zone house stays single-zone — and filling in the two-zone fields is how an existing install turns the two-zone model on.\n\n{preset_warning}",
+        "description": "The raw numbers behind the thermal model, otherwise only asked during setup. A field left empty keeps its current value and is never saved, so a single-zone house stays single-zone. The two-zone values are on the Two-zone model page: with Two-zone model set to Automatic, saving a zone value turns the two-zone model on, and On or Off forces it either way.\n\n{preset_warning}",
         "data": {
           "house_thermal_mass": "House thermal mass (kWh/°C)",
           "house_heat_loss_coefficient": "Heat loss coefficient (kW/°C)",
@@ -1048,10 +1048,10 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. Heavy floors and a heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building.",
+          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. In a floor-heated house the heavy floor and heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building. In a one-zone radiator house the heavy floor is added to this figure instead, because the radiator circuit itself holds almost no heat.",
           "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
           "slab_thermal_mass": "Heat stored per degree in whatever the heat is delivered through: the concrete slab of a floor-heated house — the buffer that lets the floor be switched off during price peaks — or, with radiators, the water and steel of the radiator circuit, which is far smaller. A radiator house of 100 m² lands near 0.2 kWh/°C, a heated slab of the same size near 10.",
-          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance; radiators are much faster and sit far higher.",
+          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance. A radiator circuit is faster even though its value is lower, because it holds far less heat: about 0.2 for 100 m², against about 1 for a floor of the same size.",
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
@@ -1106,7 +1106,7 @@
           "pv_export_price_entity": "Use this instead if your compensation follows the spot price.",
           "pv_enabled": "Lets the plan run the heat pump on your own surplus instead of selling it for less than bought power costs.",
           "pv_peak_kw": "The array's rated peak output. Used to scale the production forecast.",
-          "pv_production_entity": "Optional. A live production sensor lets the forecast correct itself against what the roof actually delivers.",
+          "pv_production_entity": "Optional. A live production sensor replaces the forecast's current step with what the roof delivers now, capped at the installed capacity; later steps stay modelled.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1153,20 +1153,20 @@
           "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
           "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
           "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
-          "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
-          "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
+          "wood_tank_top_entity": "Together with the bottom sensor this gives the heat left in the wood tank: the average of the two readings, counted only above the buffer tank temperature plus 2 °C. With this top sensor alone the average is taken as 5 °C below it.",
+          "wood_tank_bottom_entity": "See the top sensor. The top sensor alone is enough for the remaining-energy estimate, read conservatively; the bottom sensor alone gives no estimate.",
           "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
           "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
           "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
           "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
-          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. Only used for a two-zone house, where it sets the upper floor's heat store and how its heat is delivered. A single-zone house is modelled from the lower floor heating answer alone.",
           "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
       "learning": {
         "title": "Self-learning and diagnostics",
-        "description": "Watchdogs and optional learning features. The sensor watchdog is on by default and protects everything else; the rest are off until you turn them on.",
+        "description": "Watchdogs and optional learning features. The sensor watchdog protects everything else. It and the price estimate past the published horizon are on by default; the rest are off until you turn them on.",
         "data": {
           "staleness_watchdog_enabled": "Ignore sensors that stop updating",
           "staleness_max_age_scale": "Allow this much extra age",
@@ -1206,7 +1206,7 @@
             "data_description": {
               "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
               "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
-              "solar_radiation_entity": "Optional. Sunshine in W/m². Lets the optimizer skip heating before a sunny afternoon that will warm the house for free."
+              "solar_radiation_entity": "Optional. Sunshine in W/m² measured at your house. It tells the optimizer how much solar heat the house is getting right now, which it uses for the current state and for learning. Expected sun later in the day comes from the Solar irradiance source, not from this sensor."
             }
           },
           "meters": {
@@ -1222,7 +1222,7 @@
               "house_power_entity": "Whole-house power meter (optional)"
             },
             "data_description": {
-              "heat_pump_energy_entity": "A cumulative kWh meter, if you have one. More accurate than adding up power readings between updates, which misses short compressor runs.",
+              "heat_pump_energy_entity": "A cumulative kWh meter of the heat pump's electricity, if you have one. It is used together with the Heat pump heat energy meter: over each span the delivered heat is divided by this meter's kWh, which counts short compressor runs that power readings between updates miss. On its own it changes nothing the plan or the learners use.",
               "heat_pump_heat_energy_entity": "A cumulative kWh meter of the heat the pump delivers, from a heat meter. It counts the heat over each hour, short compressor runs included, so it is used instead of the thermal power meter and the water flow sensor when set. With the energy meter it makes efficiency an observation, and the house heat-loss learner reads the heat that was actually delivered. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent heating the house and the tank; without one, or in a combined mode, an hour that heated the tank is not read as space heating.",
               "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
               "heat_pump_thermal_power_entity": "The heat the pump delivers, from a heat meter, in watts or kilowatts. With the power meter it makes efficiency an observation rather than an inference, and the house heat-loss learner and the capacity curve read the heat that was actually delivered. When set it is used instead of the water flow sensor.",
@@ -1273,7 +1273,7 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything.",
-          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or flow_heat_c) at full power, toward 5 °C (or flow_min_lift_k) above the first fresh reading of the heat-pump return, buffer tank, floor return or valve outlet (35 °C when none is configured) at the modulation floor — or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
+          "pump_duty_mode": "Off (the default) never writes the pump's operating mode or set-points. Observe writes none either and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). With any of the three, the heat pump on/off switch, if you have set one, is still switched by the plan. Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, unchanged on idle steps; on a step that plans both, hot water only for the hot-water share of the step and then heating, a share under 5 minutes going to the other duty; Heating + DHW while a boost or an anti-legionella cycle calls for both, and whenever the plan is not in charge), the hot water set-point entity (the hot water set-point configured on the hot water page, or the anti-legionella temperature during a cycle) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or the Heating flow ceiling) at full power, toward 5 °C (or the Minimum lift above the inlet water) above the first fresh reading of the heat-pump return, buffer tank, floor return or valve outlet (35 °C when none is configured) at the modulation floor — on steps that heat the house, 25 °C on steps that do not (20 °C for a Return temperature set-point, or the entity's own minimum if that is higher), and 35 °C or the weather curve, whichever is higher, when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered instead: the hot water one to 30 °C, a flow set-point to the same 25 °C (20 °C for Return temperature), an indoor one to 5 °C, each never below the entity's own minimum. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. Where Capacity limited (night mode) is a switch and silent windows are scheduled, Control also holds that switch on inside a silent window and off outside one. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
           "space_hysteresis_entity": "Optional. A sensor or number holding the pump's own heating start hysteresis as a temperature difference in K (°C reads the same, °F is scaled; 0 to 20 K): its controller starts heating only once the target sits that far above the water. On a flow or return set-point the lift written above the measured water at the lowest planned level is then never smaller than it, so a planned heating step is one the pump starts. A controller that publishes only the start threshold itself (a Luxtronik's Demand border, input 10107) needs a template sensor of the return target minus that threshold. Left empty or unreadable, the configured lift stands.",
           "dhw_hysteresis_entity": "Optional. A sensor or number holding the pump's own hot water start hysteresis as a temperature difference in K (°C reads the same, °F is scaled; 0 to 20 K): the pump starts a charge only once the tank is below the hot water target minus this. The plan then places no charge on a tank warmer than that (a charge planned for the current step is kept, as it may already be running; a disinfection charge is judged against the disinfection temperature), and the duty ledger marks an idle hot water step on such a tank not-startable instead of idle-instead. A hot water minimum above that start temperature cannot be held by the pump and raises a warning. Left empty, unreadable or 0, every planned charge is taken to start.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
@@ -1349,7 +1349,7 @@
               "dhw_disinfection_switch_entity": "A switch or helper that starts the heat pump's own anti-legionella program. In observe mode its state is only read and shown on the hot water sensor's attributes; in control mode the integration turns it on when a disinfection cycle starts and off when that cycle ends.",
               "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
               "dhw_free_disinfection_enabled": "A wood boiler, solar coil or immersion heater that gets the tank to the anti-legionella temperature is counted as a completed cycle either way. Off, it counts at once; on, only after the tank has held that temperature for 20 minutes, so a short peak credits nothing.",
-              "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",
+              "dhw_legionella_min_interval_days": "With Let the anti-legionella cycle pick a cheap day on, a cycle may run early on a cheap day only after this many days since the last one. It never delays a cycle that is due at the regular interval, and does nothing while that option is off.",
               "dhw_quantile_targets_enabled": "Learn how much hot water each time frame actually uses on a heavy day, and make the tank ready for that instead of for the average day. Needs a tank temperature sensor, configured hot water time frames, and a couple of weeks of evidence."
             }
           }
@@ -1383,7 +1383,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
+          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant, and leaves the headroom sensor following the capacity-tariff peak alone, unavailable without a capacity tariff — there is no safe default to guess, and a wrong one would cap a bigger house.",
           "main_fuse_phases": "Nearly every Swedish house is 3-phase.",
           "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
           "peak_guard_enabled": "Watches the power meter live and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter; a cold tank or a breached comfort floor always wins over the guard.",
@@ -1406,9 +1406,9 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "dso_product": "A dated Sweden-only table. Selecting a product writes transfer-fee rules and peak-tariff fields you can still edit. Verify against your bill. Unknown or stale products write nothing.",
-          "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Rules\" uses the schedule below; \"Live sensor\" follows an entity.",
-          "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
+          "dso_product": "A dated Sweden-only table. Selecting a product writes transfer-fee rules and peak-tariff fields you can still edit, switches the transfer fee to Time-of-use rules and turns the peak tariff on. Verify against your bill: a product keeps writing its values after its end date. A product the table does not know writes nothing.",
+          "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Time-of-use rules\" uses the schedule below; \"Live sensor\" follows an entity.",
+          "grid_fee_fixed": "A flat fee added in every hour, on top of the time-of-use rules or the live sensor's value. It only applies when Grid transfer fee is Time-of-use rules or Live sensor; with None it is ignored. Take it from your grid invoice.",
           "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge. A comma between digits is a decimal separator, so \"0,25\" reads as 0.25 and never splits a rule.",
           "grid_fee_entity": "A sensor reporting the current fee in {currency}/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
           "contract_fixed_price": "If you could have a fixed-price contract, its {currency}/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out.",
@@ -1434,7 +1434,7 @@
               "snow_roof_factor_enabled": "Assume less sun after heavy snowfall"
             },
             "data_description": {
-              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the heating target by 1 °C while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
+              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest indoor temperature the plan accepts by 1 °C, never below 15 °C, while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
               "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low.",
               "precip_type_enabled": "Rain soaks the building envelope and increases heat loss; snow does not. Without this, a snowy forecast is treated as rain and the plan buys heat for a wet wall that stays dry. Needs the Open-Meteo connection for the snow data.",
               "snow_roof_factor_enabled": "For two days after heavy snowfall, the modelled solar gain is halved — snow on roof glazing and low winter panes blocks the sun the plan was counting on. Deliberately crude: a factor and a holding period, not a melt model."
@@ -1519,7 +1519,7 @@
       },
       "modbus_prefill": {
         "title": "Pre-fill from a heat pump device",
-        "description": "For a Rotenso Windmi or another GCHV-built heat pump read through the tuya_heat_pump project's Modbus package. Name the package's entity prefix and submit: the next form suggests values read from the pump's own registers - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}.",
+        "description": "For a Rotenso Windmi or another GCHV-built heat pump, read through the tuya_heat_pump project's Modbus package or through the pump's own Home Assistant device. Pick the device, or leave it empty and name the package's entity prefix, and submit: the next form suggests values read from the pump - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, the pump's maximum electrical power (from its unit capacity), whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}.",
         "data": {
           "prefill_device": "Heat pump device (optional)",
           "modbus_prefill_prefix": "Modbus package entity prefix",
@@ -1542,7 +1542,7 @@
           "prefill_offer": "Offer this pre-fill at setup"
         },
         "data_description": {
-          "prefill_device": "Pick the heat pump's own device to read its entities instead of a Modbus package. Leave it empty to use the prefix below. The suggestions come from that integration's published definitions, not from a reading of your unit, so check them.",
+          "prefill_device": "Pick the heat pump's own device to read its entities instead of a Modbus package. Leave it empty to use the prefix below. The suggestions come from that integration's published definitions, or from the entities' names where nothing is published - not from a reading of your unit - so check them.",
           "modbus_prefill_prefix": "The start of the package's entity ids: \"hp\" for sensor.hp_outdoor_air_temperature. It is saved only when the package was found under it.",
           "dhw_setpoint": "Read from the pump's DHW normal setpoint register (0194H), times 0.1.",
           "dhw_min_temperature": "Read from the pump's DHW economic setpoint register (0196H), times 0.1.",
@@ -1602,7 +1602,7 @@
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty to skip the pre-fill and continue setup; the Modbus package prefix route is on the options page, under Pre-fill from a heat pump device.",
       "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
       "combi_needs_store": "A combi tank is the buffer store itself: it needs a throttling mixing valve, a buffer tank of at least 100 L, hot water turned on and no wood coil heating the hot water. Change those or turn the combi tank off.",
       "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
