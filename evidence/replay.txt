@@ -1,0 +1,30 @@
+== MB a68
+  UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round10/user-text/.gitattributes']
+  UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round10/user-text']
+  UNDER-SCOPED step verdict-bus: files misses ['dev/governance/roles/fixer.md']
+  UNDER-SCOPED step pr-merger: files misses ['tools/audit/seat/proof_watch.py']
+  UNDER-SCOPED step beat-job-rows: files misses ['.github/workflows/**', 'tools/audit/archscore/__init__.py', 'tools/audit/archscore/calibrate.py', 'tools/audit/archscore/calibration/corpus.tsv', 'tools/audit/archscore/counters.py', 'tools/audit/archscore/gate.py', 'tools/audit/archscore/metrics/**', 'tools/audit/archscore/planted/**'] (+183 more)
+  UNDER-SCOPED step beat-job-rows: dirs misses ['.github/workflows', 'tools', 'tools/audit', 'tools/audit/archscore', 'tools/audit/archscore/calibration', 'tools/audit/archscore/metrics', 'tools/audit/archscore/planted', 'tools/audit/archscore/planted/perturb'] (+38 more)
+  UNDER-SCOPED step ci-prelude: files misses ['tools/ci/fixtures/gate_requeued_needs_runs.json']
+  UNDER-SCOPED step gate-predicate: files misses ['tools/ci/fixtures/gate_requeued_needs_runs.json']
+  UNDER-SCOPED step gate-sweep: files misses ['tools/ci/gate.py', 'tools/ci/ghapi.py', 'tools/ci/prelude.py']
+  UNDER-SCOPED step gate-sweep: probes misses ['tools']
+  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round10/user-text']
+replay: 114 gated step(s), 11 refusal(s), 0 note(s)
+== HEAD a68
+replay: 114 gated step(s), 0 refusal(s), 0 note(s)
+== MB a95
+  UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round10/user-text/.gitattributes']
+  UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round10/user-text']
+  UNDER-SCOPED step verdict-bus: files misses ['dev/governance/roles/fixer.md']
+  UNDER-SCOPED step pr-merger: files misses ['tools/audit/seat/proof_watch.py']
+  UNDER-SCOPED step beat-job-rows: files misses ['.github/workflows/**', 'tools/audit/archscore/__init__.py', 'tools/audit/archscore/calibrate.py', 'tools/audit/archscore/calibration/corpus.tsv', 'tools/audit/archscore/counters.py', 'tools/audit/archscore/gate.py', 'tools/audit/archscore/metrics/**', 'tools/audit/archscore/planted/**'] (+183 more)
+  UNDER-SCOPED step beat-job-rows: dirs misses ['.github/workflows', 'tools', 'tools/audit', 'tools/audit/archscore', 'tools/audit/archscore/calibration', 'tools/audit/archscore/metrics', 'tools/audit/archscore/planted', 'tools/audit/archscore/planted/perturb'] (+38 more)
+  UNDER-SCOPED step ci-prelude: files misses ['tools/ci/fixtures/gate_requeued_needs_runs.json']
+  UNDER-SCOPED step gate-predicate: files misses ['tools/ci/fixtures/gate_requeued_needs_runs.json']
+  UNDER-SCOPED step gate-sweep: files misses ['tools/ci/gate.py', 'tools/ci/ghapi.py', 'tools/ci/prelude.py']
+  UNDER-SCOPED step gate-sweep: probes misses ['tools']
+  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round10/user-text']
+replay: 114 gated step(s), 11 refusal(s), 0 note(s)
+== HEAD a95
+replay: 114 gated step(s), 0 refusal(s), 0 note(s)

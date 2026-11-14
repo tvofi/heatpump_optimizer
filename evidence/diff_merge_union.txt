@@ -1,0 +1,12 @@
+head 2b8893814da8e6cf0a5fd8b33c05d849f2717d45
+merge-base 9fdba3b8547f9762438dc19b98b310a63d34dcb1 (= origin/main tip)
+ tools/ci/selftest_closures.json | 256 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 251 insertions(+), 5 deletions(-)
+merge-tree:
+6a6bed2b459bde1e58a7e9662bf9237194784344
+rc=0
+artifact sha256 (zip): 
+de77a34b115077c1ddc58aec4116cb4d9f6d9ca3cc0f51ef229e1ee3e04e1997  /tmp/claude-0/-home-user-heatpump-optimizer/b4a06113-8e93-5424-a28f-36736417d87d/scratchpad/a95.zip
+a9878a1810569889d33cbc3ee4c84613382423e4a484494984c988b85c434ae0  /tmp/claude-0/-home-user-heatpump-optimizer/b4a06113-8e93-5424-a28f-36736417d87d/scratchpad/a68.zip
+artifacts identical json
+independent union (mb table + a68 + a95 via union_entries/write_table) BYTE-IDENTICAL to head table
