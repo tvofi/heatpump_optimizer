@@ -205,5 +205,43 @@ def main() -> None:
                   f"lowest {min(sent):.1f}  above the gate {min(sent) > gate}")
 
 
+def lift_row(lift, feedback, hyst):
+    """One part-4 arm: energy drawn against the booked, the last 30 minutes,
+    and the settle minute: the first minute from which the 5-minute mean draw
+    stays within 20 % of plan to the end of the run (None: it never does)."""
+    plan, minutes = 0.53, 180
+    kw = {"lift": lift}
+    if feedback is not None:
+        kw["feedback"] = feedback
+    run = sim(minutes=minutes, hyst=hyst, plan_kw=plan, **kw)
+    draw = [row[2] for row in run["trace"]]
+    tail = sum(draw[-30:]) / 30
+    ok = [abs(sum(draw[max(0, m - 4):m + 1]) / len(draw[max(0, m - 4):m + 1]) - plan) <= 0.2 * plan
+          for m in range(minutes)]
+    settle = next((m for m in range(minutes) if all(ok[m:])), None)
+    return {"kwh": sum(draw) / 60.0, "tail": tail, "settle": settle, "starts": run["starts"],
+            "step": settle is not None and settle <= 15}
+
+
+def part4() -> None:
+    """Part 4 (R10-FEEDBACK-SETTLE-LARGE-LIFT): a floor lift of 0.5, 2, 4 and 6 K,
+    the loop on and off, the controller's start hysteresis at 0.5 K and at the
+    lift. Booked: plan 0.53 kW for 3 h. Each arm is run twice (null control)."""
+    print(f"booked {0.53 * 3:.2f} kWh")
+    for hyst_of in ("0.5K", "=lift"):
+        for lift in (0.5, 2.0, 4.0, 6.0):
+            for fb in (None, False):
+                hyst = 0.5 if hyst_of == "0.5K" else lift
+                first, again = lift_row(lift, fb, hyst), lift_row(lift, fb, hyst)
+                print(f"hyst {hyst_of:5s} lift {lift:3.1f} K  loop {'off' if fb is False else 'on ':3s}  "
+                      f"drew {first['kwh']:.2f} kWh  last30 {first['tail']:.3f} kW  "
+                      f"settle min {first['settle']}  within one step {first['step']}  "
+                      f"starts {first['starts']}  repeat identical {first == again}")
+
+
 if __name__ == "__main__":
+    import sys
+    if "--lift" in sys.argv:
+        part4()
+        raise SystemExit
     main()
