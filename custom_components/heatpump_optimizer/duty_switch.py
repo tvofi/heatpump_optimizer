@@ -60,6 +60,7 @@ from . import duty_legs, pump_mode, wear
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
 from .store import QuarantiningStore
+from .thermal_model import planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -559,6 +560,19 @@ def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float
     else:
         legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
     return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+
+
+def running_now(coord: Any, planned_kw: float) -> bool:
+    """Whether the compressor runs as a solve starts, for the plan's start count.
+
+    The tracker's settled class where a running signal is attached and has
+    settled; otherwise the executing step's planned draw by the plan's own
+    running rule. Never the start counter, which follows one sample per
+    interval.
+    """
+    rec = _RECORDS.get(coord)
+    settled = rec.tracker.settled if rec is not None and rec.unsub is not None else None
+    return planned_draw_runs(planned_kw) if settled is None else settled
 
 
 def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:

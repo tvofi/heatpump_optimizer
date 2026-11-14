@@ -81,7 +81,8 @@ from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
 from .pump_arbiter import ArbiterInputs, step_duty, supply_switch, switch_supply
-from .supply_hold import MIN_PAUSE, MIN_RUN, switch_age, tank_reason
+from .runs import MIN_PAUSE, MIN_RUN
+from .supply_hold import switch_age, tank_reason
 
 _LOGGER = logging.getLogger(__name__)
 
