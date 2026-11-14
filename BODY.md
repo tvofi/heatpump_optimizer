@@ -4,6 +4,14 @@ This branch is stacked on the R10-HOTFIX-FLOW-SETPOINT-STUCK handoff head 90eb45
 
 **Cause.** A space boost and the global boost mode change the step's duty (`pump_arbiter._planned_duty`) but not the level the flow set-point maps. `_flow_target` mapped the plan's own `power_schedule` level through `thermal_model.flow_setpoint_for_level`. A boost over a step the plan books at a partial positive power therefore wrote floor + fraction × (ceiling − floor), and the floor (measured inlet + lift) climbed as the system water warmed. That is the gradual rise the owner saw. Only an idle step (level ≤ 0) or a step at the band top gave the ceiling. `boost.overlay` sets the action's power to the maximum, but the arbiter does not read the action's power: only the system-identification experiment overrides the plan's level. Latent since 0a58990088 (R9-SW-6, first shipped in v6.7.17), which made the set-point follow the planned level.
 
+**Repair round (review verdict held at 7db7de155f; CI red at the pull-request head 9e02464877).** The delta from the reviewed head:
+- the repaired lower branch merged in;
+- #3404's harness M03 re-anchored on this branch's `boosted=False` arm line;
+- one unit of `coord_footprint` paid (see `## Architecture score`);
+- the pins and one equivalent-survivor triage.
+
+No other production change: the payment removes `_space_boosted` and the `water` local and reads the same fact inline in `desired()`. The pump-duty arbiter block prints `ALL 61 FEATURES BLOCK PASSED` at this head.
+
 ## Design
 
 **What a boost writes.** `_boost_ceiling_c(inp)` decides the target: the set-point entity's own maximum, capped by a heating ceiling (`flow_heat_c`) set to anything but its 55 °C default and by the controller's upper-limit sensor (`space_setpoint_high_limit_entity`, read through the `_setpoint_limits_c` the feedback loop already uses) where it reads. The maximum and the cap are both in the entity's own terms, so a return target is not moved: no offset is applied twice. The boost keeps following the planned level, as before, when the maximum does not read, sits at or below the gate, or sits above `FLOW_HEAT_C_MAX`. That constant is 70 °C, the options flow's own upper bound for `flow_heat_c`. It was a literal at config_flow.py and is now named in const.py and used there too. An entity reading 80 or 100 (a generic number helper) is no heating-flow set-point to drive to its top.
@@ -56,9 +64,9 @@ Root cause per dev/governance/rules/defect-root-cause.md: the defect reached a r
 
 ## Head
 
-7db7de155fef49a36118c10ca5747b1804babf32
+72db7df7a0b41b1a238a01e7cb59eebaa5009437
 
-Stacked on 90eb45f69f511811ddd2ed9e7c6570ab8b2abdd1 (the R10-HOTFIX-FLOW-SETPOINT-STUCK handoff head); the merge base with origin/main is 154dbb4c61. `git merge-tree --write-tree origin/main HEAD` exits 0.
+The reviewed head was 7db7de155fef49a36118c10ca5747b1804babf32; this head fast-forwards it. Stacked on 2d99a7b04b4fff4db0b4168c913882121b2825c6 (the repaired R10-HOTFIX-FLOW-SETPOINT-STUCK handoff head, merged in); the merge base with origin/main is 154dbb4c61. `git merge-tree --write-tree origin/main HEAD` exits 0.
 
 ## Mutation proof
 
@@ -90,34 +98,20 @@ The generated scope-line block is left out of this body: update_pr.sh verifies i
 
 none
 
+## Architecture score
+
+- `coord_footprint` 2505 -> 2506 (this seat's measure at merge base 154dbb4c61 and 416147bb56; CI read 2503 -> 2505 at 9e02464877 before the payment): `desired()` now passes the live boost fact to `_space_target` as a computed argument, `boosted=_flow_unit(inp.config) and (inp.mode == MODE_BOOST or boost.held_for(coord).active(...))`, where the call was a plain delegation the footprint does not charge. The fact needs the coordinator's boost record, and `desired()` is the one function that holds both it and the call. Payment tried: the first cut's `_space_boosted(coord, inp, now)` helper and `water` local charged 2 units (`pump_arbiter._space_boosted:1`, `desired` 7 -> 8); both are removed (commit "read the boost fact inline in desired()"), paying 1 of the 2. A local `boosted = ...` costs the same unit and turns the call back into plumbing, so it pays nothing. Carrying the fact on `ArbiterInputs` would move it into the coordinator's published builder, coordinator.py, held by open pull requests, and charge the builder instead. No payment that improves the architecture exists for the remaining unit (per-function measure: `tools/audit/archscore/metrics/footprint.py`'s `measure`, base and head, the only charged difference being `pump_arbiter.desired:7` -> `:8`).
+
 ## Red checks
 
-- `tests / mutation` at 7db7de155fef: red by construction on the 20 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. Cheaper detector: none is needed for this red: `mutant_run.py --diff` above already measured every added line (34 killed, 2 equivalent), and the red only waits for the lane to record the pins.
+Each check that was red on a commit of this branch (pull request #3562, head 9e024648777c), answered per dev/governance/rules/defect-root-cause.md:
 
-## Unpinned sites
-
-Each is an added production line the committed ledger cannot yet name (`python3 tools/pr/ci_predict.py --base origin/main`, the ADDED UNPINNED lines). This list includes the stuck-set-point branch's sites, which this stacked branch carries until that one merges. The pump-duty arbiter block drives every function they sit in, and the lane pins what it kills after the push. Two pins ci_predict named STALE PIN on lines this branch rewrote (`_space_target` RETURN_DEL 268586e3, `desired` GUARD_OFF 0082e8a4) are deleted by hand.
-
-- `custom_components/heatpump_optimizer/pump_arbiter.py:639 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:677 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:679 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:681 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:916 CMP_BOUND*2`: pinned by mutation-autofix; the first of the two, `<` to `<=` on the gate, is equivalent (Mutation proof), the second is killed by the max 70 row
-- `custom_components/heatpump_optimizer/pump_arbiter.py:916 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:919 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:922 BOOLOP`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:922 CMP_BOUND`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:922 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:924 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1281 BOOLOP`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1282 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1293 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1554 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1685 BOOLOP`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1685 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1707 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1712 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1826 GUARD_OFF`: pinned by mutation-autofix
+- `arch-score / arch-score`: `dS -0.0012 WORSENS; unexplained: coord_footprint 2503->2505`. The cause is this branch's boost fact in `desired()`: the `_space_boosted` helper and `water` local, 2 units. One unit paid and one explained under `## Architecture score`. Cheaper detector: `python3 -I tools/audit/archscore/gate.py --base <merge base> --head HEAD --body <body>`, about 2 minutes locally; prepr does not run it. The handoff did not run it, which is why it reached CI. Standing cost: one run per handoff whose diff touches a function handed the coordinator.
+- `tests / fast (3.14)`: `tests/doc_claims.py` failed `no user page carries a history phrase outside a reasoned exemption` on the "as before" in docs/configuration.md, a sentence the lower branch (#3561) added. It is fixed there and merged in here. Cheaper detector: `tests/doc_claims.py` itself, 9 s; it is answered in full in #3561's Red checks.
+- `tests / mutation`: REFUSED, 21 unpinned sites added by this diff: 6 from #3561, which that branch now pins, and 15 of its own. The sites left at this head after the payment are now settled by `python3 tests/mutation_table.py --pin-killed --base origin/main` (features.py, config_flow_steps.py, guard_pins.py). Of 13 mutants, 11 are pinned killed. The two on the range test's line share one anchor: its `<= FLOW_HEAT_C_MAX` comparator is killed, and its gate comparator lives and is equivalent. That anchor is triaged `equivalent` in tests/mutation_ledger/survivor_triage/, with the reason. `ci_predict.py --base origin/main` now predicts no red. Two pins this branch's rewrite made stale (`_space_target` RETURN_DEL 268586e3, `desired` GUARD_OFF 0082e8a4) were already deleted. Cheaper detector: ci_predict's ADDED UNPINNED lines, printed as a WARN at the handoff. The body answered them "pinned by mutation-autofix", which the next row shows could not happen.
+- `tests / mutation-autofix`: AUTOFIX skip-measure-failed. The shard jobs' baseline found `tests/doc_claims.py` red (the same sentence), so no mutant's verdict meant anything and no bot commit followed. No separate detector exists: it is the doc_claims red above.
+- `governance / instrument-self-tests`, `tests / briefs`, `tests / nightly-status`: red on main commits that the pull-request branch's merges of origin/main brought into its ancestry, not on any commit of this diff. For example, `governance / instrument-self-tests` is red at main 154dbb4c61 itself. They grade `main` and are the orchestrator's there (`defect-root-cause.md`, Enforcement).
+- `pr-contract` and `gate`: red at 9e02464877, aggregating the reds above. This section answers them.
 
 ## Forward-carry
 
