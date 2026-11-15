@@ -1,0 +1,165 @@
+{
+ "_rule": "Round 10's objective record, decision 0018 section 6: per term of dev/audit/config/objective.json either a `value` with the `enumerator`, a command on a tracked script, that printed it, or `no_read` with `would_read` and `builder`. A `by_hand` or `beside` block is no value: it is a figure 0018 sets beside a term or reads by hand, carried for the evaluator to re-read and never graded as the term. Written after the close (the close wrote none), by a record seat for the round-11 orchestrator under tvofi's ruling on card E11-N-OBJECTIVE-RECORD; every command was run by that seat at the shas named here.",
+ "round": 10,
+ "window": {
+  "from": "v7.0.0",
+  "from_sha": "9cb735dfc6d8249f031b8b9439487faf71f91c33",
+  "from_time": "2026-10-14T13:27:06Z",
+  "until": "v10.0.0",
+  "until_sha": "13cbe48de4236b7979c754640cc5b1a099ef7475",
+  "until_time": "2026-11-15T05:22:47Z",
+  "why": "0018 section 2: the window of round N runs from the previous closeout stamp to its own (decision 0016). Round 9 closed at v7.0.0 (its stamp subject reads `v7.0.0: stamp Round-9 closure`) and round 10 at v10.0.0. Counts by merge use the 1139 first-parent merges of v7.0.0..v10.0.0 (1210 first-parent commits, 71 of them not merges)."
+ },
+ "roster": {
+  "ref": "c080e93403e69543564ee334f0772229a28331b3:dev/programme/rosters/wave-r10-groups.json",
+  "groups": 548,
+  "why": "the tip of handoff/audit-r10-roster when read; every roster-derived figure here was read at this sha, never at a moving ref"
+ },
+ "tree": "26dbf7c43ec3742101398b098dbdcc61bbee8f19",
+ "terms": {
+  "regret": {
+   "no_read": "no same-information oracle and no realised-cost record per install-day exist; 0018 section 2 names no enumerator",
+   "would_read": "the oracle harness raced per grid cell (D0's step) and the realised-cost record per install-day from a bundle (D15's step), with the model gap beside both",
+   "builder": "R11-INTAKE-R10-RESIDUE"
+  },
+  "operation": {
+   "no_read": "no cell ledger over write and hold sites times plan states",
+   "would_read": "the actuator-write dimension's cell ledger: each write and hold site (`git grep -n \"async_call(\" custom_components/` lists the candidates) times idle, partial, boost, hot-water only and first cycle after an upgrade, with the plan's target and the value written",
+   "builder": "R11-INTAKE-R10-RESIDUE"
+  },
+  "generality": {
+   "no_read": "the examined count has no enumerator: no cell ledger names a cell with its source and asserting test",
+   "would_read": "D12's cell ledger over the levels and pairs the denominator command prints",
+   "builder": "R11-INTAKE-R10-RESIDUE",
+   "beside": {
+    "denominator": {
+     "levels": 195,
+     "pairs": 18696,
+     "no_read_axes": 2
+    },
+    "command": "python3 tools/audit/check_scopes.py --repo . --ref 13cbe48de4 --population",
+    "also_at": "the same three figures at --ref 26dbf7c43e"
+   }
+  },
+  "unowned": {
+   "no_read": "0018 section 2 names no enumerator: read off `escapes` once it records its owner, and `escapes` is itself read by hand",
+   "would_read": "the escapes record with found-by and owning dimension; until then the `none` rows of dev/audit/rounds/round10/objective/escapes_hand.tsv",
+   "builder": "R11-INTAKE-R10-RESIDUE",
+   "by_hand": {
+    "count": 7,
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
+    "rows": "ruling `in` and owner `none`",
+    "groups": [
+     "R10-SETPOINT-BOOST",
+     "R10-HOTFIX-AWAY-SETBACK",
+     "R10-WATER-SETPOINT-FEEDBACK",
+     "R10-OUTSIDE-DISINFECTION-SETPOINT",
+     "R10-MODE-BEFORE-SUPPLY-ON",
+     "R10-OUTSIDE-SUPPLY-STALE-STEP",
+     "R10-HOTFIX-BOOST-FLOW-CEILING"
+    ]
+   }
+  },
+  "escapes": {
+   "no_read": "0018 section 2 names no enumerator; the roster records no found-by and no owning dimension",
+   "would_read": "the escapes record with found-by and owner per group, and the window series R11-PRE-ROUND-METRICS prints",
+   "builder": "R11-INTAKE-R10-RESIDUE",
+   "by_hand": {
+    "in_window": 26,
+    "by_owner_report": 15,
+    "by_outside_report": 11,
+    "dated_the_stamp_day": 6,
+    "unreleased": 1,
+    "candidates": 98,
+    "ruled_out": 65,
+    "per_owner": {
+     "D0": 1,
+     "D1": 5,
+     "D2": 6,
+     "D4": 2,
+     "D6": 1,
+     "D8": 1,
+     "D10": 1,
+     "D12": 1,
+     "D15": 1,
+     "none": 7
+    },
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
+    "rule": "the matching rule and its two commands are the ledger's header",
+    "releases_in_window": 24,
+    "releases_command": "git tag --contains v7.0.0 --merged v10.0.0 -l 'v*' | grep -vx v7.0.0 | wc -l"
+   },
+   "removed": "unread: the roster's `findings` field mixes finding ids, issue numbers and prose, and no tracked command prints verified findings whose group merged"
+  },
+  "injected": {
+   "no_read": "0018 section 2 names no enumerator: no cause recorded per fixing group by the root-cause seat",
+   "would_read": "the cause named on each fixing group, recorded by the root-cause seat, over production merges in this window and the previous",
+   "builder": "R11-INTAKE-R10-RESIDUE",
+   "by_hand": {
+    "bugs_with_a_named_cause": 4,
+    "bugs": {
+     "R10-SAVINGS-NEGATIVE": "2411 (the brief; first released in v7.0.1)",
+     "R10-HOTFIX-SAV-ESTIMATE": "2411 and 2887 (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; both merged in the window)",
+     "R10-HOTFIX-FLOW-SETPOINT-STUCK": "3404 (the brief; first released in v7.1.12)",
+     "R10-HOTFIX-REFERENCE-BASIS": "3587 (the brief; caught before a release)"
+    },
+    "production_merges_in_window": 155,
+    "per_100": 2.58,
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
+    "count_command": "awk -F'\\t' '!/^#/ && $1 != \"group\" && $9 != \"-\"' dev/audit/rounds/round10/objective/escapes_hand.tsv | wc -l",
+    "denominator_command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139"
+   }
+  },
+  "product_green": {
+   "no_read": "its named enumerator, `python3 tools/audit/seat/scorecard.py report`, prints `A_gate  unread (runs.json)`: it has no input producer and reads the last 20 runs, with no window",
+   "would_read": "`scorecard.py report` line A_gate fed with main's concluded `CI` push runs of the window, the cancelled count beside it",
+   "builder": "R11-PRE-ROUND-METRICS"
+  },
+  "coverage": {
+   "no_read": "no finder report row carries examined over universe, so no step's share can be read",
+   "would_read": "the per-step universe and examined count in each dimension's reports, each universe printed by a named command",
+   "builder": "R11-INTAKE-R10-RESIDUE"
+  },
+  "unexamined": {
+   "no_read": "no examining pass reports its universe over a late merge, and the roster's group kinds are not read by any tracked command",
+   "would_read": "production merges after the round's baseline matched against the finder passes that examined them",
+   "builder": "R11-PRE-ROUND-METRICS",
+   "beside": {
+    "production_merges_in_window": 155,
+    "command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139"
+   }
+  },
+  "first_pass": {
+   "value": {
+    "flow_metrics": 0.5058,
+    "review_strength": 0.5138
+   },
+   "enumerator": "python3 tools/audit/seat/flow_metrics.py --repo . --window 2026-10-14T13:27:06Z..2026-11-15T05:22:47Z --roster c080e93403e69543564ee334f0772229a28331b3:dev/programme/rosters/wave-r10-groups.json --prefix R10-",
+   "second_enumerator": "python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z --roster c080e93403e69543564ee334f0772229a28331b3:dev/programme/rosters/wave-r10-groups.json",
+   "counts": {
+    "flow_metrics": "first-pass yield 436/862; merged with no bus verdict 18",
+    "review_strength": "first-pass 467/909; real-catch incidence 214/909"
+   },
+   "note": "0018 names both scripts; they count different populations (merged fix pull requests against reviewed pull requests), so both are carried and neither is chosen"
+  },
+  "lead_time": {
+   "no_read": "`flow_metrics.py` prints merge hours only (hours with a merge 517/759); nothing prints hours from a group's roster entry to its merge",
+   "would_read": "hours from the roster commit that added each production group to its merge on main, p50 and p90",
+   "builder": "R11-PRE-ROUND-METRICS"
+  },
+  "closure_slip": {
+   "no_read": "the forecast history exists only inside rendered plan pages",
+   "would_read": "the plan's forecast closure per day after the register, as a tracked history",
+   "builder": "R11-PRE-ROUND-METRICS",
+   "beside": {
+    "round_start_to_closure_days": 31.66,
+    "command": "git log -1 --format=%ct v7.0.0; git log -1 --format=%ct v10.0.0 (difference over 86400)"
+   }
+  },
+  "tokens_per_change": {
+   "no_read": "no token ledger: every seat class is unledgered, and one unledgered class makes the term NO-READ",
+   "would_read": "the ledger of every usage field of every seat, keyed by group, role and dimension, over production merges",
+   "builder": "R11-PRE-TOKEN-LEDGER"
+  }
+ }
+}
