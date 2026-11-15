@@ -92650,7 +92650,8 @@ R.check(
 )
 
 
-# ====================================================================# R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
+# ===========================================================================
+# R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
 # priced as one start, and an engaged solve ships runs the pump can run.
 # ===========================================================================
 R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")
@@ -93512,7 +93513,6 @@ R.check(
     and _hsr_humidity(np.array([], dtype=float)) is None
     and _hsr_humidity(np.full(4, np.nan)) is None,
 )
-=======
 
 # --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---
 # Part D of Bankaifan's outside pull request 3420, on the approved design
