@@ -883,8 +883,11 @@ SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
 
 def precheck(root: Path, base: str) -> int:
     """The drift check a pull request cannot get from CI, on the seat: 0 when
-    no touched step reads past the table, 1 naming each read it misses (and a
-    touched step that fails), 3 when the steps cannot be traced here."""
+    no touched step reads past the table, 1 naming each read it misses, 3 when
+    the steps cannot be traced here or one exits non-zero under the tracer --
+    its trace is graded as far as it ran, and whether it passes is the pull
+    request's own `instrument-self-tests` run, which runs it untraced (a
+    self-test with a time bound can fail under strace alone)."""
     steps = workflow_steps(root)
     changes = diff_changes(base, "HEAD", root)
     if changes is None:
@@ -900,14 +903,16 @@ def precheck(root: Path, base: str) -> int:
               f"or this run is itself traced; main's drift step is the detector")
         return SKIP_RC
     measured, broken, failed = trace_steps(root, steps, set(want))
-    refuse = broken + [f"FAILED step {sid}: it exits non-zero in a clean clone" for sid in failed]
-    refuse += drift(table, measured, steps, set(want))[0]
+    refuse = broken + drift(table, measured, steps, set(want))[0]
     for line in refuse:
         print(f"  {line}")
     print(f"selftest_scope precheck: {len(want)} step(s) traced {want}, {len(refuse)} refusal(s)"
           + (f" -- add the reads with `python3 {SELF} record"
              + "".join(f" --step {i}" for i in want) + "`" if refuse else ""))
-    return 1 if refuse else 0
+    if failed and not refuse:
+        print(f"selftest_scope precheck: skip, {len(failed)} step(s) {failed} exited non-zero under the "
+              f"tracer, so their reads past that point are unmeasured; main's drift step is the detector")
+    return 1 if refuse else SKIP_RC if failed else 0
 
 
 def _traced() -> bool:
@@ -1960,8 +1965,27 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             (pr / "tools/x/run.sh").write_text("exit 7\n")
             rc_f, out_f = run("precheck", "--base", pbase)
             (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
-            ck("precheck: a touched step that fails in the clone is refused (the working tree's "
-               "uncommitted script is what ran)", rc_f == 1 and "FAILED step a" in out_f)
+            ck("precheck: a touched step that exits non-zero under the tracer is unmeasured, a skip (rc 3) "
+               "naming it, never a pass (the working tree's uncommitted script is what ran)",
+               rc_f == SKIP_RC and "skip, 1 step(s) ['a'] exited non-zero" in out_f
+               and "1 step(s) traced ['a'], 0 refusal(s)" in out_f)
+            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\nexit 7\n")
+            rc_fr, out_fr = run("precheck", "--base", pbase)
+            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+            ck("precheck: ... and a read it made before it failed is still refused (rc 1)",
+               rc_fr == 1 and "files misses ['docs/d.md']" in out_fr and "skip," not in out_fr)
+            hollow = pr.parent / "hollow"            # an strace that writes empty traces
+            hollow.mkdir()
+            (hollow / "strace").write_text('#!/bin/bash\nwhile [ "$1" != -- ]; do [ "$1" != -o ] || : > "$2"; '
+                                           'shift; done; shift; exec "$@"\n')
+            (hollow / "strace").chmod(0o755)
+            path, os.environ["PATH"] = os.environ["PATH"], f"{hollow}{os.pathsep}{os.environ['PATH']}"
+            try:
+                rc_h, out_h = run("precheck", "--base", pbase)
+            finally:
+                os.environ["PATH"] = path
+            ck("precheck: a trace strace left empty measured less than the step read: refused, naming it",
+               rc_h == 1 and "EMPTY trace step-a.trace (step a)" in out_h)
             rc_r, _ = run("record", "--step", "a")
             ck("precheck: after `record --step a` the same diff passes",
                rc_r == 0 and run("precheck", "--base", pbase)[0] == 0)

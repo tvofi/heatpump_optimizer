@@ -90,8 +90,10 @@ scope_mutant "absorb goes on over an unreadable source" 'if table is None or Non
 scope_mutant "absorb writes the live table over --out" 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)' 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], root / TABLE, root)'
 scope_mutant "touched_steps passes over a changed recorded file" 'or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]' 'or False)]'
 scope_mutant "touched_steps passes over a step recorded under another run text" '(held.get(s.id) or {}).get("run_sha") != s.run_sha' 's.id not in held'
-scope_mutant "precheck grades no drift" 'refuse += drift(table, measured, steps, set(want))[0]' 'refuse += []'
-scope_mutant "precheck passes a step that fails" 'refuse = broken + [f"FAILED step {sid}: it exits non-zero in a clean clone" for sid in failed]' 'refuse = broken + []'
+scope_mutant "precheck grades no drift" 'refuse = broken + drift(table, measured, steps, set(want))[0]' 'refuse = broken'
+scope_mutant "precheck passes a step that failed under the tracer" 'return 1 if refuse else SKIP_RC if failed else 0' 'return 1 if refuse else 0'
+scope_mutant "precheck skips over a refusal when a step failed" 'return 1 if refuse else SKIP_RC if failed else 0' 'return SKIP_RC if failed else 1 if refuse else 0'
+scope_mutant "precheck drops a broken trace" 'refuse = broken + drift(table, measured, steps, set(want))[0]' 'refuse = drift(table, measured, steps, set(want))[0]'
 scope_mutant "precheck runs on with no strace" '    if shutil.which("strace") is None or _traced():
         print(f"selftest_scope precheck: skip' '    if False:
         print(f"selftest_scope precheck: skip'
