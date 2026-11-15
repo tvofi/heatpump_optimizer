@@ -1,0 +1,30 @@
+ok   seat null: a scopes seat with two models is seated
+ok   seat: the twin's ids start at 71, above the seat's own
+ok   seat: a seat scopes.json does not hold is refused
+ok   seat: a missing model is refused
+ok   report: a box file is read under the seat's name
+ok   estimate: n1, n2, m after the judge and the Chapman estimate
+ok   estimate: two models are printed and the bias called unmeasured
+ok   estimate: one model is printed as biased low
+ok   estimate: a merge into a refuted finding and an unreproduced one count no bug
+ok   estimate: disjoint finds share nothing
+ok   estimate null: no pair prints unread
+ok   estimate null: a missing report prints unread
+ok   estimate null: no judge verdicts print unread
+ok   estimate null: an empty input directory prints unread and no digit
+ok   seat: the pair record is written
+ok   seat: no --round is refused and writes nothing
+ok   mutant killed: seat in scopes (by 'does not hold')
+ok   mutant killed: seat models (by 'missing model')
+ok   mutant killed: box key (by 'box file')
+ok   mutant killed: shared (by 'Chapman')
+ok   mutant killed: chapman (by 'Chapman')
+ok   mutant killed: unseen (by 'Chapman')
+ok   mutant killed: one model (by 'biased low')
+ok   mutant killed: null pair (by 'no pair prints unread')
+ok   mutant killed: null report (by 'missing report')
+ok   mutant killed: null judge (by 'no judge verdicts')
+ok   mutant killed: twin ids (by 'twin's ids start at 71')
+ok   mutant killed: round required (by 'no --round')
+finder_overlap self-test: ok (with mutants)
+rc=0
