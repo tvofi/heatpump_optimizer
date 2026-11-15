@@ -1480,11 +1480,14 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "probe",
+   "merged": "382bcb819cf28c40e968f67fff3d295efdf04ed9"
   },
   "E11-U2": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
    "unowned": "R10-HOTFIX-BOOST-FLOW-CEILING (pull request 3562), reported by the owner in round 10's window: a boost over a step the plan books at partial power: the write against the plan's target.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D6 owns the documents' sentence that boost writes the ceiling, and would find the claim false; the defect is the write on a partial-power step, which no step of D6 or D8 drives. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
@@ -1492,7 +1495,10 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "probe",
+   "merged": "382bcb819cf28c40e968f67fff3d295efdf04ed9"
   },
   "E11-U4": {
    "paths": [
