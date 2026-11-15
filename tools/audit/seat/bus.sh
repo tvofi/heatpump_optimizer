@@ -2525,7 +2525,7 @@ G
   arefuse "when main holds no outside contract" "holds no outside contract"
   # No probe in this file pipes a captured output into grep -q (outhas's comment): the matched
   # probe's echo dies on the closed pipe and pipefail fails it.
-  ! grep -nE '^[^#]*(echo|printf)[^|#]*"\$[A-Za-z_0-9]+" *\| *grep -q' "$ROOT/tools/audit/seat/bus.sh"
+  ! grep -nE '^[^#]*(echo|printf)[^|#]*"\$[A-Za-z_0-9]+" *\| *grep +(-[A-Za-z]*q|"\$@")' "$ROOT/tools/audit/seat/bus.sh"
   expect "no probe pipes a captured output into grep -q under pipefail (job 132617815989)" $?
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
