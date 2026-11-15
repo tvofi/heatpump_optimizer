@@ -119,9 +119,9 @@ naming a host path is refused at the op with a scrub hint, not at the
 landing of the roster on main.
 
 THE TRIAGE GATE (decision 0015). Every process, tooling or instrument proposal
-passes dev/governance/roles/proposal-triage.md before it reaches the roster, so
-the write path refuses roster text a proposal sourced that cites no ACCEPT
-ruling. The text judged is what this write ADDS (a new group's brief and
+passes dev/governance/roles/proposal-triage.md, once per round at round end,
+before it reaches the roster, so the write path refuses roster text a proposal
+sourced that cites no ACCEPT ruling. The text judged is what this write ADDS (a new group's brief and
 carries, a changed brief, an appended carry), so every caller of
 `write_roster()` -- this file's ops and roster_sync.py's carries -- passes it.
 Text is proposal-sourced when it names one (`triage P<n>`, `proposal P<n>`,
