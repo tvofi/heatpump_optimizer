@@ -1,21 +1,29 @@
 $ python3 -I tools/audit/seat/merge_train.py --self-test
-rc=0 last: merge_train self-test: 815 checks, 0 failed
-0
-$ bash tools/audit/seat/merge_pr.sh --self-test
-rc=0 last: merge_pr self-test: 35 checks, 0 failed
-0
-$ python3 -I tools/audit/seat/remerge_main_selftest.py
-rc=0 last: remerge_main self-test: 13 checks, 0 failed
-0
-$ python3 -I tools/pr/outside.py --self-test
-rc=0 last: outside self-test: 266 checks, 0 failed
-0
+merge_train self-test: 815 checks, 0 failed
+rc=0
 $ python3 -I tools/ci/selftest_scope.py --self-test
-rc=0 last: selftest_scope self-test: 120 checks, 0 failed
-0
+selftest_scope self-test: 120 checks, 0 failed
+rc=0
 $ python3 -I tools/ci/selftest_scope.py static
-rc=0 last: selftest_scope static: 116 gated step(s), 0 problem(s)
-0
+selftest_scope static: 116 gated step(s), 0 problem(s)
+rc=0
 $ python3 tests/structure.py
-rc=0 last: STRUCTURE RATCHET PASSED
-0
+STRUCTURE RATCHET PASSED
+rc=0
+$ python3 -I tools/pr/outside.py --self-test
+outside self-test: 266 checks, 0 failed
+rc=0
+$ select --base origin/main
+MODE: FULL -- every step runs (a gate file changed: ['tools/ci/selftest_closures.json'])
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/selftest_closures.json changes the gate itself, so every closure is suspect
+Architecture score: dS +0.0000 NULL
+ dev/programme/delivery/3521.md            |   1 +
+ tools/audit/seat/merge_pr.sh              |  53 +++
+ tools/audit/seat/merge_train.py           | 566 +++++++++++++++++++++++++++++-
+ tools/audit/seat/queue_pre_flight.py      |  25 ++
+ tools/audit/seat/remerge_main.sh          |  55 ++-
+ tools/audit/seat/remerge_main_selftest.py | 126 +++++++
+ tools/ci/selftest_closures.json           |  10 +-
+ 7 files changed, 820 insertions(+), 16 deletions(-)
+protected-path matches above: none if empty

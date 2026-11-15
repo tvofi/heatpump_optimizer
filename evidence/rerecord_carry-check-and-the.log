@@ -1,0 +1,17 @@
+OK       0.0s launch
+OK       2.6s carry-check-and-the
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /tmp/tmp.mNLaneG4wf/rec.json; 0 failed [], 0 broken trace(s)
+rc=0
+top keys ['_comment', 'workflow', 'job', 'steps'] steps head 116 rec 1 main 117 prev 116
+  run_sha: committed==re-recorded True f974a043ac14814d7a3782bea1f5b9cfe6a2c26dbba0f5a88b81031484603058
+  files: committed==re-recorded True 11
+  probes: committed==re-recorded True 11
+  dirs: committed==re-recorded True 4
+  index: committed==re-recorded True False
+  objects: committed==re-recorded True False
+  git: committed==re-recorded True 0
+steps differing head vs prev: ['carry-check-and-the'] added/removed: set()
+steps differing head vs origin/main: ['carry-check-and-the', 'pr-merger'] {'seat-gen'}
+files head-prev: ['tools/pr/outside.py'] prev-head: []
+probes head-prev: ['tools/pr'] prev-head: []
