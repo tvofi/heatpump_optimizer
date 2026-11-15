@@ -25942,7 +25942,7 @@
    ],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-intake-r10-residue",
     "commit": null,
     "last_step": null,
     "next_step": "round 11 architect triage",
