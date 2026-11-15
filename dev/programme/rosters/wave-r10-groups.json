@@ -27870,6 +27870,51 @@
     "note": "overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-STANDING-SCRIPTS): round-11 pickup: the outside contract seam of R10-OUTSIDE-CONTRIBUTOR-CYCLE (carries-open); shares merge_train.py with R11-INTAKE-R10-RESIDUE and R11-PRE-STANDING-SCRIPTS, distinct seam (the outside contract calls), merged in train order",
     "pr": null
    }
+  },
+  {
+   "group": "R11-HOTFIX-FIGURE-BLOCK-BASE",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/open_pr.sh"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [
+    "dev/audit/rca/R10-RCA-FAMILY-FIGURE-BLOCK-STALE.md"
+   ],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "triage: dev/programme/triage/r10-round-end.md#P774 at 2e17928032\n\nHotfix, S. Freeze ground: `pr-contract` is a need of the required `gate`, and #3593, a `custom_components/` pull request, went gate-red on a figure block naming the wrong base at 5723ce19 (the batch's instance; ten pull-request reds over 2026-11-13 22:15Z to 2026-11-15 07:32Z in the family record). Root-cause record: `dev/audit/rca/R10-RCA-FAMILY-FIGURE-BLOCK-STALE.md`. The fix: `tools/audit/seat/update_pr.sh` and `tools/audit/seat/open_pr.sh` render the figure block with the pull request's recorded `base.sha`, the value `pr-contract` verifies against, never a locally computed base. Failing test first in each script's self-test: a pull request whose recorded base differs from the local merge base renders the recorded one; null control: equal bases render as today; a mutant back to the local base turns the first case red. The head-move half (recarry, merge-main bot, pin bot) is R11-PRE-SHARED-FILES's, not this group's. Re-measure every figure at this group's own base.",
+   "carry": [],
+   "source": "programme",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
+    "note": null,
+    "pr": null
+   }
   }
  ]
 }
