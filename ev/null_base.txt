@@ -1,0 +1,6 @@
+REFUSE: no dimension brief cites a universe
+rc=2
+REFUSE: missing or unreadable source: [Errno 2] No such file or directory: '/root/wt-base/dev/audit/config/bundles.json'
+rc=2
+REFUSE: missing or unreadable source: [Errno 2] No such file or directory: '/root/wt-base/dev/audit/config/identities.json'
+rc=2

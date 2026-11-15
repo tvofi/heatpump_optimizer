@@ -1,0 +1,16 @@
+ok D0 d0-grid
+ok D0 d15-installs
+ok D1 d1-excepts
+ok D1 d1-inputs
+ok D1 d1-lifecycle
+ok D1 d1-parsers
+ok D1 d1-solve-state
+ok D1 d1-stores
+ok D12 d12-cells
+ok D15 d15-installs
+ok D2 d2-identities --cells
+ok D8 d8-cells
+ok D9 d9-attributes
+ok D9 d9-collections
+ok D9 d9-solves
+rc=0

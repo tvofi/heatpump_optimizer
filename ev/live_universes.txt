@@ -1,0 +1,21 @@
+RESULT universe=d0-grid lines=2400
+RESULT universe=d0-grid --plane price-weather lines=40
+RESULT universe=d0-modules lines=23
+RESULT universe=d1-lifecycle lines=41
+RESULT universe=d1-stores lines=41
+RESULT universe=d1-inputs lines=50
+RESULT universe=d1-solve-state lines=28
+RESULT universe=d1-excepts lines=256
+RESULT universe=d1-parsers lines=31
+RESULT universe=d2-identities lines=30
+RESULT universe=d2-identities --cells lines=587
+RESULT universe=d8-cells lines=396
+RESULT universe=d9-collections lines=19
+RESULT universe=d9-attributes lines=54
+RESULT universe=d9-solves lines=21
+RESULT universe=d12-cells lines=201
+RESULT universe=d12-cells --pairs lines=18897
+RESULT universe=d14-classes lines=56
+RESULT universe=d15-installs lines=1
+RESULT universe=d16-writes lines=38
+RESULT universe=d17-features lines=307

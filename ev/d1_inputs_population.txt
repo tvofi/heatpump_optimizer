@@ -1,0 +1,4 @@
+RESULT d1-inputs universe=50
+RESULT entry_config 'an entity assignment' keys=1 not in universe=['CONF_COMPRESSOR_FREQ_SENSOR']
+RESULT config_flow entity-selector fields=48 not in universe=['CONF_COMPRESSOR_FREQ_SENSOR']
+RESULT perturbation predicate widened to CONF_*_(ENTITY|SENSOR): d1-inputs lines=51
