@@ -88,7 +88,9 @@ scope_mutant "absorb rewrites a table it added nothing to" '    if added:
         write_table(out, entries, root)'
 scope_mutant "absorb goes on over an unreadable source" 'if table is None or None in loaded:' 'if table is None:'
 scope_mutant "absorb writes the live table over --out" 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)' 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], root / TABLE, root)'
-scope_mutant "touched_steps passes over a changed recorded file" 'or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]' 'or False)]'
+scope_mutant "touched_steps passes over a changed script" 'or any(named(p, text[s.id]) for _, p in changes))]' 'or False)]'
+scope_mutant "touched_steps takes any path a script name contains or ends" 'rf"(?<![\w./-]){re.escape(path)}(?![\w./-])"' 're.escape(path)'
+scope_mutant "touched_steps forgets what a waiter launcher starts" 'for line in launch.splitlines() for n in s.waits_on()' 'for line in () for n in s.waits_on()'
 scope_mutant "touched_steps passes over a step recorded under another run text" '(held.get(s.id) or {}).get("run_sha") != s.run_sha' 's.id not in held'
 scope_mutant "precheck grades no drift" '    refuse = drift(table, measured, steps, set(want))[0]
     refuse = broken' '    refuse = []
@@ -105,8 +107,8 @@ scope_mutant "precheck runs on with no strace" '    if shutil.which("strace") is
         print(f"selftest_scope precheck: skip' '    if False:
         print(f"selftest_scope precheck: skip'
 scope_mutant "precheck traces when nothing is touched" '    if not want:
-        print("selftest_scope precheck: the diff touches' '    if False:
-        print("selftest_scope precheck: the diff touches'
+        print("selftest_scope precheck: the diff changes' '    if False:
+        print("selftest_scope precheck: the diff changes'
 scope_mutant "a partial drift names the untraced steps" '        if only is not None and sid not in only:
             continue' '        if False:
             continue'

@@ -43,7 +43,7 @@ or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
 lane in a throwaway clone (about 10 s) and only on a diff to a path its job
 restores, and three opt-in by `--record-self-tests` (prepr's 6d passes it):
 GRADER, minutes where keyed (measured in its record), SELFTEST SCOPE (main's
-drift step over the gated self-tests whose recorded files the diff touches,
+drift step over the gated self-tests whose own script the diff changes,
 traced in a scratch clone: `selftest_scope_preds`), and SELF-TEST READS,
 a changed file's own `--self-test`, recorded by `closure._exec_record` and
 graded as its host's record by `closure.check`, for each gate script whose
@@ -606,8 +606,8 @@ def selftest_scope_preds(root: Path, base: str, notes: list | None = None,
     """Main's drift step, the one `instrument-self-tests` check no pull request
     runs (dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md: a diff that gives a
     gated self-test a new read turned main red after its merge, ten hotfixes in
-    round 10). `selftest_scope.py precheck` traces the gated steps whose
-    recorded files the diff touches, in a scratch clone, and grades them as
+    round 10). `selftest_scope.py precheck` traces the gated steps whose own
+    script the diff changes, in a scratch clone, and grades them as
     that step does: each read the table misses is a predicted red naming its
     repair; rc 3 (no strace here) is a note, main's step staying the detector."""
     if not (root / SCOPE_TOOL).is_file():

@@ -62,8 +62,8 @@ dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md): the record beat hands it the
 newest `selftest-closures` artifact of main's own runs, and it writes the live
 table unioned with each step of it whose run text is this head's, printing
 every read it adds. A table that already holds them is left byte-identical.
-THE SEAT'S HALF, `precheck`: before a handoff, the gated steps whose recorded
-files the diff touches are traced as `record` traces them and graded by
+THE SEAT'S HALF, `precheck`: before a handoff, the gated steps whose own
+script the diff changes are traced as `record` traces them and graded by
 `drift`, the check no pull-request run makes (tools/pr/ci_predict.py's
 `selftest-scope` arm; rc 3 and a skip line where there is no strace).
 A SCRATCH CLONE is where `record` and `precheck` run the steps: the tree as it
@@ -883,14 +883,30 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     return 1 if failed or broken else 0
 
 
+def step_commands(steps: list[Step]) -> dict[str, str]:
+    """Each gated step's command text: its run text and, for a waiter, the
+    launcher's lines that start what it waits on."""
+    launch = next((s.run or "" for s in steps if s.id == "launch"), "")
+    return {s.id: (s.run or "") + "\n".join(
+        line for line in launch.splitlines() for n in s.waits_on()
+        if re.search(rf"\bbg_(?:start|run) {re.escape(n)}\b", line)) for s in steps if s.gated}
+
+
 def touched_steps(changes: list[tuple[str, str]], table: dict | None, steps: list[Step]) -> list[str]:
-    """The gated steps a diff can have given a new read: one of whose recorded
-    files it changes (the step's script, or a file that script loads), and one
-    the table has no entry for or records under another run text."""
+    """The gated steps whose own script a diff changes -- a changed path the
+    step's command text names -- and one the table has no entry for or records
+    under another run text. A changed file a step only loads is left to main's
+    drift step: tracing every step that recorded a changed file was 17 steps
+    and 43 minutes for one diff (R11-PRE-SHARED-FILES part 1's own), more than
+    the drift it prevents costs (dev/audit/rca/R10-RCA-FAMILY-SELFTEST-SCOPE-DRIFT.md)."""
     held = (table or {}).get("steps", {})
+    text = step_commands(steps)
+
+    def named(path: str, run: str) -> bool:
+        return re.search(rf"(?<![\w./-]){re.escape(path)}(?![\w./-])", run) is not None
     return [s.id for s in steps if s.gated and (
         (held.get(s.id) or {}).get("run_sha") != s.run_sha
-        or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]
+        or any(named(p, text[s.id]) for _, p in changes))]
 
 
 SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
@@ -935,7 +951,7 @@ def precheck(root: Path, base: str) -> int:
     table = load_table(root / TABLE)
     want = touched_steps(changes, table, steps)
     if not want:
-        print("selftest_scope precheck: the diff touches no gated step's recorded files")
+        print("selftest_scope precheck: the diff changes no gated step's own script")
         return 0
     if shutil.which("strace") is None or _traced():
         print(f"selftest_scope precheck: skip, {len(want)} step(s) untraced {want}: no strace here, "
@@ -1942,9 +1958,10 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
 
     # touched_steps and the partial drift `precheck` grades with.
     T = lambda *ch: touched_steps(list(ch), table, steps)  # noqa: E731
-    ck("touched_steps: a changed file a step recorded names that step; one no step recorded names none",
-       T(("M", "tools/x/b.py")) == ["b"] and T(("M", "tests/lane.py"), ("D", "tools/x/slow.sh")) == ["a", "slow"]
-       and T(("M", "docs/x.md"), ("A", "tools/x/a.json")) == [])
+    ck("touched_steps: a changed script a step's command names is that step's, a waiter's through its "
+       "launcher line; a file a step only recorded, and a path that merely ends or starts like one, is none's",
+       T(("M", "tools/x/b.py")) == ["b"] and T(("M", "tests/lane.py"), ("D", "tools/x/slow.sh")) == ["slow"]
+       and T(("M", "docs/x.md"), ("A", "tools/x/a.json"), ("M", "x/a.py"), ("M", "tools/x/a.pyc")) == [])
     ck("touched_steps: a step with no entry, or recorded under another run text, is touched by any diff",
        touched_steps([("M", "docs/x.md")], {"steps": {k: v for k, v in table["steps"].items() if k != "b"}},
                      steps) == ["b"]
@@ -1992,9 +2009,9 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                 rc = main(list(argv), pr)
             return rc, buf.getvalue()
-        ck("precheck: a diff touching no gated step's recorded files traces nothing (rc 0, null control)",
-           run("precheck", "--base", pbase) == (0, "selftest_scope precheck: the diff touches no gated "
-                                                   "step's recorded files\n"))
+        ck("precheck: a diff changing no gated step's own script traces nothing (rc 0, null control)",
+           run("precheck", "--base", pbase) == (0, "selftest_scope precheck: the diff changes no gated "
+                                                   "step's own script\n"))
         (pr / "tools/x/run.sh").write_text("cat tools/x/a.py > /dev/null # touched\n")
         pgit("commit", "-qam", "the step's script changes and gains no read")
         touched_only = pgit("rev-parse", "HEAD")
