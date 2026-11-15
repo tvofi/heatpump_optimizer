@@ -412,9 +412,11 @@ def stress_cost() -> int:
 
 KERNELS = ("SkylakeX", "Haswell", "Sandybridge", "Nehalem")
 _BLOCK = 'R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")'
+# The block that follows this group's in tests/features.py; the block runs up to it.
+_NEXT = "# --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---"
 _BLOCKS = (
     ("duty-switch block", ("from types import SimpleNamespace as _DspNS", _BLOCK)),
-    ("starts-and-runs block", (_BLOCK,)),
+    ("starts-and-runs block", (_BLOCK, _NEXT)),
 )
 # Run as a prelude inside the features namespace: wraps ``R.check``.
 _KERNEL_PROBE = r'''
@@ -450,7 +452,10 @@ def _kernel_blocks(kernel: str) -> list[tuple[str, int, list[str]]]:
     env = dict(os.environ, PYTHONPATH="tests/hastub", OPENBLAS_CORETYPE=kernel, R11_HSR_KERNEL_PROBE=_KERNEL_PROBE,
                OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
     out = []
+    with open("tests/features.py", encoding="utf-8") as fh:
+        present = fh.read()
     for label, markers in _BLOCKS:
+        markers = tuple(m for m in markers if m in present)  # a tree before the next block holds no _NEXT
         run = subprocess.run(
             [sys.executable, "tools/audit/seat/features_block.py",
              "--prelude", 'import os as _kp_os; exec(_kp_os.environ["R11_HSR_KERNEL_PROBE"])', *markers],
