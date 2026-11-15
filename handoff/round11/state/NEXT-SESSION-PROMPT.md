@@ -17,10 +17,16 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SELFTEST-SCOPE-UNION-GUARD (stage carries-open): no branch pushed yet, so nothing to fetch
+- R11-PRE-ROUND-METRICS (stage in-progress, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-LEARNER-DRAW-FLOOR (stage carries-open, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (stage in-progress, branch `handoff/r11-outside-contributor-cycle-p3`): `git fetch origin handoff/r11-outside-contributor-cycle-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-HOTFIX-FIGURE-BLOCK-BASE (stage in-progress, branch `handoff/r11-hotfix-figure-block-base`): `git fetch origin handoff/r11-hotfix-figure-block-base && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-HOTFIX-SELFTEST-FLAKE-ARMS (stage carries-open, branch `handoff/r11-hotfix-selftest-flake-arms`): `git fetch origin handoff/r11-hotfix-selftest-flake-arms && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-HOTFIX-POLICY-DOCS-TIMEOUT (stage in-progress, branch `handoff/r11-hotfix-policy-docs-timeout`): `git fetch origin handoff/r11-hotfix-policy-docs-timeout && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-BRIEFS-TEXT (stage in-progress, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage design, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-CHECK-GATE (stage in-progress, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
