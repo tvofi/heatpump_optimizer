@@ -26738,7 +26738,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": "fix/r11-pre-rulings-file",
+    "branch": "handoff/r11-pre-rulings-file",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
