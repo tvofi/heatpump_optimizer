@@ -27817,6 +27817,54 @@
     "note": "overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES): savings reference changed by pull request 3587 without a basis bump; verified defect; gates the v10.0.0 stamp"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/merge_pr.sh",
+    "tools/audit/seat/merge_train.py",
+    "tools/pr/outside.py",
+    "tools/ci/selftest_closures.json",
+    "tools/audit/seat/instruments/merge_pr.sh.md",
+    "tools/audit/seat/instruments/merge_train.py.md",
+    "tools/audit/seat/instruments/remerge_main.sh.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Part 3 of R10-OUTSIDE-CONTRIBUTOR-CYCLE (an outside request, ruled by the owner 2026-11-12), cut at the round-11 pickup: part 1 (#3514) and part 2 (#3521) are on main, and the parent group is carries-open, so it takes no carry. Ground under the production-share freeze: this is the path an outside contributor's pull request merges by. Items, each a carry moved here verbatim: the outside contract is asked on every merge path, `tools/audit/seat/merge_pr.sh` app mode included, `Train.fork_head` compares `tools/pr/outside.py` with origin/main's blob before it runs it, and `Train.land` asks the contract on a batch base too (findings of the part-2 review, each read and not run: a failing test first, the reviewer's reading as its case, a null control on a branch of ours); the interface reconciliation between the two parts and its self-tests; the `tools/ci/selftest_closures.json` re-record for the outside module; the live checks on a test fork that the design owes before the owner adds an allowlist entry; and the instrument guides. Decision 0017 is policy: a change to it is drafted for the owner's review, never merged on a seat's word. Re-measure every figure and line number at this part's own merge base.",
+   "carry": [],
+   "source": "outside",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (M, the carries are the items), opus; reviewer opus",
+    "note": "overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-STANDING-SCRIPTS): round-11 pickup: the outside contract seam of R10-OUTSIDE-CONTRIBUTOR-CYCLE (carries-open); shares merge_train.py with R11-INTAKE-R10-RESIDUE and R11-PRE-STANDING-SCRIPTS, distinct seam (the outside contract calls), merged in train order",
+    "pr": null
+   }
   }
  ]
 }
