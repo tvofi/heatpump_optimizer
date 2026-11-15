@@ -50,7 +50,7 @@ Classification: `plan_phases.py` joins `tests/entities.py`'s recorded closure be
 
 ## Head
 
-a0d587549aff37e65ebe97a12cf49a8c57a3f2c6, branched from origin/main 26dbf7c43e; origin/main was b3831ff64eca at 2026-11-15T13:25:16Z (`date -u`), and `git merge-tree --write-tree origin/main HEAD` reported no conflict. The mutant run and the page comparisons were measured at f9d08456f392. The delta from it to this head is a docstring reflow in `plan_phases.py`, the inventory harness's id pattern, and one `tests/closures.json` line, and it touches no mutated line. `plan_page.py --self-test` was re-run at this head.
+8f53d88d7a5ca99d6b205c93adb5bbb599b43962, branched from origin/main 26dbf7c43e; `git merge-tree --write-tree origin/main HEAD` reported no conflict. Delta from the prior head a0d587549a: two lines of `dev/audit/config/scopes.json` (the round-notes glob in `_coverage_excluded` and in the D5/D6 `static` list gains `round11`); no other file. The mutant run and page comparisons describe code this delta does not touch.
 
 ## Mutation proof
 
@@ -103,7 +103,7 @@ RESULT survived=0
 - `python3 tools/audit/seat/state_docs.py --self-test`: `state_docs self-test: all checks passed`
 - `python3 dev/audit/harnesses/r10_plan_page_mutants.py M0 <the phases-* names>`: `RESULT survived=0`: 23 mutants killed, M0 null
 
-<!-- figure-block: scope-line mb=26dbf7c43ec3742101398b098dbdcc61bbee8f19 head=a0d587549aff37e65ebe97a12cf49a8c57a3f2c6 -->
+<!-- figure-block: scope-line mb=26dbf7c43ec3742101398b098dbdcc61bbee8f19 head=8f53d88d7a5ca99d6b205c93adb5bbb599b43962 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -111,7 +111,12 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests`, step "Show the self-tests outside tools/audit/seat/ refusing their own fixtures" (head job 132899024683, red at the prior head; the base job failed a different step).
+  - Cause: this PR adds `dev/programme/round11/phases.json`, a tracked path that `python3 -I tools/audit/check_scopes.py --self-test --repo .` found in no scope universe and not in `_coverage_excluded` (`FAIL coverage ... unclassified=1`; its live-scopes arms then read False). The step's other fifteen commands pass at the prior head (run each locally).
+  - Fix: `phases.json` is round-state data of the same kind as `round9/` and `round10/` state notes, so `round11` joins their glob in both lists; no self-test was changed.
+  - Runs, `python3 -I tools/audit/check_scopes.py --repo .` (coverage line) and `--self-test --repo .`: prior head a0d587549a `FAIL coverage tracked=11256 ... unclassified=1`, `in no universe and not excluded: dev/programme/round11/phases.json`, self-test rc 1 (`SELF-TEST FAILED`); merge base 26dbf7c43e `ok coverage ... unclassified=0`, rc 0; head 8f53d88d7a `ok coverage tracked=11256 ... unclassified=0`, `SELF-TEST passed (every perturbed scope refused)`.
+  - Process state: (c). The prior handoff's prepr and its `ci_predict` ran and passed, but `ci_predict` reads a data file only when a changed file's own self-test reads it (its own line says so), and `check_scopes.py` was not in this diff's closure. Cheaper detector: `check_scopes.py --repo .` runs in seconds and is not in prepr. Recording no countermeasure here: a prepr step is a policy-adjacent change owed an owner's decision, and one instance does not meet the class threshold.
+- `tests / fast (3.14)`: named because the body lint lists it red among the PR's checks; the check run at the pull request's head 0b9f5cbf24 (job 132899195719, run 43742580872) concluded success, so no failure of it is attributable to this branch's commits. Cheaper detector: none needed; it is the gate itself (a pass is the standing result).
 
 ## Forward-carry
 
