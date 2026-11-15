@@ -2184,7 +2184,7 @@
     "From r11-pre-briefs-census, body item 803716a7: `tank_volume` and `house_size` print `NO-READ` from `--population` until `dev/audit/config/objective.json` `population` declares their levels; D12 states them as the flow row's minimum, default and maximum. Once declared, `d12-cells` prints them with no change here: it asserts its level and pair counts against the totals `--population` prints, and refuses on a disagreement. Carry: R11-PRE-OWNER-CRITERIA (items 803716a7)"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-owner-criteria",
     "commit": "31117b1029de63938d949e78dcbcd8f9451e5e33",
     "last_step": null,
