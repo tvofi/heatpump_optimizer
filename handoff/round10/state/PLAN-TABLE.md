@@ -291,7 +291,7 @@ gantt
 | R10-FLY-RELAY-FREEZE-REGISTRY | IN | 1 | done | - | sonnet/opus | - | From triage P288 (proposal V191, orchestrator 2026-10-29): cloud_relay.sh's review_freeze holds a handoff as REVIEW on a bus.sh dispatch record of the PR at... |  |
 | R10-FLY-RECORD-RED-NAMES | IN | 1 | done | - | sonnet/opus | - | From triage P292 (orchestrator queue line 2026-10-29T23:45Z): record_row.py writes the record body's `## Red checks` with the short names `record`, `nightly-... |  |
 | R10-MARKETPLACE | PR | 1 | done | - | opus/opus | - | Owner request, 2026-10-29 (tvofi chose option (a)): adapt the integration for the Home Assistant Marketplace, which replaces HACS in core from 2026.11 and ke... |  |
-| R10-CATALOG-PR | PR | 2 | not-started | #201, #2965 | -/- | yes: tvofi personal account opens the hacs/default PR | Owner directive 2026-10-29: open the Home Assistant Marketplace catalog PR once round 10 is closed out and v10.0.0 is stamped, not before. |  |
+| R10-CATALOG-PR | PR | 2 | in-progress | #201, #2965 | -/- | yes: tvofi personal account opens the hacs/default PR | Owner directive 2026-10-29: open the Home Assistant Marketplace catalog PR once round 10 is closed out and v10.0.0 is stamped, not before. |  |
 | R10-FLY-CANCEL-SWEEP | IN | 1 | done | - | sonnet/opus | - | From triage P266 (V180, owner-directed by tvofi 2026-10-28: the account's concurrent-job limit is the CI bottleneck; cancel superseded runs). |  |
 | R10-FLY-TICK-APPROVAL-OWED | IN | 1 | done | - | sonnet/opus | - | From triage P294 (orchestrator, 2026-10-30): orchestrator_tick.py verdict_levels() prints MERGE-READY only for a merge verdict at the head with mergeStateSta... |  |
 | R10-FLY-SEAT-ALIVE-ID | IN | 1 | done | - | sonnet/opus | - | From triage P299 (orchestrator s8, 2026-10-30T09:33Z), re-routing two carries R10-ORCH-BEATD closed without building (done at #2916; `git grep 'seat-alive' -... |  |
@@ -585,7 +585,7 @@ gantt
 | R11-PRE-PLAN-RENDER | IN | 3 | not-started | - | sonnet/opus | - | Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minute... |  |
 | R10-PLAYBOOK-ROUND-START | IN | 3 | done | - | sonnet/opus | - | Owner instruction 2026-11-13, his words: "Make sure the future rounds can use the audit playbook even with the addition of the objective function and the imp... |  |
 | R10-DOCS-STRINGS-RESIDUE | IN | 1 | done | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
-| R10-COP-LEARNER-DRAW-FLOOR | IN | 3 | in-progress | #3106 | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
+| R10-COP-LEARNER-DRAW-FLOOR | IN | 3 | carries-open | #3106 | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
 | R10-HOTFIX-ENTITIES-REDACTION-FLAKE | IN | 1 | done | - | sonnet/opus | - | HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named "the location is redacted whole, from... |  |
 | R10-FEEDBACK-SETTLE-LARGE-LIFT | IN | 1 | done | - | sonnet/opus | - | Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). |  |
 | R10-HOTFIX-FEATURES-WEEKEND-CLOCK | IN | 1 | done | - | sonnet/opus | - | HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so th... |  |

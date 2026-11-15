@@ -14,6 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CATALOG-PR (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -22,7 +23,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-PRE-OBJECTIVE-FUNCTION (stage carries-open, branch `fix/r11-pre-objective-function`): `git fetch origin fix/r11-pre-objective-function && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-LEARNER-DRAW-FLOOR (stage in-progress, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-COP-LEARNER-DRAW-FLOOR (stage carries-open, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
