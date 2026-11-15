@@ -1,0 +1,8 @@
+SURVIVED tools/audit/seat/pr_cap.py:227 GUARD_OFF  if False:
+SURVIVED tools/audit/seat/pr_cap.py:461 CALL_DEL  pass
+SURVIVED tools/audit/seat/pr_cap.py:465 CONST_SWAP  outs[2][0] == 0 and "machinery slots 0/3" in outs[1][1]
+SURVIVED tools/audit/seat/pr_cap.py:228 STMT_DEL  pass
+SURVIVED tools/audit/seat/pr_cap.py:442 STMT_DEL  pass
+SURVIVED tools/audit/seat/pr_cap.py:460 STMT_DEL  pass
+SURVIVED tools/audit/seat/pr_cap.py:462 STMT_DEL  pass
+SURVIVED tools/audit/seat/pr_cap.py:464 STMT_DEL  pass
