@@ -2667,9 +2667,13 @@ class Train:
         cannot change its head repository. Both names are GitHub's, of the
         contributor's choosing: they travel as argv and log text only, never
         inside a shell string. A pull request, or a fork's name, that cannot be
-        read is a Stop: an unread head is never taken for ours."""
+        read is a Stop: an unread head is never taken for ours. The outside.py
+        executed is origin/main's blob or none (`outside_is_mains`, asked
+        before the read): a checkout's copy answering "ours" would otherwise
+        never reach the contract's own comparison."""
         if pr in self.forks:
             return self.forks[pr]
+        self.outside_is_mains((OUTSIDE_PATH,))  # main's copy is the one executed below, or none is
         code, o = self.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}"])
         try:
             pull = json.loads(o) if code == 0 else None
@@ -2696,16 +2700,17 @@ class Train:
         self.forks[pr] = fork
         return fork
 
-    def outside_is_mains(self) -> None:
+    def outside_is_mains(self, rels: "tuple[str, ...]" = OUTSIDE_MAIN_COPIES) -> None:
         """The outside contract runs from origin/main's copies or not at all
-        (carry 23): origin/main is fetched HERE, and every file of
-        OUTSIDE_MAIN_COPIES in this checkout must be byte-equal to main's blob
-        of that path. Never the head's copy -- nothing of a fork head is
+        (carry 23): origin/main is fetched HERE, and every file of <rels>
+        (OUTSIDE_MAIN_COPIES for the contract, outside.py alone before
+        `fork_head` executes it) in this checkout must be byte-equal to main's
+        blob of that path. Never the head's copy -- nothing of a fork head is
         executed or imported on this machine -- and never a stale seat's."""
         code, o = self.run(["git", "fetch", "-q", "origin", "main"])
         if code:
             raise Stop("outside", "origin/main could not be fetched for the outside contract: " + o.strip()[-160:])
-        for rel in OUTSIDE_MAIN_COPIES:
+        for rel in rels:
             c1, want = self.run(["git", "rev-parse", f"origin/main:{rel}"])
             c2, have = self.run(["git", "hash-object", "--", rel])
             if c1 or c2 or not is_sha(want.strip()) or want.strip() != have.strip():
@@ -3358,6 +3363,11 @@ class Train:
         each attempt when the base is not where the merge expects it; the merge sha."""
         if self.head(pr) != h:
             raise Stop("approve", "head moved")
+        fork = self.fork_head(pr)
+        if fork is not None and not self.real:
+            # A rehearsal merges the head into a branch of ours too: a fork head is put to the
+            # contract on every base (on main, by `approve` below), and its base rule refuses it here.
+            self.outside_contract(pr, h, fork)
         if self.real:
             self.policy_approve(pr, h, item, files)
             under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
@@ -6346,6 +6356,36 @@ def _self_test() -> int:
         check(f"fork head: a pulls object {name} is a Stop saying so -- an unread head is never taken for ours -- "
               "and nothing is approved", isinstance(got, Stop) and got.step == "outside" and said in got.why
               and not asked_app(calls) and not approved(calls))
+    # Carry 8 (r11-outside-contributor-cycle-p3): the checkout's outside.py is compared with
+    # origin/main's blob BEFORE `fork_head` executes it. The decisive case is a head of ours: a
+    # copy that answers "ours" never reaches `outside_contract`'s comparison, so a reader that
+    # ran it first let any checkout's copy say whose head it is.
+    for name, pull in (("of ours", OURS), ("a fork's", THEIRS)):
+        w = {"pull": pull, "gate": OutsideStub(), "stale": OUTSIDE_PATH}
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: a checkout whose {OUTSIDE_PATH} is not origin/main's blob stops before that copy is "
+              f"executed, on a head {name} too, and nothing is approved",
+              parked(got, OUTSIDE_PATH, "not origin/main's copy") and w["gate"].crossed == 0
+              and w["gate"].asked == [] and not asked_app(calls) and not approved(calls))
+    w = {"pull": OURS, "gate": OutsideStub(), "stale": "tools/pr/app_approve.sh"}
+    got, calls, _ = seat(w, lambda t: t.fork_head(7))
+    check("fork head null control: a head of ours read from main's outside.py is ours, whatever another of the "
+          "contract's copies says (only the executed file is compared before the read)",
+          got is None and w["gate"].crossed == 1 and ["git", "fetch", "-q", "origin", "main"] in calls
+          and calls.index(["git", "fetch", "-q", "origin", "main"]) < calls.index(["gh", "api", "repos/o/r/pulls/7"]))
+    # Carry 9: a batch/ rehearsal merges the head into a branch of ours too, so a fork head is put to
+    # the contract on that base as well -- which refuses it, the contract's base being main.
+    land = lambda t: t.land(7, H0, dict(item), FILES, lambda: None)
+    w = {"pull": THEIRS, "gate": OutsideStub((False, "the base is o/r:batch/x, not o/r:main"))}
+    got, calls, _ = seat(w, land, base="batch/x")
+    check("fork head on a batch/ base: the outside contract is asked before the pinned merge, and its refusal "
+          "parks the entry [OUTSIDE] naming the fork, nothing merged",
+          parked(got, "the base is o/r:batch/x", f"{FORK}:{FREF}") and w["gate"].asked == [("o/r", 7, "origin/main")]
+          and not merged(calls) and not asked_app(calls))
+    w = {"pull": OURS, "gate": OutsideStub((False, "never asked"))}
+    got, calls, _ = seat(w, land, base="batch/x")
+    check("null control: a head of ours on a batch/ base is never put to the outside contract and is merged",
+          not isinstance(got, Stop) and w["gate"].asked == [] and merged(calls))
     # THE REAL tools/pr/outside.py (decision 0017, part 1): its own `pull_facts` and `check`, over this
     # tree's policy_lint.mjs, tests/closure.py and mandate gate; only its edges are answered here (the API,
     # git, and `git show` at the ref). A renamed entry point or a changed answer fails HERE, not on the train.

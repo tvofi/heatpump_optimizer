@@ -15,7 +15,8 @@
 # 0017): this approval is given after, and on the basis of, the verdict, which
 # on such a head the contributor's reviewer wrote. Whether a head is
 # cross-repository is tools/pr/outside.py's answer over the pulls API object,
-# asked before the mandate is read; unanswered is a refusal.
+# asked before the mandate is read; unanswered is a refusal. app mode on such a
+# head merges only where outside.py's whole contract (`check`) admits this head.
 set -uo pipefail
 R=tvofi/heatpump_optimizer
 # The self-test grades this script's own tree; a merge runs from the main checkout.
@@ -56,6 +57,32 @@ print("OURS")
 P
 }
 
+# outside.py's whole contract for the cross-repository <pr>, at origin/main:
+# prints `ADMITTED: <why>` (rc 0) only when it admits <pr> at <sha>, else
+# `CONTRACT REFUSES ...` or `REFUSE: <why>` (rc 1). No second contract here.
+outside_contract() { # <repo> <pr> <sha>
+  python3 -I - "$1" "$2" "$3" "$OUTSIDE" <<'P'
+import importlib.util, sys
+repo, pr, sha, path = sys.argv[1:5]
+try:
+    spec = importlib.util.spec_from_file_location("outside", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    rc, lines = mod.check(repo, int(pr), "origin/main")
+except Exception as e:  # fail closed: an unread contract admits nothing
+    print(f"REFUSE: {path}'s contract for #{pr} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})")
+    sys.exit(1)
+why = "; ".join(str(ln) for ln in lines)
+if rc == 0 and any(str(ln).startswith("OUTSIDE: ") and f" at {sha}: " in str(ln) for ln in lines):
+    print("ADMITTED: " + why[:400])
+    sys.exit(0)
+if rc == 0:
+    why = f"it admitted a head other than {sha[:12]}: {why}"
+print(f"CONTRACT REFUSES #{pr} at {sha[:12]}: {why[:400]} (decision 0017)")
+sys.exit(1)
+P
+}
+
 # The mandate in force now, by the gate's own reading: prints `IN FORCE: <why>`
 # (rc 0) or `REFUSE: <why>` (rc 1). The gate file is the tree's own.
 mandate_in_force() { # <repo> <comment-id>
@@ -85,7 +112,7 @@ owner_body() { # <sha> <comment-id> <in-force why>
 
 # Every refusal that must come before a post: argv, draft, mandate. Prints the
 # refusal and returns 1, or returns 0; READY_OWED=1 when --ready must mark it.
-gates() { # <pr> <mode> <mandate-id> <ready 0|1>
+gates() { # <pr> <mode> <mandate-id> <ready 0|1> <sha>
   READY_OWED=0
   case "$2" in owner|app) ;; *) echo "USAGE: mode '$2' is neither owner nor app"; return 1 ;; esac
   d=$(gh pr view "$1" --repo $R --json isDraft --jq .isDraft) || { echo "REFUSE: #$1's draft state could not be read"; return 1; }
@@ -93,9 +120,15 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
     [ "$4" = 1 ] || { echo "DRAFT: #$1 is a draft; pass --ready to mark it ready, or ready it first"; return 1; }
     READY_OWED=1
   fi
+  if [ "$2" = owner ] && ! [[ "$3" =~ ^[0-9]{6,}$ ]]; then
+    echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1
+  fi
+  if ! HEAD_WHY=$(head_is_ours $R "$1"); then
+    # Only app mode merges a fork head, and only where the contract admits this head.
+    { [ "$2" = app ] && [[ "$HEAD_WHY" == CROSS-REPOSITORY:* ]]; } || { echo "OUTSIDE $HEAD_WHY"; return 1; }
+    CONTRACT_WHY=$(outside_contract $R "$1" "$5") || { echo "OUTSIDE $CONTRACT_WHY"; return 1; }
+  fi
   [ "$2" = owner ] || return 0
-  [[ "$3" =~ ^[0-9]{6,}$ ]] || { echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1; }
-  HEAD_WHY=$(head_is_ours $R "$1") || { echo "OUTSIDE $HEAD_WHY"; return 1; }
   MANDATE_WHY=$(mandate_in_force $R "$3") || { echo "MANDATE $MANDATE_WHY"; return 1; }
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
@@ -155,12 +188,12 @@ print(json.dumps({"id": 4100000001, "user": {"login": "tvofi", "id": 70032254, "
                   "body": f"MANDATE: agents may approve as tvofi, scope {sys.argv[3]}, from {c} until {iso(sys.argv[2])}"}))
 P
   }
-  mk -60 60 > "$T/live.json"; mk -120 -10 > "$T/expired.json"
+  mk -60 60 > "$T/live.json"; mk -120 -10 > "$T/expired.json"; S7=$(printf 'c%.0s' {1..40})
   mk -60 60 code-owned > "$T/code-owned.json"; mk -60 60 budget-raise > "$T/raise.json"
   ck() { # <name> <want rc> <want substring> <draft> <mandate file> -- gates args...
     local name=$1 want=$2 sub=$3 draft=$4 mf=$5 rc; shift 6
     : > "$T/log"
-    out=$(PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=$draft FAKE_MANDATE=$mf gates "$@" 2>&1); rc=$?
+    out=$(PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=$draft FAKE_MANDATE=$mf gates "$@" "$S7" 2>&1); rc=$?
     if [ "$rc" = "$want" ] && [[ "$out" == *"$sub"* ]]; then pass=$((pass + 1)); echo "  ok   $name"
     else fail=$((fail + 1)); echo "  FAIL $name (rc=$rc: $out)"; fi
   }
@@ -179,15 +212,41 @@ P
   FAKE_PULL=$T/other.json ck "owner mode refuses a pulls object of another pull request: the real outside.py's pull_facts reads it" 1 "is not #7" false "$T/live.json" -- 7 owner 4100000001 0
   FAKE_PULL= ck "owner mode on a pull request that cannot be read refuses: an unread head is never ours" 1 "OUTSIDE REFUSE: #7 could not be read" false "$T/live.json" -- 7 owner 4100000001 0
   OUTSIDE=$T/absent.py ck "owner mode with no outside.py to ask refuses, fail closed" 1 "OUTSIDE REFUSE: $T/absent.py could not say" false "$T/live.json" -- 7 owner 4100000001 0
-  FAKE_PULL=$T/theirs.json ck "null control: app mode on a cross-repository head passes the gates (the App's approval is app_approve.sh's)" 0 "" false "" -- 7 app "" 0
-  if ! grep -q 'pulls/7' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... and app mode asks nothing about the head"
-  else fail=$((fail + 1)); echo "  FAIL ... and app mode asks nothing about the head"; fi
+  # App mode asks outside.py's whole contract on a cross-repository head (r11-outside-contributor-cycle-p3
+  # carry 7): a stub keeps the real pull_facts and cross_repository and answers `check` from FAKE_CHECK
+  # (a head it admits, or a REFUSE line), logging each call.
+  cat > "$T/outside_stub.py" <<'O'
+import importlib.util, os
+_s = importlib.util.spec_from_file_location("real_outside", os.environ["REAL_OUTSIDE"])
+_m = importlib.util.module_from_spec(_s); _s.loader.exec_module(_m)
+pull_facts, cross_repository = _m.pull_facts, _m.cross_repository
+def check(repo, pr, ref, **kw):
+    open(os.environ["FAKE_LOG"], "a").write(f"check {repo} {pr} {ref}\n")
+    at = os.environ.get("FAKE_CHECK", "")
+    if at.startswith("REFUSE"):
+        return 1, [at]
+    return 0, [f"OUTSIDE: #{pr} by contributor (id 1) at {at}: 1 class-F and 0 class-O path(s), none refused"]
+O
+  export REAL_OUTSIDE=$OUTSIDE
+  OUTSIDE=$T/outside_stub.py FAKE_PULL=$T/theirs.json FAKE_CHECK="REFUSE: class R: tools/x.py is a path an outside pull request does not change" \
+    ck "app mode on a cross-repository head the outside contract refuses refuses with outside.py's reason (decision 0017)" 1 "OUTSIDE CONTRACT REFUSES #7 at cccccccccccc: REFUSE: class R: tools/x.py" false "" -- 7 app "" 0
+  if grep -qx 'check tvofi/heatpump_optimizer 7 origin/main' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having asked the contract at origin/main"
+  else fail=$((fail + 1)); echo "  FAIL ... having asked the contract at origin/main ($(tr '\n' ';' < "$T/log"))"; fi
+  OUTSIDE=$T/outside_stub.py FAKE_PULL=$T/theirs.json FAKE_CHECK=$(printf 'b%.0s' {1..40}) \
+    ck "app mode on a cross-repository head the contract admits at ANOTHER head refuses, naming both" 1 "it admitted a head other than cccccccccccc" false "" -- 7 app "" 0
+  OUTSIDE=$T/outside_stub.py FAKE_PULL=$T/theirs.json FAKE_CHECK=$S7 \
+    ck "app mode on a cross-repository head the contract admits at this head passes the gates" 0 "" false "" -- 7 app "" 0
+  OUTSIDE=$T/outside_stub.py FAKE_PULL=$T/ours.json FAKE_CHECK="REFUSE: never asked" \
+    ck "null control: app mode on a head of ours passes and never asks the contract" 0 "" false "" -- 7 app "" 0
+  if grep -q 'pulls/7' "$T/log" && ! grep -q '^check ' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having read the pull request and asked no contract"
+  else fail=$((fail + 1)); echo "  FAIL ... having read the pull request and asked no contract ($(tr '\n' ';' < "$T/log"))"; fi
+  FAKE_PULL= ck "app mode on a pull request that cannot be read refuses: an unread head is never ours" 1 "OUTSIDE REFUSE: #7 could not be read" false "" -- 7 app "" 0
   ck "a draft refuses without --ready, naming the flag" 1 "DRAFT: #7 is a draft; pass --ready" true "" -- 7 app "" 0
   ck "a draft with --ready passes the gates" 0 "" true "" -- 7 app "" 1
-  PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=true gates 7 app "" 1 >/dev/null
+  PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=true gates 7 app "" 1 "$S7" >/dev/null
   if [ "$READY_OWED" = 1 ]; then pass=$((pass + 1)); echo "  ok   ... and owes the ready mark"
   else fail=$((fail + 1)); echo "  FAIL ... and owes the ready mark"; fi
-  PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=false gates 7 app "" 1 >/dev/null
+  PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=false gates 7 app "" 1 "$S7" >/dev/null
   if [ "$READY_OWED" = 0 ]; then pass=$((pass + 1)); echo "  ok   a ready pull request with --ready owes no ready mark"
   else fail=$((fail + 1)); echo "  FAIL a ready pull request with --ready owes no ready mark"; fi
   stale='{"name":"budget-raise-gate","status":"in_progress","conclusion":null,"started_at":"1","id":7,"details_url":"https://github.com/o/r/actions/runs/119308796140/job/5"}'
@@ -238,6 +297,7 @@ P
   # app_comment.sh leaves a mark when it is asked to post; postmerge.py is a stub
   # recording its argv, printing OWED and failing when FAKE_PM_RC says so.
   mkdir -p "$mm/tools/pr"
+  cp "$T/outside_stub.py" "$mm/tools/pr/outside.py"  # the real pull_facts and cross_repository; `check` is FAKE_CHECK's
   # the approver identity posted_verdict reads (proof_watch.verdict_allowlist)
   printf 'VERDICT_AUTHORS="app[bot]"\nVERDICT_AUTHOR_ID=55\n' > "$mm/tools/pr/app_approve.sh"
   printf '#!/bin/bash\necho posted >> "$HPO_STATE_DIR/posted"\n' > "$mm/tools/pr/app_comment.sh"
@@ -257,6 +317,7 @@ PM
 echo "$*" >> "$FAKE_LOG2"
 case "$*" in
   *issues/42/comments*) cat "$FAKE_COMMENTS" 2>/dev/null ;;
+  "api repos/tvofi/heatpump_optimizer/pulls/42") printf '{"number": 42, "head": {"ref": "fix/x", "repo": {"full_name": "%s"}}}' "${FAKE_HEAD_REPO:-tvofi/heatpump_optimizer}" ;;
   *headRefOid*) echo "$FAKE_SHA" ;;
   *isDraft*) echo false ;;
   *mergeStateStatus*) if [ -f "$FAKE_BLOCKED" ]; then rm -f "$FAKE_BLOCKED"; echo BLOCKED; else echo CLEAN; fi ;;
@@ -275,7 +336,7 @@ G
     if [ -n "${2:-}" ]; then printf '# Fix review: merge %s\n' "$2" > "$T/ev/VERDICT.md"
     else printf '# verdict\n' > "$T/ev/VERDICT.md"; fi
     HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
-      FAKE_BLOCKED=$T/blocked FAKE_COMMENTS=$T/comments FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+      FAKE_LOG=$T/check.log FAKE_BLOCKED=$T/blocked FAKE_COMMENTS=$T/comments FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
       > "$T/flow.out" 2>&1
     echo $? > "$T/flow.rc"
   }
@@ -284,6 +345,15 @@ G
     && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: the merge records the reviewed head"
   else fail=$((fail + 1)); echo "  FAIL null control: the merge records the reviewed head ($(tail -1 "$T/flow.out"))"; fi
+  FAKE_HEAD_REPO=contributor/heatpump_optimizer FAKE_CHECK="REFUSE: the base is x:y, not tvofi/heatpump_optimizer:main" flow 0
+  [ "$(cat "$T/flow.rc")" != 0 ] && grep -q '^OUTSIDE CONTRACT REFUSES #42' "$T/flow.out" \
+    && [ ! -f "$T/state2/posted" ] && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   app mode end to end: a fork head the contract refuses posts nothing and merges nothing"
+  else fail=$((fail + 1)); echo "  FAIL app mode end to end: a fork head the contract refuses posts nothing and merges nothing ($(tail -1 "$T/flow.out"))"; fi
+  FAKE_HEAD_REPO=contributor/heatpump_optimizer FAKE_CHECK=$msha flow 0
+  [ "$(cat "$T/flow.rc")" = 0 ] && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a fork head the contract admits at the head merges"
+  else fail=$((fail + 1)); echo "  FAIL null control: a fork head the contract admits at the head merges ($(tail -1 "$T/flow.out"))"; fi
   flow 1
   [ "$(cat "$T/flow.rc")" != 0 ]
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a refused merge fails the script (the line's own exit)"
@@ -368,7 +438,7 @@ done
 # For a queue of verdicted PRs, merge_train.py does the same with recarry and the carry check.
 D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/merge_pr; mkdir -p "$D/v"
 live=$(gh pr view $PR --json headRefOid --jq .headRefOid); [ "$live" = "$S" ] || { echo "HEAD MOVED: $live"; exit 1; }
-gates "$PR" "$MODE" "$MID" "$READY" || exit 1
+gates "$PR" "$MODE" "$MID" "$READY" "$S" || exit 1
 [ "$READY_OWED" = 1 ] && { gh pr ready $PR --repo $R >/dev/null || { echo "READY REFUSED for #$PR"; exit 1; }; }
 carried_head "$PR" "$S" "$E/VERDICT.md" || exit 1
 sed '1s/^# //' "$E/VERDICT.md" > $D/v/verdict-$PR.md; grep -q "$E" $D/v/verdict-$PR.md || printf '\nEvidence: %s/\n' "$(python3 -I tools/audit/seat/ref_privacy.py path "$E")" >> $D/v/verdict-$PR.md
