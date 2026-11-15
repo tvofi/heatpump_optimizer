@@ -2927,6 +2927,50 @@
     "next_step": "dispatch at round end, after every other round-11 group is closed",
     "note": "created 2026-11-15 by the round-11 orchestrator on tvofi's ruling; supersedes R10-CLOSEOUT-CLEANUP"
    }
+  },
+  {
+   "group": "R11-OUTSIDE-SELF-SETTING-PUMP",
+   "lane": "IN",
+   "kind": "production",
+   "class": "bug",
+   "severity": "high",
+   "size": "L",
+   "wave": 1,
+   "issues": [
+    3616
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/accuracy.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "programme",
+   "brief": "Owner ruling D4 (2026-11-15): the self-setting pump residual of pull request 3593 (flat asks fold the learner scale to 0.500 at the base and the head alike) is designed and fixed in round 11, design first; not accepted as a known limit. The design also answers the departures and owner questions carried into this group (release behind the freeze gate; a replay does not feed the capacity envelope; whether a release is bounded per cycle; the overstated-minimum floor), each shown at the design review with the harness rows the carries name. Nothing pushed carries an opinion on anything but code and product.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-outside-self-setting-pump",
+    "commit": null,
+    "last_step": null,
+    "next_step": "designer first (L, decision 0014)",
+    "note": "owner item from #3616, tvofi 2026-11-15"
+   }
   }
  ]
 }
