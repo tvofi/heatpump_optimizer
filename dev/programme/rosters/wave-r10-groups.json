@@ -23931,7 +23931,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (size M, no design step), after R10-RELAY-ARM-ORDER and R10-REVIEW-DISPATCH-RESIDUE merge",
-    "note": "triage s14 batch 189 P611, re-cut by batch 194 P616-P618; overlap admitted (R10-RELAY-ARM-ORDER): triage s14 batch 189 P611 ACCEPT narrowed, re-cut by batch 194 P616-P618; replaces refused queue line 4465, brief-lint clean at roster dry run"
+    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C2, C14); carries and brief content moved to the receiving groups (split three ways: R11-PRE-RELAY-REBUILD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-STANDING-SCRIPTS)"
    }
   },
   {
