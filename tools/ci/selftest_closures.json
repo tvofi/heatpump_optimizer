@@ -4401,6 +4401,25 @@
    "objects": false,
    "git": []
   },
+  "finder-overlap": {
+   "run_sha": "acc165c99b344a4c6975668d5aca24c15529e9fb81964e9e4b9d0f1fb355786c",
+   "files": [
+    "tools/audit/seat/finder_overlap.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "fragment-check": {
    "run_sha": "90a2ee3e4d234a1f84217fe48e0e88ef1d01dafc9a49c331c518bf0a43063d7b",
    "files": [
@@ -4453,6 +4472,7 @@
     "dev/governance/roles/root-cause.md",
     "dev/governance/roles/verifier.md",
     "dev/programme/carries/carry-1645.json",
+    "dev/programme/carries/carry-201.json",
     "tests/layout.json",
     "tools/**"
    ],
@@ -4616,6 +4636,7 @@
    "run_sha": "f0f6cb2c0133b342e46866cd03c197a0d0ee41bbd672cc44435fee021100cdf6",
    "files": [
     "tests/throwaway_git.sh",
+    "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py",
@@ -4634,7 +4655,9 @@
     "tools/audit/seat",
     "tools/pr"
    ],
-   "dirs": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -5032,7 +5055,9 @@
     "tools/ci/prelude.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/policy_lint.mjs",
     "tools/pr/app_approve.sh",
+    "tools/pr/outside.py",
     "tools/release/stamp.py"
    ],
    "probes": [],
@@ -5452,6 +5477,7 @@
    "probes": [
     ".",
     ".github/workflows",
+    ".gitmodules",
     "config",
     "objects",
     "refs",
@@ -5470,9 +5496,11 @@
     "tools/audit/seat",
     "tools/ci"
    ],
-   "index": false,
+   "index": true,
    "objects": true,
    "git": [
+    "cat-file",
+    "fetch",
     "merge-base"
    ]
   },
@@ -5812,6 +5840,26 @@
    "objects": false,
    "git": []
   },
+  "plant-recall": {
+   "run_sha": "ffb2f1b4145371bbf55365116879ac7177af381841fa04edd56d0b632b89e150",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "policy-lint-mutants": {
    "run_sha": "3e1b10dc363352e2251bc6cdc07107e2356a527ac64ad9c790f61a2c37015d9f",
    "files": [
@@ -5860,6 +5908,10 @@
     "dev/governance/dimensions/**",
     "dev/governance/roles/**",
     "dev/programme/HANDOVER.md",
+    "dev/programme/carries/carry-1922.json",
+    "dev/programme/carries/carry-2065.json",
+    "dev/programme/carries/carry-2066.json",
+    "dev/programme/carries/carry-2075.json",
     "dev/programme/delivery/**",
     "dev/programme/plan-2026-09-open-issues.md",
     "dev/programme/register/audit-2026-09.md",
@@ -6399,10 +6451,12 @@
     "dev/programme/.gitattributes",
     "dev/programme/carries/.gitattributes",
     "dev/programme/carries/carry-1645.json",
+    "dev/programme/carries/carry-201.json",
     "dev/programme/delivery",
     "dev/programme/register/.gitattributes",
     "dev/programme/rosters/.gitattributes",
     "dev/programme/rosters/wave-r1-groups.json",
+    "dev/programme/round10/**",
     "dev/programme/round10/.gitattributes",
     "dev/programme/round10/rechain/.gitattributes",
     "dev/programme/round10/state/.gitattributes",
@@ -8365,6 +8419,10 @@
     "dev/governance/roles/**",
     "dev/governance/rules/**",
     "dev/programme/HANDOVER.md",
+    "dev/programme/carries/carry-1922.json",
+    "dev/programme/carries/carry-2065.json",
+    "dev/programme/carries/carry-2066.json",
+    "dev/programme/carries/carry-2075.json",
     "dev/programme/delivery/**",
     "dev/programme/plan-2026-09-open-issues.md",
     "dev/programme/register/audit-2026-09.md",
@@ -8619,6 +8677,7 @@
     ".",
     ".github",
     ".github/workflows",
+    "HEAD",
     "tests",
     "tools",
     "tools/ci"
@@ -8627,8 +8686,10 @@
     "tests"
    ],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "diff"
+   ]
   },
   "selftest-scope-mutants": {
    "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",
@@ -9651,6 +9712,7 @@
    "run_sha": "a781e6b79a8ef1a37712210f6277a5db65f5e0347994818965eac6f5d54e737d",
    "files": [
     ".github/CODEOWNERS",
+    ".github/workflows/ci.yml",
     ".github/workflows/tests.yml",
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
