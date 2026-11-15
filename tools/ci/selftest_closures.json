@@ -4452,6 +4452,7 @@
     "dev/governance/roles/root-cause.md",
     "dev/governance/roles/verifier.md",
     "dev/programme/carries/carry-1645.json",
+    "dev/programme/carries/carry-201.json",
     "tests/layout.json",
     "tools/**"
    ],
@@ -4615,6 +4616,7 @@
    "run_sha": "f0f6cb2c0133b342e46866cd03c197a0d0ee41bbd672cc44435fee021100cdf6",
    "files": [
     "tests/throwaway_git.sh",
+    "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py",
@@ -4633,7 +4635,9 @@
     "tools/audit/seat",
     "tools/pr"
    ],
-   "dirs": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -5031,7 +5035,9 @@
     "tools/ci/prelude.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/policy_lint.mjs",
     "tools/pr/app_approve.sh",
+    "tools/pr/outside.py",
     "tools/release/stamp.py"
    ],
    "probes": [],
@@ -5400,7 +5406,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",
@@ -5452,6 +5457,7 @@
    "probes": [
     ".",
     ".github/workflows",
+    ".gitmodules",
     "config",
     "objects",
     "refs",
@@ -5470,9 +5476,11 @@
     "tools/audit/seat",
     "tools/ci"
    ],
-   "index": false,
+   "index": true,
    "objects": true,
    "git": [
+    "cat-file",
+    "fetch",
     "merge-base"
    ]
   },
@@ -5860,6 +5868,10 @@
     "dev/governance/dimensions/**",
     "dev/governance/roles/**",
     "dev/programme/HANDOVER.md",
+    "dev/programme/carries/carry-1922.json",
+    "dev/programme/carries/carry-2065.json",
+    "dev/programme/carries/carry-2066.json",
+    "dev/programme/carries/carry-2075.json",
     "dev/programme/delivery/**",
     "dev/programme/plan-2026-09-open-issues.md",
     "dev/programme/register/audit-2026-09.md",
@@ -5946,7 +5958,6 @@
     ".claude/workflows/wave-3l-groups.json",
     ".claude/workflows/wave-x-groups.json",
     ".cursor/**",
-    ".cursor/**",
     ".github/.gitattributes",
     ".github/actions/.gitattributes",
     ".github/actions/nightly-ha/.gitattributes",
@@ -5962,7 +5973,6 @@
     "dev/.gitattributes",
     "dev/archive/.gitattributes",
     "dev/archive/audits/.gitattributes",
-    "dev/archive/carries/**",
     "dev/archive/carries/**",
     "dev/archive/experiments/.gitattributes",
     "dev/archive/experiments/ledger-layout/.gitattributes",
@@ -6199,7 +6209,6 @@
     "dev/audit/rounds/round4/D9/reports/.gitattributes",
     "dev/audit/rounds/round4/ledger/.gitattributes",
     "dev/audit/rounds/round5-fix/**",
-    "dev/audit/rounds/round5-fix/**",
     "dev/audit/rounds/round5/.gitattributes",
     "dev/audit/rounds/round5/D0/.gitattributes",
     "dev/audit/rounds/round5/D0/seat-a/.gitattributes",
@@ -6221,12 +6230,9 @@
     "dev/audit/rounds/round5/D2/seat-a/.gitattributes",
     "dev/audit/rounds/round5/D2/seat-b/.gitattributes",
     "dev/audit/rounds/round5/D3/**",
-    "dev/audit/rounds/round5/D3/**",
     "dev/audit/rounds/round5/D4/.gitattributes",
     "dev/audit/rounds/round5/D4/seat-a/.gitattributes",
     "dev/audit/rounds/round5/D7/**",
-    "dev/audit/rounds/round5/D7/**",
-    "dev/audit/rounds/round5/D8/**",
     "dev/audit/rounds/round5/D8/**",
     "dev/audit/rounds/round5/D9/.gitattributes",
     "dev/audit/rounds/round5/D9/seat-b/.gitattributes",
@@ -6249,7 +6255,6 @@
     "dev/audit/rounds/round6/D8/.gitattributes",
     "dev/audit/rounds/round6/D9/.gitattributes",
     "dev/audit/rounds/round7-fix/**",
-    "dev/audit/rounds/round7-fix/**",
     "dev/audit/rounds/round7/.gitattributes",
     "dev/audit/rounds/round7/D0/.gitattributes",
     "dev/audit/rounds/round7/D1/.gitattributes",
@@ -6266,7 +6271,6 @@
     "dev/audit/rounds/round7/D7/.gitattributes",
     "dev/audit/rounds/round7/D8/.gitattributes",
     "dev/audit/rounds/round7/D9/.gitattributes",
-    "dev/audit/rounds/round8-fix/**",
     "dev/audit/rounds/round8-fix/**",
     "dev/audit/rounds/round8/.gitattributes",
     "dev/audit/rounds/round8/D0/.gitattributes",
@@ -6407,10 +6411,12 @@
     "dev/programme/.gitattributes",
     "dev/programme/carries/.gitattributes",
     "dev/programme/carries/carry-1645.json",
+    "dev/programme/carries/carry-201.json",
     "dev/programme/delivery",
     "dev/programme/register/.gitattributes",
     "dev/programme/rosters/.gitattributes",
     "dev/programme/rosters/wave-r1-groups.json",
+    "dev/programme/round10/**",
     "dev/programme/round10/.gitattributes",
     "dev/programme/round10/rechain/.gitattributes",
     "dev/programme/round10/state/.gitattributes",
@@ -6777,7 +6783,6 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
-    "tools/audit/round4/**",
     "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/audit/seat/.gitattributes",
@@ -7748,7 +7753,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/ci/fixtures/.gitattributes",
@@ -8374,6 +8378,10 @@
     "dev/governance/roles/**",
     "dev/governance/rules/**",
     "dev/programme/HANDOVER.md",
+    "dev/programme/carries/carry-1922.json",
+    "dev/programme/carries/carry-2065.json",
+    "dev/programme/carries/carry-2066.json",
+    "dev/programme/carries/carry-2075.json",
     "dev/programme/delivery/**",
     "dev/programme/plan-2026-09-open-issues.md",
     "dev/programme/register/audit-2026-09.md",
@@ -8496,6 +8504,7 @@
     ".",
     ".github",
     ".github/workflows",
+    "HEAD",
     "tests",
     "tools",
     "tools/ci"
@@ -8504,8 +8513,10 @@
     "tests"
    ],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "diff"
+   ]
   },
   "selftest-scope-mutants": {
    "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",
@@ -9137,7 +9148,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/ci/fixtures/.gitattributes",
@@ -9503,7 +9513,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",
@@ -9529,6 +9538,7 @@
    "run_sha": "a781e6b79a8ef1a37712210f6277a5db65f5e0347994818965eac6f5d54e737d",
    "files": [
     ".github/CODEOWNERS",
+    ".github/workflows/ci.yml",
     ".github/workflows/tests.yml",
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
