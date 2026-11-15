@@ -588,6 +588,16 @@ def self_test() -> int:
             [w and w.isoformat() for w, _ in rows] == ["2026-11-15T11:30:00+00:00", None])
         res["fire_owed: an unfired payload past its grace owes; one a FIRED line names does not"] = (
             len(fire_owed(d, [], now)) == 1 and fire_owed(d, rows, now) == [])
+        res["graces are carry 4's figures, UNFIRED at FIRE_GRACE_MIN; the tick's two windows unchanged (120, 15)"] = (
+            GRACE_MIN == {"merge-no-approval": 10, "approved-unmerged": 45, "blocked-no-fire": 15, "head-no-dispatch": 25,
+                          "UNFIRED": 15, "DESIGN-REVIEW-OWED": 10, "FIXER-OWED": 10, "SEAT-SILENT": 90}
+            and (SEAT_WINDOW_MIN, FIRE_GRACE_MIN) == (120, 15))
+        edge = now - datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+        on = lambda rows, age: seat_on(7, ["r11-a"], {"handoff/r11-a": "a" * 40} if age is not None else {}, rows, now,
+                                       lambda ref, sha: age, lambda sha: None)
+        res["seat_on: a fire or a ref move exactly SEAT_WINDOW_MIN old is still a seat; one minute older is not"] = (
+            on([(edge, "FIRED #7")], None) and not on([(edge - datetime.timedelta(minutes=1), "FIRED #7")], None)
+            and on([], SEAT_WINDOW_MIN) and not on([], SEAT_WINDOW_MIN + 1))
         res["fire_names: #3 names PR 3, never PR 30; a topic matches as a whole word"] = (
             fire_names(3, [], "FIRED #3 x") and not fire_names(3, [], "FIRED #30")
             and fire_names(9, ["r11-a"], "FIRED fixer R11-A") and not fire_names(9, ["r11-a"], "FIRED r11-ab"))
