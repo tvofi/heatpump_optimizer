@@ -66,15 +66,23 @@ Read the class-grouped draft roster ${draft} and the verified register (dev/audi
 Measure the fork ${fork} once into the plan's evidence: run
   python3 tools/audit/seat/plan_audit.py snapshot --ref ${fork} --instrument ${fork} --out ${planDir}/holdouts/fork.json
 (it takes minutes; run it detached with tools/audit/seat/daemonize.py and wait on its exit, then read the file). It records the fork's score vector and gate-only tripwires, structure budgets, behaviour inventory, mutation kill rate and change coupling -- the holdouts the plan must not regress.
-Return JSON {draft_path, groups: [{group, issues, fixes, findings, severity, files, after, architect_note}], findings: [{id, dimension, severity, title, class, seam}], holdouts_path}. Refuse, by returning an empty groups array, if the draft roster is absent or carries no group: audit-verify must run first.`,
-  { label: 'plan/read', schema: { type: 'object', required: ['groups', 'findings'], properties: { groups: { type: 'array', items: { type: 'object' } }, findings: { type: 'array', items: { type: 'object' } }, holdouts_path: { type: 'string' } } } },
+Then git fetch origin and run, from ${repo}, python3 tools/audit/check_scopes.py --repo ${repo} --ref origin/main --round ${round} --open-cards: the evaluation cards and roster groups still open now the finders have finished, which this plan consolidates with the findings (tvofi, 2026-11-15). Return its exit status as open_rc (an integer read from the shell) and its stdout JSON as open, and its stderr as open_err.
+Return JSON {draft_path, groups: [{group, issues, fixes, findings, severity, files, after, architect_note}], findings: [{id, dimension, severity, title, class, seam}], holdouts_path, open: {open_cards, open_groups, unmarked}, open_rc, open_err}. Refuse, by returning an empty groups array, if the draft roster is absent or carries no group: audit-verify must run first.`,
+  { label: 'plan/read', schema: { type: 'object', required: ['groups', 'findings', 'open', 'open_rc'], properties: { groups: { type: 'array', items: { type: 'object' } }, findings: { type: 'array', items: { type: 'object' } }, holdouts_path: { type: 'string' }, open: { type: 'object' }, open_rc: { type: 'integer' }, open_err: { type: 'string' } } } },
 )
 if (!draftRead) throw new Error('the draft read failed (agent returned null); relaunch')
 const groups = replyField(draftRead.groups, 'array', 'plan/read: groups')
 const findings = replyField(draftRead.findings, 'array', 'plan/read: findings')
 for (const g of groups) if (!g || typeof g.group !== 'string' || !g.group) throw new Error('plan/read: a draft group has no `group` id')
 if (!groups.length) throw new Error(`the draft roster ${draft} is empty or absent: audit-verify's "Issues and register" phase writes it, and P3 does not invent one`)
-log(`draft roster: ${groups.length} class group(s), ${findings.length} verified finding(s), fork holdouts ${draftRead.holdouts_path ?? '(unreported)'}`)
+// What is still open when the finders finish -- accepted cards and roster
+// groups that gate no finder -- is this plan's input beside the findings, so
+// nothing is planned twice or lost (tvofi, 2026-11-15). An unmarked open
+// group (rc 1) could be either; the orchestrator marks it before P3 runs.
+if (draftRead.open_rc !== 0) throw new Error(`check_scopes.py --open-cards exited ${JSON.stringify(draftRead.open_rc)}, not 0; mark each UNMARKED group (roster_edit.py set-field <group> gates_finders true|false) before P3:\n${draftRead.open_err ?? ''}`)
+const open = replyField(draftRead.open, 'object', 'plan/read: open')
+const openIds = [...replyField(open.open_cards, 'array', 'plan/read: open.open_cards'), ...replyField(open.open_groups, 'array', 'plan/read: open.open_groups')]
+log(`draft roster: ${groups.length} class group(s), ${findings.length} verified finding(s), ${openIds.length} open card(s) and group(s), fork holdouts ${draftRead.holdouts_path ?? '(unreported)'}`)
 
 phase('Plan the architecture')
 const architecture = await agent(
@@ -95,8 +103,9 @@ if (dupes.length) throw new Error(`the triage names ${dupes.length} finding(s) m
 const moves = await agent(
   `You are the architect/planner of audit round ${round}, continuing in ${worktree} after your triage ${JSON.stringify(triage)}: architect-planner.md steps 5-9 (ADRs, the moves to the programme target, fitness functions, the roster, the risks).
 Target: score.py --diff ${fork} <the round's stamp> reads dS >= ${targetDs} with the counters on, admissible end to end, at least three scored classes improving, and no metric supplying more than 40% of the dS. Plan findings first; where they fall short add refactor groups with no finding, each carrying its evidence and the scenario it serves. Every move names its metric(s), predicted dS per metric, its ADR and its fitness functions (structure budgets, gate-only tripwires, the behaviour inventory, mutation kill rate, change coupling, and any counter its metric can be gamed through). Never plan a move that deletes behaviour, renames or splits to dodge a counter, or edits the scorer.
+The cards and roster groups still open (${JSON.stringify(openIds)}) are consolidated with the findings: each is kept as its own group (same id), folded into a group that names it in open_items, or dropped with a reason; none is planned twice.
 EVERY group gets one move entry, including a finding group expected to be score-neutral ("metrics: {}, dS: 0"): the stamp's move ledger reconciles each merged PR's own Architecture score block against this plan, and a group with no entry reads as a dS no move explains.
-Write the ADRs as ${planDir}/ADR-*.md (context, decision, alternatives, consequences, scenarios served) and ${planDir}/PLAN.md. Return JSON {groups: [{group, findings, size, seam, hot_files, after, architect_note}], moves: [{group, adr, metrics: {metric: predicted dS}, dS}], projected_dS, critical_chain: [group], depth, hours, risks: [{risk, check}]}.`,
+Write the ADRs as ${planDir}/ADR-*.md (context, decision, alternatives, consequences, scenarios served) and ${planDir}/PLAN.md. Return JSON {groups: [{group, findings, open_items, size, seam, hot_files, after, architect_note}], moves: [{group, adr, metrics: {metric: predicted dS}, dS}], dropped: [{id, reason}], projected_dS, critical_chain: [group], depth, hours, risks: [{risk, check}]}.`,
   { label: 'plan/moves', phase: 'Plan the architecture', schema: { type: 'object', required: ['groups', 'moves', 'projected_dS'], properties: { groups: { type: 'array', items: { type: 'object', required: ['group'] } }, moves: { type: 'array', items: { type: 'object', required: ['group', 'metrics'] } }, projected_dS: { type: 'number' } } } },
 )
 if (!moves) throw new Error('the move plan failed (agent returned null); relaunch')
@@ -106,6 +115,12 @@ if (!planGroups.length) throw new Error('the plan returned no group; a round wit
 const planned = new Set(planMoves.map((m) => m.group))
 const unplanned = planGroups.map((g) => g.group).filter((g) => !planned.has(g))
 if (unplanned.length) throw new Error(`the plan leaves ${unplanned.length} group(s) with no move entry (${unplanned.slice(0, 8).join(', ')}); the move ledger reconciles every merged group, so a neutral group is "metrics: {}, dS: 0"`)
+const placed = [...planGroups.flatMap((g) => [g.group, ...(Array.isArray(g.open_items) ? g.open_items : [])]),
+  ...(Array.isArray(moves.dropped) ? moves.dropped.filter((d) => d && String(d.reason ?? '').trim()).map((d) => d.id) : [])]
+const lost = openIds.filter((id) => !placed.includes(id))
+if (lost.length) throw new Error(`the plan leaves ${lost.length} open card(s) or group(s) unaccounted (${lost.slice(0, 8).join(', ')}); each is a group, an open_items entry of one, or dropped with a reason`)
+const twiceOpen = [...new Set(openIds.filter((id) => placed.filter((p) => p === id).length > 1))]
+if (twiceOpen.length) throw new Error(`the plan places ${twiceOpen.length} open card(s) or group(s) more than once (${twiceOpen.slice(0, 8).join(', ')}); each is planned once`)
 if (Number(moves.projected_dS) < targetDs) log(`PROJECTED SHORT: ${moves.projected_dS} < ${targetDs}; the plan must say so with its options, not shrink the target quietly`)
 const planJson = {
   round, fork, target_dS: targetDs, draft,
@@ -113,6 +128,7 @@ const planJson = {
   groups: planGroups, moves: planMoves, projected_dS: moves.projected_dS,
   critical_chain: moves.critical_chain ?? [], depth: moves.depth ?? null, hours: moves.hours ?? null,
   risks: moves.risks ?? [], holdouts: draftRead.holdouts_path ?? null,
+  open, dropped: moves.dropped ?? [],
 }
 const writePlan = await agent(
   `In ${worktree}, write ${planDir}/PLAN.json with exactly this content (it is the plan the move ledger reads at the stamp):\n${JSON.stringify(planJson, null, 1)}\nAlso write the round's roster draft to ${draft} in the form audit-verify writes it (one entry per group, with its issues, findings, severity, files, after, size and architect note; resume.stage "planned", resume.branch "handoff/R${round}-<topic>" per group). Run node tools/policy/brief_lint.mjs and return its exit code and error lines, not the summary.`,
