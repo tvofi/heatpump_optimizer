@@ -174,33 +174,46 @@ def rows_of(doc: dict) -> list:
             for pid, title in PHASES]
 
 
-def timeline(doc: dict, rows: list) -> str:
-    """The phases on the file's own time axis: from its earliest date to its
-    latest; a running bar ends at `as_of`, a forecast is a dashed window, a
+def timeline(doc: dict, rows: list, axis: tuple | None = None) -> str:
+    """The phases on a time axis. `axis` is the plan page's own `(start, end)`:
+    the swimlanes' geometry, scale and ticks, so a phase lines up with the
+    group lanes under it, and a phase reaching past either end is cut there
+    and says so. With no axis, the file's own: its earliest date to its
+    latest. A running bar ends at `as_of`, a forecast is a dashed window, a
     phase with no date says so in its row."""
     now = _t(doc["as_of"])
-    pts = [now]
-    for r in rows:
-        pts += [_t(r[k]) for k in ("started", "finished") if r.get(k)]
-        fc = r.get("forecast")
-        if fc:
-            pts += [_t(fc["start_from"]), _t(fc["start_to"])]
-    t0, t1 = min(pts), max(pts)
-    span = max(3600.0, (t1 - t0).total_seconds()) * 1.04
-    W, LW, RH = 1180, 230, 26
+    if axis:
+        t0, t1 = axis
+        span = max(3600.0, (t1 - t0).total_seconds())
+        W, LW, step = 1180, 120, 12
+    else:
+        pts = [now]
+        for r in rows:
+            pts += [_t(r[k]) for k in ("started", "finished") if r.get(k)]
+            fc = r.get("forecast")
+            if fc:
+                pts += [_t(fc["start_from"]), _t(fc["start_to"])]
+        t0, t1 = min(pts), max(pts)
+        span = max(3600.0, (t1 - t0).total_seconds()) * 1.04
+        W, LW = 1180, 230
+        step = 6 if span <= 3 * 86400 else 24
+    t_end = t0 + dt.timedelta(seconds=span)
+    RH = 26
 
     def px(t):
-        return LW + (t - t0).total_seconds() / span * (W - LW - 20)
+        return LW + (min(max(t, t0), t_end) - t0).total_seconds() / span * (W - LW - 20)
 
     e, parts = html.escape, []
     H = 22 + len(rows) * (RH + 6) + 6
-    step = 6 if span <= 3 * 86400 else 24
-    h0 = t0.replace(minute=0, second=0)
+    h0 = t0 if axis else t0.replace(minute=0, second=0)
     for k in range(0, int(span // 3600) + 2, step):
         t = h0 + dt.timedelta(hours=k)
-        if t0 <= t <= t0 + dt.timedelta(seconds=span):
+        if t0 <= t <= t_end:
             parts.append(f'<line x1="{px(t):.1f}" y1="20" x2="{px(t):.1f}" y2="{H}" class="grid"/>'
                          f'<text x="{px(t):.1f}" y="14" class="tick">{t.strftime("%a %Hh")}</text>')
+
+    def note(y, text):
+        parts.append(f'<text x="{LW + 4}" y="{y + 17}" class="tick">{e(text)}</text>')
     for i, r in enumerate(rows):
         y = 22 + i * (RH + 6)
         parts.append(f'<text x="10" y="{y + 17}" class="lanelab">{e(r["title"])}</text>')
@@ -209,23 +222,33 @@ def timeline(doc: dict, rows: list) -> str:
         if r.get("started"):
             a = _t(r["started"])
             b = _t(r["finished"]) if r.get("finished") else now
-            w = max(px(b) - px(a), 4)
-            parts.append(f'<g class="phase"><title>{e(tip)}, started {_when(r["started"])}'
-                         f'{", finished " + _when(r["finished"]) if r.get("finished") else ", open"}</title>'
-                         f'<rect x="{px(a):.1f}" y="{y}" width="{w:.1f}" height="{RH}" rx="3" '
-                         f'class="bar {cls}{"" if r.get("finished") else " open"}"/></g>')
+            if b < t0 or a > t_end:
+                note(y, f'{_label(r)}, {_when(r["started"])} to '
+                     f'{_when(r["finished"]) if r.get("finished") else "now"}, off this axis')
+            else:
+                w = max(px(b) - px(a), 4)
+                parts.append(f'<g class="phase"><title>{e(tip)}, started {_when(r["started"])}'
+                             f'{", finished " + _when(r["finished"]) if r.get("finished") else ", open"}</title>'
+                             f'<rect x="{px(a):.1f}" y="{y}" width="{w:.1f}" height="{RH}" rx="3" '
+                             f'class="bar {cls}{"" if r.get("finished") else " open"}"/>'
+                             + (f'<text x="{px(a) + 4:.1f}" y="{y + 17}" class="barlab">◂ since '
+                                f'{_when(r["started"])}</text>' if a < t0 else "") + "</g>")
         fc = r.get("forecast")
         if fc:
             a, b = _t(fc["start_from"]), _t(fc["start_to"])
-            parts.append(f'<g class="phase"><title>{e(r["title"])}: forecast start '
-                         f'{_when(fc["start_from"])} to {_when(fc["start_to"])} ({e(fc["basis"])})</title>'
-                         f'<rect x="{px(a):.1f}" y="{y}" width="{max(px(b) - px(a), 4):.1f}" '
-                         f'height="{RH}" rx="3" class="bar forecast"/>'
-                         f'<text x="{px(a) - 6:.1f}" y="{y + 17}" class="barlab" text-anchor="end">forecast start</text></g>')
+            if a > t_end:
+                note(y, f'forecast start {_when(fc["start_from"])} to {_when(fc["start_to"])}, past this axis')
+            else:
+                parts.append(f'<g class="phase"><title>{e(r["title"])}: forecast start '
+                             f'{_when(fc["start_from"])} to {_when(fc["start_to"])} ({e(fc["basis"])})</title>'
+                             f'<rect x="{px(a):.1f}" y="{y}" width="{max(px(b) - px(a), 4):.1f}" '
+                             f'height="{RH}" rx="3" class="bar forecast"/>'
+                             f'<text x="{px(a) - 6:.1f}" y="{y + 17}" class="barlab" text-anchor="end">forecast start</text></g>')
         if not r.get("started") and not fc:
-            parts.append(f'<text x="{LW + 4}" y="{y + 17}" class="tick">{e(_label(r))} — no date</text>')
-    parts.append(f'<line x1="{px(now):.1f}" y1="20" x2="{px(now):.1f}" y2="{H}" class="nowline"/>'
-                 f'<text x="{px(now) + 3:.1f}" y="{H - 2}" class="tick">as of</text>')
+            note(y, f"{_label(r)} — no date")
+    if t0 <= now <= t_end:
+        parts.append(f'<line x1="{px(now):.1f}" y1="20" x2="{px(now):.1f}" y2="{H}" class="nowline"/>'
+                     f'<text x="{px(now) + 3:.1f}" y="{H - 2}" class="tick">as of</text>')
     return (f'<svg viewBox="0 0 {W} {H + 4}" width="{W}" height="{H + 4}" role="img" '
             f'aria-label="round phases">{"".join(parts)}</svg>')
 
@@ -240,10 +263,12 @@ ul.items li{margin:2px 0;break-inside:avoid}
 </style>"""
 
 
-def section(doc, bad: list | None = None, where: str = "") -> str:
+def section(doc, bad: list | None = None, where: str = "", axis: tuple | None = None) -> str:
     """The phases section for the plan page: a timeline and one row per phase,
     the running phases' items under them. `bad` (from `violations`) draws the
-    UNAVAILABLE section instead, naming the first refusal."""
+    UNAVAILABLE section instead, naming the first refusal. `axis` is the plan
+    page's `(start, end)`: given, the timeline is drawn on it (`timeline`),
+    and the fix-waves row points at the group lanes, which are that phase."""
     e = html.escape
     if bad:
         return (f'<section>\n  <h2>Round phases</h2>\n  <p><b>PHASES UNAVAILABLE — '
@@ -271,8 +296,10 @@ def section(doc, bad: list | None = None, where: str = "") -> str:
             f'  <p class="note">State as of {_when(doc["as_of"])} UTC, read from the round\'s phases file '
             f'({e(where)}); the phases are the playbook\'s, in its order (<code>dev/audit/README.md</code>). '
             'A phase the file does not list is drawn not started. A dash is a date the file does not '
-            'carry, never a guess; a dashed outline is a forecast window with its basis.</p>\n'
-            f'  <div class="scroll">{timeline(doc, rows)}</div>\n'
+            'carry, never a guess; a dashed outline is a forecast window with its basis.'
+            + (' The fix waves are the group lanes below, on the same time axis; the stamps are the '
+               'planned-stamps table.' if axis else '') + '</p>\n'
+            f'  <div class="scroll">{timeline(doc, rows, axis)}</div>\n'
             '  <div class="scroll"><table><thead><tr><th>Phase</th><th>Status</th>'
             '<th>Started (UTC)</th><th>Finished (UTC)</th><th>Planned</th><th>Entry</th><th>Exit</th>'
             f'</tr></thead><tbody>{"".join(trs)}</tbody></table></div>\n</section>\n')
@@ -361,6 +388,19 @@ def fixture_checks(check) -> None:
     bad = section(None, ["X: unknown status"], "f.json")
     check("phases: an invalid file draws PHASES UNAVAILABLE, no table, no date",
           "PHASES UNAVAILABLE" in bad and "<table" not in bad and "X: unknown status" in bad, bad)
+    # On the plan page's axis: cut at its ends, and saying so.
+    t = dt.datetime
+    cut = timeline(doc, rows_of(doc), (t(2026, 1, 1, 12), t(2026, 1, 6, 0)))
+    check("phases: on an axis starting inside a phase, the bar is cut and names its start",
+          "◂ since Thu 01 Jan 00:00" in cut, re.findall(r"◂[^<]*", cut))
+    late = timeline(doc, rows_of(doc), (t(2026, 1, 3), t(2026, 1, 5, 6)))
+    check("phases: a phase wholly before the axis and a forecast past it are named, not drawn",
+          "done, Thu 01 Jan 00:00 to Fri 02 Jan 00:00, off this axis" in late
+          and "past this axis" in late and 'class="bar forecast"' not in late
+          and "as of" not in late, re.findall(r"[^>]*axis<", late))
+    check("phases: null control, an axis holding every date cuts and omits nothing",
+          "◂" not in (whole := timeline(doc, rows_of(doc), (t(2025, 12, 31), t(2026, 1, 8))))
+          and "axis<" not in whole and "as of" in whole)
     with tempfile.TemporaryDirectory() as td:
         for n in (9, 11, 10):
             (Path(td) / f"dev/programme/round{n}").mkdir(parents=True)

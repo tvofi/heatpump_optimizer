@@ -315,16 +315,21 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
 
 # ---------------------------------------------------------------------- svg
 
+def time_axis(plan: dict) -> tuple[dt.datetime, dt.datetime]:
+    """The plan's time axis, `(start, end)`: the swimlanes' and the phases'.
+    It runs to closure, which is the later of the round-close stamp and the
+    last post-closure step, so no stamp lies past it."""
+    return _t(plan["generated"]["start"]), max(
+        [_t(plan["summary"]["closure"])]
+        + [_t(plan["summary"]["post_closure_finish"])
+           for _ in [0] if plan["summary"].get("post_closure_finish")])
+
+
 def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     """The SVG chart on the plan's time axis; and how many critical-path links
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
-    now = _t(plan["generated"]["start"])
-    # The axis runs to closure, which is the later of the round-close stamp and
-    # the last post-closure step, so no stamp lies past it.
-    end = max([_t(plan["summary"]["closure"])]
-              + [_t(plan["summary"]["post_closure_finish"])
-                 for _ in [0] if plan["summary"].get("post_closure_finish")])
+    now, end = time_axis(plan)
     slots = plan["generated"]["caps"]["slots"]
     span_h = max(1.0, (end - now).total_seconds() / 3600)
     W, LW, RH = 1180, 120, 24
@@ -702,7 +707,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "now": _t(gen["start"]).strftime("%d %b %H:%M"),
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
-        "phases": plan_phases.section(*phases) if phases else "",
+        "phases": plan_phases.section(*phases, axis=time_axis(plan)) if phases else "",
         "issues_chart": issues_section(roster, plan, snap),
         "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
@@ -1340,6 +1345,35 @@ def _self_test() -> int:
                   and "PHASES UNAVAILABLE" not in out.read_text(encoding="utf-8"))
             out.unlink()
             plan_phases.fixture_checks(check)
+            # The three cases of one page: groups and phases, phases only, groups only.
+            src = f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+            fx = (plan_phases.fixture(), [], "dev/programme/round9/phases.json")
+            groups_only = render(roster, src, plan, snap)
+            both = render(roster, src, plan, snap, None, fx)
+            sec = plan_phases.section(*fx, axis=time_axis(plan))
+            check("groups and phases: the page is the groups-only page plus the phases section, "
+                  "every section, table and control of it kept",
+                  sec in both and both.replace(sec, "", 1) == groups_only,
+                  [ln for ln in both.replace(sec, "", 1).splitlines() if ln not in groups_only][:3])
+            check("groups and phases: the phases section sits above the swimlanes",
+                  0 <= both.find('id="phases"') < both.find("<h2>Swimlanes</h2>"))
+            ticks = [re.findall(r'<text x="([\d.]+)" y="14" class="tick">([^<]*)', x)[:4]
+                     for x in (sec, swimlanes(plan, build_rows(roster, plan, snap))[0])]
+            check("groups and phases: the phases are drawn on the swimlanes' own time axis",
+                  ticks[0] and ticks[0] == ticks[1], ticks)
+            check("null control, groups only: no phases section, nothing of the phases drawn",
+                  'id="phases"' not in groups_only and "PHASES UNAVAILABLE" not in groups_only)
+            empty = replan.build_plan({"groups": []}, json.loads(
+                (_SEAT.parents[1] / "plan" / "durations.json").read_text(encoding="utf-8")),
+                dict(replan.DEFAULT_CAPS), _t(plan["generated"]["start"]), "v1.0.0", "main",
+                "", round_n=9)
+            phases_only = render({"groups": []}, src, empty, snap, None, fx)
+            check("phases only (a round with no fix group yet): the page renders the phases "
+                  "and the group sections, with no group row",
+                  'id="phases"' in phases_only and "<h2>Swimlanes</h2>" in phases_only
+                  and '<tbody id="rows"></tbody>' in phases_only, phases_only[:200])
+            check("null control, phases only: the same empty roster with no phases file draws none",
+                  'id="phases"' not in render({"groups": []}, src, empty, snap))
             pf = Path(td) / "outside" / "phases.json"
             pf.parent.mkdir()
             pf.write_text(json.dumps(plan_phases.fixture()), encoding="utf-8")
