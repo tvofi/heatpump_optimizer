@@ -325,7 +325,9 @@ def cases() -> dict[str, bool]:
                            check=True, capture_output=True)
         s, fd = _fixture_state(tmp / "readproof")
         repo = Path((s / "orch-checkout").read_text().strip())
-        for n in ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "tools/audit/seat/INSTRUMENTS.md", ".claude/rules/r.md"):
+        for n in ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "dev/programme/RULINGS.md",
+                  "tools/audit/seat/INSTRUMENTS.md", ".claude/rules/r.md", "tools/audit/seat/instruments/a.md",
+                  "tools/audit/seat/instruments/b.md"):
             (repo / n).parent.mkdir(parents=True, exist_ok=True)
             (repo / n).write_text(f"policy {n}\n")
         git(repo, "add", "-A")
@@ -337,7 +339,8 @@ def cases() -> dict[str, bool]:
         sha = proof.rpartition("--prove ")[2]
         res["read-proof: PostCompact writes the corpus with a sha256 proof last line and a compact-owed marker"] = (
             "READ-PROOF owed" in out and proof.startswith("PROOF: ") and len(sha) == 64 and (s / "compact-owed").is_file()
-            and "policy CLAUDE.md" in corpus and "policy .claude/rules/r.md" in corpus)
+            and "policy CLAUDE.md" in corpus and "policy .claude/rules/r.md" in corpus
+            and "policy dev/programme/RULINGS.md" in corpus and "policy tools/audit/seat/instruments/b.md" in corpus)
         res["read-proof: a UserPromptSubmit re-raises the obligation every prompt until the proof clears it"] = (
             all("READ-PROOF owed" in _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"}) for _ in range(2)))
         res["read-proof: a wrong sha256 is refused and the marker stands"] = (
@@ -350,6 +353,31 @@ def cases() -> dict[str, bool]:
             and "session" not in proof)
         res["read-proof: a healthy SessionStart with a fresh stamp writes no marker (null control)"] = (
             (_run_hook("liveness.py", s), not (s / "compact-owed").exists())[1])
+        # owner ruling 2026-11-13 (R3): the core in full, the rules and instrument pages by change
+        (repo / "tools/audit/seat/instruments/a.md").write_text("policy a.md changed\n")
+        (repo / ".claude/rules/r.md").unlink()
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "change")
+        git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"})
+        again = (s / "policy-corpus.txt").read_text()
+        res["read-proof: after a proof the core is in full, a changed page is in and an unchanged one is out"] = (
+            "policy CLAUDE.md" in again and "policy dev/governance/roles/orchestrator.md" in again
+            and "policy dev/programme/RULINGS.md" in again and "policy a.md changed" in again
+            and "instruments/b.md" not in again and "INSTRUMENTS.md ===" not in again
+            and "removed: .claude/rules/r.md" in again)
+        (s / "policy-proven.json").unlink()
+        _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"})
+        res["read-proof: with no proof manifest every page is in (null control for by-change)"] = (
+            "policy tools/audit/seat/instruments/b.md" in (s / "policy-corpus.txt").read_text())
+        (repo / "dev/programme/RULINGS.md").unlink()
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "no rulings")
+        git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        (s / "compact-owed").unlink(missing_ok=True)
+        out = _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"})
+        res["read-proof: a core file missing at origin/main writes no short corpus and says so"] = (
+            "POLICY-CORPUS unwritten" in out and not (s / "compact-owed").exists())
         os.close(fd)
         # checkout presence, from the state overlay
         s, fd = _fixture_state(tmp / "checkouts")
@@ -443,6 +471,10 @@ MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("the relay is never judged by its log", "    if age is not None and age > _env_min(\"HPO_RELAY_STALE_MIN\", 15):", "    if False:"),
     ("a missing checkout is never reported", "sorted(names.items()) if not Path(v).is_dir()]", "sorted(names.items()) if False]"),
     ("the read-proof accepts any sha256", "    if sha.strip() != want:", "    if False:"),
+    ("the corpus carries every page, changed or not", "if proven.get(n) != b)", "if True)"),
+    ("the proof never records its manifest", "        (state / PENDING).replace(state / PROVEN)\n", "        pass\n"),
+    ("the corpus carries no changed page", "    for n in [*CORE, *changed]:", "    for n in CORE:"),
+    ("a missing core file still writes a corpus", "        if t is None:\n            return None\n        body +=", "        if t is None:\n            continue\n        body +="),
     ("the prompt arm never re-raises the proof", "        if (state / \"compact-owed\").exists():", "        if False:"),
     ("beatd run never refuses an interpreter under the floor", "    if sys.version_info < FLOOR:\n", "    if False:\n"),
     ("beatd run records no launch", "(d / \"launch.json\").write_text(", "(d / \"launch.jsonX\").write_text("),

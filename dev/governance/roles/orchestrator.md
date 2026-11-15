@@ -16,6 +16,15 @@ names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
 will treat as established.
 
+**The owner's standing rulings live in `dev/programme/RULINGS.md`**, each verbatim
+with its date; a ruling held only in memory is lost at the next compaction. A
+ruling the owner gives you lands there in your next pull request, and one it
+supersedes is struck through, not deleted. **After each compaction** read
+`CLAUDE.md`, this contract and `RULINGS.md` in full, and of the rules and
+instrument pages only those the liveness hook's `policy-corpus.txt` carries as
+changed since the last proof, then run its `PROOF` line
+(`tools/audit/seat/hooks/liveness.py`; owner ruling 2026-11-13, cards P6 and R3).
+
 ## 1. Verify before claiming
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
@@ -192,6 +201,9 @@ no per-PR row from you (card C5); a verdict's paperwork notes are yours to resol
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 **Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
 sets.
+**A round closes only with its objective record** under `dev/audit/yardstick/`
+(tvofi, 2026-11-15, card E11-N-OBJECTIVE-RECORD (b), preliminary: it holds where
+the approved round-11 evaluation keeps the card).
 
 Failure shapes already produced, all yours:
 

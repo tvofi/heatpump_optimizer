@@ -164,6 +164,12 @@ architecture score in `tools/audit/archscore/`, per-group harnesses in
 any merge, push, body, gate or watch loop; new reusable instruments land here,
 never only in /tmp (decision 0013).
 
+### The owner's standing rulings
+
+`dev/programme/RULINGS.md` — each ruling verbatim and dated; read in full after
+every compaction with this file and the orchestrator's contract (`orchestrator.md`
+section 0).
+
 ### The suite, the register, the handover
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
