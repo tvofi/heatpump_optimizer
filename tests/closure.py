@@ -644,6 +644,9 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R11-PRE-PLAN-RENDER: plan_page.py imports the round's phases section, so
+    # the same self-test opens it; it joins the recorded closure beside it.
+    "tools/audit/seat/plan_phases.py",
     # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
     # the topic grammar's one owner in-process, so tests/entities.py's load of it
     # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and

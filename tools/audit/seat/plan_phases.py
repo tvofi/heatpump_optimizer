@@ -1,0 +1,412 @@
+#!/usr/bin/env python3
+"""A round's phases: the linted input file and the plan page's phases section.
+
+    python3 tools/audit/seat/plan_phases.py --check dev/programme/round11/phases.json
+    python3 tools/audit/seat/plan_phases.py --phases FILE --html page.html
+
+The plan page draws a round's fix groups from the roster and plan.json, which
+exist only from the round's fifth phase. The phases file is where everything
+before and around them is recorded: one entry per phase of the playbook
+(`dev/audit/README.md`, "Running a round: the playbook" and "Round start"), in
+the order of `PHASES`. `plan_page.py` imports `section` and draws it above the
+group lanes; `--html` draws the section alone as a page, for a round with no
+plan yet.
+
+The file (JSON):
+
+    {"round": 11, "as_of": ISO, "note": str?,
+     "phases": [{"phase": one of PHASES, "status": one of STATUSES,
+                 "waiting_on": str (iff status waiting),
+                 "started": ISO?, "finished": ISO?,
+                 "forecast": {"start_from": ISO, "start_to": ISO, "basis": str}?,
+                 "entry": str?, "exit": str?,
+                 "items": [{"name": str, "status": one of STATUSES,
+                            "waiting_on": str?, "detail": str?}]?}]}
+
+REFUSALS (`violations`; `--check` exits 1): a status outside `STATUSES`; a
+phase outside `PHASES`, repeated, or out of the playbook's order; `waiting`
+with no `waiting_on`; a date that is not ISO-8601 UTC; a `started` or
+`finished` date on a not-started phase; a `finished` date on a phase not done;
+a forecast with no `basis` (a date with no plan behind it). A phase the file
+does not list is drawn "not started" with dashes, never omitted; the page
+prints no date or count the file does not carry. An invalid file is drawn as
+PHASES UNAVAILABLE with its first violation: the rest of the plan page stands.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import html
+import json
+import re
+import sys
+import tempfile
+from pathlib import Path
+
+# The playbook's order (dev/audit/README.md): round start holds the pickup,
+# the start evaluation and the finder-critical groups; fix waves are the
+# roster's group lanes (playbook phases 5 to 10).
+PHASES = (
+    ("round-start", "Round start"),
+    ("finders", "Finders"),
+    ("verify-judge", "Verify and judge"),
+    ("plan", "Architect plan"),
+    ("fix-waves", "Fix waves"),
+    ("stamps", "Stamps"),
+    ("closure", "Closure"),
+)
+STATUSES = {"not-started": "not started", "running": "running",
+            "waiting": "waiting", "done": "done"}
+# The plan page's pill classes, so a phase reads in the page's own language.
+_PILL = {"not-started": "held", "running": "live", "waiting": "blocked", "done": "done"}
+_ISO = "%Y-%m-%dT%H:%M:%SZ"
+_FILE = re.compile(r"\Around(\d+)\Z")
+
+
+def _t(s: str) -> dt.datetime:
+    return dt.datetime.strptime(s, _ISO)
+
+
+def _date_ok(v) -> bool:
+    try:
+        _t(v)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def violations(doc) -> list:
+    """Every refusal the file earns, in reading order; empty when it is sound."""
+    if not isinstance(doc, dict):
+        return ["the file is not a JSON object"]
+    bad = []
+    if not isinstance(doc.get("round"), int):
+        bad.append("round: not an integer")
+    if not _date_ok(doc.get("as_of")):
+        bad.append(f"as_of: not ISO-8601 UTC ({doc.get('as_of')!r})")
+    order = [p for p, _ in PHASES]
+    last = -1
+    phases = doc.get("phases")
+    if not isinstance(phases, list):
+        return bad + ["phases: not a list"]
+    for i, ph in enumerate(phases):
+        pid = ph.get("phase") if isinstance(ph, dict) else None
+        where = f"phases[{i}] {pid}"
+        if pid not in order:
+            bad.append(f"{where}: unknown phase (one of {', '.join(order)})")
+            continue
+        if order.index(pid) <= last:
+            bad.append(f"{where}: out of the playbook's order, or repeated")
+        last = max(last, order.index(pid))
+        bad += _status_violations(where, ph)
+        st = ph.get("status")
+        for k in ("started", "finished"):
+            if ph.get(k) is not None and not _date_ok(ph[k]):
+                bad.append(f"{where}: {k} not ISO-8601 UTC ({ph[k]!r})")
+        if st == "not-started" and (ph.get("started") or ph.get("finished")):
+            bad.append(f"{where}: a date on a not-started phase (put a plan's date in forecast, with its basis)")
+        if ph.get("finished") and st != "done":
+            bad.append(f"{where}: finished on a phase not done")
+        fc = ph.get("forecast")
+        if fc is not None:
+            if not (isinstance(fc, dict) and str(fc.get("basis") or "").strip()):
+                bad.append(f"{where}: a forecast with no basis (a date with no plan behind it)")
+            elif not (_date_ok(fc.get("start_from")) and _date_ok(fc.get("start_to"))):
+                bad.append(f"{where}: forecast start_from/start_to not ISO-8601 UTC")
+        for j, it in enumerate(ph.get("items") or []):
+            if not (isinstance(it, dict) and str(it.get("name") or "").strip()):
+                bad.append(f"{where} items[{j}]: no name")
+                continue
+            bad += _status_violations(f"{where} item {it['name']}", it)
+    return bad
+
+
+def _status_violations(where: str, x: dict) -> list:
+    st = x.get("status")
+    if st not in STATUSES:
+        return [f"{where}: unknown status {st!r} (one of {', '.join(STATUSES)})"]
+    if st == "waiting" and not str(x.get("waiting_on") or "").strip():
+        return [f"{where}: waiting on nothing named (waiting_on)"]
+    return []
+
+
+def load(path: str | Path):
+    """(doc, violations) for a phases file; a file that does not parse is one violation."""
+    try:
+        doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return None, [f"{Path(path).name}: {type(exc).__name__}: {exc}"]
+    return doc, violations(doc)
+
+
+def discover(repo: str | Path) -> Path | None:
+    """The running round's phases file in a checkout: the highest-numbered
+    `dev/programme/round<N>/phases.json`, or None."""
+    found = []
+    for p in (Path(repo) / "dev" / "programme").glob("round*/phases.json"):
+        m = _FILE.match(p.parent.name)
+        if m:
+            found.append((int(m.group(1)), p))
+    return max(found)[1] if found else None
+
+
+# ------------------------------------------------------------------ drawing
+
+def _pill(st: str, label: str) -> str:
+    return f'<span class="pill {_PILL[st]}">{html.escape(label)}</span>'
+
+
+def _label(x: dict) -> str:
+    st = x["status"]
+    return f"waiting on {x['waiting_on']}" if st == "waiting" else STATUSES[st]
+
+
+def _when(s: str | None) -> str:
+    return _t(s).strftime("%a %d %b %H:%M") if s else "—"
+
+
+def rows_of(doc: dict) -> list:
+    """Every phase of the playbook, in its order: the file's entry, or a
+    not-started placeholder carrying nothing."""
+    given = {p["phase"]: p for p in doc.get("phases") or []}
+    return [dict(given.get(pid) or {"phase": pid, "status": "not-started"}, title=title)
+            for pid, title in PHASES]
+
+
+def timeline(doc: dict, rows: list) -> str:
+    """The phases on the file's own time axis: from its earliest date to its
+    latest; a running bar ends at `as_of`, a forecast is a dashed window, a
+    phase with no date says so in its row."""
+    now = _t(doc["as_of"])
+    pts = [now]
+    for r in rows:
+        pts += [_t(r[k]) for k in ("started", "finished") if r.get(k)]
+        fc = r.get("forecast")
+        if fc:
+            pts += [_t(fc["start_from"]), _t(fc["start_to"])]
+    t0, t1 = min(pts), max(pts)
+    span = max(3600.0, (t1 - t0).total_seconds()) * 1.04
+    W, LW, RH = 1180, 230, 26
+
+    def px(t):
+        return LW + (t - t0).total_seconds() / span * (W - LW - 20)
+
+    e, parts = html.escape, []
+    H = 22 + len(rows) * (RH + 6) + 6
+    step = 6 if span <= 3 * 86400 else 24
+    h0 = t0.replace(minute=0, second=0)
+    for k in range(0, int(span // 3600) + 2, step):
+        t = h0 + dt.timedelta(hours=k)
+        if t0 <= t <= t0 + dt.timedelta(seconds=span):
+            parts.append(f'<line x1="{px(t):.1f}" y1="20" x2="{px(t):.1f}" y2="{H}" class="grid"/>'
+                         f'<text x="{px(t):.1f}" y="14" class="tick">{t.strftime("%a %Hh")}</text>')
+    for i, r in enumerate(rows):
+        y = 22 + i * (RH + 6)
+        parts.append(f'<text x="10" y="{y + 17}" class="lanelab">{e(r["title"])}</text>')
+        cls = _PILL[r["status"]]
+        tip = f'{r["title"]}: {_label(r)}'
+        if r.get("started"):
+            a = _t(r["started"])
+            b = _t(r["finished"]) if r.get("finished") else now
+            w = max(px(b) - px(a), 4)
+            parts.append(f'<g class="phase"><title>{e(tip)}, started {_when(r["started"])}'
+                         f'{", finished " + _when(r["finished"]) if r.get("finished") else ", open"}</title>'
+                         f'<rect x="{px(a):.1f}" y="{y}" width="{w:.1f}" height="{RH}" rx="3" '
+                         f'class="bar {cls}{"" if r.get("finished") else " open"}"/></g>')
+        fc = r.get("forecast")
+        if fc:
+            a, b = _t(fc["start_from"]), _t(fc["start_to"])
+            parts.append(f'<g class="phase"><title>{e(r["title"])}: forecast start '
+                         f'{_when(fc["start_from"])} to {_when(fc["start_to"])} ({e(fc["basis"])})</title>'
+                         f'<rect x="{px(a):.1f}" y="{y}" width="{max(px(b) - px(a), 4):.1f}" '
+                         f'height="{RH}" rx="3" class="bar forecast"/>'
+                         f'<text x="{px(a) - 6:.1f}" y="{y + 17}" class="barlab" text-anchor="end">forecast start</text></g>')
+        if not r.get("started") and not fc:
+            parts.append(f'<text x="{LW + 4}" y="{y + 17}" class="tick">{e(_label(r))} — no date</text>')
+    parts.append(f'<line x1="{px(now):.1f}" y1="20" x2="{px(now):.1f}" y2="{H}" class="nowline"/>'
+                 f'<text x="{px(now) + 3:.1f}" y="{H - 2}" class="tick">as of</text>')
+    return (f'<svg viewBox="0 0 {W} {H + 4}" width="{W}" height="{H + 4}" role="img" '
+            f'aria-label="round phases">{"".join(parts)}</svg>')
+
+
+_CSS = """<style>
+.bar.done{fill:var(--done-bg);stroke:var(--done)}
+.bar.open{stroke-dasharray:6 2}
+.bar.forecast{fill:transparent;stroke:var(--muted);stroke-dasharray:3 3}
+.nowline{stroke:var(--accent);stroke-width:1.4}
+ul.items{margin:0;padding-left:1.1em;font-size:.86rem;columns:2 26rem;column-gap:28px}
+ul.items li{margin:2px 0;break-inside:avoid}
+</style>"""
+
+
+def section(doc, bad: list | None = None, where: str = "") -> str:
+    """The phases section for the plan page: a timeline and one row per phase,
+    the running phases' items under them. `bad` (from `violations`) draws the
+    UNAVAILABLE section instead, naming the first refusal."""
+    e = html.escape
+    if bad:
+        return (f'<section>\n  <h2>Round phases</h2>\n  <p><b>PHASES UNAVAILABLE — '
+                f'{len(bad)} violation(s) in {e(where)}: {e(bad[0])}</b></p>\n</section>\n')
+    rows = rows_of(doc)
+    trs = []
+    for r in rows:
+        fc = r.get("forecast")
+        planned = (f'start {_when(fc["start_from"])} to {_when(fc["start_to"])}'
+                   f'<div class="lanec">{e(fc["basis"])}</div>' if fc else "—")
+        items = ""
+        if r.get("items") and r["status"] != "done":
+            items = '<tr class="items"><td></td><td colspan="6"><ul class="items">' + "".join(
+                f'<li>{_pill(it["status"], _label(it))} <b>{e(it["name"])}</b>'
+                + (f' — {e(it["detail"])}' if it.get("detail") else "") + "</li>"
+                for it in r["items"]) + "</ul></td></tr>"
+        trs.append(
+            f'<tr data-phase="{e(r["phase"])}" data-st="{e(r["status"])}"><td class="g">{e(r["title"])}</td>'
+            f'<td class="st">{_pill(r["status"], _label(r))}</td>'
+            f'<td class="mono">{_when(r.get("started"))}</td><td class="mono">{_when(r.get("finished"))}</td>'
+            f'<td>{planned}</td><td class="d">{e(r.get("entry") or "—")}</td>'
+            f'<td class="d">{e(r.get("exit") or "—")}</td></tr>{items}')
+    note = f'<p class="note"><b>{e(doc["note"])}</b></p>' if doc.get("note") else ""
+    return (f'{_CSS}\n<section id="phases">\n  <h2>Round {doc["round"]} phases</h2>\n  {note}\n'
+            f'  <p class="note">State as of {_when(doc["as_of"])} UTC, read from the round\'s phases file '
+            f'({e(where)}); the phases are the playbook\'s, in its order (<code>dev/audit/README.md</code>). '
+            'A phase the file does not list is drawn not started. A dash is a date the file does not '
+            'carry, never a guess; a dashed outline is a forecast window with its basis.</p>\n'
+            f'  <div class="scroll">{timeline(doc, rows)}</div>\n'
+            '  <div class="scroll"><table><thead><tr><th>Phase</th><th>Status</th>'
+            '<th>Started (UTC)</th><th>Finished (UTC)</th><th>Planned</th><th>Entry</th><th>Exit</th>'
+            f'</tr></thead><tbody>{"".join(trs)}</tbody></table></div>\n</section>\n')
+
+
+def shown(path: str | Path, repo: str | Path) -> str:
+    """How the page names the file: relative to the checkout, else its bare
+    name -- a host path never reaches a public page (`plan_public.py`)."""
+    p = Path(path).resolve()
+    try:
+        return p.relative_to(Path(repo).resolve()).as_posix()
+    except ValueError:
+        return p.name
+
+
+# ---------------------------------------------------------------- self-test
+
+def fixture() -> dict:
+    """A round with each status on a phase and on an item, a forecast with
+    its basis, and two phases (fix waves, closure) the file does not list."""
+    return {"round": 9, "as_of": "2026-01-05T12:00:00Z", "phases": [
+        {"phase": "round-start", "status": "done", "started": "2026-01-01T00:00:00Z",
+         "finished": "2026-01-02T00:00:00Z", "entry": "ENTRY-RS", "exit": "EXIT-RS",
+         "items": [{"name": "ITEM-HIDDEN", "status": "done"}]},
+        {"phase": "finders", "status": "running", "started": "2026-01-02T00:00:00Z",
+         "items": [{"name": "ITEM-DONE", "status": "done"},
+                   {"name": "ITEM-RUN", "status": "running", "detail": "DETAIL-RUN"},
+                   {"name": "ITEM-WAIT", "status": "waiting", "waiting_on": "QUEUE-X"},
+                   {"name": "ITEM-NOT", "status": "not-started"}]},
+        {"phase": "verify-judge", "status": "waiting", "waiting_on": "THE-JUDGE"},
+        {"phase": "plan", "status": "not-started",
+         "forecast": {"start_from": "2026-01-06T08:00:00Z", "start_to": "2026-01-06T20:00:00Z",
+                      "basis": "BASIS-PLAN"}},
+        {"phase": "stamps", "status": "not-started"}]}
+
+
+def fixture_checks(check) -> None:
+    """The phases arms of `plan_page.py --self-test`: each refusal against the
+    fixture it refuses, and the drawing; `check(name, ok, got)`."""
+    import copy
+    doc = fixture()
+    check("phases: the fixture is sound (null control)", violations(doc) == [], violations(doc))
+
+    def refuses(mutate, why):
+        d = copy.deepcopy(doc)
+        mutate(d)
+        got = violations(d)
+        check(f"phases: refused, {why}", any(why in b for b in got), got)
+    ph = lambda d, i: d["phases"][i]  # noqa: E731
+    refuses(lambda d: ph(d, 1).update(status="started"), "unknown status")
+    refuses(lambda d: ph(d, 1)["items"][0].update(status="ok"), "unknown status")
+    refuses(lambda d: d["phases"].reverse(), "out of the playbook's order")
+    refuses(lambda d: d["phases"].insert(1, dict(ph(d, 0))), "out of the playbook's order")
+    refuses(lambda d: ph(d, 0).update(phase="intake"), "unknown phase")
+    refuses(lambda d: ph(d, 2).pop("waiting_on"), "waiting on nothing named")
+    refuses(lambda d: ph(d, 1)["items"][2].pop("waiting_on"), "waiting on nothing named")
+    refuses(lambda d: ph(d, 4).update(started="2026-01-07T00:00:00Z"), "a date on a not-started phase")
+    refuses(lambda d: ph(d, 3)["forecast"].pop("basis"), "a forecast with no basis")
+    refuses(lambda d: ph(d, 1).update(finished="2026-01-03T00:00:00Z"), "finished on a phase not done")
+    refuses(lambda d: ph(d, 1).update(started="2 Jan"), "not ISO-8601 UTC")
+    rows = rows_of(doc)
+    check("phases: every playbook phase is a row, in order; an unlisted one is not started",
+          [r["phase"] for r in rows] == [p for p, _ in PHASES]
+          and [r["status"] for r in rows if r["phase"] in ("fix-waves", "closure")]
+          == ["not-started"] * 2, [(r["phase"], r["status"]) for r in rows])
+    s = section(doc, [], "dev/programme/round9/phases.json")
+    tr = {m.group(1): m.group(0) for m in re.finditer(r'<tr data-phase="([a-z-]+)".*?</tr>', s, re.S)}
+    check("phases: the section draws a row per phase in the playbook's order",
+          list(tr) == [p for p, _ in PHASES], list(tr))
+    check("phases: a phase with no date prints dashes, never a date or a zero",
+          all(tr[p].count('<td class="mono">—</td>') == 2 and "<td>—</td>" in tr[p]
+              and not re.search(r"\d", re.sub(r"<[^>]+>|data-[a-z]+=\"[^\"]*\"", "", tr[p]))
+              for p in ("stamps", "fix-waves", "closure")),
+          {p: tr.get(p, "")[:200] for p in ("stamps", "fix-waves", "closure")})
+    check("phases: a waiting phase names what it waits on", "waiting on THE-JUDGE" in tr["verify-judge"],
+          tr["verify-judge"][:300])
+    check("phases: a forecast prints its window and its basis",
+          "Tue 06 Jan 08:00" in tr["plan"] and "BASIS-PLAN" in tr["plan"]
+          and 'class="bar forecast"' in s, tr["plan"][:300])
+    items = s.split('data-phase="finders"', 1)[1].split('data-phase="verify-judge"', 1)[0]
+    check("phases: the running phase's items are drawn under it, each with its status",
+          all(x in items for x in ("ITEM-DONE", "ITEM-RUN", "DETAIL-RUN", "waiting on QUEUE-X",
+                                   "ITEM-NOT")), items[:400])
+    check("phases: a done phase's items are not drawn", "ITEM-HIDDEN" not in s)
+    check("phases: entry and exit are the file's words", "ENTRY-RS" in s and "EXIT-RS" in s)
+    bad = section(None, ["X: unknown status"], "f.json")
+    check("phases: an invalid file draws PHASES UNAVAILABLE, no table, no date",
+          "PHASES UNAVAILABLE" in bad and "<table" not in bad and "X: unknown status" in bad, bad)
+    with tempfile.TemporaryDirectory() as td:
+        for n in (9, 11, 10):
+            (Path(td) / f"dev/programme/round{n}").mkdir(parents=True)
+            (Path(td) / f"dev/programme/round{n}/phases.json").write_text("{}")
+        (Path(td) / "dev/programme/roundx").mkdir()
+        (Path(td) / "dev/programme/roundx/phases.json").write_text("{}")
+        found = discover(td)
+        check("phases: discovery takes the highest-numbered round's file",
+              found is not None and found.parent.name == "round11", found)
+        check("phases: a host path is shown by its bare name, a checkout path relative",
+              shown(found, "/elsewhere") == "phases.json"
+              and shown(found, td) == "dev/programme/round11/phases.json")
+    with tempfile.TemporaryDirectory() as td:
+        check("phases: null control, a checkout with no phases file discovers none",
+              discover(td) is None)
+
+
+def page(doc, bad: list, where: str) -> str:
+    """The section alone as a page, in the plan page's stylesheet."""
+    import plan_page  # noqa: PLC0415 -- the stylesheet's one owner; imports this module
+    style = re.search(r"<style>.*?</style>", plan_page._TEMPLATE, re.S).group(0)
+    title = f"Round {doc['round']} Plan" if doc and not bad else "Round Plan"
+    return ("<!doctype html>\n<meta charset=\"utf-8\">\n"
+            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f"<title>{html.escape(title)}</title>\n{style}\n<main>\n<header><h1>{html.escape(title)}</h1></header>\n"
+            f"{section(doc, bad, where)}</main>\n")
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--check", metavar="FILE", help="lint a phases file; exit 1 on a violation")
+    p.add_argument("--phases", metavar="FILE")
+    p.add_argument("--html", metavar="OUT", help="with --phases: the section alone as a page")
+    a = p.parse_args(argv)
+    path = a.check or a.phases
+    if not path:
+        p.error("--check FILE or --phases FILE --html OUT")
+    doc, bad = load(path)
+    for b in bad:
+        print(f"plan_phases: {path}: {b}", file=sys.stderr)
+    if a.html:
+        Path(a.html).write_text(page(doc, bad, shown(path, Path.cwd())), encoding="utf-8")
+        print(f"wrote {a.html}")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.exit(main())

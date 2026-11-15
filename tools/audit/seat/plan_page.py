@@ -51,6 +51,11 @@ last segment against the tails of the roster's `resume.branch` values (with a
 `-pr` suffix dropped): `fix/r10-ci-layout-g` names R10-CI-LAYOUT only that way;
 failing both, by the one roster group id its title names.
 
+The round's phases (`plan_phases.py`, its file under `dev/programme/round<N>/`)
+are drawn above the group lanes: `--phases FILE`, else the checkout's newest
+round phases file; an invalid one is its section's PHASES UNAVAILABLE, never
+the page's.
+
 `--self-test` drives every arm from fixtures in a throwaway repository, and
 never reaches GitHub: the fetch is replaced by one that fails the test.
 """
@@ -77,6 +82,7 @@ import replan  # noqa: E402 -- the one owner of plan.json and its freshness
 sys.path.insert(0, str(_SEAT.parent))
 import merge_throughput as mt  # noqa: E402 -- the flow board's computations
 import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
+import plan_phases  # noqa: E402 -- the round's phases file and its section
 
 SELF = "tools/audit/seat/plan_page.py"
 sys.path.insert(0, str(_SEAT.parents[1] / "policy"))
@@ -632,8 +638,9 @@ def _when(s: str) -> str:
 
 
 def render(roster: dict, roster_src: str, plan: dict, snap: dict,
-           flow: dict | None = None) -> str:
-    """The page. Pure: every input is an argument."""
+           flow: dict | None = None, phases: tuple | None = None) -> str:
+    """The page. Pure: every input is an argument. `phases` is the round's
+    phases file as `(doc, violations, shown path)`, drawn above the lanes."""
     rows = build_rows(roster, plan, snap)
     svg, drawn = swimlanes(plan, rows)
     gen, summ = plan["generated"], plan["summary"]
@@ -695,6 +702,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "now": _t(gen["start"]).strftime("%d %b %H:%M"),
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
+        "phases": plan_phases.section(*phases) if phases else "",
         "issues_chart": issues_section(roster, plan, snap),
         "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
@@ -784,6 +792,9 @@ def main(argv=None, fetch=fetch_github) -> int:
     p.add_argument("--train-log", default=None,
                    help="the live merge train's train.log, for the skip measure")
     p.add_argument("--no-flow", action="store_true", help="draw no flow metrics")
+    p.add_argument("--phases", default=None,
+                   help="the round's phases file; default: the checkout's newest "
+                        "dev/programme/round<N>/phases.json (plan_phases.discover)")
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
@@ -810,7 +821,14 @@ def main(argv=None, fetch=fetch_github) -> int:
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
             if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
     flow = None if a.no_flow else flow_metrics(a.repo, ref, path, roster, plan, a.train_log)
-    page = render(roster, f"{ref}:{path}", plan, snap, flow)
+    pf = a.phases or plan_phases.discover(a.repo)
+    phases = None
+    if pf:
+        doc, pbad = plan_phases.load(pf)
+        for b in pbad:
+            print(f"plan_page: phases {pf}: {b}", file=sys.stderr)
+        phases = (doc, pbad, plan_phases.shown(pf, a.repo))
+    page = render(roster, f"{ref}:{path}", plan, snap, flow, phases)
     Path(a.html).write_text(page, encoding="utf-8")
     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
           f"closure {plan['summary']['closure']}")
@@ -825,6 +843,7 @@ def _self_test() -> int:
     import tempfile
     sys.path.insert(0, str(_SEAT.parents[2] / "tests"))
     from throwaway_git import throwaway_git_environ, throwaway_git_init
+    import plan_public  # the public staging's privacy refusal, over a page with phases
     fails: list = []
     n = [0]
 
@@ -1316,6 +1335,35 @@ def _self_test() -> int:
                     "--github-snapshot", str(snapf)]
             check("a fresh plan renders (null control)",
                   main(argv, fetch=fetch_refused) == 0 and out.is_file())
+            check("null control: a checkout with no phases file draws no phases section",
+                  'id="phases"' not in out.read_text(encoding="utf-8")
+                  and "PHASES UNAVAILABLE" not in out.read_text(encoding="utf-8"))
+            out.unlink()
+            plan_phases.fixture_checks(check)
+            pf = Path(td) / "outside" / "phases.json"
+            pf.parent.mkdir()
+            pf.write_text(json.dumps(plan_phases.fixture()), encoding="utf-8")
+            check("--phases FILE: the page draws the round's phases above the group lanes",
+                  main(argv + ["--phases", str(pf)], fetch=fetch_refused) == 0
+                  and 0 <= out.read_text(encoding="utf-8").find('id="phases"')
+                  < out.read_text(encoding="utf-8").find("<h2>Swimlanes</h2>"))
+            text = out.read_text(encoding="utf-8")
+            check("a page with phases names no host path: plan_public's privacy refusal passes",
+                  str(pf.parent) not in text and plan_public.refusal(text) is None,
+                  plan_public.refusal(text))
+            home = repo / "dev" / "programme" / "round9"
+            home.mkdir(parents=True)
+            (home / "phases.json").write_text(json.dumps(plan_phases.fixture()), encoding="utf-8")
+            main(argv, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8")
+            check("with no --phases, the checkout's newest round phases file is drawn",
+                  'id="phases"' in text and "dev/programme/round9/phases.json" in text, text[:300])
+            (home / "phases.json").write_text('{"round": 9, "phases": [{"phase": "x"}]}')
+            main(argv, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8")
+            check("an invalid phases file draws PHASES UNAVAILABLE; the group lanes still stand",
+                  "PHASES UNAVAILABLE" in text and "<h2>Swimlanes</h2>" in text, text[:300])
+            (home / "phases.json").unlink()
             out.unlink()
 
             def no_gh_binary(_repo):
@@ -1506,6 +1554,7 @@ td.st{min-width:11rem}
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
+{{phases}}
 {{issues_chart}}
 {{flow}}
 <section>
