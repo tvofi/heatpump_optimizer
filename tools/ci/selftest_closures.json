@@ -4401,6 +4401,25 @@
    "objects": false,
    "git": []
   },
+  "finder-overlap": {
+   "run_sha": "acc165c99b344a4c6975668d5aca24c15529e9fb81964e9e4b9d0f1fb355786c",
+   "files": [
+    "tools/audit/seat/finder_overlap.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "fragment-check": {
    "run_sha": "90a2ee3e4d234a1f84217fe48e0e88ef1d01dafc9a49c331c518bf0a43063d7b",
    "files": [
@@ -5816,6 +5835,26 @@
    ],
    "dirs": [
     "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
+  "plant-recall": {
+   "run_sha": "ffb2f1b4145371bbf55365116879ac7177af381841fa04edd56d0b632b89e150",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tests"
    ],
    "index": false,
    "objects": false,
