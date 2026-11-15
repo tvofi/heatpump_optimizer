@@ -292,6 +292,10 @@ def self_test() -> int:
         g3 = [dict(g) for g in fx]
         g3[0]["found_by"] = "nobody"
         check("a value outside the vocabulary is unrecorded", "escapes unread (1 of 2" in reads(g3, g3)[0])
+        g5 = [dict(g) for g in fx]
+        g5[2]["family"] = "N-no-such-class"
+        check("a countermeasure whose family is no bug class reads loop unread, never the word",
+              reads(g5, g5)[3] == "loop unread (1 of 3 owing groups unrecorded: R9-HOTFIX-M)")
         g4 = [dict(g) for g in fx]
         g4[2]["found_by"] = "ci"
         check("a non-escape hotfix owes found_by: refix reads unread, escapes stay read",
