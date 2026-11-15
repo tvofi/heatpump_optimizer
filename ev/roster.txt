@@ -1,0 +1,11 @@
+roster r10/r9 strip-archive equal to 89acffb1ab blob: both STRIP-EQUAL; critical-path identical
+handoff/r10-cop-learner-draw-floor head-archive=1 head-bare=0
+handoff/r10-hotfix-main-selftest-scope-2 head-archive=1 head-bare=0
+handoff/r10-hotfix-reference-basis head-archive=1 head-bare=0
+review/3481 head-archive=1 head-bare=0
+groups main/head 544 544 added 0 removed 0
+R10-REVIEW-DISPATCH-RESIDUE 33 33 33
+ main changes at [5, 14, 17, 20, 30, 31] present verbatim at head: [True, True, True, True, False, True]
+R11-INTAKE-R10-RESIDUE 183 183 185
+ main changes at [66, 72] present verbatim at head: [True, True]
+diff groups main vs head: 6
