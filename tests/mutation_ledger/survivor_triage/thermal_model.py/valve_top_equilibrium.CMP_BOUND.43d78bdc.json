@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:valve_top_equilibrium CMP_BOUND 43d78bdc",
+  "old": "    if upper >= t_rad or slab >= t_floor:",
+  "reason": "Equivalent on every reachable input, and measured (CMP_BOUND on either comparison). The arms differ only where a solved zone equals its circuit's top to the last bit: that circuit then draws exactly 0, the affine solve and the plant's clipped draw agree, and either return (the equilibrium or the level bisection's fallback) is the plant's own state at that boundary. The guard itself is killed (GUARD_OFF, the sunlit 3 C curve case in the group's block); `tools/audit/seat/mutant_run.py --diff` reads this bound SURVIVED.",
+  "verdict": "equivalent"
+}

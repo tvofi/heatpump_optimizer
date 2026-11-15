@@ -222,6 +222,13 @@ def replace_line(queue, old, new):
 
 
 def run_queue(a, python=None):
+    if os.environ.get("HPO_SEAT_GEN"):  # a superseded seat's lingering job writes nothing
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import seat_gen
+        rc, msg = seat_gen.check_env()
+        if rc:
+            print(msg, file=sys.stderr)
+            return 2
     env = dict(os.environ)
     env["HPO_ROSTER_LANE"] = "queue-runner"  # roster_edit.LANE_ENV: structural ops need it
     shims = Path(a.edit_checkout, "tools/audit/seat/shims")
@@ -676,6 +683,23 @@ def _self_test():
            run_queue(a2, python=sys.executable) == 0
            and (t / "rep2").read_text().strip().split("\n")
            == [f"roster: set-stage {g_} pushed {sha[:9]}" for g_ in "GHI"])
+        (t / "rep2").write_text("")
+        (t / "state").mkdir()
+        (t / "state" / "roster.gen").write_text("2 1\n")
+        sg_env = {"HPO_STATE_DIR": str(t / "state")}
+        os.environ.update(sg_env, HPO_SEAT_GEN="roster=1")
+        try:
+            rcg = run_queue(a2, python=sys.executable)
+            wrote = (t / "rep2").read_text()
+            os.environ["HPO_SEAT_GEN"] = "roster=2"
+            (t / "mode").write_text("ok")
+            rcn = run_queue(a2, python=sys.executable)
+        finally:
+            del os.environ["HPO_SEAT_GEN"], os.environ["HPO_STATE_DIR"]
+        ck("run: a superseded generation refuses rc 2 and writes no report line",
+           rcg == 2 and wrote == "")
+        ck("run null: the current generation writes as before",
+           rcn == 0 and (t / "rep2").read_text().count("pushed") == 3)
         (t / "rep2").write_text("")
         real_sh = subprocess.run
 

@@ -1,5 +1,5 @@
 ---
-description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
+description: A finding that changes how a later stage must work goes into that stage's own brief by the producing PR's merge
 paths:
   - "dev/governance/**"
   - ".claude/workflows/*.json"
@@ -9,7 +9,7 @@ paths:
 # Forward-carrying a finding
 
 **A finding that changes how a later stage must work is written into that
-stage's own brief before the PR that produced it merges.**
+stage's own brief by the time the PR that produced it merges.**
 
 ## When it applies
 
@@ -80,7 +80,7 @@ A carry routes to another stage or seam's owner, never the fixer's own (`fixer.m
 
 ## Enforcement
 
-The producing PR does not merge until the carry is **in the tree**; a carry to
+The carry is **in the tree** by the producing PR's merge (card C5); a carry to
 the round's roster, once on its branch `handoff/audit-r<N>-roster` (tvofi,
 2026-10-18), which lands on main at each stamp and before branch cleanup
 and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`

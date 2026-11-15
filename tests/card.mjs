@@ -969,7 +969,12 @@ check("what_if: false still hides the panel",
 
 let called = null;
 const simResult = {
-  monthly_cost_delta: -42.5,
+  // The plan's own spend is in every answer and is never the money shown
+  // (#2257): the line reads the steady figure, here a schedule estimate's two
+  // pricings, which round apart.
+  monthly_cost_delta: -97.0,
+  monthly_steady_cost_delta: -42.5,
+  monthly_steady_cost_delta_shifted: -30.2,
   min_room_temperature: 19.4,
   baseline_min_room_temperature: 20.1,
   min_dhw_temperature: 46.0,
@@ -1137,7 +1142,33 @@ check("the simulator sends the hot water windows",
 
 const resultText = whatIf.shadowRoot.querySelector(".wi-result").textContent;
 check("a cheaper answer is reported as a monthly saving",
-  /43 less per month/.test(resultText));
+  /30–43 less per month/.test(resultText));
+check("#2257: a schedule estimate's money is the range between its two pricings and says what it is: " +
+  "at the day's average weather and price, without the optimizer's load shifting",
+  /30–43 less per month/.test(resultText) && !/97/.test(resultText)
+  && /an estimate at the day's average weather and price that leaves out the optimizer's load shifting\./.test(resultText)
+  && !/in steady state/.test(resultText));
+{
+  // The summary's own markup is matched as it is built: stripping tags out of
+  // it is the shape of an HTML sanitiser (the note at `tableOf` below).
+  const money = (answer) => whatIf.whatIf.summary({ ...simResult, ...answer });
+  const opens = (amount, rest) => new RegExp(`^<div><b class="[a-z-]+">${amount}</b> ${rest}`);
+  check("#2257: two pricings that round to one amount, or no second pricing, show one number, still as the estimate",
+    opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: -42.9 }))
+    && opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: null })));
+  check("#2257: a dearer schedule estimate orders its range small to large",
+    opens("12–19 more per month", "than the current plan, an estimate").test(
+      money({ monthly_steady_cost_delta: 18.6, monthly_steady_cost_delta_shifted: 12.1 })));
+  const pair = { ...simResult, monthly_steady_cost_delta: 13.0 };
+  delete pair.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer priced by the two held plans has no second pricing and reads as steady state, one number",
+    opens("13 more per month", "than the current plan, in steady state\\.").test(whatIf.whatIf.summary(pair)));
+  const none = { ...simResult };
+  delete none.monthly_steady_cost_delta;
+  delete none.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer without the steady figure shows no money at all, never the plan's own spend",
+    !/per month|97|same cost/.test(whatIf.whatIf.summary(none)));
+}
 // Reporting only the saving would invite the obvious mistake: a plan is always
 // cheaper if it is allowed to be colder.
 check("the comfort consequence is reported alongside the money",
@@ -12523,6 +12554,26 @@ check("without an indoor reading the corner now label is absent",
     const waiting = rowOf(modelOf(metered(lp({ phase: "waiting", progress: null, waiting_for: "colder", samples: 0 }))), "heat_loss");
     check("UX-HEALTH D: a waiting learner says what it waits for in words",
       /Waiting: it learns when it is cold enough outside/.test(waiting) && !/colder/.test(waiting), waiting);
+    const frozenUntil = new Date(Date.now() + 3 * 3600 * 1000);
+    const frozen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost_space",
+      frozen_until: frozenUntil.toISOString(), samples: 1 }))), "heat_loss");
+    const frozenOpen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.0, waiting_for: "boost_space",
+      frozen_until: null, samples: 0 }))), "heat_loss");
+    check("a learner a boost holds says it is paused and until when, not a count standing still",
+      /Paused after a boost until/.test(frozen) && /Paused while a boost runs/.test(frozenOpen)
+      && !/Learning:/.test(frozen), `${frozen} | ${frozenOpen}`);
+    const frozenWindow = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "ventilation",
+      frozen_until: null, samples: 1 }))), "heat_loss");
+    const p3Count = rowOf(modelOf(metered(lp({ phase: "counting", progress: 0.02, waiting_for: null, samples: 1 }))), "heat_loss");
+    check("P3: a learner held for a reason with no line of its own says paused, never the raw key; a count renders as on main",
+      /Paused until its inputs are usable again/.test(frozenWindow) && !/ventilation/.test(frozenWindow)
+      && /Learning: 2 % of the samples/.test(p3Count) && !/Paused/.test(p3Count), `${frozenWindow} | ${p3Count}`);
+    const dayEdge = (plusDays, h, m) => { const d = new Date(); d.setDate(d.getDate() + plusDays); d.setHours(h, m, 0, 0); return d; };
+    const rowAt = (d) => rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost_space",
+      frozen_until: d.toISOString(), samples: 1 }))), "heat_loss");
+    check("P3: an end past midnight shows the day, not the clock time alone: the same time on two days reads differently",
+      /Paused after a boost until/.test(rowAt(dayEdge(1, 23, 30))) && rowAt(dayEdge(1, 23, 30)) !== rowAt(dayEdge(2, 23, 30))
+      && /on \w+day/.test(rowAt(dayEdge(2, 23, 30))), `${rowAt(dayEdge(1, 23, 30))} | ${rowAt(dayEdge(2, 23, 30))}`);
     check("UX-HEALTH D: a learner that is off has no row",
       !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
     // The owner's hover spec (carry 14): every score and scale hover says what

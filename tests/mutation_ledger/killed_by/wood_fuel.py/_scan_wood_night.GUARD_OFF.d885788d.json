@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:_scan_wood_night GUARD_OFF d885788d",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if cop <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

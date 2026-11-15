@@ -972,12 +972,13 @@ await block('the scoped round driver', async () => {
   // nor a multiple of three, `on6` is a multiple of six.
   const free = Array.from({ length: 60 }, (_, i) => i + 10).filter((r) => !every.includes(r))
   const off = free.find((r) => r % 2 !== 0 && r % 3 !== 0), on6 = free.find((r) => r % 6 === 0)
-  // D11 and D13 are held to the driver's own table, not to a number here: the
-  // cadence a tree declares is the cadence it must run (tvofi 2026-11-13 made it
-  // every round, in the pull request that lands the denominator).
-  t(`...and the cadence is otherwise read from the round number (D5 off at ${off}, on at ${on6}; D0 on at ${off}; D11 and D13 follow their CADENCE entry)`,
-    !!off && !!on6 && !D.activeIn(off, 'D5') && D.activeIn(on6, 'D5') && D.activeIn(off, 'D0')
-      && ['D11', 'D13'].every((d) => D.activeIn(off, d) === (D.CADENCE[d] === 1) && D.activeIn(on6, d)), 'the cadence is not derived from the round')
+  // Every dimension's activity at `off` and `on6` is read off CADENCE, never
+  // named here, so a cadence the owner moves (D5 and D6: tvofi 2026-11-13) is
+  // not a failed control; at least one dimension must be off at `off`.
+  const byRound = (r) => L.dims.filter((d) => D.CADENCE[d]).every((d) => D.activeIn(r, d) === (r % D.CADENCE[d] === 0))
+  const offAt = L.dims.filter((d) => D.CADENCE[d] && !D.activeIn(off, d))
+  t(`...and the cadence is otherwise read from the round number (off at ${off}: ${offAt.join(', ')}; every dimension on at ${on6} as its cadence says)`,
+    !!off && !!on6 && offAt.length > 0 && byRound(off) && byRound(on6) && D.activeIn(off, 'D0'), 'the cadence is not derived from the round')
   const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
   const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
   t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)

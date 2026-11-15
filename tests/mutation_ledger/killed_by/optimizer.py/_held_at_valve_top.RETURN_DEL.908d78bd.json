@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_held_at_valve_top RETURN_DEL 908d78bd",
+  "killed_by": "tests/features.py",
+  "old": "    return None if _pump_unreachable(model, top, made, outdoor, humidity) else top",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

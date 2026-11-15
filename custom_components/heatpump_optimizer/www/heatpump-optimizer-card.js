@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.17";
+const CARD_VERSION = "10.0.0";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -206,6 +206,9 @@ const STRINGS = {
     "health.learner_wait_colder": "it learns when it is cold enough outside",
     "health.learner_wait_darker": "it learns in the dark hours",
     "health.learner_wait_sunnier": "it learns in sunshine",
+    "health.learner_frozen": "Paused after a boost until {time}.",
+    "health.learner_frozen_any": "Paused while a boost runs.",
+    "health.learner_frozen_other": "Paused until its inputs are usable again.",
     "health.learner_waiting_any": "Waiting for conditions it can learn in.",
     "health.learner_counting": "Learning: {pct} % of the samples it needs.",
     "health.learner_eta": "About {d} days until learned.",
@@ -604,11 +607,18 @@ const STRINGS = {
       "Saved. The optimizer is reloading and will plan against the new " +
       "schedule.",
     "whatif.simulating": "Working out what that would cost…",
-    "whatif.same_cost": "<b>About the same cost</b> as the current plan.",
+    "whatif.same_cost":
+      "<b>About the same cost</b> as the current plan, {basis}.",
     "whatif.cheaper_per_month":
-      '<b class="cheaper">{amount} less per month</b> than the current plan.',
+      '<b class="cheaper">{amount} less per month</b> than the current plan, ' +
+      "{basis}.",
     "whatif.dearer_per_month":
-      '<b class="dearer">{amount} more per month</b> than the current plan.',
+      '<b class="dearer">{amount} more per month</b> than the current plan, ' +
+      "{basis}.",
+    "whatif.basis_plans": "in steady state",
+    "whatif.basis_schedule":
+      "an estimate at the day's average weather and price that leaves out " +
+      "the optimizer's load shifting",
     "whatif.min_room_temp": "Coldest the house gets: {t} °C",
     "whatif.min_dhw_temp": "Lowest tank temperature: {t} °C",
     "whatif.compressor_starts_one": "{n} compressor start",
@@ -1093,6 +1103,9 @@ const STRINGS = {
     "health.learner_wait_colder": "den lär sig när det är tillräckligt kallt ute",
     "health.learner_wait_darker": "den lär sig under mörka timmar",
     "health.learner_wait_sunnier": "den lär sig i solsken",
+    "health.learner_frozen": "Pausad efter en boost till {time}.",
+    "health.learner_frozen_any": "Pausad medan en boost pågår.",
+    "health.learner_frozen_other": "Pausad tills dess indata är användbara igen.",
     "health.learner_waiting_any": "Väntar på förhållanden den kan lära sig i.",
     "health.learner_counting": "Lär sig: {pct} % av mätningarna den behöver.",
     "health.learner_eta": "Ungefär {d} dagar tills den är inlärd.",
@@ -1461,13 +1474,17 @@ const STRINGS = {
       "nya schemat.",
     "whatif.simulating": "Räknar ut vad det skulle kosta…",
     "whatif.same_cost":
-      "<b>Ungefär samma kostnad</b> som den nuvarande planen.",
+      "<b>Ungefär samma kostnad</b> som den nuvarande planen, {basis}.",
     "whatif.cheaper_per_month":
       '<b class="cheaper">{amount} mindre per månad</b> än den nuvarande ' +
-      "planen.",
+      "planen, {basis}.",
     "whatif.dearer_per_month":
       '<b class="dearer">{amount} mer per månad</b> än den nuvarande ' +
-      "planen.",
+      "planen, {basis}.",
+    "whatif.basis_plans": "i fortvarighetstillstånd",
+    "whatif.basis_schedule":
+      "en uppskattning vid dygnets medelväder och medelpris som inte " +
+      "räknar med optimerarens lastförflyttning",
     "whatif.min_room_temp": "Som kallast blir huset {t} °C",
     "whatif.min_dhw_temp": "Lägsta tanktemperatur: {t} °C",
     "whatif.compressor_starts_one": "{n} kompressorstart",
@@ -1928,6 +1945,9 @@ const STRINGS = {
     "health.learner_wait_colder": "es lernt, wenn es draußen kalt genug ist",
     "health.learner_wait_darker": "es lernt in den dunklen Stunden",
     "health.learner_wait_sunnier": "es lernt bei Sonnenschein",
+    "health.learner_frozen": "Nach einem Boost pausiert bis {time}.",
+    "health.learner_frozen_any": "Pausiert, solange ein Boost läuft.",
+    "health.learner_frozen_other": "Pausiert, bis die Eingaben wieder brauchbar sind.",
     "health.learner_waiting_any": "Wartet auf Bedingungen, unter denen es lernen kann.",
     "health.learner_counting": "Lernt: {pct} % der benötigten Messwerte.",
     "health.learner_eta": "Noch etwa {d} Tage bis zum Abschluss des Lernens.",
@@ -2221,9 +2241,11 @@ const STRINGS = {
     "whatif.saving": "Wird gespeichert …",
     "whatif.saved_result": "Gespeichert. Der Optimierer lädt neu und plant nach dem neuen Zeitplan.",
     "whatif.simulating": "Kosten werden berechnet …",
-    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan.",
-    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan.",
-    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan.",
+    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan, {basis}.",
+    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan, {basis}.",
+    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan, {basis}.",
+    "whatif.basis_plans": "im eingeschwungenen Zustand",
+    "whatif.basis_schedule": "eine Schätzung bei Durchschnittswetter und Durchschnittspreis des Tages, ohne die Lastverschiebung des Optimierers",
     "whatif.min_room_temp": "Kältester Wert im Haus: {t} °C",
     "whatif.min_dhw_temp": "Niedrigste Speichertemperatur: {t} °C",
     "whatif.compressor_starts_one": "{n} Verdichterstart",
@@ -10542,6 +10564,14 @@ function learnerPhase(p) {
   if (!p || typeof p !== "object") return undefined;
   const pct = readNumber(p.progress) === null ? null : Math.round(readNumber(p.progress) * 100);
   if (p.phase === "off") return null;
+  if (p.phase === "frozen") {
+    // Held by a boost, an open window or an unusable reading: only the boost has an end and a line of its own.
+    const until = p.frozen_until ? new Date(p.frozen_until) : null;
+    const boost = p.waiting_for === "boost_space";
+    return { text: !boost ? L("health.learner_frozen_other")
+      : until && !isNaN(until) ? L("health.learner_frozen", { time: fmtExpiry(until) }) : L("health.learner_frozen_any"),
+      share: (pct || 0) / 100 };
+  }
   if (p.phase === "waiting") {
     const why = `health.learner_wait_${p.waiting_for}`;
     return { text: STRINGS.en[why] !== undefined ? L("health.learner_waiting", { why: L(why) })
@@ -13402,23 +13432,37 @@ class WhatIfPanel {
    *
    * Reporting only the saving would invite the obvious mistake: a plan is
    * always cheaper if it is allowed to be colder, or to let the tank run down.
+   *
+   * The money is the steady-state monthly estimate and nothing else (#2257):
+   * an answer without that figure shows the comfort consequence and no money,
+   * never the plan's own spend, which carries a one-off coast or heat-up.
+   *
+   * A schedule change carries the figure twice, at the day's average price
+   * and at the plan's own average purchase price: where the two round apart
+   * the money is the range between them, never one of them alone.
    */
   summary(result) {
-    const delta = Number(result.monthly_cost_delta);
+    // The answer's figures are numbers or absent; Number(null) would be a 0.
+    const num = (v) => (typeof v === "number" ? v : NaN);
+    const delta = num(result.monthly_steady_cost_delta);
+    const shifted = num(result.monthly_steady_cost_delta_shifted);
     const parts = [];
+    let money = "";
 
-    if (!Number.isFinite(delta)) {
-      return L("errors.no_answer");
-    }
-    if (Math.abs(delta) < 0.5) {
-      parts.push(L("whatif.same_cost"));
-    } else {
-      const cheaper = delta < 0;
-      parts.push(
-        L(cheaper ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
-          amount: Math.abs(delta).toFixed(0),
-        })
+    if (Number.isFinite(delta)) {
+      const basis = L(
+        "monthly_steady_cost_delta_shifted" in result ? "whatif.basis_schedule" : "whatif.basis_plans"
       );
+      const ends = [delta, Number.isFinite(shifted) ? shifted : delta]
+        .map((v) => Math.abs(v).toFixed(0))
+        .sort((a, b) => a - b);
+      money =
+        Math.abs(delta) < 0.5
+          ? L("whatif.same_cost", { basis })
+          : L(delta < 0 ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
+              amount: ends[0] === ends[1] ? ends[0] : `${ends[0]}–${ends[1]}`,
+              basis,
+            });
     }
 
     // A minimum's change against the baseline, shown from 0.1 °C.
@@ -13458,9 +13502,12 @@ class WhatIfPanel {
       parts.push(L("whatif.rate_limited"));
     }
 
+    if (!money && !parts.length) {
+      return L("errors.no_answer");
+    }
     return (
-      `<div>${parts[0]}</div>` +
-      `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
+      (money ? `<div>${money}</div>` : "") +
+      `<div class="wi-detail">${parts.join(" · ")}</div>`
     );
   }
 }

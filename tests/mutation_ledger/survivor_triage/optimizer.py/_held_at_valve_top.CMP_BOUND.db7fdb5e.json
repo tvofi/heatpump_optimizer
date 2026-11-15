@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_held_at_valve_top CMP_BOUND db7fdb5e",
+  "old": "            and need_kw > valve_top_draw(model, held, outdoor, wind, rain)):",
+  "reason": "Equivalent on every reachable input, and measured (CMP_BOUND, `>` -> `>=`). The arms differ only where the held zones' need equals the curve's top draw to the last bit; `_held_unreachable` has then already read the state unreachable on the pump bound (the valve half is the same `>`), and the valve's equilibrium there is the target state itself, so either arm holds the zones at the boundary the bisection converges to. `tools/audit/seat/mutant_run.py --diff` over the group's block reads it SURVIVED.",
+  "verdict": "equivalent"
+}

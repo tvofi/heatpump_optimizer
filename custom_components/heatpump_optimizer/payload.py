@@ -41,7 +41,7 @@ mypy now checks. Values read through a coordinator's hubs are checked too:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
@@ -245,12 +245,13 @@ class SolarAperture(TypedDict, total=False):
 
 
 class LearnerProgress(TypedDict):
-    phase: str  # "off" | "waiting" | "counting" | "settling"
+    phase: str  # "off" | "waiting" | "counting" | "settling" | "frozen"
     progress: float | None
-    waiting_for: str | None  # "colder" | "darker" | "sunnier"
+    waiting_for: str | None  # "colder" | "darker" | "sunnier" | "boost"
     eta_days: float | None  # counting only
     samples: int
     samples_needed: int | None
+    frozen_until: NotRequired[str | None]  # phase "frozen" only; None unknown
 
 
 class SnapshotRing(TypedDict, total=False):
@@ -390,6 +391,7 @@ class FuseAdvisor(TypedDict, total=False):
     feasible: bool
     comfort_shortfall_c: float
     worst_margin_kw: float
+    #: The what-if's steady-state figure (#2257); None when its pair failed.
     cost_delta_sek_month: float | None
     error: str
 

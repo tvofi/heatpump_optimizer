@@ -147,10 +147,10 @@ async def learner_outcomes(tripped: bool, mutant: bool) -> dict[str, str]:
     c._dhw_learner.last_sample_time = t0 - timedelta(minutes=30)
     r = await c._dhw_learner.async_learn_dynamics(49.8)
     out["dhw(async_learn_dynamics)"] = f"frozen:{r}" if r else "runs"
-    # Buffer: sets _learner_freeze_reason on a freeze.
-    c._learner_freeze_reason = None
+    # Buffer: records its freeze in _learner_freezes.
+    c._learner_freezes.clear()
     await c._async_learn_buffer_cooling(40.0)
-    out["buffer(_async_learn_buffer_cooling)"] = f"frozen:{c._learner_freeze_reason}" if c._learner_freeze_reason else "runs"
+    out["buffer(_async_learn_buffer_cooling)"] = f"frozen:{c._learner_freezes.last}" if c._learner_freezes.last else "runs"
     # sysid: aborts an active experiment with the freeze reason.
     from heatpump_optimizer import sysid as _s
     c._sysid.phase = next(v for k, v in vars(_s).items() if k.startswith("PHASE_") and v not in (_s.PHASE_ABORTED,) and k not in ("PHASE_IDLE", "PHASE_DONE", "PHASE_COMPLETE"))
@@ -192,7 +192,7 @@ async def arm_latch() -> list[str]:
     for tripped in (True, True, False, False):
         c._vent_cusum.tripped = tripped
         await c._update_current_state()
-        seq.append(f"latch={tripped}: learner_freeze_reason={c._learner_freeze_reason}")
+        seq.append(f"latch={tripped}: learner_freeze_reason={c._learner_freezes.last}")
     return ["## latch on-then-off (carry 9), consecutive _update_current_state cycles"] + seq
 
 

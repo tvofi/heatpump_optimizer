@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_pump_unreachable CMP_BOUND 51c81f26",
+  "old": "    return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)",
+  "reason": "Equivalent on every reachable input, and measured (CMP_BOUND, `>` -> `>=`). The line moved unchanged out of `_held_unreachable` (whose mark ebd24b04 this replaces, the same argument): the two arms differ only where the draw equals `max_electrical_power` to the last bit, the pump-bound equilibrium itself, where the bisection's bracket and `_held_at_valve_top`'s fallback both land within 2**-40 of the span. `tools/audit/seat/mutant_run.py --diff` over the group's block (the SAV-VALUATION-RESIDUE markers through R10-WATER-SETPOINT-FEEDBACK) reads it SURVIVED with every pump and valve case passing.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlyPeakSensor.extra_state_attributes GUARD_OFF 20906332",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        if advisor:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+}
