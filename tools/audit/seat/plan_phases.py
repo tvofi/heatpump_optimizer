@@ -50,7 +50,7 @@ from pathlib import Path
 PHASES = (
     ("round-start", "Round start"),
     ("finders", "Finders"),
-    ("verify-judge", "Verify and judge"),
+    ("verify-judge", "Verify, judge"),
     ("plan", "Architect plan"),
     ("fix-waves", "Fix waves"),
     ("stamps", "Stamps"),

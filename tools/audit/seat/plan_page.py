@@ -1588,8 +1588,7 @@ td.st{min-width:11rem}
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
-{{phases}}
-{{issues_chart}}
+{{phases}}{{issues_chart}}
 {{flow}}
 <section>
   <h2>Swimlanes</h2>
