@@ -92168,6 +92168,74 @@ R.check(
                      "commanded 0.1": False, "commanded past 0.1": True},
     f"{_sce_io_rows}",
 )
+
+# S7 (owner ruling D1, 2026-11-15): a meter reporting its window's average
+# gives an element cut-in, compressor off, one partial report between the
+# on-threshold and the over level; it holds one report period, at least the
+# debounce, so it is a confirmed rise before over arrives. On the meter a rise
+# counts only once two refreshes read the signal settled running; the no-class
+# edge over brings drops it first. Six offsets inside a 60 s and a 30 s window
+# (offset 0 fills its window and is over from its first report), a refresh
+# landing between the partial's confirmation and over, the element running
+# three refresh periods. The cut-out of a short element, never latched, falls
+# through a partial from no class and stops: no start either.
+def _sce_s7(window_s, offset_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - _SCE_DEBOUNCE_S - 15)
+    rig.set("sensor.kw", _sce_kw(level * (window_s - offset_s) / window_s), rise, unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    for k in (2, 3, 4):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    cut = _SCE_T0 + timedelta(seconds=4 * _SCE_PERIOD_S + 60)
+    rig.set("sensor.kw", _sce_kw(level * offset_s / window_s), cut, unit="kW")
+    rig.set("sensor.kw", "0.0", cut + timedelta(seconds=window_s), unit="kW")
+    for k in (5, 6, 7):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    return rig.counter.lifetime
+
+
+def _sce_s7_cutout(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.set("sensor.kw", _sce_kw(level / 2), _SCE_T0 + timedelta(minutes=5), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=5, seconds=window_s), unit="kW")
+    for k in (1, 2, 3):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    return rig.counter.lifetime, rig.c._immersion_active
+
+
+# The controls, on the same rig and refreshes: a real start counts once, in
+# the month of its first reading, from its second refresh; a run stopping
+# before that counts once, at its stop.
+def _sce_s7_real(stop_s=None):
+    rig, _on, _over = _sce_element_rig()
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - 300)
+    rig.set("sensor.kw", "2.0", rise, unit="kW")
+    if stop_s is not None:
+        rig.set("sensor.kw", "0.0", rise + timedelta(seconds=stop_s), unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    first = rig.counter.lifetime
+    for k in (2, 3):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    return first, rig.counter.lifetime, dict(rig.counter.months)
+
+
+_sce_s7_rows = {(w, round(w * k / 6)): _sce_s7(w, w * k / 6) for w in (60, 30) for k in range(6)}
+_sce_s7_cut = {w: _sce_s7_cutout(w) for w in (60, 30)}
+_sce_s7_ctl = (_sce_s7_real(), _sce_s7_real(stop_s=600))
+R.check(
+    "S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, "
+    "nor does the falling average of a short element's cut-out; null control, on the same rig and "
+    "refreshes a real start counts once, from its second refresh, and a run stopping before it "
+    "counts once, at its stop",
+    set(_sce_s7_rows.values()) == {0}
+    and _sce_s7_cut == {60: (0, False), 30: (0, False)}
+    and _sce_s7_ctl == ((0, 1, {"2026-02": 1}), (1, 1, {"2026-02": 1})),
+    f"{_sce_s7_rows} {_sce_s7_cut} {_sce_s7_ctl}",
+)
 _sce_dt.freeze(None)
 
 
