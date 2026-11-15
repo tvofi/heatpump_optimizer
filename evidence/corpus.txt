@@ -1,0 +1,12 @@
+origin/main 5825e1346c14eecace5c87c046558774145a94dc, merged tree e1ff799148436dae0a2f15b398798a2fb68cf80d (local commit 6a00ed20511d225fabdf2bfb2795ea032183202f)
+-- merged:
+always-loaded: ~3598 tokens, cap 3349 +band 500 = 3849
+corpus:        ~65926 tokens, cap 65926 +band 500 = 66426
+role fixer     ~6273 tokens, cap 5852 +band 500 = 6352
+role record    ~7230 tokens, cap 7405 +band 500 = 7905
+role policy    ~10006 tokens, cap 9958 +band 500 = 10458
+TOTAL: 0 error(s) across 51 policy file(s)
+-- main:
+corpus:        ~69740 tokens, cap 69333 +band 500 = 69833
+-- head:
+TOTAL: 0 error(s) across 51 policy file(s)
