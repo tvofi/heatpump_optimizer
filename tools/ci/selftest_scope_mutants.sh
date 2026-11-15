@@ -75,4 +75,31 @@ scope_mutant "prune goes on over an unreadable table" '        if table is None:
             print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
             return 1
         entries, unknown'
+scope_mutant "record traces in the seat's own checkout" 'tree = scratch_clone(root, tmp / "tree")' 'tree = root'
+scope_mutant "the scratch clone keeps no working-tree change" '    for rel in sorted({r for r in listed.split("\0") if r}):' '    for rel in ():'
+scope_mutant "the scratch clone skips a staged file" '    listed += git("diff", "--cached"' '    git("diff", "--cached"'
+scope_mutant "trace_steps traces over an unsettled index" 'if settle_index(tree):' 'if False:'
+scope_mutant "an undecorated path resolved against the instrument's own checkout" 'path = os.path.join(base or str(root), raw)' 'path = os.path.join(base or str(ROOT), raw)'
+scope_mutant "absorb carries a step recorded under another run text" 'if live.get(sid) != got.get("run_sha"):' 'if sid not in live:'
+scope_mutant "absorb carries a read that names nothing at this head" 'if here(k, x)] for k in LIST_KINDS' 'if True] for k in LIST_KINDS'
+scope_mutant "absorb carries a probe that is ignored or retired" 'probe_path(item, tracked_dirs) and item not in gone' 'probe_path(item, tracked_dirs)'
+scope_mutant "absorb rewrites a table it added nothing to" '    if added:
+        write_table(out, entries, root)' '    if True:
+        write_table(out, entries, root)'
+scope_mutant "absorb goes on over an unreadable source" 'if table is None or None in loaded:' 'if table is None:'
+scope_mutant "absorb writes the live table over --out" 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)' 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], root / TABLE, root)'
+scope_mutant "touched_steps passes over a changed recorded file" 'or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]' 'or False)]'
+scope_mutant "touched_steps passes over a step recorded under another run text" '(held.get(s.id) or {}).get("run_sha") != s.run_sha' 's.id not in held'
+scope_mutant "precheck grades no drift" 'refuse += drift(table, measured, steps, set(want))[0]' 'refuse += []'
+scope_mutant "precheck passes a step that fails" 'refuse = broken + [f"FAILED step {sid}: it exits non-zero in a clean clone" for sid in failed]' 'refuse = broken + []'
+scope_mutant "precheck runs on with no strace" '    if shutil.which("strace") is None or _traced():
+        print(f"selftest_scope precheck: skip' '    if False:
+        print(f"selftest_scope precheck: skip'
+scope_mutant "precheck traces when nothing is touched" '    if not want:
+        print("selftest_scope precheck: the diff touches' '    if False:
+        print("selftest_scope precheck: the diff touches'
+scope_mutant "a partial drift names the untraced steps" '        if only is not None and sid not in only:
+            continue' '        if False:
+            continue'
+scope_mutant "a partial drift names an extra entry" 'for sid in sorted(set(table["steps"]) - set(gated_ids(steps))) if only is None else ():' 'for sid in sorted(set(table["steps"]) - set(gated_ids(steps))):'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"

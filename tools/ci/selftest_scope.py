@@ -5,6 +5,8 @@
     python3 -I tools/ci/selftest_scope.py select --change M:docs/x.md [--change A:PATH]...
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
+    python3 -I tools/ci/selftest_scope.py precheck --base REF
+    python3 -I tools/ci/selftest_scope.py absorb --from PATH [--from PATH]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py prune --step ID --drop KIND:ITEM [--drop ...]
     python3 -I tools/ci/selftest_scope.py static
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
@@ -55,6 +57,19 @@ run's; `union_entries`), because one run measures one environment and a read
 only another measured (a seat's Linux `record`: objects, index) is not stale
 for this run missing it. Commit that file, or re-record with `record` (Linux,
 strace) and union the same way.
+THE BOT'S HALF, `absorb` (R11-PRE-SHARED-FILES part 1, countermeasure A of
+dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md): the record beat hands it the
+newest `selftest-closures` artifact of main's own runs, and it writes the live
+table unioned with each step of it whose run text is this head's, printing
+every read it adds. A table that already holds them is left byte-identical.
+THE SEAT'S HALF, `precheck`: before a handoff, the gated steps whose recorded
+files the diff touches are traced as `record` traces them and graded by
+`drift`, the check no pull-request run makes (tools/pr/ci_predict.py's
+`selftest-scope` arm; rc 3 and a skip line where there is no strace).
+A SCRATCH CLONE is where `record` and `precheck` run the steps: the tree as it
+would be committed, in a plain clone with no per-clone git config, as CI's
+checkout is. A seat's own checkout carries what its session installed (merge
+drivers), and a step that installs what it finds missing reads less there.
 THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
 step; `record` itself): a fresh checkout leaves racily clean index entries,
 whose content the first index-refreshing git command re-reads, so without it
@@ -404,10 +419,11 @@ def _git_dirs(root: Path) -> tuple[Path, Path]:
     return rev("--git-dir"), rev("--git-common-dir")
 
 
-def trace_events(lines):
+def trace_events(lines, root: Path = ROOT):
     """(pid, call, resolved absolute path, ok, line) per relevant syscall line
     of an iterable of trace lines, joining a call strace split into
-    `<unfinished ...>` and `resumed`."""
+    `<unfinished ...>` and `resumed`; a path the trace does not decorate is
+    resolved against `root`, the tree the steps ran in."""
     pending: dict[str, str] = {}
     for line in lines:
         m = _CALL.match(line.rstrip("\n"))
@@ -436,7 +452,7 @@ def trace_events(lines):
         if call in _OPENS and ok and ret.group(2):
             path = ret.group(2)
         else:                             # an absolute `raw` replaces the base
-            path = os.path.join(base or str(ROOT), raw)
+            path = os.path.join(base or str(root), raw)
         yield pid, call, os.path.normpath(path), ok, rest
 
 
@@ -510,7 +526,7 @@ def fold_trace(lines, root: Path, tracked: set[str], tracked_dirs: set[str],
     real_root = os.path.realpath(root)
     git_cmd: dict[str, str] = {}          # pid -> the git subcommand it exec'd
     realpath = functools.lru_cache(maxsize=None)(os.path.realpath)  # paths repeat by the million
-    for pid, call, path, ok, line in trace_events(lines):
+    for pid, call, path, ok, line in trace_events(lines, root):
         is_dir = "O_DIRECTORY" in line
         if call in _EXECS and ok:
             git_cmd[pid] = _git_subcommand(line)
@@ -610,12 +626,17 @@ def _under_scoped(sid: str, kind: str, miss: list[str]) -> str:
     return f"UNDER-SCOPED step {sid}: {kind} misses {miss[:8]}{more}"
 
 
-def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> tuple[list[str], list[str]]:
-    """(refusals, notes): what the committed table misses, and what it over-names."""
+def drift(table: dict | None, measured: dict[str, dict], steps: list[Step],
+          only: set[str] | None = None) -> tuple[list[str], list[str]]:
+    """(refusals, notes): what the committed table misses, and what it
+    over-names; with `only`, over those steps alone (`precheck` traces a part
+    of the job, so the rest is neither UNMEASURED nor EXTRA)."""
     refuse, notes = [], []
     if table is None:
         return ["UNREADABLE the committed table"], notes
     for sid in gated_ids(steps):
+        if only is not None and sid not in only:
+            continue
         if sid not in measured:
             refuse.append(f"UNMEASURED step {sid}: this run left no trace of it")
             continue
@@ -644,7 +665,7 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
         for k in ("index", "objects"):
             if m[k] and not e.get(k):
                 refuse.append(f"UNDER-SCOPED step {sid}: it read the {k}, the table says not")
-    for sid in sorted(set(table["steps"]) - set(gated_ids(steps))):
+    for sid in sorted(set(table["steps"]) - set(gated_ids(steps))) if only is None else ():
         refuse.append(f"EXTRA entry {sid}: no gated step has that id")
     return refuse, notes
 
@@ -753,12 +774,80 @@ def prune_entries(table: dict, step: str, drops: list[str]) -> tuple[dict[str, d
     return entries, unknown
 
 
+def scratch_clone(root: Path, dst: Path) -> Path:
+    """`root`'s tree as it would be committed, in a plain clone at `dst`: HEAD
+    checked out, the working tree's changes and unignored new files laid over
+    it and staged, the origin refs and tags a step may name copied. A clone
+    takes no per-clone config, so no merge driver, hook path or identity the
+    recording seat's session set reaches a traced step (carry 2 of
+    R11-PRE-SHARED-FILES: a seat whose hook had installed the drivers recorded
+    a step that installs them when missing without the reads a fresh checkout
+    makes); and it is a repository of its own, where a linked worktree's index
+    and object store are two directories."""
+    def git(*args: str, cwd: Path = dst, check: bool = True) -> str:
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=check).stdout
+    git("clone", "-q", "--no-checkout", str(root), str(dst), cwd=root)
+    head = git("rev-parse", "-q", "--verify", "HEAD^{commit}", cwd=root, check=False).strip()
+    if head:
+        git("checkout", "-q", "--detach", head)
+    git("fetch", "-q", str(root), "+refs/remotes/origin/*:refs/remotes/origin/*",
+        "+refs/tags/*:refs/tags/*", check=False)
+    url = git("config", "--get", "remote.origin.url", cwd=root, check=False).strip()
+    if url:
+        git("remote", "set-url", "origin", url)
+    listed = git("ls-files", "-z", "-m", "-o", "-d", "--exclude-standard", cwd=root)
+    listed += git("diff", "--cached", "--name-only", "-z", *([head] if head else []), cwd=root, check=False)
+    for rel in sorted({r for r in listed.split("\0") if r}):
+        src, to = root / rel, dst / rel
+        if src.is_file() or src.is_symlink():
+            to.parent.mkdir(parents=True, exist_ok=True)
+            if to.is_symlink() or to.exists():
+                to.unlink()
+            shutil.copy2(src, to, follow_symlinks=False)
+        elif to.is_file() or to.is_symlink():
+            to.unlink()
+    git("add", "-A")
+    return dst
+
+
+def trace_steps(root: Path, steps: list[Step], want: set[str]) -> tuple[dict[str, dict], list[str], list[str]]:
+    """(measured entries, broken traces, failed step ids) of the gated steps
+    in `want`, run in order with the job's ungated ones through the wrapper CI
+    uses, under strace, in a scratch clone of `root`."""
+    tmp = Path(tempfile.mkdtemp(prefix="selftest-record-"))
+    try:
+        tree = scratch_clone(root, tmp / "tree")
+        if settle_index(tree):
+            return {}, ["UNSETTLED index of the scratch clone"], []
+        env = dict(os.environ, RUNNER_TEMP=str(tmp), SELFTEST_TRACE="1", HPO_JOB_GRADES="nothing")
+        # A seat profile sourced through BASH_ENV may reset RUNNER_TEMP in every
+        # step's shell (the cloud seat's does), which would split the traces and
+        # the scope file from this run's directory; PATH is already inherited.
+        env.pop("BASH_ENV", None)
+        (tmp / SCOPE_FILE).write_text("".join(f"{i}\n" for i in want))
+        failed = []
+        for s in steps:
+            if s.run is None or s.id in ("scope", "strace", "drift") or (s.gated and s.id not in want):
+                continue
+            script = tmp / f"{s.id or 'step'}.sh"
+            script.write_text(s.run)
+            t0 = time.time()
+            r = subprocess.run(["bash", WRAPPER, str(script)], cwd=tree, capture_output=True, text=True,
+                               env={**env, "GITHUB_ACTION": s.id or "unnamed"})
+            print(f"{'OK  ' if r.returncode == 0 else 'FAIL'} {time.time() - t0:7.1f}s {s.id}", flush=True)
+            if r.returncode:
+                failed.append(s.id)
+                print((r.stdout + r.stderr)[-1500:], flush=True)
+        measured, broken = fold(tmp / TRACE_DIR, [s for s in steps if not s.gated or s.id in want], tree)
+        return measured, broken, failed
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
+
+
 def record(root: Path, only: list[str] | None, out: Path) -> int:
     if shutil.which("strace") is None:
         print("selftest_scope: record needs strace (Linux)", file=sys.stderr)
         return 2
-    if settle_index(root):
-        return 1
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     if gaps:
@@ -769,28 +858,7 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     if unknown:
         print(f"selftest_scope: no gated step {sorted(unknown)}", file=sys.stderr)
         return 2
-    tmp = Path(tempfile.mkdtemp(prefix="selftest-record-"))
-    env = dict(os.environ, RUNNER_TEMP=str(tmp), SELFTEST_TRACE="1", HPO_JOB_GRADES="nothing")
-    # A seat profile sourced through BASH_ENV may reset RUNNER_TEMP in every
-    # step's shell (the cloud seat's does), which would split the traces and
-    # the scope file from this run's directory; PATH is already inherited.
-    env.pop("BASH_ENV", None)
-    (tmp / SCOPE_FILE).write_text("".join(f"{i}\n" for i in want))
-    failed = []
-    for s in steps:
-        if s.run is None or s.id in ("scope", "strace", "drift") or (s.gated and s.id not in want):
-            continue
-        script = tmp / f"{s.id or 'step'}.sh"
-        script.write_text(s.run)
-        t0 = time.time()
-        r = subprocess.run(["bash", WRAPPER, str(script)], cwd=root, capture_output=True, text=True,
-                           env={**env, "GITHUB_ACTION": s.id or "unnamed"})
-        print(f"{'OK  ' if r.returncode == 0 else 'FAIL'} {time.time() - t0:7.1f}s {s.id}", flush=True)
-        if r.returncode:
-            failed.append(s.id)
-            print((r.stdout + r.stderr)[-1500:], flush=True)
-    measured, broken = fold(tmp / TRACE_DIR, steps, root)
-    shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
+    measured, broken, failed = trace_steps(root, steps, want)
     for line in broken:
         print(line, flush=True)
     entries = union_record(load_table(out), measured, set(gated_ids(steps)))
@@ -798,6 +866,48 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     print(f"selftest_scope: recorded {len(measured)} step(s) into {out}; "
           f"{len(failed)} failed {failed}, {len(broken)} broken trace(s)")
     return 1 if failed or broken else 0
+
+
+def touched_steps(changes: list[tuple[str, str]], table: dict | None, steps: list[Step]) -> list[str]:
+    """The gated steps a diff can have given a new read: one of whose recorded
+    files it changes (the step's script, or a file that script loads), and one
+    the table has no entry for or records under another run text."""
+    held = (table or {}).get("steps", {})
+    return [s.id for s in steps if s.gated and (
+        (held.get(s.id) or {}).get("run_sha") != s.run_sha
+        or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]
+
+
+SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
+
+
+def precheck(root: Path, base: str) -> int:
+    """The drift check a pull request cannot get from CI, on the seat: 0 when
+    no touched step reads past the table, 1 naming each read it misses (and a
+    touched step that fails), 3 when the steps cannot be traced here."""
+    steps = workflow_steps(root)
+    changes = diff_changes(base, "HEAD", root)
+    if changes is None:
+        print(f"selftest_scope precheck: git cannot diff {base}...HEAD", file=sys.stderr)
+        return 2
+    table = load_table(root / TABLE)
+    want = touched_steps(changes, table, steps)
+    if not want:
+        print("selftest_scope precheck: the diff touches no gated step's recorded files")
+        return 0
+    if shutil.which("strace") is None or _traced():
+        print(f"selftest_scope precheck: skip, {len(want)} step(s) untraced {want}: no strace here, "
+              f"or this run is itself traced; main's drift step is the detector")
+        return SKIP_RC
+    measured, broken, failed = trace_steps(root, steps, set(want))
+    refuse = broken + [f"FAILED step {sid}: it exits non-zero in a clean clone" for sid in failed]
+    refuse += drift(table, measured, steps, set(want))[0]
+    for line in refuse:
+        print(f"  {line}")
+    print(f"selftest_scope precheck: {len(want)} step(s) traced {want}, {len(refuse)} refusal(s)"
+          + (f" -- add the reads with `python3 {SELF} record"
+             + "".join(f" --step {i}" for i in want) + "`" if refuse else ""))
+    return 1 if refuse else 0
 
 
 def _traced() -> bool:
@@ -843,6 +953,65 @@ def union_entries(table: dict | None, measured: dict[str, dict]) -> dict[str, di
     gated step, else drift refuses UNMEASURED)."""
     old = (table or {}).get("steps", {})
     return {sid: union_entry(old.get(sid), m) for sid, m in measured.items()}
+
+
+def absorb_entries(table: dict, sources: list[dict], steps: list[Step], tracked: set[str],
+                   tracked_dirs: set[str], gone: set[str]) -> tuple[dict[str, dict], list[str]]:
+    """(entries, added): the live table with every read a source table holds
+    for a step whose run text is this head's, by `union_record`; `added` names
+    each new read as `step ID: KIND ITEM`. A source is main's own measurement
+    at an older commit, so a read of it that names nothing at this head (a file
+    since deleted, a path since retired or ignored: `gone`) is not carried, and
+    a step recorded under another run text is not this step's measurement."""
+    live = {s.id: s.run_sha for s in steps if s.gated}
+
+    def here(kind: str, item: str) -> bool:
+        whole = item.endswith("/**")
+        name = item[:-3] if whole else item
+        if kind == "git":
+            return True
+        if kind == "dirs" or whole:
+            return name in tracked_dirs
+        return item in tracked if kind == "files" else probe_path(item, tracked_dirs) and item not in gone
+
+    entries = {k: v for k, v in table["steps"].items()}
+    added: list[str] = []
+    for src in sources:
+        for sid, got in sorted(src.get("steps", {}).items()):
+            if live.get(sid) != got.get("run_sha"):
+                continue
+            old = entries.get(sid) or {}
+            new = {**got, **{k: [x for x in got.get(k, ()) if here(k, x)] for k in LIST_KINDS}}
+            merged = union_record({"steps": entries}, {sid: new}, set(live))[sid]
+            added += [f"step {sid}: {k} {x}" for k in LIST_KINDS
+                      for x in merged[k] if x not in old.get(k, ())]
+            added += [f"step {sid}: {k}" for k in FLAG_KINDS if merged[k] and not old.get(k)]
+            entries[sid] = merged
+    return entries, added
+
+
+def absorb_cli(sources: list[Path], out: Path, root: Path = ROOT) -> int:
+    """Write `out` as the live table unioned with the source tables, when that
+    adds a read; print each one added (the generator's diff)."""
+    table = load_table(root / TABLE)
+    loaded = [load_table(p) for p in sources]
+    if table is None or None in loaded:
+        bad = [TABLE] * (table is None) + [str(p) for p, t in zip(sources, loaded) if t is None]
+        print(f"selftest_scope absorb: UNREADABLE {bad}, nothing written", file=sys.stderr)
+        return 1
+    tracked, tracked_dirs = _tracked(root)
+    probes = {p for t in loaded for e in t["steps"].values() for p in e.get("probes", ())}
+    retired = [r.rstrip("/") for r in retired_paths(root)]
+    gone = _ignored(root, probes) | {p for p in probes
+                                     if any(p == r or p.startswith(r + "/") for r in retired)}
+    entries, added = absorb_entries(table, loaded, workflow_steps(root), tracked, tracked_dirs, gone)
+    for line in added:
+        print(f"  + {line}")
+    if added:
+        write_table(out, entries, root)
+    print(f"selftest_scope absorb: {len(added)} read(s) added to "
+          f"{len({a.split(':')[0] for a in added})} step(s)")
+    return 0
 
 
 def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
@@ -1272,7 +1441,8 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
            "          ! sel slow || bg_run slow cat tools/x/slow.sh\n"
            "      - name: A\n        id: a\n        if: steps.scope.outputs.a == 'true'\n        run: |\n"
            "          cat tools/x/a.py > /dev/null\n          test -f tools/x/maybe.json || true\n"
-           "          ls docs > /dev/null\n"
+           "          ls docs > /dev/null\n          git diff --quiet\n"
+           "          git config --get merge.hpo.driver > /dev/null || cat tools/x/drv.py > /dev/null\n"
            "      - name: Slow\n        id: slow\n        if: steps.scope.outputs.slow == 'true'\n"
            "        run: |\n          bg_wait() { test \"$(cat \"$RUNNER_TEMP/$1.rc\")\" = 0; }\n"
            "          bg_wait slow\n")
@@ -1280,16 +1450,16 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         root = Path(os.path.realpath(td))
         env = throwaway_git_init(root, "-q")
         for rel, body in ((WORKFLOW, e2e), ("tools/x/a.py", "a\n"), ("tools/x/slow.sh", "s\n"),
-                          ("docs/d.md", "d\n"), (WRAPPER, wrapper.read_text())):
+                          ("tools/x/drv.py", "v\n"), ("docs/d.md", "d\n"), (WRAPPER, wrapper.read_text())):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             (root / rel).write_text(body)
         subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
         if shutil.which("strace") is None or _traced():
             print("  skip the recorder end to end: no strace here, or this run is itself traced")
         else:
-            ns = _index_path(root).stat().st_mtime_ns
-            os.utime(root / "tools/x/a.py", ns=(ns, ns))
-            racy_before = racy_entries(root)
+            # The recording seat's own checkout carries a merge driver, as a
+            # session's hook leaves it; the steps run in a clone without it.
+            subprocess.run(["git", "config", "merge.hpo.driver", "true"], cwd=root, env=env, check=True)
             out = io.StringIO()
             scratch, tempfile.tempdir = tempfile.tempdir, str(root.parent / f"{root.name}-tmp")
             os.makedirs(tempfile.tempdir)
@@ -1310,8 +1480,12 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             ck("record: a detached self-test's reads are its waiter's",
                "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
             ck("record: it leaves no trace directory behind", left == [])
-            ck("record: it settles a racy index before tracing (racy before, none after)",
-               "tools/x/a.py" in racy_before and racy_entries(root) == [])
+            ck("record: the steps run in a scratch clone, without the seat's merge driver: the read "
+               "a step makes only where none is configured is recorded",
+               "tools/x/drv.py" in a_e.get("files", ()))
+            ck("record: it settles the clone's index before tracing (a step's git diff opens "
+               "no file the checkout just wrote)", "docs/d.md" not in a_e.get("files", ())
+               and "tools/x/slow.sh" not in a_e.get("files", ()))
             part = root / "part.json"
             part.write_text(json.dumps({"steps": {"slow": {"run_sha": "old", "files": [], "probes": [],
                                                            "dirs": [], "index": False, "objects": False}}}))
@@ -1632,6 +1806,203 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
            and not after["steps"]["a"]["objects"] and after["steps"]["a"]["index"]
            and after["steps"]["a"]["dirs"] == ["d1"] and after["steps"]["b"]["files"] == ["g1"])
 
+    # R11-PRE-SHARED-FILES part 1. The scratch clone: the tree as it would be
+    # committed, none of the seat's per-clone config, the origin refs kept.
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        sr = Path(os.path.realpath(td)) / "seat"
+        sr.mkdir()
+        env = throwaway_git_init(sr, "-q")
+        sgit = lambda *a, cwd=sr: subprocess.run(["git", *a], cwd=cwd, env=env, check=True,  # noqa: E731
+                                                 capture_output=True, text=True).stdout.strip()
+        for rel, body in ((".gitignore", "cache/\n"), ("a.txt", "a\n"), ("b.txt", "b\n"), ("d/k.txt", "k\n")):
+            (sr / rel).parent.mkdir(parents=True, exist_ok=True)
+            (sr / rel).write_text(body)
+        sgit("add", "-A"); sgit("commit", "-qm", "base")
+        sgit("update-ref", "refs/remotes/origin/main", "HEAD")
+        sgit("config", "merge.hpo.driver", "true")
+        (sr / "a.txt").write_text("a2\n")
+        (sr / "b.txt").unlink()
+        (sr / "c.txt").write_text("c\n")
+        (sr / "cache").mkdir()
+        (sr / "cache/x").write_text("x\n")
+        sc = scratch_clone(sr, sr.parent / "clone")
+        drv = subprocess.run(["git", "config", "--get", "merge.hpo.driver"], cwd=sc, env=env,
+                             capture_output=True, text=True)
+        ck("scratch clone: a modified file is laid over, a deleted one gone, a new one staged, "
+           "an ignored one left behind",
+           (sc / "a.txt").read_text() == "a2\n" and not (sc / "b.txt").exists()
+           and sorted(sgit("ls-files", cwd=sc).split()) == [".gitignore", "a.txt", "c.txt", "d/k.txt"]
+           and not (sc / "cache").exists())
+        ck("scratch clone: the seat's merge driver is not configured there (set in the seat's: the control)",
+           drv.returncode != 0 and sgit("config", "--get", "merge.hpo.driver") == "true")
+        ck("scratch clone: HEAD and origin/main are the seat's, in a repository of its own",
+           sgit("rev-parse", "HEAD", "origin/main", cwd=sc) == sgit("rev-parse", "HEAD", "origin/main")
+           and _git_dirs(sc) == (sc / ".git", sc / ".git"))
+        ev = list(trace_events(['9 access("tools/x/a.py", F_OK) = 0'], sc))
+        ck("trace_events: a path the trace does not decorate resolves against the tree the steps ran in",
+           [e[2] for e in ev] == [f"{sc}/tools/x/a.py"])
+
+    # absorb: the bot's union of main's own measurement over the live table.
+    al = job_steps(wf)
+    a_s, b_s = al[3], al[4]
+    live_t = {"steps": {"a": ent(["tools/x/a.py"], ["tools/x/p.json"], ["docs"], sha=a_s.run_sha),
+                        "b": ent(["tools/x/b.py"], sha=b_s.run_sha)}}
+    src_t = {"steps": {
+        "a": ent(["tools/x/a.py", "tests/lane.py", "tools/x/deleted.py", "tools/**", "nodir/**"],
+                 ["tools/x/p.json", "tools/x/new.json", "tools/x/ignored.json", "nodir/q.json"],
+                 ["docs", "tests", "nodir"], ["show"], True, False, sha=a_s.run_sha),
+        "b": ent(["tools/x/b.py", "tests/lane.py"], sha="another run text"),
+        "slow": ent(["tools/x/slow.sh"], objects=True, sha=al[5].run_sha),
+        "gone": ent(["tools/x/a.py"], sha="x")}}
+    a_tracked = {"tools/x/a.py", "tools/x/b.py", "tools/x/slow.sh", "tests/lane.py", "docs/d.md"}
+    a_dirs = {".", "tools", "tools/x", "tests", "docs"}
+    got_e, got_a = absorb_entries(live_t, [src_t], al, a_tracked, a_dirs, {"tools/x/ignored.json"})
+    ck("absorb: a read main measured and the table lacks is added, and named",
+       got_e["a"]["files"] == ["tests/lane.py", "tools/**", "tools/x/a.py"]
+       and got_e["a"]["probes"] == ["tools/x/new.json", "tools/x/p.json"]
+       and got_e["a"]["dirs"] == ["docs", "tests"] and got_e["a"]["git"] == ["show"] and got_e["a"]["index"]
+       and got_a[:6] == ["step a: files tests/lane.py", "step a: files tools/**", "step a: probes tools/x/new.json",
+                         "step a: dirs tests", "step a: git show", "step a: index"])
+    ck("absorb: a read that names nothing at this head is not carried (a deleted file, an untracked "
+       "directory, an ignored probe)",
+       not any(x in got_e["a"][k] for k, x in (("files", "tools/x/deleted.py"), ("files", "nodir/**"),
+                                               ("probes", "tools/x/ignored.json"), ("probes", "nodir/q.json"),
+                                               ("dirs", "nodir"))))
+    ck("absorb: a step recorded under another run text is not this step's measurement",
+       got_e["b"] == live_t["steps"]["b"] and not any(a.startswith("step b:") for a in got_a))
+    ck("absorb: a gated step the table has no entry for takes main's; an id no step gates takes none",
+       got_e["slow"]["files"] == ["tools/x/slow.sh"] and got_e["slow"]["objects"]
+       and got_e["slow"]["run_sha"] == al[5].run_sha and "gone" not in got_e
+       and got_a[6:] == ["step slow: files tools/x/slow.sh", "step slow: objects"])
+    again_e, again_a = absorb_entries({"steps": got_e}, [src_t], al, a_tracked, a_dirs, {"tools/x/ignored.json"})
+    ck("absorb: a table that holds every read adds nothing (null control)", again_a == [] and again_e == got_e)
+    held_old = {"steps": {**live_t["steps"], "a": ent(["tools/x/a.py", "tools/x/deleted.py"], sha=a_s.run_sha)}}
+    ck("absorb: a committed read stays, whatever it names (only `prune` drops one)",
+       "tools/x/deleted.py" in absorb_entries(held_old, [src_t], al, a_tracked, a_dirs, set())[0]["a"]["files"])
+
+    # touched_steps and the partial drift `precheck` grades with.
+    T = lambda *ch: touched_steps(list(ch), table, steps)  # noqa: E731
+    ck("touched_steps: a changed file a step recorded names that step; one no step recorded names none",
+       T(("M", "tools/x/b.py")) == ["b"] and T(("M", "tests/lane.py"), ("D", "tools/x/slow.sh")) == ["a", "slow"]
+       and T(("M", "docs/x.md"), ("A", "tools/x/a.json")) == [])
+    ck("touched_steps: a step with no entry, or recorded under another run text, is touched by any diff",
+       touched_steps([("M", "docs/x.md")], {"steps": {k: v for k, v in table["steps"].items() if k != "b"}},
+                     steps) == ["b"]
+       and touched_steps([("M", "docs/x.md")], {"steps": {**table["steps"], "a": {**table["steps"]["a"],
+                                                                                  "run_sha": "0"}}}, steps) == ["a"]
+       and touched_steps([("M", "docs/x.md")], None, steps) == ["a", "b", "slow"])
+    part_m = {"a": {**table["steps"]["a"], "files": ["tools/x/a.py", "tests/lane.py", "docs/new.md"]}}
+    ck("drift over a part of the job: the traced step's miss is refused, the untraced steps are "
+       "neither UNMEASURED nor EXTRA (whole-job drift over the same measurement names both: the control)",
+       drift({"steps": {**table["steps"], "zz": {}}}, part_m, steps, {"a"})[0]
+       == ["UNDER-SCOPED step a: files misses ['docs/new.md']"]
+       and len(drift({"steps": {**table["steps"], "zz": {}}}, part_m, steps)[0]) == 4)
+
+    # The two halves end to end over a throwaway repository: a pull request
+    # that gives a gated step a new read is refused on the seat (`precheck`);
+    # merged without it, main's drift step is red, the bot's `absorb` of that
+    # run's artifact turns it green, and a green run's artifact writes nothing.
+    pwf = (f"jobs:\n  {JOB}:\n    steps:\n"
+           "      - name: A\n        id: a\n        if: steps.scope.outputs.a == 'true'\n"
+           "        run: bash tools/x/run.sh\n"
+           "      - name: B\n        id: b\n        if: steps.scope.outputs.b == 'true'\n"
+           "        run: cat tools/x/b.py > /dev/null\n")
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        pr = Path(os.path.realpath(td)) / "repo"
+        pr.mkdir()
+        env = throwaway_git_init(pr, "-q")
+        pgit = lambda *a: subprocess.run(["git", *a], cwd=pr, env=env, check=True,  # noqa: E731
+                                         capture_output=True, text=True).stdout.strip()
+        pst = job_steps(pwf)
+        for rel, body in ((WORKFLOW, pwf), ("tools/x/run.sh", "cat tools/x/a.py > /dev/null\n"),
+                          ("tools/x/a.py", "a\n"), ("tools/x/b.py", "b\n"), ("docs/d.md", "d\n"),
+                          (WRAPPER, wrapper.read_text())):
+            (pr / rel).parent.mkdir(parents=True, exist_ok=True)
+            (pr / rel).write_text(body)
+        write_table(pr / TABLE, {"a": ent(["tools/x/run.sh", "tools/x/a.py"], ["."], sha=pst[0].run_sha),
+                                 "b": ent(["tools/x/b.py"], ["."], sha=pst[1].run_sha)}, pr)
+        pgit("add", "-A"); pgit("commit", "-qm", "base")
+        pbase = pgit("rev-parse", "HEAD")
+        (pr / "docs/d.md").write_text("d2\n")
+        pgit("commit", "-qam", "a file no step recorded")
+
+        def run(*argv: str) -> tuple[int, str]:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                rc = main(list(argv), pr)
+            return rc, buf.getvalue()
+        ck("precheck: a diff touching no gated step's recorded files traces nothing (rc 0, null control)",
+           run("precheck", "--base", pbase) == (0, "selftest_scope precheck: the diff touches no gated "
+                                                   "step's recorded files\n"))
+        (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+        pgit("commit", "-qam", "the step's script gains a read")
+        bare = pr.parent / "bare"                # a PATH with git and no strace
+        bare.mkdir()
+        (bare / "git").symlink_to(shutil.which("git"))
+        path, os.environ["PATH"] = os.environ["PATH"], str(bare)
+        try:
+            rc_sk, out_sk = run("precheck", "--base", pbase)
+        finally:
+            os.environ["PATH"] = path
+        ck("precheck: with no strace the touched step is named and the check skips (rc 3)",
+           rc_sk == SKIP_RC and "skip, 1 step(s) untraced ['a']" in out_sk)
+        ck("precheck: a base git cannot diff is a usage error (rc 2)", run("precheck", "--base", "nosuch")[0] == 2)
+        if shutil.which("strace") is None or _traced():
+            print("  skip precheck's traced run: no strace here, or this run is itself traced")
+        else:
+            before = (pr / TABLE).read_bytes()
+            rc_p, out_p = run("precheck", "--base", pbase)
+            ck(f"precheck: a step whose script gained a read the table lacks is refused, naming the read "
+               f"and the record command (rc={rc_p}); the table is left as it was",
+               rc_p == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_p
+               and "1 step(s) traced ['a'], 1 refusal(s)" in out_p and "record --step a`" in out_p
+               and (pr / TABLE).read_bytes() == before)
+            (pr / "tools/x/run.sh").write_text("exit 7\n")
+            rc_f, out_f = run("precheck", "--base", pbase)
+            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+            ck("precheck: a touched step that fails in the clone is refused (the working tree's "
+               "uncommitted script is what ran)", rc_f == 1 and "FAILED step a" in out_f)
+            rc_r, _ = run("record", "--step", "a")
+            ck("precheck: after `record --step a` the same diff passes",
+               rc_r == 0 and run("precheck", "--base", pbase)[0] == 0)
+            (pr / TABLE).write_bytes(before)
+        # Main's side: the drift step over a trace of the new read, the
+        # artifact it writes, the bot's absorb, the drift step again.
+        ptr = pr.parent / "traces"
+        ptr.mkdir()
+        (ptr / "step-a.trace").write_text(
+            f'5 openat(AT_FDCWD<{pr}>, "tools/x/run.sh", O_RDONLY) = 3<{pr}/tools/x/run.sh>\n'
+            f'5 openat(AT_FDCWD<{pr}>, "docs/d.md", O_RDONLY) = 3<{pr}/docs/d.md>\n5 +++ exited with 0 +++\n')
+        (ptr / "step-b.trace").write_text(
+            f'5 openat(AT_FDCWD<{pr}>, "tools/x/b.py", O_RDONLY) = 3<{pr}/tools/x/b.py>\n5 +++ exited with 0 +++\n')
+        art = pr.parent / "artifact.json"
+        rc_red, out_red = run("check", "--traces", str(ptr), "--write", str(art))
+        before = (pr / TABLE).read_bytes()
+        rc_ab, out_ab = run("absorb", "--from", str(art))
+        rc_green, out_green = run("check", "--traces", str(ptr))
+        ck("the bot: main's drift step is red on an unrecorded read, `absorb` of that run's artifact "
+           "adds exactly it, and the drift step is green after",
+           rc_red == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_red
+           and rc_ab == 0 and out_ab == "  + step a: files docs/d.md\nselftest_scope absorb: 1 read(s) "
+                                        "added to 1 step(s)\n"
+           and rc_green == 0 and ", 0 refusal(s)" in out_green and (pr / TABLE).read_bytes() != before)
+        after = (pr / TABLE).read_bytes()
+        os.utime(pr / TABLE, ns=(1, 1))
+        rc_no, out_no = run("absorb", "--from", str(art))
+        ck("the bot: a green run's artifact writes nothing (the table is not rewritten)",
+           rc_no == 0 and out_no == "selftest_scope absorb: 0 read(s) added to 0 step(s)\n"
+           and (pr / TABLE).read_bytes() == after and (pr / TABLE).stat().st_mtime_ns == 1)
+        art.write_text("{")
+        rc_un, out_un = run("absorb", "--from", str(art))
+        ck("the bot: an artifact that does not parse is refused (rc 1), the table left as it was",
+           rc_un == 1 and "UNREADABLE" in out_un and (pr / TABLE).read_bytes() == after)
+        ck("absorb --out writes another file and leaves the table",
+           run("check", "--traces", str(ptr), "--write", str(art))[0] == 0
+           and (pr / TABLE).write_bytes(before) and run("absorb", "--from", str(art), "--out",
+                                                        str(pr.parent / "o.json"))[0] == 0
+           and (pr / TABLE).read_bytes() == before
+           and "docs/d.md" in load_table(pr.parent / "o.json")["steps"]["a"]["files"])
+
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
@@ -1685,6 +2056,11 @@ def main(argv: list[str], root: Path = ROOT) -> int:
         only = [argv[k + 1] for k, a in enumerate(argv) if a == "--step"]
         out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
         return record(root, only or None, out.resolve())
+    if argv[:1] == ["precheck"] and len(argv) == 3 and argv[1] == "--base":
+        return precheck(root, argv[2])
+    if argv[:1] == ["absorb"] and "--from" in argv:
+        out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
+        return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)
     if argv[:1] == ["prune"] and "--step" in argv and "--drop" in argv:
         table = load_table(root / TABLE)
         step = argv[argv.index("--step") + 1]
