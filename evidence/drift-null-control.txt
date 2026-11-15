@@ -1,0 +1,9 @@
+== base table (98847b99) vs artifact
+UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round10/objective/.gitattributes', 'dev/audit/yardstick/.gitattributes', 'dev/audit/yardstick/round10/.gitattributes']
+UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round10/objective', 'dev/audit/yardstick', 'dev/audit/yardstick/round10']
+UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round10/objective', 'dev/audit/yardstick', 'dev/audit/yardstick/round10']
+UNDER-SCOPED step selftest-scope-mutants: probes misses ['-c']
+4 refusal(s)
+== head table vs artifact
+
+0 refusal(s)
