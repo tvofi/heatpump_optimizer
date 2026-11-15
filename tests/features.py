@@ -91706,7 +91706,10 @@ from harness import FakeEntry as _SceEntry  # noqa: E402
 from homeassistant.util import dt as _sce_dt  # noqa: E402
 from heatpump_optimizer import running_signal as _sce_rs  # noqa: E402
 from heatpump_optimizer.const import DEFAULT_OPTIMIZATION_INTERVAL as _SCE_PERIOD_MIN  # noqa: E402
+from dataclasses import replace as _sce_dc_replace  # noqa: E402
+
 from heatpump_optimizer.thermal_model import immersion_level_kw as _sce_over_kw  # noqa: E402
+from heatpump_optimizer.thermal_model import immersion_over as _sce_io  # noqa: E402
 from heatpump_optimizer.thermal_model import on_threshold_kw as _sce_on_kw  # noqa: E402
 from heatpump_optimizer.wear import EDGE_DEBOUNCE_S as _SCE_DEBOUNCE_S  # noqa: E402
 from heatpump_optimizer.wear import StartCounter as _SceStarts  # noqa: E402
@@ -92121,6 +92124,49 @@ R.check(
     "same reading the element's, a change now pending to no class",
     _sce_rr_before is True and _sce_rr_pending is not None and _sce_rr_pending[0] is None,
     f"{_sce_rr_before} {_sce_rr_pending}",
+)
+
+# The confirm timer is one per pending change (running_signal._arm_timer): a
+# re-read of the same pending change keeps the timer it holds, and a revert
+# cancels it at once rather than leaving it to fire empty at its due time.
+_sce_one = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_one.load(None)
+_sce_one.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+_sce_one_first = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.refresh(_SCE_T0 + timedelta(minutes=10, seconds=5))
+_sce_one_kept = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=10), unit="kW")
+_sce_one_after = list(getattr(_sce_one.c.hass, "timers", []))
+R.check(
+    "the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps "
+    "the timer armed for it, and a revert before the debounce cancels it at once; null control, "
+    "the rise armed exactly one",
+    len(_sce_one_first) == 1 and len(_sce_one_kept) == 1 and _sce_one_kept[0] is _sce_one_first[0]
+    and _sce_rs.signal_for(_sce_one.c).tracker.pending is None and _sce_one_after == [],
+    f"{_sce_one_first} {_sce_one_kept} {_sce_one_after}",
+)
+
+# thermal_model.immersion_over is strict at each of its three bounds: a
+# reading AT the immersion level is not over it, and a rated power or a
+# commanded draw of exactly the 0.1 kW nothing-gauge counts as none. Each
+# row's control is the same row one step past its bound, which is over.
+_sce_io_p = _sce_element_rig()[0].c._ctx._thermal_params
+_sce_io_rated = _sce_dc_replace(_sce_io_p, max_electrical_power=0.1)
+_sce_io_rows = {
+    "at level": _sce_io(_sce_over_kw(_sce_io_p), _sce_io_p, 2.0),
+    "past level": _sce_io(_sce_over_kw(_sce_io_p) + 0.01, _sce_io_p, 2.0),
+    "rated 0.1": _sce_io(_sce_over_kw(_sce_io_rated) + 1.0, _sce_io_rated, 2.0),
+    "rated past 0.1": _sce_io(
+        _sce_over_kw(_sce_io_p) + 1.0, _sce_dc_replace(_sce_io_p, max_electrical_power=0.11), 2.0),
+    "commanded 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.1),
+    "commanded past 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.11),
+}
+R.check(
+    "immersion_over is strict at each bound: a reading at the immersion level, a rated power of "
+    "0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is",
+    _sce_io_rows == {"at level": False, "past level": True, "rated 0.1": False, "rated past 0.1": True,
+                     "commanded 0.1": False, "commanded past 0.1": True},
+    f"{_sce_io_rows}",
 )
 _sce_dt.freeze(None)
 
