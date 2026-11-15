@@ -1712,7 +1712,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r11-hotfix-selftest-flake-arms",
-    "commit": "57fd742ea9fc93372da066b1c36ae1ae10546ffd",
+    "commit": "57fd742ea9",
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
