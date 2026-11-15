@@ -54,7 +54,7 @@ def reader(root, sha):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval-sha", default="02a48db212e0e49af62863575cba86bc339d4958")
+    ap.add_argument("--eval-sha", default="c6ce415b7711d76cf6c08f926f30da91f7bda924")
     a = ap.parse_args()
     root = os.getcwd()
     gaps = driver(root)

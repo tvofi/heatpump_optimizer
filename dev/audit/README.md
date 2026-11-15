@@ -115,9 +115,6 @@ against a measured baseline and a null control
   dispatch`, never a second writer of the registry or reviewer-fire close. A
   seat stops only after its job ran one real cycle beside it (one pitch merged,
   the seat agreeing), never into the orchestrator's turns.
-- R10-ROUND-PLAYBOOK-FINAL's carry 31: one paragraph each in
-  `dev/governance/dimensions/D11.md` and `D13.md`, naming the convergence
-  scorecard and round 11's two measurement groups, exempt from the 20% bar.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
@@ -158,12 +155,13 @@ against a measured baseline and a null control
 
 Before phase 1, the pickup; each later step is its owner's rule.
 
-1. Pickup: every line the commands below print has a
-   disposition set by `roster_edit.py`: a stage the round schedules
-   (`not-started`, `design`, `in-progress`, `carries-open` with a named next
-   step), `done` or `refused`; `deferred` is not a disposition here.
+1. Pickup: every line the commands below print has a disposition set by
+   `roster_edit.py`: a stage the round schedules (`not-started`, `design`,
+   `in-progress`, `carries-open` with a named next step), `done` or `refused`;
+   `deferred` is not one here. `M` is main's newest roster round
+   (`roster_lib.round_ref`; round 11's roster rides `audit-r10-roster`).
 
-       R=origin/handoff/audit-r<N>-roster
+       R=origin/handoff/audit-r<M>-roster
        python3 tools/audit/carry_audit.py --roster-ref $R roster
        git show $R:dev/programme/rosters/wave-r<N>-groups.json | python3 -c "import sys,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;[print(g['group'],s) for g in json.load(sys.stdin)['groups'] if (s:=g['resume']['stage']) not in F+('refused',)]"
 
