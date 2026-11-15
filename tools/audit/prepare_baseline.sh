@@ -247,7 +247,8 @@ strip_earlier_rounds "$EXPORT"
 # detectors move and runs them at pre-fix commits (dev/governance/dimensions/D14.md).
 # D15 joined because its perturbations edit production (dev/governance/dimensions/D15.md).
 # D16 joined because its perturbations edit the write path and its upgrade state reads the
-# previous tag's package from .git (dev/governance/dimensions/D16.md).
+# previous tag's package from .git. Its entry here led the driver's ISOLATED and its brief by
+# one merge: CI grades with the base's copy of this file (check-wave-script.mjs, `pending`).
 ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15 D16"
 
 for dim in $ISOLATED_DIMS; do
