@@ -19,7 +19,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   Earlier rounds must not steer you. Do not run `gh`, do not
   read GitHub (D11 excepted), do not look for earlier findings anywhere (a
   code comment citing a `D<k>-nn` id is context, not a to-do). If your brief
-  makes you read `docs/` (D5, D6) or GitHub (D11), record it under `exposure`.
+  makes you read `docs/` (D5, D6, D17) or GitHub (D11), record it under `exposure`.
 - Run everything from the export root with `PYTHONPATH=tests/hastub`. Read
   `dev/audit/README.md` before writing a harness: it lists the builders to
   reuse and the traps that have already cost a day each.
@@ -27,7 +27,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   the export, plus temp directories. Set a private `HPO_PLANDATA` under the
   temp root before any Node harness. Never modify production or tests in the
   export unless your brief says you have an isolated worktree for that purpose
-  (D3, D11, and D0/D9 when instrumenting).
+  (D3, D11, D16, and D0/D9 when instrumenting).
 - Measure only the cells your task names. Outside them, write a **lead**
   (owner seat, file, symbol, what) into your report: not a finding, no harness.
 - Your box is shared. Only contention-immune numbers are final during the
@@ -95,7 +95,7 @@ leads that turned out to be harness gaps go here with the gap named.
 - The JSON report returned from your task, validating against
   `dev/audit/config/finding.schema.json`. The schema makes `evidence`,
   `instrumented_symbol`, `perturbation` and `metric_definition` required; a
-  finding without them cannot be returned, so do not try to return one.
+  finding without them cannot be returned.
 - Harnesses committed in place, each runnable by the single command in its
   header.
 
