@@ -32,7 +32,7 @@
  },
  "thresholds": {
   "product_green_floor": {
-   "value": null,
+   "value": 0.9,
    "proposed": 0.9,
    "unit": "share of concluded runs"
   },
@@ -62,15 +62,15 @@
   }
  },
  "owner_criteria": {
-  "D4": null,
-  "D5": null,
+  "D4": "dev/governance/dimensions/criteria/D4-criteria.md",
+  "D5": "dev/governance/dimensions/criteria/D5-criteria.md",
   "D7": "dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md",
-  "D9": null,
-  "D10": null
+  "D9": "dev/governance/dimensions/criteria/D9-criteria.md",
+  "D10": "dev/governance/dimensions/criteria/D10-criteria.md"
  },
  "seats": {
-  "evaluator_model": null,
-  "reviewer_model": null
+  "evaluator_model": "claude-fable-5-2",
+  "reviewer_model": "claude-fable-5-2"
  },
  "population": [
   {
