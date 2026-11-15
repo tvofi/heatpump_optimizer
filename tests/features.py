@@ -92920,6 +92920,36 @@ R.check(
     and _SceStarts(queued=None).hear(_sce_rh_t[1], True) == [_sce_rh_t[1]],
     f"{_sce_rh_seq}",
 )
+
+# A refresh's own re-read moves the class with no meter event: the element's
+# latch, or the commanded draw that makes the same reading the element's.
+# The held rise must hear the class as this refresh re-reads it, so the
+# re-read comes before the tick (running_signal.refresh). Null control, the
+# same rig with nothing moving counts the rise at its second refresh.
+def _sce_reread(move):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0 if move == "commanded" else 2.0
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 0.0, "dhw_power": 0.0}
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 2.0}
+    elif move == "latch":
+        rig.c._immersion_active, rig.c._immersion_clear_count = True, 0  # as _detect_immersion latches
+    rig.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+    rig.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 2 * _SCE_DEBOUNCE_S))
+    return rig.counter.lifetime
+
+
+_sce_reread_rows = {m: _sce_reread(m) for m in ("commanded", "latch", None)}
+R.check(
+    "a refresh whose own re-read moves the class off running (the commanded draw or the element's "
+    "latch changing, no meter event) while a rise is held counts no start: the tick hears the class "
+    "this refresh re-reads; null control, the same rig with nothing moving counts the rise once",
+    _sce_reread_rows == {"commanded": 0, "latch": 0, None: 1},
+    f"{_sce_reread_rows}",
+)
 _sce_dt.freeze(None)
 
 
