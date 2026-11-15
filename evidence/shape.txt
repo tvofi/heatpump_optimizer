@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r11/rev-3609/shape.py", line 2, in <module>
+    t=open('dev/programme/triage/r10-round-end.md').read()
+      ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'dev/programme/triage/r10-round-end.md'
