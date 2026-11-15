@@ -954,6 +954,7 @@ confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr
     if [ -z "$holder" ] && [ "$blank" -lt "${HPO_BUS_PID_SETTLE:-10}" ]; then  # mut:pidsettle
       blank=$((blank + 1)); sleep 0.2
     elif [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock
+      [ -z "${HPO_BUS_WAIT_MARK:-}" ] || : > "$HPO_BUS_WAIT_MARK"  # the self-test's barrier: waiting on a live holder
       blank=0; sleep 1
     else
       rm -rf "$lk"; blank=0
@@ -1232,6 +1233,11 @@ self_test() {
 #!/bin/bash
 printf '%s %s %s\n' "$1" "$2" "$3" >> "$BUS_TEST_CALLS"
 cp "$3" "$BUS_TEST_LAST"
+# BUS_TEST_POSTER_GATE: hold inside the poster, lock held, until the gate file exists (a barrier).
+if [ -n "${BUS_TEST_POSTER_GATE:-}" ]; then
+  : > "$BUS_TEST_POSTER_GATE.in"
+  for _ in $(seq 600); do [ -e "$BUS_TEST_POSTER_GATE" ] && break; sleep 0.1; done
+fi
 [ -z "${BUS_TEST_POSTER_FAIL:-}" ] || { echo "stub refusal"; exit 1; }
 P
   chmod +x "$W/poster"
@@ -2114,10 +2120,17 @@ B
   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h1" "$N34" > "$W/t34.md"
   seat push-verdict 34 "$W/t34.md" "$W/ev1" >/dev/null
   rt=$(tip review/34); c0=$(calls)
-  run confirm 34 "$rt" > "$W/cc1" & cp1=$!
-  run confirm 34 "$rt" > "$W/cc2" & cp2=$!
+  # A barrier, not a race: the first confirm holds its lock inside the poster until the gate is
+  # opened, the second starts only once the first is in there and is seen waiting on the lock, and
+  # the gate opens after that. Neither the settle nor the start order decides the interleaving.
+  rm -f "$W/gate34" "$W/gate34.in" "$W/waiting34"
+  BUS_TEST_POSTER_GATE=$W/gate34 run confirm 34 "$rt" > "$W/cc1" & cp1=$!
+  for _ in $(seq 300); do [ -e "$W/gate34.in" ] && break; sleep 0.1; done
+  HPO_BUS_WAIT_MARK=$W/waiting34 BUS_TEST_POSTER_GATE=$W/gate34 run confirm 34 "$rt" > "$W/cc2" & cp2=$!
+  for _ in $(seq 300); do [ -e "$W/waiting34" ] && break; sleep 0.1; done
+  : > "$W/gate34"
   wait "$cp1" "$cp2"
-  [ "$(git -C "$W/origin.git" rev-list --count "verdict/34")" = 1 ] && [ "$(( $(calls) - c0 ))" = 1 ] \
+  [ -e "$W/waiting34" ] && [ "$(git -C "$W/origin.git" rev-list --count "verdict/34")" = 1 ] && [ "$(( $(calls) - c0 ))" = 1 ] \
     && [ "$(cat "$W/cc1" "$W/cc2" | grep -c '^BUS posted 34 ')" = 1 ]
   expect "two concurrent confirms produce one verdict commit and one post (P354)" $?
   # An empty pid file is a holder still writing it: it waits out the settle, then is taken over.

@@ -682,6 +682,30 @@ def _beat(prog: Path, *args, env=None, timeout=120) -> subprocess.CompletedProce
                           capture_output=True, text=True, env=env, timeout=timeout)
 
 
+def _beat_until(prog: Path, *args, out: Path, until, bound_s=60.0, env=None) -> str:
+    """Run beatd with its stdout in ``out`` until ``until()`` holds (or the bound), then stop it.
+
+    A barrier for an arm whose outcome depends on an ordering between jobs: the caller's
+    jobs read ``out`` and the journal for the event they wait on, so no wall-clock window
+    decides which interleaving happened. SIGTERM is beatd's own stop, pid kept across a
+    restart's exec.
+    """
+    with out.open("w") as fh:
+        p = subprocess.Popen([sys.executable, "-I", str(prog), *map(str, args)],
+                             stdout=fh, stderr=subprocess.STDOUT, text=True, env=env)
+        end = time.monotonic() + bound_s
+        while p.poll() is None and not until() and time.monotonic() < end:
+            time.sleep(0.05)
+        if p.poll() is None:
+            p.terminate()
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.wait()
+    return out.read_text()
+
+
 def _jr(state: Path) -> list[str]:
     p = state / "beatd" / "journal.log"
     return p.read_text().splitlines() if p.exists() else []
@@ -1295,13 +1319,25 @@ def case9(prog, w):
     res["null: behind only off the seat paths does not restart"] = (
         r.returncode == 0 and starts == [c1] and g("rev-parse", "HEAD") == c1
         and "BEAT-RESTART" not in r.stdout and "NO-RESTART" not in r.stdout)
-    slow = [_job("fast", ["/usr/bin/true"], interval_s=3600),
-            _job("slow", ["/bin/sleep", "2"], interval_s=3600)]
-    r, g, c1, c2, starts, jr = beat("running", on_path, slow, for_s="5")
+    # Case 9's running arm is ordered by two barriers, not by a window: the slow job marks itself
+    # running and holds until beatd has printed the deferral, and the fast job ends only after the
+    # slow one has marked, so fresh() after the fast job always sees the slow instance active.
+    rs, ro, rm = w / "s9-running", w / "s9-running.out", w / "s9-running.mark"
+    hold = ('i=0; until grep -q "a job instance is running: slow" "$2" 2>/dev/null; do '
+            'i=$((i + 1)); [ "$i" -gt 600 ] && exit 1; sleep 0.05; done')
+    wait_mark = 'i=0; until [ -e "$1" ]; do i=$((i + 1)); [ "$i" -gt 600 ] && exit 1; sleep 0.05; done'
+    slow = [_job("fast", ["/bin/sh", "-c", wait_mark, "sh", str(rm)], interval_s=3600),
+            _job("slow", ["/bin/sh", "-c", 'touch "$1"; ' + hold, "sh", str(rm), str(ro)], interval_s=3600)]
+    repo, env, g, c1, c2 = _fresh_repo(w, "running", prog, on_path)
+    out = _beat_until(repo / "tools" / "audit" / "seat" / "beatd.py", "run", "--state", rs,
+                      "--jobs", _table(w, slow), "--repo", repo, "--for", "120", out=ro,
+                      until=lambda: len([ln for ln in _jr(rs) if ln.startswith("START ")]) >= 2)
+    jr = _jr(rs)
+    starts = [ln.split()[4].split("=", 1)[1] for ln in jr if ln.startswith("START ")]
     slow_pass = next((i for i, ln in enumerate(jr) if ln.startswith("PASS ") and " slow " in ln), -1)
     second = [i for i, ln in enumerate(jr) if ln.startswith("START ")][1:2]
     res["a running instance defers the restart to the next pass"] = (
-        "NO-RESTART" in r.stdout and "a job instance is running: slow" in r.stdout
+        "NO-RESTART" in out and "a job instance is running: slow" in out
         and starts == [c1, c2] and slow_pass >= 0 and second and second[0] > slow_pass)
     for label, kw, adds, why in (
             ("dirty", {"dirty": True}, on_path, "the tree is dirty"),
