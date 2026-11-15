@@ -619,7 +619,8 @@ class Tick:
         HPO_WIP_CAP -- at the cap a new group is not dispatched, while opening
         and merging are always allowed; and the counted PRs whose three-dot
         diff touches the coordinator, against its cap of 2. A diff one_pr
-        could not read leaves the second count a floor: flagged. A roster or a
+        could not read leaves the second count a floor: flagged. Then the open
+        PRs by class against the machinery slots (`pr_cap.class_line`). A roster or a
         cap it cannot read is UNREADABLE, never a clean zero."""
         cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
         if cap_mod is None:
@@ -643,6 +644,11 @@ class Tick:
         if unread:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
+        rule, slots = cap_mod.product_rule(), cap_mod.open_slots()
+        if rule is None or slots is None:
+            self.unreadable(S, "PR classes", "machinery_ratchet.is_product or replan.DEFAULT_CAPS")
+        else:
+            self.line(S, *cap_mod.class_line(cap_mod.by_class(counted, files, rule), slots))
 
     def _verdict_authors(self, pw) -> "tuple[set, int] | None":
         """The approver App's identity off app_approve.sh, through
@@ -4862,6 +4868,14 @@ def self_test() -> int:
             ("a diff it cannot read flags the coordinator count as a floor",
              one(unread, "coordinator.py PRs: ")["flag"] is True
              and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
+            ("open PRs by class: the three touching a product path are production",
+             one(at, "open PRs by class: ") == {"flag": False, "text": "open PRs by class: 3 production, "
+                                                "3 machinery; machinery slots 3/10 (10 of 20 reserved for production)"}),
+            ("an unread diff is its own class, counted against the machinery slots",
+             one(unread, "open PRs by class: ")["text"].startswith(
+                 "open PRs by class: 0 production, 1 machinery, 1 unread; machinery slots 2/10")),
+            ("twenty machinery PRs fill the machinery slots: flagged (null: six above are not)",
+             one(board, "open PRs by class: ")["flag"] is True),
             ("an invalid HPO_WIP_CAP is UNREADABLE, never a count",
              any(l["flag"] and "UNREADABLE: WIP cap" in l["text"] for l in badcap)
              and not any(l["text"].startswith("WIP: ") for l in badcap)),
