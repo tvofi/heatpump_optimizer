@@ -1,0 +1,50 @@
+mode=true accepted=43 gaps=49 notmerged=43 nobool=0 parallel=0
+GAP dev/audit/yardstick/round10/OBJECTIVE.json is not in the tree: round 10's close wrote no record to evaluate
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D0 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D1 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D10 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D11 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D12 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D14 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D15 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D2 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D3 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D4 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D5 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D6 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D7 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D8 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-D9 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-GATE-REDS is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-INJECTED is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 is accepted for criterion D10, which dev/audit/config/objective.json still leaves unset
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 is accepted for criterion D4, which dev/audit/config/objective.json still leaves unset
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 is accepted for criterion D5, which dev/audit/config/objective.json still leaves unset
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 is accepted for criterion D9, which dev/audit/config/objective.json still leaves unset
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-GATE-CAUSE is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-INSTRUMENT-YIELD is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-INTAKE-BUILDER is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-NULL-REVIEWER is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-OBJECTIVE-RECORD is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-ROLE-CLAUSE is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-N-RULE-YIELD is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-R-WORKFLOWS is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-S-SEATS is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-SCORECARD is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor is accepted for threshold product_green_floor, which dev/audit/config/objective.json still leaves unset
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U1 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U10 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U2 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U4 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U5 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U6 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U7 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U8 is accepted and not merged at this ref
+GAP dev/audit/yardstick/round11/EVALUATION.json card E11-U9 is accepted and not merged at this ref

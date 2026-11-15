@@ -1,0 +1,5 @@
+ .../decisions/0018-objective-function.md           | 19 ++++--
+ dev/governance/roles/architect-planner.md          | 14 ++--
+ tools/audit/check_scopes.py                        | 76 ++++++++++++++++++----
+ tools/audit/seat/instruments/check_scopes.py.md    |  4 ++
+ 4 files changed, 89 insertions(+), 24 deletions(-)
