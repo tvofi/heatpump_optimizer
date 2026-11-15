@@ -1,0 +1,12 @@
+NULL: SURVIVED  held 59/59
+M1 isinstance->False: KILLED  held 57/59
+M2 isinstance->is None: KILLED  held 58/59
+M3 drop merged guard: KILLED  held 58/59
+M4 elif False: KILLED  held 57/59
+M5 no append: KILLED  held 57/59
+M6 no continue: KILLED  held 57/59
+M7 old norm: KILLED  held 58/59
+M8 gating is True only (not gating->gating is False): SURVIVED  held 59/59
+M9 non-gating unmerged still gap: KILLED  held 57/59
+M10 open-cards rc 2->0: SURVIVED  held 59/59
+restored clean
