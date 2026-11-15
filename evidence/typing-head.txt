@@ -1,2 +1,0 @@
-
-ALL 12 typing-ruler source checks PASSED
