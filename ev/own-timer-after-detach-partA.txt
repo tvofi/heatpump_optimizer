@@ -1,0 +1,3 @@
+SURVIVED NULL
+KILLED own-timer-after-detach
+rc=0

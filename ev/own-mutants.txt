@@ -1,0 +1,7 @@
+SURVIVED NULL
+KILLED own-restore-order
+KILLED own-freq-preferred
+SURVIVED own-timer-after-detach
+KILLED own-edge-time-now
+KILLED own-stop-keeps-running
+rc=0

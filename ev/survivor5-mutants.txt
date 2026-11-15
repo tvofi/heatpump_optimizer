@@ -1,0 +1,7 @@
+SURVIVED NULL
+KILLED rs164-guard-off
+KILLED rs166-guard-off
+KILLED tm1971-ge
+KILLED tm1972-ge
+KILLED tm1973-ge
+rc=0
