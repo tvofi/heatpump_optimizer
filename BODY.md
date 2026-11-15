@@ -16,11 +16,11 @@ Payment for the policy caps: `ratchet-budgets.md` lost three spent sentences (tw
 
 ## Head
 
-`3ad61a1f6e09044cd47db34952a3ab681db1b1e5`, unchanged by this repair round (the round edits the body only), adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3627.md`. The authored code head is `81e2beea953734b9c48e3224924735eb9572635c`.
+`2986495e9cc46e911d37945166c18dd13c60d89a`. Repair round 2 adds one commit, 2986495e9cc46e911d37945166c18dd13c60d89a (tests only: `machinery_ratchet.py` and `pr_cap.py` self-tests, and `pr_cap.open_slots` taking an optional caps dict), to the reviewed head `3ad61a1f6e09044cd47db34952a3ab681db1b1e5`, whose last commit is only this PR's own row, `dev/programme/delivery/3627.md`. The authored code head before it was `81e2beea953734b9c48e3224924735eb9572635c`.
 
-`b569a6120604b75f4ead324f86391449a150ffd9` merges origin/main `66865be375` into the authored code head `81e2beea953734b9c48e3224924735eb9572635c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+`b569a6120604b75f4ead324f86391449a150ffd9` merges origin/main `66865be375` into `81e2beea953734b9c48e3224924735eb9572635c` (an automatic merge by the orchestrator's script, no resolution).
 
-Merge base at the head: 66865be375f4ee283ee556f53fcd76cc3dbf40e2; `origin/main` 98847b99d7bb3238686efd6869f805c89c6d1ff1 at 2026-11-15T20:43Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. The figures below are from the authored code head 81e2beea953734b9c48e3224924735eb9572635c at merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z) unless marked as re-taken at 3ad61a1f6e.
+Merge base at the head: 66865be375f4ee283ee556f53fcd76cc3dbf40e2; `origin/main` ebe83a1b8265b56bde009b70185585e736dbdb82 at 2026-11-15T21:27Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. Figures marked "re-taken" are at this head; the rest are from `81e2beea953734b9c48e3224924735eb9572635c` at merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z).
 
 ## Mutation proof
 
@@ -33,24 +33,34 @@ Each mutant applied alone at the head, its self-test run, the file restored:
 - `load_target`'s `if not isinstance(doc, dict)` -> `if False`: `target: a file that is not an object is refused` FAIL; its `v < (1 if k == "every_merges" else 0)` -> `<=` or `< (2 ...)`: `target: every_merges 1 and step 0 are the bounds it reads (null control)` FAIL (both `prepr.sh` survivors at the previous head, killed here).
 - `budget_raise_gate.py` `("step",) MIN` -> `MAX`: `target: a faster decline is routine` and `target: a slower decline is a raise` FAIL.
 
+Re-taken at this head: the reviewer's driver (`review/3627` `evidence/mut.py`, 19 mutants, each applied alone, the file's `--self-test` run, the file restored) prints KILLED for all 19 (at 3ad61a1f6e it printed SURVIVED for M3-M6, M13, M14). The six the review blocked on, and the check that now kills each:
+- `past = m[c] > t + doc[c + BAND_SUFFIX]` -> `past = m[c] > t`: `target: the band is added to it, at the boundary (2 <= 0 + 2 passes, 2 > 0 + 1 refuses)` and `target: a schedule driven past zero holds at 0, never below it` FAIL.
+- `if len(line.split()) == 3` -> `>= 2`: `target: a non-merge first-parent commit past the anchor is not counted` FAIL (`merges_past_anchor` 3, want 2).
+- `scheduled_target(repo, base or head, ...)` -> `scheduled_target(repo, head, ...)`: `target: a PR head carrying a merge of main is scheduled on the base (2 past, target 0)` FAIL (the head's first-parent chain holds 1 merge, so the mutant reads target 2 and passes the candidate).
+- `max(0, ...)` removed: `target: a schedule driven past zero holds at 0, never below it` FAIL (step 5 drives it to -3, and 2 > -3 + 2).
+- `pr_cap.py` `and v > PRODUCTION_SLOTS` removed: `slots at or below PRODUCTION_SLOTS are unread, never a negative allowance; 11 reads` FAIL.
+- `pr_cap.py` `if rc == 0 and slug is not None:` -> `if False:`: `dispatch-gate --machinery refuses a full board after the WIP gate passes` FAIL (`main(["dispatch-gate", "--roster-file", <one done group>, "--machinery", "o/r"])` with `read_classes` and `open_slots` injected).
+
 ## Null control
 
 - `target: no file, no target: the refused candidate passes (null control)`: the same machinery candidate at the same base passes once the target file is gone.
 - `target: 1 merge past the anchor is still 2, so a machinery candidate at 2 passes`: the schedule, not the window, refuses.
+- `null controls: an empty board passes it, and no --machinery never reads the board`: the same `main()` call with an empty board exits 0, and without `--machinery` prints no machinery line.
+- `target: the band is added to it, at the boundary`: band 1 refuses the candidate band 2 passes, so the pass is the band's.
 - `null control: one free machinery slot passes`; `null control: below the machinery slots the line is not flagged`; `target: null control` (an unchanged target file is no raise).
 - At the merge base `git grep -n -i "one in, one out" b3831ff -- dev/governance` prints nothing; at the head one line in `ratchet-budgets.md`.
 
 ## Figures
 
-- `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` at b3831ff64e: `nonproduction_merges` 478, `churn_per_kilo_product_lines` 13785, `window` 580, `production` 102; at the head `target` 478, `merges_past_anchor` 0.
-- `python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD --pr 1`: `ok nonproduction_merges 478 <= 478 + band 5`, `ok target nonproduction_merges 478 <= 478 + band 5 (0 merge(s) past anchor b3831ff64eca, 48 down per 290)`.
-- Self-tests at the head: `machinery_ratchet.py --self-test` 68 checks, 0 failed; `pr_cap.py --self-test` 29, 0 failed; `budget_raise_gate.py --self-test` 287, 0 failed; `orchestrator_tick.py --self-test` 322, 0 failed.
+- `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` at b3831ff64e: `nonproduction_merges` 478, `churn_per_kilo_product_lines` 13785, `window` 580, `production` 102 (origin/main holds no target file, so no `target`). Re-taken: `--measure --head HEAD` prints `target` 478, `merges_past_anchor` 1; that 1 is b569a61206, this branch's merge of main, which is why PR mode reads the schedule on the base.
+- Re-taken: `python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD --pr 3627`: `ok nonproduction_merges 481 <= 478 + band 5`, `ok target nonproduction_merges 481 <= 478 + band 5 (11 merge(s) past anchor b3831ff64eca, 48 down per 290)`.
+- Self-tests, re-taken: `machinery_ratchet.py --self-test` 72 checks, 0 failed; `pr_cap.py --self-test` 32, 0 failed; `budget_raise_gate.py --self-test` 287, 0 failed; `orchestrator_tick.py --self-test` 322, 0 failed.
 - The severity skip, enumerated: `git grep -n -E 'major\`, \`critical|\`medium\`, \`high\`' <rev> -- dev tools/audit/seat CLAUDE.md .claude` prints `proposal-triage.md:23` at b3831ff64e and nothing at the head; `git grep -n -i severity -- 'tools/**/*.py' | grep -i -E 'bar|skip|exempt'` prints nothing at either end, so no program implements the skip.
 - `node tools/policy/policy_lint.mjs --budgets` at the head: every row within its cap; `node tools/policy/policy_lint.mjs` TOTAL 0 errors; `node tools/policy/rules_sync.mjs --check` ok.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- Re-taken at 3ad61a1f6e: `python3 tools/audit/archscore/score.py --diff 66865be375f4ee283ee556f53fcd76cc3dbf40e2 HEAD` prints `Architecture score: dS +0.0000 NULL`. The score reads only `custom_components/heatpump_optimizer`, and `git diff --stat 66865be375f4 HEAD -- custom_components` prints nothing, so NULL is the reading the score's own scope fixes; a diff touching no scored file has no improving payment the score could register.
+- Re-taken: `python3 tools/audit/archscore/score.py --diff 66865be375f4ee283ee556f53fcd76cc3dbf40e2 HEAD` prints `Architecture score: dS +0.0000 NULL`. The score reads only `custom_components/heatpump_optimizer`, and `git diff --stat 66865be375f4 HEAD -- custom_components` prints nothing, so NULL is the reading the score's own scope fixes; a diff touching no scored file has no improving payment the score could register.
 
-<!-- figure-block: scope-line mb=66865be375f4ee283ee556f53fcd76cc3dbf40e2 head=3ad61a1f6e09044cd47db34952a3ab681db1b1e5 -->
+<!-- figure-block: scope-line mb=66865be375f4ee283ee556f53fcd76cc3dbf40e2 head=2986495e9cc46e911d37945166c18dd13c60d89a -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -64,7 +74,7 @@ The base's `budget_raise_gate.py` reads the new `machinery_target_budgets.json` 
 
 ## Unpinned sites
 
-`python3 -I tools/audit/seat/mutant_run.py --diff b3831ff64eca...HEAD --cmd "sh -c 'python3 -I tools/audit/machinery_ratchet.py --self-test && python3 -I tools/audit/seat/pr_cap.py --self-test'" --max-mutants 40 --report-only` (and `prepr.sh`'s diff-mutant step at this head): 6 survivors, every one in `machinery_ratchet.py`'s self-test fixture, none in a production line: the fixture's pull-request numbers (`r.merge(1|5|6, ...)` swapped, which only names a merge), `caps(m1=2)` -> `3` on the exempted candidate (an exempted candidate is skipped whatever the cap), and two `ok(...)` assertion lines deleted (the 770 and 777 sites, a check removed rather than behaviour changed). Disposition: fixture data and assertions, no production behaviour to pin.
+Re-taken: `python3 -I tools/audit/seat/mutant_run.py --diff 66865be375f4...HEAD --cmd "sh -c 'python3 -I tools/audit/machinery_ratchet.py --self-test && python3 -I tools/audit/seat/pr_cap.py --self-test'" --max-mutants 40 --report-only` (and `prepr.sh`'s diff-mutant step at this head): the same 6 survivors as at 3ad61a1f6e (lines 749, 753, 764, 770, 775, 777), every one in `machinery_ratchet.py`'s self-test fixture, none in a production line (the production-line survivors the review found outside this 40-mutant sample are killed, `## Mutation proof`): the fixture's pull-request numbers (`r.merge(1|5|6, ...)` swapped, which only names a merge), `caps(m1=2)` -> `3` on the exempted candidate (an exempted candidate is skipped whatever the cap), and two `ok(...)` assertion lines deleted (the 770 and 777 sites, a check removed rather than behaviour changed). Disposition: fixture data and assertions, no production behaviour to pin.
 
 ## Red checks
 
