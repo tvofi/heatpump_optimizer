@@ -1,0 +1,32 @@
+# The by-hand read decision 0018 section 3 allows for a dimension's escapes ("escapes by hand"): round 10 roster groups that fix an objective bug in a released product version, reported in the window by someone who is no finder seat. Attribution is the evaluator's, from each group's brief; the reviewer attacks it. `owner` is the dimension whose perfect result (0018 section 1) the bug violates, `none` where no brief owns it. `window` is `in` (reported after the round-9 closeout stamp, on a released version), `day0` (dated 2026-10-14, the stamp's own day; the hour is in no tracked record) or `unreleased` (caused and caught inside the window before any release carried it: an injected bug, no escape). `cause_pr` is a merged pull request the group's brief names as the cause, `-` where it names none. Columns are tab-separated.
+group	pr	reporter	window	owner	step	input_not_driven	cause_pr
+R10-HOTFIX-AWAY-LIVE	3015	owner	in	D1	D1.M1	a stored away override across restore then resolve, switch then refresh, set-point reload then refresh	-
+R10-HOTFIX-AWAY-PRESENCE	3052	owner	in	D1	D1.M3	a presence entity changing between two scheduled updates	-
+R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID	3454	outside	in	D1	D1.M3	a price fetch that raises while the last fetched prices still cover now	-
+R10-INPUT-REAPPEAR	3300	outside	in	D1	D1.M3	a configured input going missing or unavailable and reporting again inside one interval	-
+R10-LEARNED-STORE-LOAD	3185	fixer	in	D1	D1.M2	a save while the learners are still loading, and a restore straight after a snapshot	-
+R10-HOTFIX-SAV-ESTIMATE	3220	owner	in	D2	D2.M3	the savings identity on a month booked from a valve house whose buffer sits above the curve	-
+R10-HOTFIX-LEARNER-INPUTS	3022	owner	in	D2	D2.M5	a power entity that is the pump's own estimate, and a learner covariate moved to another sensor	-
+R10-OUTSIDE-DHW-CHARGE-SETTLE	3444	outside	in	D2	D2.M5	the tank reading's fall in the minutes after a charge starts	-
+R10-HOTFIX-CARD-HEALTH-TEXT	3485	owner	in	D4	D4.M1	the Health tab's row labels on the released build in a real Home Assistant frontend	-
+R10-OUTSIDE-VALVE-TARGET-LABEL	3536	outside	in	D4	D4.M2	a flow temperature typed into the mixing-valve target on a combi entry	-
+R10-HOTFIX-COP-UNMEASURED	3297	owner	in	D6	D6.M2	the card's measured-COP sentence on an install with no heat input	-
+R10-HOTFIX-PREHEAT-LABEL	-	owner	in	D8	D8.M2	a step's reason on a house whose learned heat-loss scale is above 1.1 under flat weather	-
+R10-OUTSIDE-DIAG-REDACT-LOCATION	3447	outside	in	D10	D10.M1	the diagnostics rule driven with the solar-location option set	-
+R10-OUTSIDE-LEARNER-ROBUSTNESS	3468	outside	in	D12	D12.M3	a counter-metered pump whose spans hold hot-water charges, and a short boost	-
+R10-HOTFIX-AWAY-SETBACK	3013	owner	in	none	-	away with weekend or holiday comfort fields set: a feature against its documented effect	-
+R10-HOTFIX-BOOST-FLOW-CEILING	3562	owner	in	none	-	a boost over a step the plan books at partial power: the write against the plan's target	-
+R10-HOTFIX-FLOW-SETPOINT-STUCK	3561	owner	in	none	-	the first arbiter pass after an upgrade from a persisted idle record: a hold with no release	3404
+R10-OUTSIDE-DISINFECTION-SETPOINT	3452	outside	in	none	-	the hot-water write on a disinfection step: the guard records attempts and no completion	-
+R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE	3512	outside	in	none	-	a re-solve landing minutes after the supply switched: no minimum run or pause	-
+R10-OUTSIDE-SUPPLY-STALE-STEP	3478	outside	in	none	-	a cycle whose write lands in the step after the one its action was cut for	-
+R10-WATER-SETPOINT-FEEDBACK	3405	outside	in	none	-	a water set-point on a controller with an integrating speed loop: measured power against plan	-
+R10-MODE-BEFORE-SUPPLY-ON	3530	outside	in	none	-	the order of the mode write and the supply switch-on	-
+R10-SAV-BASELINE	-	owner	day0	D2	D2.M3	the month table's baseline against actual on the owner's months	-
+R10-SAV-REASONS	-	owner	day0	D8	D8.M2	cost attributed to a reason while idle, and a boost with no reason code	-
+R10-SCORES	-	owner	day0	D8	D8.M2	a score with no evidence published as 0	-
+R10-DEEPLINK	-	owner	day0	D4	D4.M1	every link-emitting button of the card followed to its target	-
+R10-UX-HEALTH	2976	owner	day0	D4	D4.M1	the Health tab on a wide screen and under the sticky header	-
+R10-UX-SETUP	-	owner	day0	D4	D4.M3	the Setup tab against the product's own design tokens	-
+R10-ADVISOR	-	owner	day0	D2	D2.M3	the advisor's plus and minus one degree deltas for monotonicity	-
+R10-HOTFIX-REFERENCE-BASIS	3599	programme	unreleased	D2	D2.M3	the savings identity across a merge that changes the booked reference	3587
