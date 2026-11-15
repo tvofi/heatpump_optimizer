@@ -39,6 +39,7 @@ class Fake:
         for r in extra:
             self.t[r] = sha("c")
         self.dead, self.pid = set(), 100
+        self.head = sha("e")  # the tools checkout's HEAD (World.tools_head)
 
     def tips(self):
         return self.t
@@ -59,6 +60,9 @@ class Fake:
 
     def alive(self, pid):
         return pid not in self.dead
+
+    def tools_head(self):
+        return self.head
 
 
 def rd(p):
@@ -299,6 +303,136 @@ def run():
     w.t["refs/heads/handoff/r10-cp"] = sha("7")
     go(sd, w, line("r10-cp", sha("7")), NOW + 100 * 3600 + 10)
     check("a new sha for a stuck topic launches again", len(w.launched) == 4)
+
+    # STALE CHECKOUT is the environment's refusal (P627): it records the tools checkout HEAD it was refused
+    # at, sets no backoff, counts toward no stuck, and is retried on the first pass after that HEAD changes.
+    def stale_line(w, name="open_pr"):
+        return (f"{name}: REFUSE: STALE CHECKOUT {w.head[:12]} behind origin/main {sha('9')[:12]} by 1 commit(s) "
+                "touching tools/audit/seat tools/pr: update the checkout holding /x, or set HPO_ALLOW_STALE_TOOLS=1\n")
+
+    def refuse(sd, text, topic="r10-cp"):
+        (d(sd) / f"t-{topic}.log").write_text(text)
+        (d(sd) / f"t-{topic}.rc").write_text("1\n")
+
+    key = f"r10-cp {sha('2')}"
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    refuse(sd, stale_line(w))
+    go(sd, w, b, NOW + 10)
+    f = od._load(d(sd) / "fails.json", {}).get(key, {})
+    check("stale (i): a STALE CHECKOUT result is no failure counted and sets no backoff, and records the refused HEAD",
+          f.get("n") == 0 and f.get("next", 0) <= NOW + 10 and f.get("stale") == w.head[:12])
+    check("stale (i): with the HEAD unchanged it is not retried, in the pass that reaps it or after any wait",
+          len(w.launched) == 1 and f"SKIP r10-cp {sha('2')[:8]} stale-checkout" in out
+          and not go(sd, w, b, NOW + 100 * 3600)["started"] and len(w.launched) == 1)
+    check("stale (i): it prints OWED with the refusal, never STUCK",
+          [o.split(" ", 2)[2] for o in out if o.startswith(("OWED", "STUCK"))]
+          == [f"open-refused r10-cp {sha('2')[:8]} rc=1 {stale_line(w).strip()[:200]}"])
+    w.head = sha("f")
+    go(sd, w, b, NOW + 100 * 3600 + 1)
+    check("stale (ii): after the HEAD changes it is retried on the next pass", len(w.launched) == 2)
+    for i in range(od.MAX_TRIES + 2):  # refused again at each new HEAD: more environment refusals than MAX_TRIES
+        refuse(sd, stale_line(w))
+        go(sd, w, b, NOW + 101 * 3600 + 2 * i)
+        w.head = sha("abcdef"[i])
+        go(sd, w, b, NOW + 101 * 3600 + 2 * i + 1)
+    check("stale (i): any number of STALE CHECKOUT results never reaches stuck: each new HEAD relaunches",
+          len(w.launched) == 2 + od.MAX_TRIES + 2 and od._load(d(sd) / "fails.json", {})[key]["n"] == 0
+          and not any(o.startswith("STUCK") for o in out))
+    w.head = ""
+    refuse(sd, stale_line(type("H", (), {"head": sha("f")})))
+    go(sd, w, b, NOW + 102 * 3600)
+    k = len(w.launched)
+    go(sd, w, b, NOW + 102 * 3600 + 1)
+    check("stale: an unreadable tools HEAD is not a changed one, so nothing relaunches", len(w.launched) == k)
+    # (iii) null control: a merge conflict is the branch's rc 1 and keeps the backoff and the count
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    refuse(sd, "open_pr: REFUSE: merging origin/main conflicts in tools/x.py\n")
+    go(sd, w, b, NOW + 10)
+    f = od._load(d(sd) / "fails.json", {}).get(key, {})
+    w.head = sha("f")
+    check("stale (iii) null: a merge-conflict rc 1 backs off 1800 s and counts toward MAX_TRIES, whatever the HEAD does",
+          f.get("n") == 1 and f.get("next") == NOW + 10 + 1800 and "stale" not in f
+          and not go(sd, w, b, NOW + 10 + 1799)["started"] and go(sd, w, b, NOW + 10 + 1801)["started"] == ["r10-cp"])
+    # a counted failure followed by the environment's refusal keeps its count and its backoff, extended by nothing
+    refuse(sd, stale_line(w))
+    go(sd, w, b, NOW + 4000)
+    f2 = od._load(d(sd) / "fails.json", {}).get(key, {})
+    check("stale: after a counted failure the count and its backoff stand unchanged",
+          f2.get("n") == 1 and f2.get("next") == f.get("next") and f2.get("stale") == w.head[:12])
+    # (v) the replay: three refusals at 13:34:54Z, the checkout rotated at 13:44:40Z, one pass a minute, cap 3
+    t0 = 1_794_404_094.0  # 2026-11-11T13:34:54Z
+    rot = t0 + 586  # 13:44:40Z
+    h3 = [("r10-hotfix-gate-redispatch-loop", sha("1")), ("r10-cp", sha("2")), ("r10-inst", sha("3"))]
+    b3 = "\n".join(line(t, s) for t, s in h3)
+    sd, w = world("", ros=roster("R10-HOTFIX-GATE-REDISPATCH-LOOP", "R10-CP", "R10-INST"), heads=h3)
+    (sd / "open-cap.txt").write_text("3\n")
+    go(sd, w, b3, t0 - 60)
+    for t, _ in h3:
+        refuse(sd, stale_line(w), t)
+    starts, now = [], t0
+    while not starts and now < t0 + 7200:
+        if now >= rot:
+            w.head = sha("f")
+        starts = go(sd, w, b3, now)["started"]
+        now += 60
+    check("stale (v) replay: the three 13:34:54Z refusals are all retried on the first pass after the 13:44:40Z HEAD change",
+          sorted(starts) == sorted(t for t, _ in h3) and rot <= now - 60 < rot + 60 and len(w.launched) == 6)
+    # the classifier over a generated spelling corpus: only pr_refuse's own line with a HEAD is the environment's
+    corpus = [(f"{nm}: {lv}: {ph} {hd}{tl}", lv == "REFUSE" and ph == "STALE CHECKOUT" and hd in (sha("a")[:12], sha("a")) and bool(tl))
+              for nm in ("open_pr", "update_pr", "pr") for lv in ("REFUSE", "NOTICE", "refuse", "Refuse")
+              for ph in ("STALE CHECKOUT", "stale checkout", "STALE-CHECKOUT", "STALE  CHECKOUT")
+              for hd in (sha("a")[:12], sha("a"), sha("a")[:7], "", "g" * 12) for tl in (" behind origin/main x by 1 commit(s)", "")]
+    wrong = [text for text, env in corpus if (od.stale_head(text) is not None) != env]
+    check(f"stale: the classifier agrees with pr_tools_fresh's line over {len(corpus)} generated spellings", len(corpus) == 480 and not wrong)
+    check("stale: a quoted refusal inside another line, and a NOTICE under HPO_ALLOW_STALE_TOOLS, are the branch's",
+          od.stale_head("open_pr: REFUSE: the body says `open_pr: REFUSE: STALE CHECKOUT " + sha("a")[:12] + " behind`") is None
+          and od.stale_head("open_pr: NOTICE: STALE CHECKOUT " + sha("a")[:12] + " behind origin/main") is None
+          and od.stale_head(stale_line(w).strip()) == w.head[:12])
+
+    # the retry verb (OPENER-RETRY-VERB, P678): the cure once an environment failure is fixed, never a hand edit
+    def backed_off():
+        sd, w = world("", heads=h1)
+        go(sd, w, b)
+        refuse(sd, "open_pr: REFUSE: prepr step 3 failed\n")
+        go(sd, w, b, NOW + 10)
+        return sd, w
+
+    sd, w = backed_off()
+    check("retry (ii) null: without the verb the pass inside the backoff window skips the topic as backoff",
+          go(sd, w, b, NOW + 600)["skipped"].get("r10-cp") == "backoff" and len(w.launched) == 1)
+    sd, w = backed_off()
+    said = []
+    rc = od.retry(sd, "r10-cp", None, said.append)
+    check("retry: prints the removed entry's n, next and why, and reads the file back without it",
+          rc == 0 and said == [f"RETRY r10-cp {sha('2')[:8]} n=1 next={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(NOW + 10 + 1800))} "
+                               "why=open_pr: REFUSE: prepr step 3 failed"]
+          and od._load(d(sd) / "fails.json", None) == {})
+    check("retry (i): the next pass starts the topic inside its backoff window",
+          go(sd, w, b, NOW + 600)["started"] == ["r10-cp"] and len(w.launched) == 2)
+    sd, w = backed_off()
+    before = (d(sd) / "fails.json").read_bytes()
+    said = []
+    check("retry (iv): a topic with no entry is refused and fails.json is byte-identical",
+          od.retry(sd, "r10-inst", None, said.append) == 1 and len(said) == 1 and said[0].startswith("open_driver retry: REFUSE: ")
+          and (d(sd) / "fails.json").read_bytes() == before
+          and od.retry(sd, "r10-cp", sha("7"), said.append) == 1 and (d(sd) / "fails.json").read_bytes() == before)
+    two = {f"r10-cp {sha('2')}": {"n": 3, "next": NOW, "rc": 1, "why": "a"}, f"r10-cp {sha('7')}": {"n": 1, "next": NOW, "rc": 1, "why": "b"},
+           f"r10-cp-2 {sha('2')}": {"n": 1, "next": NOW, "rc": 1, "why": "c"}}
+    (d(sd) / "fails.json").write_text(od.json.dumps(two))
+    check("retry: a sha names one (topic, sha) entry; no sha removes every entry of that topic and no namesake's",
+          od.retry(sd, "r10-cp", sha("7"), said.append) == 0 and sorted(od._load(d(sd) / "fails.json", {})) == [f"r10-cp {sha('2')}", f"r10-cp-2 {sha('2')}"]
+          and od.retry(sd, "r10-cp", None, said.append) == 0 and sorted(od._load(d(sd) / "fails.json", {})) == [f"r10-cp-2 {sha('2')}"])
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {**os.environ, "HPO_STATE_DIR": tmp}
+        cli = lambda *a: subprocess.run([sys.executable, "-I", od.__file__, *a], capture_output=True, text=True, env=env)
+        (Path(tmp) / "open-driver").mkdir()
+        (Path(tmp) / "open-driver" / "fails.json").write_text(od.json.dumps(two))
+        r1, r2, r3 = cli("retry", "r10-cp-2"), cli("retry", "r10-cp-2"), cli("retry")
+        check("retry: the verb from the command line removes the entry (rc 0), refuses it gone (rc 1) and refuses no topic (rc 2)",
+              (r1.returncode, r2.returncode, r3.returncode) == (0, 1, 2) and r1.stdout.startswith(f"RETRY r10-cp-2 {sha('2')[:8]} n=1 ")
+              and "r10-cp-2" not in (Path(tmp) / "open-driver" / "fails.json").read_text())
 
     # a topic named like the driver's own log must not overwrite it; a plain one still works
     check("stem: a/b != a%2Fb", od.stem("a/b") != od.stem("a%2Fb"))
