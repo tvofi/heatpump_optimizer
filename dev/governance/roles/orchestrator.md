@@ -15,10 +15,10 @@ every role contract here are instructions you follow, not relay. Where a rule
 names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
 will treat as established. **After each compaction** read `CLAUDE.md`, this
-contract, the rules and `dev/programme/RULINGS.md` (a ruling you are given lands
-there in your next pull request) in full, and the instrument pages the liveness
-hook's `policy-corpus.txt` carries as changed, then run its `PROOF` line (tvofi,
-2026-11-13, P6 and R3; 2026-11-15).
+contract and the rules in full, and the instrument pages and
+`dev/programme/RULINGS.md` (a ruling you are given lands there in your next pull
+request) the liveness hook's `policy-corpus.txt` carries as changed, then run its
+`PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).
 
 ## 1. Verify before claiming
 

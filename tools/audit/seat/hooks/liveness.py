@@ -27,8 +27,8 @@ This hook runs at both events and prints, on stdout (which the session reads):
   MISSING        a checkout the state names (orch-checkout and the *checkout* keys
                  of sweep-overlay.json) that is not a directory;
   READ-PROOF     the owed corpus at origin/main is written to policy-corpus.txt:
-                 CLAUDE.md, orchestrator.md, dev/programme/RULINGS.md and every
-                 .claude/rules/ file in full, and of the instrument pages only those
+                 CLAUDE.md, orchestrator.md and every .claude/rules/ file in full,
+                 and of the instrument pages and dev/programme/RULINGS.md only those
                  changed since the last accepted proof (its manifest,
                  policy-proven.json); its last line a
                  `--prove <sha256>` command; a compact-owed marker
@@ -69,12 +69,14 @@ def _env_min(name: str, default: float) -> float:
         return default
 
 
-# Owner rulings 2026-11-13 (cards P6 and R3) and 2026-11-15 ("Rules in full"): the
-# core and the rules are read in full after every compaction; the instrument pages
-# only where they changed since the last accepted proof.
-CORE = ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "dev/programme/RULINGS.md")
+# Owner rulings 2026-11-13 (cards P6 and R3) and 2026-11-15 ("Rules in full"; the
+# rulings file re-read "on changes, just like instruments.md"): the core and the
+# rules are read in full after every compaction; the instrument pages and the
+# rulings file only where they changed since the last accepted proof. A missing
+# rulings file is a removed page, not a missing core file.
+CORE = ("CLAUDE.md", "dev/governance/roles/orchestrator.md")
 FULL = (".claude/rules/",)
-BY_CHANGE = ("tools/audit/seat/INSTRUMENTS.md", "tools/audit/seat/instruments/")
+BY_CHANGE = ("tools/audit/seat/INSTRUMENTS.md", "tools/audit/seat/instruments/", "dev/programme/RULINGS.md")
 PENDING, PROVEN = "policy-corpus.json", "policy-proven.json"
 
 
@@ -181,7 +183,7 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
     stamp = state / "policy-reread.stamp"
     if event == "PostCompact":
         out.append("POLICY-REREAD owed: this session was compacted; read policy-corpus.txt (the core and the rules in full, "
-                   f"the instrument pages changed since the last proof), then python3 -I tools/audit/seat/policy_reread_check.py --stamp {stamp} --write-stamp")
+                   f"the instrument pages and rulings changed since the last proof), then python3 -I tools/audit/seat/policy_reread_check.py --stamp {stamp} --write-stamp")
     else:
         cmd = [py, "-I", str(SEAT / "policy_reread_check.py"), "--stamp", str(stamp),
                "--transcript", transcript or os.devnull + ".none"]  # no transcript: unreadable, so OWED
@@ -190,7 +192,7 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
             out.append(f"UNREADABLE policy_reread_check: {(r.stderr or r.stdout).strip()[-80:]}")
         elif r.returncode != 0 or not r.stdout.strip().startswith("OK"):
             out.append("POLICY-REREAD owed: read policy-corpus.txt (the core and the rules in full, the instrument "
-                       f"pages changed since the last proof), then policy_reread_check.py --stamp {stamp} --write-stamp")
+                       f"pages and rulings changed since the last proof), then policy_reread_check.py --stamp {stamp} --write-stamp")
     owed = event == "PostCompact" or any(ln.startswith("POLICY-REREAD") for ln in out)
     if owed:
         if write_corpus(state, repo):

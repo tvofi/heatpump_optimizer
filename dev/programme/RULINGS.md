@@ -4,8 +4,8 @@ Every ruling of tvofi's still in force, with its date. Quoted text is his words
 verbatim, typos kept; "as recorded" marks a ruling whose words were not kept,
 and "orchestrator's reading" marks an interpretation, never his. A ruling given
 to an orchestrator lands here in its next pull request; one superseded moves to
-the closing list, naming its successor. Read in full after every compaction
-(`dev/governance/roles/orchestrator.md` section 0).
+the closing list, naming its successor. Re-read on change after every
+compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Authority and the mandate
 
@@ -168,12 +168,13 @@ the closing list, naming its successor. Read in full after every compaction
   rulings; changes only for instrument pages" · X1: No, mandate stays as is · X2:
   Yes, trial". On P9, P10, P12, P14, R1, R2: "They should be fixed in the
   beginning of round 11 before the finders run".
-- 2026-11-15, relayed to this file's fixer by the orchestrator: "Rules in full".
-  After a compaction `CLAUDE.md`, the orchestrator's contract, this file and
-  every `.claude/rules/` file are read in full; of the instrument pages only
-  those changed since the last proof.
-- 2026-11-15, by decision card: "Count it, raise the cap (Recommended)". This
-  file is measured and capped with the policy corpus (`policy_lint.mjs`).
+- 2026-11-15, relayed by the orchestrator: "Rules in full". After a compaction
+  `CLAUDE.md`, the orchestrator's contract and every `.claude/rules/` file are
+  read in full.
+- 2026-11-15, relayed by the orchestrator: "This file should be excluded by the
+  corpus but still needs to be re-read on changes, just like instruments.md".
+  This file and the instrument pages are read only where changed since the last
+  proof; it is listed in `corpus_excluded.json`, outside the policy caps.
 - 2026-11-14: "remerge_main.sh definitely needs to be scoped down aggressively"
   (main merges into a head only on a real conflict); "Day 1 plus shadow" (the
   shadow runs beside round 11 as a measurement; the switch to an integration
@@ -422,6 +423,9 @@ the closing list, naming its successor. Read in full after every compaction
 - R10-DRAW-MAP-EVIDENCE rulings (2026-11-14) and the R10-COMBI-TANK waiver
   (2026-11-06): retired here; they live on those groups' roster entries.
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
+- R3's reading of this file in full (2026-11-13) and the card answer "Count it,
+  raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
+  corpus but still needs to be re-read on changes" (2026-11-15).
 - Full corpus re-read after every compaction (2026-10-24, 2026-10-25, 2026-11-09)
   and the session-start corpus hook (2026-10-21): superseded by R3 (2026-11-13)
   and "Rules in full" (2026-11-15).
