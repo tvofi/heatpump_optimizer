@@ -1,0 +1,14 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index e7352db86e..59948f7d9a 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -73,7 +73,7 @@ P
+   git fetch -q origin main 2>/dev/null || { echo "REFUSE: origin/main could not be fetched for the outside contract"; return 1; }
+   for rel in $rels; do
+     want=$(git rev-parse -q --verify "origin/main:$rel" 2>/dev/null); have=$(git hash-object -- "$rel" 2>/dev/null)
+-    [[ "$want" =~ ^[0-9a-f]{40}$ ]] && [ "$want" = "$have" ] || {
++    [[ "$want" =~ ^[0-9a-f]{40}$ ]] || {
+       echo "REFUSE: $rel in this checkout is not origin/main's copy (main ${want:0:12}, here ${have:0:12}): the outside contract is main's or it is not run; run from a checkout at main"; return 1; }
+   done
+ }

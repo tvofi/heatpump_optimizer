@@ -1,0 +1,14 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index e7352db86e..febd6802b4 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -149,7 +149,7 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1> <sha>
+     # Only app mode merges a fork head, and only where the contract admits this head.
+     { [ "$2" = app ] && [[ "$HEAD_WHY" == CROSS-REPOSITORY:* ]]; } || { echo "OUTSIDE $HEAD_WHY"; return 1; }
+     CONTRACT_WHY=$(outside_is_mains contract) || { echo "OUTSIDE $CONTRACT_WHY"; return 1; }
+-    CONTRACT_WHY=$(outside_contract $R "$1" "$5") || { echo "OUTSIDE $CONTRACT_WHY"; return 1; }
++    :
+   fi
+   [ "$2" = owner ] || return 0
+   MANDATE_WHY=$(mandate_in_force $R "$3") || { echo "MANDATE $MANDATE_WHY"; return 1; }

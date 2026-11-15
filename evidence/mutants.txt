@@ -1,0 +1,33 @@
+M6 rc=1 merge_pr self-test: 50 checks, 2 failed
+  M6   FAIL app mode on a fork head refuses when a file the contract reads is not origin/main's, though the contract would admit (rc=0: )
+  M6   FAIL ... having asked no contract (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;git fetch -q origin main;api repos/tvofi/heatpump_optimizer/pulls/7;check tvofi/heatpump_optimizer 7 origin/main;)
+M10 rc=1 merge_pr self-test: 50 checks, 1 failed
+  M10   FAIL app mode on a pull request that cannot be read refuses: an unread head is never ours (rc=1: OUTSIDE CONTRACT REFUSES #7 at cccccccccccc: REFUSE: gh api repos/tvofi/heatpump_optimizer/pulls/7 exited 1: gh: HTTP 502 (an unread fact refuses) (decision 0017))
+M4 rc=1 merge_pr self-test: 50 checks, 1 failed
+  M4   FAIL app mode on a cross-repository head the contract admits at ANOTHER head refuses, naming both (rc=0: )
+M8 rc=1 merge_pr self-test: 50 checks, 1 failed
+  M8   FAIL owner mode on a cross-repository head refuses, naming the fork (decision 0017) (rc=1: OUTSIDE CONTRACT REFUSES #7 at cccccccccccc: NOT OUTSIDE: #7's author None (id None, type None) matches no entry of dev/governance/config/outside_contributors.json at origin/main (decision 0017))
+M5 rc=1 merge_pr self-test: 50 checks, 4 failed
+  M5   FAIL app mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours (rc=0: )
+  M5   FAIL ... having read no pull request (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;api repos/tvofi/heatpump_optimizer/pulls/7;)
+  M5   FAIL owner mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours (rc=0: )
+  M5   FAIL ... having read no pull request (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;api repos/tvofi/heatpump_optimizer/pulls/7;api repos/tvofi/heatpump_optimizer/issues/comments/4100000001;api --paginate --slurp repos/tvofi/heatpump_optimizer/issues/201/comments?per_page=100&since=2026-11-15T15:18:40Z;api --paginate --slurp repos/tvofi/heatpump_optimizer/issues/3394/comments?per_page=100&since=2026-11-15T15:18:40Z;)
+M9 rc=0 merge_pr self-test: 50 checks, 0 failed
+M7 rc=1 merge_pr self-test: 50 checks, 6 failed
+  M7   FAIL app mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours (rc=0: )
+  M7   FAIL ... having read no pull request (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;git fetch -q origin main;api repos/tvofi/heatpump_optimizer/pulls/7;)
+  M7   FAIL owner mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours (rc=0: )
+  M7   FAIL ... having read no pull request (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;git fetch -q origin main;api repos/tvofi/heatpump_optimizer/pulls/7;api repos/tvofi/heatpump_optimizer/issues/comments/4100000001;api --paginate --slurp repos/tvofi/heatpump_optimizer/issues/201/comments?per_page=100&since=2026-11-15T15:18:41Z;api --paginate --slurp repos/tvofi/heatpump_optimizer/issues/3394/comments?per_page=100&since=2026-11-15T15:18:41Z;)
+  M7   FAIL app mode on a fork head refuses when a file the contract reads is not origin/main's, though the contract would admit (rc=0: )
+  M7   FAIL ... having asked no contract (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;git fetch -q origin main;api repos/tvofi/heatpump_optimizer/pulls/7;git fetch -q origin main;check tvofi/heatpump_optimizer 7 origin/main;)
+M3 rc=1 merge_pr self-test: 50 checks, 4 failed
+  M3   FAIL app mode on a cross-repository head the outside contract refuses refuses with outside.py's reason (decision 0017) (rc=0: )
+  M3   FAIL ... having asked the contract at origin/main (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;git fetch -q origin main;api repos/tvofi/heatpump_optimizer/pulls/7;git fetch -q origin main;)
+  M3   FAIL app mode on a cross-repository head the contract admits at ANOTHER head refuses, naming both (rc=0: )
+  M3   FAIL app mode end to end: a fork head the contract refuses posts nothing and merges nothing (merged deadbeef)
+M2 rc=1 merge_train self-test: 825 checks, 1 failed
+  M2   FAIL fork head on a batch/ base: the outside contract is asked before the pinned merge, and its refusal parks the entry [OUTSIDE] naming the fork, nothing merged
+M1 rc=1 merge_train self-test: 825 checks, 3 failed
+  M1   FAIL fork head: a checkout whose tools/pr/outside.py is not origin/main's blob stops before that copy is executed, on a head of ours too, and nothing is approved
+  M1   FAIL fork head: a checkout whose tools/pr/outside.py is not origin/main's blob stops before that copy is executed, on a head a fork's too, and nothing is approved
+  M1   FAIL fork head null control: a head of ours read from main's outside.py is ours, whatever another of the contract's copies says (only the executed file is compared before the read)
