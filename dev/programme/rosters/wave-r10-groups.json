@@ -28556,7 +28556,7 @@
    "carry": [],
    "resume": {
     "stage": "design",
-    "branch": null,
+    "branch": "handoff/r11-pre-new-dimensions",
     "commit": null,
     "last_step": null,
     "next_step": "designer now (pipelined behind R11-PRE-FINDER-CONTRACT and R11-PRE-BRIEFS-CENSUS); fixer on Design review: approve and both merged",
