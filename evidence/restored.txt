@@ -1,0 +1,16 @@
+== restored constraints at head README
+says which they could not separate: 1
+about 150 k tokens for mechanical and relay seats: 1
+about 300 k: 1
+designers, pre-studies, root-cause and plan seats: 1
+A seat re-running a retired one repairs it first: 1
+== base wording of the rotation bullet (merge base)
+70:- Context rotation, a fresh context between stages (rca, fix, handoff), never
+71-  mid-task or mid-merge: about 150 k tokens for mechanical, standing and relay
+72-  seats, reviewers and S and M fixers; about 300 k for L and XL fixers,
+73-  designers, pre-studies, root-cause and plan seats; about 500 k for the
+74-  orchestrator, which rotates through `state_docs.py` and the resume.
+== base wording: retired one / separate
+272-the latest round's `ISSUES.json` or `JUDGE.json`, cites it: then it is
+273:repaired, old path first. A seat re-running a retired one repairs it first.
+274-

@@ -1,0 +1,21 @@
+12:`resume.stage not in DONE_STAGES`, so a done group's after-edges count as
+82:DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
+87:#: (roster_sync never rewrites it), so DONE_STAGES keeps meaning "merged".
+89:FINISHED_STAGES = DONE_STAGES + ("absorbed",)
+90:CLOSED_STAGES = FINISHED_STAGES + ("refused", "deferred")
+398:            if (g.get("resume") or {}).get("stage") not in FINISHED_STAGES}
+411:RELEASING_STAGES = FINISHED_STAGES + RULED_STAGES
+1039:          not set(DONE_STAGES) & set(LIVE) and not set(DONE_STAGES) & set(DISPOSITION),
+1040:          (DONE_STAGES, LIVE, DISPOSITION))
+1109:          and "absorbed" not in DONE_STAGES and CARRY_CLOSED == CLOSED_STAGES,
+CMD: python3 -c "import sys,glob,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in F+('refused',)]"
+== at head
+R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD deferred
+R11-INTAKE-R10-RESIDUE not-started
+R10-HOTFIX-UPDATEPR-FIGURE-REFRESH in-progress
+rc=0 lines=46
+== control: scratch roster dir
+D fixing
+== mutant: drop F (literal tuple restored)
+A rca-done
+D fixing

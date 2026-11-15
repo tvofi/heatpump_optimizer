@@ -1,7 +1,8 @@
+merged tree 229d5d9d49661270bea06824222ed7a99da2b1fc = origin/main a72ae19952e3dac9717a5be27c83f182be34c567 + 820236749a878893f6217210683b16aefac89657
 file                                           lines cap  ~tokens  cap always
 tests/README.md                                  461  800     6677  6686 
-tools/audit/README.md                            315  321     6050  6059 
 tools/audit/briefs/fixer.md                      315  315     5213  5216 
+tools/audit/README.md                            312  321     6049  6059 
 tools/audit/briefs/orchestrator.md               293  295     4231  4251 
 CLAUDE.md                                        214  221     3605  3605   yes
 .claude/workflows/web-fragments.md               154  168     2417  2427 
@@ -52,9 +53,10 @@ dev/governance/roles/standing-roster.md            7    7       92    92
 dev/governance/roles/standing-tick.md              6    6       83    83 
 
 always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849
-corpus:        ~68948 tokens, cap 68618 +band 500 = 69118
+corpus:        ~68947 tokens, cap 68618 +band 500 = 69118
 role fixer     ~6280 tokens, cap 5852 +band 500 = 6352
 role record    ~7428 tokens, cap 7405 +band 500 = 7905
 role policy    ~10014 tokens, cap 9958 +band 500 = 10458
 
 The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0

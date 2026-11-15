@@ -1,0 +1,23 @@
+== body line refs
+  `standing.md`; about 150 k tokens for mechanical and relay seats; about 300 k
+  for designers, pre-studies, root-cause and plan seats; about 500 k for the
+repaired, old path first. A seat re-running a retired one repairs it first.
+has not refuted it, and says which they could not separate. `CLAUDE.md`'s
+312
+== role refs
+fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
+Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
+Recycle (tvofi, 2026-10-31) once your context passes about 150k tokens or you
+== caps of role contracts
+.claude/rules/defect-root-cause.md               153  153     1882  1887 
+dev/governance/roles/architect-planner.md         84   85     1261  1261 
+tools/audit/briefs/root-cause.md                  84   84      998   998 
+dev/governance/roles/designer.md                  60   60      877   878 
+dev/governance/roles/plan-review.md               24   24      304   304 
+role fixer     ~6280 tokens, cap 5852 +band 500 = 6352
+role record    ~7428 tokens, cap 7405 +band 500 = 7905
+role policy    ~10014 tokens, cap 9958 +band 500 = 10458
+== git grep restored phrases at e3df1f1c
+says which they could not separate: e3df=0 head=1
+150 k tokens for mechanical and relay seats: e3df=0 head=1
+A seat re-running a retired one repairs it first: e3df=0 head=1
