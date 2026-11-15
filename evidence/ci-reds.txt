@@ -1,8 +1,0 @@
-Live check runs at 03c8a591847756bb3ef47cc11693638602e026ba (read 2026-11-15 ~21:15 UTC):
-governance / policy-docs   job 132955037797 failure: "ERROR [budgets] (whole corpus): about 69836 tokens exceeds the cap of 69833"; TOTAL: 1 error(s)
-tests / fast (3.14)        job 132955252710 failure: "1 TEST SCRIPT(S) FAILED" (GOLDEN_REF 98847b99d7bb; entities.py lane 373s)
-gate                       job 132955248049 failure
-governance / instrument-self-tests job 132955037899 failure (classify: base job 132905064799 cancelled, introduced red unreadable)
-governance / env-matrix    job 132955037805 cancelled
-tests / closures           job 132955252657 in_progress
-all others in owed-reds: success

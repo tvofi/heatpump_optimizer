@@ -1,0 +1,4 @@
+scratch merge of head onto origin/main 31117b1029de63938d949e78dcbcd8f9451e5e33
+corpus:        ~69748 tokens, cap 69333 +band 500 = 69833
+role fixer     ~6252 tokens, cap 5852 +band 500 = 6352
+role policy    ~9985 tokens, cap 9958 +band 500 = 10458

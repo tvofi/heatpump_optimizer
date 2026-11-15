@@ -1,7 +1,0 @@
-node tools/policy/policy_lint.mjs --budgets, corpus line, measured in this seat:
-merge base 66865be375f4ee283ee556f53fcd76cc3dbf40e2: corpus: ~69077 tokens, cap 69333 +band 500 = 69833
-PR head    03c8a591847756bb3ef47cc11693638602e026ba: corpus: ~69173 tokens, cap 69333 +band 500 = 69833
-authored   5889afaea6eda37f42be5fc94e4eecd4ea9949dc: corpus: ~69173 tokens
-origin/main 98847b99d7bb3238686efd6869f805c89c6d1ff1: corpus: ~69740 tokens
-merge-tree origin/main+head (tree 21560f7834399e114b363601704613fa21a3af8b): corpus: ~69836 tokens, cap 69333 +band 500 = 69833  (3 over)
-CI governance / policy-docs job 132955037797 at head: ERROR [budgets] (whole corpus): about 69836 tokens exceeds the cap of 69833 ; TOTAL: 1 error(s)

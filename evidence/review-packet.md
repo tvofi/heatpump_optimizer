@@ -1,84 +1,83 @@
 # Review packet #3626
-head: 03c8a591847756bb3ef47cc11693638602e026ba
-base: 66865be375f4ee283ee556f53fcd76cc3dbf40e2
+head: f475901cacf05fc6b106610d90db01cff7e08a07
+base: ebe83a1b8265b56bde009b70185585e736dbdb82
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=132955084760 success
-arch-score / arch-score id=132955037897 success
-arm id=132954787354 skipped
-budget-raise-gate / budget-raise-gate id=132955037907 success
-cancel-superseded id=132954791257 success
-codeql id=132954955448 skipped
-codeql / Analyze (actions) id=132955037790 success
-codeql / Analyze (javascript-typescript) id=132955037735 success
-codeql / Analyze (python) id=132955037884 success
-gate id=132955248049 failure
-governance id=132954955569 skipped
-governance / env-matrix id=132955037805 in_progress
-governance / instrument-self-tests id=132955037899 in_progress
-governance / policy-docs id=132955037797 failure
-governance / record id=132955039609 skipped
-governance / wave-script id=132955037816 success
-hassfest id=132954955260 skipped
-hassfest / hassfest id=132955037690 success
-kernel-points id=132955039479 skipped
-pr-contract id=132955249156 skipped
-prelude id=132954791459 success
-refresh id=132954791475 success
-sweep-self id=132955416190 skipped
-tests id=132954954768 skipped
-tests / arch-instrument id=132955252643 success
-tests / briefs id=132955037843 success
-tests / browser id=132955252682 success
-tests / closure-scope id=132955037813 success
-tests / closures id=132955252657 in_progress
-tests / coverage id=132955252623 in_progress
-tests / fast (3.14) id=132955252710 in_progress
-tests / mutation id=132955037838 success
-tests / mutation-autofix id=132955259000 skipped
-tests / mutation-pins id=132955258529 skipped
-tests / nightly-ha id=132955254388 skipped
-tests / nightly-status id=132955037881 success
-tests / replay id=132955254067 skipped
-tests / typing id=132955252676 success
-validate id=132954955540 skipped
-validate / validate-hacs id=132955037748 success
+## Gate digest: green
+CodeQL id=132977777390 success
+arch-score / arch-score id=132985378467 success
+arm id=132977549583 skipped
+budget-raise-gate / budget-raise-gate id=132985407479 success
+cancel-superseded id=132985401908 success
+codeql id=132985377696 skipped
+codeql / Analyze (actions) id=132977718751 success
+codeql / Analyze (javascript-typescript) id=132977718767 success
+codeql / Analyze (python) id=132977718885 success
+gate id=132985362062 success
+governance id=132985362858 skipped
+governance / env-matrix id=132977718691 success
+governance / instrument-self-tests id=132977718713 success
+governance / policy-docs id=132977718696 success
+governance / record id=132977720127 skipped
+governance / wave-script id=132977718728 success
+hassfest id=132985392133 skipped
+hassfest / hassfest id=132977718667 success
+kernel-points id=132985362910 skipped
+pr-contract id=132985362989 skipped
+pr-contract / pr-contract id=132984763687 success
+prelude id=132985362090 success
+refresh id=132985393787 success
+sweep-self id=132985609452 skipped
+tests id=132985392476 skipped
+tests / arch-instrument id=132977978477 success
+tests / briefs id=132977718718 success
+tests / browser id=132977978442 success
+tests / ci-ratchet id=132983713279 skipped
+tests / claims-autofix id=132982495505 skipped
+tests / closure-scope id=132977718725 success
+tests / closures id=132977978542 success
+tests / closures-autofix id=132982754595 skipped
+tests / coverage id=132977978500 success
+tests / coverage-ratchet id=132983711474 success
+tests / fast (3.14) id=132977978493 success
+tests / graders-head-copy id=132983711415 success
+tests / lane-proofs id=132983711504 success
+tests / mutation id=132977718746 success
+tests / mutation-autofix id=132977989929 skipped
+tests / mutation-pins id=132977989817 skipped
+tests / nightly-ha id=132977979871 skipped
+tests / nightly-status id=132977718747 success
+tests / replay id=132977979513 skipped
+tests / typing id=132977978468 success
+validate id=132985394026 skipped
+validate / validate-hacs id=132977718655 success
 
 ## Refusals
-introduced-red: unreadable: head governance / instrument-self-tests job 132955037899: in_progress has not concluded: an introduced red cannot be ruled out (fail closed)
+none
 
 ## Advisories
-required-wait: required context `gate` reads concluded failure at 03c8a591847756bb3ef47cc11693638602e026ba in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+none
 
 ## carry_audit at the head
-NOTE body item a9e0d119: R11-INTAKE-R10-RESIDUE
+NOTE body item 4b4249e2: R11-INTAKE-R10-RESIDUE
 CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-unverified MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-             no segment of this names a program this check knows
-  ok         python3 tools/audit/seat/hooks_setup.py --self-test
-             `tools/audit/seat/hooks_setup.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         node tools/policy/policy_lint.mjs --budgets
+ok         node tools/policy/policy_lint.mjs --budgets
              `tools/policy/policy_lint.mjs` is in the tree at this head
   ok         node tools/policy/policy_lint.mjs
              `tools/policy/policy_lint.mjs` is in the tree at this head
-  ok         python3 tests/layout.py
-             `tests/layout.py` is in the tree at this head
+  ok         python3 tools/audit/seat/hooks_setup.py --self-test
+             `tools/audit/seat/hooks_setup.py` is in the tree at this head
   ok         python3 -I tools/audit/check_scopes.py --self-test --repo .
              `tools/audit/check_scopes.py` is in the tree at this head
-  ok         python3 -I tools/audit/check_scopes.py --repo .
-             `tools/audit/check_scopes.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         node tools/policy/policy_lint_envmatrix.mjs "$PWD" <tmp> "$(git rev-parse HEAD)"
-             `tools/policy/policy_lint_envmatrix.mjs` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         node tools/policy/rules_sync.mjs --check
+             `tools/policy/rules_sync.mjs` is in the tree at this head
 
-FIGURES: 9 resolved, 1 not verified, 0 refused
+FIGURES: 6 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -93,7 +92,7 @@ none
 
 ## Three-dot diff
 diff --git a/CLAUDE.md b/CLAUDE.md
-index 937834a848..a1790c5da3 100644
+index 937834a848..e770524eba 100644
 --- a/CLAUDE.md
 +++ b/CLAUDE.md
 @@ -77,8 +77,8 @@ rewrite looks like a correction from the inside; if the honest description is
@@ -126,12 +125,12 @@ index 937834a848..a1790c5da3 100644
  
  - `tests/README.md` — what each script pins, how the scoped gate selects, why a
    test that re-implements a production formula pins nothing.
-+- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated; re-read
-+  on change after every compaction (`orchestrator.md` section 0).
++- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated: they bind
++  every seat, though the file is not policy.
  - `dev/audit/README.md` — how a round is run and where its evidence lands.
  - `dev/programme/HANDOVER.md` — the one durable handover, ruled by
    `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
-@@ -202,12 +203,12 @@ is recorded as `pending owner confirmation`, quoting the rule it would change;
+@@ -202,12 +203,11 @@ is recorded as `pending owner confirmation`, quoting the rule it would change;
  the seat neither acts on that half nor writes it as direction until the owner or
  the contract moves.
  
@@ -147,8 +146,7 @@ index 937834a848..a1790c5da3 100644
 -unanswered one is a reviewer's note resolved at merge (card C5).
 +Opinions are private data (tvofi, 2026-11-15). Nothing pushed states or implies
 +an opinion of the owner, a contributor or an agent on anything but the code, the
-+product and how they work: files, commits, refs, pull-request and issue text,
-+comments, verdicts, rosters and prompts. A decision is described by what it
++product and how they work. A decision is described by what it
 +does; an owner ruling is quoted only for what it decides. Findings of the
 +security-and-privacy audit dimension go to the owner directly, never to an issue
 +or anything else on origin.
@@ -188,10 +186,20 @@ index 57a1196bbd..4b5f152afb 100644
    "docs/index.html",
    "dev/audit/rounds/round10/D0/s1/REPORT.md",
 diff --git a/dev/governance/roles/fixer.md b/dev/governance/roles/fixer.md
-index b8bcb5c9c0..b7dea5d1e0 100644
+index b8bcb5c9c0..233e6c18dd 100644
 --- a/dev/governance/roles/fixer.md
 +++ b/dev/governance/roles/fixer.md
-@@ -72,11 +72,12 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
+@@ -2,7 +2,8 @@
+ 
+ You own one PR group: one subsystem, at most five findings, at most about 400
+ production lines. You work in your own worktree branched from `origin/main`.
+-Read only your roster group (`jq`). Run a job outliving your turn as a
++Read only your roster group (`jq`). The owner's rulings in
++`dev/programme/RULINGS.md` bind you. Run a job outliving your turn as a
+ background task, whose exit wakes you; never end a turn on a detached one.
+ Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
+ API floor is theirs), woken by its exit, never polling;
+@@ -72,11 +73,11 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
     run it on a `GRID_SURFACE` diff (recipe: `web-fragments.md`; #2841).
  
     **Running locally does not discharge CI.** What `scope.run` names is green,
@@ -201,8 +209,7 @@ index b8bcb5c9c0..b7dea5d1e0 100644
 -   the carry check); the orchestrator opens
 -   the PR (`docs/decisions/0011-app-authored-identity.md`).
 +   every red `prepr.sh` step 6d predicts is repaired before the handoff, and
-+   the body passes `tools/pr/prepr.sh`, run on a committed tree (step 6f reads
-+   `HEAD`; 7e is the carry check). **Prepr runs scoped** (tvofi, 2026-11-15):
++   the body passes `tools/pr/prepr.sh`, run on a committed tree. **Prepr runs scoped** (tvofi, 2026-11-15):
 +   `PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta
 +   since the last clean run; a full run only where the change reaches what
 +   only it measures, the reason in the body.
@@ -238,7 +245,7 @@ index b8bcb5c9c0..b7dea5d1e0 100644
      (tvofi, 2026-10-08). Where one fix satisfies the check and another removes
      the cause or simplifies the design, take the second; the body names the
 diff --git a/dev/governance/roles/orchestrator.md b/dev/governance/roles/orchestrator.md
-index f18f72f2f4..ddaed900e4 100644
+index f18f72f2f4..fafed23280 100644
 --- a/dev/governance/roles/orchestrator.md
 +++ b/dev/governance/roles/orchestrator.md
 @@ -14,12 +14,14 @@ comments, dispatch briefs, roster edits, and what you tell the owner.
@@ -246,10 +253,10 @@ index f18f72f2f4..ddaed900e4 100644
  names "the fixer" or "a seat", read yourself into it whenever you are the one
  acting — and you are acting whenever you write text another agent or the owner
 -will treat as established.
-+will treat as established. **After each compaction** read `CLAUDE.md`, this
++will treat as established. The owner's rulings in `dev/programme/RULINGS.md`
++bind you and whoever you brief, though that file is not policy. **After each compaction** read `CLAUDE.md`, this
 +contract and the rules in full, and the instrument pages and
-+`dev/programme/RULINGS.md` (a ruling you are given lands there in your next pull
-+request) the liveness hook's `policy-corpus.txt` carries as changed, then run its
++`dev/programme/RULINGS.md` the liveness hook's `policy-corpus.txt` carries as changed, then run its
 +`PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).
  
  ## 1. Verify before claiming
@@ -259,9 +266,11 @@ index f18f72f2f4..ddaed900e4 100644
  **Nothing is asserted that has not been measured, and the measurement is the
  command, not the impression it left.** Before writing a claim, ask what exactly
  ran, and what its output would have looked like had the claim been false. If you
-@@ -29,8 +31,7 @@ cannot answer the second, you have not measured — you have expected.
+@@ -27,10 +29,8 @@ cannot answer the second, you have not measured — you have expected.
+ 
+ - Describing an artifact without opening it is the same defect. A wrong claim
    is corrected under `fixer.md` step 9.
- - **Never print a conclusion beside a command** (`fixer.md` step 3).
+-- **Never print a conclusion beside a command** (`fixer.md` step 3).
  - **Never chain past a check with `;`.** `check; publish` publishes whether or
 -  not the check refused. Use `check && publish` — and for the body and the
 -  push, that `&&` is already wired as `tools/pr/push.sh` (#678).
@@ -269,7 +278,15 @@ index f18f72f2f4..ddaed900e4 100644
  
  ## 2. Delegate what a seat can do; do only what only you can do
  
-@@ -70,8 +71,7 @@ process states and the demonstration a check owes are `root-cause.md`'s and
+@@ -64,14 +64,12 @@ target or the critical chain would feel goes back to the owner first.
+ ## 3. Repeated errors go to the root-cause seat, not into another issue
+ 
+ `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
+-instance by you counts toward the third. The product, the four
+-process states and the demonstration a check owes are `root-cause.md`'s and
+-`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
++instance by you counts toward the third. It runs in **its own seat**
++(`root-cause.md`), never inside the fix (section 2).
  
  ## 4. The merge message is a second closing surface
  
@@ -279,7 +296,7 @@ index f18f72f2f4..ddaed900e4 100644
  time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
  merge commit shuts an issue. **GitHub discards the negation**; only the keyword
  and the number matter.
-@@ -85,9 +85,8 @@ whenever you merge.
+@@ -85,9 +83,8 @@ whenever you merge.
  ## 5. Before dispatching a seat
  
  - **The soft cap gates only dispatching a new roster group** (tvofi,
@@ -291,7 +308,7 @@ index f18f72f2f4..ddaed900e4 100644
  - **A ready critical-path group starts regardless of every cap** (tvofi,
    2026-10-22): a group in the current plan's
    `critical_path` whose `after` groups are all done, and whose design verdict
-@@ -120,9 +119,11 @@ whenever you merge.
+@@ -120,9 +117,11 @@ whenever you merge.
    stage, the numbers it must re-measure, and the destination its carry must reach.
  - **Name the null control you expect**, where one is knowable. A seat told what
    must *not* fire returns better evidence than one told only what must.
@@ -305,7 +322,7 @@ index f18f72f2f4..ddaed900e4 100644
  - **Concurrent fixes sharing a concern push only after an architect note**
    you dispatch into each group's roster brief (owning module, each fix's
    shape); it binds them (`fixer.md` 17). A serial chain orders groups whose
-@@ -191,7 +192,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
+@@ -191,7 +190,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
  no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
  **The handover is one file and it is not optional** (`writing-for-agents.md`).
  **Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
@@ -315,20 +332,28 @@ index f18f72f2f4..ddaed900e4 100644
  
  Failure shapes already produced, all yours:
  
-@@ -241,7 +243,10 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
+@@ -209,8 +209,6 @@ Failure shapes already produced, all yours:
+ `finding-propagation.mdc` binds the producing pull request, and you too: you
+ write the rosters and order the merges.
+ 
+-- **A comment is not propagation** — including yours on #3394.
+-- **The destination must exist**, and creating it is part of the carry.
+ - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
+   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
+   it), each stamp, and before branch cleanup, which keeps the roster
+@@ -241,7 +239,9 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
    review on a code-owned path; then merge with `--match-head-commit <sha>`.
  - Then `main` is green after it. If a merge reddens main: a behaviour change in
    the merged diff → revert first and diagnose after; a failure the diff cannot
 -  reach → establish that, and it is its own issue. Never `--allow-red`.
 +  reach → establish that, and it is its own issue. `--allow-red` only when the
-+  red's cause is established as not the pull request's (for a stamp, as CI
-+  tooling and not product code) and commented on it or recorded; never over a
++  red's cause is established as not the pull request's and commented on it or recorded; never over a
 +  concluded red whose cause is unknown (tvofi, 2026-11-05, 2026-11-11).
  - After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
  
  ## 12. The gate lease
 diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
-index 62eabf1f24..7f94d5404d 100644
+index 62eabf1f24..1470557de9 100644
 --- a/dev/governance/roles/proposal-triage.md
 +++ b/dev/governance/roles/proposal-triage.md
 @@ -5,9 +5,8 @@ passes this gate before building (decision 0015); a required countermeasure
@@ -339,7 +364,7 @@ index 62eabf1f24..7f94d5404d 100644
 -instrument a running seat depends on stays local and in-round, ruled by no one.
 -Check rulings against code.
 +medium effort; an ACCEPT is built at the start of the next round. Check
-+rulings against code.
++rulings against code; the owner's, in `dev/programme/RULINGS.md`, bind this triage.
  
  **Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
  time; tokens (model x effort x runs); API calls; standing CPU
