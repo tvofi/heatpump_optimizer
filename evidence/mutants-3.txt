@@ -1,0 +1,2 @@
+RESULT C7b-base-line-restored KILLED rc=1 ['SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {"drop D10\'s universe": True, \'strip tests/ and blueprints/ globs\': True, \'exclude a'] ['FAIL D1 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]', 'FAIL D2 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]']
+done
