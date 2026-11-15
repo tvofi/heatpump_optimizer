@@ -616,7 +616,7 @@ handoff_level() { # the handoff-no-pr and hold-stale levels, derived from this p
 }
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
-  local bf bonly key seed="" tries n cls
+  local bf bonly key seed="" tries n cls ht
   f=$state/cloud-handoff-failed; mkdir -p "$state"
   # BODY-ONLY (R10-FLOW-BODY-ONLY part (c)): `<topic> <body sha>` per body this relay has applied, by an
   # update or a body-only run. With no file yet, this pass records every contained topic's body as
@@ -643,8 +643,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # `fix/<t>-pr` is <t>-pr, then <t>. Reading <t> alone skipped #3358 for hours behind
     # handoff/r10-combi-tank-pr, its handoff/r10-combi-tank an older tip already in the head.
     topic= hs=
-    for t in $(python3 -I "$HERE/topic_grammar.py" handoff-topics "$br"); do  # mut:handofftopics
-      hs=$(awk -v r="refs/heads/handoff/$t" '$2 == r { print $1; exit }' "$state/cloud-hrefs.$$"); [ -z "$hs" ] || { topic=$t; break; }
+    for ht in $(python3 -I "$HERE/topic_grammar.py" handoff-topics "$br"); do  # mut:handofftopics
+      hs=$(awk -v r="refs/heads/handoff/$ht" '$2 == r { print $1; exit }' "$state/cloud-hrefs.$$"); [ -z "$hs" ] || { topic=$ht; break; }
     done
     [ -n "$hs" ] || continue  # no handoff ref: nothing to apply, so nothing owed
     bs=$(awk -v r="refs/heads/handoff-body/$topic" '$2 == r { print $1; exit }' "$state/cloud-hrefs.$$")
