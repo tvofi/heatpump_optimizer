@@ -439,6 +439,17 @@ def run():
     check("retry: a sha names one (topic, sha) entry; no sha removes every entry of that topic and no namesake's",
           od.retry(sd, "r10-cp", sha("7"), said.append) == 0 and sorted(od._load(d(sd) / "fails.json", {})) == [f"r10-cp {sha('2')}", f"r10-cp-2 {sha('2')}"]
           and od.retry(sd, "r10-cp", None, said.append) == 0 and sorted(od._load(d(sd) / "fails.json", {})) == [f"r10-cp-2 {sha('2')}"])
+    (d(sd) / "fails.json").write_text(od.json.dumps(two))
+    said, real, reads = [], od._load, []
+    # a pass that loaded before the verb wrote and rewrote after it: the read-back holds the entry again
+    od._load = lambda path, default: (reads.append(path), real(path, default) if len(reads) == 1 else two)[1]
+    try:
+        rc = od.retry(sd, "r10-cp-2", None, said.append)
+    finally:
+        od._load = real
+    check("retry: a file that does not read back as what was written is refused (rc 1), naming the read-back",
+          rc == 1 and len(said) == 2 and said[0].startswith("RETRY r10-cp-2 ")
+          and said[1].startswith("open_driver retry: REFUSE: ") and "read back" in said[1])
     with tempfile.TemporaryDirectory() as tmp:
         env = {**os.environ, "HPO_STATE_DIR": tmp}
         cli = lambda *a: subprocess.run([sys.executable, "-I", od.__file__, *a], capture_output=True, text=True, env=env)
@@ -502,6 +513,10 @@ def run():
         check("git layer: tips read handoff and main", t.get("refs/heads/handoff/side") == side and t.get("refs/heads/main") == on_main)
         check("git layer: ledger landed true for a main tip", wd.landed(on_main, on_main))
         check("git layer: ledger landed false for an unlanded tip", not wd.landed(on_main, side))
+        wd.opener = Path(tmp, "c", "open_pr.sh")
+        check("git layer: tools_head is the HEAD of the checkout holding the opener", wd.tools_head() == side)
+        wd.opener = Path(tmp, "open_pr.sh")
+        check("null: tools_head of a directory in no checkout is empty, never a guess", wd.tools_head() == "")
     # World.launch with hostile topics and a state directory holding a space
     with tempfile.TemporaryDirectory() as tmp:
         sd = Path(tmp) / "state dir"
