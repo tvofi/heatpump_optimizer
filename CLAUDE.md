@@ -167,8 +167,7 @@ never only in /tmp (decision 0013).
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
-- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated; re-read
-  on change after every compaction (`orchestrator.md` section 0).
+- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated.
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
 - `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
@@ -207,8 +206,7 @@ the contract moves.
 
 Opinions are private data (tvofi, 2026-11-15). Nothing pushed states or implies
 an opinion of the owner, a contributor or an agent on anything but the code, the
-product and how they work: files, commits, refs, pull-request and issue text,
-comments, verdicts, rosters and prompts. A decision is described by what it
+product and how they work. A decision is described by what it
 does; an owner ruling is quoted only for what it decides. Findings of the
 security-and-privacy audit dimension go to the owner directly, never to an issue
 or anything else on origin.

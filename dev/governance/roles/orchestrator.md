@@ -16,8 +16,7 @@ names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
 will treat as established. **After each compaction** read `CLAUDE.md`, this
 contract and the rules in full, and the instrument pages and
-`dev/programme/RULINGS.md` (a ruling you are given lands there in your next pull
-request) the liveness hook's `policy-corpus.txt` carries as changed, then run its
+`dev/programme/RULINGS.md` the liveness hook's `policy-corpus.txt` carries as changed, then run its
 `PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).
 
 ## 1. Verify before claiming
@@ -29,7 +28,6 @@ cannot answer the second, you have not measured — you have expected.
 
 - Describing an artifact without opening it is the same defect. A wrong claim
   is corrected under `fixer.md` step 9.
-- **Never print a conclusion beside a command** (`fixer.md` step 3).
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Use `check && publish`.
 
@@ -244,8 +242,7 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. `--allow-red` only when the
-  red's cause is established as not the pull request's (for a stamp, as CI
-  tooling and not product code) and commented on it or recorded; never over a
+  red's cause is established as not the pull request's and commented on it or recorded; never over a
   concluded red whose cause is unknown (tvofi, 2026-11-05, 2026-11-11).
 - After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
 

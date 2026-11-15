@@ -73,8 +73,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff, and
-   the body passes `tools/pr/prepr.sh`, run on a committed tree (step 6f reads
-   `HEAD`; 7e is the carry check). **Prepr runs scoped** (tvofi, 2026-11-15):
+   the body passes `tools/pr/prepr.sh`, run on a committed tree. **Prepr runs scoped** (tvofi, 2026-11-15):
    `PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta
    since the last clean run; a full run only where the change reaches what
    only it measures, the reason in the body.
