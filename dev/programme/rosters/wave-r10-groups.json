@@ -26980,7 +26980,9 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R11-HOTFIX-FIGURE-BLOCK-BASE"
+   ],
    "files": [
     "tools/audit/seat/cloud_relay.sh",
     "tools/audit/seat/tick_loop.sh"
