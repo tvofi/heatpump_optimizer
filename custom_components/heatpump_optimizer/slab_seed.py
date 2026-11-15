@@ -57,20 +57,34 @@ def refusal(return_c: float, room_c: float, signals: Any) -> str | None:
     return None
 
 
-def audit(notices: Any, hass: Any, entity_id: str | None,
-          return_c: float | None, room_c: float) -> None:
-    """Raise the repair naming the sensor while its level is refused, else clear it.
+def seed(model: Any, state: Any, return_c: float, signals: Any) -> None:
+    """Advance ``state``'s slab from ``return_c`` unless the reading is refused.
 
-    Judged on the level alone: a hot-water run or a defrost refuses a reading
-    for that cycle only, which is the plant working, not a wrong sensor.
+    Called before this cycle's pump signals are read, so ``signals`` are last
+    cycle's; :func:`judge` re-decides on this cycle's before the state publishes.
     """
-    high = return_c is not None and above_room(return_c, room_c)
+    if refusal(return_c, state.room_temperature, signals) is None:
+        model.update_slab_from_return_temp(state, return_c)
+
+
+def judge(notices: Any, hass: Any, reading: Any, room_c: float, signals: Any) -> bool:
+    """Whether this cycle's floor-return ``reading`` seeds the slab.
+
+    A refused reading leaves the slab to the model, as no sensor does. The
+    repair naming the sensor is raised while its level is refused and cleared
+    otherwise: judged on the level alone, since a hot-water run or a defrost
+    refuses a reading for that cycle only, which is the plant working, not a
+    wrong sensor.
+    """
+    value = reading.value if reading.ok else None
+    high = value is not None and above_room(value, room_c)
     notices.report(
-        hass, ISSUE_FLOOR_RETURN_IMPLAUSIBLE, entity_id if high else None,
+        hass, ISSUE_FLOOR_RETURN_IMPLAUSIBLE, reading.entity_id if high else None,
         {
-            "entity": str(entity_id),
-            "reading": f"{return_c:.1f}",
+            "entity": str(reading.entity_id),
+            "reading": f"{value:.1f}",
             "room": f"{room_c:.1f}",
             "bound": f"{SLAB_SEED_MAX_ABOVE_ROOM_K:g}",
         } if high else None,
     )
+    return value is not None and refusal(value, room_c, signals) is None

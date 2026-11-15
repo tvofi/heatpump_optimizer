@@ -6655,11 +6655,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
-            # The slab estimate advances from a plausible reading and records
-            # it (#3616). The pump signals here are last cycle's: this cycle's
-            # are read below, and judge the reading again before it publishes.
-            if slab_seed.refusal(floor_return.value, state.room_temperature, self._pump_signals) is None:
-                self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
+            slab_seed.seed(self._thermal_model, state, floor_return.value, self._pump_signals)
 
         # The lower zone's room temperature: only a real thermometer carries
         # information about it. The floor return is a WATER temperature,
@@ -6820,12 +6816,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
 
-        # A refused floor return leaves the slab to the model, as no sensor does.
-        slab_sensed = floor_return.ok and slab_seed.refusal(
-            floor_return.value, _ctx_of(self)._current_state.room_temperature, self._pump_signals) is None
-        slab_seed.audit(self._config_notices, self.hass, floor_return.entity_id,
-                        floor_return.value if floor_return.ok else None,
-                        _ctx_of(self)._current_state.room_temperature)
+        slab_sensed = slab_seed.judge(self._config_notices, self.hass, floor_return,
+                                      _ctx_of(self)._current_state.room_temperature, self._pump_signals)
         # The fabric model refined by how the interval went: last, on the full state.
         seed = await self._async_learn_interval(prior, slab_unsensed=not slab_sensed)
 
@@ -6839,9 +6831,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # Last resort: seed the slab, and the lower zone if nothing better
         # has been read, from the room temperature. Both guards are on the
-        # READING, not the entity being set: a stale sensor takes the same
-        # path as an absent one. The room+1 K seed runs only until the slab
-        # can be advanced (``_propagated_slab``); it used to freeze forever.
+        # READING: a stale or refused one (slab_seed) takes the absent path.
+        # The room+1 K seed runs only until ``_propagated_slab`` advances it.
         if not slab_sensed:
             if seed is not None:
                 state.slab_temperature = seed
