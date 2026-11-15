@@ -338,6 +338,8 @@ def _self_test() -> int:
                 return 0, world.get("row_text", f"- [#7](https://example.test/7) — **open**, t")
             if "status" in argv and "--porcelain" in argv:  # Train.freeable's reads
                 return 0, world.get("holder_status", "")
+            if argv[:2] == ["git", "hash-object"] or (argv[:2] == ["git", "rev-parse"] and argv[2].startswith("origin/main:")):
+                return 0, "b" * 40  # `Train.outside_is_mains`: this checkout's copy is main's blob
             if argv[:3] == ["git", "-C", "/somewhere/wt"] and "rev-parse" in argv:
                 return 0, "1" * 40
             if argv[:2] == ["git", "rev-parse"]:
