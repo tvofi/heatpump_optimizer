@@ -1,0 +1,62 @@
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=phases-unknown-status rc=1 fails=2 verdict=killed
+    FAIL phases: refused, unknown status 
+    FAIL phases: refused, unknown status 
+RESULT mutant=phases-waiting-named rc=1 fails=2 verdict=killed
+    FAIL phases: refused, waiting on nothing named 
+    FAIL phases: refused, waiting on nothing named 
+RESULT mutant=phases-unknown-phase rc=1 fails=1 verdict=killed
+    FAIL phases: refused, unknown phase 
+RESULT mutant=phases-order rc=1 fails=2 verdict=killed
+    FAIL phases: refused, out of the playbook's order 
+    FAIL phases: refused, out of the playbook's order 
+RESULT mutant=phases-iso-date rc=1 fails=1 verdict=killed
+    FAIL phases: refused, not ISO-8601 UTC 
+RESULT mutant=phases-not-started-date rc=1 fails=1 verdict=killed
+    FAIL phases: refused, a date on a not-started phase 
+RESULT mutant=phases-finished-not-done rc=1 fails=1 verdict=killed
+    FAIL phases: refused, finished on a phase not done 
+RESULT mutant=phases-forecast-basis rc=1 fails=1 verdict=killed
+    FAIL phases: refused, a forecast with no basis 
+RESULT mutant=phases-unlisted-drawn rc=1 fails=3 verdict=killed
+    FAIL phases: every playbook phase is a row, in order; an unlisted one is not started 
+    FAIL phases: the section draws a row per phase in the playbook's order 
+    FAIL the fixture arms ran to the end 
+RESULT mutant=phases-items-under-open rc=1 fails=1 verdict=killed
+    FAIL phases: a done phase's items are not drawn 
+RESULT mutant=phases-waiting-label rc=1 fails=2 verdict=killed
+    FAIL phases: a waiting phase names what it waits on 
+    FAIL phases: the running phase's items are drawn under it, each with its status 
+RESULT mutant=phases-forecast-basis-shown rc=1 fails=1 verdict=killed
+    FAIL phases: a forecast prints its window and its basis 
+RESULT mutant=phases-unavailable rc=1 fails=1 verdict=killed
+    FAIL the fixture arms ran to the end 
+RESULT mutant=phases-newest-round rc=1 fails=2 verdict=killed
+    FAIL phases: discovery takes the highest-numbered round's file 
+    FAIL phases: a host path is shown by its bare name, a checkout path relative 
+RESULT mutant=phases-no-host-path rc=1 fails=2 verdict=killed
+    FAIL phases: discovery takes the highest-numbered round's file 
+    FAIL phases: a host path is shown by its bare name, a checkout path relative 
+RESULT mutant=phases-drawn rc=1 fails=6 verdict=killed
+    FAIL groups and phases: the page is the groups-only page plus the phases section, every section, table and control of it kept 
+    FAIL groups and phases: the phases section sits above the swimlanes 
+    FAIL phases only (a round with no fix group yet): the page renders the phases and the group sections, with no group row 
+    FAIL --phases FILE: the page draws the round's phases above the group lanes 
+    FAIL with no --phases, the checkout's newest round phases file is drawn 
+    FAIL an invalid phases file draws PHASES UNAVAILABLE; the group lanes still stand 
+RESULT mutant=phases-shared-axis rc=1 fails=1 verdict=killed
+    FAIL groups and phases: the page is the groups-only page plus the phases section, every section, table and control of it kept 
+RESULT mutant=phases-keep-groups-page rc=1 fails=1 verdict=killed
+    FAIL groups and phases: the page is the groups-only page plus the phases section, every section, table and control of it kept 
+RESULT mutant=phases-cut-off-axis rc=1 fails=1 verdict=killed
+    FAIL phases: a phase wholly before the axis and a forecast past it are named, not drawn 
+RESULT mutant=phases-cut-since rc=1 fails=1 verdict=killed
+    FAIL phases: on an axis starting inside a phase, the bar is cut and names its start 
+RESULT mutant=phases-forecast-past-axis rc=1 fails=1 verdict=killed
+    FAIL phases: a phase wholly before the axis and a forecast past it are named, not drawn 
+RESULT mutant=phases-now-on-axis rc=1 fails=1 verdict=killed
+    FAIL phases: a phase wholly before the axis and a forecast past it are named, not drawn 
+RESULT mutant=phases-discovered rc=1 fails=2 verdict=killed
+    FAIL with no --phases, the checkout's newest round phases file is drawn 
+    FAIL an invalid phases file draws PHASES UNAVAILABLE; the group lanes still stand 
+RESULT survived=0

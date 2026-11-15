@@ -1,0 +1,95 @@
+class: alerts
+class: bar
+class: barlab
+class: blk
+class: blocked
+class: chip
+class: chk
+class: closed
+class: closelab
+class: closeline
+class: closer
+class: cpnote
+class: d
+class: done
+class: end
+class: filters
+class: g
+class: grid
+class: grp
+class: held
+class: issarea
+class: lane
+class: lanec
+class: lanelab
+class: legend
+class: live
+class: mono
+class: note
+class: occ
+class: pill
+class: ready
+class: scroll
+class: slotcap
+class: st
+class: stamplab
+class: stampline
+class: stat
+class: strip
+class: sub
+class: tick
+class: tier
+class: tip
+data attribute: data-eta
+data attribute: data-f
+data attribute: data-name
+data attribute: data-part
+data attribute: data-st
+data attribute: data-start
+data attribute: data-state
+data attribute: data-wave
+filter: all
+filter: blocked
+filter: done
+filter: held
+filter: live
+filter: partial
+filter: ready
+heading h1: Round # Fix Plan
+heading h2: Flow
+heading h2: Groups
+heading h2: How the ETAs are computed
+heading h2: Planned stamps
+heading h2: Projected open issues
+heading h2: Swimlanes
+heading h2: Waves
+heading h3: Bottlenecks (#)
+heading h3: Critical-path lane (# groups, the plan's full set)
+heading h3: Flow metrics (to #-#-# #:#:#+#:#)
+heading h3: Merge-wait per PR, # h (merge verdict to merge)
+heading h3: Train skips per batch (latest #)
+id: hide-done
+id: rows
+id: tip
+legend: critical path (◆ marks each link)
+legend: fixer working
+legend: groups in flight above the #-slot cap line
+legend: held
+legend: part merged
+legend: planned stamp
+legend: ready
+legend: waiting
+link: https://fonts.googleapis.com/css#?family=Barlow+Condensed:wght@#;#;#&family=Source+Sans+#:wght@#;#&family=JetBrains+Mono:wght@#;#&display=swap
+listener: change
+listener: click
+listener: mouseenter
+listener: mouseleave
+listener: mousemove
+table: Batch (UTC) | Skipped | Why | State
+table: Group | Description | Status | Tier | PR | Issues | Blocked by | ETA (UTC) | Wave
+table: Group | Status | PR | ETA
+table: PR | Kind | Wait | Verdict at merged head
+table: Version | Projected (UTC) | Carries | Kind
+table: wave | opens (UTC) | last merge (UTC) | groups | stamp it cuts
+tooltip: chart bar title
+RESULT other=pub.html missing=0 added=0
