@@ -193,7 +193,7 @@ no per-PR row from you (card C5); a verdict's paperwork notes are yours to resol
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 **Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
 sets. **A round closes only with its objective record** under
-`dev/audit/yardstick/` (tvofi, 2026-11-15, E11-N-OBJECTIVE-RECORD, preliminary).
+`dev/audit/yardstick/` (tvofi, 2026-11-15, E11-N-OBJECTIVE-RECORD).
 
 Failure shapes already produced, all yours:
 

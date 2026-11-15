@@ -86,9 +86,9 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   install in a "perfect" way, resulting in "perfect" savings'. "For 5, this is
   yours to set using your best judgement": the supported install population and
   comfort bounds are the orchestrator's, recorded with their basis.
-- 2026-11-15 (carry E11-N-OBJECTIVE-RECORD (b), "Write it now (Recommended)",
-  preliminary): a round closes only with its objective record under
-  `dev/audit/yardstick/`.
+- 2026-11-15 (carry E11-N-OBJECTIVE-RECORD (b), "Write it now (Recommended)";
+  card "Make it final (Recommended)"): a round closes only with its objective
+  record under `dev/audit/yardstick/`.
 - 2026-11-13: "Also verify that the other dimensions also covers the full
   codebase in their contracts, I want future rounds to always check everything
   in their dimension, not only small samples". 2026-11-13: "I would like the
@@ -253,7 +253,9 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-11-04: "keep records such as triage and roster edits on separate branches,
   and merge them with main only around the stamp and in batches"; "records should
   not drown out production PRs. Merge the record PRs together with stamps".
-  2026-10-28: "we should keep them, but that kind of reviews are for sonnet seats"
+  2026-11-15, card "Hold delivery rows for the stamp too": the automatic
+  delivery-rows pull request (record/autofix) also waits and merges with the
+  stamp batch, never on its own guard between stamps. 2026-10-28: "we should keep them, but that kind of reviews are for sonnet seats"
   (record pull request reviews).
 - 2026-11-04: "DONT CLOSE THEM. JUST CANCEL THEIR CI RUNS".
 - 2026-11-07: "One thing I want to do immediately is not having anything block
@@ -363,9 +365,8 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   refresh on every update to it without needing a stamp"; "Have a cheap seat read
   it next time".
 - 2026-11-13: "5. Leave." (duplicate record lines on #3394 stay).
-- 2026-09-24 (as recorded): the owner is named only "tvofi"; only policy and
-  budget-raise pull requests need his approval, everything else merges on the
-  approver App's review.
+- 2026-09-24 (as recorded): the owner is named only "tvofi" (card, 2026-11-15:
+  "Keep the naming rule only"; who approves what is `CLAUDE.md`'s Identity).
 - 2026-10-22: "please have your seats not post claude code footers, especially
   not with direct links to sessions".
 - 2026-11-12: "ok, correct any references to that script or remove it entirely"
@@ -432,6 +433,9 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - Durable policy memory and the whole-corpus read (2026-10-25, 2026-11-09):
   superseded by the 2026-11-15 reading rules (card "Retire K11, K12 on parity
   (Recommended)").
+- Only policy and budget-raise pull requests need his approval (2026-09-24):
+  dropped, `CLAUDE.md`'s Identity section states who approves what (card "Keep
+  the naming rule only").
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
