@@ -26,7 +26,7 @@
    "no_read": "no enumerator: no cell ledger over write and hold sites times plan states",
    "would_read": "the actuator-write dimension's cell ledger",
    "builder": "R11-INTAKE-R10-RESIDUE",
-   "lead": "`git grep -n 'async_call(' -- custom_components/ | wc -l` -> 8 candidate write sites at the graded SHA; 7 of the 8 unowned items of the hand ledger are defects of this term, and so is the stuck set-point the ledger gives D1"
+   "lead": "`git grep -n 'async_call(' -- custom_components/ | wc -l` -> 8 candidate write sites at the graded SHA; 7 of the 9 unowned items of the hand ledger are defects of this term, and so is the stuck set-point the ledger gives D1"
   },
   "generality": {
    "record": "absent",
@@ -39,7 +39,7 @@
     "pairs": 18696,
     "no_read_axes": 2
    },
-   "lead": "defects the owner's install could not have shown: 12 of the 30 in-window rows of the hand ledger were reported by an outside install"
+   "lead": "defects the owner's install could not have shown: 13 of the 31 in-window rows of the hand ledger were reported by an outside install"
   },
   "unowned": {
    "record": "absent",
@@ -47,10 +47,11 @@
    "would_read": "`escapes` once it records its owning dimension",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "value": 8,
+    "value": 9,
     "command": "python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json",
     "cards": [
      "E11-U1",
+     "E11-U10",
      "E11-U2",
      "E11-U4",
      "E11-U5",
@@ -67,8 +68,8 @@
    "would_read": "the escapes record with found-by and owner, and the series R11-PRE-ROUND-METRICS prints",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "in_window": 30,
-    "dated_the_stamp_day": 7,
+    "in_window": 31,
+    "dated_the_stamp_day": 8,
     "per_owner": {
      "D0": 2,
      "D1": 6,
@@ -79,16 +80,16 @@
      "D10": 1,
      "D12": 1,
      "D15": 1,
-     "none": 8
+     "none": 9
     },
     "reporters": {
      "owner": 14,
-     "outside": 12,
+     "outside": 13,
      "fixer": 3,
      "programme": 1
     },
     "candidates": 76,
-    "ruled_out": 38,
+    "ruled_out": 36,
     "command": "python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json",
     "rule": "every roster group at the pinned commit that lists a product file and is an owner, bug, hotfix or outside group or whose brief matches escapes.py's REPORT pattern has one row; escapes.py refuses a candidate with no row"
    },
@@ -103,16 +104,16 @@
   },
   "injected": {
    "record": "absent",
-   "no_read": "no enumerator reads a cause; one of the three causes named was recorded by a root-cause seat, in a record that is not on main",
+   "no_read": "no enumerator reads a cause; of the four causes named by hand, three are named by a root-cause record (two by a tracked one, one by a record that is not on main)",
    "would_read": "the cause named on the fixing group by the root-cause seat",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "named_causes": 3,
-    "named_by_a_root_cause_record": 1,
+    "named_causes": 4,
+    "named_by_a_root_cause_record": 3,
     "production_merges_in_window": 162,
-    "per_100": 1.85,
+    "per_100": 2.47,
     "denominator_command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210",
-    "note": "pull request 3404 (the stuck set-point; cause named by R10-RCA-SETPOINT-LATCH-DEADLOCK.md on archive/handoff-wip/r10-rca-setpoint-latch-deadlock), pull request 2411 (R10-SAVINGS-NEGATIVE; the fixing group's word), pull request 3587 (R10-HOTFIX-REFERENCE-BASIS; the fixing group's word, caught before a release, so injected and no escape)"
+    "note": "pull request 3404 (the stuck set-point; cause named by R10-RCA-SETPOINT-LATCH-DEADLOCK.md on archive/handoff-wip/r10-rca-setpoint-latch-deadlock), pull requests 2411 and 2887 (R10-HOTFIX-SAV-ESTIMATE; both named by the tracked dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; 2411 also by R10-SAVINGS-NEGATIVE's brief), pull request 3587 (R10-HOTFIX-REFERENCE-BASIS; the fixing group's word, caught before a release, so injected and no escape)"
    },
    "proxy": "`scorecard.py` line `H`: unread (merges.tsv)"
   },
@@ -165,7 +166,7 @@
    "enumerator": "python3 tools/audit/seat/flow_metrics.py --repo . --window 2026-10-14T13:27:06Z..2026-11-15T05:22:47Z --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json --prefix R10-",
    "second_enumerator": "python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z",
    "detail": "flow_metrics.py: 436/862 merged fix pull requests with a bus verdict (18 merged with none); review_strength.py: 467/909 reviewed pull requests, real-catch incidence 214/909. The two enumerators 0018 names count different populations. Most frequent first blocks: mutation-vacuous 62, carry-missing 56, class-open 53, harness 26, ci-red 25 first blocks.",
-   "round_9": "`python3 tools/audit/seat/review_strength.py --repo . --window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z` (v6.6.12, the last stamp before round 9's baseline, to v7.0.0) -> first-pass 28/76 (0.368), real-catch incidence 19/76 (0.25). First-pass rose by 0.146 against two standard errors of 0.116: a move, which ranks nothing while `injected` and `escapes` are NO-READ; incidence is a tie."
+   "round_9": "`python3 tools/audit/seat/review_strength.py --repo . --window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z` (v6.6.12, the last stamp before round 9's baseline, to v7.0.0) -> first-pass 28/76 (0.368), real-catch incidence 19/76 (0.25). Both rounds are read here for the first time, so by 0018 section 2 this sets the baseline and is no move; the difference (0.146 against two standard errors of 0.116) is stated and ranks nothing."
   },
   "lead_time": {
    "record": "absent",
@@ -211,7 +212,7 @@
   },
   {
    "clause": "0018 section 3, dimension row: `found and escapes yes (judge record; escapes by hand)`",
-   "why": "Followed, by hand: the ledger `escapes_hand.tsv` rows every one of the 76 roster groups its stated rule selects at the pinned roster commit, 30 as escapes and 38 ruled out with the reason. The roster records no reporter time, so 7 owner reports dated the closeout stamp's own day are listed apart and counted in no verdict."
+   "why": "Followed, by hand: the ledger `escapes_hand.tsv` rows every one of the 76 roster groups its stated rule selects at the pinned roster commit, 31 as escapes and 36 ruled out with the reason. The roster records no reporter time, so 7 owner reports dated the closeout stamp's own day are listed apart and counted in no verdict."
   },
   {
    "clause": "0018 section 3, standing seat row: `local seats by hand from transcripts`",
@@ -262,6 +263,19 @@
    "N13": "terms.coverage.proxy gains the 34 rows that state a count in prose (dimension_read.py prints it); terms.escapes.beside notes the 9 verdicts with no dimension prefix.",
    "finder_critical": "every card carries the field, yes or no with the reason: a classification for the orchestrator, no ruling.",
    "stands": "N11, N12 and the reviewer's `reproduced` list needed no change. The seven day-of-stamp rows stay out of every verdict, as the record says."
+  }
+ },
+ "revision_2": {
+  "of": "7891b714f8cd02bf9eb472a3ae74a32560843cd2",
+  "review": "Evaluation review: revise 7891b714f8cd02bf9eb472a3ae74a32560843cd2 (round 2, delta only); this revision is bounded to its findings",
+  "changes": {
+   "S1": "escapes_hand.tsv: R10-HOTFIX-SAV-ESTIMATE's `cause_pr` is `2411,2887`, from the tracked dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; escapes.py prints CAUSES. terms.injected (no_read, by_hand: 4 causes, 3 named by a root-cause record, 2.47 per 100); card E11-INJECTED (proposal, term, null_control); objects fixer.md and fix-review.md (evidence: 4 cause pull requests).",
+   "S2": "`paths` are exact files: E11-U1 names dev/governance/dimensions/D17.md, E11-U2 and U4 to U10 name D16.md, E11-N-GATE-CAUSE names tools/ci/gate.py; E11-N-INSTRUMENT-YIELD carries an empty `paths` and says why none can be named. Each carries `paths_note`.",
+   "M1": "the four criterion cards: `finder_critical` reads no as the card stands, with the measure, the condition that makes it yes and the preliminary ruling as relayed; `proposal` gains the brief citing the file. Counts: 27 yes, 21 no.",
+   "M2": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with new card E11-U10; R10-SAV-ACTUATION is rowed `day0` as its own write-timing defect (no verdict moves). terms.escapes.by_hand (31), terms.unowned (9), terms.generality.lead.",
+   "M3": "escapes_hand.tsv gains a header line on what the rule does not select and why R10-FLY-REPLAY-MASK is in.",
+   "M4": "R10-SETPOINT-BOOST's second cause (the draw range on censored samples) is in card E11-D2's inputs and named in E11-U9 and the ledger row.",
+   "M5": "terms.first_pass.round_9 and fixer.md's evidence reworded: a first read, the baseline, no move."
   }
  },
  "objects": {
@@ -512,12 +526,12 @@
   },
   "dev/governance/roles/fix-review.md": {
    "verdict": "change",
-   "evidence": "`python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z` -> 909 reviewed pull requests, 2537 verdicts, real-catch incidence 214/909 (0.24), first-pass 467/909; by kind: cloud 164/752 (0.22), local 59/228 (0.26). Round 9's window by the same instrument: real-catch incidence 19/76 (0.25), a tie with round 10's inside two standard errors. `--guardrail` (report-only) prints `would-trip` for the cloud arm (1/20) and the sonnet arm (1/20) at the round's end. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): the 3 injected defects (#3404, #2411, #3587) each carried a `Fix review: merge` verdict under this contract: `injected` (layer 1), read by hand, is above 0. Cost read: `git show a39627da59:dev/governance/roles/fix-review.md | wc -l` -> 136 lines (`git show v7.0.0:dev/governance/roles/fix-review.md | wc -l` -> 140); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/fix-review.md | wc -l` -> 21 merges touched it in round 10's window.",
+   "evidence": "`python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z` -> 909 reviewed pull requests, 2537 verdicts, real-catch incidence 214/909 (0.24), first-pass 467/909; by kind: cloud 164/752 (0.22), local 59/228 (0.26). Round 9's window by the same instrument: real-catch incidence 19/76 (0.25), a tie with round 10's inside two standard errors. `--guardrail` (report-only) prints `would-trip` for the cloud arm (1/20) and the sonnet arm (1/20) at the round's end. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): the 4 cause pull requests (#3404, #2411, #2887, #3587) each carried a `Fix review: merge` verdict under this contract: `injected` (layer 1), read by hand, is above 0. Cost read: `git show a39627da59:dev/governance/roles/fix-review.md | wc -l` -> 136 lines (`git show v7.0.0:dev/governance/roles/fix-review.md | wc -l` -> 140); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/fix-review.md | wc -l` -> 21 merges touched it in round 10's window.",
    "card": "E11-INJECTED"
   },
   "dev/governance/roles/fixer.md": {
    "verdict": "change",
-   "evidence": "`python3 tools/audit/seat/flow_metrics.py --repo . --window 2026-10-14T13:27:06Z..2026-11-15T05:22:47Z --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json --prefix R10-` -> first-pass yield 436/862 (0.51), main absorbs per fix branch mean 3.58; `python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z` -> first-pass 467/909, most frequent first blocks: mutation-vacuous 62, carry-missing 56, class-open 53, harness 26, ci-red 25 first blocks. Round 9's window by the same instrument (`--window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z`, v6.6.12 to v7.0.0): first-pass 28/76 (0.37), so first-pass rose by more than two standard errors, which ranks nothing while `injected` and `escapes` are NO-READ. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 3 defects name a pull request merged in the window as their cause (R10-HOTFIX-FLOW-SETPOINT-STUCK <- #3404, released in 7.1.12, the cause named by the root-cause seat's record; R10-SAVINGS-NEGATIVE <- #2411, released in 7.0.1; R10-HOTFIX-REFERENCE-BASIS <- #3587, caught before a release), each of which passed this contract and a merge verdict: `injected` (layer 1), read by hand through the contract, is above 0. Cost read: `git show a39627da59:dev/governance/roles/fixer.md | wc -l` -> 315 lines (`git show v7.0.0:dev/governance/roles/fixer.md | wc -l` -> 315); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/fixer.md | wc -l` -> 14 merges touched it in round 10's window.",
+   "evidence": "`python3 tools/audit/seat/flow_metrics.py --repo . --window 2026-10-14T13:27:06Z..2026-11-15T05:22:47Z --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json --prefix R10-` -> first-pass yield 436/862 (0.51), main absorbs per fix branch mean 3.58; `python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z` -> first-pass 467/909, most frequent first blocks: mutation-vacuous 62, carry-missing 56, class-open 53, harness 26, ci-red 25 first blocks. Round 9's window by the same instrument (`--window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z`, v6.6.12 to v7.0.0): first-pass 28/76 (0.37), so first-pass rose by more than two standard errors, which ranks nothing while `injected` and `escapes` are NO-READ. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 4 pull requests merged in the window are named as causes (#3404 for R10-HOTFIX-FLOW-SETPOINT-STUCK, by the root-cause record off main; #2411 and #2887 for R10-HOTFIX-SAV-ESTIMATE, by the tracked `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md`, #2411 also by R10-SAVINGS-NEGATIVE's brief; #3587 for R10-HOTFIX-REFERENCE-BASIS, by the fixing group, caught before a release), each of which passed this contract and a merge verdict: `injected` (layer 1), read by hand through the contract, is above 0. Cost read: `git show a39627da59:dev/governance/roles/fixer.md | wc -l` -> 315 lines (`git show v7.0.0:dev/governance/roles/fixer.md | wc -l` -> 315); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/fixer.md | wc -l` -> 14 merges touched it in round 10's window.",
    "card": "E11-INJECTED"
   },
   "dev/governance/roles/judge.md": {
@@ -543,7 +557,7 @@
   },
   "dev/governance/roles/root-cause.md": {
    "verdict": "keep",
-   "evidence": "`git ls-tree --name-only a39627da59 dev/audit/rca/ | wc -l` -> 137 entries; `git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | python3 -c \"import json,sys;print(sum(g.get('kind')=='rca' for g in json.load(sys.stdin)['groups']))\"` -> 30 root-cause groups on round 10's roster. Whether a countermeasure stopped its class is unread: `bugclasses.json` records no instance date (card E11-N-RULE-YIELD). `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows) line RCA_TRACKED: of the 30 in-window escapes of the hand ledger, a root-cause record is tracked for 3 (SAV-ESTIMATE, COP-UNMEASURED, BUFFER-STORE); a fourth, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for the stuck set-point, is on the archive tag `archive/handoff-wip/r10-rca-setpoint-latch-deadlock` and not on main; the group for CARD-HEALTH-TEXT is `refused`. A lead for card E11-INJECTED, not a score. NO-READ: nothing counts which seats load a contract, so cost (its tokens times the seats that load it) is unread (builder R11-PRE-TOKEN-LEDGER), and a clause's yield is unread until a block's class names the clause (card E11-N-ROLE-CLAUSE). Cost read: `git show a39627da59:dev/governance/roles/root-cause.md | wc -l` -> 84 lines (`git show v7.0.0:dev/governance/roles/root-cause.md | wc -l` -> 84); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/root-cause.md | wc -l` -> 0 merges touched it in round 10's window."
+   "evidence": "`git ls-tree --name-only a39627da59 dev/audit/rca/ | wc -l` -> 137 entries; `git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | python3 -c \"import json,sys;print(sum(g.get('kind')=='rca' for g in json.load(sys.stdin)['groups']))\"` -> 30 root-cause groups on round 10's roster. Whether a countermeasure stopped its class is unread: `bugclasses.json` records no instance date (card E11-N-RULE-YIELD). `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows) line RCA_TRACKED: of the 31 in-window escapes of the hand ledger, a root-cause record is tracked for 3 (SAV-ESTIMATE, COP-UNMEASURED, BUFFER-STORE); a fourth, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for the stuck set-point, is on the archive tag `archive/handoff-wip/r10-rca-setpoint-latch-deadlock` and not on main; the group for CARD-HEALTH-TEXT is `refused`. A lead for card E11-INJECTED, not a score. NO-READ: nothing counts which seats load a contract, so cost (its tokens times the seats that load it) is unread (builder R11-PRE-TOKEN-LEDGER), and a clause's yield is unread until a block's class names the clause (card E11-N-ROLE-CLAUSE). Cost read: `git show a39627da59:dev/governance/roles/root-cause.md | wc -l` -> 84 lines (`git show v7.0.0:dev/governance/roles/root-cause.md | wc -l` -> 84); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/root-cause.md | wc -l` -> 0 merges touched it in round 10's window."
   },
   "dev/governance/roles/standing-dispatch.md": {
    "verdict": "keep",
@@ -587,7 +601,7 @@
   },
   "dev/governance/rules/defect-root-cause.md": {
    "verdict": "keep",
-   "evidence": "NO-READ: yield is its bug class's instances after the rule merged, and `python3 -c \"import json;j=json.load(open('dev/audit/config/bugclasses.json'));print(sum(isinstance(i,dict) for c in j.values() if isinstance(c,dict) for i in (c.get('instances') or [])))\"` -> 0: no instance carries a date; nothing counts a load or the seconds of a refusal (0018 section 3: not scorable at round 10's close; no roster group builds it: card E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 30 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 3 of them and a fourth sits off main (see root-cause.md's row). Cost read: `git show a39627da59:dev/governance/rules/defect-root-cause.md | wc -l` -> 153 lines (`git show v7.0.0:dev/governance/rules/defect-root-cause.md | wc -l` -> 153); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/rules/defect-root-cause.md | wc -l` -> 4 merges touched it in round 10's window."
+   "evidence": "NO-READ: yield is its bug class's instances after the rule merged, and `python3 -c \"import json;j=json.load(open('dev/audit/config/bugclasses.json'));print(sum(isinstance(i,dict) for c in j.values() if isinstance(c,dict) for i in (c.get('instances') or [])))\"` -> 0: no instance carries a date; nothing counts a load or the seconds of a refusal (0018 section 3: not scorable at round 10's close; no roster group builds it: card E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 31 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 3 of them and a fourth sits off main (see root-cause.md's row). Cost read: `git show a39627da59:dev/governance/rules/defect-root-cause.md | wc -l` -> 153 lines (`git show v7.0.0:dev/governance/rules/defect-root-cause.md | wc -l` -> 153); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/rules/defect-root-cause.md | wc -l` -> 4 merges touched it in round 10's window."
   },
   "dev/governance/rules/delivery-status-tracking.md": {
    "verdict": "keep",
@@ -1149,7 +1163,7 @@
   },
   "E11-D2": {
    "object": "dev/governance/dimensions/D2.md",
-   "proposal": "Change the brief: name the identity list and its grid as a command's output, and add the inputs the escapes show steps 3 and 5 did not drive: the savings identity on a month booked from a valve house with the buffer above the curve and on a ledger month upgraded mid-month from the previous release; a power entity that is the pump's own estimate; a covariate moved to another sensor; the tank reading's fall after a charge starts; the plan's booked space energy against a metered month; to step 1 a switch-back interval after a hot-water run (the unsensed slab). Each escape row of the hand ledger names the step and the input.",
+   "proposal": "Change the brief: name the identity list and its grid as a command's output, and add the inputs the escapes show steps 3 and 5 did not drive: the savings identity on a month booked from a valve house with the buffer above the curve and on a ledger month upgraded mid-month from the previous release; a power entity that is the pump's own estimate; a covariate moved to another sensor; the tank reading's fall after a charge starts; the plan's booked space energy against a metered month; a learned draw range fed censored samples (R10-SETPOINT-BOOST's second cause; its first, the written value, is card E11-U9's); to step 1 a switch-back interval after a hot-water run (the unsensed slab). Each escape row of the hand ledger names the step and the input.",
    "term": "`escapes` owned by D2: 6 in round 10's window by the hand read, toward 0; `coverage` of D2: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 5 round-10 rows carry one), toward a read share",
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (53 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
@@ -1238,9 +1252,9 @@
     "dev/governance/roles/fix-review.md",
     "dev/governance/roles/fixer.md"
    ],
-   "proposal": "This card carries an item already owed to round 11; it proposes no text of its own. For pull request 3404 the root-cause seat's record exists: `git show archive/handoff-wip/r10-rca-setpoint-latch-deadlock:dev/audit/rca/R10-RCA-SETPOINT-LATCH-DEADLOCK.md` (442 lines, commit 2e20aa5d4e, on that archive tag and not on main). It names the cause (the off restore refused the write itself, not only the capture, so an install upgraded with a persisted record equal to the pump's reading never wrote again), process state (a) (`No contract asks that a refusal on an actuator write have a release that needs no person`), a cost test, a built detector, and drafted text: a new `fix-review.md` step, `A new refusal on an actuator write names its release`, which asks the body to name what ends the refusal on a valid configuration, a check that drives its entry state, `persisted state from the previous release included`, to that end, and `blocked` where the release needs a person `unless the owner, in person, accepted it on the pull request`; and one sentence for `fixer.md` step 3, `A guard that refuses an actuator write is also driven from the previous release's persisted state, and its release needs no person`. `git show a39627da59:dev/programme/HANDOVER.md | sed -n 1546,1557p` lists the record under `Owed to round 11, with the owner's ruling behind each` and says its countermeasure sections have `no roster group, carry or pull request`. Rule: land the record and its two drafted texts as written (the owner's review, or the mandate), or record the refusal. For the other two named causes, pull request 2411 (R10-SAVINGS-NEGATIVE: a coverage factor in the thousands on a store upgraded mid-month, released in 7.0.1) and pull request 3587 (R10-HOTFIX-REFERENCE-BASIS: the booked savings reference changed with no basis-stamp bump, caught before a release), no root-cause record is tracked and the cause is the fixing group's word: 0018 section 3 asks for each cause's review to be read by a root-cause seat before any contract text is drafted for them. Both, like 3404, turn on state persisted by an earlier version, which the record's draft already names.",
-   "term": "`injected` (layer 1): 3 causes named by hand, 1 of them by a root-cause record, over 162 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210` -> production 162): 1.85 per 100, toward 0. A proxy while no enumerator reads the cause. Beside it `first_pass` 467/909 and real-catch incidence 214/909, which rank nothing while `injected` and `escapes` are NO-READ (0018 section 5).",
-   "null_control": "The record's own: its detector exits 0 at v7.1.11 (before pull request 3404) and 1 at v7.1.12, and 6 of 6 hand mutants are killed. On a merged pull request that adds no refusal on an actuator write the drafted step asks for nothing, so its first verdict cannot move; the hand ledger's in-window rows with no cause named (28 of 30) do not move either.",
+   "proposal": "This card carries an item already owed to round 11; it proposes no text of its own. For pull request 3404 the root-cause seat's record exists: `git show archive/handoff-wip/r10-rca-setpoint-latch-deadlock:dev/audit/rca/R10-RCA-SETPOINT-LATCH-DEADLOCK.md` (442 lines, commit 2e20aa5d4e, on that archive tag and not on main). It names the cause (the off restore refused the write itself, not only the capture, so an install upgraded with a persisted record equal to the pump's reading never wrote again), process state (a) (`No contract asks that a refusal on an actuator write have a release that needs no person`), a cost test, a built detector, and drafted text: a new `fix-review.md` step, `A new refusal on an actuator write names its release`, which asks the body to name what ends the refusal on a valid configuration, a check that drives its entry state, `persisted state from the previous release included`, to that end, and `blocked` where the release needs a person `unless the owner, in person, accepted it on the pull request`; and one sentence for `fixer.md` step 3, `A guard that refuses an actuator write is also driven from the previous release's persisted state, and its release needs no person`. `git show a39627da59:dev/programme/HANDOVER.md | sed -n 1546,1557p` lists the record under `Owed to round 11, with the owner's ruling behind each` and says its countermeasure sections have `no roster group, carry or pull request`. Rule: land the record and its two drafted texts as written (the owner's review, or the mandate), or record the refusal. Two more causes are named by a tracked root-cause record, `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md` at the graded SHA: pull request 2411 (line 17: it made the reference's first step steady and left the tanks as measured) and, as `a second, independent cause` from v7.1.0, pull request 2887 (lines 65 to 66; the fix of R10-BUFFER-STORE); the record reads 2411's own review and gives process state (c), so no further root-cause read is asked for the savings reference. What no root-cause seat has read: pull request 2411's other defect, the coverage factor of R10-SAVINGS-NEGATIVE (the fixing group's word), and pull request 3587 (R10-HOTFIX-REFERENCE-BASIS: the booked reference changed with no basis-stamp bump, caught before a release); 0018 section 3 asks for those two reviews to be read before any contract text is drafted for them.",
+   "term": "`injected` (layer 1): 4 causes named by hand (3404, 2411, 2887, 3587), 3 of them by a root-cause record, over 162 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210` -> production 162): 2.47 per 100, toward 0. A proxy while no enumerator reads the cause. Beside it `first_pass` 467/909 and real-catch incidence 214/909, which rank nothing while `injected` and `escapes` are NO-READ (0018 section 5).",
+   "null_control": "The record's own: its detector exits 0 at v7.1.11 (before pull request 3404) and 1 at v7.1.12, and 6 of 6 hand mutants are killed. On a merged pull request that adds no refusal on an actuator write the drafted step asks for nothing, so its first verdict cannot move; the hand ledger's in-window rows with no cause named (28 of 31) do not move either.",
    "cost": "The record's cost test: about 1 s per run for the detector and about 20 min of reviewer time per 30 days for the policy line, against about 6 h of programme time per occurrence and a house without heat. `fix-review.md`'s `files_tokens` budget has no headroom (HANDOVER.md, the same paragraph), so the step needs an equal deletion or a raise under decision 0013. Report-only beside it: `review_strength.py --guardrail` prints `would-trip` for the cloud arm (1/20) and the sonnet arm (1/20) at the round's end, and its own action (audit the last reviews with a planted defect) is wired to nothing.",
    "already_ruled": "tvofi, 2026-11-13 (HANDOVER.md lines 1546 to 1557 at the graded SHA): the release rule and the record are owed to round 11; the owner's rule overrides the record's refusal (iv), the stamp-time release-note rule. Not ruled in the round-end triage (P742 to P795 rule instruments); process card P7 (found_by and caused_by fields, folded into P744) builds the record of a cause, not the check.",
    "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (the fixer's and the fix reviewer's contracts)"
@@ -1315,9 +1329,8 @@
    "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
   },
   "E11-N-INSTRUMENT-YIELD": {
-   "paths": [
-    "tools/audit/seat/instruments/"
-   ],
+   "paths": [],
+   "paths_note": "no exact file can be named: the queued builder group R11-PRE-NO-READ-BUILDERS lists no file for a refusal log, and `check_scopes.py` compares exact file names, so a directory can never match; the card needs the file its build adds written here before it is recorded merged",
    "proposal": "0018 section 3: an instrument's yield is NO-READ `until a refusal is logged with its outcome`. No roster group builds that log. Rule one: name the group that makes an instrument's refusal a logged line with what followed (a fix, an override, nothing), or accept that all 124 instrument objects stay unscored on yield while their cost is read.",
    "term": "The unscored share of instrument objects (123 of 124 keep on a NO-READ); cost beside it from `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json`: `tools/audit/seat/merge_train.py` 2416 to 11585 lines over the window, the machinery over product ratio 1.91 (`scorecard.py` line `S`), 477 non-production merges in the newest 580.",
    "null_control": "An instrument whose `--self-test` passes and that refused nothing logs nothing: its yield reads 0 refusals, not unread.",
@@ -1327,9 +1340,9 @@
   },
   "E11-N-GATE-CAUSE": {
    "paths": [
-    ".github/workflows/",
-    ".claude/workflows/"
+    "tools/ci/gate.py"
    ],
+   "paths_note": "the file the queued builder group R11-PRE-NO-READ-BUILDERS lists for a cause per red gate run; no file is named there for a workflow script's run line",
    "proposal": "0018 section 3: a gate's yield is NO-READ `until a red carries its cause`, and a `.claude/workflows/` script's runs are logged nowhere tracked. Rule one: name the group that records a cause per red run on a pull-request head and a run line per workflow script, or accept that the gate objects kept here stay unscored. For main, card E11-GATE-REDS asks the same record.",
    "term": "The unscored share of gate objects (22 of 27 keep on a NO-READ).",
    "null_control": "A successful run carries no cause field and reads as before.",
@@ -1429,38 +1442,38 @@
   "E11-K-D4": {
    "object": "dev/audit/config/objective.json",
    "criterion": "D4",
-   "proposal": "`owner_criteria.D4` is null: name the tracked file that holds the owner's acceptance criteria for the card and config flow beyond rendering (0018 section 1: measurement, then the owner). The brief quotes the owner: `It should be intuitive, user friendly and look professional`; no tracked file turns that into criteria. Or leave it unset.",
+   "proposal": "`owner_criteria.D4` is null: name the tracked file that holds the owner's acceptance criteria for the card and config flow beyond rendering (0018 section 1: measurement, then the owner). The brief quotes the owner: `It should be intuitive, user friendly and look professional`; no tracked file turns that into criteria. Or leave it unset. For the criterion to reach a finder, the same change makes D4's brief cite the criteria file; without that line the finders run as in round 10.",
    "term": "No term moves. D4's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "yes if the owner sets it before the baseline: the criterion is what D4's finders grade against; left unset, the finders run as in round 10 and D4's result stays undecided"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D4's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
   },
   "E11-K-D5": {
    "object": "dev/audit/config/objective.json",
    "criterion": "D5",
-   "proposal": "`owner_criteria.D5` is null: name the tracked file that holds the owner's acceptance criteria for docs structure and comments. The brief quotes the owner: `Comments in code should be concise but precise and easy to understand`; no tracked file turns that into criteria. Or leave it unset.",
+   "proposal": "`owner_criteria.D5` is null: name the tracked file that holds the owner's acceptance criteria for docs structure and comments. The brief quotes the owner: `Comments in code should be concise but precise and easy to understand`; no tracked file turns that into criteria. Or leave it unset. For the criterion to reach a finder, the same change makes D5's brief cite the criteria file; without that line the finders run as in round 10.",
    "term": "No term moves. D5's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "yes if the owner sets it before the baseline: the criterion is what D5's finders grade against; left unset, the finders run as in round 10 and D5's result stays undecided"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D5's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
   },
   "E11-K-D9": {
    "object": "dev/audit/config/objective.json",
    "criterion": "D9",
-   "proposal": "`owner_criteria.D9` is null: name the tracked file that holds the owner's Pi-class budget per cost centre. No tracked file holds one. `tests/stress_budgets.json` exists at the graded SHA and is no such budget: `python3 -c \"import json;print(sorted({k for v in json.load(open('tests/stress_budgets.json')).values() for k in v}))\"` -> ['ratio', 'rss_attrib_mb', 'rss_peak_mb', 'traced_peak_mb'], memory peaks and a ratio per scenario as the code recorded them, with no CPU budget and no Pi figure (the brief says the ms budget is retired); named as the criterion it would grade D9 against the code's own recording. The brief's six metric definitions name what a budget would be set on. Or leave it unset.",
+   "proposal": "`owner_criteria.D9` is null: name the tracked file that holds the owner's Pi-class budget per cost centre. No tracked file holds one. `tests/stress_budgets.json` exists at the graded SHA and is no such budget: `python3 -c \"import json;print(sorted({k for v in json.load(open('tests/stress_budgets.json')).values() for k in v}))\"` -> ['ratio', 'rss_attrib_mb', 'rss_peak_mb', 'traced_peak_mb'], memory peaks and a ratio per scenario as the code recorded them, with no CPU budget and no Pi figure (the brief says the ms budget is retired); named as the criterion it would grade D9 against the code's own recording. The brief's six metric definitions name what a budget would be set on. Or leave it unset. For the criterion to reach a finder, the same change makes D9's brief cite the criteria file; without that line the finders run as in round 10.",
    "term": "No term moves. D9's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "yes if the owner sets it before the baseline: the criterion is what D9's finders grade against; left unset, the finders run as in round 10 and D9's result stays undecided"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D9's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
   },
   "E11-K-D10": {
    "object": "dev/audit/config/objective.json",
    "criterion": "D10",
-   "proposal": "`owner_criteria.D10` is null: name the tracked file that holds the owner's target tier. The brief quotes the owner: `Adherence to home assistant integration platinum quality requirements`; `custom_components/heatpump_optimizer/quality_scale.yaml` exists at the graded SHA and lists each rule's state, which 0018 says is read once the tier is set. Or leave it unset.",
+   "proposal": "`owner_criteria.D10` is null: name the tracked file that holds the owner's target tier. The brief quotes the owner: `Adherence to home assistant integration platinum quality requirements`; `custom_components/heatpump_optimizer/quality_scale.yaml` exists at the graded SHA and lists each rule's state, which 0018 says is read once the tier is set. Or leave it unset. For the criterion to reach a finder, the same change makes D10's brief cite the criteria file; without that line the finders run as in round 10.",
    "term": "No term moves. D10's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "yes if the owner sets it before the baseline: the criterion is what D10's finders grade against; left unset, the finders run as in round 10 and D10's result stays undecided"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D10's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
   },
   "E11-S-SEATS": {
    "object": "dev/audit/config/objective.json",
@@ -1472,11 +1485,12 @@
   },
   "E11-U1": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D17.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-HOTFIX-AWAY-SETBACK (pull request 3013), reported by the owner in round 10's window: away with weekend or holiday comfort fields set: a feature against its documented effect.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. It could instead widen D12 (a configuration with weekend or holiday comfort fields); the attribution to `none` is the evaluator's by hand, and the reviewer attacks it. Card: the feature-behaviour dimension (a feature against its documented effect) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1484,11 +1498,12 @@
   },
   "E11-U2": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-HOTFIX-BOOST-FLOW-CEILING (pull request 3562), reported by the owner in round 10's window: a boost over a step the plan books at partial power: the write against the plan's target.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D6 owns the documents' sentence that boost writes the ceiling, and would find the claim false; the defect is the write on a partial-power step, which no step of D6 or D8 drives. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1496,11 +1511,12 @@
   },
   "E11-U4": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-OUTSIDE-DISINFECTION-SETPOINT (pull request 3452), reported by the outside in round 10's window: the hot-water write on a disinfection step: the guard records attempts and no completion.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1 hunts wedges, leaks, races and stale data; here every cycle completes and the guard records an attempt, the written value is simply below the cycle's target. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1508,11 +1524,12 @@
   },
   "E11-U5": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (pull request 3512), reported by the outside in round 10's window: a re-solve landing minutes after the supply switched: no minimum run or pause.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's steps drive lifecycle, stores, staleness and guards; a minimum run and pause on a supply switch is a rule on the write that no D1 step names. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1520,11 +1537,12 @@
   },
   "E11-U6": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-OUTSIDE-SUPPLY-STALE-STEP (pull request 3478), reported by the outside in round 10's window: a cycle whose write lands in the step after the one its action was cut for.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's step 3 checks stale inputs and `the published and booked value`; here the inputs are fresh and the command written is one plan step old, which is the write against the plan and in no D1 step. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1532,11 +1550,12 @@
   },
   "E11-U7": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-WATER-SETPOINT-FEEDBACK (pull request 3405), reported by the outside in round 10's window: a water set-point on a controller with an integrating speed loop: measured power against plan.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D2 lists identities of the thermal model, COP, objective, tariff and estimators and none over a written set-point against measured power. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1544,11 +1563,12 @@
   },
   "E11-U8": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-MODE-BEFORE-SUPPLY-ON (pull request 3530), reported by the outside in round 10's window: the order of the mode write and the supply switch-on.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's step 4 lists races between the solve thread and loop-side writers; the order of two service calls in one pass is no such race. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
@@ -1556,11 +1576,25 @@
   },
   "E11-U9": {
    "paths": [
-    "dev/governance/dimensions/"
+    "dev/governance/dimensions/D16.md"
    ],
-   "unowned": "R10-SETPOINT-BOOST, reported by the owner in round 10's window: a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value.",
-   "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D2's step 1 asks that no store cross a physical bound and lists no identity over the set-point a heating step writes; the defect is a written value equal to the do-not-heat value. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 8 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
+   "unowned": "R10-SETPOINT-BOOST, reported by the owner in round 10's window: a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value; its second cause, the draw range learning from censored samples, is an estimator defect in D2 step 5's territory and is listed in card E11-D2.",
+   "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out for this cause: D2's step 1 asks that no store cross a physical bound and lists no identity over the set-point a heating step writes; the defect is a written value equal to the do-not-heat value. The group's second cause, the draw range learning from censored samples, is an estimator defect in D2 step 5's territory and is carried by card E11-D2, not here. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
+   "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+  },
+  "E11-U10": {
+   "paths": [
+    "dev/governance/dimensions/D16.md"
+   ],
+   "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
+   "unowned": "R10-OUTSIDE-DHW-START-HYSTERESIS (pull request 3531), reported by the outside in round 10's window: a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: 54 of 114 planned hot-water runs the pump will not start, booked as the pump's disobedience.",
+   "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D0 races plans on the same objective and inputs and D12 asks that setup completes and a plan publishes; neither drives a planned run against whether the pump will start it, which is the plan against its execution. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
+   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",

@@ -1,14 +1,15 @@
 # The by-hand read decision 0018 section 3 allows for a dimension's escapes ("escapes by hand"), over the roster at the pinned commit cbd6d9185166 (`dev/programme/rosters/wave-r10-groups.json`).
 # Matching rule, enforced by escapes.py: a roster group is a candidate when it lists a file under custom_components/ or blueprints/ and (a) its `source` is outside or user, or (b) its `kind` is owner, bug, hotfix or owner-step, or (c) its id holds HOTFIX or OUTSIDE, or (d) its brief matches escapes.py's REPORT pattern (an owner or outside report, request or order, a live defect, the owner's install or export, a defect another group's seat found, a latent defect). Every candidate has exactly one row and every row is a candidate.
 # `window`: `in` = an objective bug on a released version, reported in round 10's window by someone who is no finder seat (an escape); `day0` = dated 2026-10-14, the closeout stamp's own day, the hour in no tracked record (counted in no verdict); `unreleased` = caused and caught inside the window before a release carried it (injected, no escape); `out` = no escape, the reason in `input_not_driven`.
-# `owner` is the dimension whose perfect result (0018 section 1) the bug violates, `none` where no brief owns it, `-` on an `out` row. `cause_pr` is a merged pull request the group's brief names as the cause. Attribution is the evaluator's, from each group's brief; the reviewer attacks it. Columns are tab-separated.
+# Not selected by the rule, so unrowed: product groups whose brief reports no outside or owner report, among them the five the round's own D15 triage raised from the owner's live bundle (R10-IMMERSION-LATCH, R10-DIAG-REDACT, R10-HOUSE-GRADE, R10-LEGIONELLA-COMPLETION, R10-DIAG-AGES) and the fixer-found R10-TWO-ZONE-HHL: found by the audit's own work, they are no escapes. R10-FLY-REPLAY-MASK is rowed `in` because its brief places the find on the owner's export of 2026-11-04, after the finder pass and outside any D15 seat's run.
+# `owner` is the dimension whose perfect result (0018 section 1) the bug violates, `none` where no brief owns it, `-` on an `out` row. `cause_pr` is each merged pull request the group's brief or its tracked root-cause record names as a cause, comma-separated. Attribution is the evaluator's, from each group's brief; the reviewer attacks it. Columns are tab-separated.
 group	pr	reporter	window	owner	step	input_not_driven	cause_pr
 R10-HOTFIX-AWAY-LIVE	3015	owner	in	D1	D1.M1	a stored away override across restore then resolve, switch then refresh, set-point reload then refresh	-
 R10-HOTFIX-AWAY-PRESENCE	3052	owner	in	D1	D1.M3	a presence entity changing between two scheduled updates	-
 R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID	3454	outside	in	D1	D1.M3	a price fetch that raises while the last fetched prices still cover now	-
 R10-INPUT-REAPPEAR	3300	outside	in	D1	D1.M3	a configured input going missing or unavailable and reporting again inside one interval	-
 R10-LEARNED-STORE-LOAD	3185	fixer	in	D1	D1.M2	a save while the learners are still loading, and a restore straight after a snapshot	-
-R10-HOTFIX-SAV-ESTIMATE	3220	owner	in	D2	D2.M3	the savings identity on a month booked from a valve house whose buffer sits above the curve	-
+R10-HOTFIX-SAV-ESTIMATE	3220	owner	in	D2	D2.M3	the savings identity on a month booked from a valve house whose buffer sits above the curve	2411,2887
 R10-HOTFIX-LEARNER-INPUTS	3022	owner	in	D2	D2.M5	a power entity that is the pump's own estimate, and a learner covariate moved to another sensor	-
 R10-OUTSIDE-DHW-CHARGE-SETTLE	3444	outside	in	D2	D2.M5	the tank reading's fall in the minutes after a charge starts	-
 R10-HOTFIX-CARD-HEALTH-TEXT	3485	owner	in	D4	D4.M1	the Health tab's row labels on the released build in a real Home Assistant frontend	-
@@ -34,7 +35,7 @@ R10-UX-SETUP	-	owner	day0	D4	D4.M3	the Setup tab against the product's own desig
 R10-ADVISOR	-	owner	day0	D2	D2.M3	the advisor's plus and minus one degree deltas for monotonicity	-
 R10-HOTFIX-REFERENCE-BASIS	3599	programme	unreleased	D2	D2.M3	the savings identity across a merge that changes the booked reference	3587
 R10-SAVINGS-NEGATIVE	-	owner	in	D2	D2.M3	the savings identity on a ledger month upgraded mid-month from the previous release	2411
-R10-SETPOINT-BOOST	-	owner	in	none	-	a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value	-
+R10-SETPOINT-BOOST	-	owner	in	none	-	a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value; its second cause, the draw range learning from censored samples, is an estimator defect in D2 step 5's territory and is listed in card E11-D2	-
 R10-SETPOINT-POWER	-	owner	in	D0	D0.M4	an install whose pump power is set through a flow set-point behind a buffer and a mixing valve: the plan stays at the minimum level despite a price spread	-
 R10-DEMAND-OVERBOOK	2712	owner	in	D2	D2.M5	the plan's booked space energy against a metered month: the learned heat loss against metered delivery	-
 R10-BUFFER-STORE	-	fixer	in	D0	D0.M4	a configured manual-valve buffer: the published plan equals the plan with no buffer	-
@@ -52,7 +53,7 @@ R10-I18N-DE	-	-	out	-	-	an owner request (a German translation), no defect	-
 R10-CARD-COLLAPSE	-	-	out	-	-	an owner request for a feature, no defect	-
 R10-LIVE-BUNDLE-READS	-	-	out	-	-	an owner step (reads of a live bundle), no defect stated	-
 R10-SAV-COMFORT	-	-	out	-	-	the same report as R10-SAV-BASELINE's row (its residue)	-
-R10-SAV-ACTUATION	-	-	out	-	-	the same report as R10-SAV-BASELINE's row (a carry of its residue)	-
+R10-SAV-ACTUATION	2968	owner	day0	none	-	a write-timing defect (the plan's step change reaching the pump a refresh late) carried out of R10-SAV-BASELINE's day-of-stamp report: its own defect, counted in no verdict	-
 R10-ADVISOR-RESIDUE	-	-	out	-	-	the same report as R10-ADVISOR's row (its residue)	-
 R10-ADVISOR-WHATIF	-	-	out	-	-	the same report as R10-ADVISOR's row (its residue)	-
 R10-SAV-WOOD-MEASURED	-	-	out	-	-	the same report as R10-HOTFIX-SAV-ESTIMATE's row; the group was absorbed	-
@@ -67,7 +68,7 @@ R10-WATER-SETPOINT-LIFT	-	-	out	-	-	an outside request for a feature (two expert
 R10-DUTY-SWITCH-RESTART-LEARNING	-	-	out	-	-	an outside design note; part A builds a learner, no defect	-
 R10-DUTY-SWITCH-RESTART-LEARNING-PR-B	-	-	out	-	-	an outside design note; a feature part, no defect	-
 R10-DUTY-SWITCH-PLANNER-PRICE	-	-	out	-	-	an outside design note; a feature part, no defect	-
-R10-OUTSIDE-DHW-START-HYSTERESIS	-	-	out	-	-	the roster records a gap closed by a new optional input, not a defect; a lead for `generality` (a pump with a start hysteresis is a shape no fixture covered)	-
+R10-OUTSIDE-DHW-START-HYSTERESIS	3531	outside	in	none	-	a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: 54 of 114 planned hot-water runs the pump will not start, booked as the pump's disobedience	-
 R10-OUTSIDE-CLIMATE-NATIVE-TEMP	-	-	out	-	-	a deprecation on the current core, no failure on a released version yet	-
 R10-START-COUNTER-EDGES	-	-	out	-	-	in progress at the close: no fix carries its failing-test-first proof yet	-
 R11-OUTSIDE-HONEST-STARTS-RUNS	-	-	out	-	-	accepted for round 11 and in progress at the close	-
