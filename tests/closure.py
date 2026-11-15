@@ -268,6 +268,10 @@ INERT = (
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
+    # The community-standards files GitHub renders (owner's item, round 11):
+    # the code of conduct and the issue forms. No gate script reads them.
+    "CODE_OF_CONDUCT.md",
+    ".github/ISSUE_TEMPLATE/",
     "NOTICE",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split

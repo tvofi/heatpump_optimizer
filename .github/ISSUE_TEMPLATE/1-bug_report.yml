@@ -1,0 +1,96 @@
+name: Bug report
+description: Something the integration or its card does wrong.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. The fields below are what we need to start a fix without coming back with questions.
+        A security problem goes to the [private advisory form](https://github.com/tvofi/heatpump_optimizer/security/advisories/new), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw — the entity, value, card view or action, and what it did.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: integration-version
+    attributes:
+      label: Integration version
+      description: As shown on Home Assistant's integration page (Settings > Devices & services > Heat Pump Optimizer), or in HACS.
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant version
+      description: Settings > About.
+      placeholder: e.g. 2026.11.1
+    validations:
+      required: true
+  - type: input
+    id: heat-pump
+    attributes:
+      label: Heat pump or controller (brand and model)
+      placeholder: e.g. Nibe F1255, Danfoss ECL110, Luxtronik 2.1
+    validations:
+      required: true
+  - type: dropdown
+    id: control
+    attributes:
+      label: How the integration controls it
+      description: The control paths configured on your install. Pick every one that applies.
+      multiple: true
+      options:
+        - None (plan only — published on sensors, nothing switched)
+        - On/off switch
+        - ECL110 heat curve over MQTT
+        - Heat-curve offset entity (number)
+        - Heat-curve stored parameter (number, persistent)
+        - Compressor frequency (number), mode Observe
+        - Compressor frequency (number), mode Control
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When it happened
+      description: Date, time and time zone, so it can be matched to the logs and the plan.
+      placeholder: e.g. 2026-11-15 06:40 Europe/Stockholm
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Optional. If it happens again on demand, how.
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Optional, and the most useful attachment. Settings > Devices & services > Heat Pump Optimizer > ⋮ > Download diagnostics, then drag the file here.
+        **This repository is public:** open the file and look it over before attaching. Remove anything you do not want published.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: Optional. Lines mentioning `heatpump_optimizer` from Settings > System > Logs.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Card screenshots
+      description: Optional. Drag images here.

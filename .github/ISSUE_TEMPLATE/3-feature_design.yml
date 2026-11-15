@@ -1,0 +1,87 @@
+name: Feature request with design notes
+description: For contributors who have thought a feature through — proposed behaviour, configuration, edge cases and testing.
+title: "[Design]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A significant feature gets a written design and a design review before it is built ([decision 0014](https://github.com/tvofi/heatpump_optimizer/blob/main/dev/governance/decisions/0014-design-seats-and-the-end-of-0012s-moratorium.md)); your notes here are its starting point.
+        The [plan page](https://tvofi.github.io/heatpump_optimizer/plan/) shows where an accepted request is scheduled.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem or need
+      description: In your own words — what you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What you would like to happen
+      description: The outcome, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: Heat pump or controller (brand and model), how the integration controls it, and your price source or tariff type if it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: Proposed behaviour
+      description: What the integration does, step by step, including what it writes to the heat pump if anything.
+    validations:
+      required: true
+  - type: textarea
+    id: surface
+    attributes:
+      label: Entities, options or services added or changed
+      description: Names, units and which existing ones change. "None" is a valid answer.
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: How it is configured
+      description: Setup or options page fields, defaults, and how a user turns it off.
+    validations:
+      required: true
+  - type: textarea
+    id: edge-cases
+    attributes:
+      label: Edge cases and failure behaviour
+      description: Missing or stale input, unavailable entities, restarts, price or forecast gaps — and what it does in each.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How it can be tested or verified
+      description: A test that would fail today and pass once built, or a measurement on a real install.
+    validations:
+      required: true
+  - type: dropdown
+    id: pr
+    attributes:
+      label: Do you intend to open a pull request?
+      description: Fork pull requests follow [docs/CONTRIBUTING.md](https://github.com/tvofi/heatpump_optimizer/blob/main/docs/CONTRIBUTING.md).
+      options:
+        - "No"
+        - "Yes"
+        - Maybe, after the design review
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional.
+  - type: textarea
+    id: today
+    attributes:
+      label: How you do it today
+      description: Optional.
