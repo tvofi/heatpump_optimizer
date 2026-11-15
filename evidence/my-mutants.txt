@@ -1,0 +1,11 @@
+KILLED plant_recall.py: if False: | FAIL plant: a tree holding .git is refused
+KILLED plant_recall.py: tally[key] = (f + (state != "MISSED"), n + 1) | FAIL recall: a plant refuted at the judge is LOST, a miss
+SURVIVED plant_recall.py: f.write_text(f.read_text(errors="replace").replace(p["old"], p["new"]) | ['plant_recall self-test: ok (without mutants)']
+KILLED plant_recall.py: return True and \ | FAIL recall: a finding naming the symbol in another file names no plant
+KILLED plant_recall.py: cells |= {f"{parts[0]}={lv}" for lv in parts[2].split(",")[:1] if lv} | FAIL population: levels read, a NO-READ axis gives none
+KILLED plant_recall.py: if False: | FAIL plant: a list inside the tree is refused
+KILLED plant_recall.py: while False: | FAIL recall: a merged finding takes its canonical verdict, either spelling
+KILLED finder_overlap.py: n1, n2, m = len(bugs_a), len(bugs_b), len(ids_a & ids_b) | FAIL estimate: n1, n2, m after the judge and the Chapman estimate
+KILLED finder_overlap.py: est = n1 * n2 / max(m, 1) | FAIL estimate: n1, n2, m after the judge and the Chapman estimate
+KILLED finder_overlap.py: same = a["model"] == b["model"] | FAIL estimate: one model is printed as biased low
+KILLED finder_overlap.py: return {i: i if v in plant_recall.REAL else None | FAIL estimate: n1, n2, m after the judge and the Chapman estimate

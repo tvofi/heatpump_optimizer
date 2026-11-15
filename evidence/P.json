@@ -1,0 +1,1 @@
+{"round":10,"planter":"demo-planter","plants":[{"id":"P01","space":"natural","file":"custom_components/heatpump_optimizer/currency.py","old":"x","new":"y","symbol":"money_scale","kind":"scale"},{"id":"P02","space":"config","file":"custom_components/heatpump_optimizer/optimizer.py","old":"x","new":"y","symbol":"_multi_start_minimize","kind":"opt","cell":"price_shape=flat"}]}
