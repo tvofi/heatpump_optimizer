@@ -27805,7 +27805,9 @@
    "severity": "medium",
    "size": "M",
    "wave": 1,
-   "issues": [],
+   "issues": [
+    3106
+   ],
    "fixes": [],
    "after": [
     "R10-COP-LEARNER-DRAW-FLOOR",
