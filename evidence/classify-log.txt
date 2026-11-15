@@ -1,0 +1,3 @@
+17:30:53 rc=3 WAIT d1051479c6fb2a5898db48b45cd2b0403177d187 pending: gate red: none
+17:32:05 rc=3 WAIT d1051479c6fb2a5898db48b45cd2b0403177d187 pending: gate red: none
+17:33:17 rc=0 GREEN d1051479c6fb2a5898db48b45cd2b0403177d187 pending: none red: none

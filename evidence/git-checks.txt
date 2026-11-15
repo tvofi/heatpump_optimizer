@@ -1,0 +1,14 @@
+merge-tree origin/main(e0ad8b2bd3) d1051479c6fb2a5898db48b45cd2b0403177d187:
+a09655646dc4d7214de7069cf574f599376aa1c0
+rc=0
+
+three-dot stat:
+ tools/policy/check-wave-script.mjs | 59 +++++++++++++++++++++++++-------------
+ 1 file changed, 39 insertions(+), 20 deletions(-)
+
+roles diff merge-base...origin/main (empty = current):
+0
+p2 tip d761df16551490faf6a5bff484d8792b9fc3842f; body cites cb6600d2f1; delta:
+ BLOCKED.md | 17 +++++++++++++++++
+ p2-BODY.md | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 47 insertions(+)
