@@ -27599,7 +27599,9 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R11-HOTFIX-FIGURE-BLOCK-BASE"
+   ],
    "files": [
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/open_pr.sh",
