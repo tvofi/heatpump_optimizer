@@ -14,7 +14,8 @@ comments, dispatch briefs, roster edits, and what you tell the owner.
 every role contract here are instructions you follow, not relay. Where a rule
 names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
-will treat as established. **After each compaction** read `CLAUDE.md`, this
+will treat as established. The owner's rulings in `dev/programme/RULINGS.md`
+bind you and whoever you brief, though that file is not policy. **After each compaction** read `CLAUDE.md`, this
 contract and the rules in full, and the instrument pages and
 `dev/programme/RULINGS.md` the liveness hook's `policy-corpus.txt` carries as changed, then run its
 `PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).
@@ -63,9 +64,8 @@ target or the critical chain would feel goes back to the owner first.
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
 `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
-instance by you counts toward the third. The product, the four
-process states and the demonstration a check owes are `root-cause.md`'s and
-`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
+instance by you counts toward the third. It runs in **its own seat**
+(`root-cause.md`), never inside the fix (section 2).
 
 ## 4. The merge message is a second closing surface
 
@@ -209,8 +209,6 @@ Failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request, and you too: you
 write the rosters and order the merges.
 
-- **A comment is not propagation** — including yours on #3394.
-- **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
   it), each stamp, and before branch cleanup, which keeps the roster
