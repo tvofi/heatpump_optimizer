@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|descents|grid|gradient
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -14,6 +14,12 @@ plan's running rule (0.1 kW) and the 1.0 kW floor, the same for the combined
 draw (hot-water levels are the planner's), off-to-on edges of the combined
 draw, energy, ``predicted_cost`` and the lowest room temperature. Runs on a
 tree before the pull request too: it reads the published arrays only.
+
+``c1``: the same two lines with ``optimizer._engaged`` reduced to
+``clamp_planned_levels`` alone, ruling c1's other arm as one predicate and
+nothing else (the swing term stays deleted). Read against ``fixtures`` on
+this tree and on the merge base: the arm is a null only where its lines
+equal the merge base's. Exits 2 on a tree without ``_engaged``.
 
 ``descents``: a solve that prices a duty switch descends twice, with the
 switch operand and as a solve that prices no stop would
@@ -87,6 +93,18 @@ def fixtures() -> int:
               f" energy_kwh {float(np.sum(space + dhw)) * 0.25:.2f},"
               f" predicted_cost {got['predicted_cost']:.2f}, lowest_room {float(rooms.min()):.2f}")
     return 0
+
+
+def c1() -> int:
+    if not hasattr(om, "_engaged"):
+        print("this tree has no optimizer._engaged: nothing to reduce")
+        return 2
+    kept = om._engaged
+    om._engaged = lambda opt: opt.config.clamp_planned_levels
+    try:
+        return fixtures()
+    finally:
+        om._engaged = kept
 
 
 def _switch_solve(clamp: bool, p_min: float, pair, arm: str, phase: int, out_mean: float):
@@ -262,4 +280,4 @@ def gradient() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit({"fixtures": fixtures, "descents": descents, "grid": grid, "gradient": gradient}[sys.argv[1]]())
+    sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "gradient": gradient}[sys.argv[1]]())
