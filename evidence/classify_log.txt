@@ -1,8 +1,0 @@
-rc=3 07:41:40
-WAIT 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: gate red: none
-rc=3 07:42:51
-WAIT 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: gate red: none
-rc=1 07:44:04
-RED 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: none red: gate
-DONE
-rc=1 07:44:13 RED 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: none red: gate

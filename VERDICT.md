@@ -1,68 +1,26 @@
-Fix review: blocked 93ba227138a2c024bf81e44e74f2b11cb572bd76 ci-red: gate is red because governance / policy-docs was cancelled at its 5-minute timeout in run 43688486622; re-run that job, and the delta review below holds
+Fix review: merge 93ba227138a2c024bf81e44e74f2b11cb572bd76
 
-bus-nonce: 546905d0ae546008ea6b475c6ccf1f5c
-
-## Block
-
-- `merge_train.py classify 93ba227138a2c024bf81e44e74f2b11cb572bd76 --pr 3451` exits 1: `RED 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: none red: gate` (ev/classify_log.txt, ev/classify_last.txt). This is not APPROVAL-OWED (exit 4), unlike the previous round.
-- The gate job 132741691093 (run 43688486622) prints `FAIL governance / policy-docs: cancelled (this run)` next to the expected `budget-raise-gate` red. Both `gate` and `governance / policy-docs` are in the `merge_train.py owed-reds` set (ev/owed_reds.txt).
-- The job `governance / policy-docs` 132734039270 started at 07:07:47Z and ended `cancelled` at 07:12:51Z. That is the job's `timeout-minutes: 5` in `.github/workflows/governance.yml` (ev/ci_gate_red.txt).
-- I ran the job's content steps locally at the head, and each one passes (ev/policy_docs_steps_head.txt):
-  - `rules_sync.mjs --check`: rc 0, 0 s.
-  - `codeowners_gap.py --check`: rc 0, 2 s.
-  - `policy_lint.mjs`: rc 0, 36 s.
-  - `fragments_sync.mjs`: rc 0, 1 s.
-  - `policy_lint.mjs --hooks`: rc 0, 6 s.
-  - I did not run `machinery_ratchet.py --check-event`, which needs the CI event.
-- So nothing in the tree is known to fail. The required check simply never concluded.
-- **What unblocks it.** Re-run `governance / policy-docs` at this head. Once the gate reads GREEN, or APPROVAL-OWED for the budget raise alone, every finding of this review stands as a merge, with no further review owed for an unchanged head.
-- If the job times out again at this head, the PR body owes a `## Red checks` answer for it (defect-root-cause.md).
+bus-nonce: 4dd5b1a4590a2321a847ad3fe72b5b1b
 
 ## Findings
 
-- Residual: line 9 of the PR body is stale at this head, as it already was at 7f4a9be8. It says "39 files changed, 578 insertions, 761 deletions (`git diff --shortstat 0a8033305d...HEAD`)". That command now prints `2216 files changed, 138804 insertions(+), 9608 deletions(-)` because 0a8033305d is far behind the merge base. The PR's own diff, `git diff --shortstat $(git merge-base origin/main HEAD)...HEAD`, is `40 files changed, 602 insertions(+), 755 deletions(-)`, the same at 7f4a9be8 and at this head (ev/delta_checks.txt). The sentence's claim, deletion over machinery, still holds. Only the figure and its base are stale. The fixer can refresh it at the next body edit. Carry: dismissed: body hygiene, no later stage reads the figure, and the PR's own measured diff (40/602/755) still deletes more than it adds
+- Residual: line 9 of the PR body is still stale at this head, as the previous verdict found. It cites `git diff --shortstat 0a8033305d...HEAD` as `39 files changed, 578 insertions, 761 deletions` and says `git diff --name-only 0a8033305d...HEAD -- custom_components` is empty. Re-run at this head, those commands print `2216 files changed, 138804 insertions(+), 9608 deletions(-)` and 52 paths, because 0a8033305d is far behind the merge base. Against the merge base 13cbe48de4, the PR's own figures are `40 files changed, 602 insertions(+), 755 deletions(-)` and 0 `custom_components/` paths (ev/body_line9.txt, ev/head_unchanged.txt). The sentence's claims still hold: the PR deletes more than it adds and writes no production code. Only the base and figures are stale. Carry: dismissed: body hygiene, no later stage reads the figure, and measured against the merge base the PR still deletes more than it adds and touches no custom_components path
 
 ## Evidence
 
-- **Round.** This is a delta round over the reviewed head 7f4a9be89c98d6ff59dc396c479b95b73b761cf6 (`Fix review: merge`). verdict/3451 holds 6 verdicts before this one (ev/verdict_ref_history.txt), so this is at least round 7. The rounds since the merge verdicts have been merge-of-main reconciles. The brief scopes this round as a delta and does not ask me to judge a re-cut.
-- **Delta structure.**
-  - `review_carry.py 7f4a9be8 93ba2271` prints FRESH-REVIEW, because c3149607 is a hand-resolved merge.
-  - 1efe8398 and 93ba2271 are each the automatic merge of their parents. Their trees equal `git merge-tree --write-tree` of the parents: b7b0e388 and cd15f7d7 (ev/delta_checks.txt).
-  - No `custom_components/` line is in the delta, so the scope does not widen.
-- **The PR's own patch is unchanged.**
-  - At 7f4a9be8 it is `git diff 29b3e5a74c...7f4a9be8`; at this head it is `git diff 13cbe48de4...93ba2271`. Both are `40 files changed, 602 insertions(+), 755 deletions(-)`.
-  - Their sorted `+`/`-` line sets are identical: diff rc 0 (ev/delta_checks.txt).
-  - So none of this PR's slimming is undone. Every line of the head outside the patch equals main at 13cbe48de4, so none of main's changes is lost, including the 12 lines main added to `bus.sh` in #3491.
-- **The bus.sh conflict resolution.**
-  - `git merge-tree --write-tree 2c69fb35 7f4a9be8` reports `CONFLICT (content)` in `tools/audit/seat/bus.sh` alone, as the body says.
-  - At the head, main's `HPO_SEAT_GEN` guard is at the top of `dispatch()` (bus.sh:727-729), and main's two seat_gen arms come right before the PR's card C4 `dhid()` helper and the card C5 arm.
-  - `bash tools/audit/seat/bus.sh --self-test` at the head on Linux prints `bus self-test: 239 checks, 0 failed`, rc 0 (ev/bus_selftest_head.txt). That is 237 + 2, as the body says. The body's two macOS-only FAILs do not reproduce on Linux, which matches its account.
-  - **Mutant A, main's side.** I deleted the `HPO_SEAT_GEN` guard (bus.sh:727-729). The run prints `239 checks, 2 failed`, rc 1, with FAIL on `dispatch under a superseded HPO_SEAT_GEN refuses and records nothing` and on its null control. The control fails because the unrefused G1 dispatch records a row and shifts the count (ev/bus_selftest_mutantA_no_seatgen_guard.txt). So main's guard and arms are live inside the resolved block.
-  - **Mutant B, this PR's side.** I deleted the card C4 `dhid()` helper. The run prints `239 checks, 34 failed`, rc 1 (ev/bus_selftest_mutantB_no_dhid.txt). So the PR's half of the union is load-bearing.
-- **The two refreshed body lines match the tree at the head.**
-  - Line 52: `grep -c proposal-triage dev/governance/config/policy_budgets.json` prints 2 at 93ba2271 and 2 at origin/main 60aefaf7.
-  - The `budget-raise-gate` line under `## Red checks`: `git diff origin/main 93ba2271 -- dev/governance/config/policy_budgets.json` moves exactly `proposal-triage.md` lines 36 -> 40 and tokens 489 -> 563. `policy_lint.mjs --budgets` at the head prints `dev/governance/roles/proposal-triage.md 40 40 563 563` (ev/budgets_head.txt).
-  - These resolve both findings of the previous verdict.
-  - The `## Head` paragraph is also correct:
-    - It names 93ba2271.
-    - #3600, #3491, #3599 and #3603 are the merges in 29b3e5a7..2c69fb35.
-    - `git merge-tree --write-tree 946eb6d2 c3149607` exits 0.
-    - The conflict is in bus.sh alone.
-- **The owner ruling on proposal-triage.md still holds.** `git diff --name-status $(git merge-base origin/main H)...H -- dev/governance/roles/proposal-triage.md` prints `M`, not `D`. `git diff 7f4a9be8 93ba2271 -- dev/governance/roles/proposal-triage.md` is empty, so the once-per-round shape the previous round verified is unchanged (ev/proposal_triage_diff.txt).
-- **Budgets on the head merged with origin/main.**
-  - `git merge-tree --write-tree origin/main 93ba2271` at origin/main 60aefaf7b0d1f53a932f184e1e41efc206c435d4 exits 0, tree b3b4f7bd0f0138deabf82497dd1a52dbd023fe4d (ev/merge_tree.txt). It merges cleanly.
-  - On a commit of that tree, `node tools/policy/policy_lint.mjs --budgets` prints `corpus: ~69077 tokens, cap 69333 +band 500 = 69833`, rc 0 (ev/budgets_merged.txt). That is within the corpus cap.
-  - It also prints:
-    - `always-loaded ~3604 / 3849`
-    - `CLAUDE.md 213 221 3604 3605`
-    - `role fixer ~6279 / 6352`
-    - `role record ~7236 / 7905`
-    - `role policy ~10012 / 10458`
-- **Versions.** The PR's own patch is identical to the one the previous round reviewed, which touches no `VERSION`, manifest, `RELEASE_NOTES.md` or claim file.
-- **CI at this head, live.** The reds are:
-  - `gate`: the owed block above.
-  - `budget-raise-gate`: the owner's approval for the raise, which follows the verdict.
-  - `governance / policy-docs`: cancelled.
-
-  Everything else that is required is green. That includes `tests / closures`, `tests / fast (3.14)`, `governance / instrument-self-tests`, `tests / mutation` and `pr-contract / pr-contract` (run 43688486622).
-- **Mutation.** The delta writes no production line. The targeted mutants are A and B above.
+- **Round.** This is a re-issue round at an unchanged head, after the previous verdict on probe/rev-3451-546905d0 (1e6e309a7473d637f353ddc1ce5f761a1412612d). That verdict was `blocked ci-red` only because the required job `governance / policy-docs` was cancelled at its timeout in run 43688486622. The packet's `## Review scope` reads `delta` over reviewed head 93ba2271, and its delta diff is empty. The original change was not re-reviewed, as the brief directs.
+- **The head is unchanged.** `git ls-remote origin refs/pull/3451/head` prints 93ba227138a2c024bf81e44e74f2b11cb572bd76, and the GitHub PR API reports the same head. The previous probe's `ev/HEAD.txt` names this same SHA. Its tree is cd15f7d77bc50fb63d46491314068425bf1d8e66, and `git diff 93ba2271 93ba2271` is 0 bytes (ev/head_unchanged.txt). So the tree is the one the previous verdict measured.
+- **CI is APPROVAL-OWED, the only state that now separates this PR from merge.** `merge_train.py classify 93ba2271 --pr 3451` exits 4 (ev/classify_last.txt). It prints: `APPROVAL-OWED 93ba227138a2c024bf81e44e74f2b11cb572bd76 2 budget raise(s), first .claude/workflows/policy_budgets.json: files.dev/governance/roles/proposal-triage.md: 36 -> 40 (a cap went up): a raise is the owner's (0013): tvofi's approval is on 939c91fc0e31, not this head 93ba227138a2: an approval covers only the commit it was given on`. I judged the head as GREEN, as the brief directs. The owner's approval follows this verdict.
+- **The previous block is resolved.** The packet's live digest shows the re-run `governance / policy-docs` job, id 132743706674, at `success`. The cancelled job was 132734039270. `gate` (132745271028) and `budget-raise-gate` (132745294630) are red only on the owed approval, as the packet's `approval-owed` advisory confirms. Every other required context in `merge_train.py owed-reds` (ev/owed_reds.txt) is `success` in the digest (ev/review_packet.md).
+- **Merge with main.** At origin/main b046b22d6ed8e0ebc5fead18b6f5cd9178b1b12d, `git merge-tree --write-tree origin/main 93ba2271` exits 0 with tree 4f7b2f60d8098df1f1097c9223b603bae8982367 (ev/merge_tree.txt). I committed that tree and ran `node tools/policy/policy_lint.mjs --budgets` on it, with rc 0 (ev/budgets_merged.txt). It prints:
+  - `corpus: ~69077 tokens, cap 69333 +band 500 = 69833`
+  - `always-loaded ~3604 / 3849`
+  - `role fixer ~6279 / 6352`
+  - `role record ~7236 / 7905`
+  - `role policy ~10012 / 10458`
+- **Previous findings re-measured at the head, not copied.**
+  - `bash tools/audit/seat/bus.sh --self-test` prints `bus self-test: 239 checks, 0 failed`, rc 0, on Linux (ev/bus_selftest_head.txt). The tree is unchanged, so mutants A and B of the previous round still apply to the same lines. I did not re-run them.
+  - `policy_lint.mjs --budgets` at the head prints `dev/governance/roles/proposal-triage.md 40 40 563 563`, rc 0 (ev/budgets_head.txt).
+  - `grep -c proposal-triage dev/governance/config/policy_budgets.json` prints 2 at the head.
+- **Versions.** Against the merge base, `git diff --name-only` over `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files prints nothing (ev/body_line9.txt).
+- **Mutation.** The delta is empty and writes no production line, so no new targeted mutant is owed.
