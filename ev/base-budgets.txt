@@ -1,0 +1,2 @@
+tools/audit/briefs/D11.md                        109  126     1647  1939 
+corpus:        ~69740 tokens, cap 69625 +band 500 = 70125
