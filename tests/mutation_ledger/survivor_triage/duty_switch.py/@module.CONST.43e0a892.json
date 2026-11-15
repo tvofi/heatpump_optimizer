@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST 43e0a892",
-  "old": "STORE_VERSION = 1",
-  "reason": "equivalent in production today: the version is only what Home Assistant's Store stamps on the file and compares with a stored payload's own on load; no migration exists for either value and DutySwitchLearner.from_record never reads it, so 1 -> 2 changes nothing the learner loads, books or publishes. The arbiter's own _STORE_VERSION carries the same verdict (pump_arbiter.py:<module> CONST 816df3d3).",
-  "verdict": "equivalent"
-}
