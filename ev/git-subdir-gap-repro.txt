@@ -1,0 +1,14 @@
+### --tree repo/cc
+plant: REFUSED repo/cc is inside the git work tree at /tmp/tmp.C9Nummi8uI/scr/repo: a plant there shows in git diff
+rc=1
+### --tree linked/cc
+plant: REFUSED linked/cc is inside the git work tree at /tmp/tmp.C9Nummi8uI/scr/linked: a plant there shows in git diff
+rc=1
+### git diff in repo:
+### null: plain dir copy
+PLANTED P01 natural a.py
+PLANTED P02 config b.py
+rc=0
+x <= 1
+def sign(v):
+    return -v

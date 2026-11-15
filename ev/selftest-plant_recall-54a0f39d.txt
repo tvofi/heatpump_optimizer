@@ -1,0 +1,67 @@
+ok   population: levels read, a NO-READ axis gives none
+ok   plant null: a sound list over both spaces is refused nothing
+ok   plant: a planter named as the evaluator (case, punctuation) is refused
+ok   plant: an unnamed planter is refused
+ok   plant: a list in one space only is refused
+ok   plant: a natural-only list is refused for config, a config-only one for natural
+ok   plant: a config cell outside the population is refused
+ok   plant: an old text not in the file once is refused
+ok   plant: a plant whose file is not in the tree is refused
+ok   plant: a plant in neither space is refused
+ok   plant: an old text twice in the file is refused
+ok   plant: a plant changing nothing is refused
+ok   plant: a list inside the tree is refused
+ok   plant: an empty list is refused
+ok   plant: a tree holding .git is refused
+ok   plant: a subdirectory of a git work tree is refused
+ok   plant: a linked worktree (its .git a file) and a subdirectory of one are refused
+ok   plant null: a plain directory outside any work tree is refused nothing (git agrees)
+ok   plant: each plant lands once and is printed
+ok   plant: a plant whose new text holds another's old text in one file is refused nothing
+ok   plant: two plants in one file each land at the original place of their old text
+ok   plant: two plants whose old texts overlap in one file are refused
+ok   plant: two plants with disjoint old texts in one file are refused nothing
+ok   recall: a finding naming the symbol in another file names no plant
+ok   recall: both judged real prints 2/2
+ok   recall: a plant refuted at the judge is LOST, a miss
+ok   recall: a finding on a symbol sharing a prefix names no plant
+ok   recall: per space and per kind lines
+ok   recall: a plant no finding names is MISSED
+ok   recall: an unreproduced finding loses its plant
+ok   recall: a merged finding takes its canonical verdict, either spelling
+ok   recall: a merged finding (the into field) found real is FOUND
+ok   recall: a finding with no verdict loses its plant
+ok   recall null: an empty plant list prints unread, never a value
+ok   recall null: no judge verdicts (an empty list) print unread
+ok   recall null: no judge record prints unread
+ok   recall null: no judge input prints unread
+ok   recall null: an empty input directory prints unread and no digit
+ok   mutant killed: planter ban (by 'planter named as the evaluator')
+ok   mutant killed: planter normalised (by 'planter named as the evaluator')
+ok   mutant killed: planter unnamed (by 'unnamed planter')
+ok   mutant killed: git tree (by 'holding .git')
+ok   mutant killed: git ancestors (by 'subdirectory of a git work tree')
+ok   mutant killed: git file (by 'linked worktree')
+ok   mutant killed: overlap (by 'overlap in one file are refused')
+ok   mutant killed: splice order (by 'original place of their old text')
+ok   mutant killed: list inside tree (by 'inside the tree')
+ok   mutant killed: both spaces (by 'one space only')
+ok   mutant killed: config cell (by 'outside the population')
+ok   mutant killed: space known (by 'neither space')
+ok   mutant killed: missing file (by 'file is not in the tree')
+ok   mutant killed: merged field (by 'the into field')
+ok   mutant killed: old once (by 'old text twice')
+ok   mutant killed: plant changes (by 'changing nothing')
+ok   mutant killed: empty list (by 'an empty list is refused')
+ok   mutant killed: real verdicts (by 'refuted at the judge')
+ok   mutant killed: weakened real (by 'both judged real')
+ok   mutant killed: names: file (by 'in another file')
+ok   mutant killed: names: word (by 'sharing a prefix')
+ok   mutant killed: lost vs missed (by 'refuted at the judge')
+ok   mutant killed: merged resolved (by 'canonical verdict')
+ok   mutant killed: merged text (by 'canonical verdict')
+ok   mutant killed: null plants (by 'empty plant list prints unread')
+ok   mutant killed: null judge (by 'an empty list) print unread')
+ok   mutant killed: null judge input (by 'no judge input prints unread')
+plant_recall self-test: ok (with mutants)
+rc=0

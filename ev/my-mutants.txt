@@ -1,0 +1,7 @@
+KILLED   overlap strict->le | ['FAIL plant: two plants with disjoint old texts in one file are refused nothing']
+KILLED   ancestors drop self | ['FAIL plant: a tree holding .git is refused', 'FAIL plant: a linked worktree (its .git a file) and a subdirectory of one are refused']
+SURVIVED overlap unsorted | []
+KILLED   splice wrong new | ['FAIL plant: two plants in one file each land at the original place of their old text']
+SURVIVED spans once->any | []
+KILLED   plant skip write | ['FAIL plant: each plant lands once and is printed', 'FAIL plant: two plants in one file each land at the original place of their old text']
+SURVIVED PLANTED only first tree | []
