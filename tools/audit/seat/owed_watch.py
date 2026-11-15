@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import re
 import subprocess
 import sys
@@ -391,6 +392,12 @@ def _world(arm: str, grace0: bool):
 ARMS = tuple(GRACE_MIN)
 
 
+def _aged(world):
+    """A planted world's refs and heads moved 1e8 s into the past, so a run at the real clock reads them old."""
+    groups, prs, refs, ctime, first, rows = world
+    return groups, prs, refs, {k: v - 1e8 for k, v in ctime.items()}, first, rows
+
+
 def cases(mod) -> "dict[str, bool]":
     res = {}
     run = lambda arm, g0=True: mod.cp_owed(*_world(arm, g0))
@@ -427,6 +434,14 @@ def cases(mod) -> "dict[str, bool]":
         [l.split()[1] for l in variant("SEAT-SILENT", design__OUTX=("f2" * 20, 400, "Design blocked: x"))] == ["SEAT-SILENT"])
     res["blocked-no-fire null: a handoff ref at the verdict's own second is a repair"] = (
         variant("blocked-no-fire", **{"handoff__r11-out": ("f3" * 20, 0, "")}) == [])
+    w = list(_world("UNFIRED", True))
+    w[5] = w[5] + [(w[3]["8" * 40], "FIRED designer R11-out OUT")]
+    res["UNFIRED null: a FIRED line naming the group, stamped at the dispatch's own second, is a fire"] = not any(
+        l.split()[1] == "UNFIRED" for l in mod.cp_owed(*w))
+    w[5][-1] = (w[3]["8" * 40] - 1, "FIRED designer OUT")
+    res["UNFIRED: a FIRED line a second before the dispatch is no fire for it"] = (
+        [l.split()[1] for l in mod.cp_owed(*w) if l.split()[1] == "UNFIRED"] == ["UNFIRED"])
+    res["FIXER-OWED's age runs from the approve verdict, not from another ref"] = " 58m past " in (run("FIXER-OWED") or [""])[0]
     res["the line names the step's age in whole minutes"] = " 60m past its 0m grace " in (run("merge-no-approval") or [""])[0]
     w = list(_world("none", True))
     w[0]["OUT"]["tags"], w[0]["OUT"]["rank"] = ["HOTFIX", "OUTSIDE"], 0
@@ -558,6 +573,27 @@ def read_world_checks() -> "dict[str, bool]":
                 res[f"read_world: {name} is Unreadable, never an empty list"] = False
             except Unreadable as e:
                 res[f"read_world: {name} is Unreadable, never an empty list"] = "open pull requests" in str(e)
+        def failing(word, out=None):
+            def run(argv, cwd=None):
+                if argv[0] == "gh":
+                    return 0, json.dumps(prs)
+                if word in argv:
+                    return (0, out) if out is not None else (1, f"{word} refused")
+                return sh(argv, cwd)
+            return run
+        for word, out, why in (("ls-remote", None, "ls-remote"), ("fetch", None, "fetch"), ("log", None, "commit times"),
+                               ("log", f"{h12} 3000\n", "#11's head")):
+            try:
+                read_world("o/r", str(c), str(led), None, failing(word, out))
+                ok = False
+            except Unreadable as e:
+                ok = str(e).startswith(why)
+            res[f"read_world: a failed {word}{' missing a head' if out else ''} is Unreadable ({why})"] = ok
+        try:
+            read_world("o/r", str(c), str(led), "refs/heads/nope", fake((0, "[]")))
+            res["read_world: an unreadable roster ref is Unreadable"] = False
+        except Unreadable as e:
+            res["read_world: an unreadable roster ref is Unreadable"] = str(e).startswith("roster at refs/heads/nope")
         g("checkout", "-q", "main", cwd=c)
         (c / roster_lib.CRITICAL_PATH_NAME).write_text("not json")
         g("commit", "-qam", "bad", cwd=c)
@@ -579,7 +615,6 @@ def self_test() -> int:
         pf = Path(d) / "payload-fix-86-r1.json"
         pf.write_text("{}")
         old = (now - datetime.timedelta(minutes=60)).timestamp()
-        import os
         os.utime(pf, (old, old))
         led = Path(d) / "fired.log"
         led.write_text("2026-11-15T11:30:00Z FIRED payload-fix-86-r1.json\nno fire here\nFIRED #3 unstamped\n")
@@ -587,7 +622,11 @@ def self_test() -> int:
         res["fired: FIRED lines only, stamped as UTC, an unstamped one None"] = (
             [w and w.isoformat() for w, _ in rows] == ["2026-11-15T11:30:00+00:00", None])
         res["fire_owed: an unfired payload past its grace owes; one a FIRED line names does not"] = (
-            len(fire_owed(d, [], now)) == 1 and fire_owed(d, rows, now) == [])
+            len(fire_owed(d, [], now)) == 1 and fire_owed(d, rows, now) == []
+            and " rendered 60m ago" in (fire_owed(d, [], now) or [""])[0])
+        edge = (now - datetime.timedelta(minutes=FIRE_GRACE_MIN)).timestamp()
+        os.utime(pf, (edge, edge))
+        res["fire_owed: a payload exactly FIRE_GRACE_MIN old is still inside its grace"] = fire_owed(d, [], now) == []
         res["graces are carry 4's figures, UNFIRED at FIRE_GRACE_MIN; the tick's two windows unchanged (120, 15)"] = (
             GRACE_MIN == {"merge-no-approval": 10, "approved-unmerged": 45, "blocked-no-fire": 15, "head-no-dispatch": 25,
                           "UNFIRED": 15, "DESIGN-REVIEW-OWED": 10, "FIXER-OWED": 10, "SEAT-SILENT": 90}
@@ -601,6 +640,30 @@ def self_test() -> int:
         res["fire_names: #3 names PR 3, never PR 30; a topic matches as a whole word"] = (
             fire_names(3, [], "FIRED #3 x") and not fire_names(3, [], "FIRED #30")
             and fire_names(9, ["r11-a"], "FIRED fixer R11-A") and not fire_names(9, ["r11-a"], "FIRED r11-ab"))
+    import contextlib
+    import io
+    real = globals()["read_world"]
+    try:
+        for answer, rc_want, out_want in ((Unreadable("open pull requests: x"), 2, "cp-owed: UNREADABLE open pull requests: x\n"),
+                                          (_aged(_world("merge-no-approval", True)[:6]), 0, "CP-OWED merge-no-approval #11 ")):
+            def stub(*a, answer=answer):
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+            globals()["read_world"] = stub
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["cp-owed", "--fired", "/dev/null"])
+            res[f"main: cp-owed exits {rc_want} printing {out_want.split(':')[0].split(' #')[0].strip()}"] = (
+                rc == rc_want and buf.getvalue().startswith(out_want))
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                main(["cp-owed"])
+                res["main: cp-owed without --fired is a usage error"] = False
+            except SystemExit as e:
+                res["main: cp-owed without --fired is a usage error"] = e.code == 2
+    finally:
+        globals()["read_world"] = real
     failed = 0
     for name, ok in res.items():
         print(f"  {'ok  ' if ok else 'FAIL'} {name}")
