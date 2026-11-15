@@ -90,7 +90,7 @@
    "no_read": "no enumerator: no cell ledger over write and hold sites times plan states",
    "would_read": "the actuator-write dimension's cell ledger",
    "builder": "R11-INTAKE-R10-RESIDUE",
-   "lead": "`git grep -n 'async_call(' -- custom_components/ | wc -l` -> 8 candidate write sites at the graded SHA; 7 of the 9 unowned items of the hand ledger are defects of this term, and so is the stuck set-point the ledger gives D1"
+   "lead": "`git grep -n 'async_call(' -- custom_components/ | wc -l` -> 8 candidate write sites at the graded SHA; 6 of the 7 unowned items of the hand ledger are defects of this term, and so is the stuck set-point the ledger gives D1"
   },
   "generality": {
    "record": "absent",
@@ -103,7 +103,7 @@
     "pairs": 18696,
     "no_read_axes": 2
    },
-   "lead": "defects the owner's install could not have shown: 13 of the 31 in-window rows of the hand ledger were reported by an outside install"
+   "lead": "defects the owner's install could not have shown: 11 of the 26 in-window rows of the hand ledger were reported by an outside install"
   },
   "unowned": {
    "record": "absent",
@@ -111,7 +111,7 @@
    "would_read": "`escapes` once it records its owning dimension",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "value": 9,
+    "value": 7,
     "command": "python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json",
     "cards": [
      "E11-U1",
@@ -132,28 +132,28 @@
    "would_read": "the escapes record with found-by and owner, and the series R11-PRE-ROUND-METRICS prints",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "in_window": 31,
-    "dated_the_stamp_day": 8,
+    "in_window": 26,
+    "dated_the_stamp_day": 6,
     "per_owner": {
-     "D0": 2,
-     "D1": 6,
-     "D2": 6,
+     "D0": 1,
+     "D1": 5,
+     "D2": 5,
      "D4": 2,
      "D6": 1,
      "D8": 2,
      "D10": 1,
      "D12": 1,
      "D15": 1,
-     "none": 9
+     "none": 7
     },
     "reporters": {
      "owner": 14,
-     "outside": 13,
-     "fixer": 3,
+     "outside": 11,
+     "fixer": 0,
      "programme": 1
     },
     "candidates": 76,
-    "ruled_out": 36,
+    "ruled_out": 43,
     "command": "python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json",
     "rule": "every roster group at the pinned commit that lists a product file and is an owner, bug, hotfix or outside group or whose brief matches escapes.py's REPORT pattern has one row; escapes.py refuses a candidate with no row"
    },
@@ -174,9 +174,9 @@
    "by_hand": {
     "named_causes": 4,
     "named_by_a_root_cause_record": 3,
-    "production_merges_in_window": 162,
-    "per_100": 2.47,
-    "denominator_command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210",
+    "production_merges_in_window": 155,
+    "per_100": 2.58,
+    "denominator_command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139",
     "note": "pull request 3404 (the stuck set-point; cause named by R10-RCA-SETPOINT-LATCH-DEADLOCK.md on archive/handoff-wip/r10-rca-setpoint-latch-deadlock), pull requests 2411 and 2887 (R10-HOTFIX-SAV-ESTIMATE; both named by the tracked dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; 2411 also by R10-SAVINGS-NEGATIVE's brief), pull request 3587 (R10-HOTFIX-REFERENCE-BASIS; the fixing group's word, caught before a release, so injected and no escape)"
    },
    "proxy": "`scorecard.py` line `H`: unread (merges.tsv)"
@@ -219,7 +219,7 @@
    "no_read": "no enumerator: no pass reports a universe over a late merge",
    "would_read": "a read from the roster's group kinds and the examining passes' denominators",
    "builder": "R11-PRE-ROUND-METRICS",
-   "lead": "the finder baseline is 17f1c55fad1b (2026-10-14, two hours after the window opened); the window holds 162 production merges by `machinery_ratchet.py`'s class, and the one later pass on record is the catch-up judged at d749c986d"
+   "lead": "the finder baseline is 17f1c55fad1b (2026-10-14, two hours after the window opened); the window holds 155 production merges by `machinery_ratchet.py`'s class, and the one later pass on record is the catch-up judged at d749c986d"
   },
   "first_pass": {
    "record": "absent",
@@ -250,7 +250,7 @@
    "no_read": "no token ledger: every seat class is unledgered",
    "would_read": "the ledger keyed by group, role and dimension",
    "builder": "R11-PRE-TOKEN-LEDGER",
-   "beside": "`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210` -> the window's 1210 merges: production 162, machinery 565, record 483; churn 15156 nonproduct lines per 1000 product lines"
+   "beside": "`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139` -> the window's 1139 merges: production 155, machinery 516, record 468; churn 15167 nonproduct lines per 1000 product lines"
   }
  },
  "not_followed": [
@@ -276,7 +276,7 @@
   },
   {
    "clause": "0018 section 3, dimension row: `found and escapes yes (judge record; escapes by hand)`",
-   "why": "Followed, by hand: the ledger `escapes_hand.tsv` rows every one of the 76 roster groups its stated rule selects at the pinned roster commit, 31 as escapes and 36 ruled out with the reason. The roster records no reporter time, so 7 owner reports dated the closeout stamp's own day are listed apart and counted in no verdict."
+   "why": "Followed, by hand: the ledger `escapes_hand.tsv` rows every one of the 76 roster groups its stated rule selects at the pinned roster commit, 26 as escapes and 43 ruled out with the reason. The roster records no reporter time, so 7 owner reports dated the closeout stamp's own day are listed apart and counted in no verdict."
   },
   {
    "clause": "0018 section 3, standing seat row: `local seats by hand from transcripts`",
@@ -490,12 +490,12 @@
   },
   "dev/governance/dimensions/D0.md": {
    "verdict": "change",
-   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D0: 2 judged, 2 stand (2 classed bug), 2 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 10 over 7 steps, depth {'deep': 7, 'spot': 3}, steps no seat ran deep: D0.M3,D0.M6, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 2 escape(s) in the window in this brief's territory (R10-SETPOINT-POWER, R10-BUFFER-STORE). In the brief: step 4 names the grid in prose (price and weather profiles, topologies, horizons) and no command prints its cells; 0018 section 1 makes `regret` this brief's distance and names no step for the same-information oracle. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 65 lines.",
+   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D0: 2 judged, 2 stand (2 classed bug), 2 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 10 over 7 steps, depth {'deep': 7, 'spot': 3}, steps no seat ran deep: D0.M3,D0.M6, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 1 escape(s) in the window in this brief's territory (R10-SETPOINT-POWER). In the brief: step 4 names the grid in prose (price and weather profiles, topologies, horizons) and no command prints its cells; 0018 section 1 makes `regret` this brief's distance and names no step for the same-information oracle. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 65 lines.",
    "card": "E11-D0"
   },
   "dev/governance/dimensions/D1.md": {
    "verdict": "change",
-   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D1: 7 judged, 7 stand (6 classed bug), 7 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 6 over 6 steps, depth {'deep': 4, 'spot': 2}, steps no seat ran deep: D1.M4,D1.M5, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 6 escape(s) in the window in this brief's territory (R10-HOTFIX-AWAY-LIVE, R10-HOTFIX-AWAY-PRESENCE, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-INPUT-REAPPEAR, R10-LEARNED-STORE-LOAD, R10-HOTFIX-FLOW-SETPOINT-STUCK). In the brief: step 2 says `Enumerate every persisted payload` and step 5 `Each swallowing try/except` with no command that prints either list; 0018 section 1 owes the census of paths, stores, timers, listeners and guards. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 60 lines.",
+   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D1: 7 judged, 7 stand (6 classed bug), 7 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 6 over 6 steps, depth {'deep': 4, 'spot': 2}, steps no seat ran deep: D1.M4,D1.M5, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 5 escape(s) in the window in this brief's territory (R10-HOTFIX-AWAY-LIVE, R10-HOTFIX-AWAY-PRESENCE, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-INPUT-REAPPEAR, R10-HOTFIX-FLOW-SETPOINT-STUCK). In the brief: step 2 says `Enumerate every persisted payload` and step 5 `Each swallowing try/except` with no command that prints either list; 0018 section 1 owes the census of paths, stores, timers, listeners and guards. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 60 lines.",
    "card": "E11-D1"
   },
   "dev/governance/dimensions/D10.md": {
@@ -529,7 +529,7 @@
   },
   "dev/governance/dimensions/D2.md": {
    "verdict": "change",
-   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D2: 6 judged, 5 stand (5 classed bug), 2 in a roster group at stage done (3 standing ids are in no group's `findings`, so removed is a floor); coverage rows 5 over 5 steps, depth {'deep': 2, 'spot': 3}, steps no seat ran deep: D2.M3,D2.M4,D2.M5, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 6 escape(s) in the window in this brief's territory (R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-LEARNER-INPUTS, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK, R10-COP-GATE-E), 2 more dated the stamp's own day. In the brief: steps 1 to 5 list identities in prose and `sweep`; no tracked list names the identities and their grid (0018 section 1: NO-READ). Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 53 lines.",
+   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D2: 6 judged, 5 stand (5 classed bug), 2 in a roster group at stage done (3 standing ids are in no group's `findings`, so removed is a floor); coverage rows 5 over 5 steps, depth {'deep': 2, 'spot': 3}, steps no seat ran deep: D2.M3,D2.M4,D2.M5, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 5 escape(s) in the window in this brief's territory (R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-LEARNER-INPUTS, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK), 2 more dated the stamp's own day. In the brief: steps 1 to 5 list identities in prose and `sweep`; no tracked list names the identities and their grid (0018 section 1: NO-READ). Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 53 lines.",
    "card": "E11-D2"
   },
   "dev/governance/dimensions/D3.md": {
@@ -539,7 +539,7 @@
   },
   "dev/governance/dimensions/D4.md": {
    "verdict": "change",
-   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D4: 3 judged, 0 stand (0 classed bug), 0 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 3 over 3 steps, depth {'spot': 3}, steps no seat ran deep: D4.M1,D4.M2,D4.M3, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 2 escape(s) in the window in this brief's territory (R10-HOTFIX-CARD-HEALTH-TEXT, R10-OUTSIDE-VALVE-TARGET-LABEL), 3 more dated the stamp's own day. In the brief: step 1 drives `sv` and `en` while `check_scopes.py --population` prints three shipped languages (de, en, sv); the brief's own limit is `There is no Home Assistant frontend locally`; all three steps ran at depth `spot`. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 48 lines.",
+   "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D4: 3 judged, 0 stand (0 classed bug), 0 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 3 over 3 steps, depth {'spot': 3}, steps no seat ran deep: D4.M1,D4.M2,D4.M3, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 2 escape(s) in the window in this brief's territory (R10-HOTFIX-CARD-HEALTH-TEXT, R10-OUTSIDE-VALVE-TARGET-LABEL), 2 more dated the stamp's own day. In the brief: step 1 drives `sv` and `en` while `check_scopes.py --population` prints three shipped languages (de, en, sv); the brief's own limit is `There is no Home Assistant frontend locally`; all three steps ran at depth `spot`. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 48 lines.",
    "card": "E11-D4"
   },
   "dev/governance/dimensions/D5.md": {
@@ -621,7 +621,7 @@
   },
   "dev/governance/roles/root-cause.md": {
    "verdict": "keep",
-   "evidence": "`git ls-tree --name-only a39627da59 dev/audit/rca/ | wc -l` -> 137 entries; `git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | python3 -c \"import json,sys;print(sum(g.get('kind')=='rca' for g in json.load(sys.stdin)['groups']))\"` -> 30 root-cause groups on round 10's roster. Whether a countermeasure stopped its class is unread: `bugclasses.json` records no instance date (card E11-N-RULE-YIELD). `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows) line RCA_TRACKED: of the 31 in-window escapes of the hand ledger, a root-cause record is tracked for 3 (SAV-ESTIMATE, COP-UNMEASURED, BUFFER-STORE); a fourth, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for the stuck set-point, is on the archive tag `archive/handoff-wip/r10-rca-setpoint-latch-deadlock` and not on main; the group for CARD-HEALTH-TEXT is `refused`. A lead for card E11-INJECTED, not a score. NO-READ: nothing counts which seats load a contract, so cost (its tokens times the seats that load it) is unread (builder R11-PRE-TOKEN-LEDGER), and a clause's yield is unread until a block's class names the clause (card E11-N-ROLE-CLAUSE). Cost read: `git show a39627da59:dev/governance/roles/root-cause.md | wc -l` -> 84 lines (`git show v7.0.0:dev/governance/roles/root-cause.md | wc -l` -> 84); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/root-cause.md | wc -l` -> 0 merges touched it in round 10's window."
+   "evidence": "`git ls-tree --name-only a39627da59 dev/audit/rca/ | wc -l` -> 137 entries; `git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | python3 -c \"import json,sys;print(sum(g.get('kind')=='rca' for g in json.load(sys.stdin)['groups']))\"` -> 30 root-cause groups on round 10's roster. Whether a countermeasure stopped its class is unread: `bugclasses.json` records no instance date (card E11-N-RULE-YIELD). `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows) line RCA_TRACKED: of the 26 in-window escapes of the hand ledger, a root-cause record is tracked for 2 (SAV-ESTIMATE, COP-UNMEASURED); another, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for the stuck set-point, is on the archive tag `archive/handoff-wip/r10-rca-setpoint-latch-deadlock` and not on main; the group for CARD-HEALTH-TEXT is `refused`. A lead for card E11-INJECTED, not a score. NO-READ: nothing counts which seats load a contract, so cost (its tokens times the seats that load it) is unread (builder R11-PRE-TOKEN-LEDGER), and a clause's yield is unread until a block's class names the clause (card E11-N-ROLE-CLAUSE). Cost read: `git show a39627da59:dev/governance/roles/root-cause.md | wc -l` -> 84 lines (`git show v7.0.0:dev/governance/roles/root-cause.md | wc -l` -> 84); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/root-cause.md | wc -l` -> 0 merges touched it in round 10's window."
   },
   "dev/governance/roles/standing-dispatch.md": {
    "verdict": "keep",
@@ -665,7 +665,7 @@
   },
   "dev/governance/rules/defect-root-cause.md": {
    "verdict": "keep",
-   "evidence": "NO-READ: yield is its bug class's instances after the rule merged, and `python3 -c \"import json;j=json.load(open('dev/audit/config/bugclasses.json'));print(sum(isinstance(i,dict) for c in j.values() if isinstance(c,dict) for i in (c.get('instances') or [])))\"` -> 0: no instance carries a date; nothing counts a load or the seconds of a refusal (0018 section 3: not scorable at round 10's close; no roster group builds it: card E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 31 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 3 of them and a fourth sits off main (see root-cause.md's row). Cost read: `git show a39627da59:dev/governance/rules/defect-root-cause.md | wc -l` -> 153 lines (`git show v7.0.0:dev/governance/rules/defect-root-cause.md | wc -l` -> 153); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/rules/defect-root-cause.md | wc -l` -> 4 merges touched it in round 10's window."
+   "evidence": "NO-READ: yield is its bug class's instances after the rule merged, and `python3 -c \"import json;j=json.load(open('dev/audit/config/bugclasses.json'));print(sum(isinstance(i,dict) for c in j.values() if isinstance(c,dict) for i in (c.get('instances') or [])))\"` -> 0: no instance carries a date; nothing counts a load or the seconds of a refusal (0018 section 3: not scorable at round 10's close; no roster group builds it: card E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 26 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 2 of them and another sits off main (see root-cause.md's row). Cost read: `git show a39627da59:dev/governance/rules/defect-root-cause.md | wc -l` -> 153 lines (`git show v7.0.0:dev/governance/rules/defect-root-cause.md | wc -l` -> 153); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/rules/defect-root-cause.md | wc -l` -> 4 merges touched it in round 10's window."
   },
   "dev/governance/rules/delivery-status-tracking.md": {
    "verdict": "keep",
@@ -1164,8 +1164,8 @@
  "cards": {
   "E11-D0": {
    "object": "dev/governance/dimensions/D0.md",
-   "proposal": "Change the brief: write the command that prints step 4's cells into the brief and have each report row carry examined over that universe; add to step 4 the cells the two escapes show it did not drive (an install whose pump power is set through a flow set-point behind a buffer and a mixing valve, where the plan stayed at the minimum level despite a price spread; a configured manual-valve buffer, where the plan equalled the plan with no buffer); add the same-information oracle step of 0018 section 1 (exogenous inputs at decision time, the measured house) with the flat-price null it already has. Each escape row of the hand ledger names the step and the input.",
-   "term": "`escapes` owned by D0: 2 in round 10's window by the hand read, toward 0; `coverage` of D0: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 10 round-10 rows carry one), toward a read share",
+   "proposal": "Change the brief: write the command that prints step 4's cells into the brief and have each report row carry examined over that universe; add to step 4 the cells the two escapes and seat-found defects show it did not drive (an install whose pump power is set through a flow set-point behind a buffer and a mixing valve, where the plan stayed at the minimum level despite a price spread; a configured manual-valve buffer, where the plan equalled the plan with no buffer); add the same-information oracle step of 0018 section 1 (exogenous inputs at decision time, the measured house) with the flat-price null it already has. Each escape row of the hand ledger names the step and the input.",
+   "term": "`escapes` owned by D0: 1 in round 10's window by the hand read, toward 0; `coverage` of D0: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 10 round-10 rows carry one), toward a read share",
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (65 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
@@ -1175,8 +1175,8 @@
   },
   "E11-D1": {
    "object": "dev/governance/dimensions/D1.md",
-   "proposal": "Change the brief: name the census command in steps 1 to 6 and add to step 3 the inputs the escapes show it did not drive: a presence entity changing between two scheduled updates, a price fetch that raises while the last prices still cover now, an input that goes missing and reports again inside one interval; to step 2 a save during the learners' load and the previous release's persisted record driven to the first actuator write (the stuck set-point: a hold that no restart released); to step 1 a stored override carried across restore then resolve. Each escape row of the hand ledger names the step and the input.",
-   "term": "`escapes` owned by D1: 6 in round 10's window by the hand read, toward 0; `coverage` of D1: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 6 round-10 rows carry one), toward a read share",
+   "proposal": "Change the brief: name the census command in steps 1 to 6 and add to step 3 the inputs the escapes and seat-found defects show it did not drive: a presence entity changing between two scheduled updates, a price fetch that raises while the last prices still cover now, an input that goes missing and reports again inside one interval; to step 2 a save during the learners' load and the previous release's persisted record driven to the first actuator write (the stuck set-point: a hold that no restart released); to step 1 a stored override carried across restore then resolve. Each escape row of the hand ledger names the step and the input.",
+   "term": "`escapes` owned by D1: 5 in round 10's window by the hand read, toward 0; `coverage` of D1: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 6 round-10 rows carry one), toward a read share",
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (60 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
@@ -1241,8 +1241,8 @@
   },
   "E11-D2": {
    "object": "dev/governance/dimensions/D2.md",
-   "proposal": "Change the brief: name the identity list and its grid as a command's output, and add the inputs the escapes show steps 3 and 5 did not drive: the savings identity on a month booked from a valve house with the buffer above the curve and on a ledger month upgraded mid-month from the previous release; a power entity that is the pump's own estimate; a covariate moved to another sensor; the tank reading's fall after a charge starts; the plan's booked space energy against a metered month; a learned draw range fed censored samples (R10-SETPOINT-BOOST's second cause; its first, the written value, is card E11-U9's); to step 1 a switch-back interval after a hot-water run (the unsensed slab). Each escape row of the hand ledger names the step and the input.",
-   "term": "`escapes` owned by D2: 6 in round 10's window by the hand read, toward 0; `coverage` of D2: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 5 round-10 rows carry one), toward a read share",
+   "proposal": "Change the brief: name the identity list and its grid as a command's output, and add the inputs the escapes and seat-found defects show steps 3 and 5 did not drive: the savings identity on a month booked from a valve house with the buffer above the curve and on a ledger month upgraded mid-month from the previous release; a power entity that is the pump's own estimate; a covariate moved to another sensor; the tank reading's fall after a charge starts; the plan's booked space energy against a metered month; a learned draw range fed censored samples (R10-SETPOINT-BOOST's second cause; its first, the written value, is card E11-U9's); to step 1 a switch-back interval after a hot-water run (the unsensed slab). Each escape row of the hand ledger names the step and the input.",
+   "term": "`escapes` owned by D2: 5 in round 10's window by the hand read, toward 0; `coverage` of D2: counts 0 today (0018 section 2: a step reporting no denominator counts 0; 0 of 5 round-10 rows carry one), toward a read share",
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (53 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
@@ -1349,8 +1349,8 @@
     "dev/governance/roles/fixer.md"
    ],
    "proposal": "This card carries an item already owed to round 11; it proposes no text of its own. For pull request 3404 the root-cause seat's record exists: `git show archive/handoff-wip/r10-rca-setpoint-latch-deadlock:dev/audit/rca/R10-RCA-SETPOINT-LATCH-DEADLOCK.md` (442 lines, commit 2e20aa5d4e, on that archive tag and not on main). It names the cause (the off restore refused the write itself, not only the capture, so an install upgraded with a persisted record equal to the pump's reading never wrote again), process state (a) (`No contract asks that a refusal on an actuator write have a release that needs no person`), a cost test, a built detector, and drafted text: a new `fix-review.md` step, `A new refusal on an actuator write names its release`, which asks the body to name what ends the refusal on a valid configuration, a check that drives its entry state, `persisted state from the previous release included`, to that end, and `blocked` where the release needs a person `unless the owner, in person, accepted it on the pull request`; and one sentence for `fixer.md` step 3, `A guard that refuses an actuator write is also driven from the previous release's persisted state, and its release needs no person`. `git show a39627da59:dev/programme/HANDOVER.md | sed -n 1546,1557p` lists the record under `Owed to round 11, with the owner's ruling behind each` and says its countermeasure sections have `no roster group, carry or pull request`. Rule: land the record and its two drafted texts as written (the owner's review, or the mandate), or record the refusal. Two more causes are named by a tracked root-cause record, `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md` at the graded SHA: pull request 2411 (line 17: it made the reference's first step steady and left the tanks as measured) and, as `a second, independent cause` from v7.1.0, pull request 2887 (lines 65 to 66; the fix of R10-BUFFER-STORE); the record reads 2411's own review and gives process state (c), so no further root-cause read is asked for the savings reference. What no root-cause seat has read: pull request 2411's other defect, the coverage factor of R10-SAVINGS-NEGATIVE (the fixing group's word), and pull request 3587 (R10-HOTFIX-REFERENCE-BASIS: the booked reference changed with no basis-stamp bump, caught before a release); 0018 section 3 asks for those two reviews to be read before any contract text is drafted for them.",
-   "term": "`injected` (layer 1): 4 causes named by hand (3404, 2411, 2887, 3587), 3 of them by a root-cause record, over 162 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210` -> production 162): 2.47 per 100, toward 0. A proxy while no enumerator reads the cause. Beside it `first_pass` 467/909 and real-catch incidence 214/909, which rank nothing while `injected` and `escapes` are NO-READ (0018 section 5).",
-   "null_control": "The record's own: its detector exits 0 at v7.1.11 (before pull request 3404) and 1 at v7.1.12, and 6 of 6 hand mutants are killed. On a merged pull request that adds no refusal on an actuator write the drafted step asks for nothing, so its first verdict cannot move; the hand ledger's in-window rows with no cause named (28 of 31) do not move either.",
+   "term": "`injected` (layer 1): 4 causes named by hand (3404, 2411, 2887, 3587), 3 of them by a root-cause record, over 155 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139` -> production 155; the window holds 1139 merges on the first-parent chain): 2.58 per 100, toward 0. A proxy while no enumerator reads the cause. Beside it `first_pass` 467/909 and real-catch incidence 214/909, which rank nothing while `injected` and `escapes` are NO-READ (0018 section 5).",
+   "null_control": "The record's own: its detector exits 0 at v7.1.11 (before pull request 3404) and 1 at v7.1.12, and 6 of 6 hand mutants are killed. On a merged pull request that adds no refusal on an actuator write the drafted step asks for nothing, so its first verdict cannot move; the hand ledger's in-window rows with no cause named (23 of 26) do not move either.",
    "cost": "The record's cost test: about 1 s per run for the detector and about 20 min of reviewer time per 30 days for the policy line, against about 6 h of programme time per occurrence and a house without heat. `fix-review.md`'s `files_tokens` budget has no headroom (HANDOVER.md, the same paragraph), so the step needs an equal deletion or a raise under decision 0013. Report-only beside it: `review_strength.py --guardrail` prints `would-trip` for the cloud arm (1/20) and the sonnet arm (1/20) at the round's end, and its own action (audit the last reviews with a planted defect) is wired to nothing.",
    "already_ruled": "tvofi, 2026-11-13 (HANDOVER.md lines 1546 to 1557 at the graded SHA): the release rule and the record are owed to round 11; the owner's rule overrides the record's refusal (iv), the stamp-time release-note rule. Not ruled in the round-end triage (P742 to P795 rule instruments); process card P7 (found_by and caused_by fields, folded into P744) builds the record of a cause, not the check.",
    "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (the fixer's and the fix reviewer's contracts)",
@@ -1632,8 +1632,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-HOTFIX-AWAY-SETBACK (pull request 3013), reported by the owner in round 10's window: away with weekend or holiday comfort fields set: a feature against its documented effect.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. It could instead widen D12 (a configuration with weekend or holiday comfort fields); the attribution to `none` is the evaluator's by hand, and the reviewer attacks it. Card: the feature-behaviour dimension (a feature against its documented effect) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1647,8 +1647,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-HOTFIX-BOOST-FLOW-CEILING (pull request 3562), reported by the owner in round 10's window: a boost over a step the plan books at partial power: the write against the plan's target.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D6 owns the documents' sentence that boost writes the ceiling, and would find the claim false; the defect is the write on a partial-power step, which no step of D6 or D8 drives. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1662,8 +1662,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-OUTSIDE-DISINFECTION-SETPOINT (pull request 3452), reported by the outside in round 10's window: the hot-water write on a disinfection step: the guard records attempts and no completion.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1 hunts wedges, leaks, races and stale data; here every cycle completes and the guard records an attempt, the written value is simply below the cycle's target. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1675,10 +1675,10 @@
     "dev/governance/dimensions/D16.md"
    ],
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
-   "unowned": "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (pull request 3512), reported by the outside in round 10's window: a re-solve landing minutes after the supply switched: no minimum run or pause.",
-   "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's steps drive lifecycle, stores, staleness and guards; a minimum run and pause on a supply switch is a rule on the write that no D1 step names. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "unowned": "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (pull request 3512): a re-solve landing minutes after the supply switched: no minimum run or pause. The intake triage built it as a need, so it is no escape and is not among the unowned items this evaluation counts; the card stands as an argument for the actuator-write dimension with no escape behind it.",
+   "proposal": "No brief at the graded SHA owns this item: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's steps drive lifecycle, stores, staleness and guards; a minimum run and pause on a supply switch is a rule on the write that no D1 step names. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
+   "term": "No term moves by this item: it is none of the 7 unowned items this evaluation counts by hand. It bears on `operation`'s unknown distance (0018 section 1), which the actuator-write dimension's cell ledger would read.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1692,8 +1692,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-OUTSIDE-SUPPLY-STALE-STEP (pull request 3478), reported by the outside in round 10's window: a cycle whose write lands in the step after the one its action was cut for.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's step 3 checks stale inputs and `the published and booked value`; here the inputs are fresh and the command written is one plan step old, which is the write against the plan and in no D1 step. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1707,8 +1707,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-WATER-SETPOINT-FEEDBACK (pull request 3405), reported by the outside in round 10's window: a water set-point on a controller with an integrating speed loop: measured power against plan.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D2 lists identities of the thermal model, COP, objective, tariff and estimators and none over a written set-point against measured power. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1722,8 +1722,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-MODE-BEFORE-SUPPLY-ON (pull request 3530), reported by the outside in round 10's window: the order of the mode write and the supply switch-on.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D1's step 4 lists races between the solve thread and loop-side writers; the order of two service calls in one pass is no such race. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1737,8 +1737,8 @@
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
    "unowned": "R10-SETPOINT-BOOST, reported by the owner in round 10's window: a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value; its second cause, the draw range learning from censored samples, is an estimator defect in D2 step 5's territory and is listed in card E11-D2.",
    "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out for this cause: D2's step 1 asks that no store cross a physical bound and lists no identity over the set-point a heating step writes; the defect is a written value equal to the do-not-heat value. The group's second cause, the draw range learning from censored samples, is an estimator defect in D2 step 5's territory and is carried by card E11-D2, not here. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "term": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
@@ -1750,15 +1750,273 @@
     "dev/governance/dimensions/D16.md"
    ],
    "paths_note": "the planned brief file of the new dimension (D16 actuator-write, D17 feature-behaviour), by the coordinator's word for the group R11-PRE-NEW-DIMENSIONS, whose queued brief names the directory and not the file; `check_scopes.py` compares exact file names (lines 375, 382, 716), so if the brief lands under another name this path must follow it before the card is recorded merged",
-   "unowned": "R10-OUTSIDE-DHW-START-HYSTERESIS (pull request 3531), reported by the outside in round 10's window: a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: 54 of 114 planned hot-water runs the pump will not start, booked as the pump's disobedience.",
-   "proposal": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D0 races plans on the same objective and inputs and D12 asks that setup completes and a plan publishes; neither drives a planned run against whether the pump will start it, which is the plan against its execution. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
-   "term": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
-   "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
+   "unowned": "R10-OUTSIDE-DHW-START-HYSTERESIS (pull request 3531): a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: planned hot-water runs the pump will not start. The intake triage built it as a gap, so it is no escape and is not among the unowned items this evaluation counts; the card stands as an argument for the actuator-write dimension with no escape behind it.",
+   "proposal": "No brief at the graded SHA owns this item: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md` -> 0 in all 16, and `grep -l -i 'actuator\\|async_call\\|write site'` over the same files prints nothing. Nearest brief argued out: D0 races plans on the same objective and inputs and D12 asks that setup completes and a plan publishes; neither drives a planned run against whether the pump will start it, which is the plan against its execution. Card: the actuator-write dimension (write safety and liveness; 0018's `operation`: the write, its hold and its release equal the plan's target) owns it once that dimension has a brief; until then 0018 section 1's clause 2 fails for it.",
+   "term": "No term moves by this item: it is none of the 7 unowned items this evaluation counts by hand. It bears on `operation`'s unknown distance (0018 section 1), which the actuator-write dimension's cell ledger would read.",
+   "null_control": "The other 19 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
+  }
+ },
+ "revision_3": {
+  "of": "ca3f872430d0f2863ac7bb7c3d4304fda538f7a5",
+  "why": "The fix review of pull request 3611 (round 10's objective record) measured three figures of this evaluation; each was re-measured here. No object verdict moves and no `decision` or `ruling` field is touched.",
+  "figures": {
+   "production merges in the window": {
+    "before": "162 (`machinery_ratchet.py --measure --window 1210`: the flag counts merges and 1210 is the window's first-parent commit count, so it reached 71 merges into round 9)",
+    "after": "155 (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139`; `git log --first-parent --merges --oneline v7.0.0..v10.0.0 | wc -l` -> 1139)"
+   },
+   "injected per 100 production merges": {
+    "before": "2.47 (4 over 162)",
+    "after": "2.58 (4 over 155)"
+   },
+   "escapes in the window, by hand": {
+    "before": "31",
+    "after": "26: an escape is a report from an install. R10-BUFFER-STORE, R10-LEARNED-STORE-LOAD and R10-COP-GATE-E were found by programme seats (the ledger's header already ruled the fixer-found R10-TWO-ZONE-HHL out on that ground); R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE and R10-OUTSIDE-DHW-START-HYSTERESIS were triaged a need and a gap. The evaluator agrees with all five after reading the roster rows."
+   },
+   "escapes per owner": {
+    "before": "D0 2, D1 6, D2 6, none 9",
+    "after": "D0 1, D1 5, D2 5, none 7; the others unchanged"
+   },
+   "unowned": {
+    "before": "9",
+    "after": "7; cards E11-U5 and E11-U10 stand as arguments for the actuator-write dimension with no escape behind them"
+   },
+   "rows dated the stamp's own day": {
+    "before": "8",
+    "after": "6: R10-UX-SETUP and R10-SAV-ACTUATION conceded to round 10's objective record (a redesign; a feature). Counted in no verdict."
+   },
+   "R10-MIN-POWER-FLOOR's owner": {
+    "before": "D8",
+    "after": "D8, kept against the record's D2: the reported symptom is a sensor's attribute (a merged slot's average power below the minimum), which is D8 step 2's check of a published value, and the brief leaves open whether the solver is at fault. It moves no term."
+   },
+   "in-window escapes with a tracked root-cause record": {
+    "before": "3",
+    "after": "2 (R10-BUFFER-STORE is no longer a row in the window)"
+   }
+  },
+  "proposal_wording": "By tvofi's ruling `Fix the wording (Recommended)`, as the coordinator relayed it: `escapes` becomes `escapes and seat-found defects` in cards E11-D0, E11-D1 and E11-D2, and `this defect` becomes `this item` in cards E11-U5 and E11-U10. Nothing else in a proposal changed.",
+  "ledger": "dev/audit/rounds/round11/evaluation/escapes_hand.tsv: seven rows move to `out` with the reason (the five above and the two stamp-day rows), and the header gains the line that an escape is a report from an install.",
+  "changes": {
+   "terms.operation.lead": {
+    "before": "candidate write sites at the graded SHA; 7 of the 9 unowned items of the hand ledger are defects",
+    "after": "candidate write sites at the graded SHA; 6 of the 7 unowned items of the hand ledger are defects"
+   },
+   "terms.generality.lead": {
+    "before": "the owner's install could not have shown: 13 of the 31 in-window rows of the hand ledger were reported",
+    "after": "the owner's install could not have shown: 11 of the 26 in-window rows of the hand ledger were reported"
+   },
+   "terms.unowned.by_hand.value": {
+    "before": "9",
+    "after": "7"
+   },
+   "terms.escapes.by_hand.in_window": {
+    "before": "31",
+    "after": "26"
+   },
+   "terms.escapes.by_hand.dated_the_stamp_day": {
+    "before": "8",
+    "after": "6"
+   },
+   "terms.escapes.by_hand.per_owner.D0": {
+    "before": "2",
+    "after": "1"
+   },
+   "terms.escapes.by_hand.per_owner.D1": {
+    "before": "6",
+    "after": "5"
+   },
+   "terms.escapes.by_hand.per_owner.D2": {
+    "before": "6",
+    "after": "5"
+   },
+   "terms.escapes.by_hand.per_owner.none": {
+    "before": "9",
+    "after": "7"
+   },
+   "terms.escapes.by_hand.reporters.outside": {
+    "before": "13",
+    "after": "11"
+   },
+   "terms.escapes.by_hand.reporters.fixer": {
+    "before": "3",
+    "after": "0"
+   },
+   "terms.escapes.by_hand.ruled_out": {
+    "before": "36",
+    "after": "43"
+   },
+   "terms.injected.by_hand.production_merges_in_window": {
+    "before": "162",
+    "after": "155"
+   },
+   "terms.injected.by_hand.per_100": {
+    "before": "2.47",
+    "after": "2.58"
+   },
+   "terms.injected.by_hand.denominator_command": {
+    "before": "--measure --repo . --head 13cbe48de4 --window 1210",
+    "after": "--measure --repo . --head 13cbe48de4 --window 1139"
+   },
+   "terms.unexamined.lead": {
+    "before": "after the window opened); the window holds 162 production merges by `machinery_ratchet.py`'s",
+    "after": "after the window opened); the window holds 155 production merges by `machinery_ratchet.py`'s"
+   },
+   "terms.tokens_per_change.beside": {
+    "before": "--measure --repo . --head 13cbe48de4 --window 1210` -> the window's 1210 merges: production 162, machinery 565, record 483; churn 15156 nonproduct lines per 1000 product lines",
+    "after": "--measure --repo . --head 13cbe48de4 --window 1139` -> the window's 1139 merges: production 155, machinery 516, record 468; churn 15167 nonproduct lines per 1000 product lines"
+   },
+   "objects[dev/governance/dimensions/D0.md].evidence": {
+    "before": "(the by-hand read 0018 section 3 allows): 2 escape(s) in the window in this brief's territory (R10-SETPOINT-POWER, R10-BUFFER-STORE). In the brief: step 4 names the grid in",
+    "after": "(the by-hand read 0018 section 3 allows): 1 escape(s) in the window in this brief's territory (R10-SETPOINT-POWER). In the brief: step 4 names the grid in"
+   },
+   "objects[dev/governance/dimensions/D1.md].evidence": {
+    "before": "(the by-hand read 0018 section 3 allows): 6 escape(s) in the window in this brief's territory (R10-HOTFIX-AWAY-LIVE, R10-HOTFIX-AWAY-PRESENCE, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-INPUT-REAPPEAR, R10-LEARNED-STORE-LOAD, R10-HOTFIX-FLOW-SETPOINT-STUCK). In the",
+    "after": "(the by-hand read 0018 section 3 allows): 5 escape(s) in the window in this brief's territory (R10-HOTFIX-AWAY-LIVE, R10-HOTFIX-AWAY-PRESENCE, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-INPUT-REAPPEAR, R10-HOTFIX-FLOW-SETPOINT-STUCK). In the"
+   },
+   "objects[dev/governance/dimensions/D2.md].evidence": {
+    "before": "(the by-hand read 0018 section 3 allows): 6 escape(s) in the window in this brief's territory (R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-LEARNER-INPUTS, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK, R10-COP-GATE-E), 2 more dated the stamp's own day. In the",
+    "after": "(the by-hand read 0018 section 3 allows): 5 escape(s) in the window in this brief's territory (R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-LEARNER-INPUTS, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK), 2 more dated the stamp's own day. In the"
+   },
+   "objects[dev/governance/dimensions/D4.md].evidence": {
+    "before": "(R10-HOTFIX-CARD-HEALTH-TEXT, R10-OUTSIDE-VALVE-TARGET-LABEL), 3 more dated the stamp's own day. In the brief:",
+    "after": "(R10-HOTFIX-CARD-HEALTH-TEXT, R10-OUTSIDE-VALVE-TARGET-LABEL), 2 more dated the stamp's own day. In the brief:"
+   },
+   "objects[dev/governance/roles/root-cause.md].evidence": {
+    "before": "section 3 allows) line RCA_TRACKED: of the 31 in-window escapes of the hand ledger, a root-cause record is tracked for 3 (SAV-ESTIMATE, COP-UNMEASURED, BUFFER-STORE); a fourth, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for",
+    "after": "section 3 allows) line RCA_TRACKED: of the 26 in-window escapes of the hand ledger, a root-cause record is tracked for 2 (SAV-ESTIMATE, COP-UNMEASURED); another, R10-RCA-SETPOINT-LATCH-DEADLOCK.md for"
+   },
+   "objects[dev/governance/rules/defect-root-cause.md].evidence": {
+    "before": "E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 31 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 3 of them and a fourth sits off main (see root-cause.md's row).",
+    "after": "E11-N-RULE-YIELD). Lead, not a score: the hand ledger's 26 in-window escapes each meet this rule's first trigger (a defect that reached a release); a root-cause record is tracked for 2 of them and another sits off main (see root-cause.md's row)."
+   },
+   "cards.E11-D0.proposal": {
+    "before": "add to step 4 the cells the two escapes show it did not drive (an install whose pump",
+    "after": "add to step 4 the cells the two escapes and seat-found defects show it did not drive (an install whose pump"
+   },
+   "cards.E11-D0.term": {
+    "before": "`escapes` owned by D0: 2 in round 10's window by the hand read, toward",
+    "after": "`escapes` owned by D0: 1 in round 10's window by the hand read, toward"
+   },
+   "cards.E11-D1.proposal": {
+    "before": "and add to step 3 the inputs the escapes show it did not drive: a presence entity",
+    "after": "and add to step 3 the inputs the escapes and seat-found defects show it did not drive: a presence entity"
+   },
+   "cards.E11-D1.term": {
+    "before": "`escapes` owned by D1: 6 in round 10's window by the hand read, toward",
+    "after": "`escapes` owned by D1: 5 in round 10's window by the hand read, toward"
+   },
+   "cards.E11-D2.proposal": {
+    "before": "command's output, and add the inputs the escapes show steps 3 and 5 did not drive: the savings",
+    "after": "command's output, and add the inputs the escapes and seat-found defects show steps 3 and 5 did not drive: the savings"
+   },
+   "cards.E11-D2.term": {
+    "before": "`escapes` owned by D2: 6 in round 10's window by the hand read, toward",
+    "after": "`escapes` owned by D2: 5 in round 10's window by the hand read, toward"
+   },
+   "cards.E11-INJECTED.term": {
+    "before": "3 of them by a root-cause record, over 162 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210` -> production 162): 2.47 per 100, toward 0. A proxy while no enumerator",
+    "after": "3 of them by a root-cause record, over 155 production merges of the window by 0018's own class (`python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139` -> production 155; the window holds 1139 merges on the first-parent chain): 2.58 per 100, toward 0. A proxy while no enumerator"
+   },
+   "cards.E11-INJECTED.null_control": {
+    "before": "ledger's in-window rows with no cause named (28 of 31) do not move either.",
+    "after": "ledger's in-window rows with no cause named (23 of 26) do not move either."
+   },
+   "cards.E11-U1.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U1.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U2.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U2.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U4.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U4.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U6.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U6.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U7.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U7.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U8.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U8.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U9.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round",
+    "after": "`unowned` (layer 1): one item of the 7 this evaluation counts by hand in round"
+   },
+   "cards.E11-U9.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U5.unowned": {
+    "before": "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (pull request 3512), reported by the outside in round 10's window: a re-solve landing minutes after the supply switched: no minimum run or pause.",
+    "after": "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (pull request 3512): a re-solve landing minutes after the supply switched: no minimum run or pause. The intake triage built it as a need, so it is no escape and is not among the unowned items this evaluation counts; the card stands as an argument for the actuator-write dimension with no escape behind it."
+   },
+   "cards.E11-U5.proposal": {
+    "before": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply'",
+    "after": "No brief at the graded SHA owns this item: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply'"
+   },
+   "cards.E11-U5.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+    "after": "No term moves by this item: it is none of the 7 unowned items this evaluation counts by hand. It bears on `operation`'s unknown distance (0018 section 1), which the actuator-write dimension's cell ledger would read."
+   },
+   "cards.E11-U5.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "cards.E11-U10.unowned": {
+    "before": "R10-OUTSIDE-DHW-START-HYSTERESIS (pull request 3531), reported by the outside in round 10's window: a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: 54 of 114 planned hot-water runs the pump will not start, booked as the pump's disobedience.",
+    "after": "R10-OUTSIDE-DHW-START-HYSTERESIS (pull request 3531): a pump whose tank thermostat starts a charge only below its set-point less a hysteresis: planned hot-water runs the pump will not start. The intake triage built it as a gap, so it is no escape and is not among the unowned items this evaluation counts; the card stands as an argument for the actuator-write dimension with no escape behind it."
+   },
+   "cards.E11-U10.proposal": {
+    "before": "No brief at the graded SHA owns this defect: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply'",
+    "after": "No brief at the graded SHA owns this item: `grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply'"
+   },
+   "cards.E11-U10.term": {
+    "before": "`unowned` (layer 1): one item of the 9 this evaluation counts by hand in round 10's window, toward 0; `escapes` owned by `none` falls by one when a dimension owns it and that dimension's rises by one.",
+    "after": "No term moves by this item: it is none of the 7 unowned items this evaluation counts by hand. It bears on `operation`'s unknown distance (0018 section 1), which the actuator-write dimension's cell ledger would read."
+   },
+   "cards.E11-U10.null_control": {
+    "before": "The other 22 in-window rows of the hand ledger keep their",
+    "after": "The other 19 in-window rows of the hand ledger keep their"
+   },
+   "not_followed.5.why": {
+    "before": "rule selects at the pinned roster commit, 31 as escapes and 36 ruled out with the reason. The roster records",
+    "after": "rule selects at the pinned roster commit, 26 as escapes and 43 ruled out with the reason. The roster records"
+   }
   }
  }
 }
