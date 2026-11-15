@@ -969,7 +969,12 @@ check("what_if: false still hides the panel",
 
 let called = null;
 const simResult = {
-  monthly_cost_delta: -42.5,
+  // The plan's own spend is in every answer and is never the money shown
+  // (#2257): the line reads the steady figure, here a schedule estimate's two
+  // pricings, which round apart.
+  monthly_cost_delta: -97.0,
+  monthly_steady_cost_delta: -42.5,
+  monthly_steady_cost_delta_shifted: -30.2,
   min_room_temperature: 19.4,
   baseline_min_room_temperature: 20.1,
   min_dhw_temperature: 46.0,
@@ -1137,7 +1142,33 @@ check("the simulator sends the hot water windows",
 
 const resultText = whatIf.shadowRoot.querySelector(".wi-result").textContent;
 check("a cheaper answer is reported as a monthly saving",
-  /43 less per month/.test(resultText));
+  /30–43 less per month/.test(resultText));
+check("#2257: a schedule estimate's money is the range between its two pricings and says what it is: " +
+  "at the day's average weather and price, without the optimizer's load shifting",
+  /30–43 less per month/.test(resultText) && !/97/.test(resultText)
+  && /an estimate at the day's average weather and price that leaves out the optimizer's load shifting\./.test(resultText)
+  && !/in steady state/.test(resultText));
+{
+  // The summary's own markup is matched as it is built: stripping tags out of
+  // it is the shape of an HTML sanitiser (the note at `tableOf` below).
+  const money = (answer) => whatIf.whatIf.summary({ ...simResult, ...answer });
+  const opens = (amount, rest) => new RegExp(`^<div><b class="[a-z-]+">${amount}</b> ${rest}`);
+  check("#2257: two pricings that round to one amount, or no second pricing, show one number, still as the estimate",
+    opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: -42.9 }))
+    && opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: null })));
+  check("#2257: a dearer schedule estimate orders its range small to large",
+    opens("12–19 more per month", "than the current plan, an estimate").test(
+      money({ monthly_steady_cost_delta: 18.6, monthly_steady_cost_delta_shifted: 12.1 })));
+  const pair = { ...simResult, monthly_steady_cost_delta: 13.0 };
+  delete pair.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer priced by the two held plans has no second pricing and reads as steady state, one number",
+    opens("13 more per month", "than the current plan, in steady state\\.").test(whatIf.whatIf.summary(pair)));
+  const none = { ...simResult };
+  delete none.monthly_steady_cost_delta;
+  delete none.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer without the steady figure shows no money at all, never the plan's own spend",
+    !/per month|97|same cost/.test(whatIf.whatIf.summary(none)));
+}
 // Reporting only the saving would invite the obvious mistake: a plan is always
 // cheaper if it is allowed to be colder.
 check("the comfort consequence is reported alongside the money",

@@ -62,6 +62,9 @@
 # request adopted. Data, so no glob above holds it; the owner alone edits it.
 /dev/governance/config/outside_contributors.json @tvofi
 /dev/audit/README.md                      @tvofi
+/dev/audit/config/objective.json          @tvofi
+/dev/audit/yardstick/                     @tvofi
+/tools/audit/check_scopes.py              @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended

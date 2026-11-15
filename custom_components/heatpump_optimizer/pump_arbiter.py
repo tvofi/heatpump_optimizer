@@ -39,9 +39,11 @@ own tank thermostat must not spend them. A disinfection cycle the
 integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
 into Heating + DHW, so the planned anti-legionella run can make hot water.
 *Idle* writes no mode: see :func:`desired`. A both step is split by
-:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
-then Heating, each through its own row above; a share under
-:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
+:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
+only for the step's hot-water share of its 15 minutes, then Heating, each
+through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
+to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
+legs by ``duty_legs.leg_rule``, the rule the planner prices.
 A block drops its duty out of :func:`_planned_duty` and again out of
 whatever :func:`_share` and the hot-water lease return, so a blocked
 duty is served as idle and a lease expiry cannot hand it back. The
@@ -199,7 +201,6 @@ from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
-from .duty_legs import both_step_legs
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
@@ -1923,7 +1924,11 @@ async def _lead_mode(coord: Any, on: bool) -> None:
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
-    """On a planned both step, hot water first for its share, then heating.
+    """On a planned both step, the first duty for its share, then the other.
+
+    Hot water goes first unless ``duty_switch`` has learned that only the
+    switch from hot water to heating stops the compressor; the order, and
+    whether the first duty keeps the whole step, is its latched decision.
 
     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
     2026-09-27). The share is the step's hot-water power over its total.
@@ -1935,11 +1940,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return duty
     result = inp.plan
     i = bisect.bisect_right(result.timestamps, now) - 1
-    legs = both_step_legs(
-        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
-    )
-    first_ends = timedelta(minutes=legs[0][1])
-    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
+    start = result.timestamps[i]
+    return duty_switch.both_step_duty(
+        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
+        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:

@@ -65,15 +65,17 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 SEAT = "tools/audit/seat"
 TARGET = "open_driver.py"
+GRAMMAR = "topic_grammar.py"  # resolve() moved here (a7fd743e5): its plants name this file
+#: A plant is (old, new) in TARGET, or (old, new, file) in another module of SEAT.
 PLANTS = {
     "M-livetip": ("            log(f\"RETIP {topic} {sha[:8]} -> {live_tip[:8]}\")\n            sha = live_tip\n",
                   "            live_tip = None\n"),
     "M-moved-gone": ("        elif live_tip is None:\n            skip(\"moved\")", "        elif False:\n            skip(\"moved\")"),
-    "M-exact": ("    if up in groups:  # exact match always wins\n", "    if False:\n"),
-    "M-body": (" and names_group(body_head, m.group(1).upper())", ""),
+    "M-exact": ("    if up in groups:  # exact match always wins\n", "    if False:\n", GRAMMAR),
+    "M-body": (" and names_group(body_head, m.group(1).upper())", "", GRAMMAR),
     "M-landed": ("        elif main and world.landed(main, sha):\n", "        elif False:\n"),
     "M-omitlast": ("        return max(above, default=-1) + 0.5\n", "        return 1e9\n"),
-    "M-crit": ("(cls[x[0]] != 0, pos(x[0])", "(False, pos(x[0])"),
+    "M-crit": ("(min(cls[x[0]], FENCED + 1), pos(x[0])", "(False, pos(x[0])"),
     "M-seen": ("        if rc == 0:\n            seen.add(key)", "        if True:\n            seen.add(key)"),
     "M-starved": ("ct and now - ct > STARVE_S", "ct"),
     "M-backoff": ('fails.get(f"{topic} {sha}", {}).get("next", 0) > now', "False"),
@@ -90,7 +92,7 @@ PLANTS = {
     "M-head4": ("splitlines()[:3]", "splitlines()[:4]"),
     "M-headall": ('"\\n".join(r.stdout.splitlines()[:3])', "r.stdout"),
     "M-first": ("        if m and m.group(1) not in seen:\n", "        if m:\n"),
-    "M-triageB": ('for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):', 'for g in (f"R10-TRIAGE-S{m.group(1)}",):'),
+    "M-triageB": ('for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):', 'for g in (f"R10-TRIAGE-S{m.group(1)}",):', GRAMMAR),
     "M-open-stem": ('        rc = d / f"t-{stem(topic)}.rc"\n', '        rc = d / f"t-{topic}.rc"\n'),
     "M-reap-stem": ('        rcf = d / f"t-{stem(t)}.rc"\n', '        rcf = d / f"t-{t}.rc"\n'),
     "M-reap-log": ('{reason(d / f"t-{stem(t)}.log")}', '{reason(d / f"t-{t}.log")}'),
@@ -114,8 +116,8 @@ def main() -> int:
             (tree / "tests").mkdir()
             shutil.copy(ROOT / "tests/throwaway_git.py", tree / "tests/throwaway_git.py")
             if name != "M0":
-                old, new = PLANTS[name]
-                p = tree / SEAT / TARGET
+                old, new, *where = PLANTS[name]
+                p = tree / SEAT / (where[0] if where else TARGET)
                 s = p.read_text()
                 if s.count(old) != 1:
                     print(f"ABORT {name}: pattern occurs {s.count(old)} times")

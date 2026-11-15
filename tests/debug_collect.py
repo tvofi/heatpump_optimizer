@@ -564,7 +564,7 @@ class _SimCoord(_Coord):
         self.integration_version = "0.0.0"
         self.outage = 12
 
-    async def async_simulate(self, overrides, *, limited=True, base=None):
+    async def async_simulate(self, overrides, *, limited=True, base=None, steady=False):
         self.simulated.append((overrides, limited))
         return {"cost_delta": 0.0, "baseline_cost": 12.5}
 

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule CMP_BOUND 726b5c41",
+  "killed_by": "tests/features.py",
+  "old": "    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return first, (off_seconds[into] / 60.0 if stop_probability[into] >= 0 else None)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

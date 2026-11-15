@@ -39,7 +39,7 @@ from typing import Any, Deque
 
 import numpy as np
 
-from .thermal_model import InstallCapability, planned_draw_runs
+from .thermal_model import InstallCapability, on_threshold_kw, planned_draw_runs
 
 #: A metered draw at or below this is standby, circulation and controller
 #: draw, not the compressor running: it says nothing about the run range.
@@ -71,6 +71,14 @@ FOLLOW_ASK_SPAN = 1.15
 #: included (it scales every draw alike); a draw the pump's own controller
 #: sets has slope 0 whatever its level. Halfway between the two.
 FOLLOW_SLOPE_MIN = 0.5
+#: ``ask_evidence``'s four states. ``ASK_FOLLOWS`` and ``ASK_IGNORED`` are the
+#: evidence itself. ``ASK_UNOBTAINABLE``: this window will not say -- no window,
+#: asks that never moved, or a full window the plan hardly ever asked to run.
+#: ``ASK_PENDING``: the window is still filling and may yet say.
+ASK_FOLLOWS = "follows"
+ASK_IGNORED = "does_not_follow"
+ASK_UNOBTAINABLE = "unobtainable"
+ASK_PENDING = "pending"
 #: Idle draws kept: a day of the default cycle. An install the arbiter
 #: commands through a flow set-point (``command``) is idle while the held
 #: set-point is the gate, and its meter then reads the circulation pump and
@@ -225,6 +233,17 @@ class DrawRange:
     def _aligned(self) -> list[tuple[float, float] | None]:
         cmds = list(self.commands)
         return cmds if len(cmds) == len(self.samples) else [None] * len(self.samples)
+
+    def _run_asked(self) -> list[tuple[float, float]]:
+        """``(drawn, asked)`` per evidence sample the plan asked to RUN.
+
+        An ask at or above the window's configured minimum, and above zero.
+        Below the minimum the plan books a duty-cycle average (``_disagrees``),
+        whose draw is no reading of the running pump: not of whether it
+        follows its ask, and not of how little it draws while running.
+        """
+        floor = self.config[0] if self.config is not None else 0.0
+        return [(d, a) for d, a, _ in self._evidence() if a >= floor and a > 0.0]
 
     def observed(self) -> tuple[float, float | None] | None:
         """``(low, high)`` metered running draw, or ``None`` while too few.
@@ -455,29 +474,70 @@ def _command_cells(entry: Any) -> tuple[float, float] | None:
     return (written, ceiling) if np.isfinite(written) and np.isfinite(ceiling) else None
 
 
-def follows_ask(draw: DrawRange | None) -> bool | None:
+def ask_evidence(draw: DrawRange | None) -> str:
     """Whether the metered draw follows the running level the plan asks.
 
-    ``None`` without the evidence: fewer than ``MIN_SAMPLES`` running samples
-    asked at or above the configured floor, or asks that never moved
-    (``FOLLOW_ASK_SPAN``). Read by the COP learner, whose ratio of drawn to
-    asked is an efficiency reading only where the draw follows the ask.
+    One of the ``ASK_*`` states, judged on the run-asked pairs
+    (``DrawRange._run_asked``). With ``MIN_SAMPLES`` of them whose asks span
+    ``FOLLOW_ASK_SPAN`` the slope of log drawn on log asked decides
+    (``FOLLOW_SLOPE_MIN``). Without that evidence the state says whether to
+    wait for it: ``ASK_PENDING`` while the window is still filling, else
+    ``ASK_UNOBTAINABLE`` -- no window at all, asks that never moved, or a
+    full window (``WINDOW`` samples) that holds too few run-asked pairs, which
+    more of the same operation will not change.
     """
     if draw is None:
-        return None
-    floor = draw.config[0] if draw.config is not None else 0.0
-    pairs = np.array(
-        [(d, a) for d, a, _ in draw._evidence() if a >= floor and a > 0.0], dtype=float
-    ).reshape(-1, 2)
+        return ASK_UNOBTAINABLE
+    pairs = np.array(draw._run_asked(), dtype=float).reshape(-1, 2)
     if len(pairs) < MIN_SAMPLES:
-        return None
+        return ASK_UNOBTAINABLE if len(draw.samples) >= WINDOW else ASK_PENDING
     low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
     if high < FOLLOW_ASK_SPAN * low:
-        return None
+        return ASK_UNOBTAINABLE
     asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
     asked = asked - asked.mean()
     slope = float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked))
-    return slope >= FOLLOW_SLOPE_MIN
+    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGNORED
+
+
+def follows_ask(draw: DrawRange | None) -> bool | None:
+    """``ask_evidence`` as a tri-state: True, False, or ``None`` without it.
+
+    ``None`` covers both waiting states: fewer than ``MIN_SAMPLES`` running
+    samples asked at or above the configured floor, or asks that never moved
+    (``FOLLOW_ASK_SPAN``). The COP learner, whose ratio of drawn to asked is an
+    efficiency reading only where the draw follows the ask, reads the state
+    itself (``MeasuredCop.judge_ratio``); diagnostics publish this.
+    """
+    return {ASK_FOLLOWS: True, ASK_IGNORED: False}.get(ask_evidence(draw))
+
+
+def power_floor_kw(draw: DrawRange | None, params: Any) -> float:
+    """The draw under which a COP or flow-lift sample says little, kW.
+
+    ``flow_lift_power_floor_kw``, the configured figure, capped by the low end
+    (``LOW_PERCENTILE``) of the draws the window metered under a run ask
+    (``DrawRange._run_asked``), and never under ``on_threshold_kw``: a
+    modulation floor configured above what the pump draws while running would
+    otherwise refuse every interval (#2066). The one floor the COP fold, the
+    flow-lift fold and the diagnostics read. The configured figure stands, bit
+    for bit, with no window, with fewer than ``MIN_SAMPLES`` run-asked pairs,
+    with a window keyed to another configured range (its samples were asked
+    under other figures, and ``DrawRange.observe`` drops them at the next
+    sample), and with no modulation floor configured: there every ask is a run
+    ask and no figure is overstated. A draw under an ask below the configured
+    minimum never moves it: that is a duty-cycle average, the draw the floor
+    exists to refuse.
+    """
+    floor = float(params.flow_lift_power_floor_kw)
+    cfg_min, cfg_max = float(params.min_electrical_power), float(params.max_electrical_power)
+    if draw is None or cfg_min <= 0.0 or draw.config != (cfg_min, cfg_max):
+        return floor
+    drawn = [d for d, _ in draw._run_asked()]
+    if len(drawn) < MIN_SAMPLES:
+        return floor
+    low_kw = float(np.percentile(drawn, LOW_PERCENTILE))
+    return max(float(on_threshold_kw(params)), min(floor, low_kw))
 
 
 def is_running_space(

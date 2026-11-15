@@ -154,7 +154,10 @@ gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
     403) printf '%s\n' "$status" | grep -qi 'secondary rate limit'; return ;;
     ?*) return 1 ;;
   esac
-  printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
+  # A here-string, not `printf | grep -q`: grep leaves at its match, and a
+  # writer still writing takes SIGPIPE -- 141 under pipefail, a refusal of a
+  # transient read; where SIGPIPE is ignored (CI), a "write error" on stderr.
+  grep -qE '^Get "https?://[^"]*": |^error connecting to ' <<<"$1"
 }
 
 # git's stderr -> 0 when another fetch may ride the failure out: gh_read.py's
@@ -287,8 +290,19 @@ driver_wrote() {
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb
-  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb ob anc
+  # rc 1 is a measured non-ancestor, rc 128 a missing object: reading both as
+  # "not an ancestor" parked a verdict that did carry (the merge train's #3198
+  # park, a checkout without the objects). Fetch what is absent, then tell them apart.
+  for ob in "$v" "$h"; do
+    git cat-file -e "$ob^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$ob" >/dev/null 2>&1 || :
+  done
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null; anc=$?
+  [ "$anc" -eq 0 ] || {
+    if [ "$anc" -eq 1 ]; then echo "$v is not an ancestor of $h"
+    else echo "cannot read the ancestry of $v and $h (git merge-base rc=$anc: an object is missing after a fetch from origin); not judged"; fi
+    return 1
+  }
   # Whose head (decision 0017). The arms below trust what only our identities
   # write: a bot's subject and author, a `ci:` subject, a commit of the branch's
   # own. A fork's pusher writes all three, and no bot of ours commits to a fork.
@@ -300,7 +314,9 @@ carry() {
   if [ -n "$(git rev-list -n 1 "$v..$h" --not "$main" 2>/dev/null)" ]; then
     retry_with git_transient heads git ls-remote --heads origin \
       || { echo "origin's branch heads could not be listed, so whether $h is a head of ours is unknown (fail closed): $GH_ERR"; return 1; }
-    printf '%s\n' "$heads" | grep -q "^$h[[:space:]]refs/heads/" || ours=0
+    # A here-string: origin lists thousands of heads, and `printf | grep -q`
+    # under pipefail read its own early match as no match (SIGPIPE, 141).
+    grep -q "^$h[[:space:]]refs/heads/" <<<"$heads" || ours=0
   fi
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -437,7 +453,7 @@ carry() {
         bt=$(git diff --no-renames --name-only "$c^" "$c")
         while IFS= read -r e; do
           [ -z "$e" ] && continue
-          if printf '%s\n' "$bt" | grep -qxF "$e"; then
+          if grep -qxF "$e" <<<"$bt"; then
             bots="$bots$e"$'\n'
           else
             while IFS= read -r p; do
@@ -1536,6 +1552,13 @@ while IFS=$'\t' read -r a k l; do
 done < "$W/alts"
 st "$alt_bad" 0 "every alternative's inputs and near-misses classify as the table needs (production gh_transient)"
 st "$alt_out" 0 "and gh_transient prints nothing on either stream"
+# The row above flaked in CI (job 132518925875): there SIGPIPE is ignored, so a
+# `printf | grep -q` whose grep left at an early match printed "write error:
+# Broken pipe" whenever the writer was still writing. A transient line followed
+# by more than a pipe buffer makes that race certain, in both signal regimes.
+x="error connecting to api.github.com"$'\n'"$(head -c 200000 /dev/zero | tr '\0' x)"
+gh_transient "$x"; st $? 0 "gh_transient: an early transient line in a long stderr is still transient"
+st "$( (trap '' PIPE; gh_transient "$x" || echo refuse) 2>&1)" "" "(and with SIGPIPE ignored, as in CI, it prints nothing and still classifies transient)"
 st "$(cut -f1 "$W/alts" | sort -u | tr '\n' '|')" "$(printf '%s\n' "$ALTS" | tr '\n' '|')" \
    "(the table keys exactly the alternatives gh_transient's source holds)"
 st "$(cut -f1,2 "$W/alts" | sort -u | cut -f1 | uniq -c | awk '$1 != 2' | wc -l | tr -d ' ')" 0 \
@@ -1720,6 +1743,24 @@ st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content
 ( cd "$W/clone" && ourcarry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
 st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
+# A checkout that lacks the objects (the merge train's #3198 park): the carry
+# fetches V and the head by sha from origin before it judges the ancestry. The
+# clone is single-branch, so V and the head are on origin but not in it; V is
+# kept reachable on refs/test/v so a fetch by sha can serve it, and the head is a
+# branch of origin, as decision 0017's whose-head arm asks. A file:// URL, since
+# a plain path clones by copying every object.
+g push -q origin "$V:refs/test/v" "$H_MERGE:refs/heads/carried-bare"
+throwaway_git_clone -q --single-branch --branch main "file://$W/remote.git" "$W/bare_clone" >/dev/null 2>&1
+carried_bare() { ( cd "$W/bare_clone" && bash "$SELF" --carry "$1" "$2" origin/main ) > "$W/carry.out" 2>&1; }
+st "$(git -C "$W/bare_clone" cat-file -e "$V^{commit}" 2>/dev/null && echo present || echo absent)" absent "the fresh clone lacks the verdict commit"
+carried_bare "$V" "$H_MERGE"; st $? 0 "CARRY: V and the head absent from the checkout are fetched, then judged"
+st "$(grep -c '^CARRY: yes' "$W/carry.out")" 1 "printing CARRY: yes"
+carried_bare "$M1" "$V"; st $? 1 "NO CARRY: a true non-ancestor still reads as one (null control)"
+st "$(grep -c "is not an ancestor of" "$W/carry.out")" 1 "naming the ancestry"
+carried_bare 0123456789012345678901234567890123456789 "$H_MERGE"; st $? 1 "NO CARRY: an object origin does not have is not judged"
+st "$(grep -c "cannot read the ancestry" "$W/carry.out")" 1 "saying it cannot read the ancestry"
+st "$(grep -c "is not an ancestor of" "$W/carry.out")" 0 "and not calling it a non-ancestor"
+g push -q origin :refs/heads/carried-bare # the fork arms below need the head on no branch
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
@@ -2063,6 +2104,25 @@ printf '#!/bin/bash\n[ "$1" = ls-remote ] && { echo "fatal: repository not found
 ( cd "$W/clone" && PATH="$W/lsfail:$PATH" bash "$SELF" --carry "$V_F" "$H_FMERGE" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: origin's branch heads unreadable, even for an automatic merge of main (fail closed)"
 st "$(grep -c "could not be listed" "$W/carry.out")" 1 "saying the heads could not be listed"
+# origin lists thousands of branch heads (7933 on 2026-11-14). A match that
+# stops reading early -- `printf | grep -q` under pipefail -- kills its writer
+# with SIGPIPE, and the pipeline's 141 read a head of ours as a fork's. The
+# stub answers with the head FIRST and 20000 heads after it, more than any pipe
+# buffer holds, so an early-exit reader fails here every time.
+mkdir -p "$W/lsbig"
+{ printf '%s\trefs/heads/carried-head\n' "$H_CILED"
+  i=0; while [ "$i" -lt 20000 ]; do printf '%040d\trefs/heads/filler-%d\n' "$i" "$i"; i=$((i + 1)); done; } > "$W/lsbig/ours"
+tail -n +2 "$W/lsbig/ours" > "$W/lsbig/fork"
+for f in ours fork; do
+  mkdir -p "$W/lsbig/$f.bin"
+  printf '#!/bin/bash\n[ "$1" = ls-remote ] && { cat "%s"; exit 0; }\nexec "%s" "$@"\n' "$W/lsbig/$f" "$REAL_GIT" > "$W/lsbig/$f.bin/git"
+  chmod +x "$W/lsbig/$f.bin/git"
+done
+( cd "$W/clone" && PATH="$W/lsbig/ours.bin:$PATH" bash "$SELF" --carry "$V" "$H_CILED" origin/main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY on a head of ours listed first among 20001 branch heads of origin"
+( cd "$W/clone" && PATH="$W/lsbig/fork.bin:$PATH" bash "$SELF" --carry "$V" "$H_CILED" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the same 20000 heads without it (null control)"
+st "$(grep -c "no branch tip of origin" "$W/carry.out")" 1 "refused as a head that is not ours"
 EVF="$W/ev-f"; mkdir -p "$EVF"; printf 'fix review at head %s\n' "$V" > "$EVF/verdict.md"
 CARRYF="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVF")]"
 setpr "$H_CILED"; mkcase botours open false "$H_CILED" "$CARRYF"

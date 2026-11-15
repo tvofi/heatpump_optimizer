@@ -87,6 +87,7 @@ from homeassistant.util import dt as dt_util  # noqa: E402
 
 from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer import coordinator as cmod  # noqa: E402
+from heatpump_optimizer import whatif  # noqa: E402
 from heatpump_optimizer.optimizer import optimize_in_process  # noqa: E402
 
 NOW = dt_util.now().replace(minute=7, second=0, microsecond=0)
@@ -235,7 +236,7 @@ def parity_arm(away):
     SEEN.clear()
     run(coord)
     published = coord._thermal_view()["min_temperature"]
-    coord._last_simulation = None
+    whatif.state_for(coord).last_at = None
     answer = asyncio.run(coord.async_simulate({}))
     live, card = SEEN[0], SEEN[-1]
     assert len(SEEN) == 2 and "error" not in answer, (len(SEEN), answer)

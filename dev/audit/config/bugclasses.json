@@ -4984,7 +4984,7 @@
       "status": "landed",
       "parts_missing": [],
       "process_state": "(d) the re-record was sound against the table it was taken from and its precondition, that the base had not moved, changed underneath it",
-      "countermeasure": "record unions over the committed entry, and static refuses a diff whose table drops a read the base names unless the diff deletes the path",
+      "countermeasure": "record unions over the committed entry, and a read leaves the table only by the named `prune` operation; part A (a bot re-records refused steps from main's own run) is R11-PRE-SHARED-FILES part 1",
       "landed": "R10-SELFTEST-SCOPE-UNION-GUARD",
       "in_tree_home": "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
       "doc": [
@@ -5759,16 +5759,16 @@
     "per_round": {},
     "total": 0,
     "max_per_round": 0,
-    "detector": "python3 -I tools/ci/selftest_scope.py static: a SHRUNK step line for each files, probes, dirs or git item and each index or objects flag the head's table drops against the base's (the first parent on a push to main), unless the diff deletes the path",
+    "detector": "python3 -I tools/ci/selftest_scope.py check, the drift step governance.yml runs on a push to main: an UNDER-SCOPED step line for each read main measures that the committed table lacks",
     "detector_idea": null,
-    "barrier": "selftest_scope.union_record (record keeps every committed read; a read leaves only by the named `prune` operation) and selftest_scope.shrink_gaps (run by `static`, which governance.yml runs on every pull request touching the table), each pinned by a mutant in tools/ci/selftest_scope_mutants.sh",
+    "barrier": "selftest_scope.union_record (record keeps every committed read; a read leaves only by the named `prune` operation), pinned by mutants in tools/ci/selftest_scope_mutants.sh",
     "status": "barriered",
     "nearest_existing": "R10-SELFTEST-RED-INTRODUCED",
     "mechanism_difference": "R10-SELFTEST-RED-INTRODUCED is a step the diff turned red; here the diff turns nothing red at its own head, it narrows a measured table that a later diff is scoped by.",
     "aliases": [
       "a re-record at a stale base drops reads the table held"
     ],
-    "non_round_note": "Process defect from R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10), not an audit finding, not counted in total. Part A (main re-records mechanically) is ruled to round 11.",
+    "non_round_note": "Process defect from R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10), not an audit finding, not counted in total. Part A (main re-records mechanically) is R11-PRE-SHARED-FILES part 1; the table-shrink guard was dropped by the round-end triage (P762, card C6).",
     "non_round_instances": [
       "#3409: 660 entries",
       "#3419: 8 entries",

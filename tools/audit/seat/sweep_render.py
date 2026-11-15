@@ -91,7 +91,8 @@ DEFAULTS = {
 #: Placeholders the overlay may omit or leave empty; each renders as the pulse.py
 #: flag given, repeated once per entry, or as nothing when there is none.
 OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger",
-                  "plan_coordinator_cap": "--coordinator-cap", "sweep_record": "--sweep-record"}
+                  "plan_coordinator_cap": "--coordinator-cap", "sweep_record": "--sweep-record",
+                  "train_state": "--train-state"}
 ENTRY = re.compile(r"^[a-z]+=\S+$")
 
 
@@ -249,13 +250,17 @@ def self_test() -> int:
           re.findall(r"--seat-alive (\S+)", render(tracked, dict(full, seat_alives=["tick=/a", "merge=/b"])))
           == ["tick=/a", "merge=/b"])
     none = {k: v for k, v in full.items() if k not in OPTIONAL_FLAGS}
-    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger="", plan_coordinator_cap="", sweep_record=""))
+    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger="", plan_coordinator_cap="", sweep_record="", train_state=""))
     check("null control: an overlay with no seat_alives renders step (1b) without the flag and does not fail",
           "--seat-alive" not in bare and "--launch-ledger" not in bare and bare == empty
           and "  " not in "".join(l for l in bare.splitlines() if "pulse.py --repo" in l))
     check("sweep_record renders as one --sweep-record FILE, and none leaves the flag out (null control)",
           re.findall(r"--sweep-record ([^\s`]+)", render(tracked, dict(full, sweep_record="/rec.json"))) == ["/rec.json"]
           and "--sweep-record" not in bare)
+    step4e = lambda t: next(l for l in t.splitlines() if l.startswith("(4e)"))
+    check("train_state renders as --train-state DIR in step 4e, and an empty one leaves the flag out (null control)",
+          "--priority --train-state /st/train`" in step4e(render(tracked, dict(full, train_state="/st/train")))
+          and "--train-state" not in step4e(bare) and "--train-state" not in step4e(empty))
     check("launch_ledger renders as one --launch-ledger FILE",
           re.findall(r"--launch-ledger ([^\s`]+)", render(tracked, dict(full, launch_ledger="/led"))) == ["/led"])
     check("a seat_alives entry that is not SEAT=FILE is refused",
