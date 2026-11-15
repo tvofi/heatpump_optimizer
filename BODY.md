@@ -2,7 +2,7 @@ Render the figure block against the pull request's recorded `base.sha`, the base
 
 ## Head
 
-`4ef570643670f754f66de0487966c13e2b23e341` is this PR's head, measured at merge base b3831ff64e (origin/main moved on since; the tree merges clean, `git merge-tree --write-tree origin/main HEAD`, 2026-11-15).
+`3dfddc96b58be0dc7f8ba36cd7b6caf7e8750a18` is this PR's head, measured at merge base b3831ff64e (origin/main moved on since; the tree merges clean, `git merge-tree --write-tree origin/main HEAD`, 2026-11-15).
 
 ## Mutation proof
 
@@ -22,7 +22,7 @@ Render the figure block against the pull request's recorded `base.sha`, the base
 
 ## Red checks
 
-none
+`instrument-self-tests` (step "Show the body PATCH refusing its own fixtures"), red at d24189bd, green at base b3831ff64e. Cause: my round-2 `body_push.sh --self-test` arm built its stand-in base with `git commit-tree` outside `throwaway_git_env`, so it needed a global git identity that the runner lacks; the hosts the seat ran on had one, so it passed there. Reproduced with `env -i PATH=/usr/bin:/bin HOME=/tmp/h bash tools/audit/seat/body_push.sh --self-test`: 49 checks, 1 failed (`unable to auto-detect email address`). Fix is in the script's own self-test arm (the call now runs inside `throwaway_git_env`); the expectations are unchanged. Same command at the head: 49 checks, 0 failed. `body_patch.sh --self-test` (109) and `pr_args.sh --self-test` (269), both under `env -i`, 0 failed. Process state (c): the step ran and passed on the seat's host while the runner differs. Cheaper detector: running the self-test under `env -i` (about 7 s for body_push), which the instrument has no standing path for; recorded, not built, as the same arm class has not recurred.
 
 ## Forward-carry
 
