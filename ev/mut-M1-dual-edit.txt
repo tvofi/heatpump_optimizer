@@ -1,0 +1,194 @@
+-- Provenance and the fail-closed Reconcile gate
+  ok   a wave refuses to run without a committed roster
+  ok   a roster that disagrees with origin stops the wave
+  ok   a roster that is not the committed file stops the wave
+  ok   a reconciler that returns nothing stops the wave
+-- Resume stages
+  ok   stage done reports merged and spends no agent
+  ok   stage merge skips fixer AND reviewer
+  ok   stage review skips the fixer only
+  ok   a fixer that returns prose in `pr` is refused, after one retry
+-- The stage vocabulary the rosters actually use
+  scope  1 roster(s), 10 group(s), 2 distinct stage(s)
+  ok   every resume.stage in every committed roster is one the wave script branches on
+  ok   stage in-review is the review stage, and reads the roster's own open_pr key
+  ok   stage pending starts a fixer, deliberately rather than by falling through
+  ok   stage blocked spends no agent and is recorded for the orchestrator
+  ok   an unrecognised stage refuses instead of starting a fresh fixer
+-- The referent a keyed stage must carry, not only the stage word
+  ok   every stage the wave script branches on has a decided referent, or a recorded exemption
+  rule   review   derived head_sha + open_pr/pr        map head_sha + open_pr/pr   301 char(s) of branch source
+  rule   merge    derived head_sha + pr                map head_sha + pr   197 char(s) of branch source
+  rule   done     derived merge_sha + merged_pr        map merge_sha + merged_pr   313 char(s) of branch source
+  rule   fix      derived pushed_sha                   map pushed_sha   404 char(s) of branch source
+  rule   blocked  derived (exempt)                     map (exempt)   347 char(s) of branch source
+  ok   every stage this map decides has a locatable branch in web-fix-wave.js
+  ok   every key required here is one the branch that requires it actually reads
+  ok   the map is exactly what the rule derives from the branch source
+  ok   every bare resume key in a decided branch is classified by the rule
+  scope  1 roster(s), 10 group(s), 9 in a stage that reads a key
+  ok   every group in a stage the wave script reads a key for carries that key
+  ok   the defect fires: `in-review` carrying only stage and note is refused
+  ok   the repair passes: `in-review` carrying open_pr and head_sha is accepted (null control)
+  ok   `done` discriminates in both directions on merged_pr / merge_sha
+  ok   a stage the script reads no key for is not made to carry one (pending, blocked)
+  ok   a null referent is a missing referent, not a present key
+-- The verdict grammar, and the seats it dispatches
+  ok   a well-formed merge verdict merges
+  ok   a blocked verdict carries its class through to the result
+  ok   a blocked verdict leaves a roster patch the orchestrator can apply
+  ok   a blocked verdict is repaired once, then re-reviewed
+  ok   a root-cause-unanswered verdict dispatches the root-cause seat, not another repair
+  ok   the root-cause seat returns beside the fix, and the group stays unmerged
+  ok   a root-cause-detectable verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair
+  ok   the stats histogram keys root-cause-detectable as its own row, the same class the wave routes
+  ok   a root-cause-unrecorded verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair
+  ok   the stats histogram keys root-cause-unrecorded as its own row, the same class the wave routes
+  ok   the reviewer prompt defines root-cause-detectable as a red a cheaper detector could have shown before the handoff
+  ok   the reviewer prompt defines root-cause-unrecorded as a red whose cheapest detector is the check that went red
+  ok   an unreadable verdict never merges, whatever the schema field says
+  ok   an unreadable verdict is not retried as a repair request
+  ok   a blocked verdict with an untaught class word parses and routes to other
+  ok   and the untaught word survives in the why rather than vanishing into "unparseable"
+  ok   an untaught class word is repaired once, exactly like a taught one -- the repair round is the proof the verdict ROUTED (unparseable verdicts skip it)
+  ok   a bare blocked verdict (no class) parses and routes to other
+  ok   a bare blocked verdict is repaired once, not discarded as unreadable
+  ok   `blocked <sha>: <why>` parses with the reason kept as the why
+  ok   a blocked verdict with a 39-hex SHA is still refused (#1106)
+  ok   a `PASS — merge` line stays outside the grammar entirely
+-- Regressions a review found, pinned so they cannot come back
+  ok   a reviewer that returns nothing does not crash the group
+  ok   ...and it is recorded as blocked, not as a thrown group
+  ok   a verdict whose field and comment disagree never merges
+  ok   VERDICT_CLASSES is defined exactly once in the wave script
+  ok   VERDICT_RE's literal is extracted from the wave script's own source
+  ok   the briefs directory is readable and non-empty
+  ok   the briefs carry at least three verdict examples (floor, not a count)
+  ok   fix-review.md example parses: blocked <sha> mutation-vacuous: <mutants>
+  ok   fix-review.md example parses: blocked <sha> class-open: <seams>
+  ok   fix-review.md example parses: blocked <sha> harness: class-rule-missing
+  ok   fix-review.md example parses: blocked <sha> harness: design-trace-missing <item>
+  ok   fix-review.md example parses: blocked <sha> carry-missing: own-group
+  ok   fix-review.md example parses: blocked <sha> root-cause-detectable: <check>
+  ok   fix-review.md example parses: blocked <sha> head-moved: measured <sha>, head is <other>
+  ok   fix-review.md example parses: blocked <sha> metric-gamed: <instrument>: <how>
+  ok   fix-review.md example parses: blocked <sha> architecture-unsound: <how>
+  ok   the briefs teach at least one block class word (floor, not a count)
+  ok   fix-review.md teaches block class "mutation-vacuous", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "class-open", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "harness", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "harness", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "carry-missing", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "root-cause-detectable", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "head-moved", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "metric-gamed", and VERDICT_CLASSES carries it
+  ok   fix-review.md teaches block class "architecture-unsound", and VERDICT_CLASSES carries it
+  ok   ROOT_CAUSE_CLASSES is read from the wave script (floor, not a count)
+  ok   fix-review.md teaches "root-cause-unanswered", a class the wave routes to the root-cause seat
+  ok   fix-review.md teaches "root-cause-detectable", a class the wave routes to the root-cause seat
+  ok   fix-review.md teaches "root-cause-unrecorded", a class the wave routes to the root-cause seat
+  ok   ...and a contract without the detectable example is refused (negative control)
+  ok   the shadow predicate fires on the #1414 spelling (negative control)
+  ok   the shadow predicate passes a free-text reason (null control)
+  ok   no brief spells a verdict in the form the parser rejects (`blocked:`)
+  ok   the spelling the contract used for a session is refused (negative control)
+  ok   a bare merge verdict with the full 40-hex SHA parses (null control)
+  ok   an abbreviated SHA is refused, not merely a \S+ null control (#1106)
+  ok   the class vocabulary is extracted from the wave script
+  class  #1418 expected=root-cause-unanswered taught=1 histogram_key=root-cause-unanswered wave_route=root-cause-unanswered disagree=0
+  class  #1429 expected=product-tradeoff-regression taught=1 histogram_key=product-tradeoff-regression wave_route=product-tradeoff-regression disagree=0
+  ok   every class the window's blocked verdicts name is keyed by the histogram AND routed by the wave
+  ok   the comparison fires: an untaught class word is keyed raw and routed to `other` (positive control)
+  ok   a taught class agrees in the same run (null control)
+-- The rotation: the coverage ledger every brief must agree with
+  scope  16 brief(s), 81 step(s); ledger 16 dimension(s)
+  ok   every brief numbers its method steps 1..n, and rotation.json carries exactly those steps for every brief
+  ok   the check fires: a ledger missing a dimension is refused (positive control)
+  ok   the check fires: a ledger missing a step the brief numbers is refused (positive control)
+  ok   the check fires: a step the brief no longer has is refused (positive control)
+  ok   and an empty extraction is refused rather than reported clean (null control)
+-- The finder report: scope, class_guess and leads (the round-9 scope wall)
+  ok   a finding must carry its seat (scope) and a class guess
+  ok   a report must carry its leads, each {owner_seat, file, symbol, what}
+  ok   scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)
+  ok   a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)
+  ok   a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)
+  ok   class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) is refused
+-- The scopes: every seat a finder is dispatched to, held to the briefs
+  scope  16 dimension(s), 59 seat(s), 16 brief(s)
+  ok   every brief has scopes, and every scopes step is exactly a step its brief numbers
+  ok   the check fires: a seat naming a step the brief does not number is refused (positive control)
+  ok   the check fires: a brief step no seat names is refused (positive control)
+  ok   the check fires: a brief with no scopes entry is refused (positive control)
+  ok   and an empty extraction is refused rather than reported clean (null control)
+-- The round driver: seats from the scopes, boxes, and the Prepare refusal
+  ok   every dimension brief is in the round driver's DIMS, and its worktree lists agree
+  ok   the check fires: a DIMS list that stops short of a brief is refused (positive control)
+  ok   the check fires: the two worktree lists drifting apart is refused (positive control)
+  ok   ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: none)
+  ok   and an empty extraction is refused rather than reported clean (null control)
+  ok   both drivers write where fold_ledger.py reads (dev/audit/rounds/round${round})
+  ok   the check fires: a finder writing the old home while verify reads the new is refused (positive control)
+  ok   audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (both declared)
+  ok   the check fires: CURRENT narrowed to tools/audit/ alone is refused (positive control)
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  ok   the dispatch block is delimited in audit-find.js
+  ok   the dispatch block draws on no randomness and no clock
+  ok   and no planSeats: seats come from the scopes, not a rotation over the ledger
+  ok   a schema that requires a denominator has a driver that enforces one (carryOf, seatCarry, denominatorGaps in the DISPATCH block)
+  FAIL round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1) []
+  FAIL the scoped round driver threw: Cannot read properties of undefined (reading 'D0')
+-- The panel verification pass: the lenses per dimension, the panel rule, one judge
+  ok   the panel rules are delimited in audit-verify.js
+  ok   the PANEL block declares no verifier count (round 9: three) or exactly one (round 10): 1
+  ok   a refute with an executed number sends the finding disputed; one without a number is contested; no vote, not even three refutes, kills
+  ok   owes an RCA at three instances of a class or any instance of a barriered one, not at two or at none
+  ok   sixteen findings over two seats make two units, each within one seat; fifteen make one
+  ok   a finding's scope wins over its id when naming its seat
+  ok   one verifier per unit carrying all three lenses, and D2's sixteen findings get two units (3 calls in all)
+  ok   nothing is killed at panel: the refuted finding reaches the judge disputed, the refute without a number contested
+  ok   the judge dedups first, the batch re-runner measures next, the verdicts come last
+  ok   one sweep per surviving class, and the class count adds its swept instances (P1: 3 judged + 1 swept = 4, owed; P2: 16, owed)
+  ok   a sweep that flags its seams counts only the beyond_finding ones, and the class carries both terms (P1: 3 judged + 1 flagged = 4, not 3 + 5)
+  ok   the sweep is told to flag every seam beyond_finding and to write the JSON the fold reads
+  ok   the judge and the sweeps write where fold_ledger.py reads (dev/audit/rounds/round9/)
+  ok   the judge reuses before minting: nearest and differs are named, and a class is a mechanism never a site
+  ok   the fold runs once after every sweep and before the writer, then the round record last
+  ok   the fold step runs the script for this round and edits no ledger by hand
+  ok   a fold that refuses stops the pass before the writer commits anything
+  ok   the round record stops with the app_push.sh command unless args.file; with it, the step runs app_push.sh
+  ok   the writer drafts one issue per class and the roster, and files nothing unless args.file
+  ok   two runners split the batch with --shard 1/2 and 2/2; args.file lets the writer search before it files
+  ok   a null verifier is re-run once, and its findings reach the judge unvoted
+  ok   from "judge" runs no verifier and hands the judge every registered finding, unvoted
+  ok   a register read returned as JSON text is the same read: every finding reaches the judge (19)
+  ok   a register read cut off mid-text stops the pass with the reply named, never as an empty register
+-- The verification pass feeds the rotation ledger its yield
+  ok   the pass returns each dimension's judge-surviving count per step, refuted and unreproduced not counted (from panels)
+  ok   and the register writer is told to write exactly that into dev/audit/config/rotation.json (from panels)
+  ok   the pass returns each dimension's judge-surviving count per step, refuted and unreproduced not counted (from judge)
+  ok   and the register writer is told to write exactly that into dev/audit/config/rotation.json (from judge)
+  ok   the read step is asked for each finding's step, or the count has nothing to key on
+  ok   rulePaths is exported
+  ok   and reads the same declared path globs as parseRuleFrontmatter (null control: the rule declares some)
+-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)
+  ok   an empty or absent draft roster stops P3
+  ok   a triage that drops a verified finding stops P3
+  ok   a triage that keeps one finding twice stops P3
+  ok   a group with no move entry stops P3
+  ok   a publish that is not a 40-hex commit stops P3
+  ok   a reviewer answering for another tree stops P3
+  ok   a recorded verdict that is not a 40-hex commit stops P3
+  ok   an approved plan is published once and its verdict recorded at a 40-hex commit
+  ok   the read step is pointed at the audit-verify draft and measures the fork holdouts
+  ok   the reviewer is pointed at the published plan ref and its SHA
+  ok   the verdict file carries the contract line with the SHA it answers for
+  ok   the verdict push is the constant plan/r11 ref and opens no pull request
+  ok   one revise round re-plans, re-publishes and approves, and the owner is not troubled
+  ok   two revise rounds at most, then the owner gets the open points (no third review)
+  ok   and the recorded verdict says the plan is not approved
+  FAIL (probe, expected) threw: deliberate
+  ok   a throwing block is reported as a failure rather than ending the run
+
+164 passed, 2 failed
+rc=1
