@@ -28600,7 +28600,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-pre-owner-criteria",
     "commit": null,
     "last_step": null,
     "next_step": "fire now; merge after the review commit",
