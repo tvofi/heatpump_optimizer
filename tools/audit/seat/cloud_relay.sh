@@ -663,7 +663,9 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       echo "cloud_relay: HELD-NOBODY #$pr ${hs:0:8}"
       level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr NOBODY" >> "$state/cloud-level-held.$$"; continue  # mut:nobody
     fi
-    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; [ -z "$bonly" ] || body_only_owed "$pr" "$topic" "$bs" "$head" "held by the hold file" || :; continue; fi
+    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"  # the hold file's skip is owed on the level too (#3358)
+      if [ -n "$bonly" ]; then body_only_owed "$pr" "$topic" "$bs" "$head" "held by the hold file" || :
+      else level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr HOLD" >> "$state/cloud-level-held.$$"; fi; continue; fi  # mut:holdowed
     # a body-only move leaves the head under review where it is, so no review freezes it
     if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
       echo "cloud_relay: HELD-${why%% *} #$pr $hs${why#"${why%% *}"} (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
@@ -1469,6 +1471,7 @@ EOF
   chk "a held PR whose handoff is ahead is not updated" 0 test ! -e "$t/hupdated"
   chk "and prints HELD with the handoff tip it did not apply" 0 grep -q "HELD #41 $HS\$" <<< "$ho"
   chk "the HELD line is printed once per pass" 0 test "$(grep -c '^cloud_relay: HELD ' <<< "$ho")" = 1
+  chk "and owes handoff-held HOLD on the level, never skipped in silence (#3358)" 0 grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS #41 HOLD\$" "$LOG.level"
   chk "and the held pass dispatches no reviewer" 1 owes "reviewer-fire"
   hc held-moved; mkref handoff/topic-a; HS2=$(git -C "$t/pr" rev-parse HEAD)
   ho=$(handoff_arm 2>&1)

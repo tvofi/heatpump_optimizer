@@ -111,7 +111,8 @@
   dirty tree is refused by name, left untouched and owed as `handoff-update`;
   one held by a live relay (`relay-tools.lock`, a dead pid's taken over) is
   busy, owed `handoff-skipped` for the pass, and retried next pass.
-  No skip of a handoff the head lacks is silent (#3358): no body ref is
+  No skip of a handoff the head lacks is silent (#3358): a hold-file skip is
+  `handoff-held ... #<pr> HOLD`; no body ref is
   `HELD-NOBODY` (`handoff-held ... #<pr> NOBODY`); an unreadable ref or head,
   a busy tools tree, a BUSY update or an unreadable body is
   `OWED <utc> handoff-skipped <ref> <tip> #<pr> <why>` in `<log>.level`, rewritten
