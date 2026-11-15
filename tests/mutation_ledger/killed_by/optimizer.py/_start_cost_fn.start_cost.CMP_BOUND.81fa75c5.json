@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_start_cost_fn.start_cost CMP_BOUND 81fa75c5",
+  "killed_by": "tests/features.py",
+  "old": "        if descent or not cost > 0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if descent or not cost >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

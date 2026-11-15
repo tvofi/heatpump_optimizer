@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:steps_at_least RETURN_DEL e5f3ee1d",
+  "killed_by": "tests/features.py",
+  "old": "    return max(1, int(np.ceil(span.total_seconds() / 3600.0 / dt_hours - _SLACK)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
