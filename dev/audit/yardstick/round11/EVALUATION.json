@@ -5,66 +5,66 @@
  "reviewer": "r11-evaluation-reviewer (Fable 5.2)",
  "review": {
   "verdict": "approve",
-  "sha": "02a48db212e0e49af62863575cba86bc339d4958",
-  "round": 3,
-  "scope": "Delta only: `git diff 7891b714f8cd02bf9eb472a3ae74a32560843cd2 02a48db212e0e49af62863575cba86bc339d4958` and whether each finding of the second review (on the ref eval-review/r11-2) is resolved. No full re-review was made.",
-  "second_review": [
+  "sha": "9de7c2bdc73361a5428d85bc444bf973c43bb593",
+  "round": 4,
+  "scope": "Delta only: `git diff 92991d2a49cf72d182d3a8ac32ca378cca83069b 9de7c2bdc73361a5428d85bc444bf973c43bb593` (the orchestrator's rulings commit ca3f872430d0, then the evaluator's correction). No full re-review was made. It replaces the approve at 02a48db212e0 on the ref eval-review/r11-3, whose findings stand.",
+  "checked": [
    {
-    "id": "S1",
-    "state": "resolved",
-    "measured": "`escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, CAUSES 4, R10-HOTFIX-SAV-ESTIMATE<-#2411,2887; `terms.injected.by_hand` reads 4 causes, 3 named by a root-cause record, 2.47 per 100 over 162; card E11-INJECTED names the tracked record and reads 28 of 31 rows with no cause, which the ledger gives."
+    "id": "rulings commit",
+    "state": "clean",
+    "measured": "ca3f872430d0 changes one file, the record, and in it only `decision` and `ruling` on each of the 48 cards (43 accepted, 5 deferred); no other key differs from 92991d2a49cf. The rulings themselves were not reviewed. `ref_privacy.py guard` rc 0."
    },
    {
-    "id": "S2",
-    "state": "resolved",
-    "measured": "no card names a directory. E11-U1 names dev/governance/dimensions/D17.md and E11-U2, U4 to U10 name D16.md; neither file exists yet and each `paths_note` says the name rests on the coordinator's word and must follow the file that lands. E11-N-GATE-CAUSE names tools/ci/gate.py (tracked). E11-N-INSTRUMENT-YIELD carries an empty `paths` with the reason."
+    "id": "figures",
+    "state": "each re-derived",
+    "measured": "`git log --first-parent --merges --oneline v7.0.0..v10.0.0 | wc -l` -> 1139 (1210 counts commits); `python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139` -> production 155, machinery 516, record 468, churn 15167; 4 over 155 is 2.58. `escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, 26 in (D0 1, D1 5, D2 5, D4 2, D6 1, D8 2, D10 1, D12 1, D15 1, none 7), 6 day0, 1 unreleased, 43 out, CAUSES 4, reporters owner 14, outside 11, programme 1, RCA_TRACKED 2, 76 candidates rowed. The cards' dependent figures follow: 23 of 26 rows with no cause, 19 other in-window rows, 11 of 26 from an outside install."
    },
    {
-    "id": "M1",
-    "state": "resolved",
-    "measured": "the four criterion cards read `no as the card stands` with the grep, and their proposal has the brief cite the criteria file; by the record 27 cards begin `yes` and 21 `no`."
+    "id": "verdicts and rulings",
+    "state": "none moved",
+    "measured": "no object verdict differs from 92991d2a49cf (tally 198 objects, 173 keep, 23 change, 2 remove, 48 cards, 48 decided); six evidence strings changed (D0, D1, D2, D4, root-cause.md, defect-root-cause.md), which is why the earlier review SHA no longer matched; no `decision`, `ruling` or `merged` differs from ca3f872430d0."
    },
    {
-    "id": "M2",
-    "state": "resolved",
-    "measured": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with card E11-U10 arguing D0 and D12 out; R10-SAV-ACTUATION is its own `day0` row; 31 in, 8 day0, 1 unreleased, 36 out, 76 candidates rowed."
+    "id": "proposal wording",
+    "state": "exactly the five",
+    "measured": "E11-D0, E11-D1, E11-D2: `escapes` -> `escapes and seat-found defects`, one span each; E11-U5, E11-U10: `this defect` -> `this item`, one span each; no other proposal changed."
    },
    {
-    "id": "M3",
-    "state": "resolved",
-    "measured": "the ledger's header says which groups the rule does not select and why R10-FLY-REPLAY-MASK is in."
+    "id": "revision_3",
+    "state": "complete",
+    "measured": "54 leaf fields differ between ca3f872430d0 and 9de7c2bdc733 outside `revision_3`, and its `changes` lists 54, the same ones."
    },
    {
-    "id": "M4",
-    "state": "resolved",
-    "measured": "R10-SETPOINT-BOOST's second cause is an input of card E11-D2 and named in E11-U9 and the ledger row."
+    "id": "D0, D1, D2",
+    "state": "each keeps an escape",
+    "measured": "D0 1 (R10-SETPOINT-POWER), D1 5, D2 5 in the ledger and in each card's `term`."
    },
    {
-    "id": "M5",
-    "state": "resolved",
-    "measured": "`first_pass.round_9` reads a first read, the baseline, no move."
+    "id": "seven newly out rows",
+    "state": "each supported by its roster brief",
+    "measured": "R10-LEARNED-STORE-LOAD (`found by the R10-FACTORY-RESET fixer`), R10-BUFFER-STORE (`Found by R10-SETPOINT-BOOST's census`), R10-COP-GATE-E (an item R10-COP-GATE-D left), R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (`NEED, verified by feature triage`), R10-OUTSIDE-DHW-START-HYSTERESIS (`GAP, MEASURED ... by the feature-triage seat`), R10-UX-SETUP (`Owner-reported Setup-tab redesign`), R10-SAV-ACTUATION (a design-first build out of R10-SAV-BASELINE's carry). The outside rows still `in` are bug pull requests or read `DEFECT` in their briefs. This withdraws the second review's M2 on R10-OUTSIDE-DHW-START-HYSTERESIS: the install-report rule is the consistent test that note asked for."
    },
    {
     "id": "commit",
     "state": "clean",
-    "measured": "one commit on 7891b714f8cd, three files (escapes.py, escapes_hand.tsv, the record); `ref_privacy.py guard --ref eval/r11 --commits 02a48db212e0e49af62863575cba86bc339d4958 --over 7891b714f8cd02bf9eb472a3ae74a32560843cd2` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run; tally 198 objects, 173 keep, 23 change, 2 remove, 48 cards; no object verdict moved, four evidence strings did (fixer.md, fix-review.md, root-cause.md, defect-root-cause.md)."
+    "measured": "9de7c2bdc7 changes the ledger and the record only; `ref_privacy.py guard` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run."
    }
   ],
   "notes": [
    {
-    "id": "P1",
+    "id": "Q1",
     "touches": "record only, no card's ruling",
-    "note": "E11-N-INSTRUMENT-YIELD has an empty `paths`. If it is accepted, `check_scopes.py` line 380 prints `accepted and names no object or paths` until the file its build adds is written there; the card says so. Deferred or rejected it prints nothing."
+    "note": "Two rows still `in` sit at the edge of the new rule (`a defect a programme seat found` is out): R10-FLY-REPLAY-MASK, reporter `programme`, found by reading the owner's export, and R10-DEMAND-OVERBOOK, whose brief opens `Found by R10-SETPOINT-BOOST's demand analysis` beside the owner's words. The header argues the first in and round 10's record counts both. Ruled out they would read D15 0 and D2 4; card E11-D15 would then rest on coverage alone, as E11-U5 and E11-U10 now rest on no escape."
    },
    {
-    "id": "P2",
+    "id": "Q2",
     "touches": "record only, no card's ruling",
-    "note": "The names D16.md and D17.md are the coordinator's word, on no roster this seat read. If the briefs land under other names the nine unowned cards' `paths` must follow before any is recorded merged, as each `paths_note` says."
+    "note": "E11-U5 and E11-U10 keep their `unowned` key while `terms.unowned` counts 7, so `tally.py` still prints unowned=9 cards. The round check refuses only fewer cards than the count, so nothing is refused."
    },
    {
-    "id": "P3",
+    "id": "Q3",
     "touches": "record only, no card's ruling",
-    "note": "The four criterion cards quote a preliminary ruling of tvofi as the coordinator relayed it, inside `finder_critical`. It is no `ruling` field and this seat did not verify it; the orchestrator writes the ruling where tvofi gave it."
+    "note": "The wording ruling is quoted in `revision_3` as the coordinator relayed it; this seat did not verify it."
    }
   ]
  },
