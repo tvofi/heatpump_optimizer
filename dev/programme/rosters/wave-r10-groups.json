@@ -12202,7 +12202,7 @@
     "Carry C6 from design-verdict/r10-audit-coverage 5b77e98dd, cut C ruled by tvofi 2026-10-31 (\"Do option c\"). At your merge base, the v10.0.0 tree, run check_scopes.py in its coverage mode, as R10-AUDIT-COVERAGE-ENDGAME left it. Classify every path a later group added: put it in a universe or in the exclusion map with a reason. Print the rc and the classified paths in the body. A nonzero rc blocks the catalog PR."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
