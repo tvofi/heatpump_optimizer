@@ -97,7 +97,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    false the moment `main` moves; stamp it with that tip and `date -u`. The code
    head goes to `handoff/<topic>`, the body to the orphan `handoff-body/<topic>`
    by `seat/body_push.sh`, whose offline `review_packet.py handoff` refusals you
-   answer first. That push is the handoff; `handoff_push.sh` opens the PR.
+   answer first. That push is the handoff; `handoff_push.sh` opens
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
@@ -211,7 +212,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     its remaining share, not a close.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
-    never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
+    never 0** (#775, #1532).
 17. **Take the fix that yields the better code; it is architecturally sound**
     (tvofi, 2026-10-08). Where one fix satisfies the check and another removes
     the cause or simplifies the design, take the second; the body names the
