@@ -34,7 +34,7 @@ def inventory(text: str) -> set:
         for span in re.findall(r"<span>(.*?)</span>", leg, re.S):
             items.add(f"legend: {_n(re.sub(r'<[^>]+>', '', span))}")
     items |= {f"filter: {f}" for f in re.findall(r'data-f="([^"]+)"', text)}
-    items |= {f"id: {i}" for i in re.findall(r'\sid="([^"]+)"', text)}
+    items |= {f"id: {i}" for i in re.findall(r'<\w+[^>]*?\sid="([^"]+)"', text)}
     items |= {f"class: {c}" for cs in re.findall(r'\sclass="([^"]+)"', text) for c in cs.split()}
     items |= {f"data attribute: {d}" for d in re.findall(r"\s(data-[a-z-]+)=", text)}
     items |= {f"listener: {ev}" for ev in re.findall(r"addEventListener\('([a-z]+)'", text)}

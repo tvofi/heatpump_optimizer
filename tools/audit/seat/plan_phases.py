@@ -337,8 +337,9 @@ def fixture() -> dict:
 
 
 def fixture_checks(check) -> None:
-    """The phases arms of `plan_page.py --self-test`: each refusal against the
-    fixture it refuses, and the drawing; `check(name, ok, got)`."""
+    """The phases arms of plan_page.py's self-test, which runs them: each
+    refusal against the fixture it refuses, and the drawing;
+    `check(name, ok, got)`."""
     import copy
     doc = fixture()
     check("phases: the fixture is sound (null control)", violations(doc) == [], violations(doc))
