@@ -156,6 +156,7 @@ def cases(m) -> dict[str, bool]:
     pair, why = m.seat_pair(scopes, "D1-s1", "opus", "sonnet", 11)
     r["seat null: a scopes seat with two models is seated"] = pair is not None and why == "" and \
         pair["seats"][1]["report"] == "dev/audit/rounds/round11/D1/s1-twin/REPORT.json" and pair["seats"][1]["model"] == "sonnet"
+    r["seat: the twin's ids start at 71, above the seat's own"] = pair["seats"][1]["ids"] == "D1-s1-71..99"
     r["seat: a seat scopes.json does not hold is refused"] = m.seat_pair(scopes, "D1-s2", "a", "b", 11)[0] is None and \
         m.seat_pair(scopes, "D2-s1", "a", "b", 11)[0] is None
     r["seat: a missing model is refused"] = m.seat_pair(scopes, "D1-s1", "a", " ", 11)[0] is None
@@ -200,6 +201,11 @@ def cases(m) -> dict[str, bool]:
             rc = m.main(["seat", "--scopes", str(d / "s.json"), "--seat", "D1-s1", "--model-a", "a", "--model-b", "b",
                          "--round", "11", "--out", str(d / "pair.json")])
         r["seat: the pair record is written"] = rc == 0 and json.loads((d / "pair.json").read_text())["universe"] == "D1-s1"
+        (d / "pair.json").unlink()
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = m.main(["seat", "--scopes", str(d / "s.json"), "--seat", "D1-s1", "--model-a", "a", "--model-b", "b",
+                         "--out", str(d / "pair.json")])
+        r["seat: no --round is refused and writes nothing"] = rc == 2 and not (d / "pair.json").exists()
     return r
 
 
@@ -215,6 +221,8 @@ MUTANTS = {
     "null pair": ('if not pair or len(pair.get("seats") or []) != 2:', "if not pair:", "no pair prints unread"),
     "null report": ("if ids_a is None or ids_b is None:", "if ids_a is None:", "missing report"),
     "null judge": ('if not judge or not judge.get("verdicts"):', "if not judge:", "no judge verdicts"),
+    "twin ids": ("TWIN_FROM = 71", "TWIN_FROM = 72", "twin's ids start at 71"),
+    "round required": ('ap.add_argument("--round", type=int, default=0)', 'ap.add_argument("--round", type=int, default=1)', "no --round"),
 }
 
 

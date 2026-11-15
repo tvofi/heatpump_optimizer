@@ -5834,12 +5834,19 @@
   "plant-recall": {
    "run_sha": "ffb2f1b4145371bbf55365116879ac7177af381841fa04edd56d0b632b89e150",
    "files": [
+    "tests/throwaway_git.py",
     "tools/audit/seat/plant_recall.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
+   "dirs": [
+    "tests"
+   ],
    "index": false,
    "objects": false,
    "git": []

@@ -21,13 +21,18 @@ tree a finder reads):
   - a planter named (case and punctuation aside) as one of the `--not` names:
     the round's finders, its orchestrator and its evaluator;
   - a plant list inside the tree it plants into (the list is held out);
-  - a tree holding `.git`: `git diff` there shows every plant, so the isolated
-    dimensions' worktrees take none (their recall is not read);
+  - a tree inside a git work tree: the tree itself or any ancestor holding
+    `.git` (a directory, or the file a linked worktree or a submodule holds),
+    since `git diff` there shows every plant; so the isolated dimensions'
+    worktrees, and any subdirectory of one, take none (their recall is not read);
   - plants in only one of the two spaces: section 4 spreads them over the
     natural universe AND the configuration space;
   - a config plant whose cell is not a level `check_scopes.py --population`
     prints (POP.txt is that output at the baseline);
-  - a plant whose `old` text is not in its file exactly once.
+  - a plant whose `old` text is not in its file exactly once;
+  - two plants in one file whose `old` texts overlap.
+Plants sharing a file are spliced at their `old` text's place in the original
+file, so one plant's `new` text never becomes another plant's target.
 
 `recall` reads the plants and the judge's two records of the round:
   JUDGE-INPUT.json  [{id, files, instrumented_symbol, title, claim, ...}], every finding judged
@@ -77,8 +82,9 @@ def refusals(doc: dict, plants_path: Path, trees: list[Path], pop: set[str], ban
     if norm(doc.get("planter", "")) in {norm(b) for b in banned} or not norm(doc.get("planter", "")):
         bad.append(f"planter {doc.get('planter')!r} is unnamed or one of the finder, orchestrator and evaluator seats")
     for t in trees:
-        if (t / ".git").exists():
-            bad.append(f"{t} holds .git: a plant there shows in git diff")
+        held = next((d for d in (t.resolve(), *t.resolve().parents) if (d / ".git").exists()), None)
+        if held:
+            bad.append(f"{t} is inside the git work tree at {held}: a plant there shows in git diff")
         if plants_path.resolve().is_relative_to(t.resolve()):
             bad.append(f"the plant list {plants_path} is inside {t}, behind no wall")
     for sp in SPACES:
@@ -98,16 +104,33 @@ def refusals(doc: dict, plants_path: Path, trees: list[Path], pop: set[str], ban
             n = f.read_text(errors="replace").count(p["old"]) if f.is_file() else 0
             if n != 1:
                 bad.append(f"{pid}: its old text is in {f} {n} times, not once")
+    for t in trees:
+        for f in {p.get("file", "") for p in plants}:
+            here = [p for p in plants if p.get("file") == f]
+            at = sorted(spans(t / f, here))
+            for (_, end, a), (start, _, b) in zip(at, at[1:]):
+                if start < end:
+                    bad.append(f"{here[a].get('id', '?')} and {here[b].get('id', '?')}: their old texts overlap in {t / f}")
     return bad
+
+
+def spans(f: Path, plants: list[dict]) -> list[tuple[int, int, int]]:
+    """(start, end, index into `plants`) of each old text found once in `f`, as the original file holds it."""
+    text = f.read_text(errors="replace") if f.is_file() else ""
+    return [(text.index(p["old"]), text.index(p["old"]) + len(p["old"]), k) for k, p in enumerate(plants)
+            if p.get("old") and text.count(p["old"]) == 1]
 
 
 def plant(doc: dict, trees: list[Path]) -> list[str]:
     out = []
     for t in trees:
-        for p in doc["plants"]:
-            f = t / p["file"]
-            f.write_text(f.read_text(errors="replace").replace(p["old"], p["new"], 1))
-            out.append(f"PLANTED {p['id']} {p['space']} {p['file']}")
+        for name in dict.fromkeys(p["file"] for p in doc["plants"]):
+            f, here = t / name, [p for p in doc["plants"] if p["file"] == name]
+            text = f.read_text(errors="replace")
+            for start, end, k in sorted(spans(f, here), reverse=True):
+                text = text[:start] + here[k]["new"] + text[end:]
+            f.write_text(text)
+        out += [f"PLANTED {p['id']} {p['space']} {p['file']}" for p in doc["plants"]]
     return out
 
 
@@ -185,7 +208,8 @@ def load(path: Path | None):
 
 def main(argv: list[str]) -> int:
     if argv[:1] == ["--self-test"]:
-        return self_test(Path(__file__), mutants="--no-mutants" not in argv)
+        tests = Path(argv[argv.index("--tests") + 1]) if "--tests" in argv else Path(__file__).resolve().parents[3] / "tests"
+        return self_test(Path(__file__), "--no-mutants" not in argv, tests)
     ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     ap.add_argument("cmd", choices=["plant", "recall"])
     ap.add_argument("--plants", required=True, type=Path)
@@ -225,8 +249,11 @@ def safe(fn, *a) -> list[str]:
         return [f"crash {type(e).__name__}"]
 
 
-def cases(m) -> dict[str, bool]:
+def cases(m, tests: Path) -> dict[str, bool]:
+    import subprocess
     import tempfile
+    sys.path.insert(0, str(tests))
+    from throwaway_git import throwaway_git_init
     r: dict[str, bool] = {}
     pop = m.population("layout\t2\tno_valve,slab_shunt\ntank_volume\tNO-READ\tcontinuous\nLEVELS: 2\n")
     r["population: levels read, a NO-READ axis gives none"] = pop == {"layout=no_valve", "layout=slab_shunt"}
@@ -253,6 +280,10 @@ def cases(m) -> dict[str, bool]:
             any("no population level" in b for b in ref({**doc, "plants": [P[0], {**P[1], "cell": "layout=moon"}]}))
         r["plant: an old text not in the file once is refused"] = \
             any("not once" in b for b in ref({**doc, "plants": [{**P[0], "old": "y > 2"}, P[1]]}))
+        r["plant: a plant whose file is not in the tree is refused"] = \
+            any("0 times, not once" in b for b in ref({**doc, "plants": [{**P[0], "file": "nowhere.py"}, P[1]]}))
+        r["plant: a plant in neither space is refused"] = \
+            any("neither natural nor config" in b for b in ref({**doc, "plants": P + [{**P[0], "id": "P09", "space": "moon"}]}))
         (t / "c.py").write_text("x < 1\nx < 1\n")
         r["plant: an old text twice in the file is refused"] = \
             any("2 times, not once" in b for b in ref({**doc, "plants": [{**P[0], "file": "c.py"}, P[1]]}))
@@ -260,12 +291,41 @@ def cases(m) -> dict[str, bool]:
             any("old text it changes" in b for b in ref({**doc, "plants": [{**P[0], "new": P[0]["old"]}, P[1]]}))
         r["plant: a list inside the tree is refused"] = any("behind no wall" in b for b in ref(doc, where=t / "P.json"))
         r["plant: an empty list is refused"] = any("empty" in b for b in ref({**doc, "plants": []}))
-        (t / ".git").write_text("gitdir: x\n")
-        r["plant: a tree holding .git is refused"] = any(".git" in b for b in ref(doc))
-        (t / ".git").unlink()
+        # git itself is the oracle for the work-tree domain: each tree below is asked of git first.
+        repo, linked = Path(td) / "repo", Path(td) / "linked"
+        env = throwaway_git_init(repo, "-q")
+        g = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True, env=env)
+        inside = lambda d: g("-C", str(d), "rev-parse", "--is-inside-work-tree").stdout.strip() == "true"
+        (repo / "cc").mkdir()
+        (repo / "cc" / "a.py").write_text((t / "a.py").read_text())
+        g("-C", str(repo), "add", "-A")
+        g("-C", str(repo), "commit", "-q", "-m", "x")
+        g("-C", str(repo), "worktree", "add", "-q", str(linked))
+        git = lambda tree: any("inside the git work tree" in b for b in m.refusals(doc, outside, [tree], pop, ["orch"]))
+        r["plant: a tree holding .git is refused"] = inside(repo) and (repo / ".git").is_dir() and git(repo)
+        r["plant: a subdirectory of a git work tree is refused"] = inside(repo / "cc") and git(repo / "cc")
+        r["plant: a linked worktree (its .git a file) and a subdirectory of one are refused"] = \
+            (linked / ".git").is_file() and inside(linked / "cc") and git(linked) and git(linked / "cc")
+        r["plant null: a plain directory outside any work tree is refused nothing (git agrees)"] = \
+            not inside(t) and g("--version").returncode == 0 and not git(t)
         out = m.plant(doc, [t])
         r["plant: each plant lands once and is printed"] = (t / "a.py").read_text().count("x <= 1") == 1 and \
             (t / "b.py").read_text().count("return -v") == 1 and len(out) == 2
+        two = [{**P[0], "id": "P03", "file": "d.py", "old": "alpha", "new": "beta+alpha"},
+               {**P[0], "id": "P04", "file": "d.py", "old": "beta", "new": "BETA"}, P[1]]
+        (t / "b.py").write_text("def sign(v):\n    return v\n")
+        (t / "d.py").write_text("alpha\nbeta\n")
+        r["plant: a plant whose new text holds another's old text in one file is refused nothing"] = \
+            ref({**doc, "plants": two}) == []
+        m.plant({**doc, "plants": two[:2]}, [t])
+        r["plant: two plants in one file each land at the original place of their old text"] = \
+            (t / "d.py").read_text() == "beta+alpha\nBETA\n"
+        (t / "e.py").write_text("abcdef\n")
+        r["plant: two plants whose old texts overlap in one file are refused"] = any(
+            "P05 and P06: their old texts overlap" in b for b in ref({**doc, "plants": [
+                {**P[0], "id": "P05", "file": "e.py", "old": "abc"}, {**P[0], "id": "P06", "file": "e.py", "old": "cde"}, P[1]]}))
+        r["plant: two plants with disjoint old texts in one file are refused nothing"] = ref({**doc, "plants": [
+            {**P[0], "id": "P05", "file": "e.py", "old": "abc"}, {**P[0], "id": "P06", "file": "e.py", "old": "def"}, P[1]]}) == []
     F = [{"id": "D1-s1-01", "files": ["a.py"], "instrumented_symbol": "pkg.a:clamp", "title": "t", "claim": "c"},
          {"id": "D2-s1-02", "files": ["b.py"], "instrumented_symbol": "pkg.b:other", "title": "sign flips", "claim": "sign() negates"},
          {"id": "D2-s1-03", "files": ["b.py"], "instrumented_symbol": "pkg.b:signal", "title": "t", "claim": "c"}]
@@ -291,6 +351,9 @@ def cases(m) -> dict[str, bool]:
                                          {"id": "D9-s1-02", "verdict": "refuted"}]})
     r["recall: a merged finding takes its canonical verdict, either spelling"] = \
         any(x.startswith("FOUND  P01") for x in out) and any(x.startswith("LOST   P02") for x in out)
+    out = m.recall(doc, F, {"verdicts": [{"id": "D2-s1-02", "verdict": "merged", "into": "D9-s1-02"},
+                                         {"id": "D9-s1-02", "verdict": "verified"}]})
+    r["recall: a merged finding (the into field) found real is FOUND"] = any(x.startswith("FOUND  P02") for x in out)
     out = m.recall(doc, F, {"verdicts": [{"id": "D2-s1-02", "verdict": "verified"}]})
     r["recall: a finding with no verdict loses its plant"] = any("D1-s1-01=no verdict" in x for x in out)
     r["recall null: an empty plant list prints unread, never a value"] = \
@@ -317,10 +380,17 @@ MUTANTS = {
     "planter ban": ("in {norm(b) for b in banned}", "in set()", "planter named as the evaluator"),
     "planter normalised": ('re.sub(r"[^a-z0-9]", "", name.lower())', "name", "planter named as the evaluator"),
     "planter unnamed": ("or not norm(doc.get(\"planter\", \"\"))", "or False", "unnamed planter"),
-    "git tree": ('(t / ".git").exists()', "False", "holding .git"),
+    "git tree": ('(d / ".git").exists()', "False", "holding .git"),
+    "git ancestors": ("(t.resolve(), *t.resolve().parents)", "(t.resolve(),)", "subdirectory of a git work tree"),
+    "git file": ('(d / ".git").exists()', '(d / ".git").is_dir()', "linked worktree"),
+    "overlap": ("if start < end:", "if False:", "overlap in one file are refused"),
+    "splice order": ("sorted(spans(f, here), reverse=True)", "sorted(spans(f, here))", "original place of their old text"),
     "list inside tree": ("plants_path.resolve().is_relative_to(t.resolve())", "False", "inside the tree"),
     "both spaces": ("if not any(p.get(\"space\") == sp for p in plants)", "if False", "one space only"),
     "config cell": ('p.get("cell") not in pop', "False", "outside the population"),
+    "space known": ('if p.get("space") not in SPACES:', "if False:", "neither space"),
+    "missing file": ('if f.is_file() else 0', "if f.is_file() else 1", "file is not in the tree"),
+    "merged field": ('if v.get("verdict") == "merged":', "if False:", "the into field"),
     "old once": ("if n != 1:", "if n < 1:", "old text twice"),
     "plant changes": ('p.get("old") == p.get("new")', "False", "changing nothing"),
     "empty list": ("if not plants:\n", "if False:\n", "an empty list is refused"),
@@ -337,7 +407,7 @@ MUTANTS = {
 }
 
 
-def self_test(path: Path, mutants: bool = True) -> int:
+def self_test(path: Path, mutants: bool, tests: Path) -> int:
     import importlib.util
     import subprocess
     import tempfile
@@ -345,7 +415,7 @@ def self_test(path: Path, mutants: bool = True) -> int:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     bad = []
-    for name, ok in cases(mod).items():
+    for name, ok in cases(mod, tests).items():
         print(("ok   " if ok else "FAIL ") + name)
         if not ok:
             bad.append(name)
@@ -359,7 +429,7 @@ def self_test(path: Path, mutants: bool = True) -> int:
             with tempfile.TemporaryDirectory() as td:
                 mp = Path(td) / path.name
                 mp.write_text(code.replace(old, new) + sep + tail)
-                p = subprocess.run([sys.executable, "-I", str(mp), "--self-test", "--no-mutants"],
+                p = subprocess.run([sys.executable, "-I", str(mp), "--self-test", "--no-mutants", "--tests", str(tests)],
                                    capture_output=True, text=True, timeout=120)
             killed = p.returncode != 0 and any(ln.startswith("FAIL") and case in ln for ln in p.stdout.splitlines())
             print(("ok   " if killed else "FAIL ") + f"mutant killed: {name} (by '{case}')")
