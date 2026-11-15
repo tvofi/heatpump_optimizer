@@ -4,9 +4,12 @@
 # branch and a 2-commit one, cold (the kept reads off): a stub gh counts each check-runs url and real jq
 # applies the filter. Run it at `git show origin/main:tools/pr/prepr.sh` and at the head to compare.
 set -u
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd -P)
+. "$ROOT/tests/throwaway_git.sh" || exit 2
 SRC=$(realpath "${1:?usage: ancestry_calls.sh <prepr.sh>}"); W=$(mktemp -d); cd "$W"
-export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000' GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
-git init -q -b main . && git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+throwaway_git_env
+export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000' GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
+throwaway_git_init . -q -b main && git remote add origin https://github.com/tvofi/heatpump_optimizer.git
 echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
 tree=$(git write-tree); parent=$(git rev-parse HEAD); first=$parent
 for i in $(seq 1 520); do parent=$(git commit-tree "$tree" -p "$parent" -m "c$i"); [ "$i" = 2 ] && two=$parent; done

@@ -1436,7 +1436,7 @@ ancestry_reds() { # the branch's own remote head ref
       # a read that did not answer in the lines' shape is UNCHECKED, never confirmed empty
       case "$out" in "T "*) ;; *)
         echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3 ;; esac
-      if ! printf '%s\n' "$out" | grep -qx P && mkdir -p "$cdir" 2>/dev/null; then
+      if ! grep -qx P <<<"$out" && mkdir -p "$cdir" 2>/dev/null; then
         printf '%s\n' "$out" >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$"
       fi
     fi
