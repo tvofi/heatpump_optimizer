@@ -1197,7 +1197,7 @@
     "From r11-pre-ack-completion, body item 8b860179: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): `UNDISPATCHED` does not print for a not-started group (UNBLOCKED already does); whether UNBLOCKED should read the seat refs is the same seam as carry 3 (a) and is left to a later part. Carry: R11-PRE-ACK-COMPLETION (items 8b860179)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-ack-completion",
     "commit": null,
     "last_step": null,
