@@ -1,8 +1,9 @@
 # R10-RCA-SELFTEST-SCOPE-DRIFT: re-records dropped reads main measures
 
-Class `R10-SELFTEST-TABLE-SHRINK` in `dev/audit/config/bugclasses.json`. Part C
-of the analysis (the barrier) is R10-SELFTEST-SCOPE-UNION-GUARD; part A (main
-re-records mechanically) is ruled to round 11.
+Class `R10-SELFTEST-TABLE-SHRINK` in `dev/audit/config/bugclasses.json`. The
+union `record` is R10-SELFTEST-SCOPE-UNION-GUARD; part A (main re-records
+mechanically) is R11-PRE-SHARED-FILES part 1, which absorbs the group
+(`dev/programme/triage/r10-round-end.md`, P748, P762, P763).
 
 ## Cause
 
@@ -18,18 +19,17 @@ refusals at f47250150a were such drops.
 
 (d): the re-record was sound against the checkout it ran in; its precondition,
 that the table it replaces is the table main holds, changed underneath it. The
-countermeasure makes the process notice the change instead of adding a rule.
+countermeasure removes the precondition instead of adding a rule: a unioned
+re-record keeps what main holds whatever base it ran at.
 
 ## Countermeasure
 
-1. `record` unions every measurement over the committed entry (both modes); a
-   read leaves only by `prune --step ID --drop KIND:ITEM`.
-2. `static`, which governance.yml already runs in the scope's self-test step on
-   every pull request that touches the table (the table is a gate file, so that
-   run is FULL), refuses every item the head's entry drops against the base's,
-   unless the same diff deletes the path. Cost: one `git show` and one
-   `git diff` on a diff that touches the table, none otherwise.
+`record` unions every measurement over the committed entry (both modes), by
+the same `union_entry` that `check --write` uses for the artifact; a read
+leaves only by `prune --step ID --drop KIND:ITEM`. Pinned by self-test fixtures
+and by mutants in `tools/ci/selftest_scope_mutants.sh`.
 
-Both are pinned by self-test fixtures and by mutants in
-`tools/ci/selftest_scope_mutants.sh`. The null control over the merge history
-is in the pull request body.
+A table-shrink guard in `static` (refuse a pull request whose table drops a
+read the base names) was built and dropped by the round-end triage (P762): once
+main re-records its own table (part A), no pull request edits it, so the guard
+has no input.
