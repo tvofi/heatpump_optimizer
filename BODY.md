@@ -9,11 +9,13 @@ Main is red on `governance / instrument-self-tests`, step "Refuse a self-test re
 
 Cause: #3601 added dev/programme/round10/state and #3481 added the whatif.py mutation-ledger directories, which the committed table did not list. Third instance of this repair after #3589 and #3595; the method is #3595's: commit the table the drift step wrote (that run's `selftest-closures` artifact, the committed table unioned with the Linux run's measurement). Never macOS traces.
 
-One addition beyond the artifact: the artifact lacks the `seat-gen` step (added by #3491 after 2a257fce08, so that run could not measure it), so main's `seat-gen` entry is carried over unchanged. Newer merges since 2a257fce08 may add further misses; the next push run to main shows it.
+The committed table is the `selftest-closures` artifact of main push run 43675609284 (head 946eb6d255, artifact id 14146974190), taken as is: it carries the 4 lines above and the 10 `seat_gen` misses that #3491 introduced. See `## Head` for the review block it answers.
 
 ## Head
 
-Code head 2dbc55d42b8c9834bad04b57f87d2fc8c4795c0d, one commit on origin/main 2c69fb3560.
+Code head 155470dcd161fec9348cc17027ea66f7287acc6f, two commits on origin/main 2c69fb3560 (merge base for the table: main at 946eb6d255 per the review).
+
+Fix review blocked 680f34d3d275 (class-open): main push run 43675609284 (head 946eb6d255) prints 14 UNDER-SCOPED lines, 10 of them seat_gen misses my first table lacked. Answer: the table is now that run's `selftest-closures` artifact (id 14146974190) as is. It measures the `seat-gen` step, so the hand-carried `seat-gen` entry is dropped in favour of the measured one (content identical). A newer main run, 43678528951 at 2d0b1c7594, was still in progress with no artifact when this was cut.
 
 ## Mutation proof
 
@@ -21,12 +23,13 @@ n/a: no production line changes; the diff is the measured table alone. The table
 
 ## Null control
 
-Replaying `selftest_scope.drift(table, artifact["steps"], workflow_steps(root))` with run 43660322841's artifact as the measurement: against origin/main's table it refuses the same 4 lines CI printed (plus `UNMEASURED step seat-gen`, because the artifact predates that step); against the head's table the 4 are gone and only the `seat-gen` UNMEASURED line remains, an artifact limit and not a table gap. The artifact holds the table, not the raw traces, so `check --traces` cannot be run here.
+Replaying `selftest_scope.drift(table, artifact["steps"], workflow_steps(root))` with run 43675609284's artifact as the measurement: against origin/main's table it refuses 14 UNDER-SCOPED lines (the 4 above plus the 10 `seat_gen` misses; no UNMEASURED line, the run measures `seat-gen`); against the head's table it refuses 0 with 0 notes. The artifact holds the table, not the raw traces, so `check --traces` cannot be run here.
 
 ## Figures
 
-- Added paths: 3 dirs in each of dependency-graph-census and prepr, 1 probe in policy-lint-mutants, 2 probes in temp-or-machine-path; removed or changed: 0 (recursive list compare against origin/main's table; the `seat-gen` block only moves to sorted position).
-- `python3 -I tools/ci/selftest_scope.py --self-test` at the head: `selftest_scope self-test: 110 checks, 0 failed`.
+- Drift refusals, origin/main table: 14. Head table: 0 (notes 0). Same replay, same artifact.
+- Head table against the previous head's: 18 lines added, 0 removed; against origin/main's table nothing removed or changed (list compare).
+- `python3 -I tools/ci/selftest_scope.py --self-test` at the head: `selftest_scope self-test: 110 checks, 0 failed` (the first body said 110 too; the review read 120).
 - `python3 -I tools/ci/selftest_scope.py static` at the head: `117 gated step(s), 0 problem(s)`.
 - Scope: the table is a gate file, so CI runs FULL.
 
