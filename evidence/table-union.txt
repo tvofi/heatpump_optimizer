@@ -1,0 +1,19 @@
+top keys ['_comment', 'job', 'steps', 'workflow'] art keys ['_comment', 'job', 'steps', 'workflow']
+art meta {'_comment': 'MEASURED, not written by hand. Regenerate with `python3 tools/ci/selftest_scope.py record` on Linux with strace; every push to main re-measures each step and fails if an entry misses what the run read (R10-CI-SELFTEST-SCOPE).', 'workflow': '.github/workflows/governance.yml', 'job': 'instrument-self-tests'}
+head meta {'_comment': 'MEASURED, not written by hand. Regenerate with `python3 tools/ci/selftest_scope.py record` on Linux with strace; every push to main re-measures each step and fails if an entry misses what the run read (R10-CI-SELFTEST-SCOPE).', 'workflow': '.github/workflows/governance.yml', 'job': 'instrument-self-tests'}
+step types dict n head 117 n prev 117 n art 117
+mb==main table: True
+same step names: True
+fields ['dirs', 'files', 'git', 'index', 'objects', 'probes', 'run_sha']
+not-union fields: 0 removed: 0
+ADDED beat-job-rows {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED field-coverage {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED hooks-setup {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED merge-train {'files': ['tools/audit/seat/seat_gen.py']}
+ADDED open-pr {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED outside-contract {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED pr-args {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED roster-queue-runner {'files': ['tools/audit/seat/seat_gen.py']}
+ADDED selftest-wiring {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+ADDED update-pr {'files': ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']}
+steps with additions: 10

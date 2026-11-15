@@ -1,8 +1,28 @@
-== mb table
-   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/programme/round10/state/.gitattributes']
-   UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
-   UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/whatif.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/whatif.py/.gitattributes']
-   UNMEASURED step seat-gen: this run left no trace of it
-   UNDER-SCOPED step prepr: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
-== head table
-   UNMEASURED step seat-gen: this run left no trace of it
+== table mb.json vs run-43675609284 artifact: 14 refusal(s), 0 other
+  R UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/programme/round10/state/.gitattributes']
+  R UNDER-SCOPED step field-coverage: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
+  R UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/whatif.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/whatif.py/.gitattributes']
+  R UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step roster-queue-runner: files misses ['tools/audit/seat/seat_gen.py']
+  R UNDER-SCOPED step outside-contract: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step beat-job-rows: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step hooks-setup: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step merge-train: files misses ['tools/audit/seat/seat_gen.py']
+  R UNDER-SCOPED step prepr: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
+  R UNDER-SCOPED step open-pr: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step pr-args: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step update-pr: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+== table prev.json vs run-43675609284 artifact: 10 refusal(s), 0 other
+  R UNDER-SCOPED step field-coverage: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step roster-queue-runner: files misses ['tools/audit/seat/seat_gen.py']
+  R UNDER-SCOPED step outside-contract: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step beat-job-rows: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step hooks-setup: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step merge-train: files misses ['tools/audit/seat/seat_gen.py']
+  R UNDER-SCOPED step open-pr: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step pr-args: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+  R UNDER-SCOPED step update-pr: files misses ['tools/audit/seat/seat_gen.py', 'tools/audit/seat/seat_gen_selftest.py']
+== table head.json vs run-43675609284 artifact: 0 refusal(s), 0 other
+== table x/selftest_closures.json vs run-43675609284 artifact: 0 refusal(s), 0 other
