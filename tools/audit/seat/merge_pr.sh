@@ -241,6 +241,16 @@ O
   if grep -q 'pulls/7' "$T/log" && ! grep -q '^check ' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having read the pull request and asked no contract"
   else fail=$((fail + 1)); echo "  FAIL ... having read the pull request and asked no contract ($(tr '\n' ';' < "$T/log"))"; fi
   FAKE_PULL= ck "app mode on a pull request that cannot be read refuses: an unread head is never ours" 1 "OUTSIDE REFUSE: #7 could not be read" false "" -- 7 app "" 0
+  # The stub stands in for exactly the real module's calls: each name this script makes, bound with
+  # the arguments it passes, on the real outside.py (a renamed entry point fails here, not on a merge).
+  if python3 -I - "$REAL_OUTSIDE" <<'P'
+import importlib.util, inspect, sys
+s = importlib.util.spec_from_file_location("outside", sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+inspect.signature(m.pull_facts).bind("o/r", 7, {}); inspect.signature(m.cross_repository).bind({}, "o/r")
+inspect.signature(m.check).bind("o/r", 7, "origin/main")
+P
+  then pass=$((pass + 1)); echo "  ok   the real outside.py takes every call head_is_ours and outside_contract make, as they make it"
+  else fail=$((fail + 1)); echo "  FAIL the real outside.py takes every call head_is_ours and outside_contract make, as they make it"; fi
   ck "a draft refuses without --ready, naming the flag" 1 "DRAFT: #7 is a draft; pass --ready" true "" -- 7 app "" 0
   ck "a draft with --ready passes the gates" 0 "" true "" -- 7 app "" 1
   PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=true gates 7 app "" 1 "$S7" >/dev/null
