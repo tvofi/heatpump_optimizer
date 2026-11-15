@@ -14,9 +14,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    survivor your driver run at that head reports, which `push-verdict` reads in
    your evidence (`survivor_list.py`, tvofi 2026-11-07).
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
-   SHA and at the PR head, printing your own `RESULT` lines. One flat by
-   design (`fixer.md` step 3): confirm it flat at both ends, and run
-   its companion yourself at both.
+   SHA and at the PR head. One flat by design (`fixer.md` step 3): confirm
+   it flat at both ends, and run its companion yourself at both.
 3. Re-run the null control and the both-ends check where the PR claims one.
 4. Compare the claim files with the actual drift: run `env_drift.py --all`
    (`card_drift.mjs` for a card) against the merge base; every
@@ -35,7 +34,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 7. Confirm the PR body's head SHA is the head you measured (handoff review: the handoff tip), or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   had to build your own definition, write that in the verdict.
+   built your own definition, write that in the verdict.
 9. **When the finding has no committed harness, that is itself a finding**.
    An instrument you or the fixer built is disclosed as the builder's, not the
    finder's; one rebuilt from an out-of-tree copy is named and lands (`fixer.md` 18).
@@ -53,7 +52,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     check. An unanswered owed red is a `Note:` line, never a block (C5):
     root-cause-detectable where a cheaper detector could have shown
     the red before the handoff (name it), `root-cause-unrecorded` where that check
-    is the cheapest, `root-cause-unanswered` if you cannot tell.
+    is the cheapest, `root-cause-unanswered` if you cannot tell. The wave routes
+    an old `blocked <sha> root-cause-detectable: <check>`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     The rule's `instrument-self-tests` block is `classify --pr`'s INTRODUCED.
@@ -71,7 +71,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Check the SHA your verdict names is
-    still the head as you post it; if it moved, say which of your numbers
+    still the head; if it moved, say which of your numbers
     survive and which you re-took.
 
     **A `merge` verdict attaches to the head its first line names and carries
@@ -96,7 +96,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
-    file if you installed it (`claim-files.md`). Key on the marker,
+    file if you installed it. Key on the marker,
     `MERGE-CLAIM: resolved|refused <path>`, not on the
     wording after it. A `resolved` line settles
     that file; a non-zero exit beside it is another path's. A `refused`
