@@ -1,0 +1,76 @@
+ok   REFUSE pred: exit code (1)
+ok   ... and the output names the refusal REFUSED PREDICTOR
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (pred): nothing is kept, so the arm above would fail
+ok   REFUSE lint: exit code (1)
+FAIL ... and the output names the refusal REFUSED BODY-LINT (got '0', want '1')
+FAIL ... and the refused body is kept at handoff-wip/t-body (got '', want '## Head
+
+6b94f46a081fc7a67bd0fe0f3a6dd3600ed28114
+
+## Other
+
+the body')
+FAIL ... and the keep line names the ref and sha (got '0', want '1')
+FAIL ... as a parentless commit (got '', want '1')
+FAIL (null) the kept body is not in the code head's ancestry (got '128', want '1')
+ok   MUTANT keep deleted (lint): nothing is kept, so the arm above would fail
+ok   REFUSE packet: exit code (1)
+FAIL ... and the output names the refusal REFUSED REVIEW-PACKET (got '0', want '1')
+FAIL ... and the refused body is kept at handoff-wip/t-body (got '', want '## Head
+
+6b94f46a081fc7a67bd0fe0f3a6dd3600ed28114
+
+## Other
+
+the body')
+FAIL ... and the keep line names the ref and sha (got '0', want '1')
+FAIL ... as a parentless commit (got '', want '1')
+FAIL (null) the kept body is not in the code head's ancestry (got '128', want '1')
+ok   MUTANT keep deleted (packet): nothing is kept, so the arm above would fail
+FAIL REFUSE landed: exit code (4) (got '1', want '4')
+FAIL ... and the output names the refusal REFUSED CARRY-LANDED (got '0', want '1')
+FAIL ... and the refused body is kept at handoff-wip/t-body (got '', want '## Head
+
+6b94f46a081fc7a67bd0fe0f3a6dd3600ed28114
+
+## Other
+
+the body')
+FAIL ... and the keep line names the ref and sha (got '0', want '1')
+FAIL ... as a parentless commit (got '', want '1')
+FAIL (null) the kept body is not in the code head's ancestry (got '128', want '1')
+ok   MUTANT keep deleted (landed): nothing is kept, so the arm above would fail
+FAIL a second refusal fast-forwards the keep ref (got 'none^', want 'none')
+ok   a keep whose push fails leaves the same refusal
+FAIL ... and says the keep failed (got '0', want '1')
+ok   a refusal is kept before the healthy run
+FAIL the healthy run pushes (got '1', want '0')
+FAIL ... to handoff-body/t (got '', want '## Head
+
+6b94f46a081fc7a67bd0fe0f3a6dd3600ed28114
+
+## Other
+
+the body')
+ok   ... and the keep ref is gone
+ok   the seat-side figure-block refresh ran
+ok   MUTANT refresh deleted: the arm above would fail
+ok   (null) the published body is not in the code head's ancestry
+ok   precondition: the stub's recorded base is not origin/main's tip
+FAIL no fix/t on origin (no pull request yet): the refresh renders against origin/main (got '', want 'origin/main')
+FAIL a pull request exists: the refresh renders against its recorded base.sha, not origin/main (got '', want 'beddd20c343b77dc25d36a8189e56004b30dd155')
+FAIL   null control: equal bases render the one sha, as before (got '', want '6b94f46a081fc7a67bd0fe0f3a6dd3600ed28114')
+FAIL   MUTANT mut:bpbase (its line deleted): the refresh falls back to origin/main, so the arm above would fail (got '', want 'origin/main')
+ok   an unreadable recorded base refuses before the refresh
+ok   ... and pushes nothing
+FAIL fix/t on origin but no open pull request: origin/main (got '', want 'origin/main')
+fatal: --negotiate-only needs one or more --negotiation-tip=*
+warning: push negotiation failed; proceeding anyway with push
+ok   REFUSE head-stale: a stale ## Head is refused, naming both shas
+ok   ... and nothing is pushed to handoff-body/t
+FAIL (null) a ## Head naming the code sha passes the head check (got '10', want '00')
+body_push self-test: 49 checks, 26 failed
