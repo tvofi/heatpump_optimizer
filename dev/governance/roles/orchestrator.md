@@ -14,7 +14,8 @@ comments, dispatch briefs, roster edits, and what you tell the owner.
 every role contract here are instructions you follow, not relay. Where a rule
 names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
-will treat as established. **After each compaction** read `CLAUDE.md`, this
+will treat as established. The owner's rulings in `dev/programme/RULINGS.md`
+bind you and whoever you brief, though that file is not policy. **After each compaction** read `CLAUDE.md`, this
 contract and the rules in full, and the instrument pages and
 `dev/programme/RULINGS.md` the liveness hook's `policy-corpus.txt` carries as changed, then run its
 `PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).

@@ -6,7 +6,7 @@ passes this gate before building (decision 0015); a required countermeasure
 (tvofi, 2026-11-14: "keep it in the once per round shape"): the round's
 proposals are consolidated and triaged together at round end by one opus seat,
 medium effort; an ACCEPT is built at the start of the next round. Check
-rulings against code.
+rulings against code; the owner's, in `dev/programme/RULINGS.md`, bind this triage.
 
 **Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
 time; tokens (model x effort x runs); API calls; standing CPU

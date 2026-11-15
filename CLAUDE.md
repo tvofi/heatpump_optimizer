@@ -167,7 +167,8 @@ never only in /tmp (decision 0013).
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
-- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated.
+- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated: they bind
+  every seat, though the file is not policy.
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
 - `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
