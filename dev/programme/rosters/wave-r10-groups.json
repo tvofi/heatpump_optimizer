@@ -28649,7 +28649,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-pre-no-read-builders",
     "commit": null,
     "last_step": null,
     "next_step": "designer after R11-PRE-MACHINERY-LIMITER dispatches; not finder-critical",
