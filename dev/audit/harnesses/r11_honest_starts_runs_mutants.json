@@ -250,5 +250,11 @@
   "file": "custom_components/heatpump_optimizer/optimizer.py",
   "old": "    grad[free] = (f - f0) / dx[free]\n",
   "new": "    grad[:] = np.resize((f - f0) / dx[free], x0.size)\n"
+ },
+ {
+  "name": "N6_EMPTY_GUARD_OR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if lead == 0 or not free.any():\n"
  }
 ]
