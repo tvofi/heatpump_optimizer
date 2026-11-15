@@ -28694,7 +28694,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-pre-rca-latch-clauses",
     "commit": null,
     "last_step": null,
     "next_step": "HELD until tvofi rules card E11-INJECTED",
