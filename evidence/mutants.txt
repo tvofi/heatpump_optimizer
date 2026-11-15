@@ -1,19 +1,22 @@
-M0 KILLED rc=1 tools/audit/machinery_ratchet.py: 'bad.append("target")' -> 'pass' | ['machinery_ratchet self-test: 68 checks, 3 failed']
-M1 KILLED rc=1 tools/audit/machinery_ratchet.py: 'binds = cand is not None and cand["kind"] != "production"' -> 'binds = cand is not None' | ['machinery_ratchet self-test: 68 checks, 1 failed']
-M2 KILLED rc=1 tools/audit/machinery_ratchet.py: 'return max(0, cap - tdoc["step"] * (n // tdoc["every_merges"])), n' -> 'return cap, n' | ['machinery_ratchet self-test: 68 checks, 4 failed']
-M3 SURVIVED rc=0 tools/audit/machinery_ratchet.py: 'return max(0, cap - tdoc["step"] * (n // tdoc["every_merges"])), n' -> 'return cap - tdoc["step"] * (n // tdoc["' | ['machinery_ratchet self-test: 68 checks, 0 failed']
-M4 SURVIVED rc=0 tools/audit/machinery_ratchet.py: 'if len(line.split()) == 3)' -> 'if len(line.split()) >= 2)' | ['machinery_ratchet self-test: 68 checks, 0 failed']
-M5 SURVIVED rc=0 tools/audit/machinery_ratchet.py: 'past = m[c] > t + doc[c + BAND_SUFFIX]' -> 'past = m[c] > t' | ['machinery_ratchet self-test: 68 checks, 0 failed']
-M6 SURVIVED rc=0 tools/audit/machinery_ratchet.py: 't, n = scheduled_target(repo, base or head, doc[c], tdoc)' -> 't, n = scheduled_target(repo, head, doc[' | ['machinery_ratchet self-test: 68 checks, 0 failed']
-M7 KILLED rc=1 tools/audit/machinery_ratchet.py: 'cand = rows[0] if base and rows and rows[0]["sha"] == head else None' -> 'cand = rows[0] if rows else None' | ['machinery_ratchet self-test: 68 checks, 2 failed']
-M8 KILLED rc=1 tools/audit/machinery_ratchet.py: 'if _git(repo, "merge-base", "--is-ancestor", a, tip, check=False).retu' -> 'if False:\n        raise' | ['machinery_ratchet self-test: 68 checks, 1 failed']
-M9 KILLED rc=1 tools/audit/machinery_ratchet.py: 'if extra:\n        raise Refusal(f"{TARGET_BUDGETS}: {extra}' -> 'if False:\n        raise Refusal(f"{TARGE' | ['machinery_ratchet self-test: 68 checks, 1 failed']
-M10 KILLED rc=1 tools/audit/seat/pr_cap.py: 'if len(taken) < free:' -> 'if len(taken) <= free:' | ['roster_lib: no roster readable at origin/main; reading origin/main']
-M11 KILLED rc=1 tools/audit/seat/pr_cap.py: 'return text, m + u >= free' -> 'return text, m >= free' | ['roster_lib: no roster readable at origin/main; reading origin/main']
-M12 KILLED rc=1 tools/audit/seat/pr_cap.py: 'if len(p.get("files") or []) >= GH_FILES_LIMIT' -> 'if len(p.get("files") or []) > GH_FILES_' | ['roster_lib: no roster readable at origin/main; reading origin/main']
-M13 SURVIVED rc=0 tools/audit/seat/pr_cap.py: 'return v if isinstance(v, int) and v > PRODUCTION_SLOTS else None' -> 'return v if isinstance(v, int) else None' | ['roster_lib: no roster readable at origin/main; reading origin/main']
-M14 SURVIVED rc=0 tools/audit/seat/pr_cap.py: 'if rc == 0 and slug is not None:' -> 'if False:' | ['roster_lib: no roster readable at origin/main; reading origin/main']
-M15 KILLED rc=1 tools/policy/budget_raise_gate.py: '(("step",), MIN),' -> '(("step",), MAX),' | ['budget_raise_gate self-test: 287 checks, 2 failed']
-M16 KILLED rc=1 tools/policy/budget_raise_gate.py: '(("anchor",), FROZEN),' -> '(("anchor",), FREE),' | ['budget_raise_gate self-test: 287 checks, 1 failed']
-M17 KILLED rc=1 tools/policy/budget_raise_gate.py: '(("every_merges",), MAX),' -> '(("every_merges",), MIN),' | ['budget_raise_gate self-test: 287 checks, 2 failed']
-M18 KILLED rc=1 tools/audit/seat/orchestrator_tick.py: 'self.line(S, *cap_mod.class_line(cap_mod.by_class(counted, files, rule' -> 'pass' | ['orchestrator_tick self-test: 322 checks, 3 failed']
+RESULT M1 band dropped: rc=1 KILLED
+      FAIL target: the band is added to it, at the boundary (2 <= 0 + 2 passes, 2 > 0 + 1 refuses): got [1, 1], want [0, 1]
+      FAIL target: a schedule driven past zero holds at 0, never below it: got (1, True), want (0, True)
+    machinery_ratchet self-test: 72 checks, 2 failed
+RESULT M2 merge filter ==3 -> >=2: rc=1 KILLED
+      FAIL target: a non-merge first-parent commit past the anchor is not counted: got {'target': 0, 'merges_past_anchor': 3}, want {'target': 0, 'merges_past_anchor': 2}
+    machinery_ratchet self-test: 72 checks, 1 failed
+RESULT M3 base or head -> head: rc=1 KILLED
+      FAIL target: a PR head carrying a merge of main is scheduled on the base (2 past, target 0): got (0, False), want (1, True)
+    machinery_ratchet self-test: 72 checks, 1 failed
+RESULT M4 max(0,...) removed: rc=1 KILLED
+      FAIL target: a schedule driven past zero holds at 0, never below it: got (1, False), want (0, True)
+    machinery_ratchet self-test: 72 checks, 1 failed
+RESULT M5 slots > PRODUCTION_SLOTS removed: rc=1 KILLED
+      FAIL slots at or below PRODUCTION_SLOTS are unread, never a negative allowance; 11 reads
+    pr_cap self-test: 32 checks, 1 failed
+RESULT M6 dispatch-gate machinery wiring off: rc=1 KILLED
+      FAIL dispatch-gate --machinery refuses a full board after the WIP gate passes
+      FAIL null controls: an empty board passes it, and no --machinery never reads the board
+    pr_cap self-test: 32 checks, 2 failed
+RESULT unmutated tools/audit/machinery_ratchet.py: rc=0 machinery_ratchet self-test: 72 checks, 0 failed
+RESULT unmutated tools/audit/seat/pr_cap.py: rc=0 roster_lib: no roster readable at origin/main; reading origin/main

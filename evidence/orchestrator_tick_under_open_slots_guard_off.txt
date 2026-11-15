@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/orchestrator_tick.py", line 5427, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/orchestrator_tick.py", line 5406, in main
+    return self_test()
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/orchestrator_tick.py", line 3154, in self_test
+    t.prs(["tests", "closures"])
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/orchestrator_tick.py", line 604, in prs
+    self.cap_levels(S, prs)
+    ~~~~~~~~~~~~~~~^^^^^^^^
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/orchestrator_tick.py", line 647, in cap_levels
+    rule, slots = cap_mod.product_rule(), cap_mod.open_slots()
+                                          ~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/tmp.EGLZgpgIT5/wt/tools/audit/seat/pr_cap.py", line 229, in open_slots
+    v = caps.get("slots")
+        ^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
