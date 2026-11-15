@@ -1,0 +1,11 @@
+  GH_TOKEN: ***
+##[endgroup]
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: budget-raise-gate / budget-raise-gate
+
+/tmp/pr-body.md
+  ERROR   [pr-body] /tmp/pr-body.md: check `budget-raise-gate / budget-raise-gate` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+PR-BODY: 1 error(s) in /tmp/pr-body.md
+##[error]Process completed with exit code 1.
+##[group]Run if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
+[36;1mif test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi[0m

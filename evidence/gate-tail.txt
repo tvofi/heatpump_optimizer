@@ -1,0 +1,3 @@
+2026-11-15T23:47:46.7649803Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-15T23:47:50.3299554Z FAIL budget-raise-gate / budget-raise-gate: failure (run 43773881302)
+2026-11-15T23:47:50.3299954Z pr-contract / pr-contract: failure (run 43773881302)
