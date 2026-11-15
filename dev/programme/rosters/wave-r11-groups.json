@@ -1745,9 +1745,9 @@
    "carry": [],
    "source": "programme",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-hotfix-policy-docs-timeout",
-    "commit": null,
+    "commit": "e0ad8b2bd32b60a67975039f8573dbba2207757f",
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
