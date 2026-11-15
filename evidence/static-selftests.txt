@@ -1,0 +1,8 @@
+selftest_scope static: 119 gated step(s), 0 problem(s)
+selftest_scope self-test: 128 checks, 0 failed
+SELFTEST-SCOPE MUTANTS: every mutant refused
+ .github/workflows/governance.yml | 16 +++++++++++++---
+ dev/programme/delivery/3629.md   |  1 +
+ tools/ci/selftest_closures.json  | 10 ++++++++++
+ 3 files changed, 24 insertions(+), 3 deletions(-)
+VERSION/manifest/notes untouched
