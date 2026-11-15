@@ -1,0 +1,12 @@
+head 44766207b74e16930c42c268c67380ed5c0ad951, merge base 5825e1346c14eecace5c87c046558774145a94dc
+policy_lint --budgets at head: tools/audit/briefs/D11.md 126 126 1939 1939; corpus ~70032, cap 69625 +band 500 = 70125
+policy_lint --budgets with D11.md at merge base: 109 / 1647; corpus ~69740  => corpus delta 292; 69333+292 = 69625 (the recorded cap)
+policy_lint at head: TOTAL: 0 error(s) across 52 policy file(s)
+mutant (policy_budgets.json := origin/main's): TOTAL: 3 error(s) (whole corpus; D11 lines 126>109; D11 files_tokens 1939>1647)
+rules_sync --check: RULES-SYNC ok; brief_lint rc 0; structure.py: STRUCTURE RATCHET PASSED
+closure select: MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+units command at head: rc 0, 3952 units over 80 files; .claude/rules vs dev/governance/rules id overlap 376; ids >60 chars in >=2 files outside .claude/rules: 11
+rulings awk at head: exit 2 (cannot open), as the body states
+#3626 merged to main as 921214bf42: RULINGS.md entries 88, wc -c 26389 (on main and on #3626 head f475901cac)
+head merged with current origin/main (merge-tree clean): see merged-tree.txt (lint 0 errors, corpus 70040 <= 70125, 189 RULINGS.md units)
+null control: printf '# x\n## Superseded\n- a\n' | awk ... printed 0
