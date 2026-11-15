@@ -59,13 +59,13 @@ def refusal(return_c: float, room_c: float, signals: Any) -> str | None:
     return None
 
 
-def seed(model: Any, state: Any, return_c: float, signals: Any) -> None:
+def seed(model: Any, state: Any, return_c: float | None, signals: Any) -> None:
     """Advance ``state``'s slab from ``return_c`` unless the reading is refused.
 
     Called before this cycle's pump signals are read, so ``signals`` are last
     cycle's; :func:`judge` re-decides on this cycle's before the state publishes.
     """
-    if refusal(return_c, state.room_temperature, signals) is None:
+    if return_c is not None and refusal(return_c, state.room_temperature, signals) is None:
         model.update_slab_from_return_temp(state, return_c)
 
 
