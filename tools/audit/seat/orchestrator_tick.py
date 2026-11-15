@@ -282,7 +282,7 @@ class Tick:
                  mandate_id: int | None = None, stall_hours: float = 2.0,
                  grace_hours: float = 0.5, behind_max: int = 25,
                  mandate_since_days: int = 14,
-                 relay_log: str | None = None,
+                 relay_log: str | None = None, state_dir: str | None = None,
                  bus_state: str | None = None,
                  now: datetime.datetime | None = None,
                  gh=None, git=None, proc=None, bus=None, carry=None,
@@ -300,9 +300,8 @@ class Tick:
         self.stall_hours, self.grace_hours = stall_hours, grace_hours
         self.behind_max = behind_max
         # cloud_relay.sh's own default log (#2419): POSTED/OWED lines.
-        self.relay_log = relay_log or os.path.join(
-            os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
-            "cloud-relay.log")
+        self.state_dir = state_dir or os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo")
+        self.relay_log = relay_log or os.path.join(self.state_dir, "cloud-relay.log")
         # bus.sh's dispatch record (`pr head thread nonce`), REVIEW OWED's "no live dispatch".
         self.bus_state = bus_state or os.environ.get("HPO_BUS_STATE") or os.path.expanduser("~/.zcode/bus")
         self.now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -1721,6 +1720,24 @@ class Tick:
             self.line(S, f"UNDISPATCHED:{' CP' if gid in critical else ''} {gid} {hours:.1f}h -- no dispatch, "
                          "handoff or handoff-wip ref since its gate opened; dispatch the next part", flag=True)
 
+    def _opener_last(self, od: Path, topic: str) -> str:
+        """` -- opener last: <log line>` (open_driver's own open-driver.log, its newest
+        line naming `topic`) and ` -- STUCK after <n>` from fails.json; empty when the
+        opener has no state or never touched the topic. Read, never written."""
+        try:
+            with open(od / "open-driver.log", "rb") as fh:
+                fh.seek(0, 2)
+                fh.seek(max(0, fh.tell() - 262144))
+                last = [x for x in fh.read().decode("utf-8", "replace").splitlines() if f" {topic} " in x or x.endswith(f" {topic}")]
+        except OSError:
+            last = []
+        try:
+            fails = [f for k, f in json.loads((od / "fails.json").read_text()).items() if k.split()[0] == topic]
+        except (OSError, ValueError, IndexError, AttributeError):
+            fails = []
+        stuck = f" -- STUCK after {max(f.get('n', 0) for f in fails)}" if any(f.get("n", 0) >= 3 for f in fails) else ""
+        return (f" -- opener last: {last[-1]}" if last else "") + stuck
+
     def _seats(self, S: str, rl, roster: dict, what: str):
         """{group: [seat refs]} over SEAT_REFS, one ls-remote; None (after the
         UNREADABLE line) when it fails, never an empty map."""
@@ -2635,10 +2652,17 @@ class Tick:
             return
         stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
         held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
+        od = Path(self.state_dir) / "open-driver"
+        if stranded and not od.is_dir():
+            self.line(S, "OPENER ABSENT: open_driver.py has no state under $HPO_STATE_DIR -- a session-local "
+                         "opener is a defect (orchestrator.md 13)", flag=True)
         for l in stranded[:CAP_ORPHANS]:
-            self.line(S, f"OWED handoff: {l[len('ORPHAN '):]} -- no PR head "
+            body = l[len('ORPHAN '):]
+            if HELD_TOPIC.match(l):
+                body = body.replace("repair=opener", "held by ruling")
+            self.line(S, f"OWED handoff: {body} -- no PR head "
                          "carries it: open_pr.sh (opener), update_pr.sh "
-                         "(update) or a human decision (review)", flag=True)
+                         f"(update) or a human decision (review){self._opener_last(od, l.split()[1])}", flag=True)
         if len(stranded) > CAP_ORPHANS:
             self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
                          f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
@@ -3072,6 +3096,9 @@ def self_test() -> int:
                out=str(behind_handover))
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
+        if "state_dir" not in kw:  # nor its opener's state: a present, empty open-driver dir
+            (tmp / "state-ok" / "open-driver").mkdir(parents=True, exist_ok=True)
+            kw["state_dir"] = str(tmp / "state-ok")
         kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
         # hermetic: never the real carry_audit; the routing-invariants read is clean
         kw.setdefault("carry", lambda argv: (0, ["CARRY-ROSTER: stub; 0 stranded carry(ies)"]))
@@ -4088,6 +4115,40 @@ def self_test() -> int:
               == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
                  (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
                      tick(bus_refs=live11 + [summ25.replace("25", "11")], bus_rc=1)))),
+        ])
+        total, failed = total + a, failed + f
+        # ---- OWED handoffs carry the opener's last result; OPENER ABSENT; held by ruling ----
+        op_dir = tmp / "state-op" / "open-driver"
+        op_dir.mkdir(parents=True)
+        (op_dir / "open-driver.log").write_text(
+            "2026-11-15T01:00:00Z START r10-live-0 bbbbbbbb\n"
+            "2026-11-15T01:02:00Z RESULT r10-live-0 bbbbbbbb rc=1 REFUSE: merge conflicts\n"
+            "2026-11-15T01:03:00Z NEEDS-TITLE r10-live-1 bbbbbbbb\n")
+        (op_dir / "fails.json").write_text(json.dumps({f"r10-live-0 {'b' * 40}": {"n": 3, "rc": 1, "why": "x"}}))
+        mk = lambda sd, refs: (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
+            tick(bus_refs=refs + [summ25.replace("25", str(len(refs)))], bus_rc=1, state_dir=str(sd)))
+        two = [live11[0], live11[1], held14[0]]
+        t_op, t_ab = mk(tmp / "state-op", two), mk(tmp / "state-none", two)
+        ow_op = [x["text"] for x in t_op.findings if x["text"].startswith("OWED handoff: ")]
+        ow_ab = [x["text"] for x in t_ab.findings if x["text"].startswith("OWED handoff: ")]
+        a, f = check("OWED handoffs opener state", [
+            ("a line carries the opener's newest log line for its topic and its STUCK count",
+             "opener last: 2026-11-15T01:02:00Z RESULT r10-live-0 bbbbbbbb rc=1 REFUSE: merge conflicts" in ow_op[0]
+             and ow_op[0].endswith("STUCK after 3")),
+            ("a NEEDS-TITLE result is carried and, below three failures, no STUCK",
+             "opener last: 2026-11-15T01:03:00Z NEEDS-TITLE r10-live-1" in ow_op[1] and "STUCK" not in ow_op[1]),
+            ("a triage topic reads `held by ruling`, not `repair=opener`",
+             "held by ruling" in ow_op[2] and "repair=opener" not in ow_op[2]),
+            ("a topic the opener never touched carries no opener clause",
+             "opener last" not in ow_op[2]),
+            ("with the state directory present no OPENER ABSENT prints",
+             not any(x["text"].startswith("OPENER ABSENT") for x in t_op.findings)),
+            ("null control: with no open-driver directory, one flagged OPENER ABSENT line prints and the owed lines still do",
+             sum(x["text"].startswith("OPENER ABSENT: open_driver.py has no state") for x in t_ab.findings) == 1
+             and len(ow_ab) == 3),
+            ("null control: an all-clear bus prints no OPENER ABSENT with no state directory",
+             not any(x["text"].startswith("OPENER ABSENT") for x in
+                     (lambda tt: (tt.orphans("REPLAN"), tt)[1])(tick(bus_refs=[BUS_CLEAR], state_dir=str(tmp / "state-none"))).findings)),
         ])
         total, failed = total + a, failed + f
         t = tick(bus_refs=[BUS_CLEAR])
