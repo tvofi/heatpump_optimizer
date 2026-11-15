@@ -72,11 +72,12 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    run it on a `GRID_SURFACE` diff (recipe: `web-fragments.md`; #2841).
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
-   every red `prepr.sh` step 6d predicts is repaired before the handoff
-   (`ci-autofix.md`'s wait starts at the PR), and the body passes
-   `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
-   the carry check); the orchestrator opens
-   the PR (`docs/decisions/0011-app-authored-identity.md`).
+   every red `prepr.sh` step 6d predicts is repaired before the handoff, and
+   the body passes `tools/pr/prepr.sh`, run on a committed tree (step 6f reads
+   `HEAD`; 7e is the carry check). **Prepr runs scoped** (tvofi, 2026-11-15):
+   `PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta
+   since the last clean run; a full run only where the change reaches what
+   only it measures, the reason in the body.
 
    **`ci_predict.py` printing `BOOTSTRAP`** (the base's copy of the changed
    grader refuses, the head's passes in `prepr.sh`) is not `BLOCKED`: register
@@ -84,8 +85,6 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    p1 the grader hunks alone, p2 the rest, a WIP handoff until p1 is on main
    (decision 0013, Consequences).
 
-   **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**
-   (`gate-scoping.md`).
    A mutation proof leaves `stress.py` to CI's required mutation check: never
    run it locally per mutant.
 

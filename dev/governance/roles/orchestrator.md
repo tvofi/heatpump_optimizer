@@ -22,8 +22,6 @@ request) the liveness hook's `policy-corpus.txt` carries as changed, then run it
 
 ## 1. Verify before claiming
 
-**`fixer.md` step 8: a quoted number states its rule, not just its value.**
-
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
 ran, and what its output would have looked like had the claim been false. If you
@@ -74,7 +72,7 @@ process states and the demonstration a check owes are `root-cause.md`'s and
 ## 4. The merge message is a second closing surface
 
 A pull request's closing references describe its **body**. The merge message is a separate artifact, written by you at merge
-time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
+time, and GitHub parses it too; since `main` took to merge commits (decision 0010) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
 merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
 
@@ -123,7 +121,9 @@ whenever you merge.
   must *not* fire returns better evidence than one told only what must.
 - **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
-  (a relay, a delivery row) the cheapest model that does it.
+  (a relay, a delivery row) the cheapest model that does it. A fixer is a local
+  seat only where SendMessage steering is likely, else cloud (tvofi,
+  2026-11-15).
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
   shape); it binds them (`fixer.md` 17). A serial chain orders groups whose

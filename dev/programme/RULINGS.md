@@ -236,9 +236,7 @@ divergence"). Re-read on change after every compaction
 - 2026-10-21: "A pr still needs valid evidence" (fix an over-firing check's
   classification, never the requirement).
 - 2026-11-04 (as recorded): a heavy pre-PR script runs once per code; a fixer's
-  run is not repeated at the opening. 2026-11-09: "hotfixes should have
-  aggressively scoped or no prepr". 2026-10-21: "Tell seats they are allowed to
-  run prepr without closures".
+  run is not repeated at the opening (scoped prepr is `fixer.md` step 5's).
 - 2026-11-11: "4. Go with what you recommend" (a finished merge verdict may post
   before CI is green; the train still gates CI).
 
@@ -281,10 +279,9 @@ divergence"). Re-read on change after every compaction
   2026-11-12: "Budget is fine for important work".
 - 2026-10-25: "the triage seat should be opus, since it requires judgement";
   2026-11-15: "product-feature triage can run on opus".
-- 2026-11-01: "I think we should run the majority of the fixers in the cloud so
-  the heavy runs are not constrained."; 2026-10-21: "try to keep heavy runs on
-  cloud runners to keep the box load under control"; 2026-10-25: "dont forget
-  cloud seats are uncapped".
+- 2026-10-21: "try to keep heavy runs on cloud runners to keep the box load
+  under control"; 2026-10-25: "dont forget cloud seats are uncapped" (where a
+  fixer runs is `orchestrator.md` section 5's).
 - 2026-11-08: "Don't forget that you have a cap of 7 local seat that you can use
   for fixers and reviewers as well, best used for work that might need
   sendmessage communication"; "Repeated failures of cloud seats on the same
