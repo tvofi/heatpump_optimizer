@@ -164,16 +164,12 @@ architecture score in `tools/audit/archscore/`, per-group harnesses in
 any merge, push, body, gate or watch loop; new reusable instruments land here,
 never only in /tmp (decision 0013).
 
-### The owner's standing rulings
-
-`dev/programme/RULINGS.md` — each ruling verbatim and dated; read in full after
-every compaction with this file and the orchestrator's contract (`orchestrator.md`
-section 0).
-
-### The suite, the register, the handover
+### The suite, the register, the rulings, the handover
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
+- `dev/programme/RULINGS.md` — the owner's rulings, verbatim and dated; read in
+  full after every compaction (`orchestrator.md` section 0).
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
 - `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
@@ -211,9 +207,7 @@ the contract moves.
 ## Root-cause remediation
 
 A qualifying defect owes its cause and the **process** that let the cause get
-that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, when recording that no
-countermeasure is worth building is a legitimate result, and the demonstration a
-check-shaped countermeasure owes are in `defect-root-cause.md` and
-`root-cause.md`. The fixer answers a red check in the pull-request body; an
-unanswered one is a reviewer's note resolved at merge (card C5).
+that far, established in its own seat beside the fix and never inside it, by
+`defect-root-cause.md` and `root-cause.md`. The fixer answers a red check in the
+pull-request body; an unanswered one is a reviewer's note resolved at merge
+(card C5).

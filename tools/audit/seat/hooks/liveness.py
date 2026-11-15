@@ -27,9 +27,10 @@ This hook runs at both events and prints, on stdout (which the session reads):
   MISSING        a checkout the state names (orch-checkout and the *checkout* keys
                  of sweep-overlay.json) that is not a directory;
   READ-PROOF     the owed corpus at origin/main is written to policy-corpus.txt:
-                 CLAUDE.md, orchestrator.md and dev/programme/RULINGS.md in full, and
-                 of the rules and instrument pages only those changed since the last
-                 accepted proof (its manifest, policy-proven.json); its last line a
+                 CLAUDE.md, orchestrator.md, dev/programme/RULINGS.md and every
+                 .claude/rules/ file in full, and of the instrument pages only those
+                 changed since the last accepted proof (its manifest,
+                 policy-proven.json); its last line a
                  `--prove <sha256>` command; a compact-owed marker
                  stands, and the UserPromptSubmit event re-raises the obligation
                  every prompt until `liveness.py --state S --prove <sha256>` clears it;
@@ -68,11 +69,12 @@ def _env_min(name: str, default: float) -> float:
         return default
 
 
-# Owner ruling 2026-11-13 (cards P6 and R3): the core is read in full after every
-# compaction; the rules and the instrument pages only where they changed since the
-# last accepted proof.
+# Owner rulings 2026-11-13 (cards P6 and R3) and 2026-11-15 ("Rules in full"): the
+# core and the rules are read in full after every compaction; the instrument pages
+# only where they changed since the last accepted proof.
 CORE = ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "dev/programme/RULINGS.md")
-BY_CHANGE = (".claude/rules/", "tools/audit/seat/INSTRUMENTS.md", "tools/audit/seat/instruments/")
+FULL = (".claude/rules/",)
+BY_CHANGE = ("tools/audit/seat/INSTRUMENTS.md", "tools/audit/seat/instruments/")
 PENDING, PROVEN = "policy-corpus.json", "policy-proven.json"
 
 
@@ -98,11 +100,11 @@ def _blobs(repo: str, paths: tuple[str, ...]) -> dict[str, str] | None:
 def write_corpus(state: Path, repo: str) -> str | None:
     """The owed corpus at origin/main in one file; returns the sha256 of its body, or None.
 
-    Every CORE file in full; of BY_CHANGE, only the files whose blob differs from the
+    Every CORE file and every file under FULL in full; of BY_CHANGE, only the files whose blob differs from the
     last accepted proof's manifest (all of them when no manifest reads), and the names
     of those gone since. A missing CORE file writes nothing: the read is not owed short."""
-    core, rest = _blobs(repo, CORE), _blobs(repo, BY_CHANGE)
-    if core is None or rest is None:
+    core, full, rest = _blobs(repo, CORE), _blobs(repo, FULL), _blobs(repo, BY_CHANGE)
+    if core is None or full is None or rest is None:
         return None
     try:
         proven = json.loads((state / PROVEN).read_text())
@@ -110,16 +112,16 @@ def write_corpus(state: Path, repo: str) -> str | None:
     except (OSError, ValueError, AssertionError):
         proven = {}
     changed = sorted(n for n, b in rest.items() if proven.get(n) != b)
-    gone = sorted(n for n in proven if n not in rest and n not in core)
+    gone = sorted(n for n in proven if n not in rest and n not in core and n not in full)
     body = ""
-    for n in [*CORE, *changed]:
+    for n in [*CORE, *sorted(full), *changed]:
         t = _git(repo, "show", f"origin/main:{n}")
         if t is None:
             return None
         body += f"=== {n} ===\n{t}\n"
     body += f"=== unchanged since the last proof: {len(rest) - len(changed)} page(s); removed: {', '.join(gone) or 'none'} ===\n"
     sha = hashlib.sha256(body.encode()).hexdigest()
-    (state / PENDING).write_text(json.dumps({**core, **rest}, sort_keys=True) + "\n")
+    (state / PENDING).write_text(json.dumps({**core, **full, **rest}, sort_keys=True) + "\n")
     (state / "policy-corpus.txt").write_text(
         body + f"PROOF: python3 -I {Path(__file__).resolve()} --state {state} --prove {sha}\n")
     (state / "compact-owed").write_text(sha + "\n")
@@ -178,8 +180,8 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
     py = sys.executable
     stamp = state / "policy-reread.stamp"
     if event == "PostCompact":
-        out.append("POLICY-REREAD owed: this session was compacted; read policy-corpus.txt (the core in full, "
-                   f"the rules and instrument pages changed since the last proof), then python3 -I tools/audit/seat/policy_reread_check.py --stamp {stamp} --write-stamp")
+        out.append("POLICY-REREAD owed: this session was compacted; read policy-corpus.txt (the core and the rules in full, "
+                   f"the instrument pages changed since the last proof), then python3 -I tools/audit/seat/policy_reread_check.py --stamp {stamp} --write-stamp")
     else:
         cmd = [py, "-I", str(SEAT / "policy_reread_check.py"), "--stamp", str(stamp),
                "--transcript", transcript or os.devnull + ".none"]  # no transcript: unreadable, so OWED
@@ -187,14 +189,14 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
         if r.returncode == 2:
             out.append(f"UNREADABLE policy_reread_check: {(r.stderr or r.stdout).strip()[-80:]}")
         elif r.returncode != 0 or not r.stdout.strip().startswith("OK"):
-            out.append("POLICY-REREAD owed: read policy-corpus.txt (the core in full, the rules and instrument "
+            out.append("POLICY-REREAD owed: read policy-corpus.txt (the core and the rules in full, the instrument "
                        f"pages changed since the last proof), then policy_reread_check.py --stamp {stamp} --write-stamp")
     owed = event == "PostCompact" or any(ln.startswith("POLICY-REREAD") for ln in out)
     if owed:
         if write_corpus(state, repo):
             out.append(f"READ-PROOF owed: read {state / 'policy-corpus.txt'} to its last line and run the PROOF command there")
         else:  # no partial corpus: the whole read is owed from the tree
-            out.append(f"POLICY-CORPUS unwritten at origin/main: read {', '.join(CORE)}, {', '.join(BY_CHANGE)} in full instead")
+            out.append(f"POLICY-CORPUS unwritten at origin/main: read {', '.join(CORE + FULL + BY_CHANGE)} in full instead")
     b = subprocess.run([py, "-I", str(SEAT / "beatd.py"), "status", "--state", str(state), "--repo", repo],
                        capture_output=True, text=True)
     if b.returncode == 2 or not b.stdout.strip():
