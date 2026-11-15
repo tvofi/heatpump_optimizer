@@ -1,4 +1,4 @@
-R11-PRE-MACHINERY-LIMITER, part 1 of 3: card P2 (owner ruling 2026-11-13) and the group's carries 0-4. Carries 5-12 are parts 2 and 3, dispatched at this handoff.
+R11-PRE-MACHINERY-LIMITER, part 1 of 3: card P2 (owner ruling 2026-11-13) and the group's carries 0-4. Carry 5, Carry 6, Carry 7, Carry 8, Carry 9, Carry 10, Carry 11 and Carry 12 are parts 2 and 3, dispatched at this handoff. Carry 13 (P793, the closure runbook scripts' orch-root default) was homed on the group by tvofi 2026-11-15 after this part's dispatch, so it is in neither this part's brief nor this repair round's (body only); this pull request does not build it, and which part builds it is the orchestrator's assignment.
 
 **P2, the target.** `machinery_ratchet.py` gains THE TARGET (its docstring is the rule): `dev/governance/config/machinery_target_budgets.json` holds `anchor`, `every_merges` and `step`, and the target is `nonproduction_merges - step * floor(n / every_merges)`, n the first-parent merges after the anchor up to the base (PR mode) or head (push mode), never below 0, compared against target plus the existing band. **The schedule:** anchor `b3831ff64e` (this branch's merge base, where the cap was recorded), 48 down every 290 merges: 290 is half the frozen `window_merges` (the owner's seven days of merges), 48 is 10% of the recorded 478 rounded half up (the audit's "e.g. -10% per week", section 6 row a2). **The enumerator:** `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` now prints `target` and `merges_past_anchor`; `--check` prints a `target` line. At a round start the orchestrator records the cap down to `--measure` and asks the owner for the round's anchor and step (`ratchet-budgets.md`); `budget_raise_gate.py` classifies a moved anchor, a longer `every_merges` or a smaller `step` as a raise.
 
@@ -16,7 +16,11 @@ Payment for the policy caps: `ratchet-budgets.md` lost three spent sentences (tw
 
 ## Head
 
-81e2beea953734b9c48e3224924735eb9572635c, merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z).
+`3ad61a1f6e09044cd47db34952a3ab681db1b1e5`, unchanged by this repair round (the round edits the body only), adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3627.md`. The authored code head is `81e2beea953734b9c48e3224924735eb9572635c`.
+
+`b569a6120604b75f4ead324f86391449a150ffd9` merges origin/main `66865be375` into the authored code head `81e2beea953734b9c48e3224924735eb9572635c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+Merge base at the head: 66865be375f4ee283ee556f53fcd76cc3dbf40e2; `origin/main` 98847b99d7bb3238686efd6869f805c89c6d1ff1 at 2026-11-15T20:43Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. The figures below are from the authored code head 81e2beea953734b9c48e3224924735eb9572635c at merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z) unless marked as re-taken at 3ad61a1f6e.
 
 ## Mutation proof
 
@@ -44,8 +48,9 @@ Each mutant applied alone at the head, its self-test run, the file restored:
 - The severity skip, enumerated: `git grep -n -E 'major\`, \`critical|\`medium\`, \`high\`' <rev> -- dev tools/audit/seat CLAUDE.md .claude` prints `proposal-triage.md:23` at b3831ff64e and nothing at the head; `git grep -n -i severity -- 'tools/**/*.py' | grep -i -E 'bar|skip|exempt'` prints nothing at either end, so no program implements the skip.
 - `node tools/policy/policy_lint.mjs --budgets` at the head: every row within its cap; `node tools/policy/policy_lint.mjs` TOTAL 0 errors; `node tools/policy/rules_sync.mjs --check` ok.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- Re-taken at 3ad61a1f6e: `python3 tools/audit/archscore/score.py --diff 66865be375f4ee283ee556f53fcd76cc3dbf40e2 HEAD` prints `Architecture score: dS +0.0000 NULL`. The score reads only `custom_components/heatpump_optimizer`, and `git diff --stat 66865be375f4 HEAD -- custom_components` prints nothing, so NULL is the reading the score's own scope fixes; a diff touching no scored file has no improving payment the score could register.
 
-<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=81e2beea953734b9c48e3224924735eb9572635c -->
+<!-- figure-block: scope-line mb=66865be375f4ee283ee556f53fcd76cc3dbf40e2 head=3ad61a1f6e09044cd47db34952a3ab681db1b1e5 -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -63,7 +68,11 @@ The base's `budget_raise_gate.py` reads the new `machinery_target_budgets.json` 
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until tvofi approves at the head; the base's gate reads the added `machinery_target_budgets.json` as a raise (see `## Raise justification`). No cheaper detector exists: the gate is the owner's approval itself, and `prepr.sh`'s body check already predicts it before the pull request opens.
+The owed set is `python3 tools/audit/seat/merge_train.py owed-reds`, which prints all three names below.
+
+- `budget-raise-gate / budget-raise-gate` (jobs 132933980724, 132947660830): the merge base's `budget_raise_gate.py` reads the added `machinery_target_budgets.json` as five pinned values it cannot sign as routine (`_comment`, `_recorded`, `anchor`, `every_merges`, `step`; `RESULT budget_raises=5 count`), and refuses with no decisive review at the head. Red by design until an approving review at the head (see `## Raise justification` and `## Approval`). No cheaper detector exists: the gate is the approval itself, and `prepr.sh`'s body check already predicts the raise before the pull request opens.
+- `pr-contract / pr-contract` (job 132946649167, step "Check the body against the contract"): the previous body named the raise gate's red as `budget-raise-gate`, not its full check name `budget-raise-gate / budget-raise-gate`, so `policy_lint.mjs --pr-body` found the red unanswered. Repaired in this body. Cheaper detector: `tools/pr/prepr.sh`'s body check runs `policy_lint.mjs --pr-body` locally, but only over the reds that exist when it runs; this red appeared after the handoff, so no detector earlier than the CI run that read it existed for this body. None built.
+- `gate`: follows the two above and has no failure of its own.
 
 ## Approval
 
