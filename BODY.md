@@ -144,7 +144,7 @@ Policy files touched: `dev/governance/roles/fixer.md` (step 5, Carry 1), `dev/go
 
 ## Head
 
-`5889afaea6eda37f42be5fc94e4eecd4ea9949dc`, the repair of PR head `91f6dc48e2c51fdcb0a8ffca4322718fb3802404`, merge base `66865be375f4ee283ee556f53fcd76cc3dbf40e2` (origin/main `98847b99d7bb3238686efd6869f805c89c6d1ff1` at 2026-11-15 20:30 UTC); diff three-dot. Not rebased; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`7b8496c15d3d6f209e1100f054cf8498b1c48064`, repair round 3 of PR head `03c8a591847756bb3ef47cc11693638602e026ba`, which already contains `origin/main` `ebe83a1b8265b56bde009b70185585e736dbdb82` (merge base with it: the same commit; taken 2026-11-15 UTC); diff three-dot. `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
 
@@ -167,22 +167,20 @@ Policy files touched: `dev/governance/roles/fixer.md` (step 5, Carry 1), `dev/go
 
 ## Figures
 
-<!-- figure-block: scope-line mb=66865be375f4ee283ee556f53fcd76cc3dbf40e2 head=5889afaea6eda37f42be5fc94e4eecd4ea9949dc -->
-~~~text
-MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-~~~
-<!-- /figure-block -->
+- gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED` for the repair's text-only delta (policy prose only; no script reads these files beyond `policy_lint.mjs` and `tests/entities.py`, both run above). A generated figure block is omitted because `body_push.sh` renders it at the pull request's recorded base `e75ad291ff` while `prepr.sh` step 7 verifies at `origin/main`, so no block passes both; reported in the result.
 - hook self-test: `python3 tools/audit/seat/hooks_setup.py --self-test` printed `hooks_setup self-test: 74 checks, 0 failed` (hooks unchanged since that run).
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `tools/audit/briefs/fixer.md 315 315 5210 5216`, `tools/audit/briefs/orchestrator.md 294 295 4250 4251`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69190 tokens, cap 69333 +band 500 = 69833`; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
+- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `tools/audit/briefs/fixer.md 315 315 5210 5216`, `tools/audit/briefs/orchestrator.md 294 295 4250 4251`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69735 tokens, cap 69333 +band 500 = 69833` on this head, which contains current main (the PR head alone is at ~69173; merged with the `origin/main` at `ebe83a1b82` it printed ~69836, 3 over the band, blocking review/3626). Round 3 pays 101 tokens inside the PR's own additions and duplicates, no cap changes: `CLAUDE.md`'s list of push surfaces in "What the repository may carry" ("Nothing pushed" already covers it) and the rulings bullet's re-read clause (`orchestrator.md` section 0 states it); `fixer.md` step 5's `prepr.sh` step-number parenthetical; `orchestrator.md`'s section-0 parenthetical on where a ruling lands, section 1's pointer restating `fixer.md` step 3, and the `--allow-red` stamp parenthetical. Null control: the same command before the cuts printed ~69836 against 69833; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
 - policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)` and `FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes`; at `91f6dc48e2` and at `d360d1c125` it printed `TOTAL: 2 error(s)`, both `[citation-presence]` (decisions 0010 and 0011), as CI's policy-docs job did. Citing 0011 by its new path under `dev/governance/decisions/` cleared the error but printed `FIXTURE VACUOUS: checkCitationPresence reported 1 of 2 earned exclusions`, so both are cited by the old path, on the line text each had at the merge base.
 - layout guard: `python3 tests/layout.py` printed `layout: GUARD: 0 refusal(s) against 66865be375f4`; an intermediate head citing decision 0011's old path on a line the merge base did not have printed `GUARD: 1 refusal(s)` (`new-reference: ... cites retired path docs/decisions/`).
 - scopes: `python3 -I tools/audit/check_scopes.py --self-test --repo .` printed `SELF-TEST passed (every perturbed scope refused)`; at `91f6dc48e2` it printed `SELF-TEST FAILED` with `classified in neither universe nor static: dev/programme/RULINGS.md` under D6, as CI did. `python3 -I tools/audit/check_scopes.py --repo .` printed `ok coverage tracked=11270 in_universe=1609 excluded=9661 unclassified=0`.
-- entities: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED` at `5889afaea6`; CI's fast job at `91f6dc48e2` printed `1 of 2723 ENTITY CHECKS FAILED` (the template arm).
+- entities: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED` at `7b8496c15d` on the tree merged with `ebe83a1b82` (round 3); CI's fast job at `91f6dc48e2` printed `1 of 2723 ENTITY CHECKS FAILED` (the template arm).
 - env matrix: `node tools/policy/policy_lint_envmatrix.mjs "$PWD" <tmp> "$(git rev-parse HEAD)"` printed `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)` at `56db94b491` (the policy repair; the later commit touches only `dev/audit/config/scopes.json`, outside the policy corpus); CI at `91f6dc48e2` printed `6 declared outcome(s) held, 10 did not`.
 - with `RULINGS.md` named in `CLAUDE.md` and absent from `corpus_excluded.json` the same command printed the `[named-docs] dev/programme/RULINGS.md` error (an earlier head of this branch).
 
 ## Red checks
+
+Round 3: review/3626 blocked on one cause, the merged-tree corpus cap (Figures, policy budgets); no other red is claimed on this head. The CI reds below are from the earlier head and are answered as before; the fast job's `tests/entities.py` template arm keys on `policy_lint.mjs`'s exit code, which is 0 on this head (`TOTAL: 0 error(s)`), and `instrument-self-tests`'s inherited step is unchanged by this text-only delta.
 
 CI run 43753460195 at `91f6dc48e2`; base evidence is main's push run 43753251450 at `e75ad291ff` (the run's own `GOLDEN_REF` and env-matrix baseline), where `governance / policy-docs`, `governance / env-matrix` and `tests / fast (3.14)` concluded success and `governance / instrument-self-tests` failed only its step "Refuse a self-test read set the committed table misses".
 
