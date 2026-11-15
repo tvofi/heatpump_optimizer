@@ -43,11 +43,11 @@
   },
   "unowned": {
    "no_read": "0018 section 2 names no enumerator: read off `escapes` once it records its owner, and `escapes` is itself read by hand",
-   "would_read": "the escapes record with found-by and owning dimension; until then the `none` rows of dev/audit/yardstick/round10/escapes_hand.tsv",
+   "would_read": "the escapes record with found-by and owning dimension; until then the `none` rows of dev/audit/rounds/round10/objective/escapes_hand.tsv",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
     "count": 7,
-    "ledger": "dev/audit/yardstick/round10/escapes_hand.tsv",
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
     "rows": "ruling `in` and owner `none`",
     "groups": [
      "R10-SETPOINT-BOOST",
@@ -84,7 +84,7 @@
      "D15": 1,
      "none": 7
     },
-    "ledger": "dev/audit/yardstick/round10/escapes_hand.tsv",
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
     "rule": "the matching rule and its two commands are the ledger's header",
     "releases_in_window": 24,
     "releases_command": "git tag --contains v7.0.0 --merged v10.0.0 -l 'v*' | grep -vx v7.0.0 | wc -l"
@@ -96,15 +96,17 @@
    "would_read": "the cause named on each fixing group, recorded by the root-cause seat, over production merges in this window and the previous",
    "builder": "R11-INTAKE-R10-RESIDUE",
    "by_hand": {
-    "named_causes": 3,
-    "causes": {
-     "2411": "R10-SAVINGS-NEGATIVE (first released in v7.0.1)",
-     "3404": "R10-HOTFIX-FLOW-SETPOINT-STUCK (first released in v7.1.12)",
-     "3587": "R10-HOTFIX-REFERENCE-BASIS (caught before a release)"
+    "bugs_with_a_named_cause": 4,
+    "bugs": {
+     "R10-SAVINGS-NEGATIVE": "2411 (the brief; first released in v7.0.1)",
+     "R10-HOTFIX-SAV-ESTIMATE": "2411 and 2887 (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; both merged in the window)",
+     "R10-HOTFIX-FLOW-SETPOINT-STUCK": "3404 (the brief; first released in v7.1.12)",
+     "R10-HOTFIX-REFERENCE-BASIS": "3587 (the brief; caught before a release)"
     },
     "production_merges_in_window": 155,
-    "per_100": 1.94,
-    "ledger": "dev/audit/yardstick/round10/escapes_hand.tsv",
+    "per_100": 2.58,
+    "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
+    "count_command": "awk -F'\\t' '!/^#/ && $1 != \"group\" && $9 != \"-\"' dev/audit/rounds/round10/objective/escapes_hand.tsv | wc -l",
     "denominator_command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1139"
    }
   },
