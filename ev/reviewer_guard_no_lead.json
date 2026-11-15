@@ -1,0 +1,8 @@
+[
+ {
+  "name": "REV_N6_GUARD_NO_LEAD",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if not free.any():\n"
+ }
+]

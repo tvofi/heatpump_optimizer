@@ -1,0 +1,7 @@
+cycling_cost: gradients 22, variables fixed 187 of 2112, rows simulated 1947 of 2134 in a full batch, cpu_s 0.14, gradients sha1 026bcdc735e0, plan sha1 446cf67b4fbb
+everything_on: gradients 757, variables fixed 5710 of 72672, rows simulated 67719 of 73429 in a full batch, cpu_s 2.57, gradients sha1 017728a870c9, plan sha1 ff2bd209d26d
+winter_two_zone_dhw: gradients 449, variables fixed 0 of 43104, rows simulated 43553 of 43553 in a full batch, cpu_s 1.43, gradients sha1 2c03d10dd9b1, plan sha1 e84b00801afb
+valve_storage: gradients 516, variables fixed 0 of 49536, rows simulated 50052 of 50052 in a full batch, cpu_s 3.07, gradients sha1 8ca0ac6eaab3, plan sha1 29e62635827d
+null: unpriced duty-cycle, space only: gradients 293, variables fixed 0 of 28128, rows simulated 28421 of 28421 in a full batch, cpu_s 0.53, gradients sha1 4edde6144dbf, plan sha1 5a16b8d2dd3b
+null cell with a fixed variable or a short batch 0
+rc=0
