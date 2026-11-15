@@ -1,3 +1,23 @@
+## v10.0.1
+
+**Patch stamp: 20 merges since v10.0.0 (`git log --first-parent --merges --format=%h v10.0.0..HEAD | wc -l`): compressor starts are counted from the running signal's own on and off edges, so a short cycle between two refreshes is no longer missed, and the COP learner's power floor follows what the pump is metered drawing; the rest is tooling and records.**
+
+### No action needed
+
+No step is asked of you. No option is added, no default changed, no entity renamed, and no store needs a migration: the start counter keeps its stored lifetime, monthly and running figures and continues from them, and a compressor running across the upgrade is not counted again. If your install has both a compressor frequency sensor and a power meter, starts are now read from the frequency sensor (#3598, below).
+
+### #3598 Compressor starts are counted from the running signal's edges (R10-START-COUNTER-EDGES)
+
+The compressor start counter used to sample the running signal once per refresh and needed two running samples in a row, so a compressor that stopped and restarted between two refreshes counted no start. It now listens to the running signal itself, in every Pump duty control mode including off, and counts each confirmed off-to-on edge, so short cycles are counted. On a power meter, a rise counts as a start once two refreshes read the pump settled running, or when it stops again after a real stop; the brief partial reading an averaging meter shows while the immersion element cuts in or out is not a start. An unavailable or unknown reading counts nothing. Where a frequency sensor and a meter are both set, the counter reads the frequency sensor. The count feeds the month receipt's compressor starts, the wear line of the cost ledger (when a wear price is set) and the insights; the plan itself does not read it, so plans are unchanged. Built on outside design pull request 3420 by Bankaifan, with thanks for the report and the design.
+
+### #3593 The COP learner's power floor follows the pump's metered draw (R10-COP-LEARNER-DRAW-FLOOR)
+
+The measured-COP learner refuses intervals whose power is below a floor taken from your configuration, so a pump that genuinely runs below that figure was refused as if it were cycling and its COP was never learned. Where you set a minimum electrical power, the floor is now capped by the low end of the draws metered while the plan asked the pump to run at or above that minimum, never below the on-threshold; with too few such samples, or no minimum set, it is the configured figure as before. A COP departure from the planned power is now held until the metered draw shows whether the pump follows the plan's ask, then learned if it does and dropped if it does not; while held, the card reads "Waiting to see whether the power draw follows the plan." A held interval is judged by the earlier rule after a week without that evidence, and held intervals are not kept across a restart. The diagnostics download shows the held count (`held_intervals`).
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3631 (owner criteria, part 1), #3624 (CI predict timeout), #3614 (figure block base), #3618 (brief texts), #3621 (finder contract), #3612 (round metrics, part 1), #3619 (outside contributor cycle, part 3), #3521 (outside contributor cycle, part 2), #3615 (policy-docs timeout), #3551 (self-test scope union guard), #3613 (self-test flake arms), #3606 (self-test scope re-record, part 3), #3610 (test-only Python dependency bumps), #3609 (round-10 round-end triage), #3451 (process slimming, part 2), #3611 (round-10 objective record), #3607 (round-10 closure record), #3617 (delivery rows, autofix).
+
 ## v10.0.0
 
 **Round 10 closeout: 30 merges since v7.1.17 (`git log --first-parent --merges --format=%h v7.1.17..HEAD | wc -l`): the what-if figure is now a steady-state estimate, restart learning prices a hot-water to heating switch, learning that waits out a boost is easier to read, a boost writes the set-point entity's own maximum, and the savings reference behind a mixing valve is corrected, with its reference marker bumped; the user docs and the architecture page were re-read against the code.**
