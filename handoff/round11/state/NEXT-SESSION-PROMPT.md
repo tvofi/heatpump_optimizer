@@ -13,12 +13,15 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r11-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-START-COUNTER-EDGES (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-GH-READ-RESIDUE-P3 (stage in-progress, branch `handoff/r10-gh-read-residue-p3`): `git fetch origin handoff/r10-gh-read-residue-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-PRE-MACHINERY-LIMITER (stage in-progress, branch `handoff/r11-pre-machinery-limiter`): `git fetch origin handoff/r11-pre-machinery-limiter && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-METRICS (stage carries-open, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RULINGS-FILE (stage in-progress, branch `handoff/r11-pre-rulings-file`): `git fetch origin handoff/r11-pre-rulings-file && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-RELAY-REBUILD (stage in-progress, branch `handoff/r11-pre-relay-rebuild`): `git fetch origin handoff/r11-pre-relay-rebuild && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-ACK-COMPLETION (stage in-progress, branch `handoff/r11-pre-ack-completion`): `git fetch origin handoff/r11-pre-ack-completion && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PLAN-RENDER (stage in-progress, branch `handoff/r11-pre-plan-render`): `git fetch origin handoff/r11-pre-plan-render && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -28,15 +31,15 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-BRIEFS-CENSUS (stage in-progress, branch `handoff/r11-pre-briefs-census`): `git fetch origin handoff/r11-pre-briefs-census && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage design, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-OWNER-CRITERIA (stage carries-open, branch `handoff/r11-pre-owner-criteria`): `git fetch origin handoff/r11-pre-owner-criteria && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-GENERIC-CONTROL-TEXT (stage in-progress, branch `handoff/r11-owner-generic-control-text`): `git fetch origin handoff/r11-owner-generic-control-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-CHECK-GATE (stage in-progress, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COMMUNITY-STANDARDS (stage in-progress, branch `handoff/r11-owner-community-standards`): `git fetch origin handoff/r11-owner-community-standards && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-HOTFIX-CI-PREDICT-TIMEOUT (stage in-progress, branch `handoff/r11-hotfix-ci-predict-timeout`): `git fetch origin handoff/r11-hotfix-ci-predict-timeout && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P2 (stage design, branch `handoff/r11-outside-rooms-p2`): `git fetch origin handoff/r11-outside-rooms-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P3 (stage design, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-HOTFIX-MAIN-SELFTEST-RED (stage in-progress, branch `handoff/r11-hotfix-main-selftest-red`): `git fetch origin handoff/r11-hotfix-main-selftest-red && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-DRAW-MAP-EVIDENCE, R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R10-PREPR-DARWIN-SELFTEST-LANE, R10-START-COUNTER-EDGES, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-CI-PREDICT-TIMEOUT, R11-HOTFIX-MAIN-SELFTEST-RED, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RCA-LATCH-CLAUSES, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN
+Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R10-PREPR-DARWIN-SELFTEST-LANE, R10-START-COUNTER-EDGES, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-MAIN-SELFTEST-RED, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RCA-LATCH-CLAUSES, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN
 
 ## Resume steps
 
