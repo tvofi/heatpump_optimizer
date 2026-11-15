@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any, Final
 
+from .freq_control import defrost_interval
+
 #: The warmest a floor-loop return may read above the room air it heats, K.
 #: Floor-loop water runs 3-9 K above that air (the repository's working band,
 #: see the ``lower_floor_modelled`` repair text), and EN 1264's surface limits,
@@ -52,7 +54,7 @@ def refusal(return_c: float, room_c: float, signals: Any) -> str | None:
         return REFUSED_ABOVE_ROOM
     if hot_water_run(signals):
         return REFUSED_HOT_WATER
-    if signals.defrosting:
+    if defrost_interval(signals.defrosting):
         return REFUSED_DEFROST
     return None
 

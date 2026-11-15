@@ -92431,7 +92431,7 @@ R.check(
 # The bound at its edge, through the production predicate.
 R.check(
     "the bound: 12 K above the room is a floor loop, anything warmer is not",
-    not _ssg.above_room(31.6, 19.6) and _ssg.above_room(31.7, 19.6)
+    not _ssg.above_room(32.0, 20.0) and _ssg.above_room(32.1, 20.0)
     and _ssg.SLAB_SEED_MAX_ABOVE_ROOM_K == 12.0,
 )
 # The option text states the bound the code applies, in every language.
