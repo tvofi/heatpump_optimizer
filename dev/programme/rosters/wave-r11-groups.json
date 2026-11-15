@@ -2285,7 +2285,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "PR #3638 in review (reviewer fired 22:55); card E11-INJECTED ruled 12:35Z, no hold",
-    "note": "card E11-INJECTED ruled by tvofi 2026-11-15T12:35Z: accept, pay by deletion; raise returns to tvofi only if no sound cut exists",
+    "note": "fix-gating (0018:436); card E11-INJECTED ruled by tvofi 2026-11-15T12:35Z: accept, pay by deletion; raise returns to tvofi only if no sound cut exists",
     "pr": 3638
    }
   },
