@@ -1,0 +1,28 @@
+merge-tree origin/main=2a257fce0895e9e1a77d049f879adac438517c3a head=7f4a9be89c98d6ff59dc396c479b95b73b761cf6
+eddab085a79300930a18df725d4638ca672f1a3b
+rc=0
+5,6c5,10
+< (root cause, red-check carry, finding fix) keeps its route. One opus seat,
+< medium effort, under `standing.md`; check rulings against code.
+---
+> (root cause, red-check carry, finding fix) keeps its route. **Once per round**
+> (tvofi, 2026-11-14: "keep it in the once per round shape"): the round's
+> proposals are consolidated and triaged together at round end by one opus seat,
+> medium effort; an ACCEPT is built at the start of the next round. A fix to an
+> instrument a running seat depends on stays local and in-round, ruled by no one.
+> Check rulings against code.
+23,25c27,29
+< **Verdicts:** ACCEPT names a destination (roster group and carry, or new group,
+< brief); DEFER, what would change it or the owning group; REJECT, the binding
+< cost; LOG, evidence.
+---
+> **Verdicts:** ACCEPT names a destination (a next-round roster group and carry,
+> or new group, brief); DEFER, what would change it or the owning group; REJECT,
+> the binding cost; LOG, evidence.
+27,28c31,32
+< **A ruling**: a `## P<n>: <title>` entry in a `dev/programme/triage/` batch
+< file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
+---
+> **A ruling**: a `## P<n>: <title>` entry in the round's `dev/programme/triage/`
+> batch file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
+M	dev/governance/roles/proposal-triage.md

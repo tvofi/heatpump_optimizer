@@ -1,0 +1,174 @@
+35a36
+> +                 HPO_BUS_CLASSIFY="bash $W/classifier" HOME=$W HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+159d159
+< +      not refused: triage or design it (`designer.md`),
+174a175,176
+> +    "dev/governance/roles/proposal-triage.md": 40,
+> +    "dev/governance/roles/proposal-triage.md": 563,
+300d301
+< +   goes to the orchestrator as a mechanisation proposal, costed in its
+327d327
+< +  (root cause, red-check carry, finding fix; see Machinery) keeps its route. An
+348,349d347
+< +  `major`, `critical`, root-cause countermeasure, closeout, owner directive skip
+< +  `severity` `low` or `normal` meets both (over 20% to add); `medium`, `high`,
+354a353
+> +  citing its ruling. An instrument fix stays local and in-round.
+364d362
+< +  exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says so; its PR
+381d378
+< +  from the sweep, a seat's result or a verdict is wired in only when its
+392d388
+< +  measured benefit clearly outweighs its cost. A countermeasure policy requires
+395,396d390
+< +  non-production CI lane or seat, stays only on a measured gain of at least 10%
+< +  on them. Repair of such code (outside `custom_components/`) with roster
+426,427c420,421
+< +  records it. **Machinery:** a planned instrument/machinery group, or existing
+< +  seat; card C6, tvofi 2026-11-05): a process, tooling or instrument proposal
+---
+> +  round; tvofi 2026-11-14): a process, tooling or instrument proposal from the
+> +  ruling. Where a mandate lets you act on a recommendation absent the owner,
+433a428,429
+> +  sweep, a seat's result or a verdict is consolidated, never routed before its
+> +  that means adding it to the batch; an ACCEPT reaches the next round's roster
+435d430
+< +  them; unset is classified first, never assumed major.
+444c439,441
+< +# clone is single-branch, so V and the head are on origin but not in it; they are
+---
+> +# a plain path clones by copying every object.
+> +# branch of origin, as decision 0017's whose-head arm asks. A file:// URL, since
+> +# clone is single-branch, so V and the head are on origin but not in it; V is
+449c446
+< +# kept reachable on refs/test/* so a fetch by sha can serve them. A file:// URL,
+---
+> +# kept reachable on refs/test/v so a fetch by sha can serve it, and the head is a
+454d450
+< +# since a plain path clones by copying every object.
+463c459,460
+< +(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) goes to the orchestrator, who rules it directly (card C6 retired the triage seat; `dev/governance/roles/orchestrator.md` section 5), never implemented or routed before that ruling; an accepted one reaches the roster through the roster seat, citing its ruling.
+---
+> +(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) is added to the round's batch for the round-end triage on `dev/governance/roles/proposal-triage.md`, never implemented or routed before its ruling; an ACCEPT reaches the next round's roster through the roster seat, citing its ruling. An instrument fix stays local and in-round.
+> +(`proposal-triage.md`, once per round at round end). Exempt from all three: a proposal proving over 20% on
+467a465,466
+> +(root cause, red-check carry, finding fix) keeps its route. **Once per round**
+> +(tvofi, 2026-11-14: "keep it in the once per round shape"): the round's
+468a468
+> +**A ruling**: a `## P<n>: <title>` entry in the round's `dev/programme/triage/`
+471c471,472
+< +- **A proposal is ruled directly, by the owner or by you** (no standing triage
+---
+> +**Verdicts:** ACCEPT names a destination (a next-round roster group and carry,
+> +- **A proposal waits for the round-end triage** (`proposal-triage.md`, once per
+485d485
+< +-- so the write path refuses roster text a proposal sourced that cites no ACCEPT
+504d503
+< +C5).
+506c505
+< +Exempt from all three: a proposal proving over 20% on
+---
+> +Check rulings against code.
+532c531
+< +`root-cause.md`. The fixer names a red check in the pull-request body and
+---
+> +`root-cause.md`. The fixer answers a red check in the pull-request body; an
+534d532
+< +answers it there; an unanswered one is a reviewer's note resolved at merge (card
+535a534,535
+> +batch file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
+> +before it reaches the roster, so the write path refuses roster text a proposal
+539d538
+< +card C6 retired the triage seat (dev/governance/roles/orchestrator.md section 5)
+553c552,553
+< +g push -q origin "$V:refs/test/v" "$H_MERGE:refs/test/h"
+---
+> +g push -q origin "$V:refs/test/v" "$H_MERGE:refs/heads/carried-bare"
+> +g push -q origin :refs/heads/carried-bare # the fork arms below need the head on no branch
+559,560c559
+< +is accepted only when its friction blocks a production merge, else ruled LOG.
+< +is ruled before it reaches the roster -- by the orchestrator or the owner since
+---
+> +instrument a running seat depends on stays local and in-round, ruled by no one.
+562a562
+> +medium effort; an ACCEPT is built at the start of the next round. A fix to an
+563a564
+> +or new group, brief); DEFER, what would change it or the owning group; REJECT,
+564a566
+> +passes dev/governance/roles/proposal-triage.md, once per round at round end,
+565a568
+> +proposals are consolidated and triaged together at round end by one opus seat,
+571a575
+> +sourced that cites no ACCEPT ruling. The text judged is what this write ADDS (a new group's brief and
+584a589
+> +the binding cost; LOG, evidence.
+589a595
+> +unanswered one is a reviewer's note resolved at merge (card C5).
+591,592c597,598
+< +| `delivery-status-tracking.md` | the record is the pull-request list and one #3394 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
+< +| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed at the latest at the producing pull request's merge — a PR comment records it, it does not propagate it |
+---
+> +| `delivery-status-tracking.md` | the record is the PR list and one #3394 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
+> +| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed by the producing pull request's merge — a PR comment records it, it does not propagate it |
+593a600
+> +| `proposal-triage.md` | rules the round's proposals at its end, on cost/benefit |
+610,615d616
+< -
+< -
+< -
+< -
+< -
+< -
+628a630
+> -                 HOME=$W HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+826d827
+< -      not refused: triage or design it (`proposal-triage.md`, `designer.md`),
+984d984
+< -   "dev/governance/roles/proposal-triage.md",
+989d988
+< -   goes to `proposal-triage.md` as a mechanisation proposal, costed in its
+1183d1181
+< -# The proposal-triage seat's contract
+1203d1200
+< -(Pi-class, CI runners); complexity (lines, new files, checks, hot files, review
+1215d1211
+< -**Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
+1217d1212
+< -**Machinery.** A planned machinery group, or a non-production CI lane or
+1219d1213
+< -**You never** implement, edit the roster or merge; the orchestrator routes
+1247d1240
+< -A process, tooling or instrument proposal (sweep, seat results, verdict notes)
+1249,1251d1241
+< -ACCEPT runs its rule per instance, result beside it. Git and local logs
+< -ACCEPT. Blocking no production merge: LOG, bar the exemption in
+< -ACCEPTs via `seat/roster_edit.py`, citing
+1297d1286
+< -`dev/audit/README.md`. An exemption ACCEPT (over 20% on a
+1302d1290
+< -`ratchet-budgets.md` measure) says so; its PR records it.
+1306,1307d1293
+< -`triage P<n>` or `proposal P<n>` citing no ACCEPT.
+< -`triage: dev/programme/triage/<file>.md#P<n>`; it refuses text naming
+1311d1296
+< -before the API.
+1318,1319d1302
+< -classified first, never assumed major.
+< -code (outside `custom_components/`) with roster `severity` `low` or `normal`
+1342d1324
+< -is accepted only when its friction blocks a production merge, else ruled LOG
+1346d1327
+< -log), `Cost:` (estimate, each capped file's `--budgets` row), `Binding:`. An
+1348d1328
+< -meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+1356d1335
+< -passes this gate before building (decision 0015); a required countermeasure
+1359,1360c1338
+< -root-cause countermeasure, closeout, owner directive skip them; unset is
+< -rounds); maintenance. Even or marginal: REJECT; unmeasured: DEFER, never
+---
+> -ruling. The text judged is what this write ADDS (a new group's brief and
+1363d1340
+< -seat, stays only on a measured gain of at least 10% on them. Repair of such
+1373d1349
+< -time; tokens (model x effort x runs); API calls; standing CPU
