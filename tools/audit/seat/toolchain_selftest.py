@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""toolchain.py's cases: `python3 -I tools/audit/seat/toolchain.py --self-test`.
+"""toolchain.py's cases, run by that file's own self-test flag.
 
 Real git throughout: a bare origin whose main is six commits (c0..c5; c1, c3
 and c5 touch a seat path), a side commit off main, and one clone as the tools
