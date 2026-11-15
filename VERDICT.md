@@ -1,13 +1,11 @@
-Fix review: blocked 6dc42ccc267162b473d552d5f39f389d9c9a224e class-open: tools/audit/seat/body_push.sh:175
+Fix review: merge a59a124a6d7c65fa38545024a7d8c2ff765f2aa7
 
-bus-nonce: 1ba2f55ff2cd00bf075a06e2e2106054
-
-## Block
-The body's class rule (`grep -n "figure_block.py\" refresh" tools/audit/seat/*.sh`) returns three call sites at this head (ev/enumeration.txt): update_pr.sh:107 and open_pr.sh:122, both closed here, and `tools/audit/seat/body_push.sh:175`, which runs `figure_block.py refresh "$ABS"` with no `--base`, so it renders against figure_block.py's default `origin/main` (tools/pr/figure_block.py:280). It is neither in the diff nor dispositioned in the body's "Class seams" line, which lists two sites. body_push.sh is the handoff body push; the body must either close it (take the recorded base where a PR exists) or state why `origin/main` is correct there, as it does for op_figures p1.
+bus-nonce: 822e9869e2af5ab0c49ef3e93fb68f78
 
 ## Evidence
-- Head measured: 6dc42ccc267162b473d552d5f39f389d9c9a224e (ev/HEAD.txt). Round 1.
-- classify at head: GREEN (ev/classify.txt). merge-tree against origin/main: clean (ev/merge-tree.txt).
-- `pr_args.sh --self-test` at head: 269 checks, 0 failed (ev/pr_args-selftest.log), including mut:opbase and mut:updbase killed, the equal-base null control and the unreadable-base refusal. The two closed sites are sound.
-- VERSION, manifest, notes, claim files, budgets and closures untouched.
-- carry_audit: 0 findings.
+- Scope: full (round 1; no earlier verdict). The diff is instrument, test and body only (tools/audit/seat/*, delivery row); no custom_components/, VERSION, claim file or budget touched.
+- classify at head: GREEN (pending none, red none). `git merge-tree --write-tree origin/main <head>` rc 0, no conflict.
+- `body_push.sh --self-test`: 49 checks, 0 failed, including the precondition (recorded base differs from origin/main tip), the null control (equal bases), mut:bpbase (its deletion falls back to origin/main), the unreadable-base refusal with nothing pushed, and the no-PR / no-open-PR arms (ev/body_push_selftest.txt).
+- `pr_args.sh --self-test` run to my 230 s timeout (rc=124, truncated, no FAIL row); the new open_pr arms (recorded base at p2, origin/main at p1, mut:opbase) and update_pr arms (recorded base, mut:updbase, unreadable base refuses) all printed ok (ev/pr_args_selftest.txt). The full self-test is CI's (`instrument-self-tests` green), not re-run here.
+- Read of production lines: `pr_recorded_base` validates a 40-hex sha and fetches it if absent; update_pr.sh and open_pr.sh have R and N set before use; body_push.sh's `keep_refused` exists at line 123. Both mutant markers sit on the lines that carry the behaviour.
+- Commits carry no footer, trailer or session link.
