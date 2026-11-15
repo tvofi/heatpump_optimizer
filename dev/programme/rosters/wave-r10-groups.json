@@ -27961,6 +27961,50 @@
     "note": null,
     "pr": null
    }
+  },
+  {
+   "group": "R11-HOTFIX-POLICY-DOCS-TIMEOUT",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    ".github/workflows/governance.yml"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [
+    "dev/audit/rca/R10-RCA-FAMILY-POLICY-DOCS-TIMEOUT.md"
+   ],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "triage: dev/programme/triage/r10-round-end.md#P786 at 2e17928032\n\nHotfix, S (root-cause countermeasure). Freeze ground: the required `gate` went red on #3451 and on main at b046b22d when `policy-docs` timed out while field coverage ran; fixing the required gate's red on main is a ground. Root-cause record: `dev/audit/rca/R10-RCA-FAMILY-POLICY-DOCS-TIMEOUT.md` (three instances). The fix: one line in `.github/workflows/governance.yml`, the `policy-docs` job's `timeout-minutes` from 5 to 10; zero standing seconds on a run that finishes. A code-owned path: tvofi's approving review, or the mandate while it is in force. Demonstration: the job's measured wall on the three instance runs against the new bound, and a green run at the head.",
+   "carry": [],
+   "source": "programme",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
+    "note": null,
+    "pr": null
+   }
   }
  ]
 }
