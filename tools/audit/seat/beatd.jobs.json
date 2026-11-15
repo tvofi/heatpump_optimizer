@@ -203,6 +203,24 @@
       "kind": "periodic"
     },
     {
+      "name": "loop-cwd",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "loop-cwd",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 900,
+      "timeout_s": 120,
+      "heartbeat_s": null,
+      "env_pass": [],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
       "name": "head-watch",
       "argv": [
         "python3",

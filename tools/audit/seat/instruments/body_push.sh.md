@@ -18,3 +18,4 @@
   handoff arm reads it: a body naming another head is held as
   `handoff-body-stale`, and a body naming a tip the PR head already holds is
   applied body-only (`update_pr.sh` with code `-`).
+- Refuses `head-stale` (exit 1, body kept at `handoff-wip/<topic>-body`) when the body's `## Head` does not name `handoff/<topic>`'s code sha: a repair body kept the previous handoff's head (#3212, #3230, #3231; R10-PROCESS-SLIM carry 1).
