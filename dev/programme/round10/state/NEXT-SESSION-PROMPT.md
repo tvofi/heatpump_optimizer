@@ -15,7 +15,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SEAT-IDENTITY-P5 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -25,15 +25,15 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-LEARNER-DRAW-FLOOR (stage in-progress, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-REFERENCE-BASIS (stage in-progress, branch `handoff/r10-hotfix-reference-basis`): `git fetch origin handoff/r10-hotfix-reference-basis && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-CLOSEOUT-CLEANUP, R10-HOTFIX-REFERENCE-BASIS
+Ready next (after-edges satisfied; nothing open constrains them): R10-CLOSEOUT-CLEANUP
 
 ## Resume steps
 
 1. Read the resume doc's Roster and Ready next sections.
-2. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
-3. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
+2. Run `python3 -I tools/audit/seat/seat_gen.py lock` before the first dispatch and stop if it prints REFUSED.
+3. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
+4. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
 
 ## Identity and merge (from the roster)
 
