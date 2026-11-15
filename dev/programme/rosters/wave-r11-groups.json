@@ -2530,7 +2530,7 @@
     "branch": "handoff/r11-pre-security-privacy",
     "commit": null,
     "last_step": null,
-    "next_step": "designer",
+    "next_step": "designer revise running (23:11); owner 2026-11-15 ~23:25Z: the dimension is named DX0, outside the D0..Dn sequence, not D18; the design and every id pattern carry DX0 explicitly",
     "note": "owner item tvofi 2026-11-15; design first; overlap admitted (R11-PRE-RULINGS-FILE): owner item tvofi 2026-11-15: security and privacy dimension, findings to the owner only"
    }
   },
