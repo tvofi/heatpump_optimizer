@@ -24706,7 +24706,7 @@
    "architect_note": null,
    "brief": "triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032\n\nRe-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). The paid macOS CI lane is refused: the `darwin-selftest` beat row on main (#3565, `tools/audit/seat/beat_jobs.py`) is the post-merge detector, and macOS-only checks run on local seats (tvofi 2026-11-12). This group builds the pre-merge detectors, size S:\n(a) land the root-cause seat's BODY.md (`git show cce3f946f5e8b48497e2f89486bbf4798a44c6e2:BODY.md`) under dev/audit/rca as the record named R10-RCA-PREPR-DARWIN-SELFTEST, and its class entry in `dev/audit/config/bugclasses.json` (carry 1, arm a);\n(b) the stub host-independence rule for self-test stubs (carry 0);\n(c) one diff-scoped shell-hazard lint in `tools/pr/prepr.sh` over added lines in `tools/**/*.sh` only: a raw `wc -l` string compare, and an early-exit reader on a pipe under `pipefail` (the pipefail-sigpipe family, its record under dev/audit/rca);\n(d) `harness_headers.inline_scan()` run in prepr as a static, sub-second step (moved intake carries).\nEach: a failing test first on the instance that reached CI, a null control, a mutant; standing cost under one second per prepr run, measured. Carry 1's lane conditions are void with the lane; its forward-carry on `pr_args.sh`'s GNU-only `sed -i` sites stays a precondition for this group's lint.",
    "resume": {
-    "stage": "deferred",
+    "stage": "not-started",
     "branch": null,
     "commit": null,
     "last_step": null,
