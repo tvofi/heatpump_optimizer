@@ -60,7 +60,7 @@ M = [
  ("tick-subscribe-dropped", "running_signal.py", "    if tick is not None and tick not in sig.ticks:\n        sig.ticks.append(tick)\n", ""),
  ("hold-refreshes-one", "wear.py", "HOLD_REFRESHES = 2\n", "HOLD_REFRESHES = 1\n"),
  ("hold-refreshes-three", "wear.py", "HOLD_REFRESHES = 2\n", "HOLD_REFRESHES = 3\n"),
- ("hold-seen-not-counted", "wear.py", "            self.held = (since, from_stop, seen + 1)\n", "            self.held = (since, from_stop, seen)\n"),
+ ("hold-seen-not-counted", "wear.py", "        seen += 1\n        if seen < HOLD_REFRESHES:\n", "        if seen < HOLD_REFRESHES:\n"),
  ("hold-rose-from-any", "wear.py", "            self.held = (since, rose_from is False, 0)\n", "            self.held = (since, True, 0)\n"),
  ("hold-rose-from-none", "wear.py", "            self.held = (since, rose_from is False, 0)\n", "            self.held = (since, False, 0)\n"),
  ("hold-short-run-any-edge", "wear.py", "        if held is not None and held[1] and running is False:  # a short run\n", "        if held is not None and held[1]:  # a short run\n"),

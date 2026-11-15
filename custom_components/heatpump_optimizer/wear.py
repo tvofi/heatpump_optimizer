@@ -138,8 +138,9 @@ class RiseHold:
         if self.held is None or not running:
             return []
         since, from_stop, seen = self.held
-        if seen + 1 < HOLD_REFRESHES:
-            self.held = (since, from_stop, seen + 1)
+        seen += 1
+        if seen < HOLD_REFRESHES:
+            self.held = (since, from_stop, seen)
             return []
         self.held = None
         return [(since, True)]
