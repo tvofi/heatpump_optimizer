@@ -1,0 +1,22 @@
+PR patch at reviewed head: git diff 29b3e5a74c...7f4a9be89c98d6ff59dc396c479b95b73b761cf6
+ 40 files changed, 602 insertions(+), 755 deletions(-)
+PR patch at head: git diff 13cbe48de4...93ba227138a2c024bf81e44e74f2b11cb572bd76
+ 40 files changed, 602 insertions(+), 755 deletions(-)
+patch-vs-patch, +/- lines only (sorted) differences:
+diff rc=0
+main's bus.sh change 29b3e5a74c..13cbe48de4:
+ 1 file changed, 12 insertions(+)
+body line 9 command at head: git diff --shortstat 0a8033305d...93ba227138a2c024bf81e44e74f2b11cb572bd76
+ 2216 files changed, 138804 insertions(+), 9608 deletions(-)
+same at reviewed head:
+ 2163 files changed, 137851 insertions(+), 9591 deletions(-)
+c3149607 vs 946eb6d2 merge-tree:
+rc=0
+7f4a9be8 vs 2c69fb35 merge-tree:
+CONFLICT (content): Merge conflict in tools/audit/seat/bus.sh
+93ba227 == auto merge of parents?
+cd15f7d77bc50fb63d46491314068425bf1d8e66
+cd15f7d77bc50fb63d46491314068425bf1d8e66
+1efe8398 == auto merge of parents?
+b7b0e388f206a8ecf7a61c518c8bdab2aa5439dc
+b7b0e388f206a8ecf7a61c518c8bdab2aa5439dc
