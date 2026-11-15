@@ -128,6 +128,11 @@ ROWS (the job table's `interval_s` in brackets):
                      A failed slot-take or worktree add is `darwin-selftest: UNREADABLE
                      <step> rc=N: ...`, runs nothing and leaves the cycle where it was, so
                      the next pass retries it.
+  cp-owed [300]      owed_watch.py `cp-owed --repo R --fired <fire_ledger> --checkout <repo>`: one
+                     `CP-OWED <arm> <subject>` line per critical-path or outside step past its
+                     grace (owner directive tvofi 2026-11-09, "never let the critical path or
+                     outside PRs slip, ever"); `cp-owed: UNREADABLE` on a non-zero rc, never
+                     its partial lines.
   bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
                      <train_log> --wip-cap <plan_slots> --memory
                      state/bottleneck.json`: its `BOTTLENECK:` and
@@ -161,7 +166,7 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
         "scorecard", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
@@ -677,6 +682,19 @@ def outside_intake(ctx: Ctx) -> None:
     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
 
 
+def cp_owed(ctx: Ctx) -> None:
+    """owed_watch.py cp-owed: one CP-OWED line per critical-path or outside step past its grace."""
+    got = ctx.need("cp-owed", "repo", "fire_ledger")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/owed_watch.py", "cp-owed", "--repo", got[0], "--fired", got[1],
+                          "--checkout", str(ctx.repo))
+    if rc != 0:
+        why = next((ln for ln in out.splitlines() if ln.startswith("cp-owed: UNREADABLE")), None)
+        return write_job(ctx, "cp-owed", [why or f"cp-owed: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    write_job(ctx, "cp-owed", [ln for ln in out.splitlines() if ln.startswith("CP-OWED ")])
+
+
 def bottleneck(ctx: Ctx) -> None:
     """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
     got = ctx.need("bottleneck", "train_log", "plan_slots")
@@ -783,7 +801,7 @@ def darwin_selftest(ctx: Ctx) -> None:
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard,
+       "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
        "darwin-selftest": darwin_selftest}
 
 

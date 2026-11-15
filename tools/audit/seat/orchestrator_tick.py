@@ -126,9 +126,6 @@ ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
 STUCK_FACTOR = 2  # a lane pending past this many critical-path medians is stuck (ETA and WAITING share it)
 RECUT_BLOCKED = 3          # the owner's three-round rule: the third blocked verdict owes a re-cut
-SEAT_WINDOW_MIN = 120      # "a seat is on it": a fire or a handoff ref move inside this window
-FIRE_GRACE_MIN = 15        # a rendered payload this old with no FIRED line is FIRE-OWED
-FIRED_STAMP = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?Z?)")
 GATE_CONTEXTS = {"gate", "pr-contract"}  # the contexts an early-gate race reddens
 STALL_MINUTES = 90  # P328: p95 dispatch-to-verdict is 70 min; 90 fires on ~2.6% of reviews
 #: Per merge_train.py (its self-test pins the two equal): under the umbrella
@@ -253,6 +250,9 @@ def _module(name: str, *candidates: str):
 mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
 #: The CI-priority rule (owner, tvofi 2026-10-28): the one order owed PRs print in.
 cpri = _module("ci_priority_tick", "tools/audit/seat/ci_priority.py")
+#: The owed-event watch (R11-PRE-STANDING-SCRIPTS): the one owner of the fired-ledger read,
+#: "a seat is on it" and FIRE-OWED; the methods below delegate to it.
+owatch = _module("owed_watch_tick", "tools/audit/seat/owed_watch.py")
 #: A paused.json record older than this with no train running is owed (P267).
 PAUSED_OWED_MIN = 60
 
@@ -816,27 +816,8 @@ class Tick:
             return None
 
     def _fired(self) -> "list[tuple]":
-        """[(utc or None, line)] for each FIRED line of the dispatch seat's ledger."""
-        try:
-            with open(self.fired_log, encoding="utf-8", errors="replace") as fh:
-                rows = [l.strip() for l in fh if "FIRED" in l]
-        except (OSError, TypeError):
-            return []
-        out = []
-        for l in rows:
-            m = FIRED_STAMP.match(l)
-            when = None
-            if m:
-                when = datetime.datetime.fromisoformat(m.group(1).rstrip("Z")).replace(
-                    tzinfo=datetime.timezone.utc)
-            out.append((when, l))
-        return out
-
-    def _fire_names(self, n: int, topics: list, line: str) -> bool:
-        """A FIRED line names a PR by number, topic or its payload file
-        (`payload-fix-<n>-r<k>.json`, `payload-<n>-r<k>.json`)."""
-        return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
-            t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
+        """[(utc or None, line)] for each FIRED line of the dispatch seat's ledger (owed_watch.fired)."""
+        return owatch.fired(self.fired_log)
 
     def _disposed(self, ref: str, sha: str) -> bool:
         """The obligations ledger holds a disposition for `ref` at exactly `sha` (an older sha
@@ -855,27 +836,8 @@ class Tick:
         return text if code == 0 else None
 
     def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
-        """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
-        handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
-        cutoff = self.now - datetime.timedelta(minutes=SEAT_WINDOW_MIN)
-        for when, l in self._fired():
-            if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
-                return True
-        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
-        for t in topics:
-            for fam in kinds:
-                refs = [f"{fam}/{t}"]
-                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
-                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
-                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
-                for ref in refs:
-                    sha = heads.get(ref)
-                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
-                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
-                    age = self._age_min(ref, sha) if sha else None
-                    if age is not None and age <= SEAT_WINDOW_MIN:
-                        return True
-        return False
+        """owed_watch.seat_on over this tick's ledger, clock and git reads."""
+        return owatch.seat_on(n, topics, heads, self._fired(), self.now, self._age_min, self._blocked_md, kinds)
 
     @staticmethod
     def _topics(branch: str) -> list:
@@ -1085,15 +1047,11 @@ class Tick:
         return "review-owed", "", ""
 
     def payloads(self, S: str) -> None:
-        """FIRE-OWED: a rendered payload file older than FIRE_GRACE_MIN that no FIRED line names."""
+        """FIRE-OWED (owed_watch.fire_owed): a rendered payload past its grace that no FIRED line names."""
         if not self.payload_dir:
             return
-        fired = self._fired()
-        for f in sorted(Path(self.payload_dir).glob("payload-*.json")):
-            age = (self.now.timestamp() - f.stat().st_mtime) / 60
-            if age > FIRE_GRACE_MIN and not any(f.name in l for _, l in fired):
-                self.line(S, f"OWED fire-owed {f.name} rendered {int(age)}m ago, no FIRED line "
-                             "(firing is a RemoteTrigger call: the orchestrator's turn)", flag=True)
+        for text in owatch.fire_owed(self.payload_dir, self._fired(), self.now):
+            self.line(S, text, flag=True)
 
     def _reviewer_ref_age(self, n: int) -> "int | None":
         """Minutes since the tip of `dispatch/reviewer-rev-<n>` (cloud_dispatch.py's
@@ -4401,7 +4359,7 @@ def self_test() -> int:
         pd2.mkdir()
         pf2 = pd2 / "payload-fix-86-r2.json"
         pf2.write_text("{}")
-        os.utime(pf2, ((NOW - timedelta(minutes=FIRE_GRACE_MIN - 5)).timestamp(),) * 2)
+        os.utime(pf2, ((NOW - timedelta(minutes=owatch.FIRE_GRACE_MIN - 5)).timestamp(),) * 2)
         tfy = tick(prs=[], fired_log=os.devnull, payload_dir=str(pd2))
         tfy.payloads("PRS")
         fo_young = [x["text"] for x in tfy.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
