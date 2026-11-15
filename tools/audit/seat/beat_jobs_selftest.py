@@ -576,6 +576,10 @@ def cases(bj) -> dict[str, bool]:
     c, _ = fresh(answers={"gh": (1, "", "boom")})
     bj.ci_attempt(c)
     res["ci-attempt: an unreadable API is UNREADABLE"] = digest(c) == "ci-attempt: UNREADABLE gh rc=1\n"
+    c, f = fresh(overlay={"train_log": "/x"}, answers={"gh": (0, loop, "")})
+    bj.ci_attempt(c)
+    res["ci-attempt: an overlay without repo is UNREADABLE and calls no API"] = (
+        digest(c) == "ci-attempt: UNREADABLE overlay lacks repo\n" and not f.calls)
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
