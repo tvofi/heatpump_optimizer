@@ -724,9 +724,9 @@ def self_test():
                                                      f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v2->3"])
         arm("d9-solves lines", [l.split(" <- ")[0] for l in run("d9-solves", t)], ["path go", "solve _multi_start_minimize"])
         quiet = contextlib.redirect_stderr(io.StringIO())
+        arm("d9-solves a caller outside the solver's module is printed and not climbed", [l for l in run("d9-solves", t) if "cycle <-" in l], [])
         with quiet:
-            arm("d9-solves a caller outside the solver's module is printed and not climbed", [l for l in run("d9-solves", t) if "cycle <-" in l], [])
-        arm("d12 a cell with no ledger row is not run", {l.split("\t", 1)[1] for l in run("d12-cells", t)}, {"not run"})
+            arm("d12 a cell with no ledger row is not run", {l.split("\t", 1)[1] for l in run("d12-cells", t)}, {"not run"})
         led = t / "ledger.tsv"
         for label, text, want in (("a ledger row is joined", "level mode=m1\tsimulation\ttests/x.py::t\n", 6),
                                   ("an unknown source is refused", "level mode=m1\thearsay\ttests/x.py::t\n", "Refuse"),
