@@ -1416,9 +1416,9 @@
     "From r10-cop-learner-draw-floor, body item 28d8e538: Design decision, owner: the cap reads run-asked draws only, so an install with an overstated minimum that the plan never asks at or above keeps base's refusal and reads `duty_floor`; the remedy there is the configured figure. Lowering the floor for it lowers it for every duty-cycling install: harness rows `min3_running_warm_own`, `fixed3_duty50_warm_own`, `fixed3_duty70_warm_own` are the control. Carry: R10-COP-LEARNER-DRAW-FLOOR (items 28d8e538) [moved: R11-INTAKE-R10-RESIDUE]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-cop-learner-draw-floor",
-    "commit": "b046b22d6ed8e0ebc5fead18b6f5cd9178b1b12d",
+    "commit": "b046b22d6e",
     "last_step": null,
     "next_step": "designer (L) now; design review; fixer only on approve",
     "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE; owner 2026-11-13: design can be prepared now; overlap admitted (R10-START-COUNTER-EDGES, R11-OUTSIDE-HONEST-STARTS-RUNS, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING, R11-PRE-SHARED-FILES): owner 2026-11-13: design can be prepared now",
