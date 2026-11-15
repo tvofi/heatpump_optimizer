@@ -77,8 +77,8 @@ rewrite looks like a correction from the inside; if the honest description is
 `node tools/policy/rules_sync.mjs`; never edit it — `--check` refuses drift
 and an orphan `.mdc`.
 
-`AGENTS.md` is the entry point for a harness auto-loading that name (ZCode,
-Codex); it states no policy and binds the seat to this file.
+`AGENTS.md` binds a harness that auto-loads that name (ZCode, Codex) to this
+file.
 
 | rule | what it binds |
 |---|---|
@@ -97,8 +97,7 @@ Codex); it states no policy and binds the seat to this file.
 
 `.claude/skills/steward/SKILL.md` — read before acting on a CI failure or a
 review comment; only where this repository differs from a session's default, and
-nothing in it loosens a rule stated here. No `babysit/` counterpart: a session
-prefers `steward/`, so a second would bind nobody.
+nothing in it loosens a rule stated here.
 `.claude/workflows/web-fragments.md` — the MCP mapping for a seat with no `gh`
 binary, the one file allowed to name those commands.
 `.github/PULL_REQUEST_TEMPLATE.md` — the headings `checkPrBody` requires;
@@ -204,10 +203,12 @@ is recorded as `pending owner confirmation`, quoting the rule it would change;
 the seat neither acts on that half nor writes it as direction until the owner or
 the contract moves.
 
-## Root-cause remediation
+## What the repository may carry
 
-A qualifying defect owes its cause and the **process** that let the cause get
-that far, established in its own seat beside the fix and never inside it, by
-`defect-root-cause.md` and `root-cause.md`. The fixer answers a red check in the
-pull-request body; an unanswered one is a reviewer's note resolved at merge
-(card C5).
+Opinions are private data (tvofi, 2026-11-15). Nothing pushed states or implies
+an opinion of the owner, a contributor or an agent on anything but the code, the
+product and how they work: files, commits, refs, pull-request and issue text,
+comments, verdicts, rosters and prompts. A decision is described by what it
+does; an owner ruling is quoted only for what it decides. Findings of the
+security-and-privacy audit dimension go to the owner directly, never to an issue
+or anything else on origin.

@@ -316,17 +316,6 @@ divergence"). Re-read on change after every compaction
 
 ## Record, handover and identity
 
-- 2026-11-15: "The live repo should never contain any opinions (personal or
-  otherwise, from codeowner, contributors or their agents) on anything but code
-  and product and the function of the code and product. Opinions (both explicit
-  and implicit) are near as sensitive as personal identifiable data". Nothing
-  pushed to the repository states or implies an opinion of the owner, a
-  contributor or an agent on anything other than the code, the product and how
-  they work: files, commit messages, branch and ref names, pull-request and
-  issue bodies, comments, verdicts, roster briefs and carries, and dispatch
-  prompts. A decision is described by what it does, never by a personal reason
-  for it; an owner ruling is quoted only for what it decides about the code, the
-  product, or how the project builds them.
 - 2026-11-14: "The resume prompt is generated mechanically".
 - 2026-10-28: "sweep should also include the record beat"; "mechanically replan
   and generate the plan html". 2026-11-08: "I would like the public plan page to
