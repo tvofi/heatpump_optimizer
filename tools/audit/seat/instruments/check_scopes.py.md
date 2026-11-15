@@ -8,3 +8,7 @@
   over its `ledger.max_units` of `text_ledger.py` units, a D6 document or a
   D5 comment carrier (a suffix `text_ledger.D5_SUFFIXES` reads) neither
   measured nor named `static`, and a ledger dimension drawing no `classify`.
+  `--round N` adds decision 0018's start evaluation: an accepted card holds
+  the start only if its `gates_finders` is true; one that gates no finder and
+  is unmerged prints `PARALLEL <card>`. `--round N --open-cards` prints those
+  still open at `--ref` as JSON: P3's input (`architect-planner.md`).

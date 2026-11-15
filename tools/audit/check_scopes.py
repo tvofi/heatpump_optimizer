@@ -30,8 +30,11 @@ round on rc != 0.
 N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
 --ref, every term is read or NO-READ with its reason, every object file has a verdict with
 evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
-an accepted one merged at --ref. Each gap is refused by the path or id it names; audit-find.js
-passes its round. --self-test drives a complete record (passes) and one perturbation per rule.
+an accepted one merged at --ref unless the owner's ruling sets its `gates_finders` false: such a
+card unmerged is no gap, printed `PARALLEL <card>` since it builds beside the finders. Each gap is
+refused by the path or id it names; audit-find.js passes its round. --open-cards (with --round)
+prints those cards still open at --ref as JSON {round, ref, open_cards} and exits: run at P3's
+start, it is the architect's input (architect-planner.md). --self-test drives a complete record (passes) and one perturbation per rule.
 The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
 graded the same objects, a ruling on every decided card, an accepted card's commit after that review
 and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
@@ -292,14 +295,16 @@ def open_builders(tree, show):
     return {k for k, g in groups.items() if roster_lib.carry_receivable(g)}
 
 
-def evaluation_gaps(rnd, tree, show, merged, anc, changed):
+def evaluation_gaps(rnd, tree, show, merged, anc, changed, parallel=None):
     """Why round `rnd` may not start, one line per gap, [] when it may.
     `show(path, at=None)` is the file's text at the ref (or at commit `at`);
     `merged(sha)` says whether the ref contains that commit, `anc(a, b)` whether
     a is an ancestor of or equal to b, `changed(sha)` the paths it changed
     against its first parent. The terms and the object globs come from
     OBJECTIVE at the ref, so the record is checked against the definition it
-    was written under, and neither list is carried here."""
+    was written under, and neither list is carried here. An accepted card
+    whose `gates_finders` (the owner's ruling) is false and that is not merged
+    at the ref is no gap: its id is appended to `parallel`, when given."""
     spec = json.loads(show(OBJECTIVE))
     prev, path = records(rnd)
     gaps, terms, builders, groups = [], {}, [], open_builders(tree, show)
@@ -331,7 +336,7 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
     ev = json.loads(show(path))
     if ev.get("round") != rnd or ev.get("reads") != prev:
         gaps.append(f"{path} is not round {rnd}'s evaluation of {prev}")
-    seat, rev = (norm(ev.get(k, "")) for k in ("evaluator", "reviewer"))
+    seat, rev = (norm(ev[k]) if full(ev.get(k)) else "" for k in ("evaluator", "reviewer"))
     if not seat or not rev or seat == rev or "orchestrator" in seat or "orchestrator" in rev:
         gaps.append(f"{path} evaluator {seat!r} and reviewer {rev!r} must be two seats, neither the orchestrator")
     cards, rows = ev.get("cards", {}), ev.get("objects", {})
@@ -373,6 +378,13 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
             continue
         c = card.get("merged")
         want = {x for x in (card.get("object"), *(card.get("paths") or ())) if x}
+        gating = card.get("gates_finders")
+        if not isinstance(gating, bool):
+            gaps.append(f"{path} card {cid} is accepted and carries no boolean gates_finders (the owner's ruling on whether it gates the finders)")
+        elif not gating and not (c and merged(c)):
+            if parallel is not None:
+                parallel.append(cid)
+            continue
         if not (c and merged(c)):
             gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
         elif revsha and anc(c, revsha):
@@ -546,16 +558,20 @@ def evaluation_self_test(tree, show):
     good = {"round": 8, "reads": prev, "evaluator": "evaluator-r8", "reviewer": "plan-review-r8",
             "review": {"verdict": "approve", "sha": "rev"},
             "objects": {f: {"verdict": "keep", "evidence": "e"} for f in objs},
-            "cards": {"C1": {"decision": "accepted", "ruling": "R1", "merged": "abc", "object": ME},
+            "cards": {"C1": {"decision": "accepted", "ruling": "R1", "gates_finders": True, "merged": "abc", "object": ME},
                       "C2": {"decision": "rejected", "ruling": "R2", "unowned": "u", "threshold": "floor", "criterion": "D4"}}}
     good["objects"][objs[0]] = {"verdict": "change", "evidence": "e", "card": "C1"}
     # commits: old is an ancestor of the review rev, abc is after it
-    def run(ev=good, tm=terms, drop=(), sp=spec, revdoc=None, merged=lambda sha: sha in ("abc", "rev", "old")):
+    def run(ev=good, tm=terms, drop=(), sp=spec, revdoc=None, merged=lambda sha: sha in ("abc", "rev", "old"), parallel=None):
         files = {OBJECTIVE: json.dumps(sp), prev: json.dumps({"terms": tm}), path: json.dumps(ev), roster: json.dumps(groups)}
         sh = lambda f, at=None: (revdoc or json.dumps({"objects": ev.get("objects")})) if at else files[f]
         return evaluation_gaps(8, (tree | set(files)) - set(drop), sh, merged,
                                lambda a, b: (a, b) in (("old", "rev"), ("rev", "rev")),
-                               lambda c: {"abc": {ME}, "old": {ME}}.get(c, set()))
+                               lambda c: {"abc": {ME}, "old": {ME}}.get(c, set()), parallel)
+    def beside(ev=good, **kw):
+        """(gaps, ids of the cards building beside the finders) of one run."""
+        out = []
+        return run(ev, parallel=out, **kw), out
     def edit(fn, base=good):
         c = copy.deepcopy(base)
         fn(c)
@@ -585,6 +601,27 @@ def evaluation_self_test(tree, show):
         "a change with no card is refused": only(run(edit(lambda c: c["objects"][objs[0]].pop("card"))), objs[0] + " names no card"),
         "an undecided card is refused": only(run(edit(lambda c: c["cards"]["C2"].pop("decision"))), "card C2 carries no owner decision"),
         "an accepted card not merged is refused": only(run(merged=lambda sha: sha != "abc"), "card C1 is accepted and not merged"),
+        # Finder gating (tvofi 2026-11-15): only a card the owner's ruling makes
+        # gate the finders (`gates_finders` true) holds the round's start; one
+        # that does not, unmerged, builds beside the finders, never a gap.
+        "a complete record lists nothing beside the finders": beside() == ([], []),
+        "a gating accepted card not merged is refused and not listed beside":
+            (lambda r: only(r[0], "card C1 is accepted and not merged") and r[1] == [])(beside(merged=lambda sha: sha != "abc")),
+        "a non-gating accepted card not merged passes and is listed beside":
+            beside(card("C1", gates_finders=False), merged=lambda sha: sha != "abc") == ([], ["C1"]),
+        "a non-gating unmerged card's unset value is no gap, it builds with the card":
+            beside(card("C1", gates_finders=False, threshold="floor"), merged=lambda sha: sha != "abc") == ([], ["C1"]),
+        "a non-gating merged card is checked as any accepted card":
+            only(run(card("C1", gates_finders=False, merged="old")), "is not after the review") and beside(card("C1", gates_finders=False)) == ([], []),
+        "an accepted card with no boolean gates_finders is refused, in every shape":
+            all(only(run(ev), "card C1 is accepted and carries no boolean gates_finders")
+                for ev in [edit(lambda c: c["cards"]["C1"].pop("gates_finders"))] + [card("C1", gates_finders=v) for v in (None, "yes", "no", 0, 1, "false")]),
+        "an accepted card with no gates_finders is refused even unmerged, and never listed beside":
+            (lambda r: len(r[0]) == 2 and r[1] == [])(beside(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), merged=lambda sha: sha != "abc")),
+        "a rejected or deferred card needs no gates_finders": "gates_finders" not in good["cards"]["C2"] and run(card("C2", decision="deferred")) == [],
+        "a null, absent or blank reviewer or evaluator is refused":
+            all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [])]
+                + [edit(lambda c: c.pop(k)) for k in ("reviewer", "evaluator")]),
         "B1 a disguised orchestrator or the same seat respelled is refused":
             all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
                 ("evaluator", "orchestrator-r10"), ("evaluator", "the orchestrator"), ("reviewer", "Orchestrator"), ("reviewer", "Evaluator R8"))),
@@ -708,6 +745,8 @@ def main():
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
     ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
     ap.add_argument("--population", action="store_true", help="print the install population's levels read at --ref and exit")
+    ap.add_argument("--open-cards", action="store_true",
+                    help="with --round: print, as JSON, the accepted non-gating cards not merged at --ref (P3's input) and exit")
     a = ap.parse_args()
     show = lambda f, at=None: subprocess.check_output(["git", "-C", a.repo, "show", f"{at or a.ref}:{f}"], text=True)
     anc = lambda x, y: subprocess.run(["git", "-C", a.repo, "merge-base", "--is-ancestor", str(x), y],
@@ -716,6 +755,15 @@ def main():
     changed = lambda c: set(subprocess.run(["git", "-C", a.repo, "diff", "--name-only", f"{c}^1", str(c)],
                                            capture_output=True, text=True).stdout.split())
     tree = set(subprocess.check_output(["git", "-C", a.repo, "ls-tree", "-r", "--name-only", a.ref], text=True).split())
+    if a.open_cards:
+        if a.round is None or records(a.round)[1] not in tree:
+            print(f"--open-cards needs --round <N> and {records(a.round or 0)[1]} tracked at {a.ref}", file=sys.stderr)
+            sys.exit(2)
+        out = []
+        evaluation_gaps(a.round, tree, show, merged, anc, changed, out)
+        print(json.dumps({"round": a.round, "ref": subprocess.check_output(["git", "-C", a.repo, "rev-parse", a.ref], text=True).strip(),
+                          "open_cards": sorted(out)}))
+        sys.exit(0)
     if a.population:
         lines, ok = population(json.loads(show(OBJECTIVE)).get("population", []), tree, show)
         print("\n".join(lines))
@@ -905,7 +953,10 @@ def main():
         run_r1 = default_run(scopes, "--round", "1")
         cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
             and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
-        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}")
+        run_oc = default_run(scopes, "--round", "1", "--open-cards")
+        cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
+            and "round1/EVALUATION.json tracked" in run_oc.stderr and "open_cards" not in run_oc.stdout)
+        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}; --open-cards rc={run_oc.returncode}")
         pop = population_self_test()
         cov.update({"population: " + k: v for k, v in pop.items()})
         print(f"   population arms: {sum(pop.values())}/{len(pop)} held")
@@ -915,10 +966,13 @@ def main():
         sys.exit(0 if good else 1)
     ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units)
     if a.round is not None:
-        gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed)
-        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s)")
+        beside = []
+        gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed, beside)
+        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s), {len(beside)} card(s) beside the finders")
         for g in gaps:
             print(f"   {g}")
+        for cid in sorted(beside):
+            print(f"   PARALLEL {cid} accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)")
         ok = ok and not gaps
     sys.exit(0 if ok else 1)
 

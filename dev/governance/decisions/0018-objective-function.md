@@ -412,7 +412,9 @@ measured at this record's landing.
   card. The orchestrator writes two
   things and no others: a closing round's objective record, once, which the
   evaluator re-reads term by term; and, into a card of the evaluation, the
-  owner's ruling in his words with where he gave it (`ruling`). The approving
+  owner's ruling in his words with where he gave it (`ruling`) and, on an
+  accepted card, whether that ruling makes it gate the finders
+  (`gates_finders`, true or false). The approving
   review that pull request owes is what makes the transcription his.
   The evaluator writes the rest of the evaluation and never a ruling. After
   this record lands, adding a term or an object class removes one.
@@ -464,8 +466,9 @@ builds yields a card.
   the `sha` it was given at), `objects` (file to `verdict`, `evidence`, and
   `card` unless `keep`) and `cards` (id to the proposal; the `object` or
   `paths` it changes; `threshold`, `criterion` or `unowned` where it answers
-  one; `decision` `accepted|rejected|deferred` with `ruling`; and `merged`,
-  the commit of an accepted one).
+  one; `decision` `accepted|rejected|deferred` with `ruling`, and
+  `gates_finders` on an accepted one; and `merged`, the commit of an
+  accepted one).
 - **Refuses**: `check_scopes.py --round N`, which `audit-find.js` runs at the
   baseline, exits 1 on a missing record; a term neither read nor NO-READ; a
   read with no finite number or with an enumerator that is no tracked
@@ -477,9 +480,13 @@ builds yields a card.
   reviewer that are one name under case and punctuation, or either the
   orchestrator; a review that is not `approve` at a commit holding these
   same verdicts; an unset owner value or an `unowned` item with no card; a
-  card with no decision or no `ruling`; or an accepted card whose `merged`
-  commit is not on the baseline, predates the review, or does not change the
-  card's file, or whose `threshold` or `criterion` is still unset.
+  card with no decision or no `ruling`; an accepted card with no boolean
+  `gates_finders`; or an accepted card whose `merged` commit is not on the
+  baseline, predates the review, or does not change the card's file, or
+  whose `threshold` or `criterion` is still unset. An accepted card that
+  gates no finder and is not merged is no gap: it builds beside the finders
+  (printed `PARALLEL`), and one still open when P3 starts is the architect's
+  input (`--open-cards`).
 - **Cannot read**: whether the evaluator worked the round it grades or was
   dispatched by the orchestrator it grades. A name is all the record holds,
   and one that hides the role (`orch-r10`) passes. Nor whether a tracked
