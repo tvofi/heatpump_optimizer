@@ -1,0 +1,9 @@
+cmd: python3 -I tools/audit/seat/seat_gen.py --self-test --no-mutants
+== body_spec
+mutant_run: refusing: mutant ps_start_zero: old text occurs 0 times in tools/audit/seat/seat_gen.py, not exactly once
+rc=2
+== my_spec
+SURVIVED NULL
+KILLED ps_start_zero_lstart
+KILLED lock_start_const
+rc=0

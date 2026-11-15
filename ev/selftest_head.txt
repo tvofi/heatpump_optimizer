@@ -1,0 +1,8 @@
+ok   mutant gen_ge killed by: check null: the current generation passes
+ok   mutant gen_le killed by: check: a lower generation is SUPERSEDED, exit 1
+ok   mutant lock_no_command_match killed by: lock null: a reused pid naming another command is taken over
+ok   mutant lock_own_pid killed by: lock null: the session's own pid is not a duplicate
+ok   mutant lstart_strip killed by: parse_lstart: a padded macOS line is its epoch
+ok   mutant lstart_utc killed by: parse_lstart: a procps line is its epoch
+ok   mutant session_ppid killed by: session_pid: the first ancestor running the session binary, never the shell
+seat_gen self-test: 33 checks, 0 failed

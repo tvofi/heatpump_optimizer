@@ -1,0 +1,5 @@
+[
+{"name": "ps_start_zero", "file": "tools/audit/seat/seat_gen.py", "old": "    r = subprocess.run([\"ps\", \"-p\", str(pid), \"-o\", \"etimes=\"], capture_output=True, text=True)\n", "new": "    return 0\n"},
+{"name": "lock_start_now", "file": "tools/audit/seat/seat_gen.py", "old": "tmp.write_text(f\"{mine} {start(mine, now)}\\n\")", "new": "tmp.write_text(f\"{mine} {int(now)}\\n\")"},
+{"name": "gen_ge", "file": "tools/audit/seat/seat_gen.py", "old": "    if held is not None and held > gen:", "new": "    if held is not None and held >= gen:"}
+]

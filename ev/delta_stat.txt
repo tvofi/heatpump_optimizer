@@ -1,0 +1,3 @@
+ tools/audit/seat/seat_gen.py          | 29 ++++++++++++++++-------
+ tools/audit/seat/seat_gen_selftest.py | 44 +++++++++++++++++++++++++++--------
+ 2 files changed, 54 insertions(+), 19 deletions(-)
