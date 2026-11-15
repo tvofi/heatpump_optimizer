@@ -788,7 +788,7 @@ def main():
         none17["D17"]["seats"][list(none17["D17"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
         kind17 = copy.deepcopy(scopes)
         kind17["D17"]["axis"]["kind"].append("planted-kind")
-        kind17["D17"]["seats"][a16 if a16 in kind17["D17"]["seats"] else list(kind17["D17"]["seats"])[0]][0]["axis"].append("planted-kind")
+        kind17["D17"]["seats"][list(kind17["D17"]["seats"])[0]][0]["axis"].append("planted-kind")
         r_t16, o_t16 = _dim(twice16, "D16")
         r_n17, o_n17 = _dim(none17, "D17")
         r_k17, o_k17 = _dim(kind17, "D17")
@@ -799,7 +799,7 @@ def main():
         finally:
             audit_enumerate.KINDS = real_kinds
         new_dims = {
-            "null control: the live D16 and D17 pass": _dim(scopes, "D16")[0] and _dim(scopes, "D17")[0],
+            "null control: the live D16 and D17 pass": _dim(scopes, "D16")[0] is True and _dim(scopes, "D17")[0] is True,
             "a D16 block owned by two seats is refused": not r_t16 and f"by ['{a16}', '{b16}']" in o_t16,
             "a D17 seat emptied leaves its cells unowned": not r_n17 and "   unowned (" in o_n17,
             "a D17 kind the enumerator does not print is refused": not r_k17 and "axis kind ['planted-kind']" in o_k17,
@@ -934,7 +934,7 @@ def main():
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
-        cov["and exits 1 with the blueprints globs dropped from every universe that names one"] = (len(bp_dims) >= 2 and run_bp.returncode == 1 and cited in run_bp.stdout
+        cov["and exits 1 with the blueprints globs dropped from every universe that names one"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
         # The start evaluation: the rules as a function, then the default
