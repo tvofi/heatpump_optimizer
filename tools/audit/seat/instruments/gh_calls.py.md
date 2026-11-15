@@ -2,7 +2,7 @@
 
 - `gh_calls.py` — the reader of the `shims/seat-gh` log. `--top [--since <utc>]
   [--limit N] [--log PATH]` ranks parent commands and `gh` endpoints by count
-  over the log and its `.1`; a malformed `--since` is refused (rc 2). `--coverage
+  over the host-wide log the shim writes (`$HOME/.local/state/hpo/gh-calls.log`) and a distinct `$HPO_STATE_DIR/gh-calls.log` an older shim left, each with its `.1`, ending in a `sources:` table of each log's count when more than one holds calls; a malformed `--since` is refused (rc 2). `--coverage
   [PID ...]` reads `/proc/<pid>/environ` (Linux) of each pid, or of every known
   daemon process, and says whether the first `gh` on its `PATH` is the shim.
   `--self-test` drives the shim against a stub gh: the byte, stderr and status

@@ -2242,7 +2242,7 @@ EOS
   }
   LSTATE=$(mktemp -d)
   got=$(lreds 0)
-  st "$got" "0::520" "an all-green 520-commit branch reads each commit once: 520 calls, no second total_count pass (the merge base made 1040)"
+  st "$got" "0::520" "an all-green 520-commit branch reads each commit once: 520 calls, the total_count read with it (the merge base made 520 and then one more for the total)"
   got=$(lreds 3600); got2=$(lreds 3600)
   st "$got2" "0::0" "a second run in the hour reads nothing: every commit's runs were final and are kept"
   oldest=$(printf '%s\n' $long_shas | sed -n 100p)
@@ -2261,7 +2261,7 @@ EOS
   : >"$LCALLS"
   GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
     PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR="$(mktemp -d)" ancestry_reds origin/fix >/dev/null
-  st "$(wc -l <"$LCALLS" | tr -d ' ')" 2 "null control: a 2-commit all-green branch makes 2 calls (the merge base made 4), never more than before"
+  st "$(wc -l <"$LCALLS" | tr -d ' ')" 2 "null control: a 2-commit all-green branch makes 2 calls (the merge base made 3), never more than before"
   rm -rf "$LONG" "$LFIX" "$LONG.calls" "$LSTATE"
   # The alert listing (R4-1): `alert_reds` runs tools/pr/local_alerts.py, replaced here
   # by a script printing one alert line (the plant) or none (the null). An alert is a
