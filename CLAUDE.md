@@ -155,6 +155,10 @@ individually, because a range reads as complete while covering a fraction:
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
 
+What a finder grades against, where `objective.json`'s `owner_criteria` names it:
+`D4-criteria.md`, `D5-criteria.md`, `D9-criteria.md` and `D10-criteria.md`,
+under `dimensions/criteria/`.
+
 ### Instruments
 
 `tools/audit/seat/` is the instrument inventory, listed in its
@@ -206,8 +210,5 @@ the contract moves.
 
 A qualifying defect owes its cause and the **process** that let the cause get
 that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, when recording that no
-countermeasure is worth building is a legitimate result, and the demonstration a
-check-shaped countermeasure owes are in `defect-root-cause.md` and
-`root-cause.md`. The fixer answers a red check in the pull-request body; an
-unanswered one is a reviewer's note resolved at merge (card C5).
+fixer answers a red check in the pull-request body; an unanswered one is a
+reviewer's note resolved at merge (card C5).

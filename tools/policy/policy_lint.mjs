@@ -260,6 +260,11 @@ const POLICY_GLOBS = [
   /^dev\/governance\/rules\/[a-z0-9-]+\.md$/,
   /^dev\/governance\/roles\/[A-Za-z0-9_.-]+\.md$/,
   /^dev\/governance\/dimensions\/[A-Za-z0-9_.-]+\.md$/,
+  // The owner's acceptance criteria per dimension, named by
+  // dev/audit/config/objective.json's owner_criteria: what a finder grades
+  // against, so measured like the brief beside it (R11-PRE-OWNER-CRITERIA,
+  // under mandate 6893738184).
+  /^dev\/governance\/dimensions\/criteria\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
   /^dev\/audit\/README\.md$/,
