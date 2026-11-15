@@ -1,0 +1,29 @@
+## pattern: says which they could not
+base README: 1
+head README: 0
+head tree elsewhere (dev/ .claude/ CLAUDE.md tools/audit/seat):
+## pattern: 300 k for L and XL
+base README: 1
+head README: 0
+head tree elsewhere (dev/ .claude/ CLAUDE.md tools/audit/seat):
+## pattern: designers,
+base README: 1
+head README: 0
+head tree elsewhere (dev/ .claude/ CLAUDE.md tools/audit/seat):
+## pattern: A seat re-running a retired one repairs it first
+base README: 1
+head README: 0
+head tree elsewhere (dev/ .claude/ CLAUDE.md tools/audit/seat):
+## rotation sizes stated at head in roles/
+e3df1f1ca69586ecb91b465cba874ece98a9689b:dev/governance/roles/fix-review.md:8:Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
+e3df1f1ca69586ecb91b465cba874ece98a9689b:dev/governance/roles/fixer.md:10:fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
+e3df1f1ca69586ecb91b465cba874ece98a9689b:dev/governance/roles/standing.md:39:Recycle (tvofi, 2026-10-31) once your context passes about 150k tokens or you
+## 6f64a60a24 subject
+6f64a60a24 R10-ROUND-PLAYBOOK-FINAL: restore the sole-copy measurements and constraints the cap payments cut
+The review (verdict/3510) blocked 11a6c579 as evidence-cut. Restored in
+dev/audit/README.md: the round-2 judge's load1 ambient floor (1.86, best of
+ten 1.55), h2_cycle.py's structural thread_factor 1.27-1.30, the c398fc84
+recording SHA, web-phase0.js and triage-quiet-judges.json at d5d8c4a with the
+read-before-re-deriving constraint, and the verifier's 'say which you could
+not separate'. Restored in orchestrator.md section 9: 'twenty had no
+disposition while the check reported clean'.
