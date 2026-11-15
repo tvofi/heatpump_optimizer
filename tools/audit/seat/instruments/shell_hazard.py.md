@@ -17,3 +17,14 @@
   Existing lines are never judged. Limit: a count assigned to a variable and
   compared later is not seen, and the `pr_args.sh` GNU-only `sed -i` sites are not
   covered (macOS-only checks run on local seats; the paid macOS lane is refused).
+
+## The stub host-independence rule
+
+A shell self-test stub of a host program (`wc`) first on `PATH` asserts on what the
+stub prints, so the stub's output may not depend on the host's formatting: BSD `wc`
+already pads its count to width 8, and a stub that prefixed padding to the host's
+output doubled it on macOS and not on Linux CI (`R10-RCA-PREPR-DARWIN-SELFTEST`).
+A stub normalises the host's output (`| tr -d ' '`) and then shapes it. A stub that
+calls the host program by absolute path is out of reach of a `PATH`-level emulation of
+another host; bind-mount over `/usr/bin/wc` to emulate BSD. `wc-stub` and `wc-compare`
+refuse the two shapes on added lines.
