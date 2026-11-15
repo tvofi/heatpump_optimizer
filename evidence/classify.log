@@ -1,0 +1,10 @@
+21:03:11 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:04:28 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:05:45 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:07:02 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:08:19 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:09:37 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:10:54 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:12:11 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:13:28 rc=3 WAIT 03c8a591847756bb3ef47cc11693638602e026ba pending: gate red: none
+21:14:46 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 132905064799 is cancelled, which reads no step: an introduced red cannot be ruled out (fail closed)
