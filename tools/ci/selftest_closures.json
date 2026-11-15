@@ -3822,6 +3822,7 @@
     "dev/programme/rosters",
     "dev/programme/round10",
     "dev/programme/round10/rechain",
+    "dev/programme/round10/state",
     "dev/programme/round9",
     "dev/programme/round9/state",
     "dev/programme/triage",
@@ -3939,6 +3940,7 @@
     "tests/mutation_ledger/killed_by/thermal_model.py",
     "tests/mutation_ledger/killed_by/topology.py",
     "tests/mutation_ledger/killed_by/wear.py",
+    "tests/mutation_ledger/killed_by/whatif.py",
     "tests/mutation_ledger/killed_by/wood_fuel.py",
     "tests/mutation_ledger/survivor_triage",
     "tests/mutation_ledger/survivor_triage/accuracy.py",
@@ -3975,6 +3977,7 @@
     "tests/mutation_ledger/survivor_triage/sysid.py",
     "tests/mutation_ledger/survivor_triage/tariff.py",
     "tests/mutation_ledger/survivor_triage/thermal_model.py",
+    "tests/mutation_ledger/survivor_triage/whatif.py",
     "tests/mutation_ledger/survivor_triage/wood_fuel.py",
     "tests/pwlane",
     "tests/replay",
@@ -5167,25 +5170,6 @@
    ],
    "dirs": [
     "tests",
-    "tools/audit/seat"
-   ],
-   "index": false,
-   "objects": false,
-   "git": []
-  },
-  "seat-gen": {
-   "run_sha": "bdcf3a8fb40688838be502bc2e91f3d6250b8420289aa407f59c96000492e77d",
-   "files": [
-    "tools/audit/seat/seat_gen.py",
-    "tools/audit/seat/seat_gen_selftest.py"
-   ],
-   "probes": [
-    ".",
-    "tools",
-    "tools/audit",
-    "tools/audit/seat"
-   ],
-   "dirs": [
     "tools/audit/seat"
    ],
    "index": false,
@@ -6420,6 +6404,7 @@
     "dev/programme/rosters/wave-r1-groups.json",
     "dev/programme/round10/.gitattributes",
     "dev/programme/round10/rechain/.gitattributes",
+    "dev/programme/round10/state/.gitattributes",
     "dev/programme/round9/.gitattributes",
     "dev/programme/round9/state/.gitattributes",
     "dev/programme/triage/.gitattributes",
@@ -7414,6 +7399,7 @@
     "dev/programme/rosters",
     "dev/programme/round10",
     "dev/programme/round10/rechain",
+    "dev/programme/round10/state",
     "dev/programme/round9",
     "dev/programme/round9/state",
     "dev/programme/triage",
@@ -7531,6 +7517,7 @@
     "tests/mutation_ledger/killed_by/thermal_model.py",
     "tests/mutation_ledger/killed_by/topology.py",
     "tests/mutation_ledger/killed_by/wear.py",
+    "tests/mutation_ledger/killed_by/whatif.py",
     "tests/mutation_ledger/killed_by/wood_fuel.py",
     "tests/mutation_ledger/survivor_triage",
     "tests/mutation_ledger/survivor_triage/accuracy.py",
@@ -7567,6 +7554,7 @@
     "tests/mutation_ledger/survivor_triage/sysid.py",
     "tests/mutation_ledger/survivor_triage/tariff.py",
     "tests/mutation_ledger/survivor_triage/thermal_model.py",
+    "tests/mutation_ledger/survivor_triage/whatif.py",
     "tests/mutation_ledger/survivor_triage/wood_fuel.py",
     "tests/pwlane",
     "tests/replay",
@@ -8273,6 +8261,25 @@
    "files": [
     "tools/audit/seat/scorecard.py",
     "tools/audit/seat/scorecard_selftest.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
+  "seat-gen": {
+   "run_sha": "bdcf3a8fb40688838be502bc2e91f3d6250b8420289aa407f59c96000492e77d",
+   "files": [
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py"
    ],
    "probes": [
     ".",
@@ -9064,6 +9071,7 @@
     "tests/mutation_ledger/killed_by/thermal_model.py/.gitattributes",
     "tests/mutation_ledger/killed_by/topology.py/.gitattributes",
     "tests/mutation_ledger/killed_by/wear.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/whatif.py/.gitattributes",
     "tests/mutation_ledger/killed_by/wood_fuel.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/.gitattributes",
     "tests/mutation_ledger/survivor_triage/accuracy.py/.gitattributes",
@@ -9100,6 +9108,7 @@
     "tests/mutation_ledger/survivor_triage/sysid.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/tariff.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/thermal_model.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/whatif.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/wood_fuel.py/.gitattributes",
     "tests/pwlane/.gitattributes",
     "tests/replay/.gitattributes",
