@@ -27086,7 +27086,7 @@
    ],
    "resume": {
     "stage": "not-started",
-    "branch": "fix/r11-pre-ack-completion",
+    "branch": "handoff/r11-pre-ack-completion",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
