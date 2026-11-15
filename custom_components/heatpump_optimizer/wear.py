@@ -119,16 +119,15 @@ class RiseHold:
 
     #: The class of the last edge heard.
     last: bool | None = None
-    #: (the rise's time, whether it rose from a stop), while one is held.
-    held: tuple[datetime, bool] | None = None
-    #: Refreshes that read the held rise running.
-    seen: int = 0
+    #: (the rise's time, whether it rose from a stop, the refreshes that read
+    #: it running), while one is held.
+    held: tuple[datetime, bool, int] | None = None
 
     def admit(self, since: datetime, running: bool | None) -> list[tuple[datetime, bool | None]]:
         """Hear one confirmed edge; the edges to fold now, in order."""
         held, rose_from, self.held, self.last = self.held, self.last, None, running
         if running is True:
-            self.held, self.seen = (since, rose_from is False), 0
+            self.held = (since, rose_from is False, 0)
             return []
         if held is not None and held[1] and running is False:  # a short run
             return [(held[0], True), (since, running)]
@@ -138,11 +137,12 @@ class RiseHold:
         """One refresh, ``running`` its read of the settled class; the held rise, once released."""
         if self.held is None or not running:
             return []
-        self.seen += 1
-        if self.seen < HOLD_REFRESHES:
+        since, from_stop, seen = self.held
+        if seen + 1 < HOLD_REFRESHES:
+            self.held = (since, from_stop, seen + 1)
             return []
-        held, self.held = self.held, None
-        return [(held[0], True)]
+        self.held = None
+        return [(since, True)]
 
 
 @dataclass
