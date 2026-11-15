@@ -2858,7 +2858,8 @@
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/roster_lib.py",
-    "tools/policy/budget_raise_gate.py"
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/outside.py"
    ],
    "probes": [
     ".",
@@ -2870,6 +2871,7 @@
     "tools",
     "tools/audit",
     "tools/policy",
+    "tools/pr",
     "tools/pr/app_approve.sh"
    ],
    "dirs": [
@@ -6816,7 +6818,8 @@
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/roster_lib.py",
-    "tools/policy/budget_raise_gate.py"
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/outside.py"
    ],
    "probes": [
     ".",
@@ -6832,7 +6835,8 @@
     "tools/audit/.git",
     "tools/audit/HEAD",
     "tools/audit/seat",
-    "tools/policy"
+    "tools/policy",
+    "tools/pr"
    ],
    "dirs": [
     "tests",
