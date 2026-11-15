@@ -1,4 +1,7 @@
-# The by-hand read decision 0018 section 3 allows for a dimension's escapes ("escapes by hand"): round 10 roster groups that fix an objective bug in a released product version, reported in the window by someone who is no finder seat. Attribution is the evaluator's, from each group's brief; the reviewer attacks it. `owner` is the dimension whose perfect result (0018 section 1) the bug violates, `none` where no brief owns it. `window` is `in` (reported after the round-9 closeout stamp, on a released version), `day0` (dated 2026-10-14, the stamp's own day; the hour is in no tracked record) or `unreleased` (caused and caught inside the window before any release carried it: an injected bug, no escape). `cause_pr` is a merged pull request the group's brief names as the cause, `-` where it names none. Columns are tab-separated.
+# The by-hand read decision 0018 section 3 allows for a dimension's escapes ("escapes by hand"), over the roster at the pinned commit cbd6d9185166 (`dev/programme/rosters/wave-r10-groups.json`).
+# Matching rule, enforced by escapes.py: a roster group is a candidate when it lists a file under custom_components/ or blueprints/ and (a) its `source` is outside or user, or (b) its `kind` is owner, bug, hotfix or owner-step, or (c) its id holds HOTFIX or OUTSIDE, or (d) its brief matches escapes.py's REPORT pattern (an owner or outside report, request or order, a live defect, the owner's install or export, a defect another group's seat found, a latent defect). Every candidate has exactly one row and every row is a candidate.
+# `window`: `in` = an objective bug on a released version, reported in round 10's window by someone who is no finder seat (an escape); `day0` = dated 2026-10-14, the closeout stamp's own day, the hour in no tracked record (counted in no verdict); `unreleased` = caused and caught inside the window before a release carried it (injected, no escape); `out` = no escape, the reason in `input_not_driven`.
+# `owner` is the dimension whose perfect result (0018 section 1) the bug violates, `none` where no brief owns it, `-` on an `out` row. `cause_pr` is a merged pull request the group's brief names as the cause. Attribution is the evaluator's, from each group's brief; the reviewer attacks it. Columns are tab-separated.
 group	pr	reporter	window	owner	step	input_not_driven	cause_pr
 R10-HOTFIX-AWAY-LIVE	3015	owner	in	D1	D1.M1	a stored away override across restore then resolve, switch then refresh, set-point reload then refresh	-
 R10-HOTFIX-AWAY-PRESENCE	3052	owner	in	D1	D1.M3	a presence entity changing between two scheduled updates	-
@@ -16,7 +19,7 @@ R10-OUTSIDE-DIAG-REDACT-LOCATION	3447	outside	in	D10	D10.M1	the diagnostics rule
 R10-OUTSIDE-LEARNER-ROBUSTNESS	3468	outside	in	D12	D12.M3	a counter-metered pump whose spans hold hot-water charges, and a short boost	-
 R10-HOTFIX-AWAY-SETBACK	3013	owner	in	none	-	away with weekend or holiday comfort fields set: a feature against its documented effect	-
 R10-HOTFIX-BOOST-FLOW-CEILING	3562	owner	in	none	-	a boost over a step the plan books at partial power: the write against the plan's target	-
-R10-HOTFIX-FLOW-SETPOINT-STUCK	3561	owner	in	none	-	the first arbiter pass after an upgrade from a persisted idle record: a hold with no release	3404
+R10-HOTFIX-FLOW-SETPOINT-STUCK	3561	owner	in	D1	D1.M2	the previous release's persisted arbiter record driven to the first write: a hold on a write with no release (also `operation`'s end state, a refusal with a release that needs no person)	3404
 R10-OUTSIDE-DISINFECTION-SETPOINT	3452	outside	in	none	-	the hot-water write on a disinfection step: the guard records attempts and no completion	-
 R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE	3512	outside	in	none	-	a re-solve landing minutes after the supply switched: no minimum run or pause	-
 R10-OUTSIDE-SUPPLY-STALE-STEP	3478	outside	in	none	-	a cycle whose write lands in the step after the one its action was cut for	-
@@ -30,3 +33,49 @@ R10-UX-HEALTH	2976	owner	day0	D4	D4.M1	the Health tab on a wide screen and under
 R10-UX-SETUP	-	owner	day0	D4	D4.M3	the Setup tab against the product's own design tokens	-
 R10-ADVISOR	-	owner	day0	D2	D2.M3	the advisor's plus and minus one degree deltas for monotonicity	-
 R10-HOTFIX-REFERENCE-BASIS	3599	programme	unreleased	D2	D2.M3	the savings identity across a merge that changes the booked reference	3587
+R10-SAVINGS-NEGATIVE	-	owner	in	D2	D2.M3	the savings identity on a ledger month upgraded mid-month from the previous release	2411
+R10-SETPOINT-BOOST	-	owner	in	none	-	a heating step at minimum power on a tank at or below 20 C: the write equals the do-not-heat value	-
+R10-SETPOINT-POWER	-	owner	in	D0	D0.M4	an install whose pump power is set through a flow set-point behind a buffer and a mixing valve: the plan stays at the minimum level despite a price spread	-
+R10-DEMAND-OVERBOOK	2712	owner	in	D2	D2.M5	the plan's booked space energy against a metered month: the learned heat loss against metered delivery	-
+R10-BUFFER-STORE	-	fixer	in	D0	D0.M4	a configured manual-valve buffer: the published plan equals the plan with no buffer	-
+R10-COP-GATE-E	3371	fixer	in	D2	D2.M1	a switch-back interval after a hot-water run: the unsensed slab advanced by that run's power as space heat	-
+R10-MIN-POWER-FLOOR	3308	outside	in	D8	D8.M2	a non-modulating pump with a minimum power: a merged slot's average-power attribute below the minimum (the brief leaves open whether the solver or the attribute is at fault)	-
+R10-FLY-REPLAY-MASK	3219	programme	in	D15	D15.M1	a real download whose replay half is empty because one entity id escapes the mask	-
+R10-RATIO-ANCHOR	-	-	out	-	-	a finder seat's finding (D12-s2-71), no report	-
+R10-LIVESTATE	-	-	out	-	-	finder seats' findings (D1-s1-02, D7-s1-51), no report	-
+R10-HEAT-METER	-	-	out	-	-	an owner request for a feature (a delivered-heat input), no defect	-
+R10-DIAG-REPLAY	-	-	out	-	-	an owner request for a feature (the replay in the diagnostics download), no defect	-
+R10-MARKETPLACE	-	-	out	-	-	an owner request (packaging for the marketplace), no defect	-
+R10-FACTORY-RESET	-	-	out	-	-	an owner request for a feature, no defect	-
+R10-WOOD-NOTIFY	-	-	out	-	-	an owner request for a feature, no defect	-
+R10-I18N-DE	-	-	out	-	-	an owner request (a German translation), no defect	-
+R10-CARD-COLLAPSE	-	-	out	-	-	an owner request for a feature, no defect	-
+R10-LIVE-BUNDLE-READS	-	-	out	-	-	an owner step (reads of a live bundle), no defect stated	-
+R10-SAV-COMFORT	-	-	out	-	-	the same report as R10-SAV-BASELINE's row (its residue)	-
+R10-SAV-ACTUATION	-	-	out	-	-	the same report as R10-SAV-BASELINE's row (a carry of its residue)	-
+R10-ADVISOR-RESIDUE	-	-	out	-	-	the same report as R10-ADVISOR's row (its residue)	-
+R10-ADVISOR-WHATIF	-	-	out	-	-	the same report as R10-ADVISOR's row (its residue)	-
+R10-SAV-WOOD-MEASURED	-	-	out	-	-	the same report as R10-HOTFIX-SAV-ESTIMATE's row; the group was absorbed	-
+R10-OUTSIDE-LEARNER-ROBUSTNESS-P2	-	-	out	-	-	the same report as R10-OUTSIDE-LEARNER-ROBUSTNESS's row (part 2)	-
+R10-OUTSIDE-LEARNER-ROBUSTNESS-P3	-	-	out	-	-	the same report as R10-OUTSIDE-LEARNER-ROBUSTNESS's row (part 3)	-
+R10-DISINFECTION-STEP-NOTICE	-	-	out	-	-	the same report as R10-OUTSIDE-DISINFECTION-SETPOINT's row (its notice half)	-
+R10-COMBI-TANK	-	-	out	-	-	an outside request for a feature (a combi tank), no defect	-
+R10-COMBI-TANK-PR-B	-	-	out	-	-	an outside request for a feature (part B), no defect	-
+R10-GENERIC-HEAT-CURVE	-	-	out	-	-	an outside request for a feature, built on the owner's ruling	-
+R10-GENERIC-HEAT-CURVE-PERSISTENT	-	-	out	-	-	an outside request for a feature, built on the owner's ruling	-
+R10-WATER-SETPOINT-LIFT	-	-	out	-	-	an outside request for a feature (two expert options), no defect	-
+R10-DUTY-SWITCH-RESTART-LEARNING	-	-	out	-	-	an outside design note; part A builds a learner, no defect	-
+R10-DUTY-SWITCH-RESTART-LEARNING-PR-B	-	-	out	-	-	an outside design note; a feature part, no defect	-
+R10-DUTY-SWITCH-PLANNER-PRICE	-	-	out	-	-	an outside design note; a feature part, no defect	-
+R10-OUTSIDE-DHW-START-HYSTERESIS	-	-	out	-	-	the roster records a gap closed by a new optional input, not a defect; a lead for `generality` (a pump with a start hysteresis is a shape no fixture covered)	-
+R10-OUTSIDE-CLIMATE-NATIVE-TEMP	-	-	out	-	-	a deprecation on the current core, no failure on a released version yet	-
+R10-START-COUNTER-EDGES	-	-	out	-	-	in progress at the close: no fix carries its failing-test-first proof yet	-
+R11-OUTSIDE-HONEST-STARTS-RUNS	-	-	out	-	-	accepted for round 11 and in progress at the close	-
+R10-DRAW-MAP-EVIDENCE	-	-	out	-	-	an owner order of 2026-11-14, in progress at the close: no fix carries its proof yet	-
+R10-DOCS-STRINGS-RESIDUE	-	-	out	-	-	a text-residue pass the owner asked for, not a report; a lead for D6	-
+R10-HOTFIX-STRESS-MEM-PEAK	-	-	out	-	-	a red stress probe on a pull request's own run, no report on a release	-
+R10-HOTFIX-STRESS-MEM-PEAK-2	-	-	out	-	-	a red test probe on main with no code moved, no report on a release	-
+R10-HOTFIX-MAIN-FAST-1109	-	-	out	-	-	a red main from a merge skew, caught by the gate before a release: `product_green`'s, not an escape	-
+R10-HOTFIX-COMBI-CENSUS-MAIN-RED	-	-	out	-	-	a red main after pull request 3398, caught by the gate before a release: `product_green`'s, not an escape	-
+R10-DEAD-RATE-LIMIT	-	-	out	-	-	a dead limit (hygiene), found by the seat whose own change caused it	-
+R10-COP-PARTLOAD	-	-	out	-	-	a model extension measured first, no defect stated	-

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Roster groups whose brief records a red main, and the job each hotfix among them names.
 
-Usage: python3 dev/audit/rounds/round11/evaluation/main_red_groups.py --repo . --roster <REF:PATH>
+Usage: python3 dev/audit/rounds/round11/evaluation/main_red_groups.py --repo . --roster <SHA:PATH>
 Prints one line per group (id, kind, stage, the brief's sentence about the red), then the count, the hotfix groups among
-them and how many of those name `instrument-self-tests`. The cause is the brief's own word: a lead for a gate's reds, never
+them and how many of those name the `instrument-self-tests` job (`instrument[- ]self-tests` in the brief). The cause is the brief's own word: a lead for a gate's reds, never
 a cause record.
 """
 import argparse, json, re, subprocess
@@ -22,7 +22,7 @@ def main():
             hits.append(g["group"])
             print(g["group"], g.get("kind"), (g.get("resume") or {}).get("stage"), "|", m.group(0) if m else b[:240])
     hot = [h for h in hits if "HOTFIX" in h]
-    ist = [g["group"] for g in groups if g["group"] in hot and re.search(r"instrument-self-tests|self-test", str(g.get("brief")), re.I)]
+    ist = [g["group"] for g in groups if g["group"] in hot and re.search(r"instrument[- ]self-tests", str(g.get("brief")), re.I)]
     print(f"GROUPS {len(hits)} HOTFIX {len(hot)} NAMING_SELF_TESTS {len(ist)}")
 
 

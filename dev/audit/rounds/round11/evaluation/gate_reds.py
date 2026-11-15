@@ -9,8 +9,8 @@ total_count beside the rows fetched so the 1000-result cap shows, then, for each
 failed or timed out and its `gate` job. It appends, so an interrupted fetch resumes. `report` prints: runs in the window by
 conclusion; the `gate` share (runs whose `gate` job succeeded over concluded runs, a successful run counted as a succeeded
 gate, a failed run with no job listing fetched counted `unread`), with the cancelled count beside it; failed jobs per job
-name and per called workflow (the job-name prefix before ` / `), and the failed jobs of the runs whose `gate` did not
-succeed. A run's cause is not printed: no red carries one.
+name and per called workflow (the job-name prefix before ` / `), the failed jobs of the runs whose `gate` did not
+succeed, the job that failed alone on such a run, and those runs per called workflow. A run's cause is not printed: no red carries one.
 """
 import argparse, collections, datetime, json, subprocess, sys, time
 from pathlib import Path
@@ -67,6 +67,7 @@ def report(a):
     print(f"window {a.window}: runs {len(runs)} first {first} " + " ".join(f"{k}={v}" for k, v in sorted(by.items(), key=str)))
     ok = by.get("success", 0); bad = unread = nongate = 0
     names, wf, gate_names = collections.Counter(), collections.Counter(), collections.Counter()
+    sole, wf_gate, wf_sole = collections.Counter(), collections.Counter(), collections.Counter()
     runs_wf = collections.Counter()
     for i, r in runs.items():
         if r["conclusion"] != "failure":
@@ -81,6 +82,13 @@ def report(a):
             for j in jobs[i]:
                 if j["name"] != "gate":
                     gate_names[j["name"]] += 1
+            failed = sorted({j["name"] for j in jobs[i] if j["name"] != "gate"})
+            wfs = {n.split(" / ")[0] if " / " in n else "(ci.yml's own job)" for n in failed}
+            sole[failed[0] if len(failed) == 1 else "none" if not failed else "several"] += 1
+            for w in wfs:
+                wf_gate[w] += 1
+            if len(wfs) == 1:
+                wf_sole[next(iter(wfs))] += 1
         seen = set()
         for j in jobs[i]:
             if j["name"] == "gate":
@@ -102,6 +110,12 @@ def report(a):
     print(f"failed jobs on the {bad} run(s) whose gate job did not succeed:")
     for n, c in gate_names.most_common(25):
         print(f"  gate-red {c}\t{n}")
+    print("the only failed job on a gate-red run:")
+    for n, c in sole.most_common():
+        print(f"  sole {c}\t{n}")
+    print("gate-red runs per called workflow (runs with a failed job of it; runs where only its jobs failed):")
+    for w, c in wf_gate.most_common():
+        print(f"  wf-gate {w}\t{c}\t{wf_sole[w]}")
 
 
 def main():
