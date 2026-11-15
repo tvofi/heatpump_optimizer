@@ -67,10 +67,7 @@ class Refuse(Exception):
 
 
 def pkg_files(repo):
-    fs = sorted((repo / PKG).glob("*.py"))
-    if not fs:
-        raise Refuse(f"no {PKG}/*.py under {repo}")
-    return fs
+    return sorted((repo / PKG).glob("*.py"))
 
 
 def rel(repo, p):
@@ -78,9 +75,7 @@ def rel(repo, p):
 
 
 def parse(p):
-    if not p.is_file():
-        raise Refuse(f"missing source {p}")
-    return ast.parse(p.read_text())
+    return ast.parse(p.read_text())  # a missing source is an OSError, which run() refuses
 
 
 def scoped(tree):
@@ -107,7 +102,6 @@ def const_assign(tree, name):
             return n.value
         if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name) and n.target.id == name and n.value:
             return n.value
-    return None
 
 
 def d16(repo, cells=False, **_):
@@ -123,39 +117,25 @@ def d16(repo, cells=False, **_):
     if cells:
         v = const_assign(parse(repo / PKG / "const.py"), "PUMP_DUTY_MODES")
         modes = [e.value for e in getattr(v, "elts", []) if isinstance(e, ast.Constant)]
-        if not modes:
-            raise Refuse("PUMP_DUTY_MODES not found in const.py")
         out = [f"{s} | duty={m} | {c}" for s in out for m in modes for c in CONDITIONS]
     return out
 
 
 def d17(repo, **_):
     out, base = [], repo / PKG
-    sy = base / "services.yaml"
-    if not sy.is_file():
-        raise Refuse(f"missing source {sy}")
-    out += [f"service {m}" for m in re.findall(r"^([a-z_]+):", sy.read_text(), re.M)]
-    sj = base / "strings.json"
-    if not sj.is_file():
-        raise Refuse(f"missing source {sj}")
-    s = json.loads(sj.read_text())
+    out += [f"service {m}" for m in re.findall(r"^([a-z_]+):", (base / "services.yaml").read_text(), re.M)]
+    s = json.loads((base / "strings.json").read_text())
     for sec, kstep, kfield in (("config", "config-step", "config-field"), ("options", "options-step", "option")):
         for step, body in s.get(sec, {}).get("step", {}).items():
             out.append(f"{kstep} {step}")
             out += [f"{kfield} {step}.{k}" for k in (body.get("data") or {})]
     ent = s.get("entity", {})
     out += [f"entity {pl}.{k}" for pl in USER_PLATFORMS for k in ent.get(pl, {})]
-    r = subprocess.run(["git", "ls-files", "blueprints"], cwd=repo, capture_output=True, text=True)
-    bp = r.stdout.split() if r.returncode == 0 else []
-    if not bp and (repo / "blueprints").is_dir():
-        bp = [rel(repo, Path(d) / f) for d, _, fs in os.walk(repo / "blueprints") for f in fs]
-    return out + [f"blueprint {b}" for b in bp]
+    return out + [f"blueprint {b}" for b in sorted(tracked(repo)) if b.startswith("blueprints/")]
 
 
 def d14(repo, status=None, **_):
     p = repo / "dev/audit/config/bugclasses.json"
-    if not p.is_file():
-        raise Refuse(f"missing source {p}")
     return [f"{v['status']} {v.get('kind', '?')} {k}" for k, v in json.loads(p.read_text()).items()
             if isinstance(v, dict) and "status" in v and status in (None, v["status"])]
 
@@ -164,10 +144,8 @@ def d0grid(repo, plane=None, **_):
     tree = parse(repo / "tests/profiles.py")
     lits = {}
     for fn in ("prices", "weather"):
-        f = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == fn), None)
-        if f is None:
-            raise Refuse(f"no function {fn} in tests/profiles.py")
-        lits[fn] = sorted({c.value for n in ast.walk(f) if isinstance(n, ast.Compare) and isinstance(n.left, ast.Name)
+        lits[fn] = sorted({c.value for f in ast.walk(tree) if isinstance(f, ast.FunctionDef) and f.name == fn
+                           for n in ast.walk(f) if isinstance(n, ast.Compare) and isinstance(n.left, ast.Name)
                            and n.left.id == "profile" for c in n.comparators if isinstance(c, ast.Constant)})
     pw = [f"{a}/{b}" for a in lits["prices"] for b in lits["weather"]]
     if plane == "price-weather":
@@ -196,9 +174,6 @@ def imports(path, base):
 def d0modules(repo, **_):
     base = repo / PKG
     seen, todo = set(), ["optimizer", "dhw_planner"]
-    for m in todo:
-        if not (base / f"{m}.py").is_file():
-            raise Refuse(f"missing source {base / (m + '.py')}")
     while todo:
         m = todo.pop()
         if m not in seen:
@@ -337,8 +312,6 @@ def population_axes(repo):
     """{axis: [levels]} as `check_scopes.py --population` reads them, by its own reader, and the
     two totals it prints; a binary axis key is its own axis with levels present and absent."""
     obj = repo / OBJECTIVE
-    if not obj.is_file():
-        raise Refuse(f"missing source {obj}")
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import check_scopes
     lines, ok = check_scopes.population(json.loads(obj.read_text()).get("population", []), tracked(repo), lambda f: (repo / f).read_text())
@@ -370,8 +343,6 @@ def d2(repo, cells=False, **_):
     grid cell. A grid axis is a population axis by name, `golden` (tests/golden.py SCENARIOS),
     or an inline {"axis", "levels"} the register states because no source holds it."""
     p = repo / IDENTITIES
-    if not p.is_file():
-        raise Refuse(f"missing source {p}")
     rows, out, pop = json.loads(p.read_text()).get("identities", []), [], None
     for r in rows:
         if not (re.fullmatch(r"M\d+", str(r.get("step"))) and r.get("id") and r.get("identity") and r.get("grid")):
@@ -402,11 +373,7 @@ def d8(repo, **_):
     """Entity by state by language: every name, state, attribute and attribute state strings.json
     declares under `entity`, once per translation file (a file lacking the key is still a cell)."""
     sj, tr = repo / PKG / "strings.json", repo / PKG / "translations"
-    if not sj.is_file():
-        raise Refuse(f"missing source {sj}")
-    langs = sorted(f.stem for f in tr.glob("*.json")) if tr.is_dir() else []
-    if not langs:
-        raise Refuse(f"no translation file under {tr}")
+    langs = sorted(f.stem for f in tr.glob("*.json"))  # no translation file is no cell, which run() refuses
     facets = []
     for pl, ents in json.loads(sj.read_text()).get("entity", {}).items():
         for k, body in ents.items():
@@ -498,8 +465,6 @@ def d12(repo, pairs=False, ledger=None, **_):
     rows = {}
     if ledger:
         lp = Path(ledger)
-        if not lp.is_file():
-            raise Refuse(f"missing ledger {lp}")
         for i, l in enumerate(lp.read_text().splitlines(), 1):
             if not l.strip() or l.startswith("#"):
                 continue
@@ -516,8 +481,6 @@ def d15(repo, **_):
     """The installs that sent a bundle, one line per bundle: its date, the round that read it and
     the steps run on it. A round's examined count is its own lines; the universe is every line."""
     p = repo / BUNDLES
-    if not p.is_file():
-        raise Refuse(f"missing source {p}")
     out = []
     for b in json.loads(p.read_text()).get("bundles", []):
         if not (b.get("install") and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(b.get("date"))) and isinstance(b.get("round"), int)
@@ -537,7 +500,10 @@ UNIVERSES = {"d16-writes": d16, "d17-features": d17, "d14-classes": d14, "d0-gri
 
 
 def run(name, repo, **kw):
-    lines = UNIVERSES[name](Path(repo), **kw)
+    try:
+        lines = UNIVERSES[name](Path(repo), **kw)
+    except OSError as e:
+        raise Refuse(f"missing or unreadable source: {e}")
     seen = collections.Counter()
     out = []
     for l in lines:
@@ -724,6 +690,16 @@ def self_test():
                                                      f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v2->3"])
         arm("d9-solves lines", [l.split(" <- ")[0] for l in run("d9-solves", t)], ["path go", "solve _multi_start_minimize"])
         quiet = contextlib.redirect_stderr(io.StringIO())
+        cells = run("d0-grid", t)
+        arm("d0-grid a cell names D0.md step 4's axis levels", [sorted({c.split("/")[k] for c in cells}) for k in (2, 3, 4, 5)],
+            [sorted(TOPOLOGY), sorted(DHW), sorted(PLANT), ["24h", "48h", "6h"]])
+        arm("d0-grid the two plants round 10's escapes name are levels", {"manual-valve-buffer", "flow-setpoint-behind-valve"} <= set(PLANT), True)
+        arm("d3-sites with no ledger source and no --ast is refused", count("d3-sites", t), "Refuse")
+        rm(CO)(t)
+        arm("d0-modules with no coordinator.py is refused", count("d0-modules", t), "Refuse")
+        shutil.rmtree(t)
+        t.mkdir()
+        plant(t)
         arm("d9-solves a caller outside the solver's module is printed and not climbed", [l for l in run("d9-solves", t) if "cycle <-" in l], [])
         with quiet:
             arm("d12 a cell with no ledger row is not run", {l.split("\t", 1)[1] for l in run("d12-cells", t)}, {"not run"})
@@ -761,6 +737,28 @@ def self_test():
         arm("d1-solve-state a solve-thread entry that moved is refused, not read short", count("d1-solve-state", t), "Refuse")
         edit_json(IDENTITIES, lambda d: d["identities"][0].update(grid=["no_such_axis"]))(t)
         arm("d2 a grid axis with no level is refused", count("d2-identities", t), "Refuse")
+        edit_json(IDENTITIES, lambda d: d["identities"][0].update(grid=["mode"], id=""))(t)
+        arm("d2 an identity with no id is refused", count("d2-identities", t), "Refuse")
+        edit_json(BUNDLES, lambda d: d["bundles"][0].update(evidence="tests/profiles.py", date="yesterday"))(t)
+        arm("d15 a bundle with no date is refused", count("d15-installs", t), "Refuse")
+        for total in ("LEVELS", "PAIRS"):
+            real = population_axes
+            try:
+                globals()["population_axes"] = lambda repo: (real(repo)[0], {**real(repo)[1], total: 0})
+                arm(f"d12 a cell count that disagrees with the population's {total} is refused", count("d12-cells", t, pairs=True), "Refuse")
+            finally:
+                globals()["population_axes"] = real
+        edit_json(OBJECTIVE, lambda d: d["population"][0].update(symbol="NO_SUCH_TUPLE"))(t)
+        arm("d12 an unreadable population axis is refused", count("d12-cells", t), "Refuse")
+        g = Path(tempfile.mkdtemp())
+        try:
+            plant(g)
+            (g / "blueprints/automation/untracked.yaml").write_text("")
+            git = lambda *a: subprocess.run(["git", "-C", str(g), "-c", "user.name=t", "-c", "user.email=t@t", *a], capture_output=True, check=True)
+            git("init", "-q"), git("add", "-A", ":!blueprints/automation/untracked.yaml"), git("commit", "-q", "-m", "plant")
+            arm("in a git checkout an untracked file is in no universe", [l for l in run("d17-features", g) if "blueprint" in l], ["blueprint blueprints/automation/b.yaml"])
+        finally:
+            shutil.rmtree(g, ignore_errors=True)
     finally:
         shutil.rmtree(t, ignore_errors=True)
     if fails:
