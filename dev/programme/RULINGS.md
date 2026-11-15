@@ -250,7 +250,9 @@ divergence"). Re-read on change after every compaction
 - 2026-10-04: "in general, blocked review verdicts go back to the original
   fixer."
 - 2026-11-11: "the reviewer has to be fable under the reviewer >= fixer model
-  rule" (a reviewer's model is at least the strongest author's).
+  rule" (a reviewer's model is at least the strongest author's; orchestrator's
+  reading since 2026-11-15: a Fable reviewer only where the reviewed work is
+  itself of that class).
 - 2026-11-07: "Remember that a significant new feature should have a design and
   design reviews, especially outside ones. Post on the outside PR that the
   feature is being planned with the design choices made, then post again with a
@@ -276,11 +278,10 @@ divergence"). Re-read on change after every compaction
 
 - 2026-09-17: "the orchestrator should route to sonnet and haiku models where
   reasonable"; 2026-09-24: "only start your opus 5.5 fixers with medium effort".
-- 2026-11-11: "Replace L and XL architectural groups that are now routed to opus
-  to fable 5.2, use cheaper seats for easier work"; "S and M groups may go to
-  Opus when no oracle exists or if the groups requires judgement"; 2026-11-12:
-  "Be a bit more economical with the fable seats, L and XL seats only"; "Budget
-  is fine for important work".
+- 2026-11-15: "From now on, reserve fable for the most complex, architectural
+  work, both for fixers, finders and reviewers". 2026-11-11: "S and M groups may
+  go to Opus when no oracle exists or if the groups requires judgement";
+  2026-11-12: "Budget is fine for important work".
 - 2026-10-25: "the triage seat should be opus, since it requires judgement";
   2026-11-11: "Have the triage seat as fable when triaging new product
   features".
@@ -382,6 +383,10 @@ divergence"). Re-read on change after every compaction
 - Only policy and budget-raise pull requests need his approval (2026-09-24):
   dropped, `CLAUDE.md`'s Identity section states who approves what (card "Keep
   the naming rule only").
+- Fable for L and XL architectural groups (2026-11-11: "Replace L and XL
+  architectural groups that are now routed to opus to fable 5.2, use cheaper
+  seats for easier work") and "L and XL seats only" (2026-11-12): superseded by
+  "reserve fable for the most complex, architectural work" (2026-11-15).
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
