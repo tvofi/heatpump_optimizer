@@ -26536,9 +26536,7 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [
-    "R10-CATALOG-PR"
-   ],
+   "after": [],
    "files": [
     "dev/governance/config/machinery_budgets.json",
     "tools/audit/machinery_ratchet.py",
