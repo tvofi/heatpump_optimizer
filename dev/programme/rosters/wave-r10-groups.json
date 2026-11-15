@@ -28139,7 +28139,7 @@
    "source": "programme",
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-hotfix-policy-docs-timeout",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
