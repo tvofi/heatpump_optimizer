@@ -57,6 +57,27 @@ print("OURS")
 P
 }
 
+# outside.py runs from origin/main's blob or not at all, as the train's does
+# (`Train.outside_is_mains`): `outside_is_mains outside` compares outside.py alone,
+# before whose head is read; `outside_is_mains contract` every file of the train's
+# OUTSIDE_MAIN_COPIES, before the contract. Prints `REFUSE: <why>` and returns 1.
+outside_is_mains() { # <outside|contract>
+  local rel want have rels
+  if [ "$1" = outside ]; then rels=tools/pr/outside.py
+  else rels=$(python3 -I - "$PWD/tools/audit/seat/merge_train.py" <<'P'
+import importlib.util, sys
+s = importlib.util.spec_from_file_location("merge_train", sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+print("\n".join(m.OUTSIDE_MAIN_COPIES))
+P
+) || { echo "REFUSE: the train's OUTSIDE_MAIN_COPIES could not be read"; return 1; }; fi
+  git fetch -q origin main 2>/dev/null || { echo "REFUSE: origin/main could not be fetched for the outside contract"; return 1; }
+  for rel in $rels; do
+    want=$(git rev-parse -q --verify "origin/main:$rel" 2>/dev/null); have=$(git hash-object -- "$rel" 2>/dev/null)
+    [[ "$want" =~ ^[0-9a-f]{40}$ ]] && [ "$want" = "$have" ] || {
+      echo "REFUSE: $rel in this checkout is not origin/main's copy (main ${want:0:12}, here ${have:0:12}): the outside contract is main's or it is not run; run from a checkout at main"; return 1; }
+  done
+}
+
 # outside.py's whole contract for the cross-repository <pr>, at origin/main:
 # prints `ADMITTED: <why>` (rc 0) only when it admits <pr> at <sha>, else
 # `CONTRACT REFUSES ...` or `REFUSE: <why>` (rc 1). No second contract here.
@@ -123,9 +144,11 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1> <sha>
   if [ "$2" = owner ] && ! [[ "$3" =~ ^[0-9]{6,}$ ]]; then
     echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1
   fi
+  HEAD_WHY=$(outside_is_mains outside) || { echo "OUTSIDE $HEAD_WHY"; return 1; }
   if ! HEAD_WHY=$(head_is_ours $R "$1"); then
     # Only app mode merges a fork head, and only where the contract admits this head.
     { [ "$2" = app ] && [[ "$HEAD_WHY" == CROSS-REPOSITORY:* ]]; } || { echo "OUTSIDE $HEAD_WHY"; return 1; }
+    CONTRACT_WHY=$(outside_is_mains contract) || { echo "OUTSIDE $CONTRACT_WHY"; return 1; }
     CONTRACT_WHY=$(outside_contract $R "$1" "$5") || { echo "OUTSIDE $CONTRACT_WHY"; return 1; }
   fi
   [ "$2" = owner ] || return 0
@@ -172,6 +195,19 @@ case "$*" in
 esac
 G
   chmod +x "$T/gh"
+  # A fake git answering the main-copy comparison alone: origin/main's blob of every path is f*40,
+  # and this checkout's copy of $FAKE_STALE is another; every other git call is the real git's.
+  export REAL_GIT; REAL_GIT=$(command -v git)
+  cat > "$T/git" <<'G'
+#!/bin/bash
+case "$*" in
+  "fetch -q origin main") echo "git $*" >> "${FAKE_LOG:-/dev/null}"; exit 0 ;;
+  "rev-parse -q --verify origin/main:"*) printf 'f%.0s' {1..40}; echo; exit 0 ;;
+  "hash-object -- "*) [ "$3" = "${FAKE_STALE:-}" ] && { printf '0%.0s' {1..40}; echo; } || { printf 'f%.0s' {1..40}; echo; }; exit 0 ;;
+esac
+exec "$REAL_GIT" "$@"
+G
+  chmod +x "$T/git"
   # outside.py is part 1's (decision 0017), and the real one is asked: its `pull_facts` reads the pulls object.
   printf '{"number": 7, "head": {"ref": "fix/x", "repo": {"full_name": "%s"}}}' "$R" > "$T/ours.json"
   printf '{"number": 7, "head": {"ref": "fix/x", "repo": {"full_name": "contributor/heatpump_optimizer"}}}' > "$T/theirs.json"
@@ -241,6 +277,19 @@ O
   if grep -q 'pulls/7' "$T/log" && ! grep -q '^check ' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having read the pull request and asked no contract"
   else fail=$((fail + 1)); echo "  FAIL ... having read the pull request and asked no contract ($(tr '\n' ';' < "$T/log"))"; fi
   FAKE_PULL= ck "app mode on a pull request that cannot be read refuses: an unread head is never ours" 1 "OUTSIDE REFUSE: #7 could not be read" false "" -- 7 app "" 0
+  # outside.py runs from origin/main's blob or not at all, as the train's (`Train.outside_is_mains`,
+  # whose OUTSIDE_MAIN_COPIES this script reads): before whose-head is read, and the whole list
+  # before the contract.
+  for m in app owner; do
+    FAKE_STALE=tools/pr/outside.py ck "$m mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours" 1 "OUTSIDE REFUSE: tools/pr/outside.py in this checkout is not origin/main's copy" false "$T/live.json" -- 7 $m 4100000001 0
+    if ! grep -q 'pulls/7' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having read no pull request"
+    else fail=$((fail + 1)); echo "  FAIL ... having read no pull request ($(tr '\n' ';' < "$T/log"))"; fi
+  done
+  OUTSIDE=$T/outside_stub.py FAKE_PULL=$T/theirs.json FAKE_CHECK=$S7 FAKE_STALE=tools/policy/policy_lint.mjs \
+    ck "app mode on a fork head refuses when a file the contract reads is not origin/main's, though the contract would admit" 1 "OUTSIDE REFUSE: tools/policy/policy_lint.mjs in this checkout is not origin/main's copy" false "" -- 7 app "" 0
+  if ! grep -q '^check ' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having asked no contract"
+  else fail=$((fail + 1)); echo "  FAIL ... having asked no contract ($(tr '\n' ';' < "$T/log"))"; fi
+  FAKE_STALE=tools/policy/policy_lint.mjs ck "null control: a head of ours is read whatever the contract's other files say (only outside.py is compared before the read)" 0 "" false "" -- 7 app "" 0
   # The stub stands in for exactly the real module's calls: each name this script makes, bound with
   # the arguments it passes, on the real outside.py (a renamed entry point fails here, not on a merge).
   if python3 -I - "$REAL_OUTSIDE" <<'P'
@@ -321,7 +370,7 @@ sys.exit(rc)
 PM
   printf 'import sys\nprint(sys.argv[2] if len(sys.argv) > 2 else "")\n' \
     > "$mm/tools/audit/seat/ref_privacy.py"
-  printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"
+  printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"; cp "$T/git" "$T/bin2/git"
   cat > "$T/bin2/gh" <<'G'
 #!/bin/bash
 echo "$*" >> "$FAKE_LOG2"
