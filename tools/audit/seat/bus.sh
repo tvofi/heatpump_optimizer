@@ -724,6 +724,9 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are 
 # --reviewed-head makes a later round's packet its delta and the verdict there (fix-review.md 12).
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
+  if [ -n "${HPO_SEAT_GEN:-}" ]; then  # a superseded seat's lingering job dispatches nothing
+    local gmsg; gmsg=$(python3 -I "$ROOT/tools/audit/seat/seat_gen.py" check-env) || { printf '%s\n' "$gmsg" >&2; return 1; }
+  fi
   local force="" fixing=""
   local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" why rh="" pend cheap name carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
   shift 3 2>/dev/null || shift $#
@@ -1367,6 +1370,15 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(run dispatch 7 "$h1" cmsg_Q3 --nonce "$N1b"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12" && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ]
   expect "dispatch --nonce refuses a nonce minted for another pull request, and records nothing" $?
+  # seat_gen: a superseded generation dispatches nothing; the current one (null control) records as before.
+  mkdir -p "$W/gen" && printf '2 1\n' > "$W/gen/roster.gen"
+  nb=$(wc -l < "$W/state/dispatched")
+  out=$(HPO_STATE_DIR=$W/gen HPO_SEAT_GEN=roster=1 run dispatch 7 "$h1" cmsg_G1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "SUPERSEDED roster gen=1 held=2" && [ "$(wc -l < "$W/state/dispatched")" = "$nb" ]
+  expect "dispatch under a superseded HPO_SEAT_GEN refuses and records nothing" $?
+  out=$(HPO_STATE_DIR=$W/gen HPO_SEAT_GEN=roster=2 run dispatch 7 "$h1" cmsg_G2); rc=$?
+  [ $rc = 0 ] && [ "$(wc -l < "$W/state/dispatched")" = "$((nb + 1))" ]
+  expect "dispatch under the current HPO_SEAT_GEN records as before (null control)" $?
   # Card C4: once verdict/<pr> holds a merge verdict at the head, a dispatch there is refused. The
   # arms below that need a fresh dispatch for such a pull request set the verdict ref aside for it.
   dhid() { local t; t=$(tip "verdict/$1" 2>/dev/null) && git -C "$W/seat" push -q origin ":refs/heads/verdict/$1"

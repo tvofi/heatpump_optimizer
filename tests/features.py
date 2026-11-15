@@ -47367,7 +47367,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 2.0, "count": 1} and _SB_NOW == 2 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 3.0, "count": 1} and _SB_NOW == 3 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -47385,6 +47385,31 @@ R.check(
     and _sb_disk_row["savings_pct"] is None and _sb_disk_row["baseline_sek"] is not None
     and _sb_disk_led.months["2026-02"]["meta"][_SB_META] == {"sum": 1.0, "count": 1},
     repr((_sb_disk_row, _sb_disk_led.months["2026-02"]["meta"])),
+)
+# A stamp 2.0 is what v7.1.17 wrote, before pull request 3587 held a valve-limited
+# two-zone reference at the valve top: a month it opened mixes two references
+# once it books on under this code. A stamp 3.0, this release's, keeps its saving.
+_sb_by_stamp = {}
+for _sb_stamp in (2.0, 3.0):
+    _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
+    _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
+    _sb_s_led = _SavLedger.from_dict(_sb_s)
+    _sb_s_led.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 4, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+    _sb_by_stamp[_sb_stamp] = (_sb_s_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0], _sb_s_led.months["2026-02"]["meta"][_SB_META])
+_sb_v2_row, _sb_v2_meta = _sb_by_stamp[2.0]
+R.check(
+    "a month stamped 2, booked before the valve-top reference, states no saving after the change",
+    _sb_v2_row["old_basis"] is True and _sb_v2_row["savings_sek"] is None
+    and _sb_v2_row["savings_pct"] is None and _sb_v2_row["baseline_sek"] is not None
+    and _sb_v2_row["actual_sek"] is not None and _sb_v2_meta == {"sum": 2.0, "count": 1},
+    repr(_sb_by_stamp[2.0]),
+)
+_sb_v3_row, _sb_v3_meta = _sb_by_stamp[3.0]
+R.check(
+    "a month stamped 3, the reference in force, keeps stating its saving as it books on",
+    _sb_v3_row["old_basis"] is False and _sb_v3_row["savings_sek"] is not None
+    and _sb_v3_row["savings_pct"] is not None and _sb_v3_meta == {"sum": 3.0, "count": 1},
+    repr(_sb_by_stamp[3.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
