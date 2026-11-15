@@ -298,6 +298,20 @@
     },
     {
       "step": "M5",
+      "id": "draw-range-censored",
+      "identity": "a draw range learned from censored samples does not narrow below the draw it could not observe",
+      "grid": [
+        {
+          "axis": "samples",
+          "levels": [
+            "uncensored",
+            "censored_at_minimum_power"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
       "id": "booked-against-metered",
       "identity": "the plan's booked space energy against a metered month's delivery",
       "grid": [
