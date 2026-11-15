@@ -1,0 +1,20 @@
+NOTE stale tree: 5723ce192e589a344de0ddb3b50929b19e90fec7 lacks origin/main dc46b1222facc717bea6add2d18a582b35577581; roster read at origin/main
+NOTE body item a2aac34c: R10-DRAW-MAP-EVIDENCE
+NOTE body item 09c5aa75: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item 5b2b2810: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item ade1b168: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item 870278d1: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item 43a94f51: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item 28d8e538: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item bb796039: R11-INTAKE-R10-RESIDUE
+NOTE body item fe86c735: R11-OUTSIDE-HONEST-STARTS-RUNS
+NOTE body item f2abf2d0: R11-INTAKE-R10-RESIDUE
+NOTE body item e97e01d8: R11-INTAKE-R10-RESIDUE
+NOTE body item 1e3849ec: R11-INTAKE-R10-RESIDUE
+NOTE body item 40807f25: R11-INTAKE-R10-RESIDUE
+NOTE body item cf9d2161: R11-INTAKE-R10-RESIDUE
+NOTE body item b4659e0c: R10-COP-LEARNER-DRAW-FLOOR
+NOTE body item 6a279364: dismissed:the lane measured every site and round 3 repaired its two survivors
+NOTE body item b184d7b8: R11-INTAKE-R10-RESIDUE
+NOTE body item 837668dc: R11-INTAKE-R10-RESIDUE
+CARRY-AUDIT: 18 finding item(s): 18 routed, 0 unrouted, 0 bad destination(s)

@@ -1,0 +1,7 @@
+MUTANT R2 replay row.reference -> live curve
+  ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+  FAIL a released interval is judged against the curve of the cycle it was read on: one read on a space cycle folds when a blended cycle releases it, and one read on a blended cycle trains nothing when a space cycle releases it  [space then blend ((0, 1, 'awaiting_draw_evidence'), (0, 0, 'blended_duty')) / blend then space ((0, 1, 'awaiting_draw_evidence'), (1, 0, 'duty_floor'))]
+1 of 37 FEATURES BLOCK FAILED
+ALL 34 FEATURES BLOCK PASSED
+ALL 78 FEATURES BLOCK PASSED
+driver rc=1

@@ -1,0 +1,4 @@
+  record   red-history           14 commit(s) between origin/main and this head, every failure conclusion across them: tests / mutation, tests / mutation-autofix, tests / nightly-status
+
+PR-BODY: 0 error(s) in /root/rev/body.md
+rc=0
