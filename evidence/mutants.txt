@@ -1,0 +1,6 @@
+MUTANT M1-pred:   FAIL a step that outlives the bound at the head is UNMEASURED, not a red ci_predict self-test: 1 failed 
+MUTANT M2-rc124:   FAIL a step that outlives the bound at the head is UNMEASURED, not a red ci_predict self-test: 1 failed 
+MUTANT M3-env-ignored:   FAIL a step that outlives the bound at the head is UNMEASURED, not a red ci_predict self-test: 1 failed 
+MUTANT M4-no-note:   FAIL a step that outlives the bound at the head is UNMEASURED, not a red ci_predict self-test: 1 failed 
+MUTANT M5-nonpos: ci_predict self-test: 0 failed 
+MUTANT M6-valueerr:   FAIL a summary line the head stops printing is predicted red, in a's step and in c's, whose tool names a.sh ci_predict self-test: 1 failed 
