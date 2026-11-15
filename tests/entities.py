@@ -6033,6 +6033,66 @@ R.check(
     "just TotalCostSensor",
 )
 
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi store the pump's hot-water
+# mode also buys the space heat drawn from the store (the flux exchange), so
+# the three hot-water figures and the climate attribute carrying the first
+# say which split they show, through ``entity.dhw_split_attributes`` reading
+# the model's own ``combi_tank_active``. Static documentation, unrecorded like
+# ``split_method``. The null: the same store with combi off states nothing,
+# and a space figure on the combi store states nothing either.
+from heatpump_optimizer.thermal_model import ThermalParameters as _c10_TP  # noqa: E402
+
+
+def _c10_attrs(combi: bool) -> dict[str, object]:
+    params = _c10_TP(
+        dhw_combi_tank_enabled=combi, buffer_tank_volume=504.0,
+        mixing_valve_mode="smart_write", dhw_enabled=True,
+        dhw_tank_volume=200.0, combi_potable_volume_l=40.0,
+    )
+    coord = FakeCoordinator(DATA, _thermal_params=params,
+                            _month_totals={"dhw": (41.5, 62.25), "space": (120.0, 180.0)})
+    return {
+        "precondition": params.combi_tank_active,
+        **{
+            # Home Assistant's Entity answers None where a class defines no
+            # attributes; tests/hastub's has no such default, hence getattr.
+            cls.__name__: getattr(cls(coord, ENTRY), "extra_state_attributes", None)
+            for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                        sensor.DHWCostSensor, sensor.SpaceEnergySensor,
+                        _climate_platform.HeatPumpOptimizerClimate)
+        },
+    }
+
+
+_c10_on, _c10_off = _c10_attrs(True), _c10_attrs(False)
+# getattr, so a tree without the sentence reads red here rather than raising.
+_c10_split = getattr(_entity_base, "COMBI_DHW_SPLIT", None)
+_c10_dhw = ("DHWHeatingCostSensor", "DHWEnergySensor", "DHWCostSensor",
+            "HeatPumpOptimizerClimate")
+R.check(
+    "on a combi store each hot-water figure says it is the pump's hot-water "
+    "mode, space heat drawn from the store included (Carry 10)",
+    _c10_on["precondition"]
+    and isinstance(_c10_split, str)
+    and all((_c10_on[n] or {}).get("dhw_split") == _c10_split for n in _c10_dhw)
+    and "space heat drawn from the store" in _c10_split
+    and "dhw_split" not in _c10_on["SpaceEnergySensor"],
+    repr({n: (_c10_on[n] or {}).get("dhw_split") for n in _c10_dhw}),
+)
+R.check(
+    "and off a combi store none states it (Carry 10 null)",
+    not _c10_off["precondition"]
+    and _c10_off["DHWHeatingCostSensor"] is None
+    and not any("dhw_split" in (_c10_off[n] or {}) for n in _c10_dhw),
+    repr({n: _c10_off[n] for n in ("DHWHeatingCostSensor",)}),
+)
+R.check(
+    "the split statement is shown but never recorded (Carry 10, #1462's rule)",
+    all("dhw_split" in getattr(cls, "_unrecorded_attributes", frozenset())
+        for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                    sensor.DHWCostSensor, _climate_platform.HeatPumpOptimizerClimate)),
+)
+
 # --- R9-UX-7 (#1795): model status and the next-interval prediction ---------
 #
 # The learning view the coordinator already publishes had no reader but the
@@ -24159,6 +24219,16 @@ R.check(
     (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
+# --- R10-CI-PRIORITY-PAUSE: the tier rule, the train's pause and the sweep's priority/zombie rules ---
+for _cp_script in ("tools/audit/seat/ci_priority.py", "tools/audit/seat/ci_pause.py", "tools/pr/cancel_superseded.py"):
+    _cp_run = subprocess.run([sys.executable, "-I", str(_closure.ROOT / _cp_script), "--self-test"],
+                             capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+    R.check(
+        f"{_cp_script} --self-test passes",
+        _cp_run.returncode == 0 and ", 0 failed" in _cp_run.stdout,
+        (_cp_run.stdout + _cp_run.stderr).strip()[-400:],
+    )
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files
@@ -34559,18 +34629,24 @@ _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
     print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
           f"{'runs' if not _sp_f else '; '.join(_sp_f)}")
+_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 R.check(
     "every program live policy or a carry's remeasure tells a seat to run, under a "
     "historical prefix, loads and resolves the paths it opens (#2227)",
-    len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
-    and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
-    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
+    len(_SP_POLICY) >= 20
+    and len(_SP_CITED) >= 2 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN
+    # Design choice: a carry is the brief of a stage with no roster group and is
+    # discharged at closure, so the live tree may hold no carry citing a historical
+    # program; the carry source is pinned by a planted carry's JSON (the cited-program
+    # control below), not by a live file whose existence the arm cannot require.
+    and _sp_cited([("carry-0.json", "\n".join(_sp_remeasures(json.loads(
+        '{"carries": [{"remeasure": "run the D12 instrument '
+        '(dev/audit/rounds/round4/D12/units.py)"}]}'))))]) == {_sp_unit: ["carry-0.json"]},
     f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
     f"(floors: an arm that finds nothing is not a pass); "
     f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
     f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
 )
-_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 _sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
 # The planted stale literal is a file the move map retired, read from the
 # manifest rather than spelled here: a retired path written into a live file is
@@ -34600,7 +34676,10 @@ R.check(
     and _sp_faults(_sp_unit, _sp_unit_src + f"\n_P = {_sp_old!r}\n_X = os.path.join('.', _P)\n")
     and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open(locate({_sp_old!r}))\n")
     and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = ({_sp_old!r},)\n")
-    and _sp_cog in _SP_CITED and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
+    # codeowners_gap's leg: no live carry or policy file cites it any more, so its
+    # citation source is a planted one (as dora_keys' and units' below), not a live file.
+    and _sp_cited([("x.md", f"run `{_sp_cog}`")]) == {_sp_cog: ["x.md"]}
+    and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
     and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
     and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
                             "`tests/golden/config_flow.json`")])
