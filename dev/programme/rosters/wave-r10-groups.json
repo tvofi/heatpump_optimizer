@@ -23203,11 +23203,7 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [
-    "R10-TICK-RESIDUE",
-    "R10-GH-READ-RESIDUE",
-    "R10-CATALOG-PR"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/shims/seat-gh",
