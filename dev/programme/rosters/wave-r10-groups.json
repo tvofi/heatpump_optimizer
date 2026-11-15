@@ -23926,12 +23926,13 @@
     "OWED-RED-TEXT-TO-CLOUD (triage: dev/programme/triage/s6-batch233.md#P705 at 2ced371c1a), extends carry 0 (BODY-REFUSAL-REPAIR). A cloud seat has no gh, so when body_push.sh:128 refuses on the predictor because a red check is still owed an answer (tools/pr/ci_predict.py:1409), the seat cannot read that check's failure text and cannot write the answer; hotfix #3487 stalled 45 minutes until a local seat repaired the body. Fix: the relay (cloud_relay.sh, which has gh) or the dispatch text (cloud_dispatch.py) attaches the owed check run's name, conclusion and failure excerpt to the seat's next message whenever the predictor refusal names an owed red. Control: a refusal with no owed red adds no text. [moved: R11-PRE-RELAY-REBUILD]"
    ],
    "resume": {
-    "stage": "deferred",
+    "stage": "absorbed",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "fixer (size M, no design step), after R10-RELAY-ARM-ORDER and R10-REVIEW-DISPATCH-RESIDUE merge",
-    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C2, C14); carries and brief content moved to the receiving groups (split three ways: R11-PRE-RELAY-REBUILD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-STANDING-SCRIPTS)"
+    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C2, C14); carries and brief content moved to the receiving groups (split three ways: R11-PRE-RELAY-REBUILD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-STANDING-SCRIPTS)",
+    "absorbed_into": "R11-PRE-RELAY-REBUILD"
    }
   },
   {
