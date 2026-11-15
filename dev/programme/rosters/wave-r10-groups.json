@@ -25687,7 +25687,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "round 11 plan",
-    "note": "triage ruling s14/seat/triage-selftest-scope/RULING.md: A accepted for round 11; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage ruling 2026-11-13: barrier A accepted for round 11, deferred",
+    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C6, C14); carries and brief content moved to the receiving groups",
     "pr": null
    }
   },
