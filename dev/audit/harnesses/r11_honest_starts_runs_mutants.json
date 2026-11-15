@@ -256,5 +256,11 @@
   "file": "custom_components/heatpump_optimizer/optimizer.py",
   "old": "    if lead == 0 and not free.any():\n",
   "new": "    if lead == 0 or not free.any():\n"
+ },
+ {
+  "name": "TIE_BREAK_ZERO",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "_TIE_BREAK = 1e-9\n",
+  "new": "_TIE_BREAK = 0.0\n"
  }
 ]
