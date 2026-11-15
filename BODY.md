@@ -2,7 +2,7 @@ Render the figure block against the pull request's recorded `base.sha`, the base
 
 ## Head
 
-`86d87374e525672014f4bae25dcef396fe0c82f5` is this PR's head, measured at merge base b3831ff64e (origin/main, 2026-11-15).
+`4ef570643670f754f66de0487966c13e2b23e341` is this PR's head, measured at merge base b3831ff64e (origin/main moved on since; the tree merges clean, `git merge-tree --write-tree origin/main HEAD`, 2026-11-15).
 
 ## Mutation proof
 
@@ -16,7 +16,9 @@ Render the figure block against the pull request's recorded `base.sha`, the base
 
 - `bash tools/audit/seat/pr_args.sh --self-test` at the head: 269 checks, 0 failed (7 added).
 - Precondition asserted in the test: main has moved past the stub's recorded base before the differing-base case.
-- Class seams (the two `figure_block.py refresh` call sites, found with `grep -n "figure_block.py\" refresh" tools/audit/seat/*.sh`): `update_pr.sh` upd_figures: closed here; `open_pr.sh` op_figures p2: closed here; op_figures p1 runs before the PR exists, so no recorded base exists and `origin/main` is the base the open will record (p2 re-renders anyway). Head-move half: R11-PRE-SHARED-FILES.
+- Class seams, enumerated at this head by `grep -n 'figure_block.py" refresh' tools/audit/seat/*.sh | grep -v ':#'` (comment lines excluded; it returns exactly the three call sites, none of them a bare `refresh` without `--base`): `update_pr.sh` upd_figures: closed here; `open_pr.sh` op_figures p2: closed here; `body_push.sh` (the handoff body push, round-1 block): closed in this round. At `body_push.sh` a pull request is known to exist when origin holds `fix/<topic>`; the recorded `base.sha` of its open pull request is rendered against, and an unreadable one (pull-request list or base, read by the REST API: `gh pr list` is GraphQL, refused in cloud sessions) refuses with the body kept and nothing pushed. Where no pull request exists, `origin/main` is the base, as the open will record it (`open_pr.sh` op_figures p1 runs before the PR exists, p2 re-renders). Head-move half: R11-PRE-SHARED-FILES.
+- Round-2 arms in `bash tools/audit/seat/body_push.sh --self-test` (49 checks, 0 failed at the head; the same command at the merge base, extracted by `git archive origin/main tools tests`, prints 41 checks, 0 failed: 8 added): precondition that the stub's recorded base is not origin/main's tip; no `fix/t` renders `origin/main`; an open pull request renders its recorded base; null control with equal bases renders the one sha; "MUTANT mut:bpbase (its line deleted)" falls back to `origin/main`, killing the recorded-base arm (a mutant copy of the script, `# mut:bpbase`); an unreadable recorded base refuses before the refresh and pushes nothing; `fix/t` with no open pull request renders `origin/main`.
+- Failing-first control: the same self-test with only ` --base "$FB"` deleted from the refresh call (stub `figure_block.py` takes the index of `--base`, so it fails) reads 26 failures, including the recorded-base, null-control and mutant arms; restored, 0 failed.
 
 ## Red checks
 
