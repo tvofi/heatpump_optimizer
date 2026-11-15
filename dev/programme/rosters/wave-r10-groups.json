@@ -27915,6 +27915,52 @@
     "note": null,
     "pr": null
    }
+  },
+  {
+   "group": "R11-HOTFIX-SELFTEST-FLAKE-ARMS",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/beatd.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [
+    "dev/audit/rca/R10-RCA-FAMILY-FLAKY-SELFTEST.md"
+   ],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032\n\nHotfix, S (root-cause countermeasure). Freeze ground: an INTRODUCED read of a timing-dependent self-test arm on #3564 (`custom_components/` strings) blocked a production pull request. Root-cause record: `dev/audit/rca/R10-RCA-FAMILY-FLAKY-SELFTEST.md` (four instances). The fix: make the `tools/audit/seat/bus.sh` P354 concurrent-confirm arm and `tools/audit/seat/beatd.py` self-test case (9), a running instance defers the restart to the next pass, deterministic (no wall-clock race: an explicit barrier or an injected clock), and pin the clock in the `tests/entities.py` redaction check. Demonstration per arm: the arm under an injected adverse schedule fails at the base and passes at the head, and each arm's existing null control still holds; run each arm many times concurrently on one host and report the count, 0 failures being the bar.",
+   "carry": [],
+   "source": "programme",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
+    "note": null,
+    "pr": null
+   }
   }
  ]
 }
