@@ -9,6 +9,7 @@ The owner's standing rulings move into the tree as `dev/programme/RULINGS.md`, a
 - Card "Fix the contract to match (Recommended)", a policy edit under mandate 6893738184: `orchestrator.md` section 11's "Never `--allow-red`" becomes `--allow-red` only when the red's cause is established as not the pull request's (for a stamp, CI tooling and not product code) and commented or recorded, never over a concluded red whose cause is unknown; revert-first for a behaviour change in the merged diff stays. Paid inside the file's caps by cutting stale text: section 1's `push.sh` clause (`push.sh` is retired by `CLAUDE.md`'s identity section), section 5's `pr_cap` default-6 description (the cap's value is in `RULINGS.md`), and a non-binding aside in section 4.
   Other "never allow-red" statements in the tree, by `git grep -n -i -E "never[^.]{0,40}allow-red"` outside round records: `dev/governance/roles/nudge.md` lines 47 and 85 (merge-train flag; the file binds Cursor orchestrators only and its reconciliation is the nudge ruling of 2026-11-12, left); `dev/programme/HANDOVER.md` line 1035 (a train run, which the train-run entry keeps; state, not policy, left); `dev/programme/plan-2026-09-open-issues.md` line 2203 (a frozen 2026-09 plan record, left). No rule, sweep template or instrument page states it.
 - tvofi, 2026-11-15, verbatim: "The live repo should never contain any opinions (personal or otherwise, from codeowner, contributors or their agents) on anything but code and product and the function of the code and product. Opinions (both explicit and implicit) are near as sensitive as personal identifiable data"; then "This should be promoted to policy"; and "the findings from that dimension does not go as open issues but directly to me". These become `CLAUDE.md`'s new section "What the repository may carry", stated once; the rulings file holds no copy. `CLAUDE.md` is the owner because the rule binds every push and every seat, and it is the one policy file every session loads; no rule under `dev/governance/rules/` covers what a push may carry. Paid inside `CLAUDE.md`'s caps (`ratchet-budgets.md`): the "Root-cause remediation" section, which restated the index rows for `defect-root-cause.md` and `root-cause.md` and `defect-root-cause.md`'s own "resolved at merge (card C5)" sentence, is removed; the steward line's sentence about a `babysit/` file and the `AGENTS.md` line are shortened. No cap changes. Existing rulings entries were not re-screened against the new rule in this pull request.
+- Carry 1 (the coordinator's queue item 17), tvofi 2026-11-15, verbatim: "That is why fixers should only run the full prepr when absolutely needed, and only be run locally when it is likely it will need communication via sendmessage". Built here: `fixer.md` step 5 states that prepr runs scoped (`PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta since the last clean run) and runs in full only where the change reaches what only the full run measures, with the reason in the body; `orchestrator.md` section 5 states that a fixer is a local seat only where SendMessage steering is likely, else cloud. Paid inside both files' caps by removing text other files state: in `fixer.md`, step 5's sentence on who opens the PR (step 6 states it; its decision path was stale) and the `run.sh` lease sentence (`gate-scoping.md` states it); in `orchestrator.md`, section 1's pointer restating `fixer.md` step 8 and a stale decision-0010 path. The rulings file drops the parts these now state (hotfix and no-closures prepr; the majority of fixers in the cloud).
 - Carry 0, card E11-N-OBJECTIVE-RECORD part (b), "Write it now (Recommended)", preliminary: `orchestrator.md` section 9 names the round's objective record under `dev/audit/yardstick/` as a closure criterion.
 
 ## Screen against policy
@@ -108,7 +109,7 @@ The file's purpose (orchestrator's wording, tvofi 2026-11-15: "This is exactly h
 | G4 no merge pause on an unrelated ratchet red | d | → `orchestrator.md` section 11 |
 | G5 cancel superseded runs | d | op |
 | G6 a pull request still needs valid evidence | d | → `fix-review.md` |
-| G7 prepr once, scoped hotfix prepr | d | → `fixer.md` |
+| G7 prepr once per code | d | op |
 | G8 merge verdict before CI is green | d | op |
 | H1 blocked verdicts back to the fixer | d | → `fix-review.md` / `fixer.md` |
 | H2 reviewer model at least the fixer's (Fable reviewer only for work of that class, orchestrator's reading) | d | → `fix-review.md` |
@@ -139,11 +140,11 @@ Each ruling still in force, dated, quoted verbatim where the orchestrator's memo
 
 ## Approval
 
-Policy files touched: `dev/governance/roles/proposal-triage.md` (machinery route per card P2), `CLAUDE.md` (index entry, the new "What the repository may carry" section, the removed "Root-cause remediation" restatement) and `dev/governance/roles/orchestrator.md` (sections 0, 1, 4, 5, 9, 11); code-owned data beside them: `dev/governance/config/corpus_excluded.json` and `tests/layout.json`. Awaiting the owner's approving review, which the orchestrator may give under mandate 6893738184 (scope all) as decision 0013 allows, declared as an agent's. Every ruling this pull request writes down is tvofi's own, quoted in "Rulings this pull request carries out".
+Policy files touched: `dev/governance/roles/fixer.md` (step 5, Carry 1), `dev/governance/roles/proposal-triage.md` (machinery route per card P2), `CLAUDE.md` (index entry, the new "What the repository may carry" section, the removed "Root-cause remediation" restatement) and `dev/governance/roles/orchestrator.md` (sections 0, 1, 4, 5, 9, 11); code-owned data beside them: `dev/governance/config/corpus_excluded.json` and `tests/layout.json`. Awaiting the owner's approving review, which the orchestrator may give under mandate 6893738184 (scope all) as decision 0013 allows, declared as an agent's. Every ruling this pull request writes down is tvofi's own, quoted in "Rulings this pull request carries out".
 
 ## Head
 
-`5efff3e16a74d97ec6608416369ec528477974e8`, on base `b3831ff64eca1936f0b618193ee86c3e337b51a9` (the cloud step ref's base); diff three-dot against it. Not rebased; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`d360d1c125c27caa1f13de16a6ae2c32fd84dd74`, on base `b3831ff64eca1936f0b618193ee86c3e337b51a9` (the cloud step ref's base); diff three-dot against it. Not rebased; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
 
@@ -166,14 +167,14 @@ Policy files touched: `dev/governance/roles/proposal-triage.md` (machinery route
 
 ## Figures
 
-<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=5efff3e16a74d97ec6608416369ec528477974e8 -->
+<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=d360d1c125c27caa1f13de16a6ae2c32fd84dd74 -->
 ~~~text
 MODE: SCOPED -- 2 script(s) run, 31 scoped out.
 ~~~
 <!-- /figure-block -->
 - hook self-test: `python3 tools/audit/seat/hooks_setup.py --self-test` printed `hooks_setup self-test: 74 checks, 0 failed` (hooks unchanged since that run).
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69190 tokens, cap 69333 +band 500 = 69833`; `orchestrator.md` stays within 295 lines and 4251 tokens; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
+- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `tools/audit/briefs/fixer.md 314 315 5209 5216`, `tools/audit/briefs/orchestrator.md 294 295 4244 4251`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69190 tokens, cap 69333 +band 500 = 69833`; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
 - policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)`; with `RULINGS.md` named in `CLAUDE.md` and absent from `corpus_excluded.json` the same command printed the `[named-docs] dev/programme/RULINGS.md` error (an earlier head of this branch).
 
 ## Red checks
