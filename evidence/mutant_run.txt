@@ -1,7 +1,0 @@
-SURVIVED tools/audit/machinery_ratchet.py:749 CONST_SWAP  r.merge(2, PRODM); r.merge(2, MACH); r.merge(3, PRODM); r.merge(4, MACH)
-SURVIVED tools/audit/machinery_ratchet.py:753 CONST_SWAP  r.merge(6, PRODM + budgets_ops(caps(m1=2, w=3)) + tgt())
-SURVIVED tools/audit/machinery_ratchet.py:764 CONST_SWAP  r.merge(7, RECM)                              # 2 merges past: target 0
-SURVIVED tools/audit/machinery_ratchet.py:770 CALL_DEL  pass
-SURVIVED tools/audit/machinery_ratchet.py:775 CONST_SWAP  cand(MACH + budgets_ops(caps(m1=3, w=3, ex=[entry(9)])) + [("set", "ev/proof.txt", "m\n")])[0], 0)
-SURVIVED tools/audit/machinery_ratchet.py:777 CALL_DEL  pass
-rc=0
