@@ -1,0 +1,4 @@
+[
+{"name": "ps_start_zero_lstart", "file": "tools/audit/seat/seat_gen.py", "old": "    return parse_lstart(r.stdout) if r.returncode == 0 else 0\n", "new": "    return 0\n"},
+{"name": "lock_start_const", "file": "tools/audit/seat/seat_gen.py", "old": "tmp.write_text(f\"{mine} {start(mine)}\\n\")", "new": "tmp.write_text(f\"{mine} 1\\n\")"}
+]
