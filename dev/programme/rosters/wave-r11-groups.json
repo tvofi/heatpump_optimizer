@@ -2240,7 +2240,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "designer after R11-PRE-MACHINERY-LIMITER dispatches; not finder-critical",
-    "note": "not finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" \"Build all four reads\", an owner directive. Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.",
+    "note": "fix-gating (0018:274-278); not finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" \"Build all four reads\", an owner directive. Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.",
     "pr": null
    }
   },
