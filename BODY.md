@@ -37,7 +37,9 @@ Alternatives that lost: one enumerator per dimension (seven scripts, seven self-
 
 ## Head
 
-db626fb9dde5ca152ce45e7c216e3c7676553b4e
+fb9b921b98d2434b83f01132051a20e7cb89789d
+
+`fb9b921b98` merges `origin/main` at `98847b99d7` into `1c4704b8f4` (which is `db626fb9dd`, an earlier merge of `66865be375`, and the delivery row `dev/programme/delivery/3625.md`): `git merge-tree --write-tree origin/main 1c4704b8f4` reported a conflict in `dev/governance/config/policy_budgets.json`, where main's #3618 and #3621 re-recorded the D10, D11, D13, D14, D4 and D5 rows. Each key takes the side that changed it (no key changed on both); `corpus_tokens` is re-recorded to the merged tree's `--budgets` measurement, the reason in the merge commit's message. Figures marked at `fb9b921b98` were re-taken there; the rest stand at `db626fb9dd`.
 
 ## Mutation proof
 
@@ -71,23 +73,24 @@ By hand, predicates and not tails, each restored after:
 
 ## Figures
 
-- `python3 -I tools/audit/enumerate.py --self-test` at db626fb9dde5ca152ce45e7c216e3c7676553b4e: `SELF-TEST passed (134 arms)`. The arm count is what the script prints; an arm is one comparison in `self_test()`.
-- `python3 -I tools/audit/enumerate.py --briefs` at db626fb9dde5ca152ce45e7c216e3c7676553b4e: exit 0, 15 `ok` lines, one per brief and distinct cited command (D0 2, D1 6, D2 1, D8 1, D9 3, D12 1, D15 1). Against a checkout of 26dbf7c43ec3742101398b098dbdcc61bbee8f19: exit 2, `REFUSE: no dimension brief cites a universe`.
-- `node tools/policy/check-wave-script.mjs` at db626fb9dde5ca152ce45e7c216e3c7676553b4e: 223 passed, 0 failed; the same file at 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 223 passed, 0 failed (this diff does not change it). At this head with `dev/audit/config/rotation.json` restored from 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 221 passed, 2 failed, naming `rotation.json D0 lacks D0.M8` and `D15 lacks D15.M9`.
-- `node tools/policy/policy_lint.mjs` at db626fb9dde5ca152ce45e7c216e3c7676553b4e: `TOTAL: 0 error(s)`. With `policy_budgets.json` restored from 26dbf7c43ec3742101398b098dbdcc61bbee8f19: `TOTAL: 14 error(s)`, all `[budgets]`: the line row and the token row of D0, D1, D2, D8, D12 and D15, D9's token row, and the corpus.
-- `python3 -I tools/audit/check_scopes.py --repo .` at db626fb9dde5ca152ce45e7c216e3c7676553b4e: exit 0.
+- `python3 -I tools/audit/enumerate.py --self-test` at fb9b921b98d2434b83f01132051a20e7cb89789d: `SELF-TEST passed (134 arms)`. The arm count is what the script prints; an arm is one comparison in `self_test()`.
+- `python3 -I tools/audit/enumerate.py --briefs` at fb9b921b98d2434b83f01132051a20e7cb89789d: exit 0, 15 `ok` lines, one per brief and distinct cited command (D0 2, D1 6, D2 1, D8 1, D9 3, D12 1, D15 1). Against a checkout of 26dbf7c43ec3742101398b098dbdcc61bbee8f19: exit 2, `REFUSE: no dimension brief cites a universe`.
+- `node tools/policy/check-wave-script.mjs` at fb9b921b98d2434b83f01132051a20e7cb89789d: 223 passed, 0 failed; the same file at 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 223 passed, 0 failed (this diff does not change it). At this head with `dev/audit/config/rotation.json` restored from 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 221 passed, 2 failed, naming `rotation.json D0 lacks D0.M8` and `D15 lacks D15.M9`.
+- `node tools/policy/policy_lint.mjs` at fb9b921b98d2434b83f01132051a20e7cb89789d: `TOTAL: 0 error(s)`. With `policy_budgets.json` restored from 98847b99d7bb3238686efd6869f805c89c6d1ff1: `TOTAL: 14 error(s)`, all `[budgets]`: the line row and the token row of D0, D1, D2, D8, D12 and D15, D9's token row, and the corpus.
+- `python3 -I tools/audit/check_scopes.py --repo .` at fb9b921b98d2434b83f01132051a20e7cb89789d: exit 0.
 - Gate scope, `python3 tests/closure.py select --diff 26dbf7c43ec3742101398b098dbdcc61bbee8f19`: `MODE: FULL`, reason `tools/ci/selftest_closures.json changes the gate itself`; before that file changed the same command read `MODE: SCOPED -- 3 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`). Those three, with `PYTHONPATH=tests/hastub`, at db626fb9dde5ca152ce45e7c216e3c7676553b4e: `ALL 2723 ENTITY CHECKS PASSED`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `layout self-test: ok`, each exit 0. The rest of the full suite is CI's.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (prepr's merged-structure step, HEAD merged with origin/main).
-- `python3 -I tools/pr/ci_predict.py --base origin/main`: no closures, fast, governance or instrument red predicted.
+- `python3 -I tools/pr/ci_predict.py --base origin/main` at fb9b921b98d2434b83f01132051a20e7cb89789d: no closures, fast, governance or instrument red predicted.
 - `python3 -I tools/ci/selftest_scope.py record --step self-tests-outside-seat` (Linux, strace): 1 step recorded, 0 failed, 0 broken traces; 559.4 s.
-- `python3 -I tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/audit/archscore/score.py --diff origin/main` at fb9b921b98d2434b83f01132051a20e7cb89789d (origin/main 98847b99d7bb3238686efd6869f805c89c6d1ff1): `Architecture score: dS +0.0000 NULL`.
 - `tools/pr/prepr.sh` at db626fb9dde5ca152ce45e7c216e3c7676553b4e with `MUTANT_CMD` the self-test and `MUTANT_IN_PLACE=1`: every branch step `ok` or `skip`, among them `diff mutants: no survivor among the diff's first 40 mutant(s)`, `throwaway git`, `ci predict` and `merged structure`; `tools/pr/prepr.sh --body-check` on this body: `PR-BODY: 0 error(s)`. One of the 40 (the visited-set update of `d0-modules` deleted) never returns and is killed by `mutant_run.py`'s own timeout.
+- `PREPR_SKIP_CLOSURES=1 PREPR_SKIP_CODE=1 tools/pr/prepr.sh` with this body at fb9b921b98d2434b83f01132051a20e7cb89789d (this round adds the merge commit only, no Python line): `PRE-PR: fb9b921b98d2434b83f01132051a20e7cb89789d ... rc=0`, `PR-BODY: 0 error(s)`, `merged tree` ok; the code-keyed steps and closures skipped by those flags are CI's.
 
 ## Raise justification
 
 Rows of `node tools/policy/policy_lint.mjs --budgets` raised, each to the value it measures at this head (the literal values are in the diff of `dev/governance/config/policy_budgets.json`): the `lines` and `~tokens` rows of `tools/audit/briefs/D0.md`, `D1.md`, `D2.md`, `D8.md`, `D12.md` (the keys the lint keeps for the files now under `dev/governance/dimensions/`) and `dev/governance/dimensions/D15.md`, the `~tokens` row of `tools/audit/briefs/D9.md` (its `lines` row had room and is untouched), and `corpus:`. The other aggregates are inside their band and untouched. `INSTRUMENTS.md` has no row.
 
-Payments tried: (1) taken: the typed lists the enumerator now prints are cut from the briefs (D0 step 4's axes and its typed profile count, D1 step 2's store list and step 4's read list, D12 step 1's scenario names, its `Derive the cell count` sentence and step 2's axis list, D15's no-bundle rule); they did not cover the growth. (2) not taken: cutting D2's identity prose now that `identities.json` lists the identities: the prose would move to an uncapped file, the reclassification `ratchet-budgets.md` refuses, and a finder would lose each identity's tolerance. (3) not taken: cutting a brief's `Traps` or `Reuse` section: each line there is a live constraint (a refused technique with its issue, a stub artefact), none spent or duplicated. (4) not taken: stating the census commands once in `COMMON.md` and not per brief: the universe differs per step, and `COMMON.md` is R11-PRE-BRIEFS-TEXT's. (5) not taken: leaving out the escape inputs: they are the cards' substance. No code payment exists: the diff adds no line under `custom_components/`.
+Payments tried: (1) taken: the typed lists the enumerator now prints are cut from the briefs (D0 step 4's axes and its typed profile count, D1 step 2's store list and step 4's read list, D12 step 1's scenario names, its `Derive the cell count` sentence and step 2's axis list, D15's no-bundle rule); they did not cover the growth. (2) not taken: cutting D2's identity prose now that `identities.json` lists the identities: the register already carries each identity's tolerance, so the prose would move to an uncapped file, the reclassification `ratchet-budgets.md` refuses. (3) not taken: cutting a brief's `Traps` or `Reuse` section: each line there is a live constraint (a refused technique with its issue, a stub artefact), none spent or duplicated. (4) not taken: stating the census commands once in `COMMON.md` and not per brief: the universe differs per step, and `COMMON.md` is R11-PRE-BRIEFS-TEXT's. (5) not taken: leaving out the escape inputs: they are the cards' substance. (6) not taken, re-priced at fb9b921b98: keeping `corpus:` inside its cap plus `_band` with no corpus raise, which needs the added brief prose cut by the excess `--budgets` prints over cap plus band; after (1), each added line left is a card input, a census command or the ledger instruction that (2) to (5) keep. No code payment exists: the diff adds no line under `custom_components/`.
 
 Architecture score: dS +0.0000 NULL
 
@@ -97,7 +100,9 @@ Pending; none is claimed here. This is a policy pull request (seven dimension br
 
 ## Red checks
 
-- budget-raise-gate: red by design, not a defect: this diff raises rows of `dev/governance/config/policy_budgets.json`, and the gate stays red until an approving review at the head, tvofi's or the mandated one under 6893738184 after review (`## Raise justification` above is what it reads). Cheaper detector: none is owed, the red is the gate doing its work; `node tools/policy/policy_lint.mjs --budgets` prints each raised row locally before any push, at no standing cost.
+- budget-raise-gate / budget-raise-gate: red by design, not a defect. Its log at this head: `RESULT budget_raises=14 count`, `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`; the diff raises rows of `dev/governance/config/policy_budgets.json`, and the gate stays red until an approving review at the head, tvofi's or the mandated one under 6893738184 after review (`## Raise justification` above is what it reads). Cheaper detector: none is owed, the red is the gate doing its work; `node tools/policy/policy_lint.mjs --budgets` prints each raised row locally before any push, at no standing cost.
+- pr-contract / pr-contract: step `Check the body against the contract` refused the previous body, `check budget-raise-gate / budget-raise-gate is red and ## Red checks does not name it`: the line above named the gate by its workflow name alone. Cheaper detector: none exists before the pull request: the refusal keys on which checks CI reports red, which `prepr.sh --body-check` cannot see before CI has run; repaired in this body.
+- gate: the aggregate of the required checks; red only through the two above, and green once both are.
 
 ## Forward-carry
 
