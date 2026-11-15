@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-15T00:19:43+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-15T01:52:48+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 40 / 24.0 |
-| fly-ins closed | 1 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 29 / 3 / 0 / 7 |
-| first-pass fix-review yield | 1/1 (1.00) | 16/21 (0.76) |
-| blocked-class mix | carry-missing:1, mutation-vacuous:1 | body-stale:1, carry-missing:2, ci-red:3, class-open:4, closures-regressed:1, darwin-red:1, doc-claim-false:2, equivalence-refuted:1, evidence-cut:1, figure-mislabelled:1, head-moved:1, hold-unrefreshed:1, introduced-red:1, mutant-committed:1, mutation-survivor:1, mutation-vacuous:14, reference-basis-unbumped:1, root-cause-detectable:1, root-cause-unrecorded:1 |
-| lead time per size (h, n/p50/max) | none | L n=3 p50=54.03 max=87.25; M n=13 p50=20.70 max=70.02; S n=13 p50=13.11 max=46.71 |
+| roster groups closed vs takt | 1 / 1.0 | 39 / 24.0 |
+| fly-ins closed | 1 | 8 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 1 / 1 | 31 / 3 / 1 / 8 |
+| first-pass fix-review yield | 1/2 (0.50) | 16/21 (0.76) |
+| blocked-class mix | carry-missing:1, evidence-cut:1, self-test-red:1 | body-stale:1, carry-missing:3, ci-red:3, class-open:4, closures-regressed:1, darwin-red:1, doc-claim-false:2, equivalence-refuted:1, evidence-cut:2, figure-mislabelled:1, head-moved:1, hold-unrefreshed:1, introduced-red:1, mutant-committed:1, mutation-survivor:1, mutation-vacuous:14, root-cause-detectable:1, root-cause-unrecorded:1, self-test-red:1 |
+| lead time per size (h, n/p50/max) | L n=1 p50=29.41 max=29.41 | L n=4 p50=54.03 max=87.25; M n=13 p50=20.70 max=70.02; S n=14 p50=13.11 max=46.71 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 25 | 2 | 0 |
+| 0 | 24 | 2 | 0 |
 
 ## Rules
 
