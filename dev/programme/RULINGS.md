@@ -202,6 +202,11 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-11-07: "all accepted outside issues or contributions should be
   prioritized higher than audit or owner submitted ones unless i call the owner
   one a hotfix".
+- 2026-10-28 (as recorded): a hotfix is a production bug the owner or a user
+  reports, a feature he calls a hotfix, a critical bug found while fixing, a red
+  required check on main, or a machinery bug deadlocking all merges. 2026-10-29:
+  "critical-path PRs jump the record step too" (card, 2026-11-15: "Keep both
+  parts").
 - 2026-11-13: "All production groups now goes above the cap" (orchestrator's
   context: the soft cap of 20 open pull requests before starting new groups,
   2026-11-11).
@@ -236,12 +241,15 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Merges, CI and reds
 
-- 2026-11-01: "batch mode should be the default mode but the merge seats keep
-  dropping that info"; 2026-11-07: "I meant the batch mode with combined proof
-  that the train supports".
-- 2026-10-22: "It is recommended to run the train with --overlap as long as ci of
-  the prs are run"; 2026-10-24: "have the merge seat run with batch where
-  possible, and always overlap".
+- When a merge train is run, it runs in batch mode with combined proof and with
+  overlap, and it pauses while a stamp runs: 2026-11-01: "batch mode should be the
+  default mode but the merge seats keep dropping that info"; 2026-11-07: "I meant
+  the batch mode with combined proof that the train supports"; 2026-10-22: "It is
+  recommended to run the train with --overlap as long as ci of the prs are run";
+  2026-10-24: "have the merge seat run with batch where possible, and always
+  overlap"; 2026-11-08: "The train should pause while a stamp is running the next
+  time." These bind nothing while merges are single (card, 2026-11-15: "Keep,
+  scoped to train runs (Recommended)").
 - 2026-11-04: "keep records such as triage and roster edits on separate branches,
   and merge them with main only around the stamp and in batches"; "records should
   not drown out production PRs. Merge the record PRs together with stamps".
@@ -270,8 +278,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   run prepr without closures".
 - 2026-11-11: "4. Go with what you recommend" (a finished merge verdict may post
   before CI is green; the train still gates CI).
-- 2026-10-24 (as recorded): a small-scope main-red hotfix may merge on a green
-  gate with its review after the merge.
 
 ## Reviews
 
@@ -284,8 +290,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   already reviewed code has a risk of being affected in a non obvious way that CI
   would not detect."; "only fire reviewers before ci is finished for prs on the cr
   watch" (critical path and outside); otherwise once CI is green.
-- 2026-10-20: "remember reviewers are owed as soon as prs are open on a handed off
-  fix."
 - 2026-10-04: "in general, blocked review verdicts go back to the original
   fixer."
 - 2026-11-11: "the reviewer has to be fable under the reviewer >= fixer model
@@ -303,15 +307,18 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   be regularly checked, triaged/designed and planned. Fold this shape into the repo
   machinery. When the plan html is done, and any outside submission is on the
   roster, the plan HTML should be linked in an answer to the outside submission."
-- 2026-11-06: "R10-PR-CONTRACT-OUTSIDE should be cancelled, drop that path";
-  "With our additions in mind, change the strategy to mergeing our version, but
-  thank the outside cotributor in the PR description"; "For outside PRs, the
-  reviewer needs to take extra care on code security".
 - 2026-11-12: "Implement a mechanism that allow baikanfans PRs to be accepted as
   is as long as they follow all our conventions and rules and have a valid merge
   verdict (the reviewer may also be run by bankaifan). Merges with main and
-  codeowner approvals remain in our machinery even for such PRs." The same
-  ruling's round-11 deferral clause is superseded (closing list).
+  codeowner approvals remain in our machinery even for such PRs." (decision
+  0017). The same ruling's round-11 deferral clause is superseded (closing list).
+- Fallback, for an outside pull request that does not qualify above (order by
+  card, 2026-11-15: "I3 first, I2 as fallback (Recommended)"): 2026-11-06:
+  "R10-PR-CONTRACT-OUTSIDE should be cancelled, drop that path"; "With our
+  additions in mind, change the strategy to mergeing our version, but thank the
+  outside cotributor in the PR description".
+- 2026-11-06, for every outside pull request either way: "For outside PRs, the
+  reviewer needs to take extra care on code security".
 
 ## Seats and models
 
@@ -341,11 +348,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   and output are checked every sweep.
 - 2026-10-22: "You are free to restart seats or start entirely new seats as you
   see fit"; 2026-11-01: "You would not need my go ahead for something like that."
-- 2026-10-28: "you start your standing seats with multi hour windows so the dont
-  shutdown"; 2026-10-31: "To be token effective, you should recycle the standing
-  seat at a suitable frequency" (card 9, 2026-11-01, as recorded: about 150k
-  tokens sonnet, 200k opus, 300k for L and XL fixers; repairs on the group's
-  model).
 - 2026-11-09: "Drop it, the seats should use cheaper sub seats when the frugal
   guard says so"; 2026-10-21: "The frugal guard should be on but it should allow
   you to read the policy that binds you". No seat edits `.claude/settings.json`.
@@ -373,23 +375,19 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   seat".
 - 2026-11-01: "Fix this and dont let it slip again" (the wake loop is re-armed
   after every exit and compaction).
-- 2026-10-25: "the policy that binds you should be retained in durable memory and
-  updated when main updates as well."; 2026-11-09: "You should always, always read
-  the whole corpus, including all instrument usage descriptions and correct any
-  gaps." (what is read is now ruled by R3 and "Rules in full"; the gap check
-  stands).
+- After a compaction, check running seat briefs and pending steps against the
+  instrument pages that changed (card, 2026-11-15: "Retire K11, K12 on parity
+  (Recommended)").
 - 2026-11-09: "Yes, keep the local one, but propose an update to the live one to
-  cover the gaps" (the local liveness hook stays until the tracked one has
-  parity).
+  cover the gaps". The local liveness hook is retired once the tracked hook is
+  installed and shown to cover it (same card).
 
 ## Releases
 
 - 2026-11-01: "to not stall the programme when waiting for ci on main when you
   stamp, admin stamp to keep the merges flowing with overlap"; 2026-11-12: "You
-  may stamp without waiting for main". Never over a concluded red whose cause is
-  unknown.
-- 2026-11-08: "The train should pause while a stamp is running the next time.
-  Stamp manually without waiting for main."
+  may stamp without waiting for main"; 2026-11-08: "Stamp manually without waiting
+  for main." Never over a concluded red whose cause is unknown.
 - 2026-11-09: "You should have at least one new feature in custom_components or
   3-5 bug fix PRs touching that path between the stamps, if I don't tell you
   otherwise".
@@ -413,7 +411,8 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   once-per-round triage.
 - The production-share exemption (2026-11-01): superseded by the 20%/10% bar;
   the exemption itself is policy in `ratchet-budgets.md`.
-- Queue order of 2026-10-28: superseded by outside first (2026-11-07).
+- Queue order of 2026-10-28: superseded by outside first (2026-11-07); its hotfix
+  definition stays above.
 - The 20-PR soft cap entry (2026-11-11): retired; the cap is named where the
   production-above-cap ruling cites it.
 - No merge outside the train (2026-10-26) and the orchestrator never runs
@@ -422,6 +421,17 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - GitHub poll cadence (2026-10-07, 2026-10-19, 2026-11-08): retired.
 - R10-DRAW-MAP-EVIDENCE rulings (2026-11-14) and the R10-COMBI-TANK waiver
   (2026-11-06): retired here; they live on those groups' roster entries.
+- Reviewers owed as soon as a pull request opens (2026-10-20): superseded by the
+  delta-review timing of 2026-11-09 (early only for critical path and outside,
+  otherwise once CI is green); card "Retire H3 (Recommended)".
+- Standing seats with multi-hour windows and their recycling (2026-10-28,
+  2026-10-31, 2026-11-01): retired, round 11 has no standing seats; tick and
+  roster work are beat jobs (card "Retire J10").
+- A main-red hotfix merging before its review (2026-10-24): retired, a merge
+  verdict precedes every merge (card "Retire G14 (Recommended)").
+- Durable policy memory and the whole-corpus read (2026-10-25, 2026-11-09):
+  superseded by the 2026-11-15 reading rules (card "Retire K11, K12 on parity
+  (Recommended)").
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the

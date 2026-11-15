@@ -33,8 +33,7 @@ cannot answer the second, you have not measured — you have expected.
   is corrected under `fixer.md` step 9.
 - **Never print a conclusion beside a command** (`fixer.md` step 3).
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
-  not the check refused. Use `check && publish` — and for the body and the
-  push, that `&&` is already wired as `tools/pr/push.sh` (#678).
+  not the check refused. Use `check && publish`.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
@@ -74,8 +73,7 @@ process states and the demonstration a check owes are `root-cause.md`'s and
 
 ## 4. The merge message is a second closing surface
 
-A pull request's closing references describe its **body**, and no GitHub
-tool method here exposes them. The merge message is a separate artifact, written by you at merge
+A pull request's closing references describe its **body**. The merge message is a separate artifact, written by you at merge
 time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
 merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
@@ -89,9 +87,8 @@ whenever you merge.
 ## 5. Before dispatching a seat
 
 - **The soft cap gates only dispatching a new roster group** (tvofi,
-  2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
-  refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
-  Opening or updating a pull request for an owed handoff is never refused by it.
+  2026-10-20; its value is in `dev/programme/RULINGS.md`): opening or updating a
+  pull request for an owed handoff is never refused by it.
 - **A ready critical-path group starts regardless of every cap** (tvofi,
   2026-10-22): a group in the current plan's
   `critical_path` whose `after` groups are all done, and whose design verdict
@@ -246,7 +243,10 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
-  reach → establish that, and it is its own issue. Never `--allow-red`.
+  reach → establish that, and it is its own issue. `--allow-red` only when the
+  red's cause is established as not the pull request's (for a stamp, as CI
+  tooling and not product code) and commented on it or recorded; never over a
+  concluded red whose cause is unknown (tvofi, 2026-11-05, 2026-11-11).
 - After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
 
 ## 12. The gate lease
