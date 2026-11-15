@@ -206,7 +206,7 @@
  {
   "name": "SETTLED_CLASS",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    running = rec.tracker.settled if rec.unsub is not None else None\n",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
   "new": "    running = None\n"
  },
  {
