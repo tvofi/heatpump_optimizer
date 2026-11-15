@@ -341,7 +341,8 @@
    "carry": [
     "From r10-selftest-scope-union-guard, body item e4179dbc: dev/programme/rosters/wave-r10-groups.json, group R10-NUDGE-RETIRE: after this change a re-record keeps every read, so a group that retires or moves a file the table names (beatd and review-packet read it, two differing recordings) removes the read with `python3 -I tools/ci/selftest_scope.py prune --step ID --drop files:PATH` for each affected step, not by re-recording twice; the shrink guard accepts the removal only for a path the same diff deletes. Re-measure each affected step's entry at its own merge base.",
     "Moved from R11-INTAKE-R10-RESIDUE carry 80 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P764 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-nudge-retire, body item e6db542a: Once this merges (the grader then reads `files_tokens` as `CAPFILE` from the base), drop from `dev/governance/config/policy_budgets.json` the `files_tokens` cap this diff kept for the retired orchestrator turn (keyed on that file's pre-move path; its value is 3814) (routine under the fixed grader), and extend `tools/policy/policy_lint.mjs`'s orphan-cap check to `files_tokens`: measured at this head, a `files` cap on a path no glob matches is refused and a `files_tokens` cap on the same path passes with `TOTAL: 0 error(s)`. Control: the two `policy_lint.mjs` runs in `## Figures`. Re-measure at that group's merge base. Carry: R11-INTAKE-R10-RESIDUE (items e6db542a)",
-    "From #3551 (r10-selftest-scope-union-guard), body item a7c09d95: dev/programme/rosters/wave-r10-groups.json, group R10-NUDGE-RETIRE: the carry landed from this pull request's earlier body says \"the shrink guard accepts the removal only for a path the same diff deletes\". No shrink guard exists after this re-cut. A group that retires or moves a file the table names (beatd and review-packet read it) removes each such read with `python3 -I tools/ci/selftest_scope.py prune --step ID --drop files:PATH`. Nothing refuses a prune of a path that still exists, so prune only the retired path, and the next main drift run is the check. Carry: R10-NUDGE-RETIRE (supersedes item e4179dbc) (items a7c09d95)"
+    "From #3551 (r10-selftest-scope-union-guard), body item a7c09d95: dev/programme/rosters/wave-r10-groups.json, group R10-NUDGE-RETIRE: the carry landed from this pull request's earlier body says \"the shrink guard accepts the removal only for a path the same diff deletes\". No shrink guard exists after this re-cut. A group that retires or moves a file the table names (beatd and review-packet read it) removes each such read with `python3 -I tools/ci/selftest_scope.py prune --step ID --drop files:PATH`. Nothing refuses a prune of a path that still exists, so prune only the retired path, and the next main drift run is the check. Carry: R10-NUDGE-RETIRE (supersedes item e4179dbc) (items a7c09d95)",
+    "dev/programme/rosters/wave-r10-groups.json, group R10-NUDGE-RETIRE: the carry landed from this pull request's earlier body says \"the shrink guard accepts the removal only for a path the same diff deletes\". No shrink guard exists after this re-cut. A group that retires or moves a file the table names (beatd and review-packet read it) removes each such read with `python3 -I tools/ci/selftest_scope.py prune --step ID --drop files:PATH`. Nothing refuses a prune of a path that still exists, so prune only the retired path, and the next main drift run is the check. Carry: R10-NUDGE-RETIRE (supersedes item e4179dbc)"
    ],
    "resume": {
     "stage": "in-progress",
@@ -470,9 +471,9 @@
     "Re-cut (triage: dev/programme/triage/r10-round-end.md#P762 at 2e17928032; ratified by tvofi 2026-11-15, card C6): this group's pull request #3551 becomes R11-PRE-SHARED-FILES part 1's union half. Keep change (1), the union `record`, with its failing test and mutant; drop change (2), the table-shrink guard, its fixture and its two mutants, because under loop card L9 no pull request edits the table, so a guard over such edits has no input. One delta review of the re-cut head. When it merges, this group is set `absorbed` into R11-PRE-SHARED-FILES."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "b880dc914f3ba2590b7ce655d7419678b1c4968e",
     "last_step": null,
     "next_step": "dispatch cloud fixer (sonnet, Linux) after R10-HOTFIX-SELFTEST-SCOPE-RERECORD merges",
     "note": "triage ACCEPT round 10 (audit-class barrier, part C); cutoff 2026-11-14T18:00Z else round 11; overlap admitted (R10-NUDGE-RETIRE): triage ruling 2026-11-13: audit-class barrier C; shares tools/ci/selftest_closures.json with R10-HOTFIX-SELFTEST-SCOPE-RERECORD, ordered after it",
@@ -1039,7 +1040,9 @@
     "Proposal PC-1113-18 (L9's claim-file stamp line), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P781 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n## PC-1113-18 a stamp strands every pre-stamp handoff on the claim file\nObserved 2026-11-14 ~03:10Z (dispatch seat 125, hand-merge seat): after the v7.1.16 stamp, update_pr.sh and open_pr.sh stopped at `merge origin/main` with CONFLICTING CLAIMS (claims-for stamps differ) for #3574 (handoff fc372c80), r10-arch-docs-delta (f919d224) and earlier tips in cloud-handoff-failed.why. Merging main into the handoff alone is clean; the refusal comes from update_pr's order (handoff, then main) onto a PR head that already holds an older main merge. Cost: two gating items idle about 2 h, one local opus seat for three hand merges. Fix shape for triage: update_pr merges origin/main into the handoff tip first, or the claimnotes driver accepts a side whose only claim-file change is the stamp. Also: open_driver never listed r10-arch-docs-delta (no SKIP/NEEDS-TITLE/START line).",
     "Sweep candidate at sweep.md line 1732 (it is countermeasure A, part 1; the batch's entry P785), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P748 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T16:10:31Z PROPOSAL CANDIDATE (fixer's dropped carry): on a red push-run drift step, a bot commits the uploaded selftest-closures artifact (like closures-autofix), since no PR run can see the drift; related open group R10-SELFTEST-SCOPE-UNION-GUARD. Minor finding: tools/audit/seat/body_push.sh has no exec bit on origin/main.",
     "From #3551 (r10-selftest-scope-union-guard), body item 25780326: dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES (part 1b, countermeasure A): the bot that commits a refused drift step's `selftest-closures` artifact from main's run is not built here. Until it lands, a red drift step on main is repaired as this pull request did it: the artifact is unioned over the table by `union_record`, and the replay above shows 0 refusals for that artifact. The artifact is already a union (`union_entries`), so the bot needs no merge logic of its own, only `union_record` over the live table at its own head. Carry: R11-PRE-SHARED-FILES (items 25780326)",
-    "From #3551 (r10-selftest-scope-union-guard), body item e5a080c4: dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES: `write_table`'s `compact_probes` appends every `D/**` probe after `collapse`, so an item can be listed twice (main's table held 13 such duplicates, removed here by the union's set). The generator the design registers for this table should write each item once. Carry: R11-PRE-SHARED-FILES (items e5a080c4)"
+    "From #3551 (r10-selftest-scope-union-guard), body item e5a080c4: dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES: `write_table`'s `compact_probes` appends every `D/**` probe after `collapse`, so an item can be listed twice (main's table held 13 such duplicates, removed here by the union's set). The generator the design registers for this table should write each item once. Carry: R11-PRE-SHARED-FILES (items e5a080c4)",
+    "dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES (part 1b, countermeasure A): the bot that commits a refused drift step's `selftest-closures` artifact from main's run is not built here. Until it lands, a red drift step on main is repaired as this pull request did it: the artifact is unioned over the table by `union_record`, and the replay above shows 0 refusals for that artifact. The artifact is already a union (`union_entries`), so the bot needs no merge logic of its own, only `union_record` over the live table at its own head. Carry: R11-PRE-SHARED-FILES",
+    "dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES: `write_table`'s `compact_probes` appends every `D/**` probe after `collapse`, so an item can be listed twice (main's table held 13 such duplicates, removed here by the union's set). The generator the design registers for this table should write each item once. Carry: R11-PRE-SHARED-FILES"
    ],
    "resume": {
     "stage": "not-started",
@@ -1605,13 +1608,13 @@
    ],
    "source": "outside",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-contributor-cycle-p3",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M, the carries are the items), opus; reviewer opus",
     "note": "overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-STANDING-SCRIPTS): round-11 pickup: the outside contract seam of R10-OUTSIDE-CONTRIBUTOR-CYCLE (carries-open); shares merge_train.py with R11-INTAKE-R10-RESIDUE and R11-PRE-STANDING-SCRIPTS, distinct seam (the outside contract calls), merged in train order",
-    "pr": null
+    "pr": 3619
    }
   },
   {
@@ -2115,13 +2118,13 @@
     "Split from R11-INTAKE-R10-RESIDUE carry 175 (moved to R11-PRE-BRIEFS-CENSUS): its D11 half, the census section 1's table of decision 0018 marks NO-READ for D11, is built in the D11 brief by this group."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-briefs-text",
     "commit": null,
     "last_step": null,
     "next_step": "fire now on the cards at the approved eval/r11 sha",
     "note": "finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" Cards E11-D3/D4/D5/D6/D7/D10/D11/D14, ruled \"Accept all 14 (Recommended)\". Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.; overlap admitted (R11-PRE-FINDER-CONTRACT, R11-PRE-BRIEFS-CENSUS): text dimension briefs; distinct files; policy_budgets.json by rows",
-    "pr": null
+    "pr": 3618
    }
   },
   {
