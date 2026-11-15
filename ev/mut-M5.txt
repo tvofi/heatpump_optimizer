@@ -1,0 +1,14 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index e7352db86e..440066a2cf 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -144,7 +144,7 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1> <sha>
+   if [ "$2" = owner ] && ! [[ "$3" =~ ^[0-9]{6,}$ ]]; then
+     echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1
+   fi
+-  HEAD_WHY=$(outside_is_mains outside) || { echo "OUTSIDE $HEAD_WHY"; return 1; }
++  :
+   if ! HEAD_WHY=$(head_is_ours $R "$1"); then
+     # Only app mode merges a fork head, and only where the contract admits this head.
+     { [ "$2" = app ] && [[ "$HEAD_WHY" == CROSS-REPOSITORY:* ]]; } || { echo "OUTSIDE $HEAD_WHY"; return 1; }

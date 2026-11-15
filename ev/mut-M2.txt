@@ -1,0 +1,14 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 3d26371855..68bd592379 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3364,7 +3364,7 @@ class Train:
+         if self.head(pr) != h:
+             raise Stop("approve", "head moved")
+         fork = self.fork_head(pr)
+-        if fork is not None and not self.real:
++        if False:
+             # A rehearsal merges the head into a branch of ours too: a fork head is put to the
+             # contract on every base (on main, by `approve` below), and its base rule refuses it here.
+             self.outside_contract(pr, h, fork)

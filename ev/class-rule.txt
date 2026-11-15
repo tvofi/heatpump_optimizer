@@ -1,0 +1,80 @@
+.github/workflows/governance.yml:1245:      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+.github/workflows/governance.yml:1250:          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+.github/workflows/pr-contract.yml:219:          # The whole answer, for tools/pr/outside.py (decision 0017), which
+.github/workflows/pr-contract.yml:362:          # neither App, policy_lint spawns the base's tools/pr/outside.py (the
+.github/workflows/tests.yml:1758:        # So the skip arm is for a head of this repository; tools/pr/outside.py's
+.github/workflows/tests.yml:1769:          # (outside.py's self-test refuses the inline form in any run: block).
+tools/audit/seat/bus.sh:366:# fetched. So outside.py, the allowlist, CODEOWNERS, policy_lint.mjs,
+tools/audit/seat/bus.sh:380:  if [ -f "$t/main/tools/audit/seat/bus.sh" ] && [ -f "$t/main/tools/pr/outside.py" ]; then
+tools/audit/seat/bus.sh:383:    printf 'bus: REFUSE: adopt: %s'"'"'s main (%s) holds no outside contract (tools/pr/outside.py)\n' "$REMOTE" "$m" >&2; rc=1
+tools/audit/seat/bus.sh:405:  out=$(python3 -I "$ROOT/tools/pr/outside.py" check --repo "$REPO" --pr "$pr" --ref "$m" --comment "$cid" 2>&1); rc=$?
+tools/audit/seat/bus.sh:406:  [ $rc = 0 ] || die "adopt: #$pr is not adopted by main's outside.py at ${m:0:12} (rc $rc): $(tr '\n' ' ' <<< "$out")"
+tools/audit/seat/bus.sh:2514:  # main's copy decides: a main whose outside.py refuses everything refuses this adoptable head.
+tools/audit/seat/bus.sh:2516:  ag checkout -q main; printf 'print("REFUSE: MAIN-COPY-RAN")\nraise SystemExit(1)\n' > "$A/src/tools/pr/outside.py"; ag commit -qam "main's outside.py refuses"; ag push -q origin main
+tools/audit/seat/bus.sh:2517:  arefuse "by MAIN's copy of outside.py, not this checkout's (which admits)" "MAIN-COPY-RAN"
+tools/audit/seat/bus.sh:2520:  ag rm -q tools/pr/outside.py; ag commit -qm "main without the contract"; ag push -q origin main
+tools/audit/seat/merge_pr.sh:17:# cross-repository is tools/pr/outside.py's answer over the pulls API object,
+tools/audit/seat/merge_pr.sh:19:# head merges only where outside.py's whole contract (`check`) admits this head.
+tools/audit/seat/merge_pr.sh:27:OUTSIDE=$PWD/tools/pr/outside.py  # never from the environment; the self-test asks this tree's own copy
+tools/audit/seat/merge_pr.sh:29:# Whose head <pr> is, by outside.py's own reading: prints `OURS` (rc 0), or
+tools/audit/seat/merge_pr.sh:48:    cross = mod.cross_repository(facts, repo)  # outside.py's one definition, never re-typed here
+tools/audit/seat/merge_pr.sh:49:except Exception as e:  # fail closed: outside.py's answer, or none
+tools/audit/seat/merge_pr.sh:54:          "class O is outside.py's approve subcommand from our own read (decision 0017)")
+tools/audit/seat/merge_pr.sh:60:# outside.py runs from origin/main's blob or not at all, as the train's does
+tools/audit/seat/merge_pr.sh:61:# (`Train.outside_is_mains`): `outside_is_mains outside` compares outside.py alone,
+tools/audit/seat/merge_pr.sh:66:  if [ "$1" = outside ]; then rels=tools/pr/outside.py
+tools/audit/seat/merge_pr.sh:81:# outside.py's whole contract for the cross-repository <pr>, at origin/main:
+tools/audit/seat/merge_pr.sh:211:  # outside.py is part 1's (decision 0017), and the real one is asked: its `pull_facts` reads the pulls object.
+tools/audit/seat/merge_pr.sh:248:  FAKE_PULL=$T/other.json ck "owner mode refuses a pulls object of another pull request: the real outside.py's pull_facts reads it" 1 "is not #7" false "$T/live.json" -- 7 owner 4100000001 0
+tools/audit/seat/merge_pr.sh:250:  OUTSIDE=$T/absent.py ck "owner mode with no outside.py to ask refuses, fail closed" 1 "OUTSIDE REFUSE: $T/absent.py could not say" false "$T/live.json" -- 7 owner 4100000001 0
+tools/audit/seat/merge_pr.sh:251:  # App mode asks outside.py's whole contract on a cross-repository head (r11-outside-contributor-cycle-p3
+tools/audit/seat/merge_pr.sh:268:    ck "app mode on a cross-repository head the outside contract refuses refuses with outside.py's reason (decision 0017)" 1 "OUTSIDE CONTRACT REFUSES #7 at cccccccccccc: REFUSE: class R: tools/x.py" false "" -- 7 app "" 0
+tools/audit/seat/merge_pr.sh:280:  # outside.py runs from origin/main's blob or not at all, as the train's (`Train.outside_is_mains`,
+tools/audit/seat/merge_pr.sh:284:    FAKE_STALE=tools/pr/outside.py ck "$m mode with a checkout whose outside.py is not origin/main's refuses before executing it, on a head of ours" 1 "OUTSIDE REFUSE: tools/pr/outside.py in this checkout is not origin/main's copy" false "$T/live.json" -- 7 $m 4100000001 0
+tools/audit/seat/merge_pr.sh:292:  FAKE_STALE=tools/policy/policy_lint.mjs ck "null control: a head of ours is read whatever the contract's other files say (only outside.py is compared before the read)" 0 "" false "" -- 7 app "" 0
+tools/audit/seat/merge_pr.sh:294:  # the arguments it passes, on the real outside.py (a renamed entry point fails here, not on a merge).
+tools/audit/seat/merge_pr.sh:301:  then pass=$((pass + 1)); echo "  ok   the real outside.py takes every call head_is_ours and outside_contract make, as they make it"
+tools/audit/seat/merge_pr.sh:302:  else fail=$((fail + 1)); echo "  FAIL the real outside.py takes every call head_is_ours and outside_contract make, as they make it"; fi
+tools/audit/seat/merge_pr.sh:359:  cp "$T/outside_stub.py" "$mm/tools/pr/outside.py"  # the real pull_facts and cross_repository; `check` is FAKE_CHECK's
+tools/audit/seat/merge_train.py:1250:# read the owner's" is tools/pr/outside.py (decision 0017). The train loads it
+tools/audit/seat/merge_train.py:1254:OUTSIDE_PATH = "tools/pr/outside.py"
+tools/audit/seat/merge_train.py:2664:        None when it is a branch of ours: outside.py's own reading of the pulls
+tools/audit/seat/merge_train.py:2670:        read is a Stop: an unread head is never taken for ours. The outside.py
+tools/audit/seat/merge_train.py:2690:        except Exception as e:  # fail closed: outside.py's answer, or none
+tools/audit/seat/merge_train.py:2706:        (OUTSIDE_MAIN_COPIES for the contract, outside.py alone before
+tools/audit/seat/merge_train.py:2723:        """outside.py's WHOLE contract for the cross-repository <pr> at the
+tools/audit/seat/merge_train.py:2733:        returned is outside.py's own."""
+tools/audit/seat/merge_train.py:2759:        reviewer wrote: there class O is outside.py's approve subcommand alone,
+tools/audit/seat/merge_train.py:2764:                       "verdict it would rest on is the contributor's reviewer's; class O is outside.py's approve "
+tools/audit/seat/merge_train.py:2934:        A cross-repository head first passes outside.py's whole contract at
+tools/audit/seat/merge_train.py:2967:            # code-owner rule wants is already there -- the owner's, or outside.py's under
+tools/audit/seat/merge_train.py:5061:    # Whether a head is a fork's is tools/pr/outside.py's reading of a pulls API
+tools/audit/seat/merge_train.py:5274:        if "gate" in world:  # a pulls object is answered: the real reader, over a stubbed outside.py
+tools/audit/seat/merge_train.py:6254:    # DECISION 0017, PART 2: a head that is a fork's. tools/pr/outside.py is part
+tools/audit/seat/merge_train.py:6259:    # The real `check` is driven below ("the real outside.py"). FORK names are
+tools/audit/seat/merge_train.py:6329:    check("fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from "
+tools/audit/seat/merge_train.py:6337:    check("fork head null control: a head of ours, read by the same reader, is asked of outside.py and never "
+tools/audit/seat/merge_train.py:6343:    check("fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the "
+tools/audit/seat/merge_train.py:6348:                       ("refused by outside.py", pull_of(FORK, FREF, boom=True)),
+tools/audit/seat/merge_train.py:6359:    # Carry 8 (r11-outside-contributor-cycle-p3): the checkout's outside.py is compared with
+tools/audit/seat/merge_train.py:6372:    check("fork head null control: a head of ours read from main's outside.py is ours, whatever another of the "
+tools/audit/seat/merge_train.py:6389:    # THE REAL tools/pr/outside.py (decision 0017, part 1): its own `pull_facts` and `check`, over this
+tools/audit/seat/merge_train.py:6418:    check("the real outside.py: a fork head of an allowlisted author changing class-F paths only is ADMITTED by its "
+tools/audit/seat/merge_train.py:6424:    check("the real outside.py null control: a head of ours is read by its `pull_facts` as ours, merged, and never "
+tools/audit/seat/merge_train.py:6432:        check(f"the real outside.py: {name} parks the fork head [OUTSIDE] with the contract's own words, nothing "
+tools/audit/seat/merge_train.py:6447:              "that starts with outside.py's `OUTSIDE: `, not any line naming the head",
+tools/audit/seat/merge_train.py:6491:    for name, world in (("a checkout whose outside.py is not origin/main's blob", {"stale": OUTSIDE_PATH}),
+tools/audit/seat/merge_train.py:6499:    check("fork head (carry 23): the files the contract must hold as origin/main's own are outside.py, the mandate "
+tools/audit/seat/merge_train.py:6501:          OUTSIDE_MAIN_COPIES == ("tools/pr/outside.py", "tools/policy/budget_raise_gate.py",
+tools/audit/seat/merge_train.py:6507:    check("... and that list is exactly what the real outside.py opens under its root or reads at the ref",
+tools/audit/seat/merge_train.py:6512:        (Path(d) / "outside.py").write_text("def cross_repository(pull, repo):\n    return 'from the file'\n")
+tools/audit/seat/merge_train.py:6513:        globals()["OUTSIDE_PATH"] = str(Path(d) / "outside.py")
+tools/audit/seat/merge_train.py:6523:    check("the outside.py loader executes the file at its path and hands the module back",
+tools/audit/seat/queue_pre_flight.py:508:    # through the real tools/pr/outside.py; every row above answers it as a branch of ours.
+tools/audit/seat/remerge_main.sh:16:# merge_train.py passes it when tools/pr/outside.py reports the head cross-repository, with <branch>
+tools/policy/policy_lint.mjs:4014:    // The spawn that decides it in pr-contract, over a stub of outside.py.
+tools/policy/policy_lint.mjs:7167:// API's answer as a file and the base ref, tools/pr/outside.py (pinned with
+tools/policy/policy_lint.mjs:7181:  const spawn = run ?? ((args) => spawnSync('python3', ['-I', at('tools/pr/outside.py'), ...args], { cwd: ROOT, encoding: 'utf8' }))
+tools/policy/policy_lint.mjs:7186:  return { admitted: false, problems: [`the outside-contributor contract (decision 0017, tools/pr/outside.py) refuses this pull request: ${said || `it exited ${r.status} and said nothing`}`] }
+tools/policy/policy_lint.mjs:7201:  // is passed only after tools/pr/outside.py admitted this author's pull
+tools/policy/policy_lint.mjs:7334:  // `--outside-author` is adoption's form (bus.sh adopt, after main's outside.py admitted it).
