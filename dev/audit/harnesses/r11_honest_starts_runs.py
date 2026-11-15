@@ -78,13 +78,15 @@ and each check whose name starts ``acceptance`` is printed with its verdict
 and its detail string. Beside them, on the same solves, the two clauses the
 round-4 repair replaced: the order of the two switch weights in starts on
 the modulating clamped install, and the shipped energy within one floor step
-of the relaxed plan's, with the figures each reads. The replaced clauses are
+of the relaxed plan's, with the figures each reads, and the two start counts
+of the kept clause. The replaced clauses are
 the null control of the restated ones: they read False under the kernels the
 restated checks read True on. Runs on a tree before the restatement too,
 where the checks printed are the replaced clauses themselves. Exits 1 when
-an acceptance check fails or a block does not complete under any kernel; a
-kernel this processor cannot run is printed as such and counted as not
-completed.
+a block fails a check or does not complete under any kernel, so the mode
+with one kernel named is a command ``tools/audit/seat/mutant_run.py`` can
+drive; a kernel this processor cannot run is printed as such and counted as
+not completed.
 """
 from __future__ import annotations
 
@@ -430,6 +432,11 @@ def _kp_probe(name, cond, detail="", _real=_kp_check):
         cells = {k: v for k, v in g["_hsr_engaged"].items() if k[0] > 0 and not k[1]}
         kwh = {k: float(g["np"].sum(v.space - v.relaxed[-1])) * 0.25 for k, v in cells.items()}
         step = {k: g["_hsr_runs"].floor_kw(k[2]) * 0.25 for k in cells}
+        count, free = g["_hsr_count"], {k: g["_hsr_solve"](0.0, False, k[2]).space for k in cells}
+        print("KEPT", all(count(v.space, k[2]) <= count(free[k], k[2]) + 1e-9 for k, v in cells.items()),
+              "| priced starts no higher than the unpriced plan's by the same count |",
+              "; ".join(f"floor {k[2]} kW: {count(v.space, k[2]):g} against {count(free[k], k[2]):.2f}"
+                        for k, v in cells.items()), flush=True)
         print("REPLACED", all(abs(kwh[k]) <= step[k] + 1e-9 for k in cells),
               "| shipped energy within one floor step of the relaxed plan's |",
               "; ".join(f"floor {k[2]} kW: {kwh[k]:+.4f} kWh against a step of {step[k]:.4f}" for k in cells),
@@ -450,7 +457,7 @@ def _kernel_blocks(kernel: str) -> list[tuple[str, int, list[str]]]:
             env=env, capture_output=True, text=True)
         lines = (run.stdout + run.stderr).splitlines()
         out.append((label, run.returncode, [
-            ln for ln in lines if ln.startswith(("ACCEPT ", "REPLACED ")) or "FEATURES BLOCK" in ln]))
+            ln for ln in lines if ln.startswith(("ACCEPT ", "KEPT ", "REPLACED ")) or "FEATURES BLOCK" in ln]))
     return out
 
 
@@ -466,8 +473,8 @@ def kernels() -> int:
                 f"exit {rc}" if done else f"did not complete (exit {rc}): not runnable on this processor, or the block raised"))
             for ln in lines:
                 print("  " + ln)
-            bad += not done or any(ln.startswith("ACCEPT False") for ln in lines)
-    print(f"kernels {', '.join(names)}: blocks with a failed acceptance check or not completed {bad}")
+            bad += not done or rc != 0
+    print(f"kernels {', '.join(names)}: blocks that failed a check or did not complete {bad}")
     return 1 if bad else 0
 
 
