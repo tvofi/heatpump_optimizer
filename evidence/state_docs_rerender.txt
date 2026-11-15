@@ -1,0 +1,11 @@
+state_docs re-render at b293f317913042a0c7c3b40dc7e0df81c97923ef (pr-state = the committed RESUME-CURRENT's own PR table): git status --short lines: 0; git diff --quiet: IDENTICAL
+round state: handoff/audit-r10-plan at handoff/round10/state/
+generated handoff/round10/state/FLOW-BOARD.md: 2857 bytes
+generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 3852 bytes
+generated handoff/round10/state/PLAN-TABLE.md: 124351 bytes
+generated handoff/round10/state/RESUME-CURRENT.md: 1262 bytes
+ready: would push handoff/audit-r10-plan at f24dd1f204c078bbdd63d25b15b4441ab0f9d559 (no --push)
+mirrored handoff/round10/state/FLOW-BOARD.md -> dev/programme/round10/state/FLOW-BOARD.md
+mirrored handoff/round10/state/NEXT-SESSION-PROMPT.md -> dev/programme/round10/state/NEXT-SESSION-PROMPT.md
+mirrored handoff/round10/state/PLAN-TABLE.md -> dev/programme/round10/state/PLAN-TABLE.md
+mirrored handoff/round10/state/RESUME-CURRENT.md -> dev/programme/round10/state/RESUME-CURRENT.md
