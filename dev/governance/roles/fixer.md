@@ -53,7 +53,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    prints, is stale after you write it: state the rule or name the instrument,
    never the number. A learner or guard change is measured at both ends of its
    input range — an install with zero evidence, and one on the clamp — a fix
-   has been worse than its bug before.
+   has been worse than its bug before. A guard that refuses an actuator write
+   is also driven from the previous release's persisted state, and its release
+   needs no person.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
@@ -73,7 +75,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
-   (`ci-autofix.md`'s wait starts at the PR), and the body passes
+   (`ci-autofix.md`'s wait starts at the PR; a red `UNDER-SCOPED` or
+   `INHERITED CLAIMS` is answered by naming it), and the body passes
    `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
    the carry check); the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
@@ -292,11 +295,6 @@ your word.
 **A finding in your own group's seam is built in this PR, not carried.**
 `Carry: <own group>` only names a pending owner or orchestrator ruling, or a
 split part the approved plan names.
-
-## Before you hand off: answer any check your branch turned red
-
-`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement section states.
-`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`).
 
 ## Past three rounds, re-cut rather than repair
 
