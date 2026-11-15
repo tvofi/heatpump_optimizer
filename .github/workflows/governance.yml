@@ -491,6 +491,20 @@ jobs:
         if: steps.scope.outputs.scorecard == 'true'
         run: python3 -I tools/audit/seat/scorecard.py --self-test
 
+      # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
+      # planted-defect recall's refusals and its count after the judge, and the
+      # two-finder overlap estimate; each holds an empty input to unread, never
+      # a value, and kills one mutant per predicate, offline.
+      - name: Show planted-defect recall refusing an unsound plant and reading unread on no input
+        id: plant-recall
+        if: steps.scope.outputs.plant-recall == 'true'
+        run: python3 -I tools/audit/seat/plant_recall.py --self-test
+
+      - name: Show the two-finder overlap estimate counting after the judge and reading unread on no input
+        id: finder-overlap
+        if: steps.scope.outputs.finder-overlap == 'true'
+        run: python3 -I tools/audit/seat/finder_overlap.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.

@@ -4401,6 +4401,19 @@
    "objects": false,
    "git": []
   },
+  "finder-overlap": {
+   "run_sha": "acc165c99b344a4c6975668d5aca24c15529e9fb81964e9e4b9d0f1fb355786c",
+   "files": [
+    "tools/audit/seat/finder_overlap.py"
+   ],
+   "probes": [
+    "."
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "fragment-check": {
    "run_sha": "90a2ee3e4d234a1f84217fe48e0e88ef1d01dafc9a49c331c518bf0a43063d7b",
    "files": [
@@ -5401,7 +5414,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",
@@ -5813,6 +5825,19 @@
    "objects": false,
    "git": []
   },
+  "plant-recall": {
+   "run_sha": "ffb2f1b4145371bbf55365116879ac7177af381841fa04edd56d0b632b89e150",
+   "files": [
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    "."
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "policy-lint-mutants": {
    "run_sha": "3e1b10dc363352e2251bc6cdc07107e2356a527ac64ad9c790f61a2c37015d9f",
    "files": [
@@ -5947,7 +5972,6 @@
     ".claude/workflows/wave-3l-groups.json",
     ".claude/workflows/wave-x-groups.json",
     ".cursor/**",
-    ".cursor/**",
     ".github/.gitattributes",
     ".github/actions/.gitattributes",
     ".github/actions/nightly-ha/.gitattributes",
@@ -5963,7 +5987,6 @@
     "dev/.gitattributes",
     "dev/archive/.gitattributes",
     "dev/archive/audits/.gitattributes",
-    "dev/archive/carries/**",
     "dev/archive/carries/**",
     "dev/archive/experiments/.gitattributes",
     "dev/archive/experiments/ledger-layout/.gitattributes",
@@ -6200,7 +6223,6 @@
     "dev/audit/rounds/round4/D9/reports/.gitattributes",
     "dev/audit/rounds/round4/ledger/.gitattributes",
     "dev/audit/rounds/round5-fix/**",
-    "dev/audit/rounds/round5-fix/**",
     "dev/audit/rounds/round5/.gitattributes",
     "dev/audit/rounds/round5/D0/.gitattributes",
     "dev/audit/rounds/round5/D0/seat-a/.gitattributes",
@@ -6222,12 +6244,9 @@
     "dev/audit/rounds/round5/D2/seat-a/.gitattributes",
     "dev/audit/rounds/round5/D2/seat-b/.gitattributes",
     "dev/audit/rounds/round5/D3/**",
-    "dev/audit/rounds/round5/D3/**",
     "dev/audit/rounds/round5/D4/.gitattributes",
     "dev/audit/rounds/round5/D4/seat-a/.gitattributes",
     "dev/audit/rounds/round5/D7/**",
-    "dev/audit/rounds/round5/D7/**",
-    "dev/audit/rounds/round5/D8/**",
     "dev/audit/rounds/round5/D8/**",
     "dev/audit/rounds/round5/D9/.gitattributes",
     "dev/audit/rounds/round5/D9/seat-b/.gitattributes",
@@ -6250,7 +6269,6 @@
     "dev/audit/rounds/round6/D8/.gitattributes",
     "dev/audit/rounds/round6/D9/.gitattributes",
     "dev/audit/rounds/round7-fix/**",
-    "dev/audit/rounds/round7-fix/**",
     "dev/audit/rounds/round7/.gitattributes",
     "dev/audit/rounds/round7/D0/.gitattributes",
     "dev/audit/rounds/round7/D1/.gitattributes",
@@ -6267,7 +6285,6 @@
     "dev/audit/rounds/round7/D7/.gitattributes",
     "dev/audit/rounds/round7/D8/.gitattributes",
     "dev/audit/rounds/round7/D9/.gitattributes",
-    "dev/audit/rounds/round8-fix/**",
     "dev/audit/rounds/round8-fix/**",
     "dev/audit/rounds/round8/.gitattributes",
     "dev/audit/rounds/round8/D0/.gitattributes",
@@ -6779,7 +6796,6 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
-    "tools/audit/round4/**",
     "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/audit/seat/.gitattributes",
@@ -7749,7 +7765,6 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
-    "tools/audit/round4/**",
     "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
@@ -9140,7 +9155,6 @@
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
     "tools/audit/round4/**",
-    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/ci/fixtures/.gitattributes",
@@ -9505,7 +9519,6 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
-    "tools/audit/round4/**",
     "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
