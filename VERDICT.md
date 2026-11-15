@@ -1,43 +1,59 @@
-Fix review: blocked 467f58500d12be0b6907839a17be76432555851b introduced-red: tests / fast (3.14) fails tests/doc_claims.py because dev/README.md's machinery figure still cites the postmerge.py state_docs.py call that this diff deletes
+Fix review: merge 7f4a9be89c98d6ff59dc396c479b95b73b761cf6
 
-bus-nonce: cfdd5337be09e2ec1773c5af44549e41
+bus-nonce: c672b47338407dcd219cca608cbdd231
 
-## Block
+## Findings
 
-- **The red.** `merge_train.py classify 467f58500d12be0b6907839a17be76432555851b --pr 3451` ended `RED 467f58500d12be0b6907839a17be76432555851b pending: none red: gate` at 20:44:25Z (ev/classify.txt). Under the roll-up `gate`, the head's required runs read `tests / fast (3.14)` failure (job 132134194288) and `budget-raise-gate / budget-raise-gate` failure (job 132156990789). Both are in the set `merge_train.py owed-reds` prints (ev/owed_reds.txt). The budget-raise-gate red is the designed refusal that the body answers under `## Raise justification`. It is not the block.
-- **The red is this diff's.** Job 132134194288's log ends `1 TEST SCRIPT(S) FAILED`, and the failing script is `>>> FAILED: python3 tests/doc_claims.py`, `2 of 348 checks FAILED`. I re-ran it locally:
-  - At the head (worktree detached at 467f58500d): `python3 tests/doc_claims.py` prints `2 of 348 checks FAILED`, rc 1 (ev/doc_claims_head.log):
-    - `FAIL every arrow is cited, every citation holds in the tree, and the figure has one entry  [postmerge.py -runs-> state_docs.py: tools/audit/seat/postmerge.py no longer holds '/state_docs.py", "--repo", repo, "--push"']`
-    - `FAIL reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)  [45 of 45]`
-  - At origin/main e23124ff6e, the head's merge base: `ALL 348 checks PASSED`, rc 0 (ev/doc_claims_main.log).
-- **Cause.** This diff's `tools/audit/seat/postmerge.py` hunk deletes the `("docs", [*PY, f"{seat}/state_docs.py", "--repo", repo, "--push"], True)` step and adds the pin "postmerge runs no state_docs.py (the plan-beat owns the state docs)" (ev/postmerge_own.diff). `dev/README.md`, which this diff also edits (its step 6 "Record"), still draws the arrow `| postmerge.py | runs | state_docs.py | ... /state_docs.py", "--repo", repo, "--push" |` at line 402 (ev/readme_figure_rows.txt). R10-ARCH-DOCS (#2395, 62a7d7a57f) drew that figure, and doc_claims.py checks each of its arrows against the tree. The second FAIL is that check's anchor arm, which goes red with the first.
-- **The body's answer does not cover it.** `## Red checks` answers `tests / fast (3.14)` as main's `FAIL combi_type_branch census` in `tests/features.py`. At this head features.py is not the failing script, and main passes doc_claims.py. pr-contract (job 132154826504, success) checked that the check is named, not what the answer says (step 11), so this verdict does not grade the answer. The block is the introduced red itself. It is reachable earlier and cheaper: `python3 tests/doc_claims.py` at the head takes about 12 s of CI wall time (job log, "wall clock"). Whether `prepr.sh`'s scoped run selects it for a postmerge.py change is not measured here.
-- **Repair.** In the same diff, drop or redraw the `postmerge.py runs state_docs.py` arrow in `dev/README.md`'s machinery figure, and the line-281 `docs["state_docs.py"]` text if it describes postmerge, so that it matches the plan-beat ownership this diff states. Then re-run `python3 tests/doc_claims.py` to `ALL ... checks PASSED`. A policy-free docs fix inside the PR's own scope, so no new carry is needed.
+- The PR body's text is stale in two places at this head. `pr-contract` passed it, and the Raise justification does carry the live raise, so neither blocks. (1) Under `## Red checks`, the `budget-raise-gate` bullet still describes the old key removal (`489 -> None`). The live red at 7f4a9be8 is a raise, `36 -> 40` lines and `489 -> 563` tokens. (2) The top section's older "This round's commits" block still says `grep -c proposal-triage dev/governance/config/policy_budgets.json prints 0 at this head`. At 7f4a9be8 that command prints 2. The fixer can refresh both lines at the next body push. Carry: dismissed: body hygiene on a superseded round's text, no later stage reads it, and the live raise is answered under `## Raise justification`
 
 ## Evidence
 
-- **Round.** This is a later round. The dispatch names the reviewed head 07941da7b5cbbf86cef28dd2632eb3bc0c870708. The packet's `## Review scope` reads `full`, because no verdict on verdict/3451 names 07941da7. The last merge verdict on the line is at dcf5e329dceabbf35716800fbacf4e2ff58741bd (verdict/3451 aafa0bd2), an ancestor of 07941da7. `review_carry.py` prints `FRESH-REVIEW` for both 07941da7 and dcf5e329 against the head. This is at least the fifth review round on #3451's line, so `fixer.md`'s re-cut rule applies from the fourth round. That is the orchestrator's call.
-- **Own-diff interdiff against the last merge verdict.** I took the `+`/`-` line set of the PR's own three-dot diff at dcf5e329 (base a18e2e9d) and compared it with the one at the head (base e23124ff6e) (ev/own_delta_vs_dcf5e329.txt). It differs only in removed lines of text that main reworded under the PR:
-  - `orchestrator.md`'s standing-set bullet and LOG sentence;
-  - the deleted `proposal-triage.md` (main's a75d2565 rewording).
-
-  Every added line is identical. The comparison against 07941da7 gives the same result. postmerge.py's own hunk is unchanged since dcf5e329, so the red arises from the interaction with main's figure, re-graded at this head.
-- **Merge resolutions (body `## Head`, repair 8), re-checked at the head:**
-  - **Main's LOG rule.** Main added "Blocking no production merge: LOG" to the deleted proposal-triage.md. It survives as `dev/audit/README.md:91` "is accepted only when its friction blocks a production merge, else ruled LOG." Body's null control reproduced: with that sentence removed, `policy_lint.mjs` still prints `TOTAL: 0 error(s) across 50 policy file(s)`. No lint arm covers it, as the body says.
-  - **Main's "LOG, evidence" verdict line.** Its grammar went with the file. The `## P<n>` ruling format had already been deleted at the reviewed dcf5e329 (card C6), so this merge loses nothing new.
-  - **The harness map.** It holds `roster_lib-1`/`-2` and `body_push-5`/`-6` (ev/checks.txt).
-    - `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py body_push-5 body_push-6 roster_lib-1 roster_lib-2 S35 S36` prints `RESULT survivors=0`, rc 0 (ev/harness_mutants.log). This matches the body.
-  - **The registrations.** `ci_predict.py` registers both `step_replay_self_test` and `roundref_self_test` (lines 1569-1570).
-    - `ci_predict.py --self-test` prints 0 failed.
-    - `handoff_push.sh --self-test` prints `6 checks, 0 failed`, rc 0.
-- **Cheap checks at the head:**
-  - `policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
-  - `--budgets`: rc 0 (ev/budgets.txt).
-  - `rules_sync.mjs --check`: `RULES-SYNC ok`.
-  - `brief_lint.mjs`: rc 0.
-  - `tests/structure.py`: `STRUCTURE RATCHET PASSED` (ev/structure.txt).
-- **Merge with main.** `git merge-tree --write-tree origin/main 467f58500d` exits 0 (ev/merge_tree.txt). origin/main e23124ff6e is the head's merge base.
-- **Versions.** The three-dot diff touches no `VERSION`, manifest, `RELEASE_NOTES.md`, claim file or `custom_components/` path. Its only `*_budgets.json` change is `dev/governance/config/policy_budgets.json`, which drops the two keys of the deleted file.
-- **Head.** The body's `## Head` names 467f58500d12be0b6907839a17be76432555851b. `refs/pull/3451/head` read 467f58500d before this push (ev/HEAD.txt).
-- **CI.** `instrument-self-tests` is a success at the head, so no INTRODUCED instrument red. The other required contexts are a success (ev/classify.txt, and the check-runs read at 20:44Z).
-- **Mutation.** The diff writes no `custom_components/` line. The production mutation lane `tests / mutation` is a success. The resolution's load-bearing entries are graded by the harness run above.
+- **Round.** This is a delta round over the reviewed head bd0f383b52f98d73c15d9619ae4efeaa59024070 (`Fix review: merge`, probe/rev-3451-43597925, which had no findings).
+  - The packet reads `Review scope: full` only because verdict/3451 does not name bd0f383b. The brief fixes the scope as the delta.
+  - `review_carry.py bd0f383b 7f4a9be8` prints FRESH-REVIEW, because 7a12cec875 is a hand-resolved merge. So the delta was read in full.
+  - The PR's measured head is 7f4a9be89c98d6ff59dc396c479b95b73b761cf6, and the body's `## Head` names the same SHA.
+- **The PR's own delta.** I compared the PR's own diff at bd0f383b (three-dot from base 8af37bdf) with the one at 7f4a9be8 (base 29b3e5a7), as a sorted set of `+` and `-` lines (ev/own_delta.txt). It contains only these changes:
+  - 921da41b4: the restored proposal-triage contract, the orchestrator.md section-5 bullet, the restored citations, and the CLAUDE.md row and its paid wording.
+  - e69850297: one bus.sh fixture line. Its closures.json entry leaves the PR's diff, because closures.json is now byte-identical to main.
+  - 7a12cec875: the hand resolution of the app_approve.sh `carry()` union, plus a fixture-only change (`refs/test/h` becomes `refs/heads/carried-bare`, and that branch is deleted after the arm).
+  - The other merges are automatic: 939c91fc0e, ffaa8b57c9 and 7f4a9be89c each equal `git merge-tree` of their parents. No `custom_components/` line is in the delta, so the scope does not widen.
+- **Check (1): the repair e6985029 does what its body says.**
+  - At the head, `bash tools/audit/seat/bus.sh --self-test` prints `237 checks, 0 failed`, rc 0 (ev/bus_selftest_head_tail.txt).
+  - **Mutant.** I removed `HPO_BUS_CLASSIFY="bash $W/classifier"` from `adopt_run`. The self-test then prints `237 checks, 1 failed`, rc 1, with `FAIL ... and bus.sh confirm signs and posts it as any reviewer's proposal` (ev/bus_selftest_mutant_noclassifier.txt). So the line is load-bearing and is the C8 interaction the body names.
+  - **The closures.json entry.** `PYTHONPATH=tests/hastub python3 tests/entities.py` ran at the head and again with the `proposal-triage.md` entry deleted (ev/entities_*.txt).
+    - At the head it prints `ALL 2723 ENTITY CHECKS PASSED`, rc 0.
+    - **Mutant.** With the entry deleted it prints `2 of 2723 ENTITY CHECKS FAILED`, rc 1. One failure is `FAIL every tracked file is either measured or deliberately classified [these force the FULL suite when touched: dev/governance/roles/proposal-triage.md]`; the other is the citation-sources arm. So the entry is load-bearing.
+  - `bash tools/pr/app_approve.sh --self-test` prints `363 checks, 0 failed`, rc 0, which matches the body.
+  - `roster_edit.py --self-test` prints `311 checks, 0 failed`, matching the body.
+  - `outside_intake.py --self-test` prints `all checks passed`.
+  - `policy_lint.mjs` prints `TOTAL: 0 error(s) across 52 policy file(s)`. The body's 51 was counted at 921da41b, before main's merge added a file.
+  - `rules_sync.mjs --check` prints `RULES-SYNC ok`, `brief_lint.mjs` exits rc 0, and `tests/structure.py` prints `STRUCTURE RATCHET PASSED` (ev/checks_head.txt).
+  - The prior verdict's evidence still applies. Neither `dev/README.md` nor `tools/ci/selftest_closures.json` is touched by the delta's own lines.
+- **Check (2): the owner ruling on proposal-triage.md.**
+  - `git diff --name-status $(git merge-base origin/main H)...H -- dev/governance/roles/proposal-triage.md` prints `M`, so the file is not deleted (ev/merge_tree_and_triage.txt).
+  - Against main's text, it changes only these places:
+    - The seat sentence becomes the once-per-round paragraph, which quotes "keep it in the once per round shape". It drops "under `standing.md`", as a seat that runs once per round is not a standing one.
+    - "a next-round roster group".
+    - "the round's" batch file.
+  - Bar, Machinery, exemption, ruling format and "You never" are main's text word for word. Nothing is reshaped beyond the ruling.
+  - `standing.md` and `tests/entities.py`'s standing-terms check still omit the seat. That is consistent with it no longer being a standing seat.
+- **Check (3): budgets on the head merged with origin/main 2a257fce** (merge commit 8f042edb, tree eddab085), ev/budgets-merged.txt:
+  - corpus: about 69077 tokens, cap 69333.
+  - always-loaded: about 3604, cap 3349 + band 500 = 3849.
+  - CLAUDE.md: 213/221 lines, 3604/3605 tokens.
+  - proposal-triage.md: 40/40 lines, 563/563 tokens.
+  - role fixer: 6279/5852 + band 500; role record: 7236/7405 + 500; role policy: 10012/9958 + 500.
+  - rc 0.
+  - At the bare head: corpus about 69078 (ev/budgets-head.txt).
+- **Step 14: the raise.**
+  - Against main, `policy_budgets.json` moves one cap pair: `proposal-triage.md` lines 36 -> 40 and tokens 489 -> 563.
+  - main's file measures 36/36 lines and 488/489 tokens, so it has no headroom.
+  - The +4 lines and about +75 tokens are exactly the ruled once-per-round paragraph that replaces a two-line sentence. Taking that paragraph out takes away the growth, so the growth is earned by the ruling's text and not by the instrument.
+  - I found no payment the body missed that would improve the code. Of the three payments the body lists, moving the paragraph into orchestrator.md would put the rule in a contract the triage seat does not read.
+- **Merge with main.** `git merge-tree --write-tree origin/main 7f4a9be8` exits 0, tree eddab085a79300930a18df725d4638ca672f1a3b, at origin/main 2a257fce0895e9e1a77d049f879adac438517c3a.
+- **Versions.** The PR's own three-dot diff touches no `VERSION`, manifest, `RELEASE_NOTES.md` or claim file (ev/own_delta.txt and the file list).
+- **CI.**
+  - `merge_train.py classify 7f4a9be89c98d6ff59dc396c479b95b73b761cf6 --pr 3451` exits 4: `APPROVAL-OWED 7f4a9be89c98d6ff59dc396c479b95b73b761cf6 2 budget raise(s), first .claude/workflows/policy_budgets.json: files.dev/governance/roles/proposal-triage.md: 36 -> 40 (a cap went up): a raise is the owner's (0013): tvofi's approval is on 939c91fc0e31, not this head 7f4a9be89c98` (ev/classify.out). Per the brief, I judge the head GREEN; the approval follows this verdict.
+  - Live reds are `budget-raise-gate` and `gate`, both the owed approval, plus `tests / nightly-status`, which is outside `owed-reds` (ev/owed_reds.txt).
+  - `governance / instrument-self-tests` is green, so no introduced step red.
+- **Mutation.** The delta writes no production line, so no mutant is owed beyond the targeted fixture mutant above. CI's `tests / mutation` is a success.

@@ -1,0 +1,30 @@
+  ok   adopt: an allowlisted contributor's merge verdict on a class-F head is proposed on review/7
+  ok   ... its first line the contributor's, with the provenance line and the fork's evidence
+  ok   ... under a dispatch record whose reviewer is outside:<login>
+  ok   ... after main's policy_lint --pr-body and carry_audit.py ran over the live body
+  ok   ... and the throwaway worktree of main is gone
+  ok   ... and bus.sh confirm signs and posts it as any reviewer's proposal
+  ok   adopt refuses a head touching the class-R path tools/pr/x.py, moving nothing
+  ok   adopt refuses a head touching the class-R path .github/workflows/x.yml, moving nothing
+  ok   adopt refuses a head touching the class-R path tests/closures.json, moving nothing
+  ok   adopt refuses a head touching the class-R path tests/golden/x.json, moving nothing
+  ok   adopt refuses a head touching the class-R path tests/structure_budgets.json, moving nothing
+  ok   adopt refuses a head touching the class-R path dev/governance/config/outside_contributors.json, moving nothing
+  ok   adopt refuses a head touching the class-R path newroot.txt, moving nothing
+  ok   adopt refuses a head touching the class-R path scripts/x.sh, moving nothing
+  ok   adopt refuses a head touching a class-O path with no owner read, moving nothing
+  ok   adopt refuses a verdict naming a commit that is not the live head, moving nothing
+  ok   adopt refuses a blocked verdict, moving nothing
+  ok   adopt refuses a comment whose first line is outside the grammar, moving nothing
+  ok   adopt refuses a VERDICT.md whose first line is not the comment's, moving nothing
+  ok   adopt refuses a review commit holding a file beside VERDICT.md and ev/, moving nothing
+  ok   adopt refuses an evidence path with a space, moving nothing
+  ok   adopt refuses a body main's policy_lint refuses, moving nothing
+  ok   adopt refuses a body main's carry_audit refuses, moving nothing
+  ok   adopt refuses a comment by an account that is not the allowlist entry, moving nothing
+  ok   adopt refuses a head branch name a shell would expand, moving nothing
+  ok   adopt refuses by MAIN's copy of outside.py, not this checkout's (which admits), moving nothing
+  ok   adopt-from-main refuses to run from a tree that is not the main it was handed
+  ok   adopt refuses when main holds no outside contract, moving nothing
+bus self-test: 237 checks, 0 failed
+rc=0
