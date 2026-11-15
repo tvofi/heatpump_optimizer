@@ -1,0 +1,7 @@
+MUTANT R1 judge_ratio follows operand deleted
+  FAIL once the meter shows the draw follows the ask, a departure under the nameplate third teaches: 2.0 kW drawing 2.6 on 14 kW folds and is not held, where the same interval with no window is refused for want of evidence (control)  [judge ('awaiting_draw_evidence', 0) / ('awaiting_draw_evidence', 0); cycle (0, 'awaiting_draw_evidence') / (0, 'awaiting_draw_evidence')]
+  ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+1 of 37 FEATURES BLOCK FAILED
+ALL 34 FEATURES BLOCK PASSED
+ALL 78 FEATURES BLOCK PASSED
+driver rc=1

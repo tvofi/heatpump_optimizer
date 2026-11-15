@@ -1,0 +1,7 @@
+MUTANT R3 span close window arg dropped
+  ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+ALL 37 FEATURES BLOCK PASSED
+ALL 34 FEATURES BLOCK PASSED
+  FAIL the span close judges the duty floor capped by the stored running-draw window: on a 3.0 kW minimum a 2.0 kW span folds once the window has metered the pump running at 1.8 kW, and is refused with an empty window  [warm samples 0 ['span_open', 'span_open', 'duty_floor']; empty samples 0 ['span_open', 'span_open', 'duty_floor']]
+1 of 78 FEATURES BLOCK FAILED
+driver rc=1

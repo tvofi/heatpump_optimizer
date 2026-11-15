@@ -1,0 +1,7 @@
+MUTANT R5 flow lift < -> <=
+  FAIL the flow-lift fold takes an ask exactly at the floor and refuses one a nanowatt under it, on the window's cap (1.8 kW) and on the configured figure (2.4 kW)  [[(1.8, 0), (1.8, 0), (2.4, 0), (2.4, 0)]]
+  ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+1 of 37 FEATURES BLOCK FAILED
+ALL 34 FEATURES BLOCK PASSED
+ALL 78 FEATURES BLOCK PASSED
+driver rc=1
