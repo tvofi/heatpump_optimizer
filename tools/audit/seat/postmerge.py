@@ -207,7 +207,7 @@ def self_test() -> int:
         Path(argv[2]).name + ("" if argv[3].startswith("-") else " " + argv[3])
         for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X")}
     check("the beats are read from steps(): a subcommand is kept, an option is not",
-          {"state_docs.py", "merge_train.py classify"} <= beats, sorted(beats))
+          {"roster_sync.py", "merge_train.py classify"} <= beats, sorted(beats))
 
     def handed(text: str) -> "list[str]":
         return sorted(b for b in beats if b in text)
@@ -218,8 +218,8 @@ def self_test() -> int:
           "After each merge" in sec, sec[:80])
     check("orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3)",
           handed(owner) == [], handed(owner))
-    check("a contract handing an agent `state_docs.py --push` is caught (null control)",
-          handed(owner + "\n- After each merge: run `state_docs.py --push`.") == ["state_docs.py"])
+    check("a contract handing an agent `roster_sync.py --apply` is caught (null control)",
+          handed(owner + "\n- After each merge: run `roster_sync.py --apply`.") == ["roster_sync.py"])
     print(f"postmerge self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 
