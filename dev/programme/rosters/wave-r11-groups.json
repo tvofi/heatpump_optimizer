@@ -891,12 +891,13 @@
     "Process card P7 (caused_by and found_by, built once with this group's convergence records), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P744 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nOwner ruling 2026-11-13, decision card P7 (yes, fold in): every hotfix group and every outside group records what caused the defect (the merged pull request, where one did) and what found it (a finder dimension, a reviewer, CI on main, the owner, an outside user), and the scorecard splits escapes by owning dimension per round. Build it once, with this group s convergence records, not as a second mechanism. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7, findings Q-E1 and Q-E2."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r11-pre-round-metrics",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders"
+    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders",
+    "pr": 3612
    }
   },
   {
@@ -1648,13 +1649,13 @@
    "carry": [],
    "source": "programme",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-hotfix-figure-block-base",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
-    "pr": null
+    "pr": 3614
    }
   },
   {
@@ -1696,9 +1697,9 @@
    ],
    "source": "programme",
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "handoff/r11-hotfix-selftest-flake-arms",
-    "commit": null,
+    "commit": "57fd742ea9fc93372da066b1c36ae1ae10546ffd",
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
@@ -1740,13 +1741,13 @@
    "carry": [],
    "source": "programme",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-hotfix-policy-docs-timeout",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
-    "pr": null
+    "pr": 3615
    }
   },
   {
