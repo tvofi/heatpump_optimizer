@@ -1,76 +1,84 @@
-R11-PRE-BRIEFS-TEXT (finder-critical; policy). Each method step the round-11 start evaluation's cards change now names the command that prints its universe, and reports examined over it; what a round does not reach goes under `unfinished`, which `dev/audit/config/rotation.json` carries. Cards closed: E11-D3, E11-D4, E11-D5, E11-D6, E11-D7, E11-D10, E11-D11, E11-D14 (tvofi 2026-11-15, preliminary ruling "Accept all 14 (Recommended)"), built from eval/r11 at 02a48db212e0e49af62863575cba86bc339d4958, which the evaluation review on the ref eval-review/r11-3 (commit 92991d2a49cf72d182d3a8ac32ca378cca83069b, `review.verdict` `approve`, `review.sha` 02a48db212) approves. Each of the eight cards is byte-identical between 7891b714f8 and 02a48db212 (scratch read of `cards[<id>]` at both), so every card binds as first written; none was dropped.
+R11-PRE-BRIEFS-TEXT part 2 (part 1 merged as #3618): `dev/governance/dimensions/D11.md` step 3 gains the policy-set duplication screen (carry 3) and the rulings-file check (carry 4). Step numbering is unchanged: both are bullets of step 3, the structure's own health. Policy, for the owner's review.
 
-Owner's words under mandate: the dimension briefs are in the owner's own words. Every added or changed sentence in `dev/governance/dimensions/D3.md`, `D4.md`, `D5.md`, `D6.md`, `D7.md`, `D10.md`, `D11.md`, `D13.md` and `D14.md` is drafted by this seat under mandate 6893738184 (scope all, in force to 2026-12-15T12:00Z), declared here as the brief requires; each `Owner's brief:` quotation is unchanged. Policy pull request: the owner approves before merging, under the mandate the orchestrator's declared review.
+**Wording drafted under mandate 6893738184** (scope all, in force to 2026-12-15T12:00Z; tvofi 2026-11-15, verbatim: "The owners own words can also be you under the mandate."): the two new bullets and the two shortened step-3 bullets are the seat's wording, declared here; the quoted sentences in them are tvofi's verbatim. The rulings are tvofi's of 2026-11-15, verbatim: "policy files and policy related files should follow good data integrity practice, no duplication, that creats risks of divergence"; "Yes, it applies everywhere. Yes, fold such screening into the d11 dimension"; and, on the rulings file's purpose, "This is exactly how I see it".
 
-Per step, the universe command and the input:
+Evaluation: built at eval/r11 tip `c6ce415b77`, whose `dev/audit/yardstick/round11/EVALUATION.json` `review` reads `approve` of the evaluation at `02a48db212`. Carries 3 and 4 are owner rulings, not evaluation cards; card E11-D11 was built by part 1, and this diff changes no sentence part 1 wrote for it.
 
-- D3 step 1: `python3 tests/mutation_table.py --scope full`'s unpinned sites and surviving mutants replace the 30-40 mutant sample; the weighting list stays.
-- D4 step 1: every state `node tests/card_drift.mjs --list` prints times every language on the `language` row of `python3 tools/audit/check_scopes.py --repo . --population`, replacing the hand-typed `sv` and `en`. Step 1 gains the released build's card in a real Home Assistant frontend; `## Limits to state` says where it runs (a recorded render from the owner's install, or an instance the seat stands up) and that a seat with neither reports it `unfinished`. Step 2 gains a value of the wrong physical kind in each numeric option. Criterion line: `owner_criteria` D4.
-- D5 steps 1 to 3: `text_ledger.py outline` (new, below) for step 1's `document` rows and step 2's `heading` and `link` rows; step 3's units are `text_ledger.py units --dim D6` over those documents, as the card names. Criterion line: `owner_criteria` D5.
-- D6 step 1: Carry 1 (intake carry 173), answered by measurement, not by new code (Figures): `text_ledger.py units --dim D6` already yields a unit for every file of every D6 seat's cells, and those cells hold README.md, RELEASE_NOTES.md, docs/, strings.json and the translations, so a claim `tests/doc_claims.py` does not register is still a unit a seat rows. The step now says so. Step 2 gains the install-dependent claim (`measured COP` with no heat input) checked on each deciding level of `check_scopes.py --population`.
-- D7 step 5: `git diff --name-status --diff-filter=A <previous> <baseline> -- 'custom_components/*.py'` (D7's `scopes.json` universe), `<previous>` the last round's `baseline_sha`, replaces the hand list and the spot mutation; each addition owes its pinning test, a doc paragraph, one owner.
-- D10 step 1: `diagnostics` driven with every option that can hold a location, the solar location among them. Criterion line: `owner_criteria` D10 (tier).
-- D11 step 1 is the universe (one row per refusal); Carry 2 (the D11 half of carry 175) lands there as the census: a row's control is `node tools/policy/policy_lint_mutants.mjs` or the instrument's `--self-test`, and a row with neither is the NO-READ decision 0018 section 1 names, and a finding. Step 3's conformance runs over every merged pull request of the window (enumerated as `D13.md` output 1), not a sample.
-- D14 step 2: every `open` class of `dev/audit/config/bugclasses.json` (a `jq` filter), each owned by a seat or `unfinished` with the reason, replaces the pick of two or three.
-- D11 and D13: one paragraph each for Carry 0 (triage `dev/programme/triage/s6-batch218.md#P668`, owner-ruled): the convergence scorecard `tools/audit/seat/scorecard.py` (on main) and R11-PRE-ROUND-METRICS and R11-PRE-TOKEN-LEDGER are measurements, exempt from the 20% machinery bar of `proposal-triage.md`. No other sentence of either paragraph's neighbours changed.
+What each check names:
+- Duplication: the units are the sentences `{ git ls-files | node tools/policy/policy_lint.mjs --corpus-filter; git ls-files dev/governance/decisions dev/programme/RULINGS.md; } | xargs python3 tools/audit/text_ledger.py units --dim D6` prints: the policy corpus (`CLAUDE.md`, the role contracts, the rules, the dimension briefs, the pull-request template among it), the decision records (a superset of those policy cites, so none is missed) and the rulings file, which `corpus_excluded.json` leaves out of the corpus on #3626. No file is hand-listed. Null control in the brief: a pointer, and a `.claude/rules/` copy `rules_sync.mjs --check` holds to its source. A recorded restatement (`CLAUDE.md` and `orchestrator.md` section 8) is still reported with its reason.
+- Rulings file: entry count by `awk '/^## Superseded/{exit} /^- /{n++} END{print n+0}' dev/programme/RULINGS.md` (in-force bullets only; the closing section holds the superseded) and `wc -c`, against the previous round's baseline. Null control in the brief: an entry naming the current mandate or the round's direction is not a graduation candidate.
 
-`tools/audit/text_ledger.py outline [--root DIR] FILE... | --seat ... --repo R --ref X` prints one row per item D5 steps 1 and 2 judge: a `document` row per Markdown or HTML file, a `heading` row (`h<n> <text>`) per heading, a `link` row per link or image target; fenced code is skipped and any other file prints nothing. Alternatives: a new script (rejected: a second enumerator beside the one D5 already runs, and a new file to classify); `tools/site/build_docs.mjs` (rejected: it checks links and anchors but prints no list, and its README-table scope is narrower than a D5 seat's cells).
+Carries of this group:
+- Carry 0 (scorecard paragraphs, triage P668): built by part 1, #3618; `dev/governance/dimensions/D11.md` and `D13.md` each name `tools/audit/seat/scorecard.py` at this head (`grep -c scorecard.py` prints 1 for each). Unchanged here.
+- Carry 1 (D6 reads `tests/doc_claims.py` only for registered claims): built by part 1, #3618; D6 step 1 states that `text_ledger.py units --dim D6` holds every sentence, so a claim the register lacks is still a unit. Unchanged here.
+- Carry 2 (D11 half of the census): built by part 1, #3618; D11 step 1 makes a row with no control one decision 0018 section 1 reads as NO-READ. Unchanged here.
+- Carry 3 (duplication screen) and Carry 4 (rulings-file check): built in this diff.
 
-Step numbering is unchanged in every brief (`node tools/policy/check-wave-script.mjs` exit 0 reads the numbered steps against `rotation.json`).
+**Merge order: after #3626.** `dev/programme/RULINGS.md` lands on #3626 (R11-PRE-RULINGS-FILE), open at this head. At this head the rulings `awk` exits 2 (`cannot open`), and the duplication enumerator exits 0 without the rulings file's units (`git ls-files` prints nothing for an absent path). On #3626's head both run (Figures). This is the one acceptance item not met at this head.
 
-## Head
-
-02d85c00e74df8eb2e0f154f14599b043ccc3e10, measured with origin/main at 26dbf7c43ec3742101398b098dbdcc61bbee8f19 (2026-11-15T12:33Z).
-
-## Mutation proof
-
-`tools/audit/text_ledger.py outline`, the only code in the diff, its self-test the killing check (`python3 tools/audit/text_ledger.py --self-test`):
-- the fence toggle `fence = not fence` replaced by `pass`: `FAIL outline of Markdown: document, headings, inline, image and reference links; a fence is skipped`, `text_ledger self-test: 19 checks, 1 failed`.
-- the document-suffix guard `if suf not in (".md", ".mdc", ".html", ".htm"):` replaced by `if False:`: `FAIL outline of HTML: a heading across lines and its links; a non-document prints nothing`, `19 checks, 1 failed`.
-- restored: `19 checks, 0 failed`.
-
-## Null control
-
-- Carry 173 coverage: the per-cell comparison prints a cell file that yields no unit. With README.md removed from the unit file set, the same `grep -v -x -F -f` prints `README.md`; at the head it prints nothing (Figures).
-- The universe commands at the merge base print the same universes (none of the diff is in their inputs); what moved is that the briefs now name them. Decision 0018 `coverage` stays 0 for a step with no reported denominator, the card's own null control (`dimension_read.py` on round 10's reports), which this change does not alter.
-- `outline` on a non-document (`c/mod.py` in the self-test) prints nothing, and a link inside a fence is not a row.
-
-## Figures
-
-<!-- figure-block: scope-line mb=26dbf7c43ec3742101398b098dbdcc61bbee8f19 head=02d85c00e74df8eb2e0f154f14599b043ccc3e10 -->
-~~~text
-MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-~~~
-<!-- /figure-block -->
-
-- Universe commands at the head, each exit 0 with a non-empty universe (the counts are not typed into any brief): `node tests/card_drift.mjs --list`; `python3 tools/audit/check_scopes.py --repo . --population` (its `language` row); `python3 tools/audit/text_ledger.py outline --seat D5-s2 --repo . --ref HEAD` (rows of kind `document`, `heading`, `link`); `python3 tools/audit/text_ledger.py units --dim D6 --seat D5-s1 --repo . --ref HEAD`; `git diff --name-status --diff-filter=A 17f1c55fad1b 26dbf7c43e -- 'custom_components/*.py'` (17f1c55fad1b: the `baseline_sha` of `dev/audit/rounds/round10/reports-B1.json`); `jq -r 'to_entries[]|select(.value.status? == "open")|.key' dev/audit/config/bugclasses.json`; `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope full` (its first line, `unpinned site(s) of ... candidate sites`).
-- Carry 173: for each seat `D6-s1`..`D6-s7`, `python3 tools/audit/check_scopes.py --repo . --seat D6-s<n> | cut -f3` (cell files) against `python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s<n> --repo . --ref HEAD | cut -f1 | sed 's/#.*//'` (files yielding a unit), sorted and unioned: `comm -3` of the two prints 0 lines; README.md, RELEASE_NOTES.md, `custom_components/heatpump_optimizer/strings.json`, `translations/sv.json`, `docs/setup.md` and `docs/index.html` are each in the unit set (`grep -x -F`).
-- `python3 tools/audit/text_ledger.py --self-test`: `19 checks, 0 failed`.
-- `node tools/policy/brief_lint.mjs`: exit 0; `node tools/policy/check-wave-script.mjs`: exit 0; `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`.
-- `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`.
-
-Budget rows, from `node tools/policy/policy_lint.mjs --budgets` (lines, cap, tokens, cap; the policy file is `dev/governance/dimensions/D<k>.md`, keyed `tools/audit/briefs/D<k>.md` in `dev/governance/config/policy_budgets.json`): rows `tools/audit/briefs/D3.md`, `D4.md`, `D5.md`, `D6.md`, `D7.md`, `D10.md`, `D11.md`, `D13.md`, `D14.md`, and the `corpus:` line, which stays inside its cap plus `_band` and is not re-recorded. D3 is paid in full inside its caps; the other eight rows are raised to the measured values (Raise justification).
+Budget rows, from `node tools/policy/policy_lint.mjs --budgets` (lines, cap, tokens, cap; the policy file is `dev/governance/dimensions/D11.md`, keyed `tools/audit/briefs/D11.md` in `dev/governance/config/policy_budgets.json`): row `tools/audit/briefs/D11.md`, and the `corpus:` line. Both raised (Raise justification).
 
 ## Raise justification
 
-Raised: `files` and `files_tokens` for D4, D5, D10, D11, D13 and D14; `files_tokens` for D6 and D7 (their line counts stay under the line cap). Each raise is the measured value `--budgets` prints at the head, under mandate 6893738184 (scope all, CLAUDE.md rule 2, decision 0013), its reason also in the commit message.
+Raised: `files` and `files_tokens` for `tools/audit/briefs/D11.md`, to the values `--budgets` prints at the head; `corpus_tokens` by this diff's own growth only (the corpus measurement at the head less the same command at `origin/main`, added to main's recorded cap), so no other group's band is spent. Under mandate 6893738184 (scope all, `CLAUDE.md` rule 2, decision 0013); the reason is also in the commit message.
 
-Payments tried: cutting spent or duplicated prose first (`ratchet-budgets.md`): D3's step 1 rewritten to its old line count, which paid D3 in full; D4's copy of the Playwright install recipe `tools/audit/prepare_baseline.sh` already writes into `BASELINE.md`, and the motivation clause `all contention-immune`, cut; D4's two frontend paragraphs merged into one under `## Limits to state`; D7's hand list of this year's additions deleted, the command replacing it; D11's sampling sentence replaced, not added to. Not taken: shortening the remaining method text of any brief, because each sentence left is a step, an input, a control or a criterion a finder runs from (deleting working functionality is not a payment); moving any sentence to another file, because it moves prose without deleting it (`ratchet-budgets.md`) and every finder reads only its own brief; and the 20% paragraph once instead of twice, because the owner's ruling asks one paragraph in each of D11 and D13. No code payment applies: the only code is `outline`, whose growth the per-file caps do not measure.
+Payments tried: in order (`ratchet-budgets.md`):
+- Taken: step 3's "Detector health" bullet, which restated step 1's control column (step 1 already makes a dead control a finding); taken whole.
+- Taken: the Recurrence bullet's threshold clause, which restated the recurring-error rule; it now points to `CLAUDE.md`'s rule.
+- Taken: the new bullets' own wording, cut until each clause carries an input, a control or a ruling.
+- Not taken: other D11 sentences, because each left is a step, an input, a standard or a control a finder runs from (deleting working functionality is not a payment).
+- Not taken: moving text out of D11, because it moves prose without deleting it, and the finder reads only its own brief.
+- Not taken: paying the corpus by cutting exact duplicates the new screen already prints in other files (for example the `UNDER-SCOPED` sentence in both `fixer.md` and `fix-review.md`). Those files belong to other groups (`fixer.md` is in #3626's diff), and choosing which copy owns each mandate is the D11 finder's finding for the owner to rule, which this check exists to produce.
+
+No code payment applies: the diff is text and data.
 
 Architecture score: dS +0.0000 NULL
 
 ## Approval
 
-Pending. A policy change to nine dimension briefs and `dev/governance/config/policy_budgets.json`: the owner approves before merging, or, under mandate 6893738184 (scope all, in force to 2026-12-15T12:00Z), the orchestrator's declared approving review after review. Covers the wording drafted under the mandate (top of this body), the budget raise (Raise justification) and the card rulings, which are tvofi's 2026-11-15 preliminary acceptance on cards the approved evaluation 02a48db212 keeps unchanged.
+Pending. A policy change to `dev/governance/dimensions/D11.md` and `dev/governance/config/policy_budgets.json`: the owner approves before merging, or, under mandate 6893738184 (scope all, in force to 2026-12-15T12:00Z), the orchestrator's declared approving review after review. It covers the wording drafted under the mandate (top of this body) and the budget raise (Raise justification).
+
+## Head
+
+`585a879dac8265686cfcabba3da90d298a31b8c0` on `origin/main` `31117b1029de63938d949e78dcbcd8f9451e5e33` (merge base the same commit), taken 2026-11-15 UTC; diff three-dot.
+
+## Mutation proof
+
+Text and data only; the check that pins the diff is `policy_lint.mjs`'s budgets class. With `dev/governance/config/policy_budgets.json` restored to `origin/main`'s copy, `node tools/policy/policy_lint.mjs` printed `TOTAL: 3 error(s)`: `[budgets] (whole corpus)`, `[budgets] tools/audit/briefs/D11.md: 126 lines exceeds its cap of 109` and the `files_tokens` arm. With the head's copy restored it printed `TOTAL: 0 error(s)`.
+
+## Null control
+
+- Duplication null control: the generated `.claude/rules/` copies share sentence ids with their `dev/governance/rules/` sources (the awk over the units' ids in Figures prints a non-zero count). Without the brief's exclusion every generated rule would read as a duplicate, so the exclusion is load-bearing.
+- Duplication positive control: outside the generated copies, the same units print exact sentences in two or more files (Figures), so the screen has instances to find at this head.
+- Rulings count null control: `printf '# x\n## Superseded\n- a\n' | awk '/^## Superseded/{exit} /^- /{n++} END{print n+0}'` printed `0`, so a closed entry is not counted.
+
+## Figures
+
+<!-- figure-block: scope-line mb=31117b1029de63938d949e78dcbcd8f9451e5e33 head=585a879dac8265686cfcabba3da90d298a31b8c0 -->
+~~~text
+MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+~~~
+<!-- /figure-block -->
+
+- duplication units at the head: the units command (top of body) exited 0; `wc -l` over its output and `cut -f1 | sed 's/#.*//' | sort -u | wc -l` printed `3952` units over `80` files.
+- generated-copy overlap: `awk -F'\t' '{split($1,a,"#"); print a[2]"\t"a[1]}'` over the units, counting ids found under both `.claude/rules/` and `dev/governance/rules/`, printed `376`.
+- exact multi-file sentences: ids over 60 characters found in two or more files outside `.claude/rules/`, by awk over the same units, printed `11`.
+- on #3626's head (`git worktree add --detach <tmp> origin/fix/r11-pre-rulings-file`): the units command printed `189` units under `dev/programme/RULINGS.md#`; the rulings `awk` exited 0 and printed `88`; `wc -c < dev/programme/RULINGS.md` printed `26389`. At this head the `awk` exited 2 (`cannot open`).
+- budgets: `node tools/policy/policy_lint.mjs --budgets` printed `tools/audit/briefs/D11.md 126 126 1939 1939` and `corpus: ~70032 tokens, cap 69625 +band 500 = 70125`; at `origin/main` the same command printed `109 109 1647 1647` and `corpus: ~69740 tokens`.
+- policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)`.
+- `node tools/policy/brief_lint.mjs` exited 0; `node tools/policy/check-wave-script.mjs` printed `223 passed, 0 failed`; `node tools/policy/rules_sync.mjs --check` printed `RULES-SYNC ok`.
+- structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+- scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run`, naming `tests/entities.py`; `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED`.
+- architecture: `python3 tools/audit/archscore/score.py --diff origin/main` printed `Architecture score: dS +0.0000 NULL`.
+- text_ledger.py is unchanged, so its `--self-test` is not owed.
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until an approving review lands at the head, because this pull request raises eight dimension briefs' caps in `dev/governance/config/policy_budgets.json` (Raise justification). Not a defect a cheaper detector could have caught: the gate is the intended stop, `policy_lint.mjs --pr-body` already predicts it locally at no added standing cost, and it clears on the owner's review or the mandated one under 6893738184 with the section above. No countermeasure owed.
+- `budget-raise-gate`: red by design until an approving review lands at the head, because this pull request raises D11's caps and `corpus_tokens` in `dev/governance/config/policy_budgets.json` (Raise justification). Not a defect a cheaper detector could have caught: the gate is the intended stop, `policy_lint.mjs --pr-body` already predicts it locally at no added standing cost, and it clears on the owner's review or the mandated one under 6893738184. No countermeasure owed.
 
 ## Forward-carry
 
-- D7 step 5's universe needs `.git`, and a D7 finder works in an export without it (`.claude/workflows/audit-find.js`'s `ISOLATED` set holds no D7); the brief tells the seat to run it with `git -C` on the round's checkout or report the step `unfinished` naming the command. If the prepare step should hand the list to the seat instead, that is an `audit-find.js` change no live roster group owns. Carry: dismissed: the brief states the runnable route and the report a seat without it makes; no live group owns audit-find.js.
-- `tools/audit/fold_ledger.py`, which the group brief names as the printer of D14's open list, prints no list (its modes are `fold`, `check`, `refresh`, `sync`; `check` prints only totals and violations), so D14 names a `jq` filter over `dev/audit/config/bugclasses.json`, the ledger the card names. Carry: dismissed: the jq filter reads the same register and exits 0 with the open classes.
+none
 
 ## Friction
 
