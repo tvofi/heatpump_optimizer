@@ -28095,7 +28095,7 @@
    "source": "programme",
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-hotfix-selftest-flake-arms",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
