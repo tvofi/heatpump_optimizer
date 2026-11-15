@@ -112,6 +112,15 @@
   critical-path entries, then arrival order; an entry maps to its group by
   branch, else by its pull request (`roster_lib.group_for_pr`), so a fork head
   ranks as its group does.
+  A head that is a fork's (`Train.fork_head`: `tools/pr/outside.py`'s
+  `pull_facts` and `cross_repository`, executed only once the checkout's copy
+  is byte-equal to origin/main's blob) is put to outside.py's whole `check` at
+  the landing head on every base, from origin/main's copies
+  (`Train.outside_contract`): on main before any approval, on a `batch/`
+  rehearsal before the merge, where the contract's base rule refuses it. A
+  refusal, an unread pull request or a stale copy parks the entry
+  `[OUTSIDE]`, naming the fork; its recarry worktree is detached at
+  `refs/remotes/pull/<pr>/head` and `remerge_main.sh --head-repo` moves it.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
