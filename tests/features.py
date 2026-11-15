@@ -91920,6 +91920,34 @@ R.check(
     _dsp_e.opt._space_avail is _dsp_marked,
 )
 
+# The commit's tie break, read at the stage beside a hot-water charge (design
+# note round 3, test 3 and item a3). On an install that prices no start, at a
+# zero price, no mask buys anything, so every band's mask is the relaxed
+# plan's own runs and each candidate of the stage is that plan. Corpus: 60
+# realizable plans of 24 steps, one charge each, from a stopped and a running
+# compressor. At a flat price the same plans get another candidate.
+_dsp_tie_rng = np.random.default_rng(3602)
+_dsp_tie_opt = _dsp_opt(clamp=True, cyc=0.0)
+_dsp_tie_moved = {"zero price": 0, "flat price": 0}
+for _dsp_tie_i in range(60):
+    _dsp_tie_space = np.where(_dsp_tie_rng.random(24) < 0.5, 0.0, _dsp_tie_rng.uniform(1.5, 3.0, 24))
+    _dsp_tie_dhw = np.zeros(24)
+    _dsp_tie_dhw[int(_dsp_tie_rng.integers(0, 24))] = 2.5
+    _dsp_tie_space[_dsp_tie_dhw > 0.0] = 0.0
+    for _dsp_tie_name, _dsp_tie_price in (("zero price", 0.0), ("flat price", 0.2)):
+        _dsp_tie_moved[_dsp_tie_name] += not all(
+            np.array_equal(c, _dsp_tie_space) for c in _dsp_om._run_plans(
+                _dsp_tie_opt,
+                _DspNS(prices=np.full(24, _dsp_tie_price), dt=0.25, compressor_running=bool(_dsp_tie_i % 2)),
+                _dsp_tie_space, _dsp_tie_dhw, np.zeros(24), 5.5 - _dsp_tie_dhw, np.zeros(24, dtype=bool)))
+R.check(
+    "beside a hot-water charge, at a zero price on an install that prices no "
+    "start, every candidate of the stage is the realizable relaxed plan itself; "
+    "at a flat price the same plans get another",
+    _dsp_tie_moved == {"zero price": 0, "flat price": 60},
+    f"{_dsp_tie_moved}",
+)
+
 
 # ===========================================================================
 # R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
@@ -92159,6 +92187,36 @@ R.check(
     _hsr_far_ok is False and not _hsr_far_mask[:6].any() and _hsr_far_mask[6:].any(),
     f"{_hsr_far_mask.astype(int).tolist()} tracked {_hsr_far_ok}",
 )
+# On a realizable plan the program is the identity only where nothing can be
+# bought (design note round 3, test 3 and item a3): at a zero price and a zero
+# start price every mask ties and the tie break keeps the plan's own runs.
+# With a price on the steps, or on a start alone, the cheapest mask is another
+# one. Corpus: 300 realizable plans x the three bands, both step widths, from
+# a stopped and a running compressor, one-step lengths.
+_hsr_own_moved = {"nothing priced": 0, "steps priced": 0, "a start priced": 0}
+_hsr_own_n = 0
+for _hsr_i in range(300):
+    _hsr_n = int(_hsr_rng.integers(6, 97))
+    _hsr_f = float(_hsr_rng.choice([0.53, 1.1]))
+    _hsr_dt = float(_hsr_rng.choice([0.25, 1.0 / 12.0]))
+    _hsr_q = np.where(_hsr_rng.random(_hsr_n) < 0.5, 0.0, _hsr_rng.uniform(_hsr_f, 3.0, _hsr_n))
+    for _hsr_band in _hsr_runs.BANDS:
+        _hsr_own_n += 1
+        for _hsr_k, _hsr_p, _hsr_start in (
+            ("nothing priced", 0.0, 0.0), ("steps priced", 0.2, 0.0), ("a start priced", 0.0, 0.25),
+        ):
+            _hsr_own_moved[_hsr_k] += not np.array_equal(
+                _hsr_runs.commit(
+                    _hsr_q, _hsr_p, _hsr_f, 3.0, _hsr_start, _hsr_band,
+                    dt=_hsr_dt, running=bool(_hsr_i % 2))[0],
+                _hsr_q > 0.0)
+R.check(
+    "on a realizable plan commit returns the plan's own runs at a zero price and "
+    "a zero start price, and is not the identity where a step or a start has a price",
+    _hsr_own_n == 900 and _hsr_own_moved["nothing priced"] == 0
+    and _hsr_own_moved["steps priced"] > 0 and _hsr_own_moved["a start priced"] > 0,
+    f"{_hsr_own_moved} of {_hsr_own_n}",
+)
 
 # 4 and 6. The engaged solve. A buffered single-zone house on a mild day, where
 # the relaxed plan trickles under the floor; 15-minute steps, the contributor's
@@ -92181,9 +92239,13 @@ def _hsr_solve(cost, clamp, p_min, *, running=False, loss=0.4, out_mean=8.0, roo
     """One full ``optimize``: the result, the candidate lists the stage scored,
     the relaxed plans it was handed and the true objective pair."""
     opt = _hsr_opt(cost, clamp, p_min, loss)
-    seen = _HsrNS(plans=[], first=[], relaxed=[], objectives=[], opt=opt)
+    seen = _HsrNS(plans=[], first=[], relaxed=[], objectives=[], stages=[], opt=opt)
     real_plans, real_objectives = _hsr_om._run_plans, opt._solve_objectives
-    real_first = _hsr_om._projection
+    real_first, real_stage = _hsr_om._projection, _hsr_om._commit_runs
+
+    def stage(*args):
+        seen.stages.append(args)
+        return real_stage(*args)
 
     def run_plans(o, h, space, *rest):
         seen.relaxed.append(np.array(space, float))
@@ -92201,7 +92263,7 @@ def _hsr_solve(cost, clamp, p_min, *, running=False, loss=0.4, out_mean=8.0, roo
         return seen.objectives[-1]
 
     _hsr_om._run_plans, opt._solve_objectives = run_plans, objectives
-    _hsr_om._projection = projection
+    _hsr_om._projection, _hsr_om._commit_runs = projection, stage
     outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_HSR_STEPS - 50) / 96.0)
     try:
         seen.result = opt.optimize(inputs=_hsr_replace(solve_inputs(
@@ -92216,6 +92278,7 @@ def _hsr_solve(cost, clamp, p_min, *, running=False, loss=0.4, out_mean=8.0, roo
         ), compressor_running=running))
     finally:
         _hsr_om._run_plans, _hsr_om._projection = real_plans, real_first
+        _hsr_om._commit_runs = real_stage
     seen.space = np.asarray(seen.result.power_schedule, float)
     return seen
 
@@ -92273,6 +92336,30 @@ R.check(
     all(_hsr_scores(v)[0] <= _hsr_scores(v)[1] + 1e-12 for v in _hsr_engaged.values())
     and any(_hsr_scores(v)[0] < _hsr_scores(v)[1] - 1e-6 for k, v in _hsr_engaged.items() if k[0] > 0),
     f"{({k: tuple(round(s, 4) for s in _hsr_scores(v)) for k, v in _hsr_engaged.items()})}",
+)
+# A realizable relaxed plan is a candidate, never a result the stage is held
+# to (design note round 3, test 4): the relaxed descent prices no start, so
+# such a plan carries starts nobody priced. The fixture is the plan the same
+# house ships clamped at no price, which already runs, handed as the relaxed
+# plan to the stage of the priced solve, in that solve's own scope: the stage
+# ships another plan, with fewer starts, that the scope it ships in scores
+# strictly below the plan handed in. One non-convex stage per arm
+# (``fixer.md`` step 15): the margin measured on x86_64 is 0.70, the check
+# asks for 0.01.
+_hsr_ran = _hsr_cells[(0.0, True, 1.1)].space
+_hsr_ran_stage = _hsr_cells[(0.25, False, 1.1)].stages[-1]
+_hsr_ran_shipped, _hsr_ran_scope = _hsr_om._commit_runs(
+    *_hsr_ran_stage[:3], [_hsr_ran], *_hsr_ran_stage[4:])
+_hsr_ran_scores = float(_hsr_ran_scope[1](_hsr_ran)), float(_hsr_ran_scope[1](_hsr_ran_shipped))
+R.check(
+    "selection: a realizable relaxed plan that ships changed scores strictly "
+    "below itself in the scope it ships in, and its start count falls",
+    len(_hsr_cells[(0.25, False, 1.1)].stages) == 1 and _hsr_ran_stage[4] is None
+    and _hsr_runs.realizable(_hsr_ran, 1.1)
+    and not np.array_equal(_hsr_ran_shipped, _hsr_ran)
+    and _hsr_ran_scores[1] < _hsr_ran_scores[0] - 0.01
+    and _hsr_edges(_hsr_ran_shipped) < _hsr_edges(_hsr_ran),
+    f"scores {_hsr_ran_scores}, edges {_hsr_edges(_hsr_ran)} to {_hsr_edges(_hsr_ran_shipped)}",
 )
 _hsr_failed = _hsr_solve(0.25, False, 1.1, raises=True)
 R.check(
@@ -92412,6 +92499,35 @@ R.check(
     and all(np.all((c[np.arange(12) != 7] == 0.0) | (c[np.arange(12) != 7] >= 1.1)) for c in _hsr_cands)
     and _hsr_cands_clamp and all(c[3] >= 1.1 and c[5] == 0.0 and c[7] == 0.0 for c in _hsr_cands_clamp),
     f"{[c.round(2).tolist() for c in _hsr_cands]}",
+)
+# A run that continues from a running compressor pays no start, in the
+# program and in the masks the stage builds from the horizon's reading. The
+# start price here (5.0) outbids the energy of the plan's opening run (0.55
+# kWh, which unbought costs 0.83 at the end of the band), so that run is
+# kept from a running compressor and dropped from a stopped one.
+_hsr_open = np.array([1.1, 1.1, 0.0, 0.0, 0.0, 0.0])
+_hsr_open_masks = {
+    on: [_hsr_runs.commit(_hsr_open, 0.2, 1.1, 3.0, 5.0, b, dt=0.25, running=on)[0].tolist() for b in _hsr_runs.BANDS]
+    for on in (True, False)
+}
+_hsr_open_plans = {
+    on: [c.tolist() for c in _hsr_om._run_plans(
+        _hsr_opt(5.0, False, 1.1), _HsrNS(prices=np.full(6, 0.2), dt=0.25, compressor_running=on),
+        _hsr_open, np.zeros(6), np.zeros(6), np.full(6, 5.5), np.zeros(6, dtype=bool))[:-1]]
+    for on in (True, False)
+}
+R.check(
+    "a run that continues from a running compressor pays no start: at a start "
+    "price that outbids its energy the plan's opening run is kept from a running "
+    "compressor and dropped from a stopped one, by the program in every band",
+    _hsr_open_masks == {True: [(_hsr_open > 0.0).tolist()] * 3, False: [[False] * 6] * 3},
+    f"{_hsr_open_masks}",
+)
+R.check(
+    "and the stage commits with the horizon's running reading: its masks keep "
+    "that opening run from a running compressor and drop it from a stopped one",
+    _hsr_open_plans == {True: [_hsr_open.tolist()], False: [[0.0] * 6]},
+    f"{_hsr_open_plans}",
 )
 _hsr_box_of = _hsr_om._run_bounds(np.array([0.0, 1.1, 3.0, 0.4]), np.zeros(4), np.array([5.5, 5.5, 5.5, 0.4]), 1.1)
 R.check(
