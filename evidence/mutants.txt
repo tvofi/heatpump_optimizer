@@ -1,0 +1,21 @@
+== G1 files_tokens schema line deleted
+  FAIL policy: a deleted file's token cap dropped, a token cap down, are routine: got True, want False
+budget_raise_gate self-test: 280 checks, 1 failed
+== G2 files_tokens graded MAX
+  FAIL policy: a deleted file's token cap dropped, a token cap down, are routine: got True, want False
+budget_raise_gate self-test: 280 checks, 1 failed
+== M1 orchestrator.md sec 11 hands roster_sync.py
+FAIL orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3) (got: ['roster_sync.py'])
+postmerge self-test: 21 checks, 1 failed
+== M1b standing-merge.md hands merge_train.py classify
+FAIL orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3) (got: ['merge_train.py classify'])
+FAIL a contract handing an agent `roster_sync.py --apply` is caught (null control) (got: )
+postmerge self-test: 21 checks, 2 failed
+== M2 handed() returns []
+FAIL a contract handing an agent `roster_sync.py --apply` is caught (null control) (got: )
+postmerge self-test: 21 checks, 1 failed
+== B0 unmutated: pin hits 0
+== B1 one probe reverted: pin hits 1
+== B2 outhas reverted to pipe: pin hits 1
+== B3 production REFUSE read reverted: pin hits 1
+== B4 (pin-gap probe) reverted with separate -F -q: pin hits 0
