@@ -27694,7 +27694,7 @@
    ],
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-draw-map-evidence",
+    "branch": "archive/handoff/r10-draw-map-evidence",
     "commit": null,
     "pr": 3597,
     "last_step": "group added on owner order 2026-11-14; part 1 fixer and part 2 designer dispatched locally",
