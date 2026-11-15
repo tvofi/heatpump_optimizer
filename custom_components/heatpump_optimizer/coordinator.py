@@ -261,6 +261,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
+from . import slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -6654,8 +6655,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
-            # The slab estimate advances from the reading and records it.
-            self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
+            # The slab estimate advances from a plausible reading and records
+            # it (#3616). The pump signals here are last cycle's: this cycle's
+            # are read below, and judge the reading again before it publishes.
+            if slab_seed.refusal(floor_return.value, state.room_temperature, self._pump_signals) is None:
+                self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
 
         # The lower zone's room temperature: only a real thermometer carries
         # information about it. The floor return is a WATER temperature,
@@ -6816,8 +6820,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
             await self._async_learn_buffer_cooling(buffer_value)
 
+        # A refused floor return leaves the slab to the model, as no sensor does.
+        slab_sensed = floor_return.ok and slab_seed.refusal(
+            floor_return.value, _ctx_of(self)._current_state.room_temperature, self._pump_signals) is None
+        slab_seed.audit(self._config_notices, self.hass, floor_return.entity_id,
+                        floor_return.value if floor_return.ok else None,
+                        _ctx_of(self)._current_state.room_temperature)
         # The fabric model refined by how the interval went: last, on the full state.
-        seed = await self._async_learn_interval(prior, slab_unsensed=not floor_return.ok)
+        seed = await self._async_learn_interval(prior, slab_unsensed=not slab_sensed)
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
@@ -6832,7 +6842,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # READING, not the entity being set: a stale sensor takes the same
         # path as an absent one. The room+1 K seed runs only until the slab
         # can be advanced (``_propagated_slab``); it used to freeze forever.
-        if not floor_return.ok:
+        if not slab_sensed:
             if seed is not None:
                 state.slab_temperature = seed
                 self._slab_temp_initialized = True

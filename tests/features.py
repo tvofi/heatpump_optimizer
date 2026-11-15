@@ -92322,4 +92322,144 @@ R.check(
 )
 
 
+# --- #3616: an implausible slab seed is refused --------------------------------
+R.section("#3616: a floor-return reading far above the room does not seed the slab")
+
+# A heat-pump return on a buffer plant, configured in the floor-return field,
+# reads far warmer than any floor loop: the slab estimate followed it and the
+# plan held 0 kWh of space heating with the room below its comfort band.
+# Closed loop through the production coordinator and solver (the r9f12 rig):
+# room 19.6 C under a 22 C comfort target, 6 C outside, as the reporter's.
+from heatpump_optimizer import slab_seed as _ssg  # noqa: E402
+
+_ssg_start = datetime(2026, 11, 15, 6, 0, tzinfo=UTC)
+
+
+def _ssg_cycles(return_c, cycles=6, mode=None, defrost=None):
+    """Hourly cycles: (slab after each, planned space kWh, issues raised)."""
+    cfg = dict(_r9f12_seed_cfg, comfort_temperature=22.0)
+    live = {"sensor.indoor": ("19.6", "°C"), "sensor.outdoor": ("6.0", "°C")}
+    if return_c is not None:
+        cfg["floor_return_temp_entity"] = "sensor.ret"
+        live["sensor.ret"] = (str(return_c), "°C")
+    if mode is not None:
+        cfg["heat_pump_mode_entity"] = "select.mode"
+        live["select.mode"] = (mode, None)
+    if defrost is not None:
+        cfg["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+        live["binary_sensor.defrost"] = (defrost, None)
+    hass = FakeHass()
+    # The notifier fires an event on a mode or defrost change; this rig's bus
+    # records nothing, so a sink stands in for it.
+    hass.bus.async_fire = lambda *_a, **_k: None
+    entry = _r9f12_entry(data=cfg, entry_id=f"ssg_{return_c}_{mode}_{defrost}")
+    seen = []
+    try:
+        for hour in range(cycles):
+            now = _ssg_start + timedelta(hours=hour)
+            _r9f12_dt.freeze(now)
+            for name, (value, unit) in live.items():
+                hass.states.set(name, FakeState(value, unit=unit) if unit else FakeState(value))
+            _r9f12_seed_prices(hass, now)
+            if hour == 0:
+                _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+                coord = entry.runtime_data
+            _r9f12_aio.run(coord.async_refresh())
+            seen.append(coord._current_state.slab_temperature)
+        kwh = sum(float(p) for p in coord._optimization_result.power_schedule) * 0.25
+    finally:
+        _r9f12_dt.freeze(None)
+    return seen, kwh, {i[1]: i[2] for i in getattr(hass, "issues", [])}
+
+
+_ssg_warm = _ssg_cycles(38.0)
+_ssg_none = _ssg_cycles(None)
+_ssg_ok = _ssg_cycles(26.0)
+R.check(
+    "#3616: a 38 C heat-pump return in the floor-return field no longer plans "
+    "zero space heating for a room below its comfort band",
+    _ssg_warm[1] > 1.0,
+    f"planned {_ssg_warm[1]:.3f} kWh, slab {[round(s, 2) for s in _ssg_warm[0]]}",
+)
+R.check(
+    "and a refused reading leaves the slab to the model exactly as an install "
+    "with no floor-return sensor does",
+    _ssg_warm[0] == _ssg_none[0] and _ssg_warm[1] == _ssg_none[1],
+    f"refused {_ssg_warm[0]} {_ssg_warm[1]} / unconfigured {_ssg_none[0]} {_ssg_none[1]}",
+)
+R.check(
+    "and a repair issue names the sensor and the bound",
+    _ssg_warm[2].get(_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE, {}).get(
+        "translation_placeholders", {}).get("entity") == "sensor.ret"
+    and _ssg_warm[2][_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE][
+        "translation_placeholders"]["bound"] == "12",
+    f"{sorted(_ssg_warm[2])}",
+)
+# Null control: a plausible floor-loop reading (6.4 K above the room) still
+# seeds the slab unchanged, converging on the merge's return + 1 K fixed point,
+# raises nothing, and plans heat as before.
+R.check(
+    "null control: a plausible floor-loop return still seeds the slab, to the "
+    "return + 1 K fixed point, and raises no repair",
+    abs(_ssg_ok[0][-1] - 27.0) < 0.05 and _ssg_ok[0] != _ssg_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_ok[2],
+    f"slab {[round(s, 2) for s in _ssg_ok[0]]}, issues {sorted(_ssg_ok[2])}",
+)
+# A plausible reading during a hot-water run or a defrost is the pump's own
+# circuit water, not the floor's: it seeds nothing, and raises nothing.
+_ssg_dhw = _ssg_cycles(26.0, mode="DHW (Hot Water)")
+_ssg_dhw_none = _ssg_cycles(None, mode="DHW (Hot Water)")
+_ssg_frost = _ssg_cycles(26.0, defrost="on")
+_ssg_frost_none = _ssg_cycles(None, defrost="on")
+_ssg_both = _ssg_cycles(26.0, mode="Heating + DHW", defrost="off")
+R.check(
+    "a hot-water-only run does not seed the slab from the return",
+    _ssg_dhw[0] == _ssg_dhw_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_dhw[2],
+    f"{_ssg_dhw[0]} vs {_ssg_dhw_none[0]}",
+)
+R.check(
+    "nor does a defrost",
+    _ssg_frost[0] == _ssg_frost_none[0],
+    f"{_ssg_frost[0]} vs {_ssg_frost_none[0]}",
+)
+R.check(
+    "control: a heating mode with the defrost flag off seeds as with no signals",
+    _ssg_both[0] == _ssg_ok[0],
+    f"{_ssg_both[0]} vs {_ssg_ok[0]}",
+)
+# The bound at its edge, through the production predicate.
+R.check(
+    "the bound: 12 K above the room is a floor loop, anything warmer is not",
+    not _ssg.above_room(31.6, 19.6) and _ssg.above_room(31.7, 19.6)
+    and _ssg.SLAB_SEED_MAX_ABOVE_ROOM_K == 12.0,
+)
+# The option text states the bound the code applies, in every language.
+import json as _ssg_json  # noqa: E402
+from pathlib import Path as _ssg_Path  # noqa: E402
+
+_ssg_cc = _ssg_Path(_ssg.__file__).parent
+
+
+def _ssg_find(node):
+    """Every ``data_description`` text for the floor-return field, at any depth."""
+    if isinstance(node, dict):
+        text = (node.get("data_description") or {}).get("floor_return_temp_entity")
+        return ([text] if text else []) + [t for v in node.values() for t in _ssg_find(v)]
+    return []
+
+
+_ssg_texts = [
+    t for name in ("strings.json", "translations/en.json", "translations/de.json",
+                   "translations/sv.json")
+    for t in _ssg_find(_ssg_json.loads((_ssg_cc / name).read_text(encoding="utf-8")))
+]
+R.check(
+    "every floor-return option text names the bound the guard applies",
+    len(_ssg_texts) == 12
+    and all(f"{_ssg.SLAB_SEED_MAX_ABOVE_ROOM_K:g} K" in t for t in _ssg_texts),
+    f"{len(_ssg_texts)} texts",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
