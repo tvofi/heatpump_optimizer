@@ -1,0 +1,9 @@
+   population arms: 13/13 held
+SELF-TEST passed (every perturbed scope refused)
+
+STRUCTURE RATCHET PASSED
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+TOTAL: 0 error(s) across 52 policy file(s)

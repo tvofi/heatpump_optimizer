@@ -1,0 +1,1 @@
+(empty above = VERSION/manifest/notes/golden untouched)
