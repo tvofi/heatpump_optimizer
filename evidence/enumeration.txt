@@ -1,0 +1,3 @@
+/home/user/heatpump_optimizer/tools/audit/seat/body_push.sh:175:  (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS") # mut:keep
+/home/user/heatpump_optimizer/tools/audit/seat/open_pr.sh:122:  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base "$fb" --head HEAD > $D/fig-$1.log 2>
+/home/user/heatpump_optimizer/tools/audit/seat/update_pr.sh:107:  python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && 
