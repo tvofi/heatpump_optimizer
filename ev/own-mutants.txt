@@ -1,0 +1,7 @@
+SURVIVED NULL
+KILLED own-release-keeps-held
+KILLED own-tick-ignores-pending
+SURVIVED own-tick-before-note
+KILLED own-none-keeps-hold
+KILLED own-short-run-from-none-counts
+rc=0
