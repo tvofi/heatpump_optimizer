@@ -1,0 +1,3 @@
+$ at origin/main a72ae19952e3dac9717a5be27c83f182be34c567: python3 tools/audit/seat/queue_pre_flight.py --self-test
+rc=0
+70:queue_pre_flight self-test: 53 checks, 0 failed

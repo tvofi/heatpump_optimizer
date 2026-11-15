@@ -1,0 +1,11 @@
+m1 outside_contract: OUTSIDE: conjunct deleted: rc=1 FAIL lines=0 last: roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it  => KILLED
+m2 fork_head: cross = False: rc=1 FAIL lines=0 last: roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it  => KILLED
+m3 merge_pr.sh head_is_ours: cross = False: rc=1 FAIL lines=0 last: merge_pr self-test: 35 checks, 2 failed  => KILLED
+worktree clean
+m1 conjunct deleted rc 1 | ['merge_train self-test: 815 checks, 2 failed'] | FAIL-bearing lines: 13
+    FAIL fork head: `check` exiting 0 beside a refusal's own words naming the head parks [OUTSIDE] -- the admission is the line that starts with outside.py's `OUTSIDE: `, not any line naming the head
+    FAIL fork head: `check` exiting 0 beside the admission's words mid-line naming the head parks [OUTSIDE] -- the admission is the line that starts with outside.py's `OUTSIDE: `, not any line naming the head
+m2 fork_head cross = False rc 1 | ['merge_train self-test: 815 checks, 31 failed'] | FAIL-bearing lines: 41
+    FAIL fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's
+    FAIL fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the fork's name, before app_approve.sh is asked, nothing merged
+worktree clean

@@ -1,0 +1,15 @@
+00:17:29 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:18:50 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:20:12 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:21:34 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:22:57 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:24:18 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:25:40 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:27:02 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:28:24 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:29:46 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:31:08 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:32:31 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:33:53 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:35:15 rc=3 WAIT 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none
+00:36:38 rc=1 INTRODUCED Show the carry check and the queue pre-flight refusing their own fixtures

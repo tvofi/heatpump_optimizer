@@ -1,0 +1,48 @@
+== callers of fork_head in merge_train.py (non-def, non-self-test area unknown)
+2750:        fork = self.fork_head(pr)
+2879:        if self.fork_head(pr) is not None:
+2927:        fork = self.fork_head(pr)
+2942:        fork = self.fork_head(pr)
+3026:        if self.fork_head(pr) is not None:
+3138:            fork = self.fork_head(pr)
+== programs outside merge_train.py that build a Train
+tools/audit/seat/orchestrator_tick.py:1239:            t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
+tools/audit/seat/orchestrator_tick.py:1260:            t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
+tools/audit/seat/orchestrator_tick.py:4123:        _was9 = mt.Train.classify_at
+tools/audit/seat/orchestrator_tick.py:4128:                mt.Train.classify_at = stub
+tools/audit/seat/orchestrator_tick.py:4135:            mt.Train.classify_at = _was9
+tools/audit/seat/orchestrator_tick.py:4194:        _was_ca = mt.Train.classify_at
+tools/audit/seat/orchestrator_tick.py:4198:                mt.Train.classify_at = lambda self, h, runs, req, got=got: got
+tools/audit/seat/orchestrator_tick.py:4209:            mt.Train.classify_at = _was_ca
+tools/audit/seat/orchestrator_tick.py:4298:        _was = mt.Train.classify_at
+tools/audit/seat/orchestrator_tick.py:4300:            mt.Train.classify_at = lambda self, h, runs, req: ("wait", ["gate"], [])
+tools/audit/seat/orchestrator_tick.py:4302:            mt.Train.classify_at = lambda self, h, runs, req: ("red", [], ["gate"])
+tools/audit/seat/orchestrator_tick.py:4305:            mt.Train.classify_at = _was
+tools/audit/seat/proof_watch.py:233:        return _train().Train(self.repo, state=self.state, mandate=None,
+tools/audit/seat/queue_pre_flight.py:97:    def __init__(self, repo: str, train: "mt.Train | None" = None,
+tools/audit/seat/queue_pre_flight.py:109:        self.t = train or mt.Train(repo, Path(self._tmp.name), None, "", (), 1)
+tools/audit/seat/queue_pre_flight.py:386:            pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), train_mandate, "", (), 1,
+tools/audit/seat/queue_pre_flight.py:490:            t = mt.Train("o/r", Path(d), str(mt.MID), "", (), 1, run=fake(world), sleep=lambda s: None)
+tools/audit/seat/queue_pre_flight.py:499:    mt.Train._measured_score = lambda self, g, h: "Architecture score: dS +0.4000 IMPROVES"
+tools/policy/agreement_py.py:385:                t = mt.Train("o/r", Path(d), None, "", (), 1, run=run)
+tools/pr/outside.py:832:        bare = mt.Train._agent_approval_body(tr, H, item, "code-owned paths", ["tests/entities.py"], str(MID))
+== queue_pre_flight fixture
+          == ("PARK", "policy"))
+    check("null control: under an expired --mandate it still PARKs",
+          go({**MANDATED, "mandate": mandate(NOW, from_min=-120, until_min=-1)},
+             train_mandate=str(mt.MID))[:2] == ("PARK", "policy"))
+    check("an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated "
+          "approval does not override it: policy_gate's own judgement, with the posted one added)",
+          go({**MANDATED, "reviews": [dict(owner_review(H0, NOW, cite=False, state="CHANGES_REQUESTED"))]},
+             train_mandate=str(mt.MID))[:2] == ("PARK", "policy"))
+
+    def due(world: dict) -> "int | None":
+        """The mandate id policy_approve would post under in <world>, under --mandate MID."""
+        with tempfile.TemporaryDirectory() as d:
+            t = mt.Train("o/r", Path(d), str(mt.MID), "", (), 1, run=fake(world), sleep=lambda s: None)
+            return t.policy_approval_due(7, H0, MANDATED["files"])[0]
+    check("policy_approval_due names the mandate in force for policy merging; revoked, expired or "
+          "scope code-owned it names none (the one decision the post and the pre-flight share)",
+          due(dict(MANDATED)) == mt.MID and due({**MANDATED, "thread": [revoke()]}) is None
+== steps whose recorded files hold tools/audit/seat/merge_train.py: ['beat-job-rows', 'carry-check-and-the', 'ci-probe-instrument', 'ci-watcher', 'cloud-dispatcher', 'failure-log-reader', 'field-coverage', 'hooks-setup', 'merge-train', 'obligations-ledger', 'open-driver', 'open-pr', 'orchestrator-tick', 'outside-contract', 'pr-args', 'pr-merger', 'prepr', 'programme-pulse', 'proof-watcher', 'review-packet', 'selftest-wiring', 'train-launcher', 'update-pr']
+== of those, also holding tools/pr/outside.py: ['beat-job-rows', 'field-coverage', 'open-pr', 'pr-args', 'pr-merger', 'selftest-wiring', 'update-pr']
