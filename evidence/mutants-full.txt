@@ -1,2 +1,0 @@
-M10 open-cards rc 2->0: rc=1 KILLED ['   evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=0']
-M11 open-cards drops list: rc=0 SURVIVED ['   evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=2']

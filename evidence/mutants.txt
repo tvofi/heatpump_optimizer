@@ -1,12 +1,12 @@
-NULL: SURVIVED  held 59/59
-M1 isinstance->False: KILLED  held 57/59
-M2 isinstance->is None: KILLED  held 58/59
-M3 drop merged guard: KILLED  held 58/59
-M4 elif False: KILLED  held 57/59
-M5 no append: KILLED  held 57/59
-M6 no continue: KILLED  held 57/59
-M7 old norm: KILLED  held 58/59
-M8 gating is True only (not gating->gating is False): SURVIVED  held 59/59
-M9 non-gating unmerged still gap: KILLED  held 57/59
-M10 open-cards rc 2->0: SURVIVED  held 59/59
-restored clean
+NULL: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M11 drop out: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M12 rc always 0: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M13 no isinstance: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M14 drop decision filter: rc=1 KILLED | evaluation arms: 59/62 held; --round 1 rc=1; --open-cards rc=2
+M15 unmarked empty: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M16 lines empty: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M17 main exit 0: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M18 main no stderr lines: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M19 unsorted out: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+
+[exited with code 0]
