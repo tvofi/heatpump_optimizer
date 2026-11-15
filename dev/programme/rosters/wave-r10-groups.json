@@ -27151,7 +27151,7 @@
    ],
    "resume": {
     "stage": "not-started",
-    "branch": "fix/r11-pre-standing-scripts",
+    "branch": "handoff/r11-pre-standing-scripts",
     "commit": null,
     "last_step": null,
     "next_step": "designer (L, design first, owner card C8 2026-11-15); fixer only on Design review: approve; the critical-path and outside watch row (moved TICK carry 15) is the first build item",
