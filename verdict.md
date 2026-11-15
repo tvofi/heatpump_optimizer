@@ -1,6 +1,6 @@
 Design review: approve 20cafac7dfb226e1f8e0b20f254ffb299d8ace20
 
-Reviewer round 2. Note read at 20cafac7dfb226e1f8e0b20f254ffb299d8ace20 from a detached worktree; tree read at the judged base b880dc914f3ba2590b7ce655d7419678b1c4968e (the note's base b3831ff64e is its ancestor; the difference is #3551, which is part 1's union half, plus `bugclasses.json`, one RCA file, `bus.sh`, `beatd.py` and delivery rows). Roster read at handoff/audit-r10-roster a90c68458a. Nothing rerun. Seat tokens: three read-only subagents, 89254 + 109120 and one the harness reported no figure for; none for the seat itself.
+Reviewer round 2. Note read at 20cafac7dfb226e1f8e0b20f254ffb299d8ace20 from a detached worktree; tree read at the judged base b880dc914f3ba2590b7ce655d7419678b1c4968e (the note's base b3831ff64e is its ancestor; the difference is #3551, which is part 1's union half, plus `bugclasses.json`, one RCA file, `bus.sh`, `beatd.py` and delivery rows). Roster read at handoff/audit-r10-roster a90c68458a. Nothing rerun. Seat tokens: three read-only subagents, 89254 + 109120 + 86644; the harness reports no figure for the seat itself.
 
 ## Round-1 points
 
