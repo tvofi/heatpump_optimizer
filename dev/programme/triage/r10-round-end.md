@@ -25,8 +25,14 @@ This seat made no `gh` call, no roster edit, no push and no GitHub write.
 loop-study cards L1-L9; they are not re-ruled. What this batch rules is the **form**: which
 group builds each card, which planned groups and prototypes are merged, replaced or dropped,
 and each friction family's root cause. Every ruling below takes effect only when tvofi rules
-its decision card; until then nothing here is built, designed or dispatched. The cards are in
-the out-of-tree summary the orchestrator forwards.
+its decision card. **tvofi ruled every card on 2026-11-15, about 09:50-09:57Z** (asked with
+AskUserQuestion by the round-11 orchestrator); each ruled entry carries an `Owner:` line with his
+verbatim choice. Every card took the recommended option except C9, which he answered in his own
+words, and that changed P789 and P790. Two of his rulings in the same set are about production
+work this batch does not rule, recorded here so they are findable: Q1 tvofi 2026-11-15 "Fold
+into D4 design (Recommended)" (R10-COP-LEARNER-DRAW-FLOOR carries 6 and 8 go to the D4 design on
+R11-INTAKE-R10-RESIDUE), and Q2 tvofi 2026-11-15 "Yes, measure then build (Recommended)" (#3602
+carry 5: a default start price for a clamped install, measured first).
 
 **Ruled once per instrument** (card L5). Proposals are grouped under the group that owns the
 instrument they name. `merge_train.py` (58 accepted proposals in round 10, the loop study's
@@ -42,7 +48,9 @@ change merges only on a ground (`dev/audit/README.md`, "Production share"): it u
 its own pull request introduced. The R11-PRE groups are built under tvofi's 2026-11-13 ruling
 ("They should be fixed in the beginning of round 11 before the finders run"), which this batch
 reads as the instrument window for them; a kept round-10 group outside that set names its
-ground or waits for tvofi to open the window for it (summary, owner decision 1).
+ground or waits for tvofi to open the window for it. He opened it for the two kept round-10
+groups (O1, "Admit, built late": P755 and P761 join the pre-finder set, built after the R11-PRE
+groups).
 
 **Verdict words.** ACCEPT is qualified as BUILD (keep the group), MERGE into a group, or
 REPLACE by a prototype (the group's work becomes tracking and self-testing it). REJECT is
@@ -58,6 +66,7 @@ Machinery figure at `a39627da59`, for every Cost line below:
 ## P742: R11-PRE-MACHINERY-LIMITER, built first, with the loop-study policy text it owns
 
 Verdict: ACCEPT, BUILD. First of the kept set (tvofi, 2026-11-14: "limiter first, write that in").
+Owner: O2 tvofi 2026-11-15 "Mandate, if sound (Recommended)" (who approves the L2/L4/L5/L7/L8 text on this pull request)
 Source: card P2 and P11 (audit section 6 row a2); the group's three carries; loop-study cards
 L2, L4, L5, L7 and L8; intake carries 15, 22, 23, 41.
 Instances: the ratchet binds nothing: 477 non-production merges against 103 production in a
@@ -245,8 +254,8 @@ The NOBODY-STALL brief's three stale line pins (`cloud_relay.sh:765`, `:808`, `l
 the pickup's brief_lint read) are re-pinned in this group's brief, not on the absorbed one.
 Binding: a verdict waits behind an unrelated pull request's full pre-PR check; the owner ruled
 the fix (P12).
-Destination: this group. Retires the second detached relay and the landing chains' relay step
-(P789).
+Destination: this group. Retires the second detached relay. The landing chains stay
+session-local until P789's benchmark reads (card C9).
 
 ## P751: R11-PRE-ACK-COMPLETION, absorbing the owed-line residue of the tick
 
@@ -272,6 +281,7 @@ names its closing event" shape; see P795 for the policy half.
 
 Verdict: ACCEPT, BUILD, re-sized L, design first; in part REPLACE by the dispatch-seat
 prototypes (P792).
+Owner: C8 tvofi 2026-11-15 "L, design first (Recommended)"
 Source: card R1 (audit 2.2, the removals list); `dev/audit/README.md`'s opening carry "Retire
 the merge and dispatch seats into beat jobs" (R10-STANDING-CONTRACTS-P2 carries 9, 12-14, "size
 L, design first"); PC-1113-06 (as design input, P772), -07, -08, -09 (P773); R10-RELAY-NOBODY-STALL
@@ -331,6 +341,7 @@ enumerator").
 Verdict: ACCEPT, BUILD narrowed (S to M); roster stage `not-started`.
 Deferred by: tvofi's 2026-11-12 07:34Z ruling (self-fed work that moves closure goes to round
 11), applied 2026-11-12 09:35Z. That ruling placed it in round 11; it is not overturned.
+Owner: O1 tvofi 2026-11-15 "Admit, built late (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P596, P625, P669, P683); PC-1113-13 (P777); intake 16 (T5).
 Instances: brief item 2 (shim logs the script's basename) is on main
 (`tools/audit/seat/shims/seat-gh:15`); carry 2 (the shim refusing the train's postmerge record
@@ -353,6 +364,7 @@ the same accounting).
 
 Verdict: ACCEPT, MERGE; roster stage `absorbed`.
 Deferred by: tvofi's 2026-11-12 ruling as P755. Recommendation: absorbed, not refused.
+Owner: C2 tvofi 2026-11-15 "Merge and split (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P611, P616-P618) and its six carries.
 Instances: arm 1, 19.7% of fires (P750); arm 3, 65 owed against 6 folded (P749).
 Cost: none of its own.
@@ -367,6 +379,7 @@ seam, P749 owns `carry_fold.py`).
 
 Verdict: ACCEPT, MERGE into R11-PRE-TOOLCHAIN-PIN; roster stage `absorbed`.
 Deferred by: tvofi's 2026-11-12 ruling as P755.
+Owner: C3 tvofi 2026-11-15 "Fold in (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P627, P678).
 Instances: STALE CHECKOUT 14 of 22 opener failures, one topic stuck; three hand resets of
 `fails.json` in 40 h.
@@ -382,6 +395,7 @@ as is, the S item is built unchanged in P743's first part.
 Verdict: REJECT, DROP; roster stage `refused`, reason: "carries re-homed by triage
 r10-round-end#P758; no build of its own (L5: orchestrator_tick.py past the redesign threshold)".
 Deferred by: tvofi's 2026-11-12 ruling as P755. The drop removes no work: every carry is moved.
+Owner: C1 tvofi 2026-11-15 "Refuse, re-home (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (35 carries, 34 unmarked; carry 29 marked).
 Instances: L size, 34 patch items on two instruments (`orchestrator_tick.py`, `tick_loop.sh`)
 past L5's threshold; carry 29 (scorecard beat row) is on main (`beat_jobs.py:138`).
@@ -396,6 +410,7 @@ none.
 
 Verdict: ACCEPT, MERGE into R11-PRE-PARALLEL-PIPELINE (TRAIN-ROUTING); roster stage `absorbed`.
 Deferred by: tvofi's 2026-11-12 ruling as P755.
+Owner: C4 tvofi 2026-11-15 "Fold in (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P628).
 Instances: 23-28% of train time spent waiting on the approval's review run (measured
 2026-11-11); null control: none of 50 review runs turned a green head red.
@@ -409,6 +424,7 @@ the design reviewer finds the routing makes it moot.
 
 Verdict: ACCEPT, MERGE into R11-PRE-RELAY-REBUILD; roster stage `absorbed`.
 Deferred by: tvofi's 2026-11-12 ruling as P755.
+Owner: C5 tvofi 2026-11-15 "Fold in (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P675, P689).
 Instances: five holds, 40 min and 32 min waits; no OWED line printed (the relay reads rc 75 as
 retry-unrecorded).
@@ -424,6 +440,7 @@ the rest; roster stage `not-started` with a re-cut brief.
 Deferred by: tvofi's 2026-11-12 ruling as P755. The paid macOS lane is refused under tvofi's
 2026-11-12 ruling that macOS-only checks run on local seats and paid runners are never asked
 about.
+Owner: C7 tvofi 2026-11-15 "Replace, keep lints (Recommended)"; O1 tvofi 2026-11-15 "Admit, built late (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group (P684, P686) and its three carries; intake 5, 10, 31, 149, 163; the
 pipefail-sigpipe family (`dev/audit/rca/R10-RCA-FAMILY-PIPEFAIL-SIGPIPE.md`).
 Instances: the beat row is on main (`beat_jobs.py:111`, `darwin-selftest`, merged by #3565): it
@@ -445,6 +462,7 @@ string compare and an early-exit reader on a pipe under `pipefail`; (d) intake 5
 
 Verdict: ACCEPT, MERGE into R11-PRE-SHARED-FILES part 1; the shrink guard dropped; roster stage
 `absorbed` once the part lands.
+Owner: C6 tvofi 2026-11-15 "Re-cut as part 1 (Recommended)"
 Source: the group (audit-class barrier C, triage 2026-11-13), #3551 (open, head `00a470f7b7`),
 its nine carries; loop card L9.
 Instances: `record` still replaces (`tools/ci/selftest_scope.py:750-751` at `a39627da59`); the
@@ -460,6 +478,7 @@ land #3551 as built (one merge sooner, one refusal more).
 Verdict: ACCEPT, MERGE into R11-PRE-SHARED-FILES part 1; roster stage `absorbed`.
 Deferred by: the 2026-11-13 triage ruling "barrier A accepted for round 11" (in the group's
 note); placed in round 11, not refused.
+Owner: C6 tvofi 2026-11-15 "Re-cut as part 1 (Recommended)"; C14 tvofi 2026-11-15 "Ratify as ruled (Recommended)"
 Source: the group; countermeasure A of the self-test drift analysis.
 Instances: main's drift step went red in six episodes in the s14 log (family record) and was
 repaired by nine hotfix merges in round 10.
@@ -512,6 +531,7 @@ carry 10 marked duplicate.
 Verdict: ACCEPT. The new group R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 is outside work, not
 machinery under the freeze: it builds now and this triage does not hold it. Carries 8, 9, 10
 are its part 1, severity high, ahead of carries 0-3.
+Owner: C12 tvofi 2026-11-15 "Open now as outside (Recommended)"
 Source: the group (source outside, owner ruling 2026-11-12 ~07:40Z: "The contributor cycle
 mechanism should be built in full, asap"); pending carries 0, 1, 2, 3, 5, 7, 8, 9, 10; the
 pickup's queue section D.
@@ -607,6 +627,7 @@ Destination: P753.
 ## P772: PC-1113-06: the per-group pipeline as deterministic workflow scripts
 
 Verdict: DEFER, owning group R11-PRE-STANDING-SCRIPTS (design input).
+Owner: C15 tvofi 2026-11-15 "Defer as design input (Recommended)"
 Source: PC-1113-06 (no prototype; evidence 4.34 B orchestrator tokens, 36 compactions in 66 h).
 Instances: the evidence measures the cost of the present shape, not the benefit of the proposed
 one.
@@ -778,36 +799,61 @@ Destination: P761 item (c).
 Verdict: LOG (no new countermeasure; `dev/audit/rca/R10-RCA-FAMILY-SCRATCH-INSTRUMENTS.md`).
 Source: decision 0013 and the 2026-11-13 freeze shape; the prototype inventory.
 Destination: R11-PRE-MACHINERY-LIMITER carry 2 already owes "where the proposals file and the
-prototypes live"; Part C below disposes of every prototype round 10 left.
+prototypes live"; Part C below rules on every prototype round 10 left.
 
 # Part C: the local prototypes and workarounds
 
 ## P789: the landing chains (chain_one.sh, chain_one_v2.sh, chain_after_green.sh, chain_3481_3582.sh)
 
-Verdict: REJECT, DROP; the one behaviour no tracked instrument has MERGE into
-R11-PRE-RELAY-REBUILD.
+Verdict: DEFER (tvofi's card C9): neither dropped nor tracked. They stay session-local, and a
+benchmark against the merge train is owed; its result is triaged at round 11's end.
+Owner: C9 tvofi 2026-11-15 "Keep them locally and benchmark them against the train"
 Source: `$HPO_STATE_DIR/s14/bypass/` (52, 14, 41 lines and one per-PR copy).
 Instances: they relay a held verdict once CI is green, post the prepared mandate approval and
 land; #3593 and #3451 merged through them on 2026-11-15 (sweep lines 2603, 2612).
-Cost: none to drop.
-Binding: landing is the train's; approving is the mandate holder's act per pull request and
-never a script's; the hard-coded session paths make them unrunnable after the session. What the
-train lacks, posting a verdict while the relay's pass is stuck, is P750's requirement.
-Destination: P750 (the relay posts at GREEN, independent of the update pass).
+Cost: the benchmark: one read of git and the verdict bus per window, no new seat; each chain
+keeps its session-scratch paths, so it runs only from a session that sets them.
+Binding: whether the chains land faster than the train is unmeasured; dropping them (this
+batch's first ruling) assumed the train's wait was acceptable.
+The benchmark, owned by R11-PRE-PARALLEL-PIPELINE (the group that owns the train's redesign
+and its replay baseline of handoff-to-merge wall clock):
+- measures, per pull request, the merge wait: minutes from the later of (a merge verdict
+  posted at, or carried to, the live head) and (`merge_train.py classify` reading GREEN) to the
+  committer time of its merge commit on main, with the landing path (chain or train) as the
+  factor, plus each path's refusals and wrong merges (a wrong merge must read 0);
+- reads main's moves and lead time per size from `python3 tools/audit/merge_throughput.py flow`,
+  which publishes those from git alone; that instrument has no per-PR merge-wait column, so the
+  benchmark adds it there (or reads it from the design's baseline harness in
+  `$HPO_STATE_DIR/s14/seat/pipeline-design/`, which P754 lands on its design ref), never as a
+  third parser of the bus;
+- null control: the train's own entries in the same window, same classes;
+- decision rule, stated now so the benchmark cannot pick it later: if the chains' median merge
+  wait is more than 20% below the train's over at least ten pull requests each, with no wrong
+  merge, their posting-at-GREEN behaviour becomes a proposal into P750 and P754 at round 11's
+  end; otherwise they are retired.
+Destination: R11-PRE-PARALLEL-PIPELINE runs the benchmark during its shadow; the chains stay in
+`$HPO_STATE_DIR/s14/bypass/`.
 
 ## P790: land.sh and land_3568.sh, the ruleset-release merge
 
-Verdict: REJECT, DROP.
+Verdict: DEFER (tvofi's card C9, which covered the chains and `land.sh` together): kept
+session-local, benchmarked with P789.
+Owner: C9 tvofi 2026-11-15 "Keep them locally and benchmark them against the train"
 Source: `$HPO_STATE_DIR/s14/bypass/land.sh` (62 lines): it verifies, merges normally, else
 releases ruleset 23698884 for one merge and restores it.
 Instances: used under tvofi's 2026-11-14 bypass authority for the 15/11 closure.
-Binding: that authority was for the closure; a reusable script that releases a ruleset is a
-standing bypass. Its two useful arms are not lost: `gh pr ready` is PC-1113-11's prototype (P775)
-and the merge-tree `structure.py`/`policy_lint` check is the train's pre-flight.
+Cost: as P789.
+Binding: the benchmark compares landing paths, so only `land.sh`'s normal-merge path enters it;
+its ruleset-release arm stays bound to the authority it was written under (the 15/11 closure)
+and is not run for the benchmark. Its two useful arms are named for the redesign: `gh pr ready`
+is PC-1113-11's prototype (P775) and the merge-tree `structure.py`/`policy_lint` check is the
+train's pre-flight.
+Destination: P789's benchmark, owned by R11-PRE-PARALLEL-PIPELINE.
 
 ## P791: wake_filtered.sh
 
 Verdict: ACCEPT, MERGE into R11-PRE-ACK-COMPLETION; keep the script running until it lands.
+Owner: C10 tvofi 2026-11-15 "Fold in, keep running (Recommended)"
 Source: `$HPO_STATE_DIR/s14/wake_filtered.sh` (session-local, "Proposal candidate for triage;
 not a tracked instrument").
 Instances: repeated levels woke the orchestrator about once a minute (sweep line 1531); the
@@ -834,6 +880,7 @@ Destination: P752 (design input and acceptance cases); `relayc.sh` to P750.
 
 Verdict: DEFER, owning group: the round-11 closeout group (R10-CLOSEOUT-CLEANUP's successor);
 one item ACCEPT now.
+Owner: C11 tvofi 2026-11-15 "Defer, safe default now (Recommended)"
 Source: `$HPO_STATE_DIR/s14/seat/closure-runbook/` (`make_queue.py`, `sim_queue.py`,
 `fill_shas.py`, `retarget.py`, `extra_retarget_lines.py`, `main_only_roster_delta.py`,
 `groups_now.py`, `catalog_pr.sh`, `stamp_prep.sh`, `stamp_push.sh`, the `rec*` scripts,
@@ -867,6 +914,7 @@ Source: HANDOVER's "Local prototype inventory" and the sweep log.
 
 Verdict: ACCEPT, the smallest sound change: playbook wording plus `--roster-ref`; policy
 (`dev/audit/README.md`), tvofi's card.
+Owner: C13 tvofi 2026-11-15 "Reword + --roster-ref (Recommended)"
 Source: coordinator item 2; the pickup's measurement.
 Instances: the Round start one-liner prints every group not in `FINISHED_STAGES + ('refused',)`,
 33 lines at `80c1fb32c7`; groups that must stay open at finder start (R10-CATALOG-PR until

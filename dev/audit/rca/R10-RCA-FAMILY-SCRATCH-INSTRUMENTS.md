@@ -44,6 +44,8 @@ Every round from 11 on, by the same freeze.
 
 R11-PRE-MACHINERY-LIMITER's carry 2 already owes the sentence: "State where the proposals file
 and the prototypes live so the next orchestrator finds them from the playbook". This round-end
-batch disposes of every prototype round 10 left (triage
-`dev/programme/triage/r10-round-end.md#P789` to `#P794`). Building a separate check would add a
+batch rules on every prototype round 10 left (triage
+`dev/programme/triage/r10-round-end.md#P789` to `#P794`); tvofi kept one set session-local on
+purpose (card C9: the landing chains and `land.sh` stay local until a benchmark against the
+merge train reads), so "in scratch" is a ruled state for them, with an owner and an end. Building a separate check would add a
 refusal for a disposal that the round-end triage now does once a round; L2 orders that last.
