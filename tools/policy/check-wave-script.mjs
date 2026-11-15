@@ -1667,6 +1667,10 @@ await block('the P3 plan workflow', async () => {
   const FIND = (id) => ({ id, dimension: 'D7', severity: 'medium', title: id, class: 'P3', seam: 'coordinator' })
   const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
   const SHA = (c) => c.repeat(40)
+  // What is open when the finders finish: one card, one roster group (tvofi, 2026-11-15).
+  const OPEN = { open: { open_cards: ['E11-X'], open_groups: ['R11-G'], unmarked: [] }, open_rc: 0 }
+  const MOVES = (extra = {}) => ({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }],
+    dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })
   const drive = async (over = {}) => {
     const calls = []
     let cur = over.publish?.sha ?? SHA('b')
@@ -1674,9 +1678,9 @@ await block('the P3 plan workflow', async () => {
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt })
       const label = o.label
-      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json' }
+      if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json', ...OPEN }
       if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
-      if (label === 'plan/moves') return over.moves ?? { groups: [{ group: 'A', findings: ['D7-s1-01'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [] }
+      if (label === 'plan/moves') return over.moves ?? MOVES()
       if (label === 'plan/write') return over.write ?? { brief_lint_rc: 0 }
       if (label === 'plan/publish') return over.publish ?? { sha: cur, pushed: true }
       if (/^plan\/review-/.test(label)) {
@@ -1705,12 +1709,25 @@ await block('the P3 plan workflow', async () => {
   await pthrows('an empty or absent draft roster stops P3', /draft roster .*empty or absent/, { read: { groups: [], findings: [] } })
   const two = [FIND('D7-s1-01'), FIND('D7-s1-02')]
   await pthrows('a triage that drops a verified finding stops P3', /dropped 1 verified finding/,
-    { read: { groups: [G('A')], findings: two }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
+    { read: { groups: [G('A')], findings: two, ...OPEN }, architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }] } })
   await pthrows('a triage that keeps one finding twice stops P3', /more than once/,
-    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')] },
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')], ...OPEN },
       architect: { components: [], scenarios: [], triage: [{ id: 'D7-s1-01', verdict: 'keep' }, { id: 'D7-s1-01', verdict: 'defer' }] } })
   await pthrows('a group with no move entry stops P3', /no move entry/,
     { moves: { groups: [{ group: 'A' }, { group: 'B' }], moves: [{ group: 'A', metrics: {} }], projected_dS: 23 } })
+  await pthrows('an open group with no gates_finders (open_rc 1) stops P3 before planning', /mark each UNMARKED group/,
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')], open: { open_cards: [], open_groups: ['R11-U'], unmarked: ['R11-U'] }, open_rc: 1, open_err: 'UNMARKED R11-U' } })
+  await pthrows('a read with no open listing stops P3', /plan\/read: open/,
+    { read: { groups: [G('A')], findings: [FIND('D7-s1-01')], open_rc: 0 } })
+  await pthrows('a plan that leaves an open card unaccounted stops P3', /1 open card\(s\) or group\(s\) unaccounted \(E11-X\)/,
+    { moves: MOVES({ groups: [{ group: 'A', findings: ['D7-s1-01'] }] }) })
+  await pthrows('a drop with no reason accounts for nothing', /unaccounted \(R11-G\)/,
+    { moves: MOVES({ dropped: [{ id: 'R11-G', reason: ' ' }] }) })
+  await pthrows('an open item planned twice stops P3', /more than once \(R11-G\)/,
+    { moves: MOVES({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X', 'R11-G'] }] }) })
+  const kept = await drive({ moves: MOVES({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }, { group: 'R11-G' }],
+    moves: [{ group: 'A', metrics: {} }, { group: 'R11-G', metrics: {} }], dropped: [] }) })
+  t('an open group kept as its own group, and an open card folded into another, are accounted (null control)', kept.out?.plan?.sha === SHA('d'), J(kept.out?.plan))
   await pthrows('a publish that is not a 40-hex commit stops P3', /not a 40-hex commit/,
     { publish: { sha: 'abc', pushed: true } })
   await pthrows('a reviewer answering for another tree stops P3', /answered for/,
@@ -1729,6 +1746,8 @@ await block('the P3 plan workflow', async () => {
   const read = ok.calls.find((c) => c.label === 'plan/read')?.prompt ?? ''
   t('the read step is pointed at the audit-verify draft and measures the fork holdouts',
     read.includes('wave-r11-groups.json') && read.includes('plan_audit.py snapshot --ref deadbeefcafe'))
+  t('and reads what is open when the finders finish at origin/main, not at the fork',
+    read.includes('check_scopes.py --repo /repo --ref origin/main --round 11 --open-cards'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
   t('the reviewer is pointed at the published plan ref and its SHA',
     review1.includes('plan/r11 = ' + SHA('b')) && /plan-review\.md/.test(review1))

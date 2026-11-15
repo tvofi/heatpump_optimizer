@@ -16,7 +16,7 @@
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
     python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
-    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class> <value>
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class|gates_finders> <value>
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
@@ -460,7 +460,7 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
 
 
 #: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
-SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class")
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class", "gates_finders")
 CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
 REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
 
@@ -503,9 +503,9 @@ def op_set_field(roster, group, field, raw):
         raise Refuse(f"set-field: {field!r} is not one of {', '.join(SET_FIELDS)}")
     if raw == "-":
         new = None
-    elif field == "hotfix":
+    elif field in ("hotfix", "gates_finders"):
         if raw not in ("true", "false"):
-            raise Refuse("set-field: hotfix is true or false")
+            raise Refuse(f"set-field: {field} is true or false")
         new = raw == "true"
     elif field == "hotfix_by":
         try:
@@ -2229,6 +2229,12 @@ def _self_test() -> int:
     t0 = tip()
     check("set-field source with a word outside SOURCES is refused, moving nothing",
           refuses("is not a source", "set-field", "R9-S2", "source", rest=("bogus",)) and tip() == t0)
+    check("set-field gates_finders true, then false, reads back a boolean",
+          edit("set-field", "R9-S2", "gates_finders", rest=("true",)) == 0 and grp("R9-S2")["gates_finders"] is True
+          and edit("set-field", "R9-S2", "gates_finders", rest=("false",)) == 0 and grp("R9-S2")["gates_finders"] is False)
+    t0 = tip()
+    check("set-field gates_finders refuses a word that is not true or false, moving nothing",
+          refuses("gates_finders is true or false", "set-field", "R9-S2", "gates_finders", rest=("yes",)) and tip() == t0)
     check("set-field class is accepted",
           edit("set-field", "R9-S2", "class", rest=("docs",)) == 0 and grp("R9-S2")["class"] == "docs")
 

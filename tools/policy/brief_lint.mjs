@@ -777,6 +777,10 @@ function checkShape(groups, findings) {
     if (g.after !== undefined && !Array.isArray(g.after)) {
       bad(label, '`after` is present but is not an array')
     }
+    // check_scopes.py --open-cards would read a word here as unmarked.
+    if (g.gates_finders !== undefined && typeof g.gates_finders !== 'boolean') {
+      bad(label, '`gates_finders` is present but is not true or false')
+    }
   })
 }
 
@@ -1240,6 +1244,7 @@ const REQUIRED_SHAPE_DEFECTS = [
   { group: 'no-resume', kind: 'path', needle: 'no_such_probe_file.py' },
   { group: 'no-stage', kind: 'shape', needle: '`resume.stage` is missing or is not a non-empty string' },
   { group: 'after-not-array', kind: 'shape', needle: '`after` is present but is not an array' },
+  { group: 'gates-not-bool', kind: 'shape', needle: '`gates_finders` is present but is not true or false' },
   { group: 'twin', kind: 'shape', needle: 'duplicate group id' },
   { group: 'edge-probe', kind: 'after', needle: "'no-such-group' names no group in this file" },
 ]

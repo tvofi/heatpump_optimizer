@@ -33,6 +33,12 @@
       "after": "no-brief"
     },
     {
+      "group": "gates-not-bool",
+      "brief": "shape probe: this group's gates_finders is a word, which the architect's listing would read as unmarked.",
+      "resume": { "stage": "pending" },
+      "gates_finders": "yes"
+    },
+    {
       "group": "twin",
       "brief": "shape probe: first of two groups sharing an id.",
       "resume": { "stage": "pending" }

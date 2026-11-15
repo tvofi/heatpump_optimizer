@@ -33,8 +33,10 @@ evidence from an evaluator who is not its reviewer, and every card carries the o
 an accepted one merged at --ref unless the owner's ruling sets its `gates_finders` false: such a
 card unmerged is no gap, printed `PARALLEL <card>` since it builds beside the finders. Each gap is
 refused by the path or id it names; audit-find.js passes its round. --open-cards (with --round)
-prints those cards still open at --ref as JSON {round, ref, open_cards} and exits: run at P3's
-start, it is the architect's input (architect-planner.md). --self-test drives a complete record (passes) and one perturbation per rule.
+prints P3's input as JSON {round, ref, roster_ref, open_cards, open_groups, unmarked} and exits:
+those cards still open at --ref, and the open groups of the roster (roster_lib's reader, or
+--roster-ref) whose `gates_finders` is not true; rc 1, with an `UNMARKED <group>` line, while an
+open group carries no boolean. Run when the finders finish, it is the architect's input. --self-test drives a complete record (passes) and one perturbation per rule.
 The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
 graded the same objects, a ruling on every decided card, an accepted card's commit after that review
 and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
@@ -420,6 +422,15 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed, parallel=None):
     return gaps
 
 
+def architect_input(open_cards, roster):
+    """P3's input, read when the finders finish, and its exit code: the
+    accepted cards that gate no finder and are still unmerged (`open_cards`,
+    from evaluation_gaps), and the roster's open groups that gate no finder
+    (roster_lib.architect_groups). rc 1 while any open group is unmarked."""
+    groups, unmarked = roster_lib.architect_groups(roster)
+    return {"open_cards": sorted(open_cards), "open_groups": groups, "unmarked": unmarked}, 1 if unmarked else 0
+
+
 def population(axes, tree, show):
     """(lines, ok): the install population's levels per axis as read from the
     sources at the ref, then the totals. An axis that cannot be read prints
@@ -619,6 +630,17 @@ def evaluation_self_test(tree, show):
         "an accepted card with no gates_finders is refused even unmerged, and never listed beside":
             (lambda r: len(r[0]) == 2 and r[1] == [])(beside(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), merged=lambda sha: sha != "abc")),
         "a rejected or deferred card needs no gates_finders": "gates_finders" not in good["cards"]["C2"] and run(card("C2", decision="deferred")) == [],
+        # P3's input when the finders finish (tvofi 2026-11-15): the open cards
+        # and every open roster group the finders do not wait for. An unmarked
+        # group is listed and flagged, and the listing fails until it is marked.
+        "P3's input lists the open cards and the open non-gating groups, rc 0 when all are marked":
+            architect_input(["C1"], {"groups": [{"group": "G", "gates_finders": True, "resume": {"stage": "in-progress"}},
+                                                {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}},
+                                                {"group": "D", "gates_finders": False, "resume": {"stage": "done"}}]})
+            == ({"open_cards": ["C1"], "open_groups": ["N"], "unmarked": []}, 0),
+        "an unmarked open group is listed, flagged and fails the listing":
+            architect_input([], {"groups": [{"group": "U", "resume": {"stage": "not-started"}}]})
+            == ({"open_cards": [], "open_groups": ["U"], "unmarked": ["U"]}, 1),
         "a null, absent or blank reviewer or evaluator is refused":
             all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [])]
                 + [edit(lambda c: c.pop(k)) for k in ("reviewer", "evaluator")]),
@@ -746,7 +768,8 @@ def main():
     ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
     ap.add_argument("--population", action="store_true", help="print the install population's levels read at --ref and exit")
     ap.add_argument("--open-cards", action="store_true",
-                    help="with --round: print, as JSON, the accepted non-gating cards not merged at --ref (P3's input) and exit")
+                    help="with --round: print, as JSON, P3's input (open non-gating cards at --ref, open non-gating roster groups) and exit")
+    ap.add_argument("--roster-ref", help="the roster's ref for --open-cards (default: roster_lib.reader_ref)")
     a = ap.parse_args()
     show = lambda f, at=None: subprocess.check_output(["git", "-C", a.repo, "show", f"{at or a.ref}:{f}"], text=True)
     anc = lambda x, y: subprocess.run(["git", "-C", a.repo, "merge-base", "--is-ancestor", str(x), y],
@@ -759,11 +782,14 @@ def main():
         if a.round is None or records(a.round)[1] not in tree:
             print(f"--open-cards needs --round <N> and {records(a.round or 0)[1]} tracked at {a.ref}", file=sys.stderr)
             sys.exit(2)
-        out = []
+        out, rref = [], roster_lib.reader_ref(a.repo, a.roster_ref)
         evaluation_gaps(a.round, tree, show, merged, anc, changed, out)
-        print(json.dumps({"round": a.round, "ref": subprocess.check_output(["git", "-C", a.repo, "rev-parse", a.ref], text=True).strip(),
-                          "open_cards": sorted(out)}))
-        sys.exit(0)
+        listing, rc = architect_input(out, roster_lib.show_roster(a.repo, rref))
+        for g in listing["unmarked"]:
+            print(f"UNMARKED {g}: open, no boolean gates_finders (roster_edit.py set-field {g} gates_finders true|false)", file=sys.stderr)
+        rev = lambda r: subprocess.check_output(["git", "-C", a.repo, "rev-parse", r], text=True).strip()
+        print(json.dumps({"round": a.round, "ref": rev(a.ref), "roster_ref": rev(rref), **listing}))
+        sys.exit(rc)
     if a.population:
         lines, ok = population(json.loads(show(OBJECTIVE)).get("population", []), tree, show)
         print("\n".join(lines))
