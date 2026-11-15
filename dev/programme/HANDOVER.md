@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6abf88e617ee32844e809b3a3daad82d3d7e7f80
+updated-for: 29b3e5a74cbb30474120c84a27b4e6130f6346bc
 
 This file is ruled by `dev/governance/rules/writing-for-agents.md` (generated
 into `.claude/rules/`, which the harness loads on this path). It holds what a
@@ -10,7 +10,7 @@ plus one `dev/programme/delivery/<N>.md` per pull request, linked from here and
 never restated. **Volatile state is on #3394** (the successor coordination issue,
 #201's continuation past its 2,500-comment cap; #201 stays open on the owner's
 2026-10-25 sentence below and is wired to R10-CATALOG-PR so that the closeout
-exempts it, once `#3553` lets that wire stand: see the issue set at closure) **and nowhere here**: running seats, open pull requests and heads,
+exempts it: see the issue set at closure) **and nowhere here**: running seats, open pull requests and heads,
 the train queue, today's next action, the open-PR cap in force, the mandate's id
 and dates, the v10.0.0 tag sha, the closeout counts and the catalog pull request
 number. Chronology this file no longer carries is read at its form before this
@@ -96,9 +96,13 @@ the owner named and what each was:
   `governance / instrument-self-tests` was red on main after `#3532`, not part of
   the required `gate`, but the owner's gating list names "main red"), the
   production hotfix `#3599` (R10-HOTFIX-REFERENCE-BASIS, below), and the
-  closure record pull request (R10-CLOSEOUT-CLEANUP's), which carries this file.
-  **`#3599` was the last gating item and was still in review and CI when this
-  file was written**, so the roster this record lands reads
+  closure record pull requests (R10-CLOSEOUT-CLEANUP's: `#3601`, merged as
+  `29b3e5a74c`, and its follow-up `r10-closure-record-2`, which carries this
+  file). **`#3599` was the last gating item and had not merged when this file
+  was written** (head `b58c6ca368`): its first-round merge verdict (probe
+  `94f29ddb`) was never posted, because the mutation-autofix pin commit moved
+  the head under its pending-ci draft, and a delta review of the pin commit
+  alone returned merge (probe `996b06f9`). The roster this record lands reads
   R10-HOTFIX-REFERENCE-BASIS `in-progress` and `roster_sync` marks it done at
   its merge; whether it merged before the stamp is read from
   `git log --first-parent --format='%h %s' v7.1.17..v10.0.0 | grep '#3599 '`.
@@ -155,9 +159,9 @@ R10-USER-DOCS-VERIFY) re-reading README.md, the seven user pages and
 round 11 (overnight decision, 2026-11-14 ~21:20Z). R10-ARCH-DOCS-DELTA carries 0
 and 1 had been marked `implemented e901e9ef29` by `#3582` before that pass; the
 record of the architecture half of the re-read is the docs pass's own body,
-`#3596`. **`updated-for:` of this file names the last gating merge before the
-record pull request**, `#3596`'s (`#3599` had not merged); it must be reachable
-from the record pull request's head (`tests/entities.py`).
+`#3596`. **`updated-for:` of this file names the merge of the first record
+pull request, `#3601`** (`#3599` had not merged when the follow-up was built);
+it must be reachable from the record pull request's head (`tests/entities.py`).
 
 ### Delivered, and the stamp
 
@@ -180,6 +184,13 @@ After closeout the roster branch `handoff/audit-r10-roster` and the plan branch
 `dev/programme/rosters/wave-r10-groups.json` **on `main`** (the record pull
 request landed the final roster there; before that the tracked copy lagged the
 branch), and the state documents are mirrored under `dev/programme/round10/state/`.
+`#3601` landed the roster at `00e3c2f8c0`; the follow-up record
+`r10-closure-record-2` re-landed it at `f8d3342d50`, because the closeout dry plan
+at `#3601`'s merge printed `step in-main: BLOCKED` on one bare citation
+(`handoff/r10-arch-docs-delta`, in the round-10 roster) and the roster branch
+had moved since (the #201 wire, and carries folded for `#3575`, `#3553`,
+`#3521`, `#3600` and draw-map part B). A roster edit after `f8d3342d50` is on the
+branch only, and after closeout on its tag `archive/handoff/audit-r10-roster`.
 `closeout.py --apply` also clears the orchestrator's state directory unless told
 otherwise: see the trap on `--orch-root`.
 
@@ -300,10 +311,16 @@ on honest starts was left to the owner (its row below).
 2026-11-14 ~21:40Z, as logged in the sweep): `#3575` (decision 0018, the
 objective function), `#3491`, `#3451` (which keeps `proposal-triage.md` in its
 once-per-round shape, owner ~21:42Z: no deletion) and the playbook round-start
-section (R10-PLAYBOOK-ROUND-START, handoff `6a42af4a95`). They never delayed the
+section (R10-PLAYBOOK-ROUND-START, `#3600`). They never delayed the
 stamp; any of them unmerged at the stamp is run by round 10's orchestrator as a
 post-closure item before the round-11 orchestrator starts. This gate sits in
-front of sequence (a) below.
+front of sequence (a) below. `#3575` merged first, as `4eea986a62` on
+2026-11-15 (decision 0018 and the evaluator contract
+`dev/governance/roles/evaluator.md`; `corpus_tokens` raised from 68618 to 69333
+under the mandate), and `#3600` second, as `2a257fce08` (its round-1 review was
+`blocked evidence-cut`, repaired at handoff `76aca12e6f`). When this file was
+written the other two were in review: `#3491` (the macOS `ps_start` repair at
+handoff `75d6b5fe82`) and `#3451` (repair handoff `e698502972`).
 
 ## Round 11 — what it starts from
 
@@ -382,7 +399,7 @@ orchestrator's):
    `6f760d9fff`, owes four carries that were moved together to
    R11-INTAKE-R10-RESIDUE because carry 0 says "build it once"; it also edits
    `dev/audit/config/scopes.json` and `dev/governance/roles/COMMON.md`), then
-   R11-PRE-OBJECTIVE-FUNCTION (`#3575`, open at closure; it
+   R11-PRE-OBJECTIVE-FUNCTION (`#3575`, merged as `4eea986a62`; it
    evaluates the dimensions as they stand, so the dimensions land first). Each
    is a policy change for the owner's review.
 3. **`CLAUDE.md` and `dev/governance/roles/orchestrator.md`** are edited by
@@ -471,14 +488,13 @@ carries (see rulings), the card items P11, P13 and X2 that no R11-PRE group
 builds, the Darwin self-test reds with no owning group (`cloud-setup.sh`'s
 `mapfile` under bash 3.2, `gh_calls.py`, `heartbeat.sh`, `hooks_setup.py`,
 `train.sh`, and unverified `bus.sh`, `open_pr.sh`, `pr_args.sh`, `update_pr.sh`,
-from the macOS-lane seat's logs, which are out of tree), the work of closeout-prep part 2
-(#3553, kept open and handed to round 11 by the orchestrator's 2026-11-14
-ruling, option B: the six `dev/programme/carries/` files it would delete are carried
-by R10-CLOSEOUT-PREP's carry 0; its blocked verdict `verdict/3553` at
-`ace494f3d6` has three findings: the #2227 cited-program arm floor reds when the
-five carry files are deleted, carry-1645's `answered_by` shas are wrong (the
-answer is `16e8fef927`), and carry-201 entry 22 lost half, so re-home the
-ci_ratchet needs-edge follow-up), and carry 18
+from the macOS-lane seat's logs, which are out of tree), the entries of the
+five carry files closeout-prep part 2 deleted (`#3553`, merged as `a72ae19952`
+on its round-4 merge verdict at `aeb5f761cb`: `carry-201`, `carry-1922`,
+`carry-2065`, `carry-2066` and `carry-2075` are gone from
+`dev/programme/carries/`, and `carry-1645` records its answer `16e8fef927`;
+each removed entry is a carry headed `From r10-closeout-prep-p2`, on this group
+or on the group owning its seam), and carry 18
 (segmented hot-water LP, conditional on `r10_partload_pricing.py`), whose
 placement is the orchestrator's, not the owner's.
 
@@ -487,9 +503,7 @@ placement is the orchestrator's, not the owner's.
 Beyond the residue named above, these were routed to R11-INTAKE-R10-RESIDUE or to
 the round-end pass at closure, each with its source:
 
-- **`verdict/3553`'s three findings** (stated above): closeout deletes
-  `verdict/*` after `--verdicts-drained`, so read the verdict at
-  `archive/verdict/3553` afterwards.
+- **The carry-file entries `#3553` re-homed** (stated above).
 - **The soak defect candidate** above, as a D1 item.
 - **R10-CI-PRIORITY-PAUSE's forward carries** (`priority_cancel`, `is_hotfix`,
   backfill; the group's own work merged as `#3560`).
@@ -522,6 +536,21 @@ the round-end pass at closure, each with its source:
     seat and left a merge verdict unposted; the landing chain now carries the
     verdict nonce itself.
 
+  - `carry-fold` 2: `carry_audit.landed` reads an item landed when its
+    destination already holds any carry of the same topic or pull request, so
+    `carry_fold` folds nothing for a later item of a topic folded before
+    (`#3553` round 3 stopped on it); cure: `roster_edit append-carry` by hand.
+    The other instance was a remote rejection mid-fold, cured by a rerun.
+  - `relay-serial-update` 1: a relay pass is serial inside one `update_pr.sh`
+    full prepr (about 35 minutes for `#3491`), so every other handoff's relay
+    waits behind it; cure: gating relays go through the landing chains, and the
+    push holder is never killed.
+  - `relay-ev-case`: `cloud_relay.sh` refuses a verdict whose `ev/` holds names
+    differing only in case (a case-insensitive checkout keeps one); cure: rename
+    them apart and re-publish the verdict ref.
+  - `approval-retriggers-gate` 2 (`#3595`, `#3596`): the cure is under "What
+    merged".
+
   Counts from now on go on #3394. Per-family RCA runs once at round end.
 
 ### Re-routed groups and pull requests, with the next step
@@ -551,19 +580,19 @@ over `groups` for every group whose `resume.stage` is not `done`, `absorbed` or
 
 | group | pull request | next step |
 |---|---|---|
-| R10-PROCESS-SLIM | `#3451` | approved but blocked at closure; stays held while it deletes `proposal-triage.md` (owner, 2026-11-14: the contract is kept, once-per-round shape); finish the part-2 pull request |
-| R10-SEAT-IDENTITY-P5 | `#3491` (owns issue #3134) | verdict read and carried 2026-11-14 00:06Z, parked on a `tests / briefs` red in its history (carry-1067/1336/1395/1398/1412/1454 lint): find the cause, body answer by its fixer, delta review against `34dae66f17`, re-add to the train |
+| R10-PROCESS-SLIM | `#3451` | last verdict `Fix review: blocked 467f58500d introduced-red` (`tests/doc_claims.py`: `dev/README.md`'s machinery figure still cites the `postmerge.py` `state_docs.py` call the diff deletes); repair handoff `handoff/r10-process-slim-p2` at `e698502972`, in review when this file was written; stays held while it deletes `proposal-triage.md` (owner, 2026-11-14: the contract is kept, once-per-round shape); part of the pre-round-11 gate |
+| R10-SEAT-IDENTITY-P5 | `#3491` (owns issue #3134) | merge verdict at `a720d3ed63`; then a Darwin-only defect (`seat_gen`'s `ps_start` reads `ps` `etimes`, which macOS lacks) was built in the pull request by a local fixer (overnight decision 2026-11-14 ~23:02Z), repair handoff `handoff/r10-seat-identity-p5` at `75d6b5fe82`, in its delta review when this file was written; part of the pre-round-11 gate |
 | R10-OUTSIDE-CONTRIBUTOR-CYCLE | `#3521` (part 2; part 1 merged as `#3514`) | contributor-cycle build; carry 2 (three live fork checks) is the orchestrator's: a test fork under the mandate's admin rights, each admin write read back and logged |
 | R10-SELFTEST-SCOPE-UNION-GUARD, R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD | `#3551` | last verdict `Fix review: blocked 00a470f7b7 mutation-vacuous`: two mutants survive, M3 (the `shrink_gaps` deletion exemption widened from status D to every path the diff touches) and M1 (`table_base`'s merge-base replaced by the bare ref); no repair fixer was dispatched (overnight decision 2026-11-14 ~22:22Z) because card L9, ruled yes, generates the table and replaces what this pull request builds: round 11 decides repair or close; the guard (C) was round 10's, the bot re-record (A) is round 11's and edits the code-owned `.github/workflows/governance.yml`; the analysis lands as `dev/audit/rca` with a `bugclasses.json` entry |
-| R10-CLOSEOUT-PREP part 2 | `#3553` | kept open (option B); the six `dev/programme/carries/` files it would delete are carried by R10-CLOSEOUT-PREP's carry 0, moved to R11-INTAKE-R10-RESIDUE; its three findings are under R11-INTAKE below |
+| R10-CLOSEOUT-PREP part 2 | `#3553` | merged as `a72ae19952` (2026-11-14 ~23:46Z); its removed carry-file entries are under R11-INTAKE below; moot |
 | R10-NUDGE-RETIRE | `#3566` | `nudge.md` binds Cursor and ZCode sessions only; retire it as written. Held on a CI-only flake its diff does not reach: `governance / instrument-self-tests` failed at head `3487296ce9` on the bus self-test's concurrent-confirm check (P354) twice, the second time as job 132606865401, while the repair fixer measured 0 failed at the head, the merge base and head plus main and 8 of 8 concurrent runs locally; the body answers the red as that flake. Next: one more run on a quiet runner, then the delta review |
-| R10-COP-LEARNER-DRAW-FLOOR | `#3593` (owns issue #3106) | L, design first (design ref `design/R10-COP-LEARNER-DRAW-FLOOR`); carries 84e73ec4, 35931f4b, the duty-gate-to-ceiling gain measurement and carry 2 (#3106's linearity measurement on the owner's install: the linear set-point-to-draw map fails there, with a floor-end excess and a ceiling-end shortfall); a repair body for the held head was kept unpublished (publish it when `#3593` is updated after the gating merges); owner, 2026-11-13 ~20:25Z: "Yes, design can be prepared now." |
-| R10-DRAW-MAP-EVIDENCE | none (`#3597`, part 1, was closed by `open_pr.sh` when its row push was refused as a non-fast-forward; re-run `open_pr.sh r10-draw-map-evidence` after merging the branch) | owner order 2026-11-14, by name, non-gating, to round 11 if unbuilt at the stamp: build the correction the data supports and improve the data collection and the experiment mode so a later round can correct the set-point-to-draw map; part 1 found the ceiling store empty because the ceiling probe never armed on the owner's install; part 2 is a design review; his diagnostics file stays local |
-| R10-START-COUNTER-EDGES | `#3598` (the build), `#3420` (the contributor's design, held open) | round-2 design approved 2026-11-14 (`Design review: approve 18655c84b679af92a83bdccbd4c1a2e88faec8ec`, carries v0 to v5 in that verdict); the reviewer measured one size-L pull request of about 15 files reaching 30 of 33 closures (design ref `design/R10-START-COUNTER-EDGES`); the build opened as `#3598`, non-gating, and goes to round 11 if unmerged at the stamp; owner, 2026-11-13 ~20:18Z, verbatim: "Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure" |
-| R11-OUTSIDE-HONEST-STARTS-RUNS | `#3529` (contributor's, stacked on `#3481` and `#3532`, both merged) | design round 2 approved (`Design review: approve 0c692c86d2ff28fef984db5833219514fff52d77`, ref `design-verdict/R11-OUTSIDE-HONEST-STARTS-RUNS` at `caab288c05`; the roster's `next_step` still says round 2 is in flight, which is stale); a fixer built it on the handoff ref and a handoff review was dispatched on 2026-11-14 ~22:48Z. **Design ruling c1 (a priced start engages on a modulating install too) is the owner's and undecided**: the head builds the recommended arm, the body says pending owner confirmation, and it is not merged on that ruling without tvofi; the other arm is one predicate. Non-gating (owner, 2026-11-14 ~19:18Z: "the honest fix is non gating") |
-| R10-PLAYBOOK-ROUND-START | none at the last read (handoff `handoff/r10-playbook-round-start` at `6a42af4a95`) | the round-start step: the playbook must keep working with the objective function and the improved dimensions, and make the round orchestrator pick up the previous round's carries and pre-finder groups (owner, 2026-11-13 ~19:26Z); one section of `dev/audit/README.md` that fits the existing caps; part of the pre-round-11 gate above |
+| R10-COP-LEARNER-DRAW-FLOOR | `#3593` (owns issue #3106) | L, design first (design ref `design/R10-COP-LEARNER-DRAW-FLOOR`); carries 84e73ec4, 35931f4b, the duty-gate-to-ceiling gain measurement and carry 2 (#3106's linearity measurement on the owner's install: the linear set-point-to-draw map fails there, with a floor-end excess and a ceiling-end shortfall); a repair fixer was out when this file was written for the two added sites `mutation-autofix` left alive (`accuracy.py:1004` and `coordinator.py:962`, both `CMP_BOUND`); owner, 2026-11-13 ~20:25Z: "Yes, design can be prepared now." |
+| R10-DRAW-MAP-EVIDENCE | none when this file was written (`#3597`, part 1, was closed by `open_pr.sh` when its row push was refused as a non-fast-forward); part B is handed off at `handoff/r10-draw-map-evidence-b` `8c1508d9c1` with its body on `handoff-body/r10-draw-map-evidence-b`, and opens after `#3593` | owner order 2026-11-14, by name, non-gating, to round 11 if unbuilt at the stamp: build the correction the data supports and improve the data collection and the experiment mode so a later round can correct the set-point-to-draw map; part 1 found the ceiling store empty because the ceiling probe never armed on the owner's install; part 2 is a design review; his diagnostics file stays local |
+| R10-START-COUNTER-EDGES | `#3598` (the build), `#3420` (the contributor's design, held open) | round-2 design approved 2026-11-14 (`Design review: approve 18655c84b679af92a83bdccbd4c1a2e88faec8ec`, carries v0 to v5 in that verdict); the reviewer measured one size-L pull request of about 15 files reaching 30 of 33 closures (design ref `design/R10-START-COUNTER-EDGES`); the build opened as `#3598`, non-gating, and goes to round 11 if unmerged at the stamp; a repair fixer was out for two unanswered reds when this file was written; owner, 2026-11-13 ~20:18Z, verbatim: "Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure" |
+| R11-OUTSIDE-HONEST-STARTS-RUNS | `#3529` (contributor's, stacked on `#3481` and `#3532`, both merged); the build is `#3602` | design round 2 approved (`Design review: approve 0c692c86d2ff28fef984db5833219514fff52d77`, ref `design-verdict/R11-OUTSIDE-HONEST-STARTS-RUNS` at `caab288c05`; the roster's `next_step` still says round 2 is in flight, which is stale); the handoff review returned `blocked architecture-unsound` (probe `04e5bcfca3`); departures 1 and 3 went to a design amendment, approved at `a63a2ca6cd` (`design-verdict/R11-OUTSIDE-HONEST-STARTS-RUNS` at `6e5cc74429`), and blocks 2 and 3 to a repair fixer, still out when this file was written. **Design ruling c1 (a priced start engages on a modulating install too) is the owner's and undecided**: the head builds the recommended arm, the body says pending owner confirmation, and it is not merged on that ruling without tvofi; the other arm is one predicate, and the reviewer measured that both claimed fixtures still move under the `_engaged` predicate alone (`cycling_cost` 44.96 to 46.39 kWh, `everything_on` predicted cost 60.27 to 64.88). Non-gating (owner, 2026-11-14 ~19:18Z: "the honest fix is non gating") |
+| R10-PLAYBOOK-ROUND-START | `#3600`, merged as `2a257fce08` (round-1 review `blocked evidence-cut` at `e3df1f1ca6`, repaired at handoff `76aca12e6f`); moot | the round-start step: the playbook must keep working with the objective function and the improved dimensions, and make the round orchestrator pick up the previous round's carries and pre-finder groups (owner, 2026-11-13 ~19:26Z); one section of `dev/audit/README.md` that fits the existing caps; part of the pre-round-11 gate above |
 | R10-GH-READ-RESIDUE-P3, R10-RELAY-NOBODY-STALL, R10-FLY-OPENER-STALE-ENV, R10-TICK-RESIDUE-P3, R10-TRAIN-REVIEW-PRESETTLE, R10-UPDATE-PR-SEAT-WORKTREE, R10-PREPR-DARWIN-SELFTEST-LANE | none | the seven deferred instrument groups reopen as written, brief and carries kept; under the freeze shape below each is a proposal first |
-| R11-PRE-* | `#3575` for the objective function | the start gate above |
+| R11-PRE-* | `#3575` (the objective function) merged as `4eea986a62` | the start gate above |
 | R11-INTAKE-R10-RESIDUE | none | holding group, below |
 
 Merged first, carries open (the carries stay on those groups; build or mark
@@ -587,7 +616,7 @@ is unmerged at closure goes to round 11. **The contributor of `#3529`, `#3420`,
 fix is non gating", taking R11-OUTSIDE-HONEST-STARTS-RUNS off the closure path.
 
 - `#3529` (honest starts and runs): R11-OUTSIDE-HONEST-STARTS-RUNS, design round
-  2 approved, built on `handoff/r11-outside-honest-starts-runs`, ruling c1
+  2 approved, built on `handoff/r11-outside-honest-starts-runs` and open as `#3602`, ruling c1
   open for the owner (row above). **A decisions post with the plan link is owed on the pull request**
   (the outside-intake ruling: a decisions post first, then
   `python3 tools/audit/seat/outside_intake.py answer`); read `outside_intake.py
@@ -809,12 +838,11 @@ proposal named:
 #3394 is the successor (#201 is capped at 2,500 comments). `closeout.py --apply
 --successor 3394` refuses on any open issue not wired to a post-closure group
 and not in its exempt list; #201 is wired to R10-CATALOG-PR so the owner's
-sentence holds. **That wire waits on `#3553` deleting
-`dev/programme/carries/carry-201.json`**: `brief_lint.mjs` refuses an issue
-that has both a carry file and a live roster group, so the roster this record
-lands has #201 unwired, and the orchestrator re-wires it on the roster branch
-after `#3553` merges and before closeout pass A, whose issue exemption reads
-the `--roster-file` copy. The catalog step ends #2965; #2728 is closed after prune pass 2
+sentence holds. `brief_lint.mjs` refuses an issue that has both a carry file
+and a live roster group, so `#3601` landed a roster with #201 unwired; `#3553`
+deleted `dev/programme/carries/carry-201.json`, #201 was re-wired on the roster
+branch, and the follow-up record landed that roster. Closeout pass A's issue
+exemption reads the `--roster-file` copy. The catalog step ends #2965; #2728 is closed after prune pass 2
 (so its target holds when it closes); #3139 closes with the docs pass; #2257
 with `#3481`. The mapping of the open issues at 2026-11-14: #2731, #3314 and
 #3369 to R11-INTAKE-R10-RESIDUE; #2999, #2389 and #3313 (recurring-friction
@@ -1273,7 +1301,18 @@ orchestrator files it.
   files inside the roster-landing record pull request; two passes reach a fixpoint.
   The doomed set moves with time (a ref younger than six hours is kept, a
   not-done group's design refs are kept), so derive it immediately before
-  `--apply` and re-run if a citation was added after. One line is outside the
+  `--apply` and re-run if a citation was added after. It moved under `#3601`:
+  `handoff/r10-arch-docs-delta` (tip committed 2026-11-14 17:29Z) was not
+  reported at that record's last dry pass and was cited bare at its merge, so a
+  follow-up record retargeted it. A dry pass also keeps a ref whose tip the
+  checkout lacks, and `prune_refs.tip_ages` reads 500 tips per
+  `git log --no-walk`, which exits 128 and prints nothing when any one of them
+  is missing, so one unfetched tip leaves its whole batch kept as young (one
+  dry pass of the follow-up record read `keep-young-tip=698` against 207 a pass
+  earlier). Fetch every head
+  (`git fetch origin '+refs/heads/*:refs/remotes/origin/*'`) immediately
+  before each dry pass, and read the `rules:` line's `keep-young-tip` before
+  trusting `step in-main: ok`. One line is outside the
   roster and code-owned: a comment in `.claude/hooks/pre-bash.sh` citing a
   `verdict/` ref, reworded to name no ref in its own comment-only pull
   request. The retarget script is session scratch.
