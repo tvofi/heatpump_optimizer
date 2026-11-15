@@ -2,8 +2,106 @@
  "round": 11,
  "reads": "dev/audit/yardstick/round10/OBJECTIVE.json",
  "evaluator": "r11-evaluator (Fable 5.2)",
- "reviewer": null,
- "review": null,
+ "reviewer": "r11-evaluation-reviewer (Fable 5.2)",
+ "review": {
+  "verdict": "revise",
+  "sha": "7891b714f8cd02bf9eb472a3ae74a32560843cd2",
+  "round": 2,
+  "scope": "Delta only: `git diff 33d89b15f3a78836d880ade41dd28ecb9f7e1af1 7891b714f8cd02bf9eb472a3ae74a32560843cd2` (six files, all the evaluation's own) and whether each finding of the first review (on the ref eval-review/r11) is resolved. No full re-review was made.",
+  "revise": [
+   {
+    "id": "S1",
+    "what": "`injected` is still one cause short and misstates who named the causes; card E11-INJECTED says no root-cause record is tracked where one is.",
+    "finding": "The revision's own new line `RCA_TRACKED` lists R10-HOTFIX-SAV-ESTIMATE, and the record that line points at was not read for its cause. `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md`, tracked at the graded SHA, is the root-cause seat's record for that escape: its Cause names pull request 2411 (line 17), it names a `second, independent cause` from v7.1.0, pull request 2887 (lines 65 to 66; merged 2026-10-29, the fix of R10-BUFFER-STORE, itself an escape of this ledger), and it reads 2411's own review (line 101, process state (c)). The ledger row carries `cause_pr` `-`. So `terms.injected.by_hand` is 4 causes, not 3 (3404, 2411, 3587, 2887), 3 of them named by a root-cause record, not 1, and 4 per 162 is 2.47 per 100; `no_read`'s `one of the three causes named was recorded by a root-cause seat, in a record that is not on main` is false; card E11-INJECTED's `28 of 30` rows with no cause is 27, and its sentence that for pull request 2411 `no root-cause record is tracked and the cause is the fixing group's word` asks the owner for a root-cause read a tracked record already holds, for the savings reference if not for the coverage factor. The two other records the line lists date their cause before the window (R10-RCA-COP-UNMEASURED to v4.0.0, R10-RCA-BUFFER-STORE to the base's own docstring) and inject nothing. All four cause pull requests carried a `Fix review: merge` on the bus, so the evidence of fixer.md and fix-review.md moves from 3 to 4.",
+    "command": "python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | grep RCA_TRACKED; git show a39627da59:dev/audit/rca/R10-RCA-SAV-ESTIMATE.md | sed -n '14,22p;62,75p;99,104p'; git log --first-parent --format='%cI %s' a39627da59 | grep '#2887 '; grep -n 'SAV-ESTIMATE' dev/audit/rounds/round11/evaluation/escapes_hand.tsv | cut -f1,8"
+   },
+   {
+    "id": "S2",
+    "what": "Ten cards name a directory as what they change; the round check compares exact file names, so an accepted one can never be read as merged. This forces the revise.",
+    "finding": "`tools/audit/check_scopes.py` line 375 takes a card's `object` and `paths` as a set, line 716 takes `git diff --name-only <merged>^1 <merged>`, and line 382 refuses the card when the two sets share no member. The eight unowned cards (E11-U1, U2, U4 to U9) carry only `dev/governance/dimensions/`, E11-N-INSTRUMENT-YIELD only `tools/audit/seat/instruments/` and E11-N-GATE-CAUSE only `.github/workflows/` and `.claude/workflows/`. Measured on throwaway commits: a commit adding `dev/governance/dimensions/D16.md`, then E11-U1 accepted with that commit as `merged`, prints `card E11-U1 merged ... changes none of its object or paths`; E11-U2 accepted beside it with the file's own path prints nothing. So an accepted unowned card would stop round 11's start for good. It forces the revise rather than a carry: the fix in the record is one `paths` value per card, the file the accepted build adds (the two planned briefs by their file names for the unowned cards), while a prefix match would be a change to the code-owned check, which 0018 sends back as a card and never as a quiet redefinition. The group said to carry such a fallback, R11-PRE-NEW-DIMENSIONS, is on no roster this seat could read (the roster tip 76a81f2f97 holds no group of that name), so its brief was not verified.",
+    "command": "grep -n 'want = {x for\\|want & changed\\|changed = lambda' tools/audit/check_scopes.py -> 375, 382, 716; python3 tools/audit/check_scopes.py --repo . --round 11 on two throwaway commits (a new brief file; then E11-U1 and E11-U2 accepted with it as `merged`)"
+   }
+  ],
+  "notes": [
+   {
+    "id": "M1",
+    "note": "Owed in the same revision. `finder_critical` on the four criterion cards reads `yes if the owner sets it before the baseline: the criterion is what D<k>'s finders grade against`. Nothing a finder reads or runs names the criterion: `owner_criteria` is read by `tools/audit/check_scopes.py` alone, and no dimension brief, `COMMON.md`, `audit-find.js` or `scopes.json` names `owner_criteria`, `objective.json` or decision 0018. As the cards stand (a path in `objective.json`) the answer is no; it becomes yes only if the same change makes the brief cite the criterion file, which no card proposes. E11-N-P744-SCOPE's reason holds: 0018 section 5 has planted defects written into the baseline export and the overlap seat two finders on one universe, and the group's brief says it must merge before the finders start. By the record 30 cards begin `yes` (24 plain, 6 qualified) and 17 `no`.",
+    "command": "git grep -l owner_criteria a39627da59 -- . ':!dev/audit/yardstick' -> objective.json, 0018, check_scopes.py; git grep -n -i 'owner_criteria\\|objective\\.json\\|0018' a39627da59 -- dev/governance/dimensions dev/governance/roles/COMMON.md .claude/workflows/audit-find.js dev/audit/config/scopes.json -> nothing"
+   },
+   {
+    "id": "M2",
+    "note": "The wider escapes rule, spot-checked on eleven `out` rows and the three escapes it found. The three stand as escapes by their briefs (R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-GATE-E: `a production defect still in main`). Nine `out` rows stand (R10-RATIO-ANCHOR and R10-LIVESTATE are finder findings; R10-DIAG-REPLAY, R10-LIVE-BUNDLE-READS, R10-DOCS-STRINGS-RESIDUE and R10-COP-PARTLOAD state no defect; R10-DEAD-RATE-LIMIT, R10-START-COUNTER-EDGES and R10-OUTSIDE-CLIMATE-NATIVE-TEMP for the reason given). Two are arguable. R10-OUTSIDE-DHW-START-HYSTERESIS is ruled `not a defect`, yet its brief measures one (54 of 114 planned hot-water runs begin where a pump with a start hysteresis will not start, and the duty ledger books `a disobedience the pump did not commit`) and it has the provenance of two rows the ledger counts (R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-WATER-SETPOINT-FEEDBACK: outside pull requests built as production groups). By 0018's letter (`an outside report whose hotfix carries the failing-test-first proof`) none of the three is a hotfix; the row owes the test it fails that the two pass, or it is a 31st escape and a write item. R10-SAV-ACTUATION (the plan's step change reaching the pump a refresh late) is a different defect from the savings row it is folded into; by the ledger's own rule it would be `day0`, so no verdict moves.",
+    "command": "git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json read for each group's `brief`, against the row's reason in dev/audit/rounds/round11/evaluation/escapes_hand.tsv"
+   },
+   {
+    "id": "M3",
+    "note": "The rule's pattern does not select five defect groups found on the owner's live bundle by the round's own D15 triage (R10-IMMERSION-LATCH, R10-DIAG-REDACT, R10-HOUSE-GRADE, R10-LEGIONELLA-COMPLETION, R10-DIAG-AGES; their briefs read `D15 triage` or `owner install`), nor the fixer-found R10-TWO-ZONE-HHL, so they have no row and no stated reason. Found by the audit's own work they are no escapes, but R10-FLY-REPLAY-MASK, found on the same kind of export, is rowed `in`; one header line saying why would close it. 26 product groups with no finder finding are outside the rule.",
+    "command": "the roster at the pin, product groups for which escapes.py's `candidate` is false and `findings` is empty -> 26"
+   },
+   {
+    "id": "M4",
+    "note": "Card E11-U9 argues D2 out on step 1 alone. R10-SETPOINT-BOOST's brief names two causes: (A) a heating step at minimum power writes the do-not-heat value, which is the write item the card carries, and (B) the draw range engaging on censored samples, an estimator defect of the kind the ledger gives D2 step 5 twice. Cause B is in neither E11-U9 nor E11-D2's list of inputs. The `none` for cause A stands: no brief names a set-point or the arbiter.",
+    "command": "git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json -> R10-SETPOINT-BOOST `brief`; sed -n 36,40p dev/governance/dimensions/D2.md"
+   },
+   {
+    "id": "M5",
+    "note": "`first_pass.round_9` calls 28/76 against 467/909 `a move`. The arithmetic holds (0.146 against two standard errors of 0.116), but 0018 section 2 says a term read for the first time sets its baseline and is no move, and both sides are this evaluation's first read. It ranks nothing either way, as the record says.",
+    "command": "python3 tools/audit/seat/review_strength.py --repo . --window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z | tail -1"
+   }
+  ],
+  "first_review": [
+   {
+    "id": "R1",
+    "state": "resolved, with S1 and M2 left",
+    "measured": "`escapes.py` at the pin: rc 0, CANDIDATES 76 ROWS 76 REFUSED 0; 30 in, 7 day0, 1 unreleased, 38 out; all 16 dimension rows carry the ledger's count and name each of their groups."
+   },
+   {
+    "id": "R2",
+    "state": "resolved for pull request 3404; the same miss recurs for a tracked record (S1)",
+    "measured": "card E11-INJECTED quotes the record's two drafted texts, its cost test and its controls (detector rc 0 at v7.1.11 and 1 at v7.1.12, 6 of 6 mutants) as the record has them, cites HANDOVER.md lines 1546 to 1557 and proposes no text of its own."
+   },
+   {
+    "id": "R3",
+    "state": "resolved",
+    "measured": "arch-score.yml, budget-raise-gate.yml, kernel-points.yml and pr-contract.yml read `Not run on a push to main` with the work-set command and a NO-READ naming each merged pull request head's check runs."
+   },
+   {
+    "id": "R4",
+    "state": "resolved",
+    "measured": "E11-GATE-REDS proposes the cause record only, names 0018 section 5's false move and gives the push-required count (17) and the only-failed-job counts, which the revised `gate_reds.py report` prints from this seat's own fetch (69, 19 several, 12, 3, 1). nightly.yml moves to keep: `tests / nightly-status` is not in the push-required set."
+   },
+   {
+    "id": "R5",
+    "state": "resolved; the two removes stand",
+    "measured": "see `removes` below."
+   },
+   {
+    "id": "R6",
+    "state": "resolved",
+    "measured": "R10-HOTFIX-FLOW-SETPOINT-STUCK is D1 step 2, and step 2's universe holds it: `grep -n 'Store(' custom_components/heatpump_optimizer/pump_arbiter.py` -> line 2197, a QuarantiningStore behind `_load`. E11-U3 is gone, E11-D1 carries the input, and the seven older write cards each argue a named step of the nearest brief out."
+   },
+   {
+    "id": "N0-N13",
+    "state": "resolved",
+    "measured": "D6 and D7 carry their enumerators' reads; D9 is `change` with card E11-D9 and D13's keep says why; 0 commands name the moving roster ref and 191 name the pin, and all 124 instrument rows equal a run at the pin; `injected` divides by 162; 12 of 20; the standing-seat rows; card E11-N-NULL-REVIEWER; the objective-record card's cost; the D9 criterion and D4 cost caveats; P7 and P747 cited; the 34 prose rows printed by `dimension_read.py`."
+   },
+   {
+    "id": "commit",
+    "state": "clean",
+    "measured": "one commit on 33d89b15f3a7, six files, all under dev/audit/rounds/round11/evaluation/ or the record; `ref_privacy.py guard --ref eval/r11 --commits 7891b714f8cd02bf9eb472a3ae74a32560843cd2 --over 33d89b15f3a78836d880ade41dd28ecb9f7e1af1` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run; tally 198 objects, 173 keep (all NO-READ), 23 change, 2 remove, 47 cards; `check_scopes.py --round 11` -> 49 gaps, each by design (1 objective record, 1 review, 47 undecided cards), and no refusal of the two removes."
+   }
+  ],
+  "removes": {
+   "objects": [
+    ".claude/workflows/audit-fix.js",
+    ".claude/workflows/audit-wave.js"
+   ],
+   "stands": "yes",
+   "what_the_read_measures": "The scripts' only output channel, not their invocation: each has one branch instruction (`claude/audit-fix-<group>`, audit-fix.js line 25, audit-wave.js line 48) and its product is a pull request on that branch with a verdict on it. A run that produced nothing leaves no trace and has no yield; a fixer that ignored the branch instruction would be missed, which the evidence does not say.",
+   "second_read": "Git only, independent of the search API: of main's first-parent merges, 360 in round 9's window (v6.6.12..v7.0.0) and 1139 in round 10's, none comes from a `claude/` branch; the prefixes are fix/ (292 and 822), record/, handoff/, triage/ and a few others. The positive control holds: the 9 pull requests of the pattern, 2026-09-02 and 03, are from the rounds the scripts ran in.",
+   "command": "for r in v6.6.12..v7.0.0 v7.0.0..v10.0.0; do git log --first-parent --merges --format=%s $r | grep -c 'claude/audit-fix-'; done -> 0, 0; gh pr list -R <slug> --state all --search 'head:claude/audit-fix-' --json createdAt,headRefName --limit 300 -> 9"
+  }
+ },
  "graded": {
   "sha": "a39627da59acbfdcd576e87349167603e9dec734",
   "window": "2026-10-14T13:27:06Z..2026-11-15T05:22:47Z",
