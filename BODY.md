@@ -8,7 +8,7 @@ Where it binds, a design choice: only a non-production, unexempted candidate in 
 
 **P2, the rest.** `proposal-triage.md`: on severity only a red required check on main or a blocked production pull request skips the machinery bars (`medium`, `high`, `major`, `critical` no longer do); root-cause countermeasure, closeout and owner directive keep their routes, which are not severity. `ratchet-budgets.md`: one in, one out for required checks, the set `merge_train.py owed-reds` prints.
 
-**Carries 0-2, the instrument freeze** (`orchestrator.md`, replacing the "proposal waits" bullet): local prototype under `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use a sweep-log `WORKAROUND <id> onset=<UTC> cost=<min>` line; the permanent fix a numbered entry of the proposals file in `$HPO_STATE_DIR/r<N>/` citing the prototype and its measured effect; consolidated (duplicates merged, uses and cost summed) and triaged once at round end; ACCEPTs built at the next round's start before its finders, the rest refused with their numbers; a workaround never changes production code, loosens a gate or budget, or skips a review; the exceptions are a production defect, an owner order, a red required check on main, and an owner or outside item. The scope bullet now folds an undeferred owner or outside item into the ongoing round. The playbook's round start gains step 4 (where the prior round's proposals and prototypes are, and that its ACCEPTs are built before finders); step 5 (was 4) already states the deferral record (who, when, their words) and that silence is none.
+**Carry 0, Carry 1 and Carry 2, the instrument freeze** (`orchestrator.md`, replacing the "proposal waits" bullet; Carry 1's owner and outside items also in the scope bullet and the playbook's round start): local prototype under `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use a sweep-log `WORKAROUND <id> onset=<UTC> cost=<min>` line; the permanent fix a numbered entry of the proposals file in `$HPO_STATE_DIR/r<N>/` citing the prototype and its measured effect; consolidated (duplicates merged, uses and cost summed) and triaged once at round end; ACCEPTs built at the next round's start before its finders, the rest refused with their numbers; a workaround never changes production code, loosens a gate or budget, or skips a review; the exceptions are a production defect, an owner order, a red required check on main, and an owner or outside item. The scope bullet now folds an undeferred owner or outside item into the ongoing round. The playbook's round start gains step 4 (where the prior round's proposals and prototypes are, and that its ACCEPTs are built before finders); step 5 (was 4) already states the deferral record (who, when, their words) and that silence is none.
 
 **Carry 3:** `nonproduction_merges` re-recorded 521 -> 478 (more than its band of 5 below the cap); `churn_per_kilo_product_lines` stays (13785 against 14797, inside its band of 3636). **Carry 4:** `pr_cap.py` classes open pull requests by `machinery_ratchet.is_product` (one predicate), `dispatch-gate --machinery OWNER/REPO` refuses a machinery group once machinery and unread pull requests fill the slots production does not hold (`replan.py` `DEFAULT_CAPS` slots less `PRODUCTION_SLOTS`), and `orchestrator_tick.py`'s cap levels print `pr_cap.class_line` every pass (five lines there; the batch's L5 hold on that instrument covers proposals, and P742 routes this carry here).
 
@@ -16,7 +16,11 @@ Payment for the policy caps: `ratchet-budgets.md` lost three spent sentences (tw
 
 ## Head
 
-81e2beea953734b9c48e3224924735eb9572635c, merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z).
+`3ad61a1f6e09044cd47db34952a3ab681db1b1e5`, unchanged by this repair round (the round edits the body only), adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3627.md`. The authored code head is `81e2beea953734b9c48e3224924735eb9572635c`.
+
+`b569a6120604b75f4ead324f86391449a150ffd9` merges origin/main `66865be375` into the authored code head `81e2beea953734b9c48e3224924735eb9572635c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+Merge base at the head: 66865be375f4ee283ee556f53fcd76cc3dbf40e2; `origin/main` 98847b99d7bb3238686efd6869f805c89c6d1ff1 at 2026-11-15T20:43Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. The figures below are from the authored code head 81e2beea953734b9c48e3224924735eb9572635c at merge base b3831ff64eca1936f0b618193ee86c3e337b51a9 (`origin/main` at 2026-11-15T13:30Z) unless marked as re-taken at 3ad61a1f6e.
 
 ## Mutation proof
 
@@ -44,8 +48,9 @@ Each mutant applied alone at the head, its self-test run, the file restored:
 - The severity skip, enumerated: `git grep -n -E 'major\`, \`critical|\`medium\`, \`high\`' <rev> -- dev tools/audit/seat CLAUDE.md .claude` prints `proposal-triage.md:23` at b3831ff64e and nothing at the head; `git grep -n -i severity -- 'tools/**/*.py' | grep -i -E 'bar|skip|exempt'` prints nothing at either end, so no program implements the skip.
 - `node tools/policy/policy_lint.mjs --budgets` at the head: every row within its cap; `node tools/policy/policy_lint.mjs` TOTAL 0 errors; `node tools/policy/rules_sync.mjs --check` ok.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- Re-taken at 3ad61a1f6e: `python3 tools/audit/archscore/score.py --diff 66865be375f4ee283ee556f53fcd76cc3dbf40e2 HEAD` prints `Architecture score: dS +0.0000 NULL`. The score reads only `custom_components/heatpump_optimizer`, and `git diff --stat 66865be375f4 HEAD -- custom_components` prints nothing, so NULL is the reading the score's own scope fixes; a diff touching no scored file has no improving payment the score could register.
 
-<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=81e2beea953734b9c48e3224924735eb9572635c -->
+<!-- figure-block: scope-line mb=66865be375f4ee283ee556f53fcd76cc3dbf40e2 head=3ad61a1f6e09044cd47db34952a3ab681db1b1e5 -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -63,7 +68,11 @@ The base's `budget_raise_gate.py` reads the new `machinery_target_budgets.json` 
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until tvofi approves at the head; the base's gate reads the added `machinery_target_budgets.json` as a raise (see `## Raise justification`). No cheaper detector exists: the gate is the owner's approval itself, and `prepr.sh`'s body check already predicts it before the pull request opens.
+The owed set is `python3 tools/audit/seat/merge_train.py owed-reds`, which prints all three names below.
+
+- `budget-raise-gate / budget-raise-gate` (jobs 132933980724, 132947660830): the merge base's `budget_raise_gate.py` reads the added `machinery_target_budgets.json` as five pinned values it cannot sign as routine (`_comment`, `_recorded`, `anchor`, `every_merges`, `step`; `RESULT budget_raises=5 count`), and refuses with no decisive review at the head. Red by design until an approving review at the head (see `## Raise justification` and `## Approval`). No cheaper detector exists: the gate is the approval itself, and `prepr.sh`'s body check already predicts the raise before the pull request opens.
+- `pr-contract / pr-contract` (job 132946649167, step "Check the body against the contract"): the previous body named the raise gate's red as `budget-raise-gate`, not its full check name `budget-raise-gate / budget-raise-gate`, so `policy_lint.mjs --pr-body` found the red unanswered. Repaired in this body. Cheaper detector: `tools/pr/prepr.sh`'s body check runs `policy_lint.mjs --pr-body` locally, but only over the reds that exist when it runs; this red appeared after the handoff, so no detector earlier than the CI run that read it existed for this body. None built.
+- `gate`: follows the two above and has no failure of its own.
 
 ## Approval
 
