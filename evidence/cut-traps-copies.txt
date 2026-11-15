@@ -1,0 +1,67 @@
+== base README separate phrase
+has not refuted it, and says which they could not separate.
+== surviving copies of the two cut traps at head
+820236749a878893f6217210683b16aefac89657:dev/audit/README.md:193:  It sets a private `HPO_PLANDATA` under that root before any Node harness;
+820236749a878893f6217210683b16aefac89657:tests/README.md:360:python tests/plan_view.py    # plan sensor payloads, writes HPO_PLANDATA (default /tmp/plandata-<hash>.json)
+820236749a878893f6217210683b16aefac89657:tests/README.md:390:  price provenance; it writes the result to `HPO_PLANDATA`, which defaults to
+820236749a878893f6217210683b16aefac89657:tests/README.md:392:  worktrees never collide. `card.mjs` alone falls back to an unhashed default
+--
+820236749a878893f6217210683b16aefac89657:tests/README.md:305:resolves to `HEAD`.
+Five golden fixtures are non-convex valve/wood solves whose floats do not
+reproduce across BLAS builds, so their exact comparison is meaningless off the
+recording machine. **`env_drift.py`** is the answer: it captures scenarios
+twice in the *same* environment — working tree against a worktree of a
+reference commit — and requires byte-identity, so solver noise cancels and only
+the branch's own footprint remains. Its docstring names the five, and states
+the claim rules (`claims-for:` against `VERSION`, the refusal of a claim list
+inherited from the baseline, `--claims-only`, stale versus not-evaluated), the
+baseline cache and everything its key covers, and the refusal of a ref that
+resolves to `HEAD`.
+
+Two consequences of that refusal, for a run started by hand rather than by
+`run.sh`: a checkout that *is* `main` needs a real baseline —
+`GOLDEN_REF=HEAD^1 ./tests/run.sh` — because the default `origin/main` is there
+this same commit; and a cache hit changes only where one side of the comparison
+----
+  comfort band, an overdue legionella cycle, a 1500 L tank, and a collapsed
+  comfort range. `plan_view.py` runs a winter scenario and builds the payloads
+  the two plan sensors publish, checking that the slot summaries reconcile with
+  the raw step schedule and that every heating step carries a reason code and
+  price provenance; it writes the result to `HPO_PLANDATA`, which defaults to
+  `/tmp/plandata-<sha256(tests dir)[:12]>.json` — a per-checkout path, so two
+  worktrees never collide. `card.mjs` alone falls back to an unhashed default
+  under `/tmp` with a warning if the variable is unset; every other Node
+  harness requires it.
+- **stress.py**'s budgets and the reasoning behind every constant in them live
+  in the `#:` comments beside the constants: why the solve-time guard is
+----
+  ratio does not cancel unless both sides are pinned alike. Print the factor.
+- It writes only under its own directory or a temp root derived from
+  `$TMPDIR` (`mktemp -d`, `tempfile.mkdtemp`), a `pip download -d` or
+  `--target` included: a literal seat path breaks the judge's re-run in
+  another sandbox, and the cwd is the repository (round 8 judge notes 2, 9).
+  It sets a private `HPO_PLANDATA` under that root before any Node harness;
+  if it uses `env_drift.py` it reads the shared warmed cache in
+  `~/.cache/heatpump_optimizer/` and takes a private `DRIFT_CACHE_DIR` only
+  when it modifies `env_drift.py` itself.
+== worktree mentions at head (tests/env_drift.py docstring, docs)
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-find.js:214:2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy the same paths in the same way and strip it the same way.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-find.js:391:    `You are the D3 quiet-window confirmer of audit round ${round}. Nothing else may run on the box: python3 tests/gate_lock.py take --label quiet-r${round} before starting, renew between commands, release at the end -- never mkdir and a shell pid (#404: that lock carries no lease and no flock). Make your own worktree of baseline ${baseline} from ${repo} (git worktree add ../audit-r${round}-quiet ${baseline}); use the pinned venv, PYTHONPATH=tests/hastub, the five BLAS thread variables set to 1.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-fix.js:25:  `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${group.toLowerCase()} origin/main (if the branch exists, check it out instead). Read dev/governance/roles/fixer.md and dev/audit/README.md and follow every step: failing test first importing the production symbol, mutation proof with pasted failing check names, before/after with the finding's harness at head (state the head SHA), null control and both-ends checks where the brief demands them, claims written by you only for drift you measured, GATE_SCOPE=auto ./tests/run.sh under python3 tests/gate_lock.py take/renew/release with HPO_GATE_LOCK_LABEL set (never mkdir and a shell pid -- #404) and only when the closure selection is MODE: FULL or names tests/stress.py, never VERSION/manifest/notes heading. Read each issue with gh issue view for the finding and its register row. Push and open a PR whose body closes the issues and carries every number and the head SHA. Return {pr, head_sha, summary}.`,
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-fix.js:34:  `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${fix.head_sha}. Read dev/governance/roles/fix-review.md and follow it: re-run the mutation proof, measure with the finder's harness at ${baseline ?? 'origin/main before the PR'} and at ${fix.head_sha} printing your own RESULT lines, re-run null controls, compare claim files against env_drift.py --all (and card_drift.mjs for card changes) at the merge base, check VERSION/manifest/notes untouched, attack the fix at other configurations, confirm the head SHA in the body. Post your verdict as a PR comment (gh pr comment) beginning "Fix review: merge" or "Fix review: blocked — <why>", with the RESULT lines. Return {verdict, comment_url}.`,
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-plan.js:64:  `In ${repo}, work in a fresh worktree off ${branch}: git worktree add --force ${worktree} ${branch} (if it already exists, reuse it and reset it to origin/${branch}). Read dev/governance/roles/architect-planner.md, dev/governance/roles/plan-review.md, dev/audit/README.md and the D7 brief dev/governance/dimensions/D7.md there.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-plan.js:144:  `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ${repo}/../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-verify.js:158:    `You are the verifier of dimension ${u.dim}${u.tag === u.dim ? '' : ` (unit ${u.tag}, split by finder seat)`} in audit round ${round}, the one verifier of these findings: you carry all three lenses. Work in a fresh worktree: from ${repo} run git worktree add ../audit-r${round}-verify-${u.tag.replace('#', '-')} ${branch}. Read dev/governance/roles/verifier.md and dev/audit/README.md there and follow them. Do not read the register's verdict columns, GitHub, or another verifier's report.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-verify.js:194:  `You are the one common judge of audit round ${round}. Work alone on the quiet box in a fresh worktree: from ${repo}, git worktree add ../audit-r${round}-judge ${branch}. Read dev/governance/roles/judge.md and follow it. Any measurement you take holds the gate lease: ${lease}.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-verify.js:206:  `You are a mechanical re-run runner for audit round ${round}'s judge: you measure, you do not decide. On a quiet box, fresh worktree from ${repo}: git worktree add ../audit-r${round}-runner-${i + 1} ${branch}. Run, from the worktree root:
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-verify.js:244:  `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree from ${repo}: git worktree add ../audit-r${round}-sweep-${cls} ${branch}. Read dev/governance/dimensions/D14.md and run its method steps 3-4 for this class: an enumerator listing every seam of the class across the whole package (start from the findings' seam_rules), its positive control (it re-finds every finding below), its null control (zero on a clean fixture) and its perturbation (it moves under a one-line re-introduction); then disposition every seam it returns as instance (with a probe that fails on it), guarded (name the guard) or not applicable (the reason). Read the class's status in dev/audit/config/bugclasses.json.
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-wave.js:48:  `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${group.toLowerCase()} origin/main (if the branch exists, check it out instead). Read dev/governance/roles/fixer.md and dev/audit/README.md and follow every step: failing test first importing the production symbol, mutation proof with pasted failing check names, before/after with the finding's harness at head (state the head SHA), null control and both-ends checks where the brief demands them, claims written by you only for drift you measured, GATE_SCOPE=auto ./tests/run.sh under python3 tests/gate_lock.py take/renew/release with HPO_GATE_LOCK_LABEL set (never mkdir and a shell pid -- #404) and only when the closure selection is MODE: FULL or names tests/stress.py, never VERSION/manifest/notes heading. Read each issue with gh issue view for the finding and its register row. Push and open a PR whose body closes the issues and carries every number and the head SHA. Return {pr, head_sha, summary}.`
+820236749a878893f6217210683b16aefac89657:.claude/workflows/audit-wave.js:52:  `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${fix.head_sha}. Read dev/governance/roles/fix-review.md and follow it: re-run the mutation proof, measure with the finder's harness at ${baseline ?? 'origin/main before the PR'} and at ${fix.head_sha} printing your own RESULT lines, re-run null controls, compare claim files against env_drift.py --all (and card_drift.mjs for card changes) at the merge base, check VERSION/manifest/notes untouched, attack the fix at other configurations, confirm the head SHA in the body. Post your verdict as a PR comment (gh pr comment) beginning "Fix review: merge" or "Fix review: blocked — <why>", with the RESULT lines. Return {verdict, comment_url}.`
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-decomp-stage.js:84:worktree add /home/user/wt/${branch} ${branch} (reuse the worktree if the
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-decomp-stage.js:85:path exists), otherwise git worktree add /home/user/wt/${branch} -b ${branch}
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-decomp-stage.js:89:contract: git fetch origin; git worktree add --detach
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-decomp-stage.js:115:and change nothing. Else git fetch origin --tags; git worktree add --detach
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-fix-wave.js:83:worktree add /home/user/wt/${branch} ${branch} (reuse the worktree if the
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-fix-wave.js:84:path exists), otherwise git worktree add /home/user/wt/${branch} -b ${branch}
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-fix-wave.js:88:contract: git fetch origin; git worktree add --detach
+820236749a878893f6217210683b16aefac89657:.claude/workflows/web-fix-wave.js:114:and change nothing. Else git fetch origin --tags; git worktree add --detach
