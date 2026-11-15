@@ -75,7 +75,7 @@ scope_mutant "prune goes on over an unreadable table" '        if table is None:
             print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
             return 1
         entries, unknown'
-scope_mutant "record traces in the seat's own checkout" 'tree = scratch_clone(root, tmp / "tree")' 'tree = root'
+scope_mutant "record traces in the seat's own checkout" 'tree = scratch_clone(root, tmp / "tree", rev)' 'tree = root'
 scope_mutant "the scratch clone keeps no working-tree change" '    for rel in sorted({r for r in listed.split("\0") if r}):' '    for rel in ():'
 scope_mutant "the scratch clone skips a staged file" '    listed += git("diff", "--cached"' '    git("diff", "--cached"'
 scope_mutant "trace_steps traces over an unsettled index" 'if settle_index(tree):' 'if False:'
@@ -90,10 +90,17 @@ scope_mutant "absorb goes on over an unreadable source" 'if table is None or Non
 scope_mutant "absorb writes the live table over --out" 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)' 'return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], root / TABLE, root)'
 scope_mutant "touched_steps passes over a changed recorded file" 'or any(covers(set(held[s.id].get("files", ())), p) for _, p in changes))]' 'or False)]'
 scope_mutant "touched_steps passes over a step recorded under another run text" '(held.get(s.id) or {}).get("run_sha") != s.run_sha' 's.id not in held'
-scope_mutant "precheck grades no drift" 'refuse = broken + drift(table, measured, steps, set(want))[0]' 'refuse = broken'
+scope_mutant "precheck grades no drift" '    refuse = drift(table, measured, steps, set(want))[0]
+    refuse = broken' '    refuse = []
+    refuse = broken'
+scope_mutant "precheck charges the branch main's own drift" 'refuse = broken + [r for r in refuse if r not in base_drift(root, base, refuse, want)]' 'refuse = broken + refuse'
+scope_mutant "base_drift excuses a refusal the base does not draw" 'measured, was, hit)[0]) & set(refuse)' 'measured, was, hit)[0]) | set(refuse)'
+scope_mutant "base_drift traces the head again" 'measured, _, _ = trace_steps(root, was, hit, mb)' 'measured, _, _ = trace_steps(root, was, hit)'
+scope_mutant "base_drift grades the base against the head'"'"'s table" 'drift(parse_table(git("show", f"{mb}:{TABLE}")), measured, was, hit)' 'drift(load_table(root / TABLE), measured, was, hit)'
+scope_mutant "the scratch clone lays the working tree over a named commit" 'listed = "" if rev else git("ls-files"' 'listed = git("ls-files"'
 scope_mutant "precheck passes a step that failed under the tracer" 'return 1 if refuse else SKIP_RC if failed else 0' 'return 1 if refuse else 0'
 scope_mutant "precheck skips over a refusal when a step failed" 'return 1 if refuse else SKIP_RC if failed else 0' 'return SKIP_RC if failed else 1 if refuse else 0'
-scope_mutant "precheck drops a broken trace" 'refuse = broken + drift(table, measured, steps, set(want))[0]' 'refuse = drift(table, measured, steps, set(want))[0]'
+scope_mutant "precheck drops a broken trace" 'refuse = broken + [r for r in refuse if' 'refuse = [r for r in refuse if'
 scope_mutant "precheck runs on with no strace" '    if shutil.which("strace") is None or _traced():
         print(f"selftest_scope precheck: skip' '    if False:
         print(f"selftest_scope precheck: skip'

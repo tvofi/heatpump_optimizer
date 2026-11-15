@@ -67,8 +67,8 @@ files the diff touches are traced as `record` traces them and graded by
 `drift`, the check no pull-request run makes (tools/pr/ci_predict.py's
 `selftest-scope` arm; rc 3 and a skip line where there is no strace).
 A SCRATCH CLONE is where `record` and `precheck` run the steps: the tree as it
-would be committed, in a plain clone with no per-clone git config, as CI's
-checkout is. A seat's own checkout carries what its session installed (merge
+would be committed, in a plain clone with none of the seat's per-clone git
+config (tests/throwaway_git.py's two maintenance keys apart), as CI's checkout is. A seat's own checkout carries what its session installed (merge
 drivers), and a step that installs what it finds missing reads less there.
 THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
 step; `record` itself): a fresh checkout leaves racily clean index entries,
@@ -241,14 +241,21 @@ def settle_gaps(steps: list[Step]) -> list[str]:
 # ---------------------------------------------------------------------------
 # the table
 
-def load_table(path: Path) -> dict | None:
+def parse_table(text: str | None) -> dict | None:
     try:
-        doc = json.loads(path.read_text())
+        doc = json.loads(text)
         steps = doc["steps"]
         if not isinstance(steps, dict) or not all(isinstance(v, dict) for v in steps.values()):
             return None
         return doc
-    except (OSError, ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def load_table(path: Path) -> dict | None:
+    try:
+        return parse_table(path.read_text())
+    except OSError:
         return None
 
 
@@ -774,10 +781,11 @@ def prune_entries(table: dict, step: str, drops: list[str]) -> tuple[dict[str, d
     return entries, unknown
 
 
-def scratch_clone(root: Path, dst: Path) -> Path:
+def scratch_clone(root: Path, dst: Path, rev: str | None = None) -> Path:
     """`root`'s tree as it would be committed, in a plain clone at `dst`: HEAD
     checked out, the working tree's changes and unignored new files laid over
-    it and staged, the origin refs and tags a step may name copied. A clone
+    it and staged, the origin refs and tags a step may name copied; with
+    `rev`, that commit's tree and nothing laid over it. A clone
     takes no per-clone config, so no merge driver, hook path or identity the
     recording seat's session set reaches a traced step (carry 2 of
     R11-PRE-SHARED-FILES: a seat whose hook had installed the drivers recorded
@@ -786,8 +794,13 @@ def scratch_clone(root: Path, dst: Path) -> Path:
     and object store are two directories."""
     def git(*args: str, cwd: Path = dst, check: bool = True) -> str:
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=check).stdout
-    git("clone", "-q", "--no-checkout", str(root), str(dst), cwd=root)
-    head = git("rev-parse", "-q", "--verify", "HEAD^{commit}", cwd=root, check=False).strip()
+    sys.path.insert(0, str(ROOT / "tests"))
+    try:
+        from throwaway_git import throwaway_git_clone   # git >= 2.54 may repack a raw clone after it is removed
+    finally:
+        sys.path.pop(0)
+    throwaway_git_clone(root, dst, "-q", "--no-checkout", cwd=root)
+    head = git("rev-parse", "-q", "--verify", f"{rev or 'HEAD'}^{{commit}}", cwd=root, check=False).strip()
     if head:
         git("checkout", "-q", "--detach", head)
     git("fetch", "-q", str(root), "+refs/remotes/origin/*:refs/remotes/origin/*",
@@ -795,8 +808,9 @@ def scratch_clone(root: Path, dst: Path) -> Path:
     url = git("config", "--get", "remote.origin.url", cwd=root, check=False).strip()
     if url:
         git("remote", "set-url", "origin", url)
-    listed = git("ls-files", "-z", "-m", "-o", "-d", "--exclude-standard", cwd=root)
-    listed += git("diff", "--cached", "--name-only", "-z", *([head] if head else []), cwd=root, check=False)
+    listed = "" if rev else git("ls-files", "-z", "-m", "-o", "-d", "--exclude-standard", cwd=root)
+    listed += "" if rev else git("diff", "--cached", "--name-only", "-z", *([head] if head else []),
+                                 cwd=root, check=False)
     for rel in sorted({r for r in listed.split("\0") if r}):
         src, to = root / rel, dst / rel
         if src.is_file() or src.is_symlink():
@@ -810,13 +824,14 @@ def scratch_clone(root: Path, dst: Path) -> Path:
     return dst
 
 
-def trace_steps(root: Path, steps: list[Step], want: set[str]) -> tuple[dict[str, dict], list[str], list[str]]:
+def trace_steps(root: Path, steps: list[Step], want: set[str],
+                rev: str | None = None) -> tuple[dict[str, dict], list[str], list[str]]:
     """(measured entries, broken traces, failed step ids) of the gated steps
     in `want`, run in order with the job's ungated ones through the wrapper CI
-    uses, under strace, in a scratch clone of `root`."""
+    uses, under strace, in a scratch clone of `root` (of its commit `rev`)."""
     tmp = Path(tempfile.mkdtemp(prefix="selftest-record-"))
     try:
-        tree = scratch_clone(root, tmp / "tree")
+        tree = scratch_clone(root, tmp / "tree", rev)
         if settle_index(tree):
             return {}, ["UNSETTLED index of the scratch clone"], []
         env = dict(os.environ, RUNNER_TEMP=str(tmp), SELFTEST_TRACE="1", HPO_JOB_GRADES="nothing")
@@ -881,13 +896,37 @@ def touched_steps(changes: list[tuple[str, str]], table: dict | None, steps: lis
 SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
 
 
+def base_drift(root: Path, base: str, refuse: list[str], want: list[str]) -> set[str]:
+    """The refusals of `refuse` the merge base's own tree draws too, each
+    printed as a note: main's drift step is red on them already, so they are
+    the record beat's to absorb, never a branch's to pay (the step-replay rule
+    of tools/pr/ci_predict.py: a red at both ends is not the diff's). Only the
+    refused steps are traced again, at the merge base, against its table."""
+    def git(*args: str) -> str | None:
+        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+    mb = (git("merge-base", base, "HEAD") or "").strip()
+    was = job_steps(git("show", f"{mb}:{WORKFLOW}") or "") if mb else []
+    hit = {i for i in gated_ids(was) if i in want and any(f" step {i}: " in r for r in refuse)}
+    if not hit or mb == (git("rev-parse", "HEAD") or "").strip():
+        return set()
+    print(f"selftest_scope precheck: {len(refuse)} refusal(s) at the head; tracing {sorted(hit)} "
+          f"at the merge base {mb[:12]}", flush=True)
+    measured, _, _ = trace_steps(root, was, hit, mb)
+    shared = set(drift(parse_table(git("show", f"{mb}:{TABLE}")), measured, was, hit)[0]) & set(refuse)
+    for line in sorted(shared):
+        print(f"  note: the merge base draws it too, main's to absorb: {line}")
+    return shared
+
+
 def precheck(root: Path, base: str) -> int:
     """The drift check a pull request cannot get from CI, on the seat: 0 when
     no touched step reads past the table, 1 naming each read it misses, 3 when
     the steps cannot be traced here or one exits non-zero under the tracer --
     its trace is graded as far as it ran, and whether it passes is the pull
     request's own `instrument-self-tests` run, which runs it untraced (a
-    self-test with a time bound can fail under strace alone)."""
+    self-test with a time bound can fail under strace alone). A refusal the
+    merge base draws too is main's standing drift, a note (`base_drift`)."""
     steps = workflow_steps(root)
     changes = diff_changes(base, "HEAD", root)
     if changes is None:
@@ -903,7 +942,8 @@ def precheck(root: Path, base: str) -> int:
               f"or this run is itself traced; main's drift step is the detector")
         return SKIP_RC
     measured, broken, failed = trace_steps(root, steps, set(want))
-    refuse = broken + drift(table, measured, steps, set(want))[0]
+    refuse = drift(table, measured, steps, set(want))[0]
+    refuse = broken + [r for r in refuse if r not in base_drift(root, base, refuse, want)]
     for line in refuse:
         print(f"  {line}")
     print(f"selftest_scope precheck: {len(want)} step(s) traced {want}, {len(refuse)} refusal(s)"
@@ -1446,7 +1486,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
            "          ! sel slow || bg_run slow cat tools/x/slow.sh\n"
            "      - name: A\n        id: a\n        if: steps.scope.outputs.a == 'true'\n        run: |\n"
            "          cat tools/x/a.py > /dev/null\n          test -f tools/x/maybe.json || true\n"
-           "          ls docs > /dev/null\n          git diff --quiet\n"
+           "          ls docs > /dev/null\n          git diff --quiet\n          : > ran-here.marker\n"
            "          git config --get merge.hpo.driver > /dev/null || cat tools/x/drv.py > /dev/null\n"
            "      - name: Slow\n        id: slow\n        if: steps.scope.outputs.slow == 'true'\n"
            "        run: |\n          bg_wait() { test \"$(cat \"$RUNNER_TEMP/$1.rc\")\" = 0; }\n"
@@ -1533,14 +1573,23 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         (hollow / "strace").chmod(0o755)
         buf, path = io.StringIO(), os.environ["PATH"]
         os.environ["PATH"] = f"{hollow}{os.pathsep}{path}"
+        (root / "ran-here.marker").unlink(missing_ok=True)
+        settled: list[Path] = []
+        real_settle = globals()["settle_index"]
+        globals()["settle_index"] = lambda r, env=None: settled.append(Path(r)) or real_settle(r, env)
         try:
             with contextlib.redirect_stdout(buf):
                 rc_e = main(["record", "--out", str(root / "e.json")], root)
         finally:
+            globals()["settle_index"] = real_settle
             os.environ["PATH"] = path
             shutil.rmtree(hollow)
         ck("record: an empty trace fails the record, naming it",
            rc_e == 1 and "EMPTY trace step-a.trace (step a)" in buf.getvalue())
+        ck("record: the steps ran in a clone, not in the seat's checkout (the step's marker is not here), "
+           "and that clone's index was settled before them",
+           not (root / "ran-here.marker").exists() and len(settled) == 1 and settled[0] != root
+           and not settled[0].exists())
         # The drift check and the CLI over a synthetic trace directory.
         (root / TABLE).parent.mkdir(parents=True, exist_ok=True)
         st3 = job_steps(e2e)
@@ -1828,21 +1877,27 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         (sr / "a.txt").write_text("a2\n")
         (sr / "b.txt").unlink()
         (sr / "c.txt").write_text("c\n")
+        (sr / "e.txt").write_text("e\n")
+        sgit("add", "e.txt")
         (sr / "cache").mkdir()
         (sr / "cache/x").write_text("x\n")
         sc = scratch_clone(sr, sr.parent / "clone")
         drv = subprocess.run(["git", "config", "--get", "merge.hpo.driver"], cwd=sc, env=env,
                              capture_output=True, text=True)
-        ck("scratch clone: a modified file is laid over, a deleted one gone, a new one staged, "
-           "an ignored one left behind",
+        ck("scratch clone: a modified file is laid over, a deleted one gone, a new one staged (one the "
+           "seat staged already too), an ignored one left behind",
            (sc / "a.txt").read_text() == "a2\n" and not (sc / "b.txt").exists()
-           and sorted(sgit("ls-files", cwd=sc).split()) == [".gitignore", "a.txt", "c.txt", "d/k.txt"]
+           and sorted(sgit("ls-files", cwd=sc).split()) == [".gitignore", "a.txt", "c.txt", "d/k.txt", "e.txt"]
            and not (sc / "cache").exists())
         ck("scratch clone: the seat's merge driver is not configured there (set in the seat's: the control)",
            drv.returncode != 0 and sgit("config", "--get", "merge.hpo.driver") == "true")
         ck("scratch clone: HEAD and origin/main are the seat's, in a repository of its own",
            sgit("rev-parse", "HEAD", "origin/main", cwd=sc) == sgit("rev-parse", "HEAD", "origin/main")
            and _git_dirs(sc) == (sc / ".git", sc / ".git"))
+        at = scratch_clone(sr, sr.parent / "at-rev", "HEAD")
+        ck("scratch clone at a commit: that commit's tree, nothing of the working tree laid over it",
+           (at / "a.txt").read_text() == "a\n" and (at / "b.txt").exists() and not (at / "c.txt").exists()
+           and sorted(sgit("ls-files", cwd=at).split()) == [".gitignore", "a.txt", "b.txt", "d/k.txt"])
         ev = list(trace_events(['9 access("tools/x/a.py", F_OK) = 0'], sc))
         ck("trace_events: a path the trace does not decorate resolves against the tree the steps ran in",
            [e[2] for e in ev] == [f"{sc}/tools/x/a.py"])
@@ -1920,6 +1975,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
                                          capture_output=True, text=True).stdout.strip()
         pst = job_steps(pwf)
         for rel, body in ((WORKFLOW, pwf), ("tools/x/run.sh", "cat tools/x/a.py > /dev/null\n"),
+                          ("tools/x/reads.txt", "tools/x/run.sh tools/x/a.py\n"),
                           ("tools/x/a.py", "a\n"), ("tools/x/b.py", "b\n"), ("docs/d.md", "d\n"),
                           (WRAPPER, wrapper.read_text())):
             (pr / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -1939,8 +1995,13 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("precheck: a diff touching no gated step's recorded files traces nothing (rc 0, null control)",
            run("precheck", "--base", pbase) == (0, "selftest_scope precheck: the diff touches no gated "
                                                    "step's recorded files\n"))
+        (pr / "tools/x/run.sh").write_text("cat tools/x/a.py > /dev/null # touched\n")
+        pgit("commit", "-qam", "the step's script changes and gains no read")
+        touched_only = pgit("rev-parse", "HEAD")
         (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+        (pr / "tools/x/reads.txt").write_text("tools/x/run.sh tools/x/a.py docs/d.md\n")
         pgit("commit", "-qam", "the step's script gains a read")
+        gained = pgit("rev-parse", "HEAD")
         bare = pr.parent / "bare"                # a PATH with git and no strace
         bare.mkdir()
         (bare / "git").symlink_to(shutil.which("git"))
@@ -1952,44 +2013,84 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("precheck: with no strace the touched step is named and the check skips (rc 3)",
            rc_sk == SKIP_RC and "skip, 1 step(s) untraced ['a']" in out_sk)
         ck("precheck: a base git cannot diff is a usage error (rc 2)", run("precheck", "--base", "nosuch")[0] == 2)
-        if shutil.which("strace") is None or _traced():
-            print("  skip precheck's traced run: no strace here, or this run is itself traced")
-        else:
-            before = (pr / TABLE).read_bytes()
-            rc_p, out_p = run("precheck", "--base", pbase)
-            ck(f"precheck: a step whose script gained a read the table lacks is refused, naming the read "
-               f"and the record command (rc={rc_p}); the table is left as it was",
-               rc_p == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_p
-               and "1 step(s) traced ['a'], 1 refusal(s)" in out_p and "record --step a`" in out_p
-               and (pr / TABLE).read_bytes() == before)
-            (pr / "tools/x/run.sh").write_text("exit 7\n")
-            rc_f, out_f = run("precheck", "--base", pbase)
-            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
-            ck("precheck: a touched step that exits non-zero under the tracer is unmeasured, a skip (rc 3) "
-               "naming it, never a pass (the working tree's uncommitted script is what ran)",
-               rc_f == SKIP_RC and "skip, 1 step(s) ['a'] exited non-zero" in out_f
-               and "1 step(s) traced ['a'], 0 refusal(s)" in out_f)
-            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\nexit 7\n")
-            rc_fr, out_fr = run("precheck", "--base", pbase)
-            (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
-            ck("precheck: ... and a read it made before it failed is still refused (rc 1)",
-               rc_fr == 1 and "files misses ['docs/d.md']" in out_fr and "skip," not in out_fr)
-            hollow = pr.parent / "hollow"            # an strace that writes empty traces
-            hollow.mkdir()
-            (hollow / "strace").write_text('#!/bin/bash\nwhile [ "$1" != -- ]; do [ "$1" != -o ] || : > "$2"; '
-                                           'shift; done; shift; exec "$@"\n')
-            (hollow / "strace").chmod(0o755)
-            path, os.environ["PATH"] = os.environ["PATH"], f"{hollow}{os.pathsep}{os.environ['PATH']}"
+        # The traced arms through a scripted tracer, so they run where there is
+        # no strace and inside main's own traced run: an `strace` that writes
+        # an open of each path the tree's tools/x/reads.txt and SCRIPTED_READS
+        # name, then runs the command: the tree decides what a step "reads".
+        scripted, hollow = pr.parent / "scripted", pr.parent / "hollow"
+        for d, lines in ((scripted, 'for f in $(cat tools/x/reads.txt) $SCRIPTED_READS; do '
+                                    'echo "5 openat(AT_FDCWD<$PWD>, \\"$f\\", '
+                                    'O_RDONLY) = 3<$PWD/$f>"; done > "$out"\n'
+                                    'echo "5 +++ exited with 0 +++" >> "$out"\n'),
+                         (hollow, ': > "$out"\n')):     # hollow: an strace that writes empty traces
+            d.mkdir()
+            (d / "strace").write_text('#!/bin/bash\nwhile [ "$1" != -- ]; do [ "$1" != -o ] || out=$2; shift; done; '
+                                      'shift\n' + lines + 'exec "$@"\n')
+            (d / "strace").chmod(0o755)
+
+        def under(stub: Path, reads: str, *argv: str) -> tuple[int, str]:
+            path, was = os.environ["PATH"], globals()["_traced"]
+            os.environ.update(PATH=f"{stub}{os.pathsep}{path}", SCRIPTED_READS=reads)
+            globals()["_traced"] = lambda: False       # the stub is no ptrace tracer: it nests
             try:
-                rc_h, out_h = run("precheck", "--base", pbase)
+                return run(*argv)
             finally:
+                globals()["_traced"] = was
                 os.environ["PATH"] = path
-            ck("precheck: a trace strace left empty measured less than the step read: refused, naming it",
-               rc_h == 1 and "EMPTY trace step-a.trace (step a)" in out_h)
-            rc_r, _ = run("record", "--step", "a")
-            ck("precheck: after `record --step a` the same diff passes",
-               rc_r == 0 and run("precheck", "--base", pbase)[0] == 0)
-            (pr / TABLE).write_bytes(before)
+                del os.environ["SCRIPTED_READS"]
+        before = (pr / TABLE).read_bytes()
+        rc_p, out_p = under(scripted, "", "precheck", "--base", pbase)
+        ck(f"precheck: a step whose script gained a read the table lacks is refused, naming the read "
+           f"and the record command (rc={rc_p}); the table is left as it was",
+           rc_p == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_p
+           and "1 step(s) traced ['a'], 1 refusal(s)" in out_p and "record --step a`" in out_p
+           and "tracing ['a'] at the merge base" in out_p and (pr / TABLE).read_bytes() == before)
+        # Main's standing drift: a read the step makes at the merge base too
+        # (SCRIPTED_READS, in both trees) is a note, never the branch's.
+        pgit("checkout", "-q", touched_only)
+        rc_i, out_i = under(scripted, "tools/x/b.py", "precheck", "--base", pbase)
+        # ... and it is graded against the base's own table: a branch whose
+        # table lost a read the step still makes is refused, not excused.
+        write_table(pr / TABLE, {"a": ent(["tools/x/run.sh"], ["."], sha=pst[0].run_sha),
+                                 "b": ent(["tools/x/b.py"], ["."], sha=pst[1].run_sha)}, pr)
+        rc_s, out_s = under(scripted, "", "precheck", "--base", pbase)
+        (pr / TABLE).write_bytes(before)
+        ck("precheck: a table that lost a read the step still makes is refused (the base's table held it)",
+           rc_s == 1 and "files misses ['tools/x/a.py']" in out_s and "note:" not in out_s)
+        pgit("checkout", "-q", gained)
+        rc_j, out_j = under(scripted, "tools/x/b.py", "precheck", "--base", pbase)
+        ck("precheck: a read the merge base's own trace makes too is main's drift, a note and no refusal "
+           "(rc 0); with the branch's own read beside it the line is the branch's (rc 1)",
+           rc_i == 0 and "note: the merge base draws it too, main's to absorb: UNDER-SCOPED step a: "
+                         "files misses ['tools/x/b.py']" in out_i and "0 refusal(s)" in out_i
+           and rc_j == 1 and "files misses ['docs/d.md', 'tools/x/b.py']" in out_j and "note:" not in out_j)
+        (pr / "tools/x/run.sh").write_text("exit 7\n")
+        rc_fr, out_fr = under(scripted, "", "precheck", "--base", pbase)
+        (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+        ck("precheck: a read a step made before it exited non-zero is still refused (rc 1)",
+           rc_fr == 1 and "files misses ['docs/d.md']" in out_fr and "skip," not in out_fr)
+        rc_h, out_h = under(hollow, "", "precheck", "--base", pbase)
+        ck("precheck: a trace strace left empty measured less than the step read: refused, naming it "
+           "(the merge base's empty trace excuses nothing)",
+           rc_h == 1 and "EMPTY trace step-a.trace (step a)" in out_h)
+        rc_r, _ = under(scripted, "", "record", "--step", "a")
+        ck("precheck: after `record --step a` the same diff passes",
+           rc_r == 0 and under(scripted, "", "precheck", "--base", pbase)[0] == 0)
+        (pr / "tools/x/run.sh").write_text("exit 7\n")
+        rc_f, out_f = under(scripted, "", "precheck", "--base", pbase)
+        (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
+        ck("precheck: a touched step that exits non-zero under the tracer with no read refused is "
+           "unmeasured, a skip (rc 3) naming it, never a pass (the working tree's uncommitted script ran)",
+           rc_f == SKIP_RC and "skip, 1 step(s) ['a'] exited non-zero" in out_f
+           and "1 step(s) traced ['a'], 0 refusal(s)" in out_f)
+        (pr / TABLE).write_bytes(before)
+        if shutil.which("strace") is None or _traced():
+            print("  skip precheck under the real tracer: no strace here, or this run is itself traced")
+        else:
+            rc_t, out_t = run("precheck", "--base", pbase)
+            ck("precheck: under the real tracer the step's new read is refused the same",
+               rc_t == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_t
+               and "1 step(s) traced ['a'], 1 refusal(s)" in out_t)
         # Main's side: the drift step over a trace of the new read, the
         # artifact it writes, the bot's absorb, the drift step again.
         ptr = pr.parent / "traces"
