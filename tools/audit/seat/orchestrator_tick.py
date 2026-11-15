@@ -259,7 +259,7 @@ PAUSED_OWED_MIN = 60
 
 def verdict_kind(line: str, head: str) -> "str | None":
     """'merge' or 'blocked' when the approver verdict line names exactly `head`."""
-    m = re.match(r"^Fix review: (merge|blocked) ([0-9a-f]{40})(?: |$)", line)
+    m = owatch.FIX_VERDICT.match(line)  # the one verdict-line grammar
     return m.group(1) if m and m.group(2) == head else None
 
 

@@ -4124,6 +4124,7 @@
    "tools/audit/seat/outside_intake.py",
    "tools/audit/seat/outside_intake_selftest.py",
    "tools/audit/seat/owed_unactioned.py",
+   "tools/audit/seat/owed_watch.py",
    "tools/audit/seat/plan_audit.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_public.py",
