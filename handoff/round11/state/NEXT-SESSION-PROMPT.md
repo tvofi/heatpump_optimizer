@@ -16,9 +16,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-GH-READ-RESIDUE-P3 (stage in-progress, branch `handoff/r10-gh-read-residue-p3`): `git fetch origin handoff/r10-gh-read-residue-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R11-PRE-TOOLCHAIN-PIN (stage in-progress, branch `handoff/r11-pre-toolchain-pin`): `git fetch origin handoff/r11-pre-toolchain-pin && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-MACHINERY-LIMITER (stage in-progress, branch `handoff/r11-pre-machinery-limiter`): `git fetch origin handoff/r11-pre-machinery-limiter && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-METRICS (stage carries-open, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RULINGS-FILE (stage in-progress, branch `handoff/r11-pre-rulings-file`): `git fetch origin handoff/r11-pre-rulings-file && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RELAY-REBUILD (stage in-progress, branch `handoff/r11-pre-relay-rebuild`): `git fetch origin handoff/r11-pre-relay-rebuild && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ACK-COMPLETION (stage in-progress, branch `handoff/r11-pre-ack-completion`): `git fetch origin handoff/r11-pre-ack-completion && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PLAN-RENDER (stage in-progress, branch `handoff/r11-pre-plan-render`): `git fetch origin handoff/r11-pre-plan-render && git worktree add --detach $SEAT/wt FETCH_HEAD`
