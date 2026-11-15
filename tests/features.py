@@ -91856,23 +91856,51 @@ R.check(
     f"{_dsp_days['cold']}",
 )
 _dsp_descents.clear()
-_dsp_om._relaxed_plans = lambda *args: (
-    lambda out: (_dsp_descents.append(len(out[1])), out)[1])(_dsp_real_plans(*args))
+_dsp_real_min = _dsp_om._multi_start_minimize
+_dsp_caps, _dsp_call_caps = [], []
+
+
+def _dsp_counted_plans(*args):
+    """The real relaxed plans, their count and the caps their multi-starts ran under."""
+    seen = len(_dsp_caps)
+    out = _dsp_real_plans(*args)
+    _dsp_descents.append(len(out[1]))
+    _dsp_call_caps.append(tuple(_dsp_caps[seen:]))
+    return out
+
+
+def _dsp_capped_min(*args, **kw):
+    _dsp_caps.append(kw.get("maxiter"))
+    return _dsp_real_min(*args, **kw)
+
+
+_dsp_om._relaxed_plans, _dsp_om._multi_start_minimize = _dsp_counted_plans, _dsp_capped_min
 try:
     _dsp_once = [_dsp_solve(*pairs, **kw) for pairs, kw in (
         ((None,), {}), (((0.0, 0.0), (0.0, 0.0)), {}), ((_DSP_PAIR, _DSP_OFF), {"cyc": 0.0}))]
     _dsp_once_n, _dsp_twice_n = set(_dsp_descents), None
     _dsp_descents.clear()
+    _dsp_call_caps.clear()
     _dsp_solve(_DSP_PAIR, _DSP_OFF)
     _dsp_twice_n = set(_dsp_descents)
 finally:
-    _dsp_om._relaxed_plans = _dsp_real_plans
+    _dsp_om._relaxed_plans, _dsp_om._multi_start_minimize = _dsp_real_plans, _dsp_real_min
 R.check(
     "null control: with no pair, an empty learner or no priced cycle every space "
     "solve descends once, and the empty learner's plan is the plan of a config "
     "that never heard of the pair; with the contributor's pair it descends twice",
     _dsp_once_n == {1} and _dsp_twice_n == {2} and _dsp_same_plan(_dsp_once[0], _dsp_once[1]),
     f"{_dsp_once_n} {_dsp_twice_n}",
+)
+# The second descent is one more multi-start and no more than that: it runs
+# under the cap the first was handed, read off the two calls of each space
+# solve of the pair's own solve (no cap is restated here).
+R.check(
+    "a space solve that descends twice hands both multi-starts the same "
+    "iteration cap",
+    bool(_dsp_call_caps)
+    and all(len(c) == 2 and c[0] is not None and c[0] == c[1] for c in _dsp_call_caps),
+    f"caps per space solve {_dsp_call_caps}",
 )
 
 
