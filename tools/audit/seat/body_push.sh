@@ -25,7 +25,7 @@ if [ "${1:-}" = "--self-test" ]; then
     printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"
     printf 'import os, sys\nopen(os.environ["FLAGS"] + "/refreshed", "w").close()\nopen(os.environ["FLAGS"] + "/figbase", "a").write(sys.argv[sys.argv.index("--base") + 1] + "\\n")\n' > "$W/$1/pr/figure_block.py"; }
   mkcopy t real; mkcopy m mutant; mkcopy b bpbase
-  mkdir -p "$W/bin"; printf '#!/bin/sh\ncase "$*" in "pr list"*) cat "$W/prn" ;; api*pulls/*) cat "$W/pullbase" ;; *) exit 99 ;; esac\n' > "$W/bin/gh"; chmod +x "$W/bin/gh"; : > "$W/prn"
+  mkdir -p "$W/bin"; printf '#!/bin/sh\ncase "$*" in api*pulls?state*) cat "$W/prn" ;; api*pulls/*) cat "$W/pullbase" ;; *) exit 99 ;; esac\n' > "$W/bin/gh"; chmod +x "$W/bin/gh"; : > "$W/prn"
   printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
   printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
   throwaway_git_init "$W/o.git" -q --bare; throwaway_git_init "$W/repo" -q
@@ -204,7 +204,7 @@ if [ -n "$HREF" ]; then
   PRB=""; FB=origin/main
   if [ -n "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ]; then
     PRB="--pr-branch fix/$TOPIC"
-    PRN=$(gh pr list -R tvofi/heatpump_optimizer --head "fix/$TOPIC" --state open --json number -q '.[0].number') \
+    PRN=$(gh api "repos/tvofi/heatpump_optimizer/pulls?state=open&head=tvofi:fix/$TOPIC" --jq '.[0].number // empty') \
       || { echo "body_push: REFUSE: the pull requests of fix/$TOPIC could not be listed, so the base its figure block is verified against is unknown" >&2; keep_refused; exit 1; }
     if [ -n "$PRN" ]; then
       FB=$(pr_recorded_base tvofi/heatpump_optimizer "$PRN") || { echo "body_push: REFUSE: the recorded base.sha of #$PRN could not be read, the base pr-contract verifies the figure block against" >&2; keep_refused; exit 1; }  # mut:bpbase
