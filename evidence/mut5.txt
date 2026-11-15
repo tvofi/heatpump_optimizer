@@ -1,0 +1,8 @@
+RESULT m19-ou-key-dr: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed']), ('owed_unactioned.py', 0, ['owed_unactioned self-test: 60 checks, 0 failed'])]
+       FAIL DESIGN-REVIEW OWED: the emitted line keys in owed_unactioned on design/<g> and the tip
+RESULT m26-ou-key-ud: KILLED [('orchestrator_tick.py', 1, ['owed_unactioned_tick.Unreadable: an owed line names no topic or pull request: -> UNDISPATCHED: CP R10-OI 8.0h -- no dispatch, handoff or handoff-wip ref since its gate opened; dispatch the next part']), ('owed_unactioned.py', 0, ['owed_unactioned self-test: 60 checks, 0 failed'])]
+RESULT m21-bj-family-oc: SURVIVED [('beat_jobs_selftest.py', 0, [])]
+RESULT m22-ledger-arm: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+RESULT m23-ud-wipseat: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed'])]
+RESULT m24-dr-cp: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+RESULT m25-dr-timeread-unreadable: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed'])]
