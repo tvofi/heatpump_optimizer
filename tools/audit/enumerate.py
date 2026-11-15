@@ -578,7 +578,7 @@ def plant(root):
       "    try:\n        pass\n    except Exception:\n        pass\n    except ValueError:\n        pass\n"
       "    async_track_time_interval(1)\n    y = min(1, 2) if hass else 0\n    if y:\n        pass\n")
     w(f"{PKG}/p.py", "import json\ndef parse_a(x):\n    return json.loads(x)\nasync def g(r, m):\n    await r.json()\n    await m.async_subscribe('t')\n")
-    w(f"{PKG}/e.py", "class E:\n    @property\n    def extra_state_attributes(self):\n        return {}\nclass F:\n    _attr_extra_state_attributes = {}\nclass G:\n    pass\n")
+    w(f"{PKG}/e.py", "class E:\n    @property\n    def extra_state_attributes(self):\n        return {}\nclass F:\n    _attr_extra_state_attributes = {}\nclass G:\n    pass\ndef use(c):\n    return c.cycle()\n")
     w(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\nCONFIG_ENTRY_VERSION: Final = 3\n"
       "CONF_A_ENTITY = 'a'\nCONF_B_ENTITY: Final = 'b'\nCONF_NAME = 'n'\nMODES = ('m1', 'm2')\n")
     w(f"{PKG}/store.py", "K = 'b'\nDOMAINS = {'a': {}, K: {}}\n")
@@ -725,7 +725,8 @@ def self_test():
         arm("d9-solves lines", [l.split(" <- ")[0] for l in run("d9-solves", t)], ["path go", "solve _multi_start_minimize"])
         quiet = contextlib.redirect_stderr(io.StringIO())
         with quiet:
-            arm("d12 a cell with no ledger row is not run", {l.split("\t", 1)[1] for l in run("d12-cells", t)}, {"not run"})
+            arm("d9-solves a caller outside the solver's module is printed and not climbed", [l for l in run("d9-solves", t) if "cycle <-" in l], [])
+        arm("d12 a cell with no ledger row is not run", {l.split("\t", 1)[1] for l in run("d12-cells", t)}, {"not run"})
         led = t / "ledger.tsv"
         for label, text, want in (("a ledger row is joined", "level mode=m1\tsimulation\ttests/x.py::t\n", 6),
                                   ("an unknown source is refused", "level mode=m1\thearsay\ttests/x.py::t\n", "Refuse"),
@@ -756,6 +757,8 @@ def self_test():
         plant_bundles(t)
         edit_json(BUNDLES, lambda d: d["bundles"][0].update(evidence="tests/gone.py"))(t)
         arm("d15 a bundle whose evidence is not in the tree is refused", count("d15-installs", t), "Refuse")
+        cut(CO, "    def _solve_hubs(self):\n        return self.b\n")(t)
+        arm("d1-solve-state a solve-thread entry that moved is refused, not read short", count("d1-solve-state", t), "Refuse")
         edit_json(IDENTITIES, lambda d: d["identities"][0].update(grid=["no_such_axis"]))(t)
         arm("d2 a grid axis with no level is refused", count("d2-identities", t), "Refuse")
     finally:
