@@ -7,7 +7,7 @@
 #
 # Run from any checkout of the repository. Creates, beside the repository's
 # worktrees directory:
-#   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12)
+#   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12, D17)
 #   ../audit-r<round>-<dim>           a worktree per dimension in ISOLATED_DIMS below
 #                                     (the instrumenting finders, D14, D15, D16, and D11 and D13, which
 #                                      audit the process and read `main`'s history and
