@@ -4460,6 +4460,7 @@
    "dev/audit/harnesses/r10_verdict_item_barrier.py",
    "dev/audit/harnesses/r10_water_setpoint_feedback.py",
    "dev/audit/harnesses/r10_weekday_range_twins.py",
+   "dev/audit/harnesses/r11_denominator_planted.py",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
