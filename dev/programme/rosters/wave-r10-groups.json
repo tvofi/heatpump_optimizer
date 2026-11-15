@@ -26924,9 +26924,7 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [
-    "R10-CATALOG-PR"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/cloud_relay.sh",
     "tools/audit/seat/tick_loop.sh"
