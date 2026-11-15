@@ -5032,7 +5032,9 @@
     "tools/ci/prelude.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/policy_lint.mjs",
     "tools/pr/app_approve.sh",
+    "tools/pr/outside.py",
     "tools/release/stamp.py"
    ],
    "probes": [],
