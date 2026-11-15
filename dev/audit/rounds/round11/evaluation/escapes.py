@@ -61,6 +61,7 @@ def main():
     inw = [r for r in rows if r["window"] == "in"]
     print("UNOWNED", ",".join(r["group"] for r in inw if r["owner"] == "none"))
     print("CAUSE_NAMED", ",".join(f"{r['group']}<-#{r['cause_pr']}({r['window']})" for r in rows if r["cause_pr"] != "-"))
+    print("CAUSES", len({c for r in rows if r["cause_pr"] != "-" for c in r["cause_pr"].split(",")}))
     print("REPORTERS", dict(collections.Counter(r["reporter"] for r in inw)))
     rca = [l for l in git("ls-tree", "-r", "--name-only", a.ref, "dev/audit/rca/").split("\n") if l]
     stem = lambda k: re.sub(r"^R1[01]-(HOTFIX-|OUTSIDE-)?", "", k)
