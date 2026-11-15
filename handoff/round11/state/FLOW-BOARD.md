@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-15T17:24:02+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-15T17:39:53+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,10 +8,10 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 1 / 1.0 | 1 / 24.0 |
 | fly-ins closed | 0 | 26 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 1 / 0 / 0 | 4 / 5 / 3 / 26 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 4 / 5 / 3 / 26 |
 | first-pass fix-review yield | 0/0 (-) | 15/21 (0.71) |
 | blocked-class mix | none | carry-missing:2, ci-red:1, class-open:3, evidence-cut:1, introduced-red:2, mutation-vacuous:2, root-cause-detectable:1, self-test-red:1 |
-| lead time per size (h, n/p50/max) | S n=2 p50=3.16 max=54.64 | L n=1 p50=15.25 max=15.25; S n=3 p50=3.16 max=54.64 |
+| lead time per size (h, n/p50/max) | S n=1 p50=3.16 max=3.16 | L n=1 p50=15.25 max=15.25; S n=3 p50=3.16 max=54.64 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
