@@ -1,204 +1,60 @@
-The owner's standing rulings move into the tree as `dev/programme/RULINGS.md`, and the liveness hook's post-compaction corpus changes to match: `CLAUDE.md`, `dev/governance/roles/orchestrator.md` and every `.claude/rules/` file in full, and of `tools/audit/seat/INSTRUMENTS.md`, `tools/audit/seat/instruments/` and `RULINGS.md` only the files whose blob differs from the last accepted proof's manifest. A missing rulings file is listed as removed and the corpus is still written; a missing `CLAUDE.md` or role contract writes no corpus and prints `POLICY-CORPUS unwritten`. Roster group R11-PRE-RULINGS-FILE; policy, for tvofi's review (approvable under mandate 6893738184).
+Records the owner's standing rulings in `dev/programme/RULINGS.md` and has the liveness hook re-read that file after a compaction when it changed. Roster group R11-PRE-RULINGS-FILE.
 
-## Rulings this pull request carries out
+## Re-cut
 
-- tvofi, 2026-11-13, card P6 ("Yes") and card R3 (verbatim: "Full for CLAUDE.md, orchestrator contract and rulings; changes only for instrument pages"): the rulings file, read and proven after each compaction by the liveness hook.
-- tvofi, 2026-11-15, verbatim "Rules in full", relayed by the round-11 orchestrator: `.claude/rules/` is read in full, not by change. This replaces the cloud fixer's by-change reading of the rules on the step ref.
-- tvofi, 2026-11-15, verbatim, relayed by the round-11 orchestrator: "This file should be excluded by the corpus but still needs to be re-read on changes, just like instruments.md". It supersedes the same day's card answer "Count it, raise the cap (Recommended)" and R3's reading of the rulings file in full. `RULINGS.md` is listed in `dev/governance/config/corpus_excluded.json` with that ruling as its reason. **The exclusion is the owner's ruling**: no cap is raised, `tools/policy/policy_lint.mjs` and `policy_budgets.json` are unchanged, and the hook still re-reads the file whenever it changes.
-- tvofi, 2026-11-15, verbatim "Retire your candidates", and his second review the same day by decision cards ("Retire H3 (Recommended)", "I3 first, I2 as fallback (Recommended)", "Keep, scoped to train runs (Recommended)", "Retire J10", "Fix the contract to match (Recommended)", "Retire G14 (Recommended)", "Retire K11, K12 on parity (Recommended)", "Keep both parts"): the retired entries sit in the file's closing section, one dated line each naming what supersedes it.
-- Card "Fix the contract to match (Recommended)", a policy edit under mandate 6893738184: `orchestrator.md` section 11's "Never `--allow-red`" becomes `--allow-red` only when the red's cause is established as not the pull request's (for a stamp, CI tooling and not product code) and commented or recorded, never over a concluded red whose cause is unknown; revert-first for a behaviour change in the merged diff stays. Paid inside the file's caps by cutting stale text: section 1's `push.sh` clause (`push.sh` is retired by `CLAUDE.md`'s identity section), section 5's `pr_cap` default-6 description (the cap's value is in `RULINGS.md`), and a non-binding aside in section 4.
-  Other "never allow-red" statements in the tree, by `git grep -n -i -E "never[^.]{0,40}allow-red"` outside round records: `dev/governance/roles/nudge.md` lines 47 and 85 (merge-train flag; the file binds Cursor orchestrators only and its reconciliation is the nudge ruling of 2026-11-12, left); `dev/programme/HANDOVER.md` line 1035 (a train run, which the train-run entry keeps; state, not policy, left); `dev/programme/plan-2026-09-open-issues.md` line 2203 (a frozen 2026-09 plan record, left). No rule, sweep template or instrument page states it.
-- tvofi, 2026-11-15, verbatim: "The live repo should never contain any opinions (personal or otherwise, from codeowner, contributors or their agents) on anything but code and product and the function of the code and product. Opinions (both explicit and implicit) are near as sensitive as personal identifiable data"; then "This should be promoted to policy"; and "the findings from that dimension does not go as open issues but directly to me". These become `CLAUDE.md`'s new section "What the repository may carry", stated once; the rulings file holds no copy. `CLAUDE.md` is the owner because the rule binds every push and every seat, and it is the one policy file every session loads; no rule under `dev/governance/rules/` covers what a push may carry. Paid inside `CLAUDE.md`'s caps (`ratchet-budgets.md`): the "Root-cause remediation" section, which restated the index rows for `defect-root-cause.md` and `root-cause.md` and `defect-root-cause.md`'s own "resolved at merge (card C5)" sentence, is removed; the steward line's sentence about a `babysit/` file and the `AGENTS.md` line are shortened. No cap changes. Existing rulings entries were not re-screened against the new rule in this pull request.
-- Carry 1 (the coordinator's queue item 17), tvofi 2026-11-15, verbatim: "That is why fixers should only run the full prepr when absolutely needed, and only be run locally when it is likely it will need communication via sendmessage". Built here: `fixer.md` step 5 states that prepr runs scoped (`PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta since the last clean run) and runs in full only where the change reaches what only the full run measures, with the reason in the body; `orchestrator.md` section 5 states that a fixer is a local seat only where SendMessage steering is likely, else cloud. Paid inside both files' caps by removing text other files state: in `fixer.md`, step 5's sentence on who opens the PR (step 6 states it, and now carries its decision-0011 citation), the `run.sh` lease sentence (`gate-scoping.md` states it) and the history clause after step 16's issue numbers; in `orchestrator.md`, section 1's pointer restating `fixer.md` step 8, and section 5's retired-account sentence shortened to "never writes". Both decision paths stay cited by path: `policy_lint.mjs`'s citation-presence check pins each `CORPUS_EXCLUDED` decision to a policy citation, so a bare decision number left both uncited (repair round; see Red checks). The rulings file drops the parts these now state (hotfix and no-closures prepr; the majority of fixers in the cloud).
-- Carry 0, card E11-N-OBJECTIVE-RECORD part (b), "Write it now (Recommended)", preliminary: `orchestrator.md` section 9 names the round's objective record under `dev/audit/yardstick/` as a closure criterion.
-
-## Screen against policy
-
-tvofi, 2026-11-15, verbatim: "Also screen the rulings for overlap with policy, if both policy and rulings mandates something, policy is the right place"; "The point with this is that policy files and policy related files should follow good data integrity practice, no duplication, that creats risks of divergence"; and '"Fully stated in policy" should be dropped from the rulings file.' This is now the file's admission rule. Each in-force entry was grepped for its operative terms (`git grep -n -i -E <terms> -- CLAUDE.md dev/governance/roles dev/governance/rules dev/governance/decisions .github/PULL_REQUEST_TEMPLATE.md`) and the policy sentence read. Instrument pages were not counted. Classes: (a) fully stated, dropped from the file; (b) partly stated, delta kept with the policy file named; (c) conflicts, kept and reported; (d) not in policy, kept.
-
-(a) dropped, with where policy states it:
-- 2026-11-12 "a mandate made by me is valid for my machinery": decision 0017, point 5.
-- 2026-11-13 objective-bug convergence, process convergence, the objective function and its acceptance test, the population "yours to set": decision 0018, Context and the population paragraph.
-- 2026-11-15 objective record as closure criterion: `orchestrator.md` section 9 (this pull request).
-- 2026-10-29 round-major versions: decision 0016, Decision.
-- 2026-11-08 20%/10% bar: `proposal-triage.md`, "Bar" and "Machinery".
-- 2026-11-14 once-per-round triage: `proposal-triage.md`, opening paragraph.
-- 2026-09-25 audit-class barrier: `defect-root-cause.md`, "Except an audit class".
-- 2026-10-03/10-31 tools on main: `orchestrator.md` section 13, "An instrument the programme runs is a tracked, self-tested file"; `CLAUDE.md`, Instruments.
-- 2026-11-15 "Rules in full": `orchestrator.md` section 0 (this pull request).
-- 2026-10-22/10-28 critical path over every cap and first in every queue: `orchestrator.md` section 5, "A ready critical-path group starts regardless of every cap"; decision 0015 point 6.
-- 2026-10-24 ready handoffs never held: `orchestrator.md` section 5, "Opening or updating a pull request for an owed handoff is never refused by it".
-- 2026-11-08 no self-carry: `fixer.md`, "A finding in your own group's seam is built in this PR".
-- 2026-11-07/11-09 non-required reds: `defect-root-cause.md`, "Only a red on a required check is owed an answer".
-- 2026-11-05 allow-red on an unrelated cause, and 2026-11-11 item 7 (stamp over a CI-tooling red): `orchestrator.md` section 11 (this pull request).
-- 2026-11-07 no fixer re-merge on a main move: `fixer.md` step 6, "merge `origin/main` ... only when `git merge-tree --write-tree origin/main HEAD` reports a conflict"; `fix-review.md` step 12.
-- 2026-10-08 architecturally sound fixes and raises as a last resort: `fixer.md` step 17 and "When a budget blocks the work".
-- 2026-11-12 the contributor mechanism: decision 0017, Decision.
-- 2026-09-16 clean handover: `orchestrator.md` section 9, "The handover is one file and it is not optional"; `writing-for-agents.md`.
-
-(b) kept as the delta, the rest named: 2026-11-08 the orchestrator posts the mandated review itself (decision 0013); 2026-10-23 no laundering of a seat's denial (`CLAUDE.md` rule 2, decision 0013); the freeze's exceptions and the prototype (`orchestrator.md` section 5, `proposal-triage.md`); RCA immediacy and its L8 timing (`CLAUDE.md`, `defect-root-cause.md`); the rulings file's exclusion (`orchestrator.md` section 0); the pipeline shadow and speculative gating (`fixer.md` step 6); coordinator cap 3 (`orchestrator.md` section 5); a significant new feature designed whatever its size (`orchestrator.md` section 5); the public plan page and its link in the answer (`orchestrator.md` section 5); stamping without waiting for main (`orchestrator.md` section 11).
-
-(c) conflicts, ruled by tvofi on 2026-11-15 ("I agree with your rulings except that the mandate means you may act as me, so it is already allowed under the mandate with the current wording"):
-- Reviewer timing (2026-11-09) against `orchestrator.md` section 5: the entry is retired; section 5's dispatch at the fixer's push governs, and `bus.sh dispatch` refuses a red head.
-- Card P2's severity route against `proposal-triage.md`'s machinery paragraph: `proposal-triage.md` is amended to match card P2 (repair outside `custom_components/` takes the bar at any severity; a red required check on `main`, a blocked production pull request, a root-cause countermeasure, closeout or an owner directive skips it), paid inside its caps by removing its sentence on in-round instrument fixes, which `orchestrator.md` section 5 states; the rulings file no longer holds the P2 reading.
-- Carries per fixer by kind against `fixer.md`'s five findings: no policy edit; the entry is operational until the round-end proposal triage rules PC-1113-08.
-- Every dimension checks everything against `D3.md` and `D11.md` sampling: no edit here; owned by R11-PRE-BRIEFS-TEXT part 2, and the entry says so.
-- Approving policy under the mandate against `orchestrator.md` section 13: no conflict, since the mandate lets the orchestrator act as the owner; the two mandate-approval entries (2026-10-20/27, 2026-11-06) leave the file as stated by the mandate's own grammar, `CLAUDE.md` rule 2 and decisions 0013 and 0015.
-
-(d) every other in-force entry is not stated in policy and is kept unchanged. Inside the file, duplicates were merged: card P2's and card P11's quotes now live only in the card list, and the two closing lines on the whole-corpus re-read are one line.
-
-## Entries that stay, and their promotion recommendation
-
-The file's purpose (orchestrator's wording, tvofi 2026-11-15: "This is exactly how I see it") heads it: a holding area below policy that should shrink as rulings graduate. Numbering is the file's at this head (sections lettered in order, entries numbered within each). "op" means it stays operational; "→ X" means it is a candidate to graduate into X. No promotion is made in this pull request; tvofi rules each.
-
-| entry | class | recommendation |
-|---|---|---|
-| A1 current mandate | d | op |
-| A2 orchestrator posts the mandated review | b | → decision 0013 amendment |
-| A3 no laundering a seat's denial | b | → `ratchet-budgets.md` |
-| A4 owner's own words under the mandate | d | → `CLAUDE.md` dimension-brief line |
-| A5 ruleset toggle | d | op |
-| A6 admin rights, stuck-run deletion | d | op |
-| A7 session grants in his words | d | → `orchestrator.md` section 1 |
-| A8 card X1 | d | op |
-| B1 5-minute default | d | → `orchestrator.md` |
-| B2 cards only when he is active; the 5-minute wait first (2026-11-15) | d | → `orchestrator.md` |
-| B3 audit findings as decision cards (narrowed) | d | op |
-| B4 prune review: decided, not verified | d | op |
-| B5 read the roster stage before asking | d | op |
-| B6 seat questions to the orchestrator | d | → `standing.md` |
-| B7 recommendation first for judgement-heavy rulings (2026-11-15) | d | → `orchestrator.md` section 2 (no clause beyond section 5's architect note was found) |
-| B8 effort raised for a single turn (2026-11-15) | d | op |
-| B9 fix every slip | d | op |
-| B10 no no-op replies | d | op |
-| B11 no connectors | d | op |
-| C1 every dimension covers its scope | d | → `COMMON.md` and the dimension briefs; `D3.md` and `D11.md` sampling owned by R11-PRE-BRIEFS-TEXT part 2 |
-| C2 finder start on the critical set | d | op (round 11) |
-| C3 open groups move at cutover | d | → `dev/audit/README.md` |
-| C4 playbook pickup | d | → `dev/audit/README.md` |
-| C5 owner and outside items fold in | d | → `orchestrator.md` section 5 |
-| D1 freeze exceptions, prototype | b | → `proposal-triage.md` or a decision record |
-| D2 deadlocks by hand | d | → `orchestrator.md` section 13 |
-| D3 limiter first | d | op (round 11 start) |
-| D4 loop-study cards | d | → a decision record |
-| D5 RCA immediacy, L8 | b | → `defect-root-cause.md` |
-| D6 mechanise before policy | d | → `orchestrator.md` section 13 |
-| D7 carries by kind | d | op until the round-end proposal triage rules PC-1113-08 |
-| D8 no CI widening, local macOS seats | d | op |
-| E1 card list | d | op (record of rulings being built) |
-| E2 this file's exclusion | b | op |
-| E3 pipeline shadow, speculative gating | b | op (round 11) |
-| E4 keep re-routed pull requests open | d | op |
-| E5 study review | d | op |
-| F1 CP and outside never slip | d | → `orchestrator.md` section 5 |
-| F2 outside first | d | → `orchestrator.md` section 5 |
-| F3 hotfix definition, CP past the record step | d | → `orchestrator.md` section 5 |
-| F4 production above the cap | d | → `orchestrator.md` section 5 |
-| F5 CI priority, "Dont do A" | d | op |
-| F6 every item has a holder | d | → `orchestrator.md` |
-| F7 owed means this turn | d | → `standing.md` / `orchestrator.md` |
-| F8 coordinator cap 3 | b | op |
-| F9 roster order prevents conflicts | d | → `orchestrator.md` section 5 |
-| F10 existing groups first | d | → `proposal-triage.md` / `architect-planner.md` |
-| F11 verify groups after changes | d | → `architect-planner.md` |
-| F12 gantt drift | d | op |
-| F13 no scoping out user-visible quality | d | → `fixer.md` / `designer.md` |
-| G1 train runs batch, overlap, pause | d | op |
-| G2 records and delivery rows at the stamp | d | → `delivery-status-tracking.md` |
-| G3 cancel record CI, never close | d | op |
-| G4 no merge pause on an unrelated ratchet red | d | → `orchestrator.md` section 11 |
-| G5 cancel superseded runs | d | op |
-| G6 a pull request still needs valid evidence | d | → `fix-review.md` |
-| G7 prepr once per code | d | op |
-| G8 merge verdict before CI is green | d | op |
-| H1 blocked verdicts back to the fixer | d | → `fix-review.md` / `fixer.md` |
-| H2 reviewer model at least the fixer's (Fable reviewer only for work of that class, orchestrator's reading) | d | → `fix-review.md` |
-| H3 significant features designed | b | → `designer.md` |
-| I1 public plan page in the answer | b | → `orchestrator.md` section 5 |
-| I2 fallback: our version with thanks | d | → decision 0017 amendment |
-| I3 outside security review | d | → `fix-review.md` |
-| J2 Fable reserved for the most complex architectural work (2026-11-15) | d | op |
-| J3 triage seat on opus, product-feature triage included (2026-11-15) | d | → `proposal-triage.md` |
-| J1, J4-J11 seat routing, cloud, local cap, re-fire, dispatch, liveness, restarts, frugal guard, messaging | d | op |
-| K1 resume prompt generated | d | op |
-| K2 record beat, plan page | d | op |
-| K3 leave duplicate record lines | d | op |
-| K4 naming "tvofi" | d | → `CLAUDE.md` Identity |
-| K5 no footers | d | → `CLAUDE.md` |
-| K6 `nudge.md` references | d | op (temporary) |
-| K7 keep working, daemonise | d | op |
-| K8 wake loop | d | op |
-| K9 brief check after a compaction | d | op |
-| K10 local liveness hook until parity | d | op (temporary) |
-| L1 stamp without waiting for main | b | → `orchestrator.md` section 13 |
-| L2 stamp cadence | d | → `orchestrator.md` section 13 |
-| L3 release extra steps | d | → `orchestrator.md` section 13 or a decision record |
-
-## What the rulings file holds
-
-Each ruling still in force, dated, quoted verbatim where the orchestrator's memory kept his words, "as recorded" where it kept only a paraphrase, and any interpretation labelled the orchestrator's reading. Only the current mandate's id, scope and expiry appear. Superseded, spent (round 10's closure, v10.0.0) and retired entries sit in one closing section, each naming its successor or reason. Technical lessons and tool quirks are left out. No email address, host path, session id, scratch path or content of tvofi's diagnostics download is in the file.
+Round 4. Owner rulings 2026-11-15 (tvofi): "The rulings file is not policy."; "Orchestrator.md at least should clearly refer to the rulings file. Rulings are binding, even if it is not policy." This body replaces the earlier ones; round history is dropped. What changed in this round: no file calls `RULINGS.md` policy; `orchestrator.md`, `fixer.md` and `proposal-triage.md` each carry one sentence that the owner's rulings in `dev/programme/RULINGS.md` bind though the file is not policy, and `CLAUDE.md`'s index line says the same; `RULINGS.md` stays in `dev/governance/config/corpus_excluded.json` and is in no policy list.
 
 ## Approval
 
-Policy files touched: `dev/governance/roles/fixer.md` (step 5, Carry 1), `dev/governance/roles/proposal-triage.md` (machinery route per card P2), `CLAUDE.md` (index entry, the new "What the repository may carry" section, the removed "Root-cause remediation" restatement) and `dev/governance/roles/orchestrator.md` (sections 0, 1, 4, 5, 9, 11); code-owned data beside them: `dev/governance/config/corpus_excluded.json`, `tests/layout.json` and `dev/audit/config/scopes.json` (D6 measures `RULINGS.md`). Awaiting the owner's approving review, which the orchestrator may give under mandate 6893738184 (scope all) as decision 0013 allows, declared as an agent's. Every ruling this pull request writes down is tvofi's own, quoted in "Rulings this pull request carries out".
+Policy change (`CLAUDE.md`, `orchestrator.md`, `fixer.md`, `proposal-triage.md`), for tvofi's approving review at the head; it records the owner's 2026-11-15 rulings quoted in Re-cut. Approvable under mandate 6893738184 where the orchestrator holds it.
 
 ## Head
 
-`7b8496c15d3d6f209e1100f054cf8498b1c48064`, repair round 3 of PR head `03c8a591847756bb3ef47cc11693638602e026ba`, which already contains `origin/main` `ebe83a1b8265b56bde009b70185585e736dbdb82` (merge base with it: the same commit; taken 2026-11-15 UTC); diff three-dot. `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`73fefc820a47594f2e95866f053c405d194b4a33`, on `origin/main` `31117b1029de63938d949e78dcbcd8f9451e5e33` (2026-11-15 UTC); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged in.
+
+## Hunks kept and dropped
+
+Every hunk of the earlier diff in a contract, each judged by whether the rulings are relevant to that role (the owner's test):
+- `orchestrator.md`, kept: one sentence before the compaction re-read stating the rulings bind the orchestrator and whoever it briefs and where they are; the compaction re-read of the file when changed; section 5's pointer to the soft cap's value in the file; the card-ruling edits (scoped prepr, `--allow-red`, local-seat rule, objective record), each a ruling the orchestrator carries out.
+- `orchestrator.md`, dropped: sections 3 and 10 sentences that `root-cause.md`, `defect-root-cause.md` and `finding-propagation.md` already state, to keep the corpus cap's margin (nothing else removed).
+- `fixer.md`, kept: the new sentence that the rulings bind a fixer (shortened to "bind you" to fit the per-file cap `tools/audit/briefs/fixer.md` by 4 tokens), since a fixer works under the orchestrator's briefs and the rulings; the 2026-11-15 prepr-scoping ruling in step 5.
+- `proposal-triage.md`, kept: the new sentence (the round-end triage applies rulings on machinery, freeze and proposals recorded there); the card P2 machinery paragraph.
+- `CLAUDE.md`, kept: the index line, now "they bind every seat, though the file is not policy"; the section "What the repository may carry" (a separate ruling of 2026-11-15 that binds every push).
+- Dropped as a duplicate, by earlier rounds: any hunk making the file one of the policy files listed in `CLAUDE.md`'s policy table.
+
+## Instrument changes
+
+All kept; none reads the file's policy status. `tools/audit/seat/hooks/liveness.py` and `hooks_setup.py` (+ `instruments/hooks_setup.py.md`): the post-compaction corpus is `CLAUDE.md`, `orchestrator.md` and every `.claude/rules/` file in full, and of the instrument pages and `RULINGS.md` only what changed since the last accepted proof. They key on a file list, not on the file's classification. `sweep_template.md`: step 0 names the same read. `dev/audit/config/scopes.json` and `tests/layout.json`: classify the new tracked file (`check_scopes.py`, `layout.py` read these; the file is a record, so it is outside the policy lists).
 
 ## Mutation proof
 
-`python3 tools/audit/seat/hooks_setup.py --self-test` (run with `TMPDIR` on a non-symlinked directory, see Red checks) printed `hooks_setup self-test: 74 checks, 0 failed`: every case green, the un-mutated copy green, and every mutant red. The mutants this branch adds, each in `MUTANTS`:
-- `the corpus carries every page, changed or not` (`if proven.get(n) != b)` -> `if True)`)
-- `the proof never records its manifest`
-- `the corpus carries no changed page` (drops `*changed`)
-- `the corpus drops the rules` (drops `*sorted(full)`: an unchanged rule file leaves the corpus)
-- `the rules are read by change` (`FULL = ()`, rules moved back into `BY_CHANGE`)
-- `the rulings file is read in full` (`RULINGS.md` added to `CORE`)
-- `a changed rulings file is dropped` (`RULINGS.md` removed from `BY_CHANGE`)
-- `a missing core file still writes a corpus`
+`python3 tools/audit/seat/hooks_setup.py --self-test`: every `MUTANTS` entry this branch adds goes red against the live tree, among them `the corpus carries every page, changed or not`, `the rules are read by change`, `the rulings file is read in full`, `a changed rulings file is dropped` and `a missing core file still writes a corpus`. The diff of this round is prose only and moves no mutated line.
 
 ## Null control
 
-- In the self-test, a PostCompact with nothing changed since the accepted proof writes the core and the rules only: `read-proof: nothing changed since the proof reads the core and the rules only (null control)` asserts `.claude/rules/r.md` in, `RULINGS.md`, `instruments/a.md`, `instruments/b.md` and `INSTRUMENTS.md` out, and `unchanged since the last proof: 4 page(s); removed: none`. The next case changes `RULINGS.md` and asserts it is in.
-- A rulings file deleted at origin/main still writes the corpus with `removed: dev/programme/RULINGS.md` (`read-proof: a rulings file gone from origin/main is a removed page, and the corpus is still written`); a deleted role contract writes none.
-- With no proof manifest every instrument page is in: `read-proof: with no proof manifest every page is in (null control for by-change)`.
-- The un-mutated copy passes before any mutant runs (`null control: the copy un-mutated`).
+In the self-test, a PostCompact with nothing changed since the proof writes the core and the rules only (`read-proof: nothing changed since the proof reads the core and the rules only (null control)`); the next case changes `RULINGS.md` and asserts it is in.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=e75ad291ff5c58f7c8362b0a20fbe6b230adf717 head=7b8496c15d3d6f209e1100f054cf8498b1c48064 -->
-~~~text
-MODE: SCOPED -- 3 script(s) run, 30 scoped out.
-~~~
-<!-- /figure-block -->
-- hook self-test: `python3 tools/audit/seat/hooks_setup.py --self-test` printed `hooks_setup self-test: 74 checks, 0 failed` (hooks unchanged since that run).
+- policy budgets: `node tools/policy/policy_lint.mjs --budgets` on the merge of this head onto `origin/main` `31117b1029` (a scratch merge commit, the merge-tree result): `corpus: ~69748 tokens, cap 69333 +band 500 = 69833`, `role fixer ~6252 tokens, cap 5852 +band 500 = 6352`, `role policy ~9985 tokens, cap 9958 +band 500 = 10458`; no cap changed. Paid by cutting duplicated prose in `orchestrator.md` (above), never by a raise.
+- policy lint: `node tools/policy/policy_lint.mjs` on this head printed `TOTAL: 0 error(s) across 52 policy file(s)`; the previous head (before the fixer sentence was shortened) printed `TOTAL: 1 error(s)`, a `[budgets]` refusal of `tools/audit/briefs/fixer.md` (files_tokens).
+- hook self-test: `python3 tools/audit/seat/hooks_setup.py --self-test` printed `hooks_setup self-test: 74 checks, 0 failed`.
+- scopes: `python3 -I tools/audit/check_scopes.py --self-test --repo .` printed `SELF-TEST passed (every perturbed scope refused)`.
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `tools/audit/briefs/fixer.md 315 315 5210 5216`, `tools/audit/briefs/orchestrator.md 294 295 4250 4251`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69735 tokens, cap 69333 +band 500 = 69833` on this head, which contains current main (the PR head alone is at ~69173; merged with the `origin/main` at `ebe83a1b82` it printed ~69836, 3 over the band, blocking review/3626). Round 3 pays 101 tokens inside the PR's own additions and duplicates, no cap changes: `CLAUDE.md`'s list of push surfaces in "What the repository may carry" ("Nothing pushed" already covers it) and the rulings bullet's re-read clause (`orchestrator.md` section 0 states it); `fixer.md` step 5's `prepr.sh` step-number parenthetical; `orchestrator.md`'s section-0 parenthetical on where a ruling lands, section 1's pointer restating `fixer.md` step 3, and the `--allow-red` stamp parenthetical. Null control: the same command before the cuts printed ~69836 against 69833; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
-- policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)` and `FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes`; at `91f6dc48e2` and at `d360d1c125` it printed `TOTAL: 2 error(s)`, both `[citation-presence]` (decisions 0010 and 0011), as CI's policy-docs job did. Citing 0011 by its new path under `dev/governance/decisions/` cleared the error but printed `FIXTURE VACUOUS: checkCitationPresence reported 1 of 2 earned exclusions`, so both are cited by the old path, on the line text each had at the merge base.
-- layout guard: `python3 tests/layout.py` printed `layout: GUARD: 0 refusal(s) against 66865be375f4`; an intermediate head citing decision 0011's old path on a line the merge base did not have printed `GUARD: 1 refusal(s)` (`new-reference: ... cites retired path docs/decisions/`).
-- scopes: `python3 -I tools/audit/check_scopes.py --self-test --repo .` printed `SELF-TEST passed (every perturbed scope refused)`; at `91f6dc48e2` it printed `SELF-TEST FAILED` with `classified in neither universe nor static: dev/programme/RULINGS.md` under D6, as CI did. `python3 -I tools/audit/check_scopes.py --repo .` printed `ok coverage tracked=11270 in_universe=1609 excluded=9661 unclassified=0`.
-- entities: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED` at `7b8496c15d` on the tree merged with `ebe83a1b82` (round 3); CI's fast job at `91f6dc48e2` printed `1 of 2723 ENTITY CHECKS FAILED` (the template arm).
-- env matrix: `node tools/policy/policy_lint_envmatrix.mjs "$PWD" <tmp> "$(git rev-parse HEAD)"` printed `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)` at `56db94b491` (the policy repair; the later commit touches only `dev/audit/config/scopes.json`, outside the policy corpus); CI at `91f6dc48e2` printed `6 declared outcome(s) held, 10 did not`.
-- with `RULINGS.md` named in `CLAUDE.md` and absent from `corpus_excluded.json` the same command printed the `[named-docs] dev/programme/RULINGS.md` error (an earlier head of this branch).
+- generated rules: `node tools/policy/rules_sync.mjs --check` printed `RULES-SYNC ok`.
+- prepr was run scoped, `PREPR_SKIP_CLOSURES=1 PREPR_SKIP_CODE=1`, for this text-only delta.
 
 ## Red checks
 
-Round 3: review/3626 blocked on one cause, the merged-tree corpus cap (Figures, policy budgets); no other red is claimed on this head. The CI reds below are from the earlier head and are answered as before; the fast job's `tests/entities.py` template arm keys on `policy_lint.mjs`'s exit code, which is 0 on this head (`TOTAL: 0 error(s)`), and `instrument-self-tests`'s inherited step is unchanged by this text-only delta.
+Reds carried by earlier commits of this branch, each answered; `governance / policy-docs`, `governance / env-matrix` and `tests / fast (3.14)` are in `merge_train.py owed-reds`' set. None is red on this head by the measurements in Figures (policy lint `TOTAL: 0`; the fast job's template arm keys on that exit code).
 
-CI run 43753460195 at `91f6dc48e2`; base evidence is main's push run 43753251450 at `e75ad291ff` (the run's own `GOLDEN_REF` and env-matrix baseline), where `governance / policy-docs`, `governance / env-matrix` and `tests / fast (3.14)` concluded success and `governance / instrument-self-tests` failed only its step "Refuse a self-test read set the committed table misses".
-
-- `governance / policy-docs`, step "Lint the policy corpus": introduced here. The rulings commit replaced the paths of decisions 0010 and 0011 with bare numbers, and `policy_lint.mjs`'s `[citation-presence]` check refuses an excluded document no policy file cites. Repaired by citing both by path again (Figures, policy lint). Cheaper detector: `node tools/policy/policy_lint.mjs` (33.7 s wall clock in this container under a concurrent `entities.py` run, timed by `date +%s.%N` around the command), which `prepr.sh` already drives. Disclosed self-correction: the previous round's figure `TOTAL: 0 error(s)` was taken before the cuts that removed the citations; the same command at `d360d1c125` prints `TOTAL: 2 error(s)`. The process existed and was not followed at the handed-off head: state (b). No countermeasure built: the detector exists and is already in the local path.
-- `governance / env-matrix`, step "Require each declared environment shape to produce its declared outcome": introduced here, the same cause; every failing arm quotes the citation-presence refusal. Same detector and answer as policy-docs.
-- `governance / instrument-self-tests`, step "Refuse a corpus or record-mode check that survives its own deletion": introduced here, the same cause (`policy_lint_mutants.mjs`'s null control returned 1 on the citation-presence refusal). Same detector and answer.
-- `governance / instrument-self-tests`, step "Show the self-tests outside tools/audit/seat/ refusing their own fixtures": introduced here. `check_scopes.py --self-test` refused `dev/programme/RULINGS.md`, classified in neither D6's universe nor its static set; repaired by adding it to D6's universe and to the seat holding `dev/programme/HANDOVER.md`, because it holds live operational rulings the role contracts point into, not a record (Figures, scopes). Cheaper detector: `python3 -I tools/audit/check_scopes.py --repo .` (26.4 s wall clock, timed the same way); it runs only in CI's instrument-self-tests job, in no `prepr.sh` step, and no closure selects it: state (a) locally. No countermeasure is built in this pull request (instruments are frozen for round 11); the detector and its standing cost go to the round-end proposal triage. Carry: R11-INTAKE-R10-RESIDUE
-- `tests / fast (3.14)`, step "Run the suite": introduced here. `tests/entities.py` failed one check, "the template arm turns the acceptance red on a template that fails its own contract (and the real template keeps it green)", because its acceptance is the policy lint citation-presence turned red (`the real template -> rc=1 (must be 0)`). Same cause, detector and answer as policy-docs.
-- `governance / instrument-self-tests`, step "Refuse a self-test read set the committed table misses": inherited from main (red in base run 43753251450, job 132931822643); owned by R11-HOTFIX-MAIN-SELFTEST-RED, not answered here.
-- `hooks_setup.py --self-test` fails one case on macOS at the base as at this head (a `/var` against `/private/var` cwd); host-only, CI runs Linux, not a required-set red.
+- `governance / policy-docs`, `governance / env-matrix` and `tests / fast (3.14)`, at `91f6dc48e2`: the rulings commit replaced decisions 0010's and 0011's paths with bare numbers, which `policy_lint.mjs`'s `[citation-presence]` check refuses; repaired by citing both by path. State (b), the process existed and was not followed at that head: the figure `TOTAL: 0 error(s)` was taken before the cuts that removed the citations. Cheaper detector: `node tools/policy/policy_lint.mjs`, which `prepr.sh` already drives locally. No countermeasure: the detector is already in the local path.
+- The same three checks at `03c8a59184`: the merged tree exceeded the corpus cap (`policy_lint.mjs --budgets`), because the branch was measured alone and main had grown. State (c), the process was followed and measured the wrong tree. Cheaper detector: `node tools/policy/policy_lint.mjs --budgets` on `git merge-tree --write-tree origin/main HEAD`, run here and in Figures; its standing cost is one policy-lint run (about a minute). Carry: R11-INTAKE-R10-RESIDUE
+- `governance / instrument-self-tests` (not in the owed set): its `check_scopes.py --self-test` refusal of `dev/programme/RULINGS.md` was repaired in `scopes.json` and `SELF-TEST passed (every perturbed scope refused)` printed on this head; its step "Refuse a self-test read set the committed table misses" is inherited from main, owned by R11-HOTFIX-MAIN-SELFTEST-RED.
 
 ## Forward-carry
 
-- tvofi's ruling of 2026-11-15 (card "Hold delivery rows for the stamp too", recorded in `dev/programme/RULINGS.md` under "Merges, CI and reds") has the automatic delivery-rows pull request (`record/autofix`) wait and merge only with the stamp batch. Two instruments contradict it: the record-autofix job's own automerge path (merging on `tools/audit/seat/record_row.py --automerge-check` alone between stamps), and the board's `RECORD-OWED` line (emitted through `tools/audit/seat/beat_jobs.py`, `ledger.py`, `orchestrator_tick.py`, `owed_unactioned.py`), which raises a green unmerged one as owed. Control for the change: a `record/autofix` pull request green and unmerged between stamps raises no line and is not merged; under the train's `--stamp` queue it is admitted with the stamp batch. It is an instrument change, held by the round-11 instrument freeze for the round-end proposal triage; no workflow or instrument changes in this pull request. Carry: R11-INTAKE-R10-RESIDUE
+- tvofi's ruling of 2026-11-15 (card "Hold delivery rows for the stamp too", in `dev/programme/RULINGS.md` under "Merges, CI and reds") has the automatic delivery-rows pull request wait and merge only with the stamp batch. The record-autofix automerge path (`tools/audit/seat/record_row.py --automerge-check`) and the board's `RECORD-OWED` line (`beat_jobs.py`, `ledger.py`, `orchestrator_tick.py`, `owed_unactioned.py`) contradict it. Control: a `record/autofix` pull request green and unmerged between stamps raises no line and is not merged; under the train's `--stamp` queue it is admitted with the stamp batch. An instrument change, held by the round-11 freeze for the round-end triage. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
