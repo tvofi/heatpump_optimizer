@@ -504,6 +504,15 @@ jobs:
         if: steps.scope.outputs.scorecard == 'true'
         run: python3 -I tools/audit/seat/scorecard.py --self-test
 
+      # The stable tools ref (R11-PRE-TOOLCHAIN-PIN): behind's count over the
+      # seat paths and promote's refusals (absent, off main, not a fast-forward,
+      # machinery not green, a push that moved nothing), each beside the case
+      # that moves the ref, over a throwaway origin; GitHub is a fake.
+      - name: Show the stable tools ref promoting only a machinery-green commit of main, fast-forward
+        id: toolchain
+        if: steps.scope.outputs.toolchain == 'true'
+        run: python3 -I tools/audit/seat/toolchain.py --self-test
+
       # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
       # planted-defect recall's refusals and its count after the judge, and the
       # two-finder overlap estimate; each holds an empty input to unread, never
