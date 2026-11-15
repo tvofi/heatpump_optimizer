@@ -1,0 +1,9 @@
+decisions 0017/0018 on the merged tree:
+0016-a-major-version-is-a-closed-audit-round.md
+0017-outside-contributors-are-adopted-on-our-machine.md
+0018-objective-function.md
+on origin/main a72ae19952:
+dev/governance/decisions/0016-a-major-version-is-a-closed-audit-round.md
+dev/governance/decisions/0017-outside-contributors-are-adopted-on-our-machine.md
+git grep 0017-objective over merged tree:
+(end)

@@ -1,0 +1,12 @@
+Control for the last finding, at origin/main a72ae19952's carry_audit.py, body /tmp/tmp.7lwoUHVKKq/ev/pr_body.md of head 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212.
+== three ## Findings bullets with no lead word, one of them with its Carry: naming R11-NO-SUCH-GROUP:
+NOTE review 0 item 233a260a: dismissed:closed records of a done group, the live copy is R11-INTAKE-R10-RESIDUE carry 173 citing 0018
+CARRY-AUDIT: 9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== every bullet opening Residual:, one Carry: removed:
+NOTE review 0 item 18a07c0f: dismissed:closed records of a done group, the live copy is R11-INTAKE-R10-RESIDUE carry 173 citing 0018
+UNROUTED review 0 item 5c2890b8 (## Findings) [lead]: "- Residual: round 4's survivor G17, not re-measured this round (same code head): `evaluation_gaps` with `ev.ge"
+NOTE review 0 item 0dec9472: R11-INTAKE-R10-RESIDUE
+NOTE review 0 item d0f1f51b: R11-INTAKE-R10-RESIDUE
+CARRY-AUDIT: 12 finding item(s): 11 routed, 1 unrouted, 0 bad destination(s)
+rc=1

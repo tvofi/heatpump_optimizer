@@ -1,22 +1,4 @@
-rc=3 22:56:47
-rc=3 22:58:19
-rc=3 22:59:50
-rc=3 23:01:23
-rc=3 23:02:55
-rc=3 23:04:27
-rc=3 23:05:59
-rc=3 23:07:31
-rc=3 23:09:04
-rc=3 23:10:36
-rc=3 23:12:08
-rc=3 23:13:40
-rc=3 23:15:13
-rc=3 23:16:45
-rc=3 23:18:17
-rc=3 23:19:49
-rc=3 23:21:22
-rc=3 23:22:54
-rc=3 23:24:26
-rc=3 23:25:58
-rc=3 23:27:31
-last line printed: WAIT 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212 pending: gate red: none
+23:52:41 rc=3 WAIT 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212 pending: gate red: none
+23:54:13 rc=3 WAIT 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212 pending: gate red: none
+23:55:45 rc=3 WAIT 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212 pending: gate red: none
+23:57:21 rc=4 APPROVAL-OWED 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212 2 budget raise(s), first .claude/workflows/policy_budgets.json: corpus_tokens: 68618 -> 69333 (a cap went up): a raise is the owner's (0013): no decisive review by tvofi (id 70032254) on this pull request
