@@ -1,4 +1,4 @@
-R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge train's two defects (the post-merge docs step and the carry-ancestry park). Content approved by tvofi in chat 2026-11-05. C6 (a) is folded in by the main seat's ruling. Its half (b), the wake stream, is out of tree and not here.
+R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge train's two defects (the post-merge docs step and the carry-ancestry park). Content approved by tvofi in chat 2026-11-05. C6 (a) is folded in by the main seat's ruling, and reshaped by tvofi's ruling of 2026-11-14 ("keep it in the once per round shape"): `proposal-triage.md` is no longer deleted. Its half (b), the wake stream, is out of tree and not here.
 
 **This round's change, by the orchestrator's ruling of 2026-11-08: C5 no longer deletes Nightly's `record-autofix` beat.** `tools/release/stamp.py` (code-owned) still depends on that beat in two places:
 - its flush (rules 3-4) dispatches nightly.yml so that the beat merges a record pull request;
@@ -21,7 +21,7 @@ Deletion over machinery throughout: 39 files changed, 578 insertions, 761 deleti
   - `governance / record`'s refusal step is report-only;
   - **kept, unlike the earlier rounds:** Nightly's `record-autofix` beat, its `push:` trigger and `HOLD_MAX_AGE_S`. The beat still rows each merge from API facts. `record_row.py`'s plan covers both a rowless merge and a merged PR whose row reads `**open**`, so a PR that `handoff_push.sh` no longer rows is still rowed for rule 5.
 - **C8 (review after the cheap checks):** `bus.sh dispatch` on a WAIT head refuses while any of `CHEAP_CHECKS` is still in flight. `bus.sh post` refuses a `merge` verdict at a head that `merge_train.py classify` calls RED, or whose classification it cannot read.
-- **C6 (a):** `dev/governance/roles/proposal-triage.md` is deleted. Its two cap keys and its phantom `tests/closures.json` entry go with it. The triage-bar clauses main added to it since (R10-FLY-TRIAGE-BAR) now live in `orchestrator.md` section 5's proposal bullet (Merge resolution, origin/main 6457496a).
+- **C6 (a), as the owner ruled it on 2026-11-14:** `dev/governance/roles/proposal-triage.md` stays, in the once-per-round shape: the round's proposals are consolidated and triaged together at round end, an ACCEPT is built at the start of the next round, and an instrument fix stays local in-round. The seat is no longer a standing seat, so `standing.md`'s "Binds" line and `tests/entities.py`'s standing-terms check no longer name it, and the contract drops "under `standing.md`". Its Machinery and exemption clauses (R10-FLY-TRIAGE-BAR) are back in the contract, and `orchestrator.md` section 5 sends a proposal to the round-end triage (Head, repair 11). Its `tests/closures.json` entry is main's again (`tests/entities.py`'s closure).
 - **Train docs step: removed** from `postmerge.py`. `release_worktrees` logs `released <wt> (already collected)` for a worktree that `worktree_gc.sh` already collected.
 - **Train carry ancestry: fixed** in `app_approve.sh carry()`.
 - **Carry 2, superseded by main:** main's R10-HOTFIX-SELFTEST-TIMEOUT now starts the slow self-tests detached (timeout 30), so this branch's timeout-40 hunk and its `open_pr.sh`/`update_pr.sh` change are dropped in favour of main's (Merge resolution).
@@ -95,6 +95,23 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
   - The repair: the stub now lists `/x`, as in life. Production is unchanged.
 
 ## Head
+
+e69850297224f4b71522986c7a7488697d66b58b (`handoff/r10-process-slim-p2`): repair 11, the owner's ruling and a main conflict, measured at origin/main d7004eaa775dd7b42aa392df0eb53aeec198b2b0, 2026-11-14T21:59Z. The reviewed head is bd0f383b52f98d73c15d9619ae4efeaa59024070 (`Fix review: merge`, probe/rev-3451-43597925); the PR head 939c91fc0e31f119d0e923ae4d7d964dfe0ad2f9 adds one plain merge of main to it. This round adds three commits; the reviewer reads `git diff 939c91fc0e e6985029` against the PR's own diff, and every other change in `git diff bd0f383b e6985029` comes from main's merges.
+
+- **7a12cec875efb7823cbc26b4bb0174143bedfbab, merge of origin/main d7004eaa.** `git merge-tree --write-tree origin/main 939c91fc0e` listed `CONFLICT (content)` in `tools/pr/app_approve.sh` alone (PR read `DIRTY`); `tests/closures.json` was resolved by the `ledgermerge` driver. After it, `git merge-tree --write-tree origin/main HEAD` exits 0.
+  - **`tools/pr/app_approve.sh` `carry()`, union (hand-written).** This branch's ancestry block (fetch an absent `$v`/`$h` from origin, then tell rc 1 from rc 128) and main's decision-0017 whose-head block (`ours`, `ls-remote --heads origin`) are both kept, in that order; the `local` line holds both sides' names (`ob anc`).
+  - **The semantic interaction, repaired in the self-test fixture only.** Main's whose-head arm reads the head as a fork's unless it is a branch tip on origin, so this branch's bare-clone arm (`CARRY: V and the head absent from the checkout are fetched, then judged`) failed: `app_approve self-test: 363 checks, 2 failed`. The fixture now pushes `$H_MERGE` to `refs/heads/carried-bare` instead of `refs/test/h`, and deletes that branch after the arm, because main's fork arms that follow need the head on no branch (with it left in place: `FAIL NO CARRY on a fork head: a main merge whose merge-driver file is not main's`). Result: `363 checks, 0 failed`. Production is unchanged.
+  - **`dev/audit/README.md` and `dev/README.md` read back** against both parents: `git diff origin/main 7a12cec8 -- <file>` holds exactly this branch's own lines of `git diff 0096436 939c91fc0e -- <file>` (the triage-seat and LOG-citation lines; the record paragraph and the two `state_docs.py` figure lines), and nothing of main's is dropped.
+- **921da41b489cdc372ad5d30804a0f77b6934728d, the owner's ruling.** tvofi, 2026-11-14, verbatim: "keep it in the once per round shape". The PR no longer deletes `dev/governance/roles/proposal-triage.md`:
+  - **The contract** is main's text with three changes (`diff <(git show origin/main:dev/governance/roles/proposal-triage.md) dev/governance/roles/proposal-triage.md`): the seat paragraph states the once-per-round shape in place of "One opus seat, medium effort, under `standing.md`"; ACCEPT's destination is "a next-round roster group"; a ruling goes to "the round's" batch file. The Bar, Machinery, exemption, ruling format and "You never" lines are main's, word for word.
+  - **`orchestrator.md` section 5:** the "ruled directly" bullet becomes "A proposal waits for the round-end triage", citing the contract; the Machinery and exemption clauses that repair 6 folded into the bullet are back in the contract and leave the bullet. Main's mandate clause ("that means adding it to the batch") returns.
+  - **Citations restored:** CLAUDE.md's role row ("rules the round's proposals at its end, on cost/benefit"), `D11.md` (byte-identical to origin/main again), `dev/audit/README.md`'s LOG citation, `outside_intake.py`'s docstring, `roster_edit.py`'s triage-gate docstring and `sweep_template.md` item (7). `dev/audit/README.md`'s standing set stays without the triage seat, which is no longer standing.
+  - **Caps:** `policy_budgets.json` gets the restored file's measured numbers (Raise justification). CLAUDE.md, at 3618 against its 3605-token cap with the row back, is paid inside this PR's own rows: "pull-request list" reads "PR list", "landed at the latest at" reads "landed by", and the root-cause sentence "names a red check ... and answers it there" reads "answers a red check in the pull-request body". Result 3605/3605.
+- **e69850297224f4b71522986c7a7488697d66b58b, two repairs `prepr.sh`'s `ci predict` step named at 921da41b** (`CI PREDICT: 3 predicted red(s)`; the third, pr-contract's, was this body's missing `Payments tried:` line):
+  - **`tests/closures.json`** takes back `dev/governance/roles/proposal-triage.md` in `tests/entities.py`'s closure (`PREDICT tests / fast (3.14) UNCLASSIFIED dev/governance/roles/proposal-triage.md: in no measured closure and not on INERT`). The file is now byte-identical to origin/main (`git diff --quiet origin/main HEAD -- tests/closures.json` exits 0), so this PR no longer touches it.
+  - **`tools/audit/seat/bus.sh --self-test`, a semantic merge interaction, test-only** (`PREDICT governance / instrument-self-tests STEP REPLAY Show the verdict bus refusing its own fixtures: rc 1 at the head, 0 at the base`). Main's decision-0017 `adopt` fixture runs `confirm` with no classifier stub, and this branch's C8 gate in `post` refused its merge verdict: `BUS refused 7 ...: cannot classify ..., so a merge verdict there is not posted (card C8): REFUSE ci: the check runs at ... could not be read`. `adopt_run` now passes the fixture's own GREEN classifier (`HPO_BUS_CLASSIFY="bash $W/classifier"`), as the other confirm arms do. Measured: origin/main `230 checks, 0 failed`; 939c91fc0e `209 checks, 0 failed`; the merge 7a12cec8 `237 checks, 1 failed` (`FAIL ... and bus.sh confirm signs and posts it as any reviewer's proposal`); e6985029 `237 checks, 0 failed`. The C8 refusal itself stays pinned by the confirm arm driven with `BUS_CLASSIFY_RC=2` (`BUS refused 9 .*cannot classify`), which still passes.
+
+Repair 10's head, bdaa98d01a97e6619a3b24c642698dc7c6b4d7ba, with the history below:
 
 bdaa98d01a97e6619a3b24c642698dc7c6b4d7ba (`handoff/r10-process-slim-p2`): repair 10, main conflict. It is the reviewed head 91e79d897ae9f9e9c1ee978850e36e7d5adde599 (repair 9, below) plus one plain merge commit of origin/main 50373173d486faf394b24637c177ab38b691b394 (PR #3531 merged as 7aac3e7c), measured 2026-11-13T23:40Z. `git merge-tree --write-tree origin/main 91e79d89` listed `CONFLICT (content)` in `tools/ci/selftest_closures.json` alone; `tests/closures.json` was resolved by the `ledgermerge` driver. After the merge, `git merge-tree --write-tree origin/main HEAD` exits 0.
 
@@ -289,6 +306,18 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Figures
 
+**Repair 11, at e69850297224f4b71522986c7a7488697d66b58b (the policy lines at 921da41b, unchanged by e6985029), origin/main d7004eaa775dd7b42aa392df0eb53aeec198b2b0, 2026-11-14T21:59Z:**
+- `git diff --name-status $(git merge-base origin/main <r>)...<r> -- dev/governance/roles/proposal-triage.md`: `D` at 939c91fc0e (the control), `M` at 921da41b.
+- `git grep -c proposal-triage <r> -- CLAUDE.md dev/governance/roles/orchestrator.md dev/governance/dimensions/D11.md dev/audit/README.md tools/audit/seat/outside_intake.py tools/audit/seat/roster_edit.py tools/audit/seat/sweep_template.md dev/governance/config/policy_budgets.json`: only `roster_edit.py:1` at 939c91fc0e (the control); at 921da41b every file named prints at least 1.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 51 policy file(s)`. Control: the restored file with no caps and the row unpaid printed `TOTAL: 3 error(s)` (CLAUDE.md `about 3635 tokens ... exceeds its cap of 3605`, and the restored file's missing line cap and named-docs refusal).
+- `node tools/policy/policy_lint.mjs --budgets`: `proposal-triage.md 40 40 563 563`; `CLAUDE.md 213 221 3605 3605`; rc 0.
+- `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`. `node tools/policy/brief_lint.mjs`: rc 0.
+- Self-tests of the touched tools: `bash tools/pr/app_approve.sh --self-test` `363 checks, 0 failed` (control: `2 failed` at the plain union, before the fixture repair); `python3 tools/audit/seat/roster_edit.py --self-test` `311 checks, 0 failed`; `python3 tools/audit/seat/outside_intake.py --self-test` `all checks passed`.
+- `bash tools/audit/seat/bus.sh --self-test`: `237 checks, 0 failed` (control under Head).
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tests/closure.py select --diff d7004eaa`: `MODE: FULL` (reason: `.github/workflows/tests.yml changes the gate itself`), so the suite is CI's (`fixer.md` step 5).
+- `python3 tools/audit/archscore/score.py --diff d7004eaa HEAD`: `Architecture score: dS +0.0000 NULL`.
+
 - Repair 10, at bdaa98d01a97e6619a3b24c642698dc7c6b4d7ba against origin/main 50373173d486, 2026-11-13: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 HPO_GATE_PRIORITY=0 bash tools/pr/prepr.sh <body>` prints `PRE-PR: bdaa98d01a97e6619a3b24c642698dc7c6b4d7ba ... rc=0`, with `merged structure` STRUCTURE RATCHET PASSED, `ci predict` no closures, fast, governance or instrument red predicted, and `pr-body` 0 error(s).
 **Repair 7, at dcf5e329dceabbf35716800fbacf4e2ff58741bd (merge of origin/main a18e2e9d), merge base origin/main a18e2e9d00b17a0349f29938a469d1bc3edd1ae3, 2026-11-12T22:18Z:**
 - `git merge-tree --write-tree origin/main 1ce773ca`: `CONFLICT (content)` in `tests/gate_lock.py` and `tools/audit/seat/bus.sh` (the control); `git merge-tree --write-tree origin/main HEAD`: exit 0.
@@ -402,6 +431,8 @@ n/a: the diff writes no line under `custom_components/`. This round's executable
 
 ## Approval
 
+**Repair 11 (owner ruling 2026-11-14) changes these policy sentences against the reviewed head:** `proposal-triage.md` returns, in the once-per-round shape quoted under Head; `orchestrator.md` section 5's proposal bullet sends a proposal to the round-end triage instead of ruling it directly; CLAUDE.md regains the contract's row; `D11.md` is main's again. The repair-6 fold of the Machinery clauses into `orchestrator.md` described below is undone by this round: those clauses are in the contract.
+
 Content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 and C6 (a) are this group's). tvofi posts the approving review at the head.
 
 **Policy sentences this round changes**, beyond the round-2 list the verdict holds:
@@ -421,22 +452,13 @@ The round-2 sentences that said the beat is deleted are no longer in the diff.
 
 ## Raise justification
 
-**Repair 3: why the gate still refuses, with evidence.** The raise follows a file this PR deletes, and nothing on the code side removes it:
-- **The file is deleted.** `git diff --name-status origin/main...HEAD` prints `D dev/governance/roles/proposal-triage.md`.
-- **Both cap keys leave with it.** `git diff origin/main...HEAD -- dev/governance/config/policy_budgets.json` removes exactly two lines, `files` 36 and `files_tokens` 489, both keyed on that path.
-- **Why only one is refused.** `tools/policy/budget_raise_gate.py`'s SCHEMA entry for that file classifies `("files", "*")` as CAPFILE. A CAPFILE removal is routine once the capped file has left the head, so the `files` 36 line is not in the refusal. The schema has no `files_tokens` rule, so `kind_of` falls through to FROZEN, and `_leaf_raise` reports any change to a FROZEN key as `a pinned value the gate cannot sign as routine`, a decrease or removal included.
-- **No legitimate code-side fix.** Keeping the key for a missing file is refused by `policy_lint.mjs --budgets`. Teaching the gate that `files_tokens.*` is CAPFILE would change the gate (policy) in the same PR it clears, so it is not done here.
-- **What clears it.** Only tvofi's approving review at this head. No budget is loosened.
-
-
-Raise approved under mandate (comment 6624093439, scope all) by the orchestrator 2026-11-06 14:4xZ: cap removal for a deleted file, no payment possible.
-- **What moves:** no cap rises in substance. The two caps removed belong to `dev/governance/roles/proposal-triage.md` (`files` 36, `files_tokens` 489, in `dev/governance/config/policy_budgets.json`), and card C6 (a) deletes that file.
-- **Why a cap must go:** `policy_lint.mjs --budgets` refuses a cap on a missing file, so keeping them is refused too.
-
-Payments tried: keeping the caps (refused by `policy_lint.mjs --budgets`); keeping the file as an on-demand contract (rejected, because card C6 retires the seat and an unread contract is spent prose).
-
-- **The other policy files:** each one this diff touches is paid inside its own cap. The previous round's `fix-review.md` union is paid by the two dates; this round's `orchestrator.md` fold by the deletions listed under Approval. Payment considered and not taken: carrying the 489-token cap of the deleted file to `orchestrator.md` (a per-file raise, owner-confirmed before the push under rule 2, which this unattended seat could not obtain, and unneeded once the motivation text paid it).
-- **The score:** re-run in this seat at 0aa9d4f2fba26e5ec93c42bec570f5faddbaa19b (`python3 tools/audit/archscore/score.py --diff 0a8033305d7b03494eb63453e6181a13ffa55c05 HEAD`). This round's union is paid inside its own two caps (Merge resolution), no budget change.
+**Repair 11: one cap pair rises, for the file the owner ruled back in.** For the orchestrator's review under the mandate; the earlier approval of a key removal no longer describes this diff.
+- **What moves:** `dev/governance/config/policy_budgets.json`, `dev/governance/roles/proposal-triage.md`: `files` 36 -> 40, `files_tokens` 489 -> 563 against origin/main. Both are the measured numbers of the restored file (`node tools/policy/policy_lint.mjs --budgets` prints `40 40 563 563`); nothing is padded.
+- **Why:** the owner's ruling requires the once-per-round paragraph (five lines: when the triage runs, when an ACCEPT is built, the in-round instrument exemption, the ruling's quote), which main's text does not carry.
+Payments tried: (1) fitting the paragraph inside main's 36/489, refused, measured: main's file is at its line cap and one token under its token cap (36 lines, about 488 tokens, as `--budgets` measures it: bytes / 4, rounded, of `git show origin/main:dev/governance/roles/proposal-triage.md`), so every word of the ruling needs a word cut from Bar, Machinery, Verdicts or the ruling format, owner-ruled content (R10-FLY-TRIAGE-BAR) the ruling did not touch; (2) moving the paragraph into `orchestrator.md`, rejected: the ruling binds the triage seat, which reads its own contract, and `orchestrator.md`'s bullet points to it; (3) dropping the quoted ruling, rejected: the date and quote are what make a later seat read the shape as the owner's, not a drafting choice.
+- **Offset, not a payment:** `orchestrator.md` falls from 294 lines / about 4248 tokens at the reviewed head to 288 / 4117, as the Machinery clauses leave it; its caps (295 / 4251) are not re-recorded by this round.
+- **Aggregates:** within their band (`--budgets`: corpus about 68707 against 68618 + 500; role policy about 10027 against 9958 + 500).
+- **The score:** `python3 tools/audit/archscore/score.py --diff d7004eaa HEAD` at 921da41b (e6985029 adds one self-test fixture line and one closure entry, no production line).
 Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
