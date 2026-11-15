@@ -72,7 +72,8 @@ process states and the demonstration a check owes are `root-cause.md`'s and
 
 A pull request's closing references describe its **body**, and no GitHub
 tool method here exposes them. The merge message is a separate artifact, written by you at merge
-time, and GitHub parses it too; since `main` took to merge commits (decision 0010) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. **GitHub discards the negation**; only the keyword
+time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
+merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
@@ -107,12 +108,12 @@ whenever you merge.
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
-- **The instrument freeze, every round** (owner card P11): you or a seat work
+- **The instrument freeze, every round** (card P11): you or a seat work
   an instrument fault around locally by a prototype kept runnable in
   `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use a sweep-log line `WORKAROUND <id>
   onset=<UTC> cost=<min>`. Its permanent fix, as every other proposal, is entry
   `<id>` of the proposals file in `$HPO_STATE_DIR/r<N>/`, citing the prototype
-  and its measured effect, never built or routed in-round: `proposal-triage.md`
+  and its measured effect, never built in-round: `proposal-triage.md`
   rules them once at round end, duplicates merged, uses and cost summed; an
   ACCEPT is built at the next round's start before its finders, the rest
   refused with their numbers. A workaround never changes production code,
@@ -133,8 +134,7 @@ whenever you merge.
   shape); it binds them (`fixer.md` 17). A serial chain orders groups whose
   owning seams overlap, not groups that share a file.
 - **A round's scope freezes at its register**: a mid-round finding goes to the
-  next round's unless it is expedite, a size-S fly-in, or filed by the owner
-  or an outside user and not deferred by its filer (playbook, round start).
+  next round's unless expedite, a size-S fly-in, or an undeferred owner or outside item.
 - **An L or XL group with no approved design, pre-study or prototype is
   designed first** (decision 0014): dispatch `designer.md` when its last
   predecessor dispatches, `design-review.md` at the design's head, and its
