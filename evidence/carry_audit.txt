@@ -1,3 +1,7 @@
-NOTE review 1 item 32047af0: R11-INTAKE-R10-RESIDUE
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
-rc=0
+NOTE review 1 item 588d26ae: dismissed:resolved at d0704b67
+NOTE review 1 item 200b5db3: dismissed:resolved at d0704b67
+NOTE review 1 item bc940319: dismissed:resolved in the evaluation
+NOTE review 1 item ab0a0a19: dismissed:resolved in the evaluation
+NOTE review 1 item 48d773ee: dismissed:resolved at d0704b67
+NOTE review 1 item a04b4b2a: dismissed:disclosed in both artifacts
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
