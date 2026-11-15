@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/running_signal.py:note GUARD_OFF e61bb05f",
+  "killed_by": "tests/features.py",
+  "old": "    if sig.reader is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=26."
+}
