@@ -1,0 +1,22 @@
+== M1 policy_approval_due: fork arm deleted: rc=1 KILLED
+      FAIL a cross-repository policy head under the --mandate PARKs on the review, named as a head the train posts no approval on (null control: the same world as a branch of ours passes, above)
+      FAIL ... and policy_approval_due names no mandate for it
+      FAIL a policy head whose pull request the pulls API does not answer for PARKs at `outside` under the --mandate: an unread head is never taken for ours
+    queue_pre_flight self-test: 57 checks, 3 failed
+== M2 fork_head: unread pulls object taken for ours (raise -> return None): rc=1 KILLED
+      FAIL a policy head whose pull request the pulls API does not answer for PARKs at `outside` under the --mandate: an unread head is never taken for ours
+    queue_pre_flight self-test: 57 checks, 1 failed
+== M3 fork_head: cross = False: rc=1 KILLED
+      FAIL a cross-repository policy head under the --mandate PARKs on the review, named as a head the train posts no approval on (null control: the same world as a branch of ours passes, above)
+      FAIL ... and policy_approval_due names no mandate for it
+    queue_pre_flight self-test: 57 checks, 2 failed
+== M4 policy_approval_due: fork read hoisted above the no-mandate return: rc=1 KILLED
+      FAIL null control: with no --mandate the pulls object is not read at all
+    queue_pre_flight self-test: 57 checks, 1 failed
+== M5 fixture: the pulls answer removed (the pre-repair world): rc=1 KILLED
+      FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+      FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+      FAIL null control: under a --mandate whose scope does not cover policy merging it still PARKs
+      FAIL null control: under an expired --mandate it still PARKs
+      FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
+    merge_train.Stop: outside: #7 could not be read from the pulls API (no output); an unread head is never taken for ours

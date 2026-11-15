@@ -1,0 +1,6 @@
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   the mandate reader the budget arm reads is in the tree
+queue_pre_flight self-test: 57 checks, 0 failed
+rc=0
+carry_audit self-test: 449 checks, 0 failed
+rc=0

@@ -1,0 +1,12 @@
+## at 23b943c987 (23b943c987d2934f22269a8488c22d05e9740a51)
+5
+merge_train.Stop: outside: #7 could not be read from the pulls API (no output); an unread head is never taken for ours
+## at its parent
+queue_pre_flight self-test: 53 checks, 0 failed
+9350dc7ce1 ancestor of 23b943c987: rc=0
+23b943c987 in head: rc=0
+## class rule
+23 beat-job-rows carry-check-and-the ci-probe-instrument ci-watcher cloud-dispatcher failure-log-reader field-coverage hooks-setup merge-train obligations-ledger open-driver open-pr orchestrator-tick outside-contract pr-args pr-merger prepr programme-pulse proof-watcher review-packet selftest-wiring train-launcher update-pr
+steps holding queue_pre_flight.py: ['beat-job-rows', 'carry-check-and-the', 'field-coverage', 'hooks-setup', 'merge-train', 'open-pr', 'outside-contract', 'pr-args', 'selftest-wiring', 'update-pr']
+MODE: SCOPED -- 40 step(s) run
+.github/workflows/governance.yml:1
