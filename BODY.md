@@ -1,0 +1,75 @@
+Group: R11-PRE-ROUND-CHECK-GATE (topic r11-pre-round-check-gate)
+Cards: E11-N-NULL-REVIEWER (accepted by tvofi, "Accept both (Recommended)"); tvofi's 2026-11-15 ruling "Only the finder critical are required for finder start", with his 14:00Z correction that what is still open when the finders finish goes to the architect and planner.
+Code-owned and policy: tools/audit/check_scopes.py, dev/governance/decisions/0018-objective-function.md (sections 5 and 6) and dev/governance/roles/architect-planner.md need tvofi's approving review, or one under mandate 6893738184 (issue 3394, scope all, to 2026-12-15T12:00Z).
+
+`check_scopes.py --round N` refused round 11's start on every accepted evaluation card not yet merged, the finder-critical ones and the rest alike: 43 lines at the evaluation's approved head. The owner ruled only the finder-critical ones gate the start. This change makes that ruling a structured field and has the check read it:
+
+- **`gates_finders`**, a boolean on each accepted card, written by the orchestrator beside `ruling`. 0018 section 5 already lets the orchestrator write the owner's ruling into a card; the field records what that ruling decided about finder gating, so it is part of the ruling. The evaluator's `finder_critical` prose stays as the evaluator's argument. It is not parsed, because four cards (E11-K-D4, D5, D9, D10) read "no as the card stands" while the owner's ruling on them is "All four before finders", so the prose does not decide. The check refuses an accepted card whose `gates_finders` is missing or not a boolean ("yes", 1 and null are all refused), so no card stops gating by accident. A rejected or deferred card needs no value.
+- **At the finder start**, an accepted card with `gates_finders: false` that is not merged is not a gap. It is printed `PARALLEL <card> accepted, not merged, gates no finder: ...` because it is built while the finders run. Its unset `threshold`/`criterion` is not a gap either: it is built with the card. A non-gating card that is merged gets every check an accepted card gets (after the review, changes its file). A gating card is checked as before.
+- **For P3**, `--round N --open-cards` prints `{round, ref, open_cards}` as JSON and exits. Run at the ref where P3 starts, it lists the non-gating accepted cards still unmerged then. It skips the scope verdict, so it is quick, and it exits 2 rather than printing an empty list when the evaluation is not tracked at the ref. Why a flag rather than parsing the PARALLEL lines: P3 runs at a different moment from the finder start, and the architect needs a parseable list without the 2-minute scope run.
+- **The null reviewer** (E11-N-NULL-REVIEWER): `norm(ev.get("reviewer", ""))` turned JSON null into `none`, which is non-empty and so passed the two-seats rule. The evaluator and the reviewer must now each be a non-blank string before they are normalised. A null, absent, blank, `0` or `[]` value is refused for either seat.
+
+Carry 0: this group's part-2 carry (body item 4ffa4b06, landed on the roster). It is built in part 2's own pull request (topic r11-pre-round-check-gate-p2), as the orchestrator ruled, not in this one.
+
+## Approval
+
+Not yet given. These policy edits are kept minimal and await tvofi's approving review at the head, or an approving review under mandate 6893738184 (issue 3394, scope all, to 2026-12-15T12:00Z), declared with the mandate id:
+- 0018 section 5: the orchestrator's ruling field now includes `gates_finders` on an accepted card.
+- 0018 section 6: Writes and Refuses name the field and the PARALLEL / `--open-cards` behaviour.
+- architect-planner.md: Inputs now name `check_scopes.py --round <N> --open-cards` at P3's start. Step 3 places every open card in the plan once, like a finding. Paid within its token cap by dropping two duplicated phrases: "read-only on code", which "You do not write production code" already says, and the Method's "(sensitivity, tradeoff points)", which step 2 already says. The target's holdout bullet now points at step 7's list instead of repeating it.
+- evaluator.md is unchanged: "never ... write a `ruling`" already covers a field that 0018 defines as part of the ruling.
+
+## Head
+
+0d46ea8bd9ddc6b9dad231dbfce072d69516a999 (handoff/r11-pre-round-check-gate; merge base b3831ff64e, origin/main at 2026-11-15). Every figure below was measured at this commit.
+
+## Mutation proof
+
+Failing test first. The new self-test arms ran against the unchanged predicates, with only the parameter added: `evaluation_self_test` held 54 of 59. These five failed:
+- a non-gating accepted card not merged passes and is listed beside
+- a non-gating unmerged card's unset value is no gap, it builds with the card
+- an accepted card with no boolean gates_finders is refused, in every shape
+- an accepted card with no gates_finders is refused even unmerged, and never listed beside
+- a null, absent or blank reviewer or evaluator is refused
+
+At the head all 59 hold.
+
+There is one mutant per new predicate, run with `python3 tools/audit/seat/mutant_run.py --spec <scratch mutants.json> --in-place --cmd "python3 <scratch evtest.py>"`. The driver calls `check_scopes.evaluation_self_test` at HEAD and exits 1 on any failing arm. NULL survived, and every mutant was killed:
+- M1 `if not isinstance(gating, bool)` -> `if False`
+- M2 -> `if gating is None` (accepts "yes")
+- M3 `elif not gating and not (c and merged(c))` -> `elif not gating`
+- M4 -> `elif False`
+- M5 the `parallel.append(cid)` -> `pass`
+- M6 the `continue` after it deleted
+- M7 the old `norm(ev.get(k, ""))`
+
+## Null control
+
+The evaluation at origin/eval-review/r11-4 (f6d35cf73f) was run through `evaluation_gaps` at that ref, using a scratch driver that substitutes the card fields:
+- **As written** (no `gates_finders`): 92 gaps. These are the 49 of today plus 43 "carries no boolean gates_finders", so an unrecorded card refuses and never passes silently.
+- **Every accepted card `gates_finders: true`**: 49 gaps, 43 of them "accepted and not merged". This is line for line identical to `check_scopes.py --repo . --ref origin/eval-review/r11-4 --round 11` on main's code (compared as lists in the driver, printing "identical" only on equality), and 0 PARALLEL.
+- **The proposed gating list** (31 true, 12 false; held outside this PR for the orchestrator to record): 36 gaps (31 not merged), 12 PARALLEL.
+
+## Figures
+
+- `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` at 0d46ea8bd9 printed `evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=2` and `SELF-TEST passed (every perturbed scope refused)`, rc 0. The evaluation arms gained 10 (49 at main), plus one subprocess arm for `--open-cards`.
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and the one script is `tests/entities.py`. Locally, `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `1 of 2722 ENTITY CHECKS FAILED`. The one failure is `hb:positive_control`: on a loaded macOS host the py-spy sampler did not name a 600 ms spin in 3 tries (one sample `timed out after 0.5 seconds`). This diff touches neither the heartbeat nor tests/nightly_ha.py, so CI's run is the authority.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=0d46ea8bd9ddc6b9dad231dbfce072d69516a999 -->
+~~~text
+MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+~~~
+<!-- /figure-block -->
+
+## Red checks
+
+none
+
+## Forward-carry
+
+- Part 2, the group half of the P3 listing, is ruled by the orchestrator as this group's second pull request (topic r11-pre-round-check-gate-p2). It needs no finder start, only the end of the finders. It adds a boolean `gates_finders` on a roster group, read through roster_lib, linted by brief_lint and set by a roster_edit op. `--open-cards` gains `open_groups` (the open groups whose `gates_finders` is not true). A group with no `gates_finders` is listed and flagged `UNMARKED <group>`, and the listing exits non-zero while any open group is unmarked, so no group drops out of P3 unseen. Part 2 also builds the refusal in `audit-plan.js` of a plan that leaves an open card or group in no group. No roster group carries a structured finder-critical fact today, which is why part 1 lists cards only. Carry: R11-PRE-ROUND-CHECK-GATE
+
+
+## Friction
+
+none
