@@ -51,7 +51,6 @@ scope_mutant "settle_gaps reads no job" 'if any(s.id in UNGATED and SETTLE_CALL.
 scope_mutant "static skips the settle check" 'problems = wiring_gaps(steps) + settle_gaps(steps)' 'problems = wiring_gaps(steps)'
 scope_mutant "record replaces the committed entry again" 'entries[sid] = union_entry(entries.get(sid), m)' 'entries[sid] = m'
 scope_mutant "record keeps a step the workflow no longer gates" 'return {k: v for k, v in entries.items() if k in gated}' 'return entries'
-scope_mutant "the union keeps a probe that is now a file" 'got["probes"] = [p for p in got["probes"] if p not in set(got["files"])]' 'got["probes"] = got["probes"]'
 scope_mutant "prune clears a flag the entry does not set" 'if kind in FLAG_KINDS and not item and entries[step].get(kind):' 'if kind in FLAG_KINDS and not item:'
 scope_mutant "prune drops a list item the entry does not hold" 'elif kind in LIST_KINDS and item in entries[step].get(kind, ()):' 'elif kind in LIST_KINDS:'
 scope_mutant "prune writes nothing" 'write_table(root / TABLE, entries, root)

@@ -716,10 +716,11 @@ def union_entry(old: dict | None, new: dict) -> dict:
     """The committed entry with the new recording added: a record is taken at
     one checkout and one trace, so it may miss a read the table holds from
     another (R10-RCA-SELFTEST-SCOPE-DRIFT: replacing dropped 660, 8 and 10
-    entries in three merges). Over-approximation is safe, so no read leaves."""
+    entries in three merges). Over-approximation is safe, so no read leaves --
+    a probe stays a probe even where another recording read the path as a
+    file, because `drift` answers a measured probe from `probes` alone."""
     old = old or {}
     got = {k: sorted(set(old.get(k, ())) | set(new.get(k, ()))) for k in LIST_KINDS}
-    got["probes"] = [p for p in got["probes"] if p not in set(got["files"])]
     return {**new, **got, **{k: bool(old.get(k)) or bool(new.get(k)) for k in FLAG_KINDS}}
 
 
@@ -1589,7 +1590,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
     new_a = ent(["f2", "f3"], ["p2", "f3"], ["d2"], ["add"], False, False, sha="t")
     got = union_record(held, {"a": new_a}, {"a", "b"})
     ck("union_record: recording one step over an entry holding reads the trace lacks keeps them",
-       got["a"]["files"] == ["f1", "f2", "f3"] and got["a"]["probes"] == ["p1", "p2"]
+       got["a"]["files"] == ["f1", "f2", "f3"] and got["a"]["probes"] == ["f3", "p1", "p2"]
        and got["a"]["dirs"] == ["d1", "d2"] and got["a"]["git"] == ["add", "rev-list"]
        and got["a"]["index"] and got["a"]["objects"] and got["a"]["run_sha"] == "t")
     ck("union_record: a step not re-measured is kept, a step the workflow no longer gates is not",
