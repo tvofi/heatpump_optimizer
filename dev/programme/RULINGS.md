@@ -48,9 +48,6 @@ the closing list, naming its successor. Read in full after every compaction
 
 ## Decisions put to him
 
-- 2026-10-21: "good proposals, default to do your recommendation if you dont get
-  any input from me"; 2026-10-31: "If I dont answer when you need decisions,
-  your mandate covers you taking the recommended options."
 - 2026-11-15: "For any decisions, if i don't answer within 5 minutes, go with
   what you recommend and log it".
 - 2026-11-13: "Describe all the audits findings and han anything to me as
@@ -96,16 +93,6 @@ the closing list, naming its successor. Read in full after every compaction
   codebase in their contracts, I want future rounds to always check everything
   in their dimension, not only small samples". 2026-11-13: "I would like the
   scope of d5 and d6 to always cover that full scope".
-- 2026-11-13: "Do 1 in round 10, and 2 and 3 in round 11 sequenced as you
-  recommend. Code comments in instruments and the documents that describe the
-  instruments, developer and other non-static documentation also in scope for
-  3"; "The test suite comments are in scope. Also, since 1-2 is done before 3,
-  they may not trust code comments, only the actual code behaviour". Round 11
-  verifies every documentation sentence, then every code comment, against code
-  behaviour.
-- 2026-11-13: "Do all the necessary changes, including yes on both my
-  decisions, before round 11" (two new dimensions, actuator-write safety and
-  feature behaviour against its documented effect; D11 and D13 every round).
 - 2026-11-15: "As soon as everything that is critical to land before the finder
   phase, the finding phase can start in parallel with the remaining groups";
   "Only the finder critical are required for finder start"; "i meant cutover as
@@ -118,11 +105,6 @@ the closing list, naming its successor. Read in full after every compaction
   the addition of the objective function and the improved audit dimension. It
   should also make the round orchestrator pick up the carries and pre-finder
   carries from the previous round."
-- 2026-11-13: "You dont need to have an estimate for round 11, you are round
-  10" (orchestrator's reading: an orchestrator plans and estimates its own round
-  only); "The plan html for round 10 should also not show the round 11 groups";
-  "future round items should be possible to view on a separate tab with a
-  separate preliminary gantt".
 - 2026-11-13: "outside and owner filed findings and requests should always fold
   into the ongoing round if not explicitly deferred by the owner or outsider".
 - 2026-10-29: "each full audit round means a new major version, and it should
@@ -159,8 +141,6 @@ the closing list, naming its successor. Read in full after every compaction
   family and analysed at round end, L8).
 - 2026-09-25 (as recorded): three or more instances of an audit class owe a
   class-eliminating barrier, not a refusal (`defect-root-cause.md`).
-- 2026-10-22 (as recorded): every process or tooling proposal is weighed on
-  cost/benefit by triage before any implementation.
 - 2026-10-24: "each operation or shape that is not clearly a one shot and could
   be mechanical should be mechanical and wired into the machinery. This means
   reusable instrument before policy, only policy if no robust script could be
@@ -176,9 +156,6 @@ the closing list, naming its successor. Read in full after every compaction
   second account (as recorded). 2026-11-13: "No" to raising the Actions
   concurrency limit; never ask again. 2026-11-12: "You know you can run seats
   locally if needed right?" (a macOS-only check runs on a local seat).
-- 2026-11-01 (as recorded): a proposal proving more than the triage bar of
-  improvement in CI time, completion time, right-first-time or tokens is exempt
-  from the production-share limits.
 
 ## Process changes ruled 2026-11-13 and 2026-11-14
 
@@ -209,17 +186,6 @@ the closing list, naming its successor. Read in full after every compaction
   `tests / ci-ratchet` advisory on a push to main; D11 and D13 name the
   convergence scorecard). 2026-11-12: "2. Round 11" (the product-only required
   check set).
-- 2026-11-14: "Start building the fix that is supported now, including any
-  improvements to the data collection and experiment mode to enable a later
-  better fix"; "In scope for the collection and sweep designer is also to enable
-  the best possible wider debugging for the audit dimension that covers that";
-  design cards "S1 flat price sweep: Yes, allow on flat price (recommended) · S2
-  trace text columns: Ship text columns (recommended) · S3 probe before fit: Yes,
-  probe first where the top is unlearned (recommended) · S4 d15 brief line:
-  Prepare it in the part F pull request (recommended)" (R10-DRAW-MAP-EVIDENCE).
-  The owner's diagnostics file stays off the tree.
-- 2026-11-06, R10-COMBI-TANK: "Bump the waiver for up to 10 rounds before
-  re-cut."
 
 ## Priority, caps and the critical path
 
@@ -235,18 +201,9 @@ the closing list, naming its successor. Read in full after every compaction
 - 2026-11-07: "all accepted outside issues or contributions should be
   prioritized higher than audit or owner submitted ones unless i call the owner
   one a hotfix".
-- 2026-10-28 (as recorded): queue order is main, then critical path and
-  hotfixes, then production with instruments saving 12 h or more, then other
-  instruments by savings; the group-to-priority mapping lives in the roster. A
-  hotfix is a production bug the owner or a user reports, a feature he calls a
-  hotfix, a critical bug found while fixing, a red required check on main, or a
-  machinery bug deadlocking all merges. 2026-10-29: "critical-path PRs jump the
-  record step too".
-- 2026-11-11: "it is a soft cap of 20 open PRs before starting new groups,
-  critical path, hotfixes and outside requests goes above the cap"; record pull
-  requests do not count (2026-11-04: "record PRs does not count towords the
-  cap"); fewer than 3 handoffs without a pull request (as recorded).
-- 2026-11-13: "All production groups now goes above the cap".
+- 2026-11-13: "All production groups now goes above the cap" (orchestrator's
+  context: the soft cap of 20 open pull requests before starting new groups,
+  2026-11-11).
 - 2026-11-11: "Do it, it is already decided and should be built in, no critical
   path, outside or hotfix PR should wait in CI queue"; "Dont do A" (no merging on
   a combined proof with the required-check rule narrowed).
@@ -278,9 +235,6 @@ the closing list, naming its successor. Read in full after every compaction
 
 ## Merges, CI and reds
 
-- 2026-10-26 (as recorded): no merge outside the train. 2026-11-11: "Do it as an
-  exceptional measure for deadlocks or when it blocks critical path only" (a
-  direct merge).
 - 2026-11-01: "batch mode should be the default mode but the merge seats keep
   dropping that info"; 2026-11-07: "I meant the batch mode with combined proof
   that the train supports".
@@ -395,8 +349,6 @@ the closing list, naming its successor. Read in full after every compaction
   guard says so"; 2026-10-21: "The frugal guard should be on but it should allow
   you to read the policy that binds you". No seat edits `.claude/settings.json`.
 - 2026-11-04 (as recorded): every local seat type can message the orchestrator.
-- 2026-10-29 (as recorded): the orchestrator never runs `train.sh`; the merge
-  seat does.
 
 ## Record, handover and identity
 
@@ -415,10 +367,6 @@ the closing list, naming its successor. Read in full after every compaction
   not with direct links to sessions".
 - 2026-11-12: "ok, correct any references to that script or remove it entirely"
   (`nudge.md`, which binds Cursor orchestrators only).
-- 2026-10-07: "You can tell every seat that now regardless" (GitHub polls at most
-  every 5 minutes; 2026-10-19, as recorded, never more often than 60 s);
-  2026-11-08: "Tell all your seats to not hammer the API so it does not happen
-  again."
 - 2026-10-28: "no, you keep working while waiting on background jobs";
   2026-11-07: "NEVER run long scripts inline. Daemonize or background, or use a
   seat".
@@ -453,6 +401,26 @@ the closing list, naming its successor. Read in full after every compaction
 
 ## Superseded, spent or expired
 
+- 2026-11-15, tvofi on the orchestrator's list: "Retire your candidates". Each
+  line below is dated 2026-11-15.
+- Default to the recommendation (2026-10-21, 2026-10-31): folded into the
+  5-minute rule.
+- Text verification split between rounds 10 and 11, "before round 11" changes,
+  and "you are round 10" (2026-11-13): spent with round 10's closure; full-scope
+  dimensions stand above, the two new dimensions are roster groups.
+- Every proposal triaged before implementation (2026-10-22): superseded by
+  once-per-round triage.
+- The production-share exemption (2026-11-01): superseded by the 20%/10% bar;
+  the exemption itself is policy in `ratchet-budgets.md`.
+- Queue order of 2026-10-28: superseded by outside first (2026-11-07).
+- The 20-PR soft cap entry (2026-11-11): retired; the cap is named where the
+  production-above-cap ruling cites it.
+- No merge outside the train (2026-10-26) and the orchestrator never runs
+  `train.sh` (2026-10-29): retired; round 11 merges single pull requests through
+  `merge_pr.sh` without a standing merge seat.
+- GitHub poll cadence (2026-10-07, 2026-10-19, 2026-11-08): retired.
+- R10-DRAW-MAP-EVIDENCE rulings (2026-11-14) and the R10-COMBI-TANK waiver
+  (2026-11-06): retired here; they live on those groups' roster entries.
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - Full corpus re-read after every compaction (2026-10-24, 2026-10-25, 2026-11-09)
   and the session-start corpus hook (2026-10-21): superseded by R3 (2026-11-13)
