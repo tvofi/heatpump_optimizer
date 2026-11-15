@@ -1,0 +1,11 @@
+MUTANT dependency-graph-census.dirs drop 'dev/audit/rounds/round10/objective': 1 refusal(s)  KILLED
+MUTANT dependency-graph-census.dirs drop 'dev/audit/yardstick': 1 refusal(s)  KILLED
+MUTANT dependency-graph-census.dirs drop 'dev/audit/yardstick/round10': 1 refusal(s)  KILLED
+MUTANT policy-lint-mutants.probes drop 'dev/audit/rounds/round10/objective/.gitattributes': 1 refusal(s)  KILLED
+MUTANT policy-lint-mutants.probes drop 'dev/audit/yardstick/.gitattributes': 1 refusal(s)  KILLED
+MUTANT policy-lint-mutants.probes drop 'dev/audit/yardstick/round10/.gitattributes': 1 refusal(s)  KILLED
+MUTANT prepr.dirs drop 'dev/audit/rounds/round10/objective': 1 refusal(s)  KILLED
+MUTANT prepr.dirs drop 'dev/audit/yardstick': 1 refusal(s)  KILLED
+MUTANT prepr.dirs drop 'dev/audit/yardstick/round10': 1 refusal(s)  KILLED
+MUTANT selftest-scope-mutants.probes drop '-c': 1 refusal(s)  KILLED
+10 mutants

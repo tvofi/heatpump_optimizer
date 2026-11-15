@@ -1,0 +1,14 @@
+instrument-self-tests job per main ci.yml push run, 2026-11-15, via GitHub MCP actions_list list_workflow_jobs (reviewer's subagent read):
+run | job id | conclusion | dur min | sha8 | mutant step offset min
+43691296618 | 132742498632 | failure | 43.4 | b046b22d | 38.0
+43695566176 | 132755397874 | cancelled | 60.3 | a39627da | 57.2
+43705258717 | 132785074441 | failure | 52.9 | 26dbf7c4 | 45.9
+43716462808 | 132819146897 | failure | 34.5 | b3831ff6 | 28.3
+43725314631 | 132846040555 | cancelled | 60.3 | 57fd742e | 57.6
+43726315630 | 132849252074 | cancelled | 60.3 | 646352ff | 58.5
+43730325600 | 132861319619 | cancelled | 60.2 | 2e650a1e | 59.8
+43730716444 | 132862547361 | failure | 35.0 | b880dc91 | 28.4
+43733946364 | 132872507837 | cancelled | 60.2 | e0ad8b2b | 58.9
+43741911544 | 132896968023 | failure | 43.8 | 755b7f57 | 38.1
+43744546894 | 132905064799 | cancelled | 60.3 | 66865be3 | 57.4
+capped (>=60.0): 6; others 34.5-52.9; mutant-step offset among capped 57.2-59.8
