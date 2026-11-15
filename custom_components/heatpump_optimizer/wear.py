@@ -40,6 +40,11 @@ RUNNING_FLOOR_HZ = 1.0
 #: than a one-frame zero or a meter's dip, shorter than any stop worth
 #: counting. A constant, not a measured threshold.
 EDGE_DEBOUNCE_S = 30.0
+#: Refreshes that must read the meter's signal settled running before a rise
+#: on it is a start (S7, owner ruling D1): the first can fall inside an
+#: averaging meter's partial report, the second is a refresh period later,
+#: past any report period up to that interval.
+HOLD_REFRESHES = 2
 
 
 def compressor_running(
@@ -98,6 +103,48 @@ class EdgeTracker:
 
 
 @dataclass
+class RiseHold:
+    """The meter source's rises, held until :data:`HOLD_REFRESHES` refreshes read them running.
+
+    S7 (owner ruling D1): a meter reporting its window's average gives an
+    element cut-in, compressor off, one partial report between the
+    on-threshold and the over level. It holds one report period, at least
+    :data:`EDGE_DEBOUNCE_S`, so it is a confirmed rise before over arrives,
+    and over reads no class. A held rise is passed on at its own time once
+    the refreshes read the class settled running; a no-class edge drops it. A
+    stop passes it on with the stop when it rose from a stop (a short run),
+    and drops it when it rose from no class: an element's falling average as
+    it cuts out.
+    """
+
+    #: The class of the last edge heard.
+    last: bool | None = None
+    #: (the rise's time, whether it rose from a stop), while one is held.
+    held: tuple[datetime, bool] | None = None
+    #: Refreshes that read the held rise running.
+    seen: int = 0
+
+    def admit(self, since: datetime, running: bool | None) -> list[tuple[datetime, bool | None]]:
+        """Hear one confirmed edge; the edges to fold now, in order."""
+        held, rose_from, self.held, self.last = self.held, self.last, None, running
+        if running is True:
+            self.held, self.seen = (since, rose_from is False), 0
+            return []
+        short_run = held is not None and held[1] and running is False
+        return ([(held[0], True)] if short_run else []) + [(since, running)]
+
+    def refresh(self, running: bool) -> list[tuple[datetime, bool | None]]:
+        """One refresh, ``running`` its read of the settled class; the held rise, once released."""
+        if self.held is None or not running:
+            return []
+        self.seen += 1
+        if self.seen < HOLD_REFRESHES:
+            return []
+        held, self.held = self.held, None
+        return [(held[0], True)]
+
+
+@dataclass
 class StartCounter:
     """Compressor starts, folded from the running signal's confirmed edges.
 
@@ -115,6 +162,18 @@ class StartCounter:
     months: dict[str, int] = field(default_factory=dict)
     #: Edges seen before :meth:`restore`; ``None`` once restored.
     queued: list[tuple[datetime, bool | None]] | None = field(default_factory=list)
+    #: The meter source's :class:`RiseHold`; ``None`` on the frequency source.
+    hold: RiseHold | None = None
+
+    def hear(self, since: datetime, running: bool | None) -> list[datetime]:
+        """Fold one confirmed edge of the signal through the hold; the starts counted."""
+        edges = [(since, running)] if self.hold is None else self.hold.admit(since, running)
+        return [at for edge in edges for at in self.fold(*edge)]
+
+    def refresh(self, running: bool) -> list[datetime]:
+        """One refresh's read of the settled class; the start a held rise it releases counted."""
+        edges = [] if self.hold is None else self.hold.refresh(running)
+        return [at for edge in edges for at in self.fold(*edge)]
 
     def fold(self, since: datetime, running: bool | None) -> list[datetime]:
         """Fold one confirmed edge; the start it counted, at ``since``, or none."""

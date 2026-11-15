@@ -15,7 +15,9 @@ is no signal: a resistive draw is not the compressor (#11).
 
 **Edges.** Each state event of the signal entity is one reading
 (:func:`note`); the coordinator re-reads once per refresh too, since the
-element's latch and the commanded draw change there without a meter event. A
+element's latch and the commanded draw change there without a meter event
+(:func:`refresh`), and each subscriber's tick then hears whether the class
+reads settled running: the start counter holds a meter's rise for them. A
 change pending at a reading is confirmed by a timer at
 ``wear.EDGE_DEBOUNCE_S`` (:func:`confirm`), because a sensor whose state holds
 fires no event that could confirm it. Each confirmed edge is handed to every
@@ -63,6 +65,8 @@ class Signal:
     #: (the pending change the timer confirms, its cancel), while one is armed.
     timer: tuple[Any, Callable[[], None]] | None = None
     subscribers: list[Callable[[Edge], None]] = field(default_factory=list)
+    #: Who hears each refresh's read: ``True`` for a settled running class.
+    ticks: list[Callable[[bool], None]] = field(default_factory=list)
 
 
 _SIGNALS: WeakKeyDictionary[Any, Signal] = WeakKeyDictionary()
@@ -110,24 +114,27 @@ def attach(sig: Signal, entity: str | None, reader: Reader) -> None:
 
 
 def detach(sig: Signal) -> None:
-    """Stop listening, cancel the timer and drop the subscribers; idempotent.
+    """Stop listening, cancel the timer and drop the subscribers and ticks; idempotent.
 
-    The subscribers and the reader close over the coordinator, and the
+    The subscribers, the ticks and the reader close over the coordinator, and the
     table's value would otherwise keep its own weak key alive: a released
     coordinator is collected only once they are gone. The settled class is kept.
     """
     unsub, timer, sig.unsub, sig.timer, sig.reader = sig.unsub, sig.timer, None, None, None
     sig.subscribers.clear()
+    sig.ticks.clear()
     if unsub is not None:
         unsub()
     if timer is not None:
         timer[1]()
 
 
-def subscribe(sig: Signal, hear: Callable[[Edge], None]) -> None:
-    """Hand ``hear`` every confirmed edge from now on; idempotent."""
+def subscribe(sig: Signal, hear: Callable[[Edge], None], tick: Callable[[bool], None] | None = None) -> None:
+    """Hand ``hear`` every confirmed edge from now on, and ``tick`` each refresh's read; idempotent."""
     if hear not in sig.subscribers:
         sig.subscribers.append(hear)
+    if tick is not None and tick not in sig.ticks:
+        sig.ticks.append(tick)
 
 
 def unsubscribe(sig: Signal, hear: Callable[[Edge], None]) -> None:
@@ -139,6 +146,14 @@ def note(sig: Signal, when: datetime) -> None:
     """One reading of the signal; a no-op before the attach and after the detach."""
     if sig.reader is not None:
         _publish(sig, sig.tracker.note(when, wear.compressor_running(*sig.reader())))
+
+
+def refresh(sig: Signal, when: datetime) -> None:
+    """The coordinator's per-refresh re-read; then each tick hears whether the class reads settled running."""
+    note(sig, when)
+    read = running_now(sig) is True
+    for tick in list(sig.ticks):
+        tick(read)
 
 
 def confirm(sig: Signal, when: datetime) -> None:

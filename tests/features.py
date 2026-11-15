@@ -91712,6 +91712,7 @@ from heatpump_optimizer.thermal_model import immersion_level_kw as _sce_over_kw 
 from heatpump_optimizer.thermal_model import immersion_over as _sce_io  # noqa: E402
 from heatpump_optimizer.thermal_model import on_threshold_kw as _sce_on_kw  # noqa: E402
 from heatpump_optimizer.wear import EDGE_DEBOUNCE_S as _SCE_DEBOUNCE_S  # noqa: E402
+from heatpump_optimizer.wear import RiseHold as _SceRiseHold  # noqa: E402
 from heatpump_optimizer.wear import StartCounter as _SceStarts  # noqa: E402
 
 R.section("R10-START-COUNTER-EDGES: the start counter fed from running-signal edges")
@@ -91842,7 +91843,8 @@ R.check(
 def _sce_early(payload, released=False):
     rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
     rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
-    rig.at(_SCE_T0 + timedelta(minutes=3))
+    for k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+        rig.refresh(_SCE_T0 + timedelta(minutes=3, seconds=k))
     queued = list(rig.counter.queued or [])
     if released:
         rig.c._release_registrations()
@@ -91889,7 +91891,8 @@ class _SceRaises:
 
 
 _sce_raise = _SceRig({"sensor.kw": FakeState("2.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
-_sce_raise.at(_SCE_T0 + timedelta(minutes=1))
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7)
+    _sce_raise.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
 _sce_raise.c._ledger_store = _SceRaises()
 _sce_raise_err = None
 try:
@@ -91907,10 +91910,10 @@ _sce_cut.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
 _sce_cut_armed = len(getattr(_sce_cut.c.hass, "timers", []))
 _sce_cut.c._release_registrations()
 R.check(
-    "the release drops the listener, the timer of a change still pending and the subscribers, and a "
+    "the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and a "
     "second release is harmless; null control, the change was pending with its timer armed",
     _sce_cut_armed == 1 and not _sce_cut.c.hass.state_listeners and not _sce_cut.c.hass.timers
-    and not _sce_rs.signal_for(_sce_cut.c).subscribers
+    and not _sce_rs.signal_for(_sce_cut.c).subscribers and not _sce_rs.signal_for(_sce_cut.c).ticks
     and _sce_cut.c._release_registrations() is None,
     f"{_sce_cut_armed} {_sce_cut.c.hass.timers}",
 )
@@ -91924,7 +91927,8 @@ _sce_cont.load({"ledger": {"months": {}}, "starts": {"lifetime": 41, "months": {
 _sce_cont_kept = (_sce_cont.counter.lifetime, dict(_sce_cont.counter.months))
 _sce_cont.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
 _sce_cont.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=20), unit="kW")
-_sce_cont.at(_SCE_T0 + timedelta(minutes=21))
+for _sce_k in (21, 22):  # the meter's rise is held for two refreshes (S7)
+    _sce_cont.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
 R.check(
     "the stored lifetime and month counts continue across the change: a compressor running "
     "through the restart is no new start, and the next real start adds one",
@@ -92019,7 +92023,8 @@ _sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat
 _sce_mid.load(None)
 _sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=UTC)
 _sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
-_sce_mid.at(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + 5))
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
+    _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
 R.check(
     "a start straddling a month boundary is counted and billed in the month of its first reading",
     _sce_mid.counter.months == {"2026-02": 1}
@@ -92061,7 +92066,8 @@ _sce_s5.at(_SCE_T0 + timedelta(minutes=10))
 # the element alone reads between the on-threshold and the over level.
 _sce_s3, _o, _o = _sce_element_rig()
 _sce_s3.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=1), unit="kW")
-_sce_s3.at(_SCE_T0 + timedelta(minutes=2))
+for _sce_k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+    _sce_s3.refresh(_SCE_T0 + timedelta(minutes=2, seconds=_sce_k))
 _sce_s3_started = _sce_s3.counter.lifetime
 _sce_s3.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=3), unit="kW")
 _sce_s3.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
@@ -92077,8 +92083,9 @@ _sce_s4.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
 _sce_s4.set("sensor.kw", _sce_kw(_sce_over + 0.5), _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
 _sce_s4.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120), unit="kW")
 _sce_s4.refresh(_SCE_T0 + timedelta(seconds=3 * _SCE_PERIOD_S))
-_sce_s4.refresh(_SCE_T0 + timedelta(seconds=4 * _SCE_PERIOD_S))
-_sce_s4.at(_SCE_T0 + timedelta(seconds=4 * _SCE_PERIOD_S + 120))
+for _sce_k in (4, 5, 6):  # the release, then the rise's two refreshes (S7)
+    _sce_s4.refresh(_SCE_T0 + timedelta(seconds=_sce_k * _SCE_PERIOD_S))
+_sce_s4.at(_SCE_T0 + timedelta(seconds=6 * _SCE_PERIOD_S + 120))
 R.check(
     "the immersion element on a meter-only install: cutting in over the level with the "
     "compressor off (S1) and over and back inside one refresh period (S5) count no start; a "
@@ -92177,8 +92184,10 @@ R.check(
 # edge over brings drops it first. Six offsets inside a 60 s and a 30 s window
 # (offset 0 fills its window and is over from its first report), a refresh
 # landing between the partial's confirmation and over, the element running
-# three refresh periods. The cut-out of a short element, never latched, falls
-# through a partial from no class and stops: no start either.
+# three refresh periods; then a real start on the same rig counts from its
+# second refresh. The cut-out of a short element, never latched, falls
+# through a partial from no class and stops: no start either; nor does a
+# second refresh landing while over is still pending.
 def _sce_s7(window_s, offset_s):
     rig, _on, over = _sce_element_rig()
     level = over + 1.0
@@ -92193,6 +92202,24 @@ def _sce_s7(window_s, offset_s):
     rig.set("sensor.kw", "0.0", cut + timedelta(seconds=window_s), unit="kW")
     for k in (5, 6, 7):
         rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    false = rig.counter.lifetime
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=7 * _SCE_PERIOD_S + 60), unit="kW")
+    seen = []
+    for k in (8, 9):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+        seen.append(rig.counter.lifetime)
+    return false, *seen
+
+
+def _sce_s7_quick(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(minutes=5)
+    rig.set("sensor.kw", _sce_kw(level / 2), rise, unit="kW")
+    rig.refresh(rise + timedelta(seconds=_SCE_DEBOUNCE_S + 1))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    rig.refresh(rise + timedelta(seconds=window_s + 1))
+    rig.at(rise + timedelta(minutes=5))
     return rig.counter.lifetime
 
 
@@ -92216,25 +92243,44 @@ def _sce_s7_real(stop_s=None):
     rig.set("sensor.kw", "2.0", rise, unit="kW")
     if stop_s is not None:
         rig.set("sensor.kw", "0.0", rise + timedelta(seconds=stop_s), unit="kW")
-    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
-    first = rig.counter.lifetime
-    for k in (2, 3):
+    seen = []
+    for k in (1, 2):
         rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
-    return first, rig.counter.lifetime, dict(rig.counter.months)
+        seen.append(rig.counter.lifetime)
+    return *seen, dict(rig.counter.months)
 
 
 _sce_s7_rows = {(w, round(w * k / 6)): _sce_s7(w, w * k / 6) for w in (60, 30) for k in range(6)}
-_sce_s7_cut = {w: _sce_s7_cutout(w) for w in (60, 30)}
-_sce_s7_ctl = (_sce_s7_real(), _sce_s7_real(stop_s=600))
+_sce_s7_cut = {w: (_sce_s7_cutout(w), _sce_s7_quick(w)) for w in (60, 30)}
+_sce_s7_ctl = (_sce_s7_real(), _sce_s7_real(stop_s=240))
 R.check(
     "S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, "
-    "nor does the falling average of a short element's cut-out; null control, on the same rig and "
-    "refreshes a real start counts once, from its second refresh, and a run stopping before it "
-    "counts once, at its stop",
-    set(_sce_s7_rows.values()) == {0}
-    and _sce_s7_cut == {60: (0, False), 30: (0, False)}
+    "and a real start after it counts at its second refresh; neither the falling average of a short "
+    "element's cut-out nor a second refresh landing while over is pending counts one; null control, "
+    "on the same rig and refreshes a real start counts once, from its second refresh, and a run "
+    "stopping before it counts once, at its stop",
+    set(_sce_s7_rows.values()) == {(0, 0, 1)}
+    and _sce_s7_cut == {60: ((0, False), 0), 30: ((0, False), 0)}
     and _sce_s7_ctl == ((0, 1, {"2026-02": 1}), (1, 1, {"2026-02": 1})),
     f"{_sce_s7_rows} {_sce_s7_cut} {_sce_s7_ctl}",
+)
+
+# wear.RiseHold alone: each edge it passes on keeps its own time; a held rise
+# released by its refreshes is the rise's, and a short run is the rise's then
+# the stop's. Null control, the frequency source's counter holds nothing.
+_sce_rh_t = [_SCE_T0 + timedelta(minutes=m) for m in range(5)]
+_sce_rh = _SceRiseHold()
+_sce_rh_seq = [_sce_rh.admit(_sce_rh_t[0], False), _sce_rh.admit(_sce_rh_t[1], True), _sce_rh.refresh(True),
+               _sce_rh.refresh(False), _sce_rh.refresh(True), _sce_rh.admit(_sce_rh_t[2], False),
+               _sce_rh.admit(_sce_rh_t[3], True), _sce_rh.admit(_sce_rh_t[4], False)]
+R.check(
+    "wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh "
+    "reading it running and one reading it unsettled, released by the second running one; a short "
+    "run is its rise then its stop; null control, a counter with no hold counts the rise at once",
+    _sce_rh_seq == [[(_sce_rh_t[0], False)], [], [], [], [(_sce_rh_t[1], True)], [(_sce_rh_t[2], False)],
+                    [], [(_sce_rh_t[3], True), (_sce_rh_t[4], False)]]
+    and _SceStarts(queued=None).hear(_sce_rh_t[1], True) == [_sce_rh_t[1]],
+    f"{_sce_rh_seq}",
 )
 _sce_dt.freeze(None)
 
