@@ -809,8 +809,7 @@ def scratch_clone(root: Path, dst: Path, rev: str | None = None) -> Path:
     if url:
         git("remote", "set-url", "origin", url)
     listed = "" if rev else git("ls-files", "-z", "-m", "-o", "-d", "--exclude-standard", cwd=root)
-    listed += "" if rev else git("diff", "--cached", "--name-only", "-z", *([head] if head else []),
-                                 cwd=root, check=False)
+    listed += "" if rev else git("diff", "--cached", "--name-only", "-z", *([head] if head else []), cwd=root)
     for rel in sorted({r for r in listed.split("\0") if r}):
         src, to = root / rel, dst / rel
         if src.is_file() or src.is_symlink():
@@ -1602,6 +1601,16 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             shutil.rmtree(hollow)
         ck("record: an empty trace fails the record, naming it",
            rc_e == 1 and "EMPTY trace step-a.trace (step a)" in buf.getvalue())
+        globals()["settle_index"] = lambda r, env=None: 1
+        ubuf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(ubuf):
+                rc_u = main(["record", "--out", str(root / "u2.json")], root)
+        finally:
+            globals()["settle_index"] = real_settle
+        ck("record: a clone whose index cannot be settled is refused before any step runs",
+           rc_u == 1 and "UNSETTLED index of the scratch clone" in ubuf.getvalue()
+           and "OK  " not in ubuf.getvalue() and "recorded 0 step(s)" in ubuf.getvalue())
         ck("record: the steps ran in a clone, not in the seat's checkout (the step's marker is not here), "
            "and that clone's index was settled before them",
            not (root / "ran-here.marker").exists() and len(settled) == 1 and settled[0] != root
@@ -1889,7 +1898,14 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             (sr / rel).write_text(body)
         sgit("add", "-A"); sgit("commit", "-qm", "base")
         sgit("update-ref", "refs/remotes/origin/main", "HEAD")
+        os.symlink("a.txt", sr / "l.txt")
+        sgit("add", "-A"); sgit("commit", "-qm", "a tracked link")
+        sgit("update-ref", "refs/remotes/origin/main", "HEAD")
         sgit("config", "merge.hpo.driver", "true")
+        sgit("config", "remote.origin.url", "https://example.invalid/seat.git")
+        (sr / "l.txt").unlink()
+        (sr / "l.txt").write_text("no longer a link\n")
+        os.symlink("d/k.txt", sr / "m.txt")
         (sr / "a.txt").write_text("a2\n")
         (sr / "b.txt").unlink()
         (sr / "c.txt").write_text("c\n")
@@ -1903,8 +1919,14 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("scratch clone: a modified file is laid over, a deleted one gone, a new one staged (one the "
            "seat staged already too), an ignored one left behind",
            (sc / "a.txt").read_text() == "a2\n" and not (sc / "b.txt").exists()
-           and sorted(sgit("ls-files", cwd=sc).split()) == [".gitignore", "a.txt", "c.txt", "d/k.txt", "e.txt"]
+           and sorted(sgit("ls-files", cwd=sc).split()) == [".gitignore", "a.txt", "c.txt", "d/k.txt", "e.txt",
+                                                            "l.txt", "m.txt"]
            and not (sc / "cache").exists())
+        ck("scratch clone: a link replaced by a file is that file, not a write through the link; a new "
+           "link stays a link; origin's URL is the seat's",
+           not (sc / "l.txt").is_symlink() and (sc / "l.txt").read_text() == "no longer a link\n"
+           and (sc / "m.txt").is_symlink() and os.readlink(sc / "m.txt") == "d/k.txt"
+           and sgit("config", "--get", "remote.origin.url", cwd=sc) == "https://example.invalid/seat.git")
         ck("scratch clone: the seat's merge driver is not configured there (set in the seat's: the control)",
            drv.returncode != 0 and sgit("config", "--get", "merge.hpo.driver") == "true")
         ck("scratch clone: HEAD and origin/main are the seat's, in a repository of its own",
@@ -1913,7 +1935,8 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         at = scratch_clone(sr, sr.parent / "at-rev", "HEAD")
         ck("scratch clone at a commit: that commit's tree, nothing of the working tree laid over it",
            (at / "a.txt").read_text() == "a\n" and (at / "b.txt").exists() and not (at / "c.txt").exists()
-           and sorted(sgit("ls-files", cwd=at).split()) == [".gitignore", "a.txt", "b.txt", "d/k.txt"])
+           and sorted(sgit("ls-files", cwd=at).split()) == [".gitignore", "a.txt", "b.txt", "d/k.txt", "l.txt"]
+           and (at / "l.txt").is_symlink())
         ev = list(trace_events(['9 access("tools/x/a.py", F_OK) = 0'], sc))
         ck("trace_events: a path the trace does not decorate resolves against the tree the steps ran in",
            [e[2] for e in ev] == [f"{sc}/tools/x/a.py"])
@@ -2045,16 +2068,27 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
                                       'shift\n' + lines + 'exec "$@"\n')
             (d / "strace").chmod(0o755)
 
+        profile = pr.parent / "profile.sh"
+        profile.write_text(f'export RUNNER_TEMP="{pr.parent}/elsewhere"\n')
+
         def under(stub: Path, reads: str, *argv: str) -> tuple[int, str]:
-            path, was = os.environ["PATH"], globals()["_traced"]
-            os.environ.update(PATH=f"{stub}{os.pathsep}{path}", SCRIPTED_READS=reads)
+            path, was, settle = os.environ["PATH"], globals()["_traced"], globals()["settle_index"]
+            seat_profile = os.environ.get("BASH_ENV")
+            # A seat profile sourced through BASH_ENV that moves RUNNER_TEMP, as
+            # the cloud seat's does: every step's shell must not source it.
+            os.environ.update(PATH=f"{stub}{os.pathsep}{path}", SCRIPTED_READS=reads, BASH_ENV=str(profile))
             globals()["_traced"] = lambda: False       # the stub is no ptrace tracer: it nests
+            # ... and reads no index, so the second each settle waits out is
+            # not spent here (the record fixture above pins the settle call).
+            globals()["settle_index"] = lambda r, env=None: 0
             try:
                 return run(*argv)
             finally:
-                globals()["_traced"] = was
+                globals()["_traced"], globals()["settle_index"] = was, settle
                 os.environ["PATH"] = path
-                del os.environ["SCRIPTED_READS"]
+                del os.environ["SCRIPTED_READS"], os.environ["BASH_ENV"]
+                if seat_profile is not None:
+                    os.environ["BASH_ENV"] = seat_profile
         before = (pr / TABLE).read_bytes()
         rc_p, out_p = under(scripted, "", "precheck", "--base", pbase)
         ck(f"precheck: a step whose script gained a read the table lacks is refused, naming the read "

@@ -18,27 +18,43 @@ apply() { # <file> <old> <new> <out>: the file with old, present once, replaced 
   python3 -I -c 'import sys; s=open(sys.argv[1]).read(); a, b = sys.argv[2], sys.argv[3]; assert s.count(a) == 1, a; open(sys.argv[4], "w").write(s.replace(a, b))' \
     "$1" "$2" "$3" "$4"
 }
+# The mutants run JOBS at a time (55 runs of a self-test that waits more than
+# it computes: in line they outlast the step replay of tools/pr/ci_predict.py
+# and a third of the job's own timeout); each writes its report to a file of
+# its own and the reports are printed in order once all have ended.
+JOBS=${SELFTEST_MUTANT_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
+n=0
 report() { # <label> <rc> <output>
   echo "== $1: self-test rc $2"
   printf '%s\n' "$3" | grep -E '^  FAIL|self-test:|Error' | sed 's/^/   /'
-  [ "$2" -ne 0 ] || { echo "   NOT REFUSED"; exit 1; }
+  [ "$2" -ne 0 ] || echo "   NOT REFUSED"
 }
-scope_mutant() { # <label> <old> <new>
-  apply "$src" "$2" "$3" "$tmp/s.py" || { echo "MUTANT NOT APPLIED: $1"; exit 1; }
-  out=$(python3 -I -c 'import sys; f, real = sys.argv[1], sys.argv[2]; sys.argv = [real, "--self-test"]; exec(compile(open(f).read(), real, "exec"), {"__name__": "__main__", "__file__": real})' \
-    "$tmp/s.py" "$PWD/$src" 2>&1); rc=$?
-  report "$1" "$rc" "$out"
+spawn() { # <kind> <label> <old> <new>: one mutant, in the background
+  n=$((n + 1))
+  ( k=$(printf '%03d' "$n")
+    case "$1" in
+      scope)
+        if apply "$src" "$3" "$4" "$tmp/s.$k.py" 2> /dev/null; then
+          out=$(python3 -I -c 'import sys; f, real = sys.argv[1], sys.argv[2]; sys.argv = [real, "--self-test"]; exec(compile(open(f).read(), real, "exec"), {"__name__": "__main__", "__file__": real})' \
+            "$tmp/s.$k.py" "$PWD/$src" 2>&1); rc=$?
+          report "$2" "$rc" "$out"
+        else echo "MUTANT NOT APPLIED: $2"; fi ;;
+      wrapper)
+        if apply "$wrapper" "$3" "$4" "$tmp/step.$k.sh" 2> /dev/null; then
+          out=$(python3 -I "$src" --self-test --wrapper "$tmp/step.$k.sh" 2>&1); rc=$?
+          report "$2" "$rc" "$out"
+        else echo "MUTANT NOT APPLIED: $2"; fi ;;
+      workflow)
+        if apply "$workflow" "$3" "$4" "$tmp/wf.$k.yml" 2> /dev/null; then
+          out=$(python3 -I "$src" --self-test --workflow "$tmp/wf.$k.yml" 2>&1); rc=$?
+          report "$2" "$rc" "$out"
+        else echo "MUTANT NOT APPLIED: $2"; fi ;;
+    esac > "$tmp/r.$k" 2>&1 ) &
+  [ $((n % JOBS)) -ne 0 ] || wait
 }
-wrapper_mutant() { # <label> <old> <new>
-  apply "$wrapper" "$2" "$3" "$tmp/step.sh" || { echo "MUTANT NOT APPLIED: $1"; exit 1; }
-  out=$(python3 -I "$src" --self-test --wrapper "$tmp/step.sh" 2>&1); rc=$?
-  report "$1" "$rc" "$out"
-}
-workflow_mutant() { # <label> <old> <new>
-  apply "$workflow" "$2" "$3" "$tmp/wf.yml" || { echo "MUTANT NOT APPLIED: $1"; exit 1; }
-  out=$(python3 -I "$src" --self-test --workflow "$tmp/wf.yml" 2>&1); rc=$?
-  report "$1" "$rc" "$out"
-}
+scope_mutant() { spawn scope "$@"; }       # <label> <old> <new>
+wrapper_mutant() { spawn wrapper "$@"; }
+workflow_mutant() { spawn workflow "$@"; }
 scope_mutant "a missing bg trace skipped" 'broken.append(f"MISSING trace' 'None and broken.append(f"MISSING trace'
 scope_mutant "an empty trace read whole" 'return "EMPTY"' 'return ""'
 scope_mutant "a partial trace read whole" 'return "" if seen["root"] in seen["ended"] else "PARTIAL"' 'return ""'
@@ -113,4 +129,8 @@ scope_mutant "a partial drift names the untraced steps" '        if only is not 
             continue' '        if False:
             continue'
 scope_mutant "a partial drift names an extra entry" 'for sid in sorted(set(table["steps"]) - set(gated_ids(steps))) if only is None else ():' 'for sid in sorted(set(table["steps"]) - set(gated_ids(steps))):'
+wait
+cat "$tmp"/r.*
+[ "$(ls "$tmp"/r.* | wc -l)" -eq "$n" ] || { echo "MUTANT LOST: $n started, $(ls "$tmp"/r.* | wc -l) reported"; exit 1; }
+! grep -q -e '^   NOT REFUSED$' -e '^MUTANT NOT APPLIED: ' "$tmp"/r.* || exit 1
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"
