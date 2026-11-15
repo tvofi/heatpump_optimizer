@@ -221,10 +221,12 @@ def product_rule():
     return getattr(m, "is_product", None)
 
 
-def open_slots() -> "int | None":
-    """replan.py's DEFAULT_CAPS slots, or None when unreadable."""
-    m = _load("replan_pr_cap", "tools/plan/replan.py")
-    v = (getattr(m, "DEFAULT_CAPS", None) or {}).get("slots")
+def open_slots(caps: "dict | None" = None) -> "int | None":
+    """replan.py's DEFAULT_CAPS slots (or `caps`'s), None when unreadable or
+    not above PRODUCTION_SLOTS, which would leave machinery no slot to count."""
+    if caps is None:
+        caps = getattr(_load("replan_pr_cap", "tools/plan/replan.py"), "DEFAULT_CAPS", None) or {}
+    v = caps.get("slots")
     return v if isinstance(v, int) and v > PRODUCTION_SLOTS else None
 
 
@@ -437,6 +439,31 @@ def self_test() -> int:
          {"number": 8, "title": "t", "author": app, "files": many[:1]}])), rule=prod)
     ck("a file list at gh's limit may be truncated: unread, not machinery",
        got == {"production": [], "machinery": [8], "unread": [7]})
+    ck("slots at or below PRODUCTION_SLOTS are unread, never a negative allowance; 11 reads",
+       [open_slots({"slots": v}) for v in (10, 9, True, 11)] == [None, None, None, 11])
+    import contextlib, io
+    g = globals()
+    saved = g["read_classes"], g["open_slots"]
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        json.dump(roster(["done"]), fh)
+        done = fh.name
+    try:
+        g["open_slots"] = lambda: 13
+        outs = []
+        for seen, argv in ((cls, ["--machinery", "o/r"]), (by_class([], {}, prod), ["--machinery", "o/r"]),
+                           (cls, [])):
+            g["read_classes"] = lambda slug, _c=seen: (_c, "") if slug == "o/r" else (None, slug)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                outs.append((main(["dispatch-gate", "--roster-file", done, *argv]), err.getvalue()))
+    finally:
+        g["read_classes"], g["open_slots"] = saved
+        os.unlink(done)
+    ck("dispatch-gate --machinery refuses a full board after the WIP gate passes",
+       outs[0][0] == 1 and "REFUSE: machinery slots: 3/3 (#2, #3, #4)" in outs[0][1])
+    ck("null controls: an empty board passes it, and no --machinery never reads the board",
+       outs[1][0] == 0 and "machinery slots 0/3" in outs[1][1]
+       and outs[2][0] == 0 and "machinery" not in outs[2][1])
     print(f"pr_cap self-test: {total} checks, {failed} failed")
     return 1 if failed else 0
 

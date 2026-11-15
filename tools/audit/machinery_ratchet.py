@@ -788,6 +788,26 @@ def self_test() -> int:
            cand(MACH + [("set", TARGET_BUDGETS, "[]")])[0], 2)
         ok("target: every_merges 1 and step 0 are the bounds it reads (null control)",
            [cand(MACH + tgt(every_merges=1, step=s_))[0] for s_ in (0, 2)], [0, 1])
+        ok("target: the band is added to it, at the boundary (2 <= 0 + 2 passes, 2 > 0 + 1 refuses)",
+           [cand(MACH + budgets_ops(caps(m1=2, m1b=b_, w=3)))[0] for b_ in (2, 1)], [0, 1])
+        rc, txt = cand(MACH + budgets_ops(caps(m1=2, m1b=2, w=3)) + tgt(step=5))
+        ok("target: a schedule driven past zero holds at 0, never below it",
+           (rc, "target nonproduction_merges 2 <= 0 + band 2" in txt), (0, True))
+        # A PR head's own first-parent chain is the branch's, and a merge of
+        # main into it is one merge there: the schedule is read on the base.
+        r.files = dict(at["files"])
+        r.change(MACH)
+        head = r._commit([r._commit([anchor], "work"), r.tip], "Merge branch 'main' into b9")
+        rc, txt = run_cli(r, "--check", "--base", r.tip, "--head", head, "--pr", "9")
+        ok("target: a PR head carrying a merge of main is scheduled on the base (2 past, target 0)",
+           (rc, "FAIL target nonproduction_merges 2 <= 0 + band 0 (2 merge(s) past" in txt), (1, True))
+        # A stamp is a first-parent commit that is not a merge: it moves no target.
+        r.files = dict(at["files"])
+        r.change([("set", REC, "stamped\n")])
+        r.tip = r._commit([r.tip], "v1.0.0: stamp")
+        ok("target: a non-merge first-parent commit past the anchor is not counted",
+           {k: json.loads(run_cli(r, "--measure", "--head", r.tip)[1])[k]
+            for k in ("target", "merges_past_anchor")}, {"target": 0, "merges_past_anchor": 2})
 
     ok("--check-event: a base and a PR number select PR mode",
        event_args({"MACHINERY_BASE": "b", "MACHINERY_HEAD": "h", "MACHINERY_PR": "7"}), ("h", "b", 7))
