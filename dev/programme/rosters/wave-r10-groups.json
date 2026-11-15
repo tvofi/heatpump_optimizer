@@ -26631,7 +26631,7 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-CATALOG-PR"
+    "R10-GH-READ-RESIDUE-P3"
    ],
    "files": [
     "tools/audit/seat/cloud_dispatch.py",
