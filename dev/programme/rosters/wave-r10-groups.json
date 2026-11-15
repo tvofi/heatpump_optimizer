@@ -28348,7 +28348,7 @@
    ],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-outside-honest-metered-floor",
     "commit": null,
     "last_step": null,
     "next_step": "designer (M, opus) now; design review; fixer only on Design review: approve; ruling c2 is the owner's",
