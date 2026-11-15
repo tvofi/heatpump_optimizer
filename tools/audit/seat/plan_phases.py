@@ -79,12 +79,13 @@ def _date_ok(v) -> bool:
         return False
 
 
-# The text the section prints, by the object holding it. Every value is a
+# The text the section prints, by the object holding it (an item's name is
+# checked with its presence, a forecast's basis with its own). Every value is a
 # string when present: `section` escapes each, and an escape of a number or a
 # list is a crash on the plan page, not a refusal in the file.
 _TEXT_DOC = ("note",)
 _TEXT_PHASE = ("waiting_on", "entry", "exit")
-_TEXT_ITEM = ("name", "waiting_on", "detail")
+_TEXT_ITEM = ("waiting_on", "detail")
 
 
 def _text_violations(where: str, x: dict, keys: tuple) -> list:
