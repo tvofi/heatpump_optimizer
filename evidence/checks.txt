@@ -1,13 +1,6 @@
-Check runs of PR #3575 at head 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212, read with the pull request's check-runs listing (76 runs) at about 23:14 UTC 2026-11-14. Run 43649665901 is the head's full workflow run.
-failure   budget-raise-gate / budget-raise-gate   jobs 132616720109, 132617717974, 132618967354, 132615675886
-failure   gate                                    jobs 132616530964, 132618803009, 132619789971
-failure   tests / nightly-status                  job 132616720091 (not in merge_train.py owed-reds)
-success   governance / policy-docs                job 132616720137
-success   governance / env-matrix                 job 132616720163
-success   governance / wave-script, governance / delivery-status
-success   arch-score / arch-score (4 runs), hassfest / hassfest, validate / validate-hacs
-success   codeql / Analyze (actions), (javascript-typescript), (python); CodeQL
-success   tests / briefs, tests / closure-scope, tests / mutation, tests / typing, tests / browser, tests / arch-instrument
-in_progress  governance / instrument-self-tests   job 132616720103
-in_progress  tests / fast (3.14) 132618767530, tests / coverage 132618767492, tests / closures 132618767489
-skipped   pr-contract (every run: 132616532090, 132618804067, 132619790692); the pull request is a draft
+Check runs of PR #3575 at head 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212, read 2026-11-14 ~23:57 UTC through the pull request's check-runs listing (99 runs, all completed; every run of a name read, not one per name).
+Required set (merge_train.py owed-reds, ev/owed_reds.txt), newest run of each:
+success: arch-score / arch-score (132630359029, 23:46:35); codeql / Analyze (actions), (javascript-typescript), (python); governance / env-matrix (132616720163); governance / policy-docs (132616720137); governance / wave-script; hassfest / hassfest; pr-contract / pr-contract (132631189584, started 23:50:24, completed 23:52:01; the earlier 132626903586 also success, 23:33:57 to 23:35:50); tests / arch-instrument; tests / briefs; tests / browser; tests / closure-scope; tests / closures (132618767489); tests / coverage; tests / coverage-ratchet; tests / fast (3.14); tests / mutation; tests / typing; validate / validate-hacs
+failure: budget-raise-gate / budget-raise-gate (132630359037, completed 23:45:23; and 132629235971, 132629219360, 132629207292, 132616720109 earlier); gate (132632520937, completed 23:55:56; and 132629218594, 132629213596, 132629207018, 132628515415 earlier)
+Outside the required set: governance / instrument-self-tests success (132616720103, completed 23:16:56); tests / nightly-status failure (132616720091); governance / delivery-status success.
+PR state at the read: open, draft true, author hpo-author[bot], base main, body updated 2026-11-14T23:42:30Z.
