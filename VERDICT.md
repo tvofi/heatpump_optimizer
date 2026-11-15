@@ -1,26 +1,31 @@
-Fix review: blocked 2aff0cc4fe1ea58c40c1113b300592211ee75d3f class-open: plan_phases.violations leaves the text fields' types unguarded, so a phases file that --check accepts crashes plan_page.render (plan_page.py:710), not only its section
+Fix review: merge 7b687a4819e54718f84e4353ce92f665414cb70e
 
-bus-nonce: 6492ab05c3ffdd7a5d8ea630e17e7efb
+bus-nonce: 0366b2cc1251dbcc2625e7aaa999378f
+pending-ci: gate
 
-Round: 1 (first review of #3622).
+Round: 2 (delta over the reviewed head 2aff0cc4fe1ea58c40c1113b300592211ee75d3f). Scope: the delta (`tools/audit/seat/plan_phases.py`, `dev/audit/harnesses/r10_plan_page_mutants.py`), the prior verdict's findings and the live required checks. No `custom_components/` delta, so the scope does not widen.
 
-## Block
+## Findings
 
-- The body claims the phases file cannot break the page. An invalid file "draws its section as PHASES UNAVAILABLE and the rest of the page still renders", and `--check` is the file's lint. But `plan_phases.violations` never checks the type of the free-text fields `note`, `entry`, `exit`, `forecast.basis`, and an item's `name` and `detail`. It only tests `str(x).strip()` for truthiness. `section()` then passes each of those fields to `html.escape`, which raises on a non-string. `plan_page.render` calls `plan_phases.section(*phases, ...)` at `tools/audit/seat/plan_page.py:710` with no guard, so the exception kills the whole page, which the plan beat publishes, not only the phases section.
-- Reproduced at this head (ev/type-confusion.txt): `phases[0].entry=5`, `items[1].name=7`, `forecast.basis=3` and `note=1` each give `violations=0` (`plan_phases.py --check` rc 0), and `section` raises `AttributeError: 'int' object has no attribute 'replace'`. `plan_phases.py --phases F --html OUT` exits 1 with the traceback. Null control: the unmodified fixture gives `violations=0` and renders.
-- Under step 6, this is the guard predicate's unguarded domain. The body says no gate script reads a real phases file, and the file is hand-edited on main. So nothing stops an edit that passes `--check` from taking down the beat's page.
-- Fix shape, not prescribed: refuse a non-string in each text field inside `violations`, with a self-test arm and a mutant for it.
-- The same predicate also accepts these, and the fix round should either refuse them or disposition them in the body: `started` later than `finished`; `forecast.start_from` later than `start_to`; `round` disagreeing with its `round<N>/` directory (discovery takes the directory, the page prints the field); `round: true`. Each passes `--check` and renders (measured: check_rc=0 html_rc=0).
+- The prior verdict asked the fix round to refuse or disposition four inputs that `violations` still accepts. The head does neither, and the body never names them. Each still passes `--check` and renders, measured at this head (ev/attack.txt, ev/semantic.txt). `started` later than `finished`: violations=0, and the done bar for a phase finished on 02 Jan is drawn as a 4 px sliver at 07 Jan (x=1011.4 against 120.0 in the null control). `forecast.start_from` later than `start_to`: violations=0. `round: true`: violations=0, and the heading prints "Round True phases", because `isinstance(True, int)` holds. `round` disagreeing with its `round<N>/` directory: not re-measured here, and it was accepted at the prior head with no delta touching it. None of these crashes the page; each draws a misleading one. Carry: R11-PRE-PLAN-RENDER
+
+## Notes
+
+- Note: stale-figures: the body's `## Figures` quotes `plan_page self-test: 133 checks, 0 failed` and "23 mutants killed". At this head the self-test prints `136 checks, 0 failed` (the three census checks), and the driver runs 27 `phases-*` mutants, all killed. Several per-mutant `fails=` counts in the body's mutation table predate the census, for example `phases-drawn` fails=6 in the body and 7 here, and `phases-keep-groups-page` 1 in the body and 3 here. Every verdict matches: killed, and M0 null.
+- Note: figure-unverified: the class-repair RESULT lines in the body carry no `rc=`/`fails=` fields. I re-derived all five by name with the PR's driver (ev/mutants.txt).
 
 ## Evidence
 
-- Merge with main: `git merge-tree --write-tree origin/main 2aff0cc4fe1ea58c40c1113b300592211ee75d3f` gives rc 0, with `LEDGER-MERGE: resolved tests/closures.json` (ev/merge-tree.txt).
-- CI: `merge_train.py classify 2aff0cc4fe1ea58c40c1113b300592211ee75d3f --pr 3622` printed `GREEN 2aff0cc4fe1ea58c40c1113b300592211ee75d3f pending: none red: none` (ev/classify.txt).
-- Role contracts: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so my copy is current.
-- VERSION, the manifest and RELEASE_NOTES.md are untouched. No golden or claim file moves.
-- Mutation proof, re-run with the PR's driver: `r10_plan_page_mutants.py M0` plus all 23 `phases-*` mutants gives `RESULT survived=0` and M0 `rc=0 fails=0 verdict=null`. Every per-mutant line matches the body (ev/mutants.txt).
-- Self-tests at this head: `plan_page self-test: 133 checks, 0 failed`. `plan_phases.py --check dev/programme/round11/phases.json` rc 0. `plan_public self-test: all checks passed`. `state_docs self-test: all checks passed`.
-- Public page: `origin/handoff/audit-r10-plan:handoff/round10/state/PLAN.html` sha1 3d2752f7b784 matches the body. The inventory null control re-run gives `RESULT other=pub.html missing=0 added=0` (ev/inventory-null.txt).
-- Not re-derived: the BYTE-IDENTICAL comparison and `missing=0 added=9`. Their plan.json (edc40ce32bfd) and GitHub snapshot (21875573ab86) are not in the tree or on the state ref. The self-test arm `both.replace(sec, "", 1) == groups_only` (mutant `phases-keep-groups-page` killed) covers the same property.
-- Finder's harness: none named. This is an owner-directive feature, not an audit finding.
-- Red checks: the body answers `governance / instrument-self-tests` and `tests / fast (3.14)` at earlier heads. Neither is red at this head.
+- Prior block resolved. The four reproduction cases from the prior verdict each now earn a violation, and the section draws PHASES UNAVAILABLE without crashing: `entry=5` gives "entry not text (5)", `items[1].name=7` gives "no name (text)", `forecast.basis=3` gives "a forecast with no basis", and `note=1` gives "note not text (1)". Null control: the unmodified fixture gives violations=0 and draws (ev/attack.txt).
+- Class closed under the body's enumeration rule. `_census` replaces every node of a fully populated file with each `_JUNK` value. Section keys read in `plan_phases.py` (`as_of basis detail entry exit finished forecast items name note phase phases round start_from start_to started status waiting_on`) are all in the census file; `title` and `plan` come from the module's own `PHASES` table, not the file. `plan_page.render` reaches the file only through `plan_phases.section` (`plan_page.py:710`). My own fuzz, beyond the census, replaced 2 or 3 nodes at once with 18 junk values, including None, NaN, 10**30, nested dicts and lists, and an invalid date: `RESULT fuzz=multi-node runs=18285 crashes=0` (ev/attack.txt).
+- Mutation proof, re-run at this head with the PR's driver, M0 plus every `phases-*` mutant: `RESULT mutant=M0 rc=0 fails=0 verdict=null`, then the five new or re-anchored mutants: `phases-unknown-status rc=1 fails=3 killed`, `phases-status-unhashable rc=1 fails=1 killed`, `phases-text-typed rc=1 fails=1 killed`, `phases-items-list rc=1 fails=1 killed`, `phases-item-name-text rc=1 fails=1 killed`. All 27 mutants are killed, `RESULT survived=0` (ev/mutants.txt).
+- Self-tests at this head: `plan_page self-test: 136 checks, 0 failed`. `plan_phases.py --check dev/programme/round11/phases.json` gives rc 0 (ev/selftests.txt).
+- Merge with main: `git merge-tree --write-tree origin/main 7b687a4819e54718f84e4353ce92f665414cb70e` gives rc 0, with `LEDGER-MERGE: resolved tests/closures.json` (ev/merge-tree.txt).
+- The body's `## Head` names 7b687a4819e54718f84e4353ce92f665414cb70e, and `refs/pull/3622/head` reads that SHA.
+- Role contracts: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+- The delta touches no VERSION, manifest, RELEASE_NOTES, golden, claim or budget file.
+- Finder's harness: none named. This is an owner-directive feature, as in round 1.
+- Red checks: no red at this head in `owed-reds`' set at render. The body's answers for `governance / instrument-self-tests` and `tests / fast (3.14)` at earlier heads stand.
+- Carry destination: `R11-PRE-PLAN-RENDER` is `not-started` and `carry_receivable` on origin/main's `wave-r10-groups.json`. On `origin/handoff/audit-r10-roster` it is `absorbed`, and its work and carries continue in the same-named entry of `wave-r11-groups.json`, which is on no ref this clone can read. The body says Carry 6's remaining items stay on this group for its next part, so the finding routes there. `carry_audit.py check` gives rc 0 (`0 finding item(s)`).
+- Semantic cases, measured: ev/semantic.txt. Census and fuzz: ev/attack.txt.
+- CI: `merge_train.py classify 7b687a4819e54718f84e4353ce92f665414cb70e --pr 3622` read `WAIT 7b687a4819e54718f84e4353ce92f665414cb70e pending: gate red: none` on every run from 23:14 to 23:41 UTC (ev/classify.txt), so this verdict carries `pending-ci: gate`. The head is unchanged at the end of the review (`refs/pull/3622/head` = 7b687a4819e54718f84e4353ce92f665414cb70e).
