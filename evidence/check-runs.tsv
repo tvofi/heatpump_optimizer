@@ -1,0 +1,68 @@
+tests / ci-ratchet	completed	skipped
+tests / graders-head-copy	in_progress	
+tests / coverage-ratchet	completed	success
+tests / lane-proofs	completed	success
+tests / closures-autofix	completed	skipped
+tests / claims-autofix	completed	skipped
+sweep-self	completed	skipped
+pr-contract	completed	skipped
+gate	completed	failure
+validate	completed	skipped
+codeql	completed	skipped
+hassfest	completed	skipped
+tests	completed	skipped
+governance	completed	skipped
+kernel-points	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+arch-score / arch-score	completed	success
+refresh	completed	success
+cancel-superseded	completed	success
+prelude	completed	success
+sweep-self	completed	skipped
+tests / mutation-autofix	completed	skipped
+tests / mutation-pins	completed	skipped
+pr-contract	completed	skipped
+gate	completed	failure
+tests / nightly-ha	completed	skipped
+tests / replay	completed	skipped
+tests / coverage	completed	success
+tests / typing	completed	success
+tests / closures	completed	success
+tests / fast (3.14)	completed	success
+tests / arch-instrument	completed	success
+tests / browser	completed	success
+CodeQL	completed	success
+governance / delivery-status-publish	completed	skipped
+governance / record	completed	skipped
+kernel-points	completed	skipped
+tests / nightly-status	completed	success
+governance / env-matrix	completed	success
+tests / closure-scope	completed	success
+governance / delivery-status	completed	success
+tests / briefs	completed	success
+governance / policy-docs	completed	success
+budget-raise-gate / budget-raise-gate	completed	success
+tests / mutation	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+arch-score / arch-score	completed	success
+validate / validate-hacs	completed	success
+codeql / Analyze (actions)	completed	success
+governance / instrument-self-tests	completed	success
+codeql / Analyze (python)	completed	success
+governance / wave-script	completed	success
+hassfest / hassfest	completed	success
+codeql	completed	skipped
+governance	completed	skipped
+tests	completed	skipped
+kernel-points	completed	skipped
+hassfest	completed	skipped
+validate	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+arch-score / arch-score	completed	success
+prelude	completed	success
+refresh	completed	success
+cancel-superseded	completed	success
+cancel-superseded	completed	success
+refresh	completed	success
+prelude	completed	success
+arm	completed	skipped
