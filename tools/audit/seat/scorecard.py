@@ -49,7 +49,9 @@ THE LINES (rule, then the null control the self-test holds it to):
   E        escapes: roster groups whose source is `outside`, and hotfix or bug
            groups (group names HOTFIX, or kind bug|hotfix) whose files include
            the product (`custom_components/`); and how many of both are still
-           open (resume.stage not `done`).
+           open (resume.stage not `done`); beside them both sets split by
+           owning dimension (`owned_by`, card P7), unread while any of them
+           has none (loop_ledger.owned_split).
            NULL: a round with no escape adds none.
   C        detection delay: the longest run of consecutive cancelled main runs
            in the last 50 runs (cancelled runs included, ordered by stamp).
@@ -78,6 +80,9 @@ WINDOW_MERGES = 50
 WINDOW_CANCEL = 50
 MACH = {"carry-bookkeeping", "body-bookkeeping", "ci-state", "merge-state", "root-cause-form", "ruling-or-roster"}
 RECYCLE = re.compile(r"\brecycle", re.I)
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script's directory
+import loop_ledger  # noqa: E402  the escape sets and their owning-dimension split
 SEATS = re.compile(r"standing[- ](?:dispatch|triage)|\b(?:dispatch|triage)\b", re.I)
 
 
@@ -152,12 +157,11 @@ def line_hotfix(rows: list[dict]) -> str:
 
 
 def line_escapes(groups: list[dict]) -> str:
-    out = [x for x in groups if x.get("source") == "outside"]
-    ph = [x for x in groups if ("HOTFIX" in x["group"] or x.get("kind") in ("bug", "hotfix"))
-          and any(f.startswith("custom_components/") for f in (x.get("files") or []))]
+    out, ph = loop_ledger.escape_sets(groups)
     openn = sum((x.get("resume") or {}).get("stage") != "done" for x in out + ph)
     return (f"E       roster groups from outside reports {len(out)}; hotfix or bug groups touching the product "
-            f"{len(ph)}; open among both {openn}")
+            f"{len(ph)}; open among both {openn}; "
+            + loop_ledger.owned_split(groups, {x.get("group") for x in groups}))
 
 
 def cancel_streak(runs: list) -> int:

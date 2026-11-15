@@ -844,6 +844,72 @@ def touches_production(group: dict) -> bool:
             or any(str(f).startswith("custom_components/") for f in group.get("files") or []))
 
 
+#: The convergence record (decision 0018 sections 2 and 4; process cards P7 and
+#: L1): what found an escape, which dimension owns it, what caused it, its
+#: symptom family, the countermeasure's kind, the group it descends from and
+#: the fix a re-report follows. `roster_edit.py set-field` writes each through
+#: `convergence_why`; `loop_ledger.py` reads them back.
+CONVERGENCE_FIELDS = ("found_by", "owned_by", "caused_by", "family", "cm_kind", "parent", "follows")
+#: `found_by` besides a finder dimension `D<n>` (card P7's list).
+FOUND_BY = ("reviewer", "ci-main", "owner", "outside")
+#: `caused_by.cause` besides a pull request `#<n>` or a roster group (card L1).
+CAUSES = ("external", "original")
+#: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
+CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
+_ROOT = Path(__file__).resolve().parents[3]
+_DIM = re.compile(r"\AD\d{1,2}\Z")
+_PR = re.compile(r"\A#[1-9]\d*\Z")
+
+
+def _dimension(word, root=_ROOT) -> bool:
+    """A finder dimension: `D<n>` with its brief under dev/governance/dimensions/."""
+    return isinstance(word, str) and bool(_DIM.match(word)) and (root / "dev/governance/dimensions" / f"{word}.md").is_file()
+
+
+def _bug_families(root=_ROOT) -> set:
+    try:
+        return set(json.loads((root / "dev/audit/config/bugclasses.json").read_text()))
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
+def convergence_why(field: str, value, group: dict, names, root=_ROOT) -> "str | None":
+    """Why `value` is no admissible `field` of `group`, else None. `names` is every
+    group name the reader can see (the cause, parent and follows targets).
+    `caused_by` is {cause, rca}: the rca id must be one of the group's own `rca`
+    records with its file under dev/audit/rca/, so the cause is the root-cause
+    seat's and never the fixer's (decision 0018 section 2, `injected`)."""
+    me = group.get("group")
+    if field == "found_by":
+        return None if value in FOUND_BY or _dimension(value, root) else (
+            f"found_by {value!r} is neither a finder dimension D<n> nor one of {', '.join(FOUND_BY)}")
+    if field == "owned_by":
+        return None if value == "none" or _dimension(value, root) else (
+            f"owned_by {value!r} is neither a dimension D<n> nor none")
+    if field == "family":
+        return None if value in _bug_families(root) else (
+            f"family {value!r} is no class of dev/audit/config/bugclasses.json")
+    if field == "cm_kind":
+        return None if value in CM_KINDS else f"cm_kind {value!r} is none of {', '.join(CM_KINDS)}"
+    if field in ("parent", "follows"):
+        return None if value in names and value != me else f"{field} {value!r} is no other roster group"
+    if field != "caused_by":
+        return f"{field!r} is no convergence field"
+    if not isinstance(value, dict) or set(value) != {"cause", "rca"}:
+        return "caused_by must be a JSON object {cause, rca}"
+    cause, rca = value["cause"], value["rca"]
+    if not (cause in CAUSES or (isinstance(cause, str) and _PR.match(cause)) or (cause in names and cause != me)):
+        return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
+    if rca not in (group.get("rca") or []) or not (root / "dev/audit/rca" / f"{rca}.md").is_file():
+        return f"caused_by rca {rca!r} is not one of the group's rca records under dev/audit/rca/"
+    return None
+
+
+def recorded(group: dict, fields, names, root=_ROOT) -> bool:
+    """Whether every field of `fields` is present on the group and admissible."""
+    return all(f in group and convergence_why(f, group[f], group, names, root) is None for f in fields)
+
+
 def savings_h(group: dict) -> "float | None":
     """The group's recorded saving in hours (`savings`), or None when it is absent or not a number."""
     v = group.get("savings") if isinstance(group, dict) else None
@@ -854,7 +920,7 @@ def _replan_production(group: dict) -> bool:
     """Whether replan.py puts the group in one of its PRODUCTION lanes; False when replan is unreadable."""
     import importlib.util
     try:
-        path = Path(__file__).resolve().parents[2] / "tools" / "plan" / "replan.py"
+        path = _ROOT / "tools" / "plan" / "replan.py"
         spec = importlib.util.spec_from_file_location("replan_lanes_for_roster_lib", path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -1256,7 +1322,31 @@ def _self_test() -> int:
         check("P268 readers: group_class is the class when present, lane-derived only when absent",
               group_class({"group": "X", "class": "instrument", "lane": "CORE"}) == "instrument"
               and group_class({"group": "X", "class": "production"}) == "production"
-              and group_class({"group": "X"}) in ("production", "instrument"))
+              and group_class({"group": "X"}) == "production"
+              and group_class({"group": "X", "files": ["tools/audit/seat/x.py"]}) == "instrument")
+        cg = {"group": "R10-C", "rca": ["R10-N-log-flood"]}
+        cn = {"R10-C", "R10-P"}
+        cw = lambda f, v, g=cg: convergence_why(f, v, g, cn)  # noqa: E731
+        check("convergence: each closed word is admitted, and its neighbour refused (null control)",
+              all(cw(f, ok) is None and cw(f, bad) for f, ok, bad in (
+                  ("found_by", "D3", "D99"), ("found_by", "ci-main", "ci"), ("owned_by", "none", "None"),
+                  ("owned_by", "D12", "D1x"), ("family", "N-log-flood", "N-no-such-class"),
+                  ("cm_kind", "new-refusal", "refusal"), ("parent", "R10-P", "R10-C"),
+                  ("follows", "R10-P", "R10-ZZ"))))
+        check("convergence: caused_by needs one of the group's own rca records, so the fixer cannot name it",
+              cw("caused_by", {"cause": "#3520", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "R10-P", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "original", "rca": "R10-N-log-flood"}) is None
+              and "rca records" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-staleness"})
+              and "rca records" in cw("caused_by", {"cause": "#1", "rca": "R10-N-log-flood"}, {"group": "G"})
+              and "no pull request" in cw("caused_by", {"cause": "3520", "rca": "R10-N-log-flood"})
+              and "no pull request" in cw("caused_by", {"cause": "R10-C", "rca": "R10-N-log-flood"})
+              and "{cause, rca}" in cw("caused_by", "#3520")
+              and "no convergence field" in cw("source", "user"))
+        check("convergence: recorded needs every named field present and admissible",
+              recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn)
+              and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn)
+              and not recorded({**cg, "found_by": "nobody", "owned_by": "none"}, ("found_by", "owned_by"), cn))
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))

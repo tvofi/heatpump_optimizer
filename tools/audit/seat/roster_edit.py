@@ -16,7 +16,8 @@
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
     python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
-    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class> <value>
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class
+                                                         |found_by|owned_by|caused_by|family|cm_kind|parent|follows> <value>
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
@@ -460,7 +461,7 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
 
 
 #: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
-SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class")
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class") + roster_lib.CONVERGENCE_FIELDS
 CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
 REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
 
@@ -530,6 +531,14 @@ def op_set_field(roster, group, field, raw):
         if not CITATION.match(raw):
             raise Refuse("set-field: savings_source is a citation, dev/programme/triage/<batch>.md#P<n>")
         new = raw
+    elif field in roster_lib.CONVERGENCE_FIELDS:
+        try:
+            new = json.loads(raw) if field == "caused_by" else raw
+        except ValueError:
+            raise Refuse("set-field: caused_by must be a JSON object {cause, rca}")
+        why = roster_lib.convergence_why(field, new, g, {x.get("group") for x in roster.get("groups", [])})
+        if why:
+            raise Refuse(f"set-field: {why}")
     elif field == "source":
         if raw not in roster_lib.SOURCES:
             raise Refuse(f"set-field: {raw!r} is not a source; one of {', '.join(roster_lib.SOURCES)}")
@@ -2231,6 +2240,30 @@ def _self_test() -> int:
           refuses("is not a source", "set-field", "R9-S2", "source", rest=("bogus",)) and tip() == t0)
     check("set-field class is accepted",
           edit("set-field", "R9-S2", "class", rest=("docs",)) == 0 and grp("R9-S2")["class"] == "docs")
+    # The convergence record (P7, L1): closed words, written through roster_lib.convergence_why.
+    t0 = tip()
+    check("set-field found_by, owned_by, family, cm_kind, parent, follows: each closed word reads back",
+          all(edit("set-field", "R9-S3", f, rest=(v,)) == 0 and grp("R9-S3")[f] == v for f, v in (
+              ("found_by", "owner"), ("owned_by", "D8"), ("family", "N-log-flood"),
+              ("cm_kind", "narrow"), ("parent", "R9-S2"), ("follows", "R9-S1"))))
+    t0 = tip()
+    check("set-field refuses a word outside each vocabulary and an unknown group, moving nothing",
+          refuses("finder dimension", "set-field", "R9-S3", "found_by", rest=("ci",))
+          and refuses("nor none", "set-field", "R9-S3", "owned_by", rest=("D99",))
+          and refuses("bugclasses", "set-field", "R9-S3", "family", rest=("N-nope",))
+          and refuses("cm_kind", "set-field", "R9-S3", "cm_kind", rest=("fix",))
+          and refuses("no other roster group", "set-field", "R9-S3", "parent", rest=("R9-S3",))
+          and refuses("no other roster group", "set-field", "R9-S3", "follows", rest=("R9-ZZ",))
+          and tip() == t0)
+    check("set-field caused_by is refused without the group's own rca record, and read back with it",
+          refuses("rca records", "set-field", "R9-S3", "caused_by",
+                  rest=('{"cause": "#3520", "rca": "R10-N-log-flood"}',))
+          and refuses("{cause, rca}", "set-field", "R9-S3", "caused_by", rest=("#3520",))
+          and tip() == t0
+          and edit("append-group", "R9-S4", new_group("R9-S4", source="audit", rca=["R10-N-log-flood"])) == 0
+          and edit("set-field", "R9-S4", "caused_by",
+                   rest=('{"cause": "R9-S3", "rca": "R10-N-log-flood"}',)) == 0
+          and grp("R9-S4")["caused_by"] == {"cause": "R9-S3", "rca": "R10-N-log-flood"})
 
     # set-size / set-files (R10-ROSTER-OPS-2 part 1): one op pair for the
     # carries that asked for set-size (with and without a cite), set-files
