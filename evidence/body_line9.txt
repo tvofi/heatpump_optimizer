@@ -1,0 +1,8 @@
+$ git diff --shortstat 0a8033305d7b03494eb63453e6181a13ffa55c05...93ba227138a2c024bf81e44e74f2b11cb572bd76
+ 2216 files changed, 138804 insertions(+), 9608 deletions(-)
+$ git diff --name-only 0a8033305d...93ba227138a2c024bf81e44e74f2b11cb572bd76 -- custom_components | wc -l (body line 9 says empty)
+52
+$ git diff --name-only $(merge-base)...93ba227138a2c024bf81e44e74f2b11cb572bd76 -- custom_components | wc -l
+0
+$ git diff --name-only $(merge-base)...93ba227138a2c024bf81e44e74f2b11cb572bd76 -- VERSION custom_components/*/manifest.json RELEASE_NOTES.md tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
+(end)
