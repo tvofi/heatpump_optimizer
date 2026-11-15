@@ -2,8 +2,188 @@
  "round": 11,
  "reads": "dev/audit/yardstick/round10/OBJECTIVE.json",
  "evaluator": "r11-evaluator (Fable 5.2)",
- "reviewer": null,
- "review": null,
+ "reviewer": "r11-evaluation-reviewer (Fable 5.2)",
+ "review": {
+  "verdict": "revise",
+  "sha": "33d89b15f3a78836d880ade41dd28ecb9f7e1af1",
+  "revise": [
+   {
+    "id": "R1",
+    "what": "The by-hand escapes ledger is short, and `escapes`, `injected`, `unowned` and every dimension row are read off it.",
+    "finding": "Of the 16 product groups whose roster brief opens `Owner report`, `Outside report`, `Owner-reported`, `Hotfix from a live user` or `HOTFIX, critical production defect reported`, 4 are in no row of `escapes_hand.tsv`: R10-SAVINGS-NEGATIVE (`Owner report on v7.0.1 (tvofi 2026-10-19)`; its brief names the cause, pull request 2411, merged 2026-10-19 and first released in v7.0.1), R10-SETPOINT-BOOST (the same report), R10-MIN-POWER-FLOOR (`Outside report, issue 3289`, 2026-11-07) and R10-SAV-WOOD-MEASURED (the report R10-HOTFIX-SAV-ESTIMATE already carries, so no new row). R10-SETPOINT-POWER (owner, 2026-10-19) and R10-FLY-REPLAY-MASK (the owner's export on v7.1.1) are to be ruled in or out by name. The lead list selected on `kind`, `source` and the group id, which the record itself says are set on 31 of 545 groups. It moves `escapes.by_hand.in_window` from 22 to at least 25, `injected.by_hand.named_causes` from 2 to at least 3, `per_owner`, `generality.lead`, card E11-INJECTED's `21 of 22`, and each dimension row and card in whose territory the three fall.",
+    "command": "git show cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | python3 -c \"import json,sys,re; led={l.split(chr(9))[0] for l in open('dev/audit/rounds/round11/evaluation/escapes_hand.tsv')}; [print('in' if g['group'] in led else 'ABSENT', g['group']) for g in json.load(sys.stdin)['groups'] if re.match('Owner report|Outside report|Owner-reported|Hotfix from a live user|HOTFIX, critical production defect reported', ' '.join(str(g.get('brief')).split())) and any(str(f).startswith(('custom_components/','blueprints/')) for f in g.get('files') or [])]\" -> 12 in, 4 ABSENT; `git log --first-parent --format='%cI %s' a39627da59 | grep '#2411 '` -> 2026-10-19"
+   },
+   {
+    "id": "R2",
+    "what": "`injected` and card E11-INJECTED say no root-cause seat recorded a cause. One did, and the card re-opens an owed item without saying so.",
+    "finding": "For pull request 3404 the root-cause seat's record exists: R10-RCA-SETPOINT-LATCH-DEADLOCK.md (442 lines, commit 2e20aa5d4e, not on main) names the cause, process state (a), a cost test, a built detector and drafted text for `fix-review.md` and for `fixer.md` step 3. `dev/programme/HANDOVER.md` at the graded SHA lists it under `Owed to round 11, with the owner's ruling behind each` (tvofi, 2026-11-13) and says its countermeasures have no roster group, carry or pull request. `terms.injected.no_read` reads `no cause recorded by a root-cause seat`; the card takes the cause from the fixing group's word, says the roster holds no root-cause group, and proposes two clauses weaker than the record's draft (it drops the previous release's persisted state and the acceptance in person) while naming neither the record nor the owed item.",
+    "command": "git show archive/handoff-wip/r10-rca-setpoint-latch-deadlock:dev/audit/rca/R10-RCA-SETPOINT-LATCH-DEADLOCK.md | sed -n '1,50p;373,395p'; git show a39627da59:dev/programme/HANDOVER.md | sed -n 1546,1557p"
+   },
+   {
+    "id": "R3",
+    "what": "Four gate keeps rest on a read that does not read them.",
+    "finding": "`.github/workflows/arch-score.yml`, `budget-raise-gate.yml`, `kernel-points.yml` and `pr-contract.yml` carry `0 failed job(s) of this workflow on main's failed push runs read`. None runs on a push to main: the push work set is codeql, governance, hassfest, tests, validate, and the job listing of a successful main push run shows the four `skipped`. The zero is an absence, not a yield; repeated at round 12 it would read as zero in two consecutive rounds and license a false `remove` of four pull-request gates. They owe the wording the record gives the seven `Not called by the CI workflow on a push to main` rows.",
+    "command": "python3 -I -c \"import sys; sys.path.insert(0,'tools/ci'); import prelude; print(sorted(prelude.workset('code','')))\" -> ['codeql', 'governance', 'hassfest', 'tests', 'validate']; gh api 'repos/<slug>/actions/runs/43551291322/jobs?filter=latest&per_page=100' --jq '.jobs[] | select(.conclusion==\"skipped\") | .name' -> arch-score, budget-raise-gate, kernel-points, pr-contract among them"
+   },
+   {
+    "id": "R4",
+    "what": "Card E11-GATE-REDS part (b) makes the false move 0018 names for `product_green` and misreads what gates a push.",
+    "finding": "(b) proposes report-only on a push. 0018 section 5 names `move a check out of gate` as `product_green`'s cheapest false move with gate's check count as its control; the card says neither. Its `open question is governance / record` is not open at the graded SHA: gate's push-required set holds neither `governance / record`, `governance / instrument-self-tests` nor `tests / ci-ratchet`. The share reproduces from this seat's own fetch (830 runs, 528/632, the same 830 run ids). On the 104 gate-red runs the only failed job was `tests / ci-ratchet` on 69 (the last on 2026-11-09; `PUSH_REPORT_ONLY` holds it at the graded SHA), `tests / fast (3.14)` on 12, `governance / instrument-self-tests` on 3, none on 1; `governance / record` failed on 9, all on 2026-10-25 or 26 and never alone, and on 49 more runs whose gate succeeded. `never a product fault in the window` cannot be decided while no red carries its cause, the card's own NO-READ. Part (a), the cause record, stands.",
+    "command": "python3 -I -c \"import sys; sys.path.insert(0,'tools/ci'); import gate; print(gate.REQUIRED['push'])\"; python3 dev/audit/rounds/round11/evaluation/gate_reds.py fetch --dir <dir> --slug <slug> --from 2026-10-14 --to 2026-11-15 && python3 dev/audit/rounds/round11/evaluation/gate_reds.py report --dir <dir> --window 2026-10-14T13:27:06Z..2026-11-15T05:22:47Z, then the failed-job set per gate-red run from <dir>/ci_failed_jobs.jsonl"
+   },
+   {
+    "id": "R5",
+    "what": "`0 removes by construction` does not hold for two objects; a read the evaluator did not look for measures them at zero in both rounds.",
+    "finding": "The record says of `.claude/workflows/audit-fix.js` and `.claude/workflows/audit-wave.js` that zero use in rounds 9 and 10 is unmeasured. Both scripts send their fixer to a branch `claude/audit-fix-<group>`. Every pull request ever opened from that head pattern, 9 of them, was created 2026-09-02 or 2026-09-03; none falls in round 9's window or round 10's, and both scripts read RETIRED since commit 785963eba4 (2026-09-08). No layer-1 term is read through either. 0018 section 3 then asks `remove` with a card (`tests/closure.py`, `tests/closures.json`, `tools/audit/seat/plan_audit.py` and `tools/ci/selftest_closures.json` name them, which is the card's cost), or a keep that states this read and why it does not suffice; `unmeasured` cannot stay. The reason `not_followed` gives is also too wide: the role class has a round-9 read by the instrument 0018 names (first-pass 28/76, real-catch 19/76).",
+    "command": "grep -n -o 'claude/audit-fix-[^ ]*' .claude/workflows/audit-fix.js .claude/workflows/audit-wave.js; gh pr list -R <slug> --state all --search 'head:claude/audit-fix-' --json number,createdAt,headRefName --limit 300 -> 9, 2026-09-02T01:01:32Z .. 2026-09-03T06:47:47Z; git log -S RETIRED --format='%h %cI' -- .claude/workflows/audit-fix.js; python3 tools/audit/seat/review_strength.py --repo . --window r9=2026-09-25T12:54:39Z..2026-10-14T13:27:06Z"
+   },
+   {
+    "id": "R6",
+    "what": "Card E11-U3 owns a wedge by `none` without arguing D1 out.",
+    "finding": "R10-HOTFIX-FLOW-SETPOINT-STUCK is a hold that a persisted record never releases, a restart included. D1's brief hunts `Ways the integration wedges ... or turns a corrupt input into a permanent failure`, 0018 section 1's D1 row reads `no wedge ... on any enumerated lifecycle path, store, timer, listener or guard`, and the ledger itself gives D1 the stored override of R10-HOTFIX-AWAY-LIVE. Owning a report by `none` is 0018 section 5's false move for `escapes`; the card rests on a three-word grep and owes the argument E11-U1 makes for D12. The other six write items (U2, U4 to U8) stand: no brief names the arbiter, a set-point or the supply switch.",
+    "command": "grep -n -i wedge dev/governance/dimensions/D1.md -> line 10; grep -c -i 'arbiter\\|set-point\\|setpoint\\|supply' dev/governance/dimensions/D*.md -> 0 in all 16"
+   }
+  ],
+  "notes": [
+   {
+    "id": "N0",
+    "note": "Owed in the same revision: evaluator.md step 1 asks each enumerator 0018 names re-run, and `not_followed` says D6's and D7's were not because the heavy suites are not this seat's to run. Neither is heavy: `python3 tests/doc_claims.py` prints `ALL 410 checks PASSED` in 11 s and `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` in 20 s on this host. The D6 and D7 rows owe the two reads.",
+    "command": "python3 tests/doc_claims.py | tail -1; python3 tests/structure.py | tail -1"
+   },
+   {
+    "id": "N1",
+    "note": "D9 is kept while its three coverage rows carry no denominator, which 0018 section 3 names as a `change` (`a step with no denominator`), and its brief enumerates in prose (`every coordinator collection`, `every entity's attributes`) as D1's does (`Enumerate every persisted payload`), which the record scores `change`. D13 names an enumerator per output and its keep stands. Either card D9 or name the command that prints each step's universe.",
+    "command": "python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json -> D9 rows 3, with examined/universe 0; sed -n 20,41p dev/governance/dimensions/D9.md"
+   },
+   {
+    "id": "N2",
+    "note": "Every roster-derived command in the record names the moving ref. At its tip today (2abb808cd5) `main_red_groups.py` prints GROUPS 32 HOTFIX 21 where the record says 31 and 20, and 7 of 124 `instrument_cost.py` rows differ by one group. All reproduce at the pin `graded.roster` records; the commands should carry that pin.",
+    "command": "python3 dev/audit/rounds/round11/evaluation/main_red_groups.py --repo . --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json | tail -1 -> GROUPS 31 HOTFIX 20 NAMING_SELF_TESTS 13"
+   },
+   {
+    "id": "N3",
+    "note": "`injected.by_hand` divides by 178 production merges from `git log -- custom_components blueprints`. 0018 section 2 defines a production merge as `machinery_ratchet.py`'s class, which reads 162 over the window's 1210 first-parent commits. With R1's third cause the proxy is 3 per 162, not 2 per 178.",
+    "command": "python3 tools/audit/machinery_ratchet.py --measure --repo . --head 13cbe48de4 --window 1210 -> production 162"
+   },
+   {
+    "id": "N4",
+    "note": "`13 of the 20 main-red hotfix groups name the instrument self-tests` is 12: R10-HOTFIX-CI-RATCHET-SKIPPED-RUN matches the script's pattern only on `the ratchet's own self-test`.",
+    "command": "main_red_groups.py's pattern `instrument-self-tests|self-test` against each of the 20 briefs at the pinned roster"
+   },
+   {
+    "id": "N5",
+    "note": "The keeps of `standing-tick.md` and `standing-roster.md` say the seat's yield was not zero in round 9. Neither file existed in round 9 (0 lines at v7.0.0, added 2026-10-22); the `remove` clause fails for want of a second round, not for a yield.",
+    "command": "git log --diff-filter=A --format='%h %cI' -- dev/governance/roles/standing-tick.md"
+   },
+   {
+    "id": "N6",
+    "note": "A null `reviewer` passes the round check's two-seats rule (`norm(None)` is `none`): with `review` set to approve at this commit and `reviewer` left null the check prints 45 gaps and none about the seats. The evaluator reported this outside the record. `check_scopes.py` is code-owned, so it is owed as a card.",
+    "command": "python3 tools/audit/check_scopes.py --repo . --round 11 on a throwaway commit setting only `review` -> 45 gaps, no `must be two seats` line; the same commit with the evaluator's name respelled as reviewer -> refused"
+   },
+   {
+    "id": "N7",
+    "note": "Nothing live guards the eight unowned cards: dropping E11-U3 leaves the check at 45 gaps and no refusal, because the count it compares is round 10's objective record, which does not exist. Dropping a threshold card or a criterion card is refused. This is one more cost of card E11-N-OBJECTIVE-RECORD's part (a).",
+    "command": "python3 tools/audit/check_scopes.py --repo . --round 11 on throwaway commits dropping E11-U3, E11-T-product_green_floor, E11-K-D9 in turn"
+   },
+   {
+    "id": "N8",
+    "note": "Card E11-K-D9 names `tests/stress_budgets.json` as a candidate without its limits: it holds memory peaks and a ratio per scenario as the code recorded them, no CPU budget and no Pi figure, and D9's brief says the ms budget is retired. Named as the criterion it would grade D9 against the code's own recording.",
+    "command": "python3 -c \"import json;print(sorted({k for v in json.load(open('tests/stress_budgets.json')).values() for k in v}))\" -> ['ratio', 'rss_attrib_mb', 'rss_peak_mb', 'traced_peak_mb']"
+   },
+   {
+    "id": "N9",
+    "note": "Card E11-D4 adds `the released build's card rendered in a real Home Assistant frontend` to step 1 and prices the change at the brief's lines; the brief says `There is no Home Assistant frontend locally`, so the input has an environment cost the card leaves out.",
+    "command": "grep -n 'no Home Assistant frontend' dev/governance/dimensions/D4.md"
+   },
+   {
+    "id": "N10",
+    "note": "Three cards touch items already written elsewhere and do not cite them: E11-GATE-REDS (a) and E11-N-GATE-CAUSE ask for a cause per red where card P7 (caused_by and found_by on hotfix and outside groups, tvofi yes 2026-11-13, folded into P744) already builds the group half; E11-N-OBJECTIVE-RECORD (b) reopens what P747 logs as done. No card contradicts an entry of the round-end triage that carries an `Owner:` line.",
+    "command": "git show origin/main:dev/programme/triage/r10-round-end.md | sed -n '128,148p;179,191p'"
+   },
+   {
+    "id": "N11",
+    "note": "The commit touches only the evaluation's own paths (seven scripts and the ledger under `dev/audit/rounds/round11/evaluation/`, and the record), adds and edits nothing tracked, and carries no host path, account name or footer. The scripts are INERT by the `dev/audit/` prefix and outside the header corpus (`rounds/round*/D*/*.py`); all seven run from the tree and print what the record says. Adding them is within `change nothing`: they are this evaluation's evidence, each marked a proxy.",
+    "command": "git diff --name-status a39627da59 33d89b15f3a78836d880ade41dd28ecb9f7e1af1; python3 -I tools/audit/seat/ref_privacy.py guard --ref eval/r11 --commits 33d89b15f3a78836d880ade41dd28ecb9f7e1af1 --over a39627da59 -C . -> rc 0; python3 tests/closure.py select --diff a39627da59 -> MODE: SCOPED -- 0 script(s) run, 33 scoped out"
+   },
+   {
+    "id": "N12",
+    "note": "The 46 gaps of `check_scopes.py --round 11` are each by design: the missing round-10 objective record (1), the review not yet an approve (1), and one per undecided card (44).",
+    "command": "python3 tools/audit/check_scopes.py --repo . --round 11 | grep -c 'carries no owner decision' -> 44"
+   },
+   {
+    "id": "N13",
+    "note": "`0 of 113` holds as keys (every row holds `step`, `depth`, `evidence` and nothing else), while 34 rows state a count in prose (D1-s2: `8 stores x 200 seeded mutants ... Six stores were not populated`). The 7 owner reports dated the stamp's own day are held out of every verdict, which lowers D2, D4 and D8 by 2, 3 and 2; the record says so. The judge's 9 verdicts with no dimension prefix (7 standing) are in neither `removed_floor` nor `standing_findings`.",
+    "command": "the coverage rows of dev/audit/rounds/round10/reports-B*.json at a39627da59, key sets and a search for `N of M` in each row"
+   }
+  ],
+  "cards_attacked": [
+   {
+    "layer": "dimension brief",
+    "card": "E11-D1",
+    "false_move": "assign a report to the nearest dimension; name a narrower universe",
+    "measured": "each of the five rows' steps exists in D1.md and names the input class (step 3 names `a price list that stops updating`)",
+    "stands": "yes, on a ledger R1 reopens"
+   },
+   {
+    "layer": "role contract",
+    "card": "E11-INJECTED",
+    "false_move": "the cause is the fixing group's word",
+    "measured": "R2",
+    "stands": "no"
+   },
+   {
+    "layer": "rule",
+    "card": "E11-N-RULE-YIELD",
+    "false_move": "keep everything on a NO-READ no card carries",
+    "measured": "11 of the 12 rule files are named by no class of bugclasses.json; `fold_ledger.py check` prints 55 classes, 758 instances, 0 violations; a `remove` on a NO-READ is refused by the check",
+    "stands": "yes"
+   },
+   {
+    "layer": "instrument",
+    "card": "E11-SCORECARD",
+    "false_move": "a proxy passed off as the term",
+    "measured": "`scorecard.py report` on an empty input prints `A_gate  unread (runs.json)`; the round-10 state directory holds no scorecard input; line A_gate reads the last 20 runs",
+    "stands": "yes"
+   },
+   {
+    "layer": "gate",
+    "card": "E11-GATE-REDS",
+    "false_move": "move a check out of gate",
+    "measured": "R4",
+    "stands": "(a) yes, (b) no"
+   },
+   {
+    "layer": "threshold",
+    "card": "E11-T-product_green_floor",
+    "false_move": "a floor taken from `proposed` or set under the round's own read",
+    "measured": "the card recommends no value; dropping it makes the check print `threshold product_green_floor is unset and no card carries it`",
+    "stands": "yes"
+   },
+   {
+    "layer": "owner criterion",
+    "card": "E11-K-D9",
+    "false_move": "a criterion that is the code's own recording",
+    "measured": "N8; dropping the card is refused",
+    "stands": "yes, with N8's caveat owed"
+   },
+   {
+    "layer": "unowned item",
+    "card": "E11-U3",
+    "false_move": "own a report by `none`",
+    "measured": "R6",
+    "stands": "no as written"
+   }
+  ],
+  "reproduced": [
+   "`tally.py`: 198 objects, keep 175 (all NO-READ), change 23, remove 0; terms read 1 of 13; cards 44 (object 19, threshold 6, criterion 4, unowned 8, other 7).",
+   "`first_pass`: `flow_metrics.py` 436/862 with 18 merged on no bus verdict; `review_strength.py` 467/909, real-catch 214/909, cloud 164/752, local 59/228; first blocks mutation-vacuous 62, carry-missing 56, class-open 53, harness 26, ci-red 25.",
+   "`product_green` proxy: this seat's own `gate_reds.py fetch` and `report`: 830 runs, cancelled 198, failure 291, success 341, gate share 528/632, the same job counts.",
+   "Coverage: 48 seat reports, 113 rows, 0 with an examined, universe or denominator key, in all 16 dimensions; ten rows read by hand.",
+   "`dimension_read.py`: all 16 rows equal the record's evidence; `escapes.py` rc 0, 22 in the window, 7 on the stamp's day, 1 unreleased, 8 owned by none; eight ledger rows read against their roster briefs agree with the group, the reporter and the cause named.",
+   "Keeps re-run: instrument `tools/audit/seat/instruments/merge_train.py.md` (11585 lines, 2416 at the start, 50 merges, 52 groups, 7 hotfix) and all 124 instrument rows at the pinned roster; rule `dev/governance/rules/gate-scoping.md` (its command prints 0, 51 lines, 61 at the start, 7 merges); role `dev/governance/roles/designer.md` (25 groups, first verdict approve 3/25, 56 verdicts); dimension `dev/governance/dimensions/D13.md`; gate `.github/workflows/hassfest.yml` (called on a push, 0 failed jobs).",
+   "`check_scopes.py --population`: 195 levels, 18696 pairs, 2 NO-READ axes; `check_scopes.py` rc 0, unclassified 0."
+  ]
+ },
  "graded": {
   "sha": "a39627da59acbfdcd576e87349167603e9dec734",
   "window": "2026-10-14T13:27:06Z..2026-11-15T05:22:47Z",
