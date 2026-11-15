@@ -47,7 +47,7 @@ TWIN_FROM = 71
 
 
 def seat_pair(scopes: dict, seat: str, model_a: str, model_b: str, rnd: int) -> tuple[dict | None, str]:
-    m = re.fullmatch(r"(D(?:1[0-5]|[0-9]))-(s[0-9]+)", seat)
+    m = re.fullmatch(r"(D(?:1[0-7]|[0-9]))-(s[0-9]+)", seat)
     if not m or m.group(2) not in ((scopes.get(m.group(1)) or {}).get("seats") or {}):
         return None, f"{seat!r} is no seat of scopes.json"
     if not model_a.strip() or not model_b.strip():
