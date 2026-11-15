@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0
+updated-for: 19baca76181cb019d9b1cfd93ee6bc0a08e20047
 
 This file is ruled by `dev/governance/rules/writing-for-agents.md` (generated
 into `.claude/rules/`, which the harness loads on this path). It holds what a
@@ -59,6 +59,22 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   v10.0.0 through `tools/release/stamp.py --round-close 10`; between closeouts
   a stamp is `--bump minor` or `--bump patch` and `--bump major` refuses
   (decision 0016, tvofi, 2026-10-29). Versions jump 7.x to 10.0.0 by rule.
+- **Closure rules in force from 2026-11-12** (tvofi). Non-critical outside work,
+  and any group self-fed from round 10 or newly self-fed, that moves closure goes to
+  round 11, and triage applies that closure test at every ACCEPT; a study decision
+  that does not move closure is built now ("I want it now if it does not move
+  closure"). The contributor-cycle mechanism is built in full in round 10 ("as
+  soon as possible"), and a class O approval by our own machinery under the mandate
+  is valid, no in-person read. Full learner robustness stays in round 10, which
+  overrides the earlier scaled-tail deferral. The catalog pull request and closure
+  are due 2026-11-15; `R10-CATALOG-PR` is priced at 4 h on the assumption that
+  "ready" means opened by us, not merged by HACS. A product-only required set is
+  round 11.
+- **Stamping does not wait for main** (tvofi, 2026-11-12: "You may stamp without
+  waiting for main"). `stamp.py` run directly skips the stamp step's
+  `merge_train.py sweep --stamp`, which merges the HELD-FOR-STAMP record pull
+  requests; v7.1.12 was stamped that way and eight record pull requests stayed
+  open until the merge seat ran the sweep.
 - **The record beat writes delivery rows; this file's `updated-for:` line stays
   manual.** `tools/audit/seat/record_row.py` generates each row from REST facts
   into a `record/autofix` pull request that merges with no review seat where
@@ -504,6 +520,24 @@ graduation owes a mutation proof in its own pull request.
 - **Six of this project's own instruments reported rather than measured**
   (#341, #347, #354, #350, #357, #510), each found by someone chasing something
   else: the pattern is the finding, not the individual bugs.
+
+- **An instrument that reads `/proc` has no run on the orchestrator's macOS
+  host.** `mutant_run.py` gained a `/proc` walk in #3475; `prepr.sh --self-test`
+  then read 537 passed, 5 failed on that host, refusing every update or open whose
+  push runs full prepr, and `open_pr.sh` closed a pull request after its row push
+  failed. No CI job runs on macOS, so only the host sees it. State (a) and the
+  proposed local lane are in `dev/audit/rca/R10-RCA-LINUX-ONLY-INSTRUMENT.md`; an
+  opener's refusal is read from the prepr REFUSE rows in its log, not assumed to
+  be the host.
+- **A direct merge while a proof batch waits moves `main` under it** and costs a
+  re-prove (MAIN-MOVED); route a ready head to `train add --front`.
+- **A repair brief says "answer every item of the verdict file"**, not the item
+  that failed last: three rounds were lost on one pull request to one-item repairs.
+  A reviewer is fired only at a head that contains its handoff tip and after
+  reading the latest verdict at that tip: three reviews re-found a block already
+  repaired or already returned.
+- **A seat status of "completed" can still hold a live monitor**; check for it
+  before launching a replacement, or two standing seats run at once.
 
 Graduated, one line each:
 
