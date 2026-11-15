@@ -9,7 +9,7 @@ Discovery reads (search, list, read across files) go through Agent subagents, as
 Brief (snapshotted when this payload was rendered):
 Repair round on R11-OWNER-COMMUNITY-STANDARDS (no pull request yet). Resume from handoff/r11-owner-community-standards at fb1f926a209056c635f7ca0518edd76aafdae67b and the body kept at handoff-wip/r11-owner-community-standards-body (read the step ref handoff-wip/r11-owner-community-standards first: if your body push was refused, its reason is there; repair that too).
 
-Owner rulings after your dispatch, tvofi 2026-11-15: the code of conduct is not Contributor Covenant based; he approved the exact text below ("apply but remove the parts about flooding the repo, this is what a finder phase does by design"). Replace CODE_OF_CONDUCT.md with exactly this text, byte for byte, between the markers (do not add Covenant attribution, do not add any limit on how many issues, comments or pull requests an agent may open):
+Owner ruling after your dispatch, tvofi 2026-11-15: he approved the exact code of conduct text below. Replace CODE_OF_CONDUCT.md with exactly this text, byte for byte, between the markers. Add nothing to it: no attribution, no link to another code of conduct, no limit on how many issues, comments or pull requests an agent may open.
 -----BEGIN CODE_OF_CONDUCT.md-----
 # Code of conduct
 
@@ -44,4 +44,4 @@ The maintainer, the GitHub account `tvofi`, may edit, hide or remove contributio
 
 To report a problem privately, use the security advisory form linked in `SECURITY.md`, or GitHub's "Report content".
 -----END CODE_OF_CONDUCT.md-----
-Then: check the issue forms do not link to or quote Covenant text that no longer exists; update the body (say the code of conduct is the owner's approved text, own wording, with an agents section); keep the layout and closure classification of the file; prepr scoped as docs (PREPR_SKIP_CLOSURES=1 allowed); push handoff/r11-owner-community-standards (fast-forward) and run body_push. If body_push refuses CARRY-LANDED, the relay folds it; write BLOCKED.md and stop.
+Then: check the issue forms do not link to or quote any external code of conduct; update the body so it describes the code of conduct only as the project's own text, with an agents section. Owner rule for this group: nowhere in the tree, in a commit message, in the body or in any comment do you name, quote, compare with or mention any other code of conduct, or say that one was chosen, replaced or declined. Write your commit message in those terms too; keep the layout and closure classification of the file; prepr scoped as docs (PREPR_SKIP_CLOSURES=1 allowed); push handoff/r11-owner-community-standards (fast-forward) and run body_push. If body_push refuses CARRY-LANDED, the relay folds it; write BLOCKED.md and stop.
