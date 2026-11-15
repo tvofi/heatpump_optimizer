@@ -27010,7 +27010,7 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-CATALOG-PR"
+    "R11-PRE-PARALLEL-PIPELINE"
    ],
    "files": [
     "dev/governance/roles/standing-merge.md",
