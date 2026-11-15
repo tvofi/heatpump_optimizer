@@ -16,10 +16,13 @@
           --not <orchestrator> --not <evaluator> --not <each finder seat>
 
     It refuses, writing nothing, a planter among the `--not` names, a list
-    inside the tree, a tree holding `.git` (so the isolated dimensions'
-    worktrees take no plant), a list missing either the natural or the
-    configuration space, a config cell that is no population level, and an
-    old text not in its file exactly once.
+    inside the tree, a tree inside a git work tree (the tree or any ancestor
+    holding `.git`, a linked worktree's `.git` file included, so neither the
+    isolated dimensions' worktrees nor any subdirectory of one takes a plant),
+    a list missing either the natural or the configuration space, a config
+    cell that is no population level, an old text not in its file exactly
+    once, and two plants in one file whose old texts overlap. Plants sharing a
+    file land at their old text's place in the original file.
   - **Count, after `audit-verify.js`'s judge:**
 
         python3 -I tools/audit/seat/plant_recall.py recall --plants ../audit-r<N>-plants/P.json \
