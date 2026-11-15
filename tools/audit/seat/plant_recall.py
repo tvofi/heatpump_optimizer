@@ -111,8 +111,12 @@ def plant(doc: dict, trees: list[Path]) -> list[str]:
     return out
 
 
-def verdicts(judge: dict) -> dict[str, str]:
-    """id -> final verdict, a merged finding resolved to its canonical one."""
+def resolve(judge: dict) -> dict[str, tuple[str, str]]:
+    """id -> (its canonical id, that one's verdict): the judge's merges followed.
+
+    The one reader of the judge's merge grammar (`merged` with `into`, or the
+    verdict text `merged into <id>`); finder_overlap.py imports it.
+    """
     raw = {v["id"]: v for v in judge.get("verdicts", []) if "id" in v}
 
     def into(v: dict) -> str | None:
@@ -123,12 +127,17 @@ def verdicts(judge: dict) -> dict[str, str]:
 
     out = {}
     for i in raw:
-        cur, seen = raw[i], {i}
+        cur, cid, seen = raw[i], i, {i}
         while (nxt := into(cur)) and nxt in raw and nxt not in seen:
             seen.add(nxt)
-            cur = raw[nxt]
-        out[i] = "merged-unresolved" if into(cur) else str(cur.get("verdict"))
+            cur, cid = raw[nxt], nxt
+        out[i] = (cid, "merged-unresolved" if into(cur) else str(cur.get("verdict")))
     return out
+
+
+def verdicts(judge: dict) -> dict[str, str]:
+    """id -> final verdict, a merged finding resolved to its canonical one."""
+    return {i: v for i, (_, v) in resolve(judge).items()}
 
 
 def names(finding: dict, plant: dict) -> bool:
@@ -320,7 +329,7 @@ MUTANTS = {
     "names: file": ('plant["file"] in (finding.get("files") or []) and', "True and", "in another file"),
     "names: word": ('r"(?<![\\w])" + re.escape(plant["symbol"]) + r"(?![\\w])"', 're.escape(plant["symbol"])', "sharing a prefix"),
     "lost vs missed": ("elif hits:", "elif False:", "refuted at the judge"),
-    "merged resolved": ("cur = raw[nxt]", "break", "canonical verdict"),
+    "merged resolved": ("cur, cid = raw[nxt], nxt", "break", "canonical verdict"),
     "merged text": (r'r"merged into (\S+)"', r'r"merged onto (\S+)"', "canonical verdict"),
     "null plants": ('if not doc or not doc.get("plants"):', "if not doc:", "empty plant list prints unread"),
     "null judge": ('if not judge or not judge.get("verdicts"):', "if not judge:", "an empty list) print unread"),

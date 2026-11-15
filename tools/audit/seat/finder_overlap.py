@@ -40,7 +40,9 @@ import re
 import sys
 from pathlib import Path
 
-REAL = ("verified", "weakened")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import plant_recall  # noqa: E402 -- the judge's merge grammar has one reader, there
+
 TWIN_FROM = 71
 
 
@@ -69,22 +71,7 @@ def report_ids(rep: dict | None, name: str) -> set[str] | None:
 
 def canonical(judge: dict) -> dict[str, str | None]:
     """id -> its canonical id when that one is judged real, else None."""
-    raw = {v["id"]: v for v in judge.get("verdicts", []) if "id" in v}
-
-    def into(v: dict) -> str | None:
-        if v.get("verdict") == "merged":
-            return v.get("into")
-        m = re.match(r"merged into (\S+)", str(v.get("verdict", "")))
-        return m.group(1) if m else None
-
-    out: dict[str, str | None] = {}
-    for i in raw:
-        cur, cid, seen = raw[i], i, {i}
-        while (nxt := into(cur)) and nxt in raw and nxt not in seen:
-            seen.add(nxt)
-            cur, cid = raw[nxt], nxt
-        out[i] = cid if cur.get("verdict") in REAL else None
-    return out
+    return {i: cid if v in plant_recall.REAL else None for i, (cid, v) in plant_recall.resolve(judge).items()}
 
 
 def estimate(pair: dict | None, ids_a: set | None, ids_b: set | None, judge: dict | None) -> list[str]:
@@ -221,10 +208,6 @@ MUTANTS = {
     "seat in scopes": ('m.group(2) not in ((scopes.get(m.group(1)) or {}).get("seats") or {})', "False", "does not hold"),
     "seat models": ("if not model_a.strip() or not model_b.strip():", "if False:", "missing model"),
     "box key": ('rep = (rep.get("reports") or {}).get(name)', "rep = rep", "box file"),
-    "real verdicts": ('REAL = ("verified", "weakened")', 'REAL = ("verified", "weakened", "refuted", "unreproduced")', "count no bug"),
-    "weakened real": ('REAL = ("verified", "weakened")', 'REAL = ("verified",)', "Chapman"),
-    "merge followed": ("cur, cid = raw[nxt], nxt", "break", "Chapman"),
-    "merge text": (r'r"merged into (\S+)"', r'r"merged onto (\S+)"', "Chapman"),
     "shared": ("m = len(bugs_a), len(bugs_b), len(bugs_a & bugs_b)", "m = len(bugs_a), len(bugs_b), 0", "Chapman"),
     "chapman": ("(n1 + 1) * (n2 + 1) / (m + 1) - 1", "n1 * n2 / max(m, 1)", "Chapman"),
     "unseen": ("est - (n1 + n2 - m)", "est - (n1 + n2)", "Chapman"),
@@ -257,6 +240,7 @@ def self_test(path: Path, mutants: bool = True) -> int:
             with tempfile.TemporaryDirectory() as td:
                 mp = Path(td) / path.name
                 mp.write_text(code.replace(old, new) + sep + tail)
+                (Path(td) / "plant_recall.py").write_text(path.with_name("plant_recall.py").read_text())
                 p = subprocess.run([sys.executable, "-I", str(mp), "--self-test", "--no-mutants"],
                                    capture_output=True, text=True, timeout=120)
             killed = p.returncode != 0 and any(ln.startswith("FAIL") and case in ln for ln in p.stdout.splitlines())

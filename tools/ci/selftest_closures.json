@@ -4404,12 +4404,18 @@
   "finder-overlap": {
    "run_sha": "acc165c99b344a4c6975668d5aca24c15529e9fb81964e9e4b9d0f1fb355786c",
    "files": [
-    "tools/audit/seat/finder_overlap.py"
+    "tools/audit/seat/finder_overlap.py",
+    "tools/audit/seat/plant_recall.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
