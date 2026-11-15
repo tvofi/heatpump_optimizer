@@ -1,0 +1,43 @@
+## nudge grep at head
+5
+HEAD:dev/governance/config/policy_budgets.json:132:    "tools/audit/briefs/nudge.md": 3814,
+HEAD:dev/programme/HANDOVER.md:607:| R10-NUDGE-RETIRE | `#3566` | `nudge.md` binds Cursor and ZCode sessions only; retire it as written. Held on a CI-only flake
+HEAD:dev/programme/round10/state/PLAN-TABLE.md:126:| R10-CI-LAYOUT | IN | 1 | done | #2495 | opus/opus | yes: Code-owned (`/.github/workflows/`, `tests/run.sh` 
+HEAD:dev/programme/round10/state/PLAN-TABLE.md:163:| R10-CI-LAYOUT-P1 | IN | 1 | done | #2495 | opus/opus | yes: Code-owned (`/.github/workflows/`, `tests/run.s
+HEAD:dev/programme/round10/state/PLAN-TABLE.md:164:| R10-CI-LAYOUT-P2 | IN | 1 | done | **#2495** | opus/opus | yes: Code-owned (`/.github/workflows/`, `tests/r
+## at merge base e0ad8b2bd3
+46
+## VERSION/manifest/notes/claims touched?
+(empty = untouched)
+## policy_lint
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## budgets
+file                                           lines cap  ~tokens  cap always
+dev/governance/roles/architect-planner.md         84   85     1261  1261 
+dev/governance/roles/designer.md                  60   60      877   878 
+dev/governance/roles/design-review.md             52   53      778   778 
+dev/governance/roles/standing.md                  50   50      547   553 
+dev/governance/roles/proposal-triage.md           40   40      563   563 
+dev/governance/roles/standing-merge.md            37   37      506   507 
+dev/governance/roles/standing-dispatch.md         32   39      475   509 
+dev/governance/roles/evaluator.md                 27   27      361   361 
+dev/governance/roles/plan-review.md               24   24      304   304 
+dev/governance/roles/standing-roster.md            7    7       92    92 
+dev/governance/roles/standing-tick.md              6    6       83    83 
+always-loaded: ~3598 tokens, cap 3349 +band 500 = 3849
+corpus:        ~65263 tokens, cap 65926 +band 500 = 66426
+role fixer     ~6273 tokens, cap 5852 +band 500 = 6352
+role record    ~7230 tokens, cap 7405 +band 500 = 7905
+role policy    ~10006 tokens, cap 9958 +band 500 = 10458
+## rules_sync
+RULES-SYNC ok: every generated rule is the generated form of its source
+## brief_lint
+rc=0
+## structure
+STRUCTURE RATCHET PASSED
+## sweep_render
+sweep_render self-test: 39 checks, 0 failed
+## orchestrator_tick
+orchestrator_tick self-test: 319 checks, 0 failed
+## roster_edit
+roster_edit self-test: 311 checks, 0 failed
