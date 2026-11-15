@@ -283,8 +283,7 @@ divergence"). Re-read on change after every compaction
   go to Opus when no oracle exists or if the groups requires judgement";
   2026-11-12: "Budget is fine for important work".
 - 2026-10-25: "the triage seat should be opus, since it requires judgement";
-  2026-11-11: "Have the triage seat as fable when triaging new product
-  features".
+  2026-11-15: "product-feature triage can run on opus".
 - 2026-11-01: "I think we should run the majority of the fixers in the cloud so
   the heavy runs are not constrained."; 2026-10-21: "try to keep heavy runs on
   cloud runners to keep the box load under control"; 2026-10-25: "dont forget
@@ -387,6 +386,9 @@ divergence"). Re-read on change after every compaction
   architectural groups that are now routed to opus to fable 5.2, use cheaper
   seats for easier work") and "L and XL seats only" (2026-11-12): superseded by
   "reserve fable for the most complex, architectural work" (2026-11-15).
+- "Have the triage seat as fable when triaging new product features"
+  (2026-11-11): superseded by "product-feature triage can run on opus"
+  (2026-11-15).
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
