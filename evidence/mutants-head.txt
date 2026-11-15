@@ -1,0 +1,112 @@
+BASELINE [(0, False), (0, False)]
+KILLED   count-condition: 1 fail, 0 fail
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   none-guard: 1 fail, 0 fail
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   queue-replay: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   queue-on-unrestored: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   finally-restore: 12 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   released-guard: 1 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   stop-edge-save: 1 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   element-instant-term: 3 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   element-latch-term: 1 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+KILLED   element-both-sources: 1 fail, 0 fail
+         FAIL the element rule is the meter source's only: a frequency install under a latched element counts its start
+KILLED   element-reader-guard: 3 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   timer-arm: 2 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   timer-delay-zero: 2 fail, 0 fail
+         FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over
+         FAIL the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps the timer a
+KILLED   timer-cancel-on-detach: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and
+KILLED   per-refresh-reread: 2 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   attach-in-init: 4 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   detach-on-release: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and
+KILLED   detach-clears-subscribers: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and
+KILLED   running-now-pending: 2 fail, 1 fail
+         FAIL in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer at the debounce,
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   ds-subscribe: 0 fail, 14 fail
+         FAIL through the arbiter: a dhw->space mode write while running that stops the compressor inside the window bo
+         FAIL a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode  [(0, 0, 0, 0, 
+KILLED   ds-unsubscribe: 0 fail, 2 fail
+         FAIL detaching with an episode open drops it uncounted and stops hearing the edges; the running class is the r
+         FAIL the running signal's listener triggers no arbiter pass; duty mode off unsubscribes the learner and leaves
+KILLED   ds-pass-confirm: 0 fail, 20 fail
+         FAIL through the arbiter: a dhw->space mode write while running that stops the compressor inside the window bo
+         FAIL null control: the same write with the compressor running on books a kept episode  [(0, 0, 0, 0, [])]
+KILLED   hold-off: 1 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   hold-on-frequency: 4 fail, 0 fail
+         FAIL in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer at the debounce,
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   hear-bypasses-hold: 1 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   refresh-tick-not-subscribed: 6 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   refresh-ticks-not-called: 6 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   refresh-reads-unsettled: 1 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   refresh-only-note: 6 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   detach-clears-ticks: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and
+KILLED   tick-subscribe-dropped: 6 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   hold-refreshes-one: 2 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+         FAIL wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading i
+KILLED   hold-refreshes-three: 7 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   hold-seen-not-counted: 7 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   hold-rose-from-any: 1 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   hold-rose-from-none: 4 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over
+KILLED   hold-short-run-any-edge: 1 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+KILLED   hold-short-run-at-stop: 1 fail, 0 fail
+         FAIL wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading i
+KILLED   hold-refresh-unsettled: 2 fail, 0 fail
+         FAIL S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real
+         FAIL wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading i
+KILLED   hold-release-at-refresh-time: 1 fail, 0 fail
+         FAIL wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading i
+KILLED   hold-last-not-kept: 4 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over
+KILLED   counter-refresh-off: 6 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+RESULT survived=0
+rc=0

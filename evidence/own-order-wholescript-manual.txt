@@ -1,0 +1,3 @@
+manual in-place run at a945275dd01d5a7ee100598315bd94e20652cb25 with running_signal.refresh reordered (tick read before note); worktree restored after (git status clean)
+ALL 5709 FEATURE CHECKS PASSED
+rc=0
