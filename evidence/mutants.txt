@@ -1,0 +1,20 @@
+== M1: base fix-review.md + step 16 only (no payment)
+tools/audit/briefs/fix-review.md                 144  140     2909  2775 
+corpus:        ~69865 tokens, cap 69333 +band 500 = 69833
+RESULT M1 policy_lint --budgets rc=0
+== M2: delete the root-cause-detectable routing sentence
+1
+RESULT M2 check-wave-script rc=1
+-- Provenance and the fail-closed Reconcile gate
+  FAIL fix-review.md teaches "root-cause-detectable", a class the wave routes to the root-cause seat taught by the wave prompt only
+  FAIL (probe, expected) threw: deliberate
+== M3: delete 'never widen it'
+0
+RESULT M3 review_packet self-test rc=1
+  FAIL fix-review.md step 12: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+  ok   a cancelled step inside a failed job is INTRODUCED
+review_packet self-test: 133 checks, 1 failed
+RESULT M1 policy_lint rc=1
+  ERROR   [budgets] tools/audit/briefs/fix-review.md: 144 lines exceeds its cap of 140. Cut, or state the case for a higher cap in the pull request body.
+  ERROR   [budgets] tools/audit/briefs/fix-review.md: about 2909 tokens across its lines exceeds its cap of 2775 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 3 error(s) across 52 policy file(s)

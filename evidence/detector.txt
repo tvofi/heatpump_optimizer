@@ -1,0 +1,14 @@
+== v11
+SUMMARY root=/root/wt/v11 demanded=55 states=9 failed=0 passes=10 dropped_axis=False armed_axis=False
+rc=0
+== v12
+FAIL written=25.0 dropped=25.0 reading=25 armed=False: reads 25 after 10 passes, demanded 55
+FAIL written=55.0 dropped=25.0 reading=25 armed=False: reads 25 after 10 passes, demanded 55
+SUMMARY root=/root/wt/v12 demanded=55 states=36 failed=4 passes=10 dropped_axis=True armed_axis=True
+rc=0
+== head
+SUMMARY root=/root/wt/head demanded=55 states=36 failed=0 passes=10 dropped_axis=True armed_axis=True
+rc=0
+RESULT detector v11 rc=0
+RESULT detector v12 rc=1
+RESULT detector head rc=0
