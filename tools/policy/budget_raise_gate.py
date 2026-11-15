@@ -253,6 +253,14 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("churn_per_kilo_product_lines",), MAX),
         (("churn_per_kilo_product_lines_band",), MAX),
     ],
+    # Its declining target (card P2): a later anchor restarts the decline, a
+    # longer stride or a smaller step slows it; each is a raise.
+    "dev/governance/config/machinery_target_budgets.json": [
+        (("_*",), FREE),
+        (("anchor",), FROZEN),
+        (("every_merges",), MAX),
+        (("step",), MIN),
+    ],
 }
 
 
@@ -941,6 +949,16 @@ def self_test() -> int:
           (raised(G, g0, {**g0, "window_merges": 600}), raised(G, g0, {**g0, "window_merges": 560})),
           (True, True))
     check("machinery: a comment edited is routine", raised(G, g0, {**g0, "_comment": "y"}), False)
+
+    T = "dev/governance/config/machinery_target_budgets.json"
+    t0 = {"_recorded": "x", "anchor": "a" * 40, "every_merges": 290, "step": 48}
+    check("target: null control", raised(T, t0, t0), False)
+    check("target: a faster decline is routine",
+          (raised(T, t0, {**t0, "step": 49}), raised(T, t0, {**t0, "every_merges": 289})), (False, False))
+    check("target: a slower decline is a raise",
+          (raised(T, t0, {**t0, "step": 47}), raised(T, t0, {**t0, "every_merges": 291})), (True, True))
+    check("target: a moved anchor is a raise", raised(T, t0, {**t0, "anchor": "b" * 40}), True)
+    check("target: the file removed is a raise", raised(T, t0, None), True)
 
     U = "tests/new_budgets.json"
     check("unknown file: a change with no schema is a raise", raised(U, {"x": 1}, {"x": 0}), True)
