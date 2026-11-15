@@ -1,1 +1,0 @@
-python3 -I tools/audit/seat/pulse.py --self-test >/dev/null && python3 -I tools/audit/seat/seat_gen.py --self-test --no-mutants >/dev/null && python3 -I tools/audit/seat/beat_jobs.py --self-test >/dev/null

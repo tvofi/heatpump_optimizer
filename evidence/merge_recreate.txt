@@ -1,0 +1,8 @@
+== 147db4ffa6 parents a720d3ed6381bbf7f5771d33b000a2cf02fa84d4 9b7d8d36820e7c8a4100d4186378b1c8abb3663c  rc=0
+== 47a14a2f65 parents 147db4ffa68d4436f8c5814a78ae1511a5516046 6abf88e617ee32844e809b3a3daad82d3d7e7f80  rc=0
+== fe8a480b09 parents 47a14a2f653b9a1362c1b2060600a84c1916cdd0 75d6b5fe8243474b5a22cda7ee2a666372653d1e  rc=0
+== 9b7d8d3682 parents a720d3ed6381bbf7f5771d33b000a2cf02fa84d4 d7004eaa775dd7b42aa392df0eb53aeec198b2b0  rc=1
+LEDGER-MERGE: resolved tests/closures.json
+CONFLICT (content): Merge conflict in tests/closure.py
+ tests/closure.py | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)

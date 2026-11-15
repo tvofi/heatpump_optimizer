@@ -1,0 +1,21 @@
+MUTANT NULL TZ=UTC rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT NULL TZ=Europe/Stockholm rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT NULL TZ=America/Los_Angeles rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT timegm TZ=UTC rc=1 seat_gen self-test: 33 checks, 2 failed :: FAIL mutant lstart_strip: its site appears 0 times;FAIL mutant lstart_utc: its site appears 0 times;
+MUTANT timegm TZ=Europe/Stockholm rc=1 seat_gen self-test: 33 checks, 4 failed :: FAIL ps_start: this process's start time is at most 600 s before now, never 0;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;FAIL mutant lstart_strip: its site appears 0 times;
+MUTANT timegm TZ=America/Los_Angeles rc=1 seat_gen self-test: 33 checks, 4 failed :: FAIL ps_start: this process's start time is at most 600 s before now, never 0;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;FAIL mutant lstart_strip: its site appears 0 times;
+MUTANT drop_lc_all TZ=UTC rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT drop_lc_all TZ=Europe/Stockholm rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT drop_lc_all TZ=America/Los_Angeles rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT drop_rc_check TZ=UTC rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT drop_rc_check TZ=Europe/Stockholm rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT drop_rc_check TZ=America/Los_Angeles rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT lstart_to_start TZ=UTC rc=1 seat_gen self-test: 33 checks, 2 failed :: FAIL ps_start: this process's start time is at most 600 s before now, never 0;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT lstart_to_start TZ=Europe/Stockholm rc=1 seat_gen self-test: 33 checks, 2 failed :: FAIL ps_start: this process's start time is at most 600 s before now, never 0;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT lstart_to_start TZ=America/Los_Angeles rc=1 seat_gen self-test: 33 checks, 2 failed :: FAIL ps_start: this process's start time is at most 600 s before now, never 0;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT lock_start_zero TZ=UTC rc=1 seat_gen self-test: 33 checks, 3 failed :: FAIL lock: a free lock is taken;FAIL lock: a live other holder whose command is the session binary refuses, naming both pids;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT lock_start_zero TZ=Europe/Stockholm rc=1 seat_gen self-test: 33 checks, 3 failed :: FAIL lock: a free lock is taken;FAIL lock: a live other holder whose command is the session binary refuses, naming both pids;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT lock_start_zero TZ=America/Los_Angeles rc=1 seat_gen self-test: 33 checks, 3 failed :: FAIL lock: a free lock is taken;FAIL lock: a live other holder whose command is the session binary refuses, naming both pids;FAIL the CLI lock --pid takes a free lock and records this pid's live start, never 0;
+MUTANT catch_only_value TZ=UTC rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT catch_only_value TZ=Europe/Stockholm rc=0 seat_gen self-test: 33 checks, 0 failed :: 
+MUTANT catch_only_value TZ=America/Los_Angeles rc=0 seat_gen self-test: 33 checks, 0 failed :: 

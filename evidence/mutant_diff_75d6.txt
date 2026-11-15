@@ -1,0 +1,18 @@
+SURVIVED tools/audit/seat/seat_gen_selftest.py:79 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:79 CONST_SWAP  check("lock null: a dead holder pid is taken over", sg.lock(sd, 201, ps, lambda pid: 8)[0] == 0)
+SURVIVED tools/audit/seat/seat_gen_selftest.py:81 CONST_SWAP  check("lock null: a reused pid naming another command is taken over", sg.lock(sd, 201, ps, lambda pid: 8)[0] == 0)
+SURVIVED tools/audit/seat/seat_gen_selftest.py:84 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:88 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:92 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:93 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:96 CMP_BOUND  check("ps_start: this process's start time is at most 600 s before now, never 0", int(t0) - 600 <= st <= int(t0))
+SURVIVED tools/audit/seat/seat_gen_selftest.py:96 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:96 CONST_SWAP  check("ps_start: this process's start time is at most 600 s before now, never 0", int(t0) - 601 < st <= int(t0))
+SURVIVED tools/audit/seat/seat_gen_selftest.py:97 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:98 CALL_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:98 CONST_SWAP  check("ps_start null: a pid ps cannot find is 0", sg.ps_start(3 ** 22 + 1) == 0)
+SURVIVED tools/audit/seat/seat_gen_selftest.py:101 CONST_SWAP  env={"HPO_STATE_DIR": d, "PATH": os.environ.get("PATH", "")}, capture_output=False, text=True)
+SURVIVED tools/audit/seat/seat_gen_selftest.py:104 CMP_BOUND  r.returncode == 0 and held == [str(os.getpid()), str(st)] and st >= 0)
+SURVIVED tools/audit/seat/seat_gen_selftest.py:89 STMT_DEL  pass
+SURVIVED tools/audit/seat/seat_gen_selftest.py:103 STMT_DEL  pass
+rc=1
