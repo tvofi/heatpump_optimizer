@@ -1,0 +1,17 @@
+MUTANT fence-toggle: text_ledger self-test: 19 checks, 1 failed
+MUTANT suffix-guard: text_ledger self-test: 19 checks, 1 failed
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('if suf in (".html", ".htm"):', 2)
+MUTANT html-branch: text_ledger self-test: 19 checks, 0 failed
+MUTANT ref-link-alt: text_ledger self-test: 19 checks, 1 failed
+MUTANT closing-hashes: text_ledger self-test: 19 checks, 1 failed
+MUTANT html-tag-strip: text_ledger self-test: 19 checks, 1 failed
+MUTANT html-sort: text_ledger self-test: 19 checks, 0 failed
+MUTANT cli-outline-dim: text_ledger self-test: 19 checks, 0 failed
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('" ".join(t.split())[:200]]))\n        sys.exit(0)', 2)
+MUTANT cli-trunc: text_ledger self-test: 19 checks, 0 failed
+MUTANT doc-row: text_ledger self-test: 19 checks, 2 failed
+text_ledger self-test: 19 checks, 0 failed

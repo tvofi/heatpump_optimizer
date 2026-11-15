@@ -1,0 +1,41 @@
+== brief_lint
+exit=0
+== check-wave-script
+exit=0
+== policy_lint
+TOTAL: 0 error(s) across 52 policy file(s)
+== budgets
+tools/audit/briefs/D11.md                        109  109     1647  1647 
+tools/audit/briefs/D13.md                         84   84     1217  1217 
+tools/audit/briefs/D4.md                          53   53      678   678 
+tools/audit/briefs/D5.md                          48   48      624   624 
+tools/audit/briefs/D10.md                         46   46      624   624 
+tools/audit/briefs/D3.md                          46   46      605   607 
+tools/audit/briefs/D7.md                          42   45      607   607 
+tools/audit/briefs/D14.md                         35   35      472   472 
+tools/audit/briefs/D6.md                          33   35      487   487 
+corpus:        ~69740 tokens, cap 69333 +band 500 = 69833
+== rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+== carry173
+cells=351 unitfiles=351 comm3=0
+in README.md
+in RELEASE_NOTES.md
+in custom_components/heatpump_optimizer/strings.json
+in custom_components/heatpump_optimizer/translations/sv.json
+in docs/setup.md
+in docs/index.html
+null control: README.md
+== universes
+45
+language	3	de,en,sv
+16
+19
+None
+== archscore
+Architecture score: dS +0.0000 NULL
+== env_drift
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
