@@ -102,7 +102,9 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 # before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
-  python3 -I "$PRT/figure_block.py" refresh "$B" --base origin/main --head HEAD > $WT.fig.log 2>&1 && return 0
+  local fb=origin/main
+  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
 }
