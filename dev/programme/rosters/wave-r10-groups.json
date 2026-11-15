@@ -24171,7 +24171,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S)",
-    "note": "triage s14 batch 201 P627; overlap admitted (R10-SEAT-IDENTITY-P5): distinct seam; overlap admitted (R10-SEAT-IDENTITY-P5): triage s14 batch 201 P627 ACCEPT narrowed (a): open_driver keys a STALE CHECKOUT refusal on the tools checkout HEAD, no backoff"
+    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C3, C14); carries and brief content moved to the receiving groups"
    }
   },
   {
