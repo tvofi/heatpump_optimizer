@@ -60,6 +60,11 @@ so `prepr.sh` step 6d warns and the body owes each one a disposition.
 through `closure.write_closures`, then predicts again; the entry it writes is
 an over-approximation at worst, the direction `_fold_inert_reads` keeps.
 
+STEP REPLAY, opt-in with SELF-TEST READS, runs each `instrument-self-tests`
+step whose run text names a changed file as the runner does, and predicts a
+red the base's step of that name does not share (#3245: a self-test summary
+line removed while governance.yml still grepped it).
+
 `--body FILE` adds a fifth arm, the carry check `pr-contract` runs on the body
 (R10-CI-LAYOUT-P2 carry 6): `tools/audit/carry_audit.py`'s own `audit`, imported
 from the checkout under test and never restated, so a finding item routed to a
@@ -497,6 +502,152 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
     return [("instrument", f"{g[0]} {g[1].rstrip(':')}: "
              + (g[2] if len(g) > 2 else "").strip())
             for g in gaps if len(g) > 1 and named(g[1].rstrip(":"))]
+
+
+# THE STEP REPLAY ARM (#3245's root-cause countermeasure). A step of
+# instrument-self-tests that tees a self-test and greps its summary lines is
+# graded on those lines, which no local path read: #3245 removed handoff_push.sh's
+# delivery_row line and governance.yml still grepped it, red after the handoff.
+INSTRUMENT_WF, INSTRUMENT_JOB = ".github/workflows/governance.yml", "instrument-self-tests"
+
+
+def instrument_steps(root: Path) -> dict[str, str]:
+    """{step name: run text} of every instrument-self-tests step that runs a command.
+    Read as text, not YAML: governance's runner python has no yaml module, and
+    every step there is `- name:` then a `run: |` block (or a one-line `run:`)."""
+    p = root / INSTRUMENT_WF
+    text = p.read_text() if p.is_file() else ""
+    at = text.find(f"\n  {INSTRUMENT_JOB}:\n")
+    if at < 0:
+        return {}
+    job = text[at + 1:]
+    end = re.search(r"\n  [A-Za-z][\w-]*:\n", job)
+    job = job[:end.start() + 1] if end else job
+    out = {}
+    for chunk in job.split("\n      - name: ")[1:]:
+        name, _, rest = chunk.partition("\n")
+        m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
+        one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
+        run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
+        if run.strip():
+            out[name.strip()] = run
+    return out
+
+
+def names_changed(root: Path, run: str, changed: set[str]) -> bool:
+    """A step's run text names a changed file, or names a tool whose own text
+    names a changed script by file name: ref_privacy.py's self-test drives
+    body_push.sh, and #3245's head reddened that step without the step naming it."""
+    if any(c in run for c in changed):
+        return True
+    names = {Path(c).name for c in changed if c.endswith((".py", ".sh", ".mjs"))}
+    for tool in set(re.findall(r"(?:tools|tests|dev)/[\w./-]+\.(?:py|sh|mjs)", run)):
+        p = root / tool
+        text = p.read_text(errors="replace") if p.is_file() else ""
+        if any(n in text for n in names):
+            return True
+    return False
+
+
+def replay_step(tree: Path, run: str) -> int:
+    """The step's rc as a GitHub runner runs a `run:` block (bash -eo pipefail)."""
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:
+        env = dict(os.environ, RUNNER_TEMP=t)
+        try:
+            return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", run],
+                                  cwd=tree, env=env, capture_output=True, timeout=SELF_TEST_TIMEOUT).returncode
+        except subprocess.TimeoutExpired:
+            return 124
+
+
+def step_replay_preds(root: Path, base: str, changed: set[str],
+                      notes: list | None = None) -> list[tuple[str, str]]:
+    """Each instrument-self-tests step whose run text names a changed file,
+    replayed at the head; one red there is replayed again, as the base's step of
+    that name, in a detached worktree of the base, and predicted only where the
+    base's is green -- so a step this container cannot run (a missing binary,
+    an unset variable: red at both ends) is a note left to CI, never the branch's."""
+    import tempfile
+    head = instrument_steps(root)
+    hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}
+    reds = {n: rc for n, r in hit.items() if (rc := replay_step(root, r))}
+    if not reds:
+        return []
+    out = []
+    with tempfile.TemporaryDirectory() as d:
+        wt = Path(d) / "base"
+        if git(root, "worktree", "add", "-q", "--detach", str(wt), base) is None:
+            return [("instrument", f"STEP REPLAY {n}: rc {rc} at the head; the base did not check out")
+                    for n, rc in reds.items()]
+        try:
+            was = instrument_steps(wt)
+            for n, rc in reds.items():
+                b = replay_step(wt, was[n]) if n in was else None
+                if b:
+                    (notes if notes is not None else []).append(
+                        f"STEP REPLAY {n}: rc {rc} at the head and {b} at the base -- this container's, left to CI")
+                else:
+                    out.append(("instrument", f"STEP REPLAY {n}: rc {rc} at the head, "
+                                + ("a step the base lacks" if b is None else "0 at the base")))
+        finally:
+            git(root, "worktree", "remove", "--force", str(wt))
+    return out
+
+
+def step_replay_self_test(root: Path) -> int:
+    """`step_replay_preds` over a scratch repo: a summary line the head stops
+    printing, its null control, and a step red at both ends."""
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_init
+    bad = 0
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        env = throwaway_git_init(t, "-q", "-b", "main")
+        g = lambda *a: subprocess.run(["git", *a], cwd=t, env=env, capture_output=True, text=True)
+        (t / ".github" / "workflows").mkdir(parents=True)
+        (t / "tools").mkdir()
+        step = ("      - name: {n}\n        run: |\n          set -o pipefail\n"
+                "          bash tools/{n}.sh --self-test | tee \"$RUNNER_TEMP/{n}.txt\"\n"
+                "          grep -Eq '^{n} self-test: [1-9][0-9]* checks, 0 failed$' \"$RUNNER_TEMP/{n}.txt\"\n")
+        (t / INSTRUMENT_WF).write_text(f"jobs:\n  {INSTRUMENT_JOB}:\n    steps:\n"
+                                       + step.format(n="a") + step.format(n="b")
+                                       + "      - name: c\n        run: bash tools/c.sh\n")
+        # c's step names only c.sh, whose text drives a.sh (ref_privacy.py over body_push.sh).
+        (t / "tools" / "c.sh").write_text("bash tools/a.sh --self-test | grep -q '^a self-test:'\n")
+        ok = "echo '{n} self-test: 3 checks, 0 failed'\n"
+        (t / "tools" / "a.sh").write_text(ok.format(n="a"))
+        (t / "tools" / "b.sh").write_text("exit 127\n")
+        g("add", "-A")
+        g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
+        base = g("rev-parse", "HEAD").stdout.strip()
+        cases = (("a summary line the head stops printing is predicted red, in a's step and in c's, "
+                  "whose tool names a.sh", "echo nothing\n", {"tools/a.sh"}, 2),
+                 ("null control: the head still printing it is not", ok.format(n="a") + "# edited\n", {"tools/a.sh"}, 0),
+                 ("null control: a step the diff names no file of is not replayed", "echo nothing\n", set(), 0))
+        for label, text, changed, want in cases:
+            (t / "tools" / "a.sh").write_text(text)
+            got = len(step_replay_preds(t, base, changed))
+            print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+            bad += got != want
+        notes: list[str] = []
+        got = len(step_replay_preds(t, base, {"tools/b.sh"}, notes))
+        good = got == 0 and len(notes) == 1
+        print(f"  {'ok  ' if good else 'FAIL'} a step red at the base too is a note, not this branch's red")
+        bad += not good
+    g = globals()
+    real = g["step_replay_preds"]
+    g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
+    try:
+        _, preds, _ = predict(root, "HEAD", only="step-replay")
+    finally:
+        g["step_replay_preds"] = real
+    good = ("instrument", "STEP REPLAY sentinel") in preds
+    print(f"  {'ok  ' if good else 'FAIL'} predict reaches the step-replay arm by name (its call site, not only its helper)")
+    bad += not good
+    return bad
 
 
 def mutant_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
@@ -958,7 +1109,8 @@ def unpinned(base):
 # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
 # review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
-        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
+        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads",
+        "step-replay")
 
 
 def is_red(job: str, line: str) -> bool:
@@ -999,13 +1151,14 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("mutation", lambda: unpinned(base)),
         ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
                                                     closure, scripts, notes=notes)),
+        ("step-replay", lambda: step_replay_preds(root, base, changed, notes)),
     )
     preds: list[tuple[str, str]] = []
     for name, arm in arms:
         # The arms that run a gate's programs: on --record-self-tests (prepr 6d)
         # or by name. `graders` takes minutes where it is keyed, so body_push.sh's
         # seconds-budget run leaves it to prepr (R10-RCA-PREPR-HEAD-GRADERS).
-        if (only is None and (name not in ("self-test-reads", "graders") or record)) or name == only:
+        if (only is None and (name not in ("self-test-reads", "graders", "step-replay") or record)) or name == only:
             preds += arm()
     if body:
         preds += carry_preds(root, body)
@@ -1075,7 +1228,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    "graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json "
                    "for named-docs, #2916's repair), or land the grader change first "
                    "(dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks")
-    if any(j == "instrument" for j, _ in preds):
+    if any(j == "instrument" and l.startswith("STEP REPLAY") for j, l in preds):
+        out.append("a STEP REPLAY red is the step's own grep missing a line its self-test no longer prints, "
+                   "or the self-test failing: rerun the step's run text from governance.yml, then fix the "
+                   "tool or the step's grep (#3245)")
+    if any(j == "instrument" and not l.startswith("STEP REPLAY") for j, l in preds):
         out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
                    "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
     if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
@@ -1409,6 +1566,7 @@ def self_test() -> int:
     bad += mutant_self_test(root)
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
+    bad += step_replay_self_test(root)
     bad += roundref_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
