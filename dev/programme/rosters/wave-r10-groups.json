@@ -26514,7 +26514,9 @@
    "findings": [],
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13 on decision card P1 (yes): seats and the beat run their tools from a promoted stable ref instead of the tip of main, main reports product status and machinery status separately, and no release is stamped on a red product status. Evidence and the measured problem: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 6 row a1. Design first (size L). Done when the product-green share of the last 20 main push runs is printed by an instrument and the promotion step is tracked and self-tested. Must merge before round 11 finders start.",
-   "carry": [],
+   "carry": [
+    "Moved from R10-SEAT-IDENTITY-P5 carry 8 (0-based at roster f6ff22c373) by the round-10 round-end triage (round-10 round-end batch r10-round-end, entry P766 (Verdict LOG); ratified by tvofi 2026-11-15). Re-measure the abort at this group's own base: run at a39627da59 the harness did not print it within 120 s. Text verbatim:\n\nFrom r10-hotfix-opener-unblock, body item 209ce3ba: harness-stale: stale: `dev/audit/harnesses/r10_open_driver_mutants.py` aborts with `ABORT M-exact: pattern occurs 0 times`, rc 2, at the merge base 61afd4f2db. Four plants no longer occur once in `open_driver.py`: M-exact, M-body and M-triageB now live in `topic_grammar.py` (since a7fd743e5), and M-crit matches neither file. So the harness's `survived=0` claim has not been runnable since that extraction. This diff's two plants are placed ahead of them and run. Carry: R10-SEAT-IDENTITY-P5 (items 209ce3ba)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "fix/r11-pre-toolchain-pin",
