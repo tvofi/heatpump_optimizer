@@ -1,0 +1,12 @@
+$ plant --tree repo/cc (repo/ is a git work tree; repo/cc has no .git of its own)
+PLANTED P01 natural a.py
+PLANTED P02 config a.py
+rc=0
+$ git -C repo diff
+diff --git a/cc/a.py b/cc/a.py
+index b590b46..f6e2954 100644
+--- a/cc/a.py
++++ b/cc/a.py
+@@ -1 +1 @@
+-def money_scale(): return 1
++def  money_scale(): return 2

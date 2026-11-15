@@ -1,0 +1,2 @@
+overlap D0-s1: n1=1 n2=1 m=0, estimate 3.0 bugs, 1.0 unseen ((n1+1)(n2+1)/(m+1)-1, judged real)
+overlap models: D0-s1=m D0-s2=m -- one model: the estimate is biased low (0018 section 4, assumption 2)
