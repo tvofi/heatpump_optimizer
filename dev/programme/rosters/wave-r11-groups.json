@@ -1008,7 +1008,7 @@
     "dev/programme/rosters/wave-r10-groups.json, group R11-PRE-SHARED-FILES: `write_table`'s `compact_probes` appends every `D/**` probe after `collapse`, so an item can be listed twice (main's table held 13 such duplicates, removed here by the union's set). The generator the design registers for this table should write each item once. Carry: R11-PRE-SHARED-FILES"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-shared-files",
     "commit": null,
     "last_step": null,
