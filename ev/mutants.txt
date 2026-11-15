@@ -1,0 +1,12 @@
+NULL: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M11 drop out: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M12 rc always 0: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M13 no isinstance: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M14 drop decision filter: rc=1 KILLED | evaluation arms: 59/62 held; --round 1 rc=1; --open-cards rc=2
+M15 unmarked empty: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M16 lines empty: rc=1 KILLED | evaluation arms: 61/62 held; --round 1 rc=1; --open-cards rc=2
+M17 main exit 0: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M18 main no stderr lines: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+M19 unsorted out: rc=0 SURVIVED | evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+
+[exited with code 0]

@@ -1,0 +1,6 @@
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+   yardstick records: covered=True, refused without the exclusion=True
+   evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2
+   population arms: 13/13 held
+SELF-TEST passed (every perturbed scope refused)
