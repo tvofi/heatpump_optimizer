@@ -1,43 +1,33 @@
-Design review: revise df3267eba7d6e70490afcbdb8aa1802dc0a0c14d class-open
+Design review: approve a37706d599ca28414378bda7813068b79fd716d6
 
-Judged at base e75ad291ff5c58f7c8362b0a20fbe6b230adf717. The note names e0ad8b2bd3 and calls it origin/main. It is now three merges behind (#3612, #3619, #3621). Over the files the note names, `git diff e0ad8b2bd3 e75ad291ff` changes `merge_pr.sh` (+157), `merge_train.py` (+52) and `governance.yml` (+14). It does not touch `scorecard.py`, `scorecard_selftest.py`, `gate.py` or `stamp.py`. Line numbers below are at e75ad291ff. This is round 3 of 3.
+Judged at base 31117b1029de63938d949e78dcbcd8f9451e5e33. The note names 98847b99d7. `git diff 98847b99d7 31117b1029 -- tools/audit/seat tools/pr tools/ci tools/release .github .claude/hooks` touches only `tools/pr/ci_predict.py`, which the note does not name, so every anchor below holds at both. This is round 4, the re-cut after round 3 of 3: the round-3 point [R3] is p1's first acceptance row, and [dr11]..[dr13] are carries.
 
-## Round-2 points
+## Round-3 point [R3]: answered
 
-R1 is answered. The 20-run window now has one owner, `scorecard.py` `line_a` (`:102-111`), with one input (the beat cache) and one unread rule. The single-run reader is a read-only flag of the stamp, and invariant (vii) forbids a second window. I checked the claims at the base:
-- The shortcut is at `:106`.
-- There is no GitHub call (`:8-10`).
-- `merge_train.py:629` loads `gate.py` by path.
-- The self-test anchors hold: `cases` `:38`, the report-length assertion `:146`, and `MUTANTS` `:157-170`.
-- `ci.yml:212-215` calls `governance.yml` as a reusable workflow, so `governance / instrument-self-tests` is in the cached CI run listing that A_mach reads.
+- Seat (design.md:21, :48-60): one owner. `merge_train.py` owns the mirror, `_outside_gate` and `outside_is_mains`. `merge_pr.sh` gets the mirror root from a train verb, as it already reads the train's constants (`merge_pr.sh:67-71`). Checked at the base: `_outside_gate` loads `ROOT / OUTSIDE_PATH` (`merge_train.py:1264-1274`). outside.py resolves every code input from its own `ROOT = parents[2]` (`tools/pr/outside.py:75`): `load_gate` `:91-97`, `carries` `:138`, `policy_patterns` `:152`, `gate_files` `:166`. Its data reads go through `show(ref, …)` `:130-132`. So loading outside.py from the mirror makes all of its code main's, and design.md:55-57 is correct. `app_approve.sh:166` resolves `gh_read.py` relative to itself, which is the alternative's argument at design.md:97-99.
+- Shape: merge flow no longer depends on promotion or machinery status (design.md:60). This removes the all-merge stop that round 3 named, and design.md:95-96 states why the owner-routing alternative loses.
+- Sibling sites: I ran the widened enumerator (design.md:71) at the base. It now matches `merge_pr.sh:75` (`"origin/main:$rel"`). Every hit is either in the section 3 table (design.md:77-84) or in the dismissed list (design.md:86-90). I also grepped `pr/outside\.py|OUTSIDE_PATH|outside_is_mains` across `tools .claude .github`. The one executor the note does not list is `bus.sh adopt` (`bus.sh:370-387`, `:405`). It already runs outside.py from a throwaway worktree at a freshly fetched main, so the pin does not reach it. No site is missing.
+- Evidence plan (design.md:108-109): the failing tests fail on today's code. `fork_head` calls `outside_is_mains((OUTSIDE_PATH,))` at `merge_train.py:2676`, which raises a Stop when the checkout's copy differs (`:2716-2720`). The `FAKE_STALE` rows at `merge_pr.sh:284` and `:288-292` expect `OUTSIDE REFUSE` today. The null control (an unmovable mirror Stops by name) would move under the perturbation that round 3 named. No harness of a finder applies (owner ruling on a process audit).
 
-Notes dr6 to dr10 each have a row or a carry.
+## Round-3 notes
 
-## Revise point
+- [dr11] answered (design.md:34-38). `gate.py:245` already reports a skipped required job as `SKIPPED` in `bad`, so a run concluded success never holds one. The self-test row at design.md:111 asserts that the shortcut equals the function.
+- [dr12] and [dr13] are carried (design.md:137-140).
 
-1. class-open: design.md:113 (row `merge_train.py` `outside_is_mains`), and design.md:91-92 (the last alternative). Both are anchored on a blast radius that no longer holds at the base. #3619 (436ee9878e and the `fork_head` change) added two comparisons of the checkout's copies against origin/main's blobs that run for every pull request, ours included:
-   - `merge_train.py:2676`: `fork_head` calls `self.outside_is_mains((OUTSIDE_PATH,))` before the pull read, and the train calls `fork_head` for each item (`:2761`, `:2938`, `:2953`, `:3366` and others).
-   - `merge_pr.sh:147`: `outside_is_mains outside` runs before `head_is_ours`. Its `contract` arm (`:64-79`, `:151`) mirrors `OUTSIDE_MAIN_COPIES`.
+## Sibling designs in flight
 
-   Under the pin, the train and the hand-merge launcher run from a checkout at `toolchain/stable`. The design moves `merge_pr.sh` there in design.md:112. After any merge that changes `tools/pr/outside.py`, both would therefore refuse every merge until the next promotion, not only outside pull requests as design.md:113 states. `git log --oneline --since=2026-10-15 e75ad291ff -- tools/pr/outside.py | wc -l` prints 7. Promotion is gated on machinery green and holds with `PROMOTE-HELD`, so a machinery-red main would also stop all merges. That couples merge flow to machinery status, which is what the ruling separates. Your section 4 enumerator also misses the bash site: its pattern `origin/main:\{?(rel|tools)` does not match `"origin/main:$rel"` (`merge_pr.sh:75`).
-
-   Fix wanted: add both sites to section 4 with a disposition. One option is that the train and `merge_pr.sh` execute outside.py and the contract copies from origin/main's blobs, read with `git show` into a scratch path. That keeps `outside_is_mains`' rule ("origin/main's blob or none") and removes the dependence on the checkout. The other is to keep the checkout comparison, state the all-merge stop with its enumerator, and route it as `decision: owner`. Either way, correct design.md:113 and :91-92, and widen the enumerator to the `$rel` form. By the contract this is the third note, so if you re-cut to the minimal shape, this point can become p1's first acceptance row.
+I scanned every open `design/*` ref for `outside_is_mains|_outside_gate|OUTSIDE_MAIN_COPIES|merge_pr.sh|toolchain|fork_head|pr_tools_fresh`. Only two match:
+- `design/R11-PRE-SHARED-FILES` (20cafac7df, design.md:168) carries its stale-checkout half to this group, consistent with design.md:82 and :122-123.
+- `design/R11-PRE-STANDING-SCRIPTS` (375ce7ff3f) touches none of this seam, consistent with [dr12].
 
 ## Notes for the fixer
 
-- A run whose conclusion is success can contain `skipped` jobs. The shortcut at design.md:47-48 counts it green in A_mach without reading its listing, while the function calls a member that is absent or did not finish "unread". State whether `skipped` is green, unread or out of scope for the machinery tuple, and add one self-test case. Carry: R11-PRE-TOOLCHAIN-PIN (item dr11)
-- `design/R11-PRE-STANDING-SCRIPTS` has moved from d1a4ae6a74 to 375ce7ff3f. Its part 1 moves `orchestrator_tick.py` payloads into a new module ("move only"), and its row 1 serialises `beatd.jobs.json` against this group. The dr9 row (an edit of the existing `:1846` count only) still holds. Re-anchor `:1846` after its part 1 merges. Carry: R11-PRE-TOOLCHAIN-PIN (item dr12)
-- #3612 (R11-PRE-ROUND-METRICS p1) merged at 66865be375 and leaves `scorecard.py` unchanged. The `after` edge at design.md:171-173 still applies to the part that builds the cache producer. Carry: R11-PRE-TOOLCHAIN-PIN (item dr13)
+- The mirror is one mutable worktree that two processes move: the train and `merge_pr.sh` through its train verb. If one moves it while the other is between `_outside_gate()`'s import and outside.py's later reads of `ROOT` files (`app_approve.sh --carry` `:138`, `policy_lint.mjs` `:152`, `closure.py` `:166`), one contract run can mix files from two main shas. Serialise the move and the run under one lock, or follow `bus.sh adopt`'s precedent (`bus.sh:375-386`): a throwaway detached worktree per call at the fetched sha. Either way, one self-test row should move the mirror mid-run. Carry: R11-PRE-TOOLCHAIN-PIN (item dr17)
+- The train's own `_mandate_gate()` (`merge_train.py:1277-1290`) still loads `budget_raise_gate.py` from the checkout, which will be at `toolchain/stable`. That is outside the outside contract, which loads its own copy through `load_gate(root)`. Once [dr15] removes `GATE_PATHS[-1]` from the compared set, state in the instrument doc that the train's mandate reads are the stable ref's. Carry: R11-PRE-TOOLCHAIN-PIN (item dr18)
 
 ## Routed decisions (unchanged; no revise point)
 
-- decision: owner: the `main_green` question, who may push `toolchain/stable` and whether a ruleset protects it, and whether decision 0018's `product_green` moves to A_prod (design.md:210-212).
-- decision: orchestrator: the A/B/C split (design.md:205-209), and the `after` edge on R11-PRE-ROUND-METRICS (design.md:173).
-
-## Checked and sound
-
-- `gate.py` at the base: `PUSH_ONLY` `:69`, `PUSH_REPORT_ONLY` `:74`, `REQUIRED["push"]` `:94`, `machinery_line` `:293`. This matches section 2's before-state.
-- `merge_pr.sh` sources `pr_args.sh` only inside the self-test bound (`:23`). Its argument parse is now at `:490`, not `:359`, so re-anchor design.md:112.
-- The open `design/*` refs I checked (OUTSIDE-ROOMS-P2, OUTSIDE-HONEST-STARTS-RUNS) do not name `outside_is_mains`, `merge_pr.sh` or `toolchain`.
+- decision: owner: the `main_green` question; who may push `toolchain/stable` and whether a ruleset protects it; whether decision 0018's `product_green` moves to A_prod (design.md:125-126).
+- decision: orchestrator: carries 3, 4, 5, 6 and 8, and the A/B/C split (design.md:124-125).
 
 Tokens: this seat's count is not reported by the harness; no subagents.
