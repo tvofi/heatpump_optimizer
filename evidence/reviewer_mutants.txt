@@ -1,0 +1,13 @@
+MUTANT [removed pages never listed]:   FAIL read-proof: after a proof the core and an unchanged rule are in full, changed pages and rulings are in, an unchanged page is out
+  FAIL read-proof: a rulings file gone from origin/main is a removed page, and the corpus is still written
+hooks_setup self-test: 51 checks, 2 failed
+MUTANT [content change of a known page ignored]:   FAIL read-proof: after a proof the core and an unchanged rule are in full, changed pages and rulings are in, an unchanged page is out
+hooks_setup self-test: 51 checks, 1 failed
+MUTANT [stale manifest kept when no pending]: hooks_setup self-test: 51 checks, 0 failed
+MUTANT [manifest omits by-change pages]:   FAIL read-proof: nothing changed since the proof reads the core and the rules only (null control)
+  FAIL read-proof: after a proof the core and an unchanged rule are in full, changed pages and rulings are in, an unchanged page is out
+  FAIL read-proof: a rulings file gone from origin/main is a removed page, and the corpus is still written
+hooks_setup self-test: 51 checks, 3 failed
+MUTANT [unchanged count wrong]:   FAIL read-proof: nothing changed since the proof reads the core and the rules only (null control)
+hooks_setup self-test: 51 checks, 1 failed
+RESTORED: hooks_setup self-test: 51 checks, 0 failed
