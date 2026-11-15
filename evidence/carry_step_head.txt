@@ -1,0 +1,14 @@
+$ python3 -I tools/audit/carry_audit.py --self-test (head worktree)
+rc=0
+3:carry_audit self-test: 449 checks, 0 failed
+$ python3 tools/audit/seat/queue_pre_flight.py --self-test
+rc=1
+2:  ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+3:  ok   a pull request that is not open is a FAIL
+7:  ok   an unreadable pull request is a FAIL
+10:  ok   and a 404 on it is a FAIL after exactly 1 read (no retry masks a refusal)
+35:  FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+38:  FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+39:  FAIL null control: under a --mandate whose scope does not cover policy merging it still PARKs
+40:  FAIL null control: under an expired --mandate it still PARKs
+41:  FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)

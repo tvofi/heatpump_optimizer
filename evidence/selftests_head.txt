@@ -1,0 +1,21 @@
+$ python3 -I tools/audit/seat/merge_train.py --self-test
+rc=0 last: merge_train self-test: 815 checks, 0 failed
+0
+$ bash tools/audit/seat/merge_pr.sh --self-test
+rc=0 last: merge_pr self-test: 35 checks, 0 failed
+0
+$ python3 -I tools/audit/seat/remerge_main_selftest.py
+rc=0 last: remerge_main self-test: 13 checks, 0 failed
+0
+$ python3 -I tools/pr/outside.py --self-test
+rc=0 last: outside self-test: 266 checks, 0 failed
+0
+$ python3 -I tools/ci/selftest_scope.py --self-test
+rc=0 last: selftest_scope self-test: 120 checks, 0 failed
+0
+$ python3 -I tools/ci/selftest_scope.py static
+rc=0 last: selftest_scope static: 116 gated step(s), 0 problem(s)
+0
+$ python3 tests/structure.py
+rc=0 last: STRUCTURE RATCHET PASSED
+0

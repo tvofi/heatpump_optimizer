@@ -1,0 +1,43 @@
+== select --change M:tools/pr/outside.py, head table
+1:MODE: SCOPED -- 29 step(s) run
+16:  run pr-merger
+19:  run outside-contract
+23:  run merge-train
+== same, main's table planted (the mechanism removed)
+1:MODE: SCOPED -- 28 step(s) run
+18:  run outside-contract
+22:  run merge-train
+pr-merger lines: 0
+== stale() on head table
+''
+== does the pr-merger self-test open outside.py
+17:# cross-repository is tools/pr/outside.py's answer over the pulls API object,
+26:OUTSIDE=$PWD/tools/pr/outside.py  # never from the environment; the self-test asks this tree's own copy
+28:# Whose head <pr> is, by outside.py's own reading: prints `OURS` (rc 0), or
+43:    spec = importlib.util.spec_from_file_location("outside", path)
+47:    cross = mod.cross_repository(facts, repo)  # outside.py's one definition, never re-typed here
+48:except Exception as e:  # fail closed: outside.py's answer, or none
+53:          "class O is outside.py's approve subcommand from our own read (decision 0017)")
+142:  # outside.py is part 1's (decision 0017), and the real one is asked: its `pull_facts` reads the pulls object.
+179:  FAKE_PULL=$T/other.json ck "owner mode refuses a pulls object of another pull request: the real outside.py's pull_facts reads it" 1 "is not #7" false "$T/live.json" -- 7 owner 4100000001 0
+181:  OUTSIDE=$T/absent.py ck "owner mode with no outside.py to ask refuses, fail closed" 1 "OUTSIDE REFUSE: $T/absent.py could not say" false "$T/live.json" -- 7 owner 4100000001 0
+== select --base origin/main
+MODE: FULL -- every step runs (a gate file changed: ['tools/ci/selftest_closures.json'])
+  run policy-lint-mutants
+  run fragment-check
+== closure.py select
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/selftest_closures.json changes the gate itself, so every closure is suspect
+== archscore
+Architecture score: dS +0.0000 NULL
+== diff names
+ dev/programme/delivery/3521.md            |   1 +
+ tools/audit/seat/merge_pr.sh              |  53 +++
+ tools/audit/seat/merge_train.py           | 566 +++++++++++++++++++++++++++++-
+ tools/audit/seat/remerge_main.sh          |  55 ++-
+ tools/audit/seat/remerge_main_selftest.py | 126 +++++++
+ tools/ci/selftest_closures.json           |   6 +-
+ 6 files changed, 792 insertions(+), 15 deletions(-)
+== roles drift
+0
