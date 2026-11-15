@@ -1874,7 +1874,7 @@
    "kind": "production",
    "class": "production",
    "severity": "medium",
-   "size": "M",
+   "size": "L",
    "issues": [],
    "fixes": [],
    "after": [],
@@ -1914,7 +1914,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "designer (M, opus) now; design review; fixer only on Design review: approve; ruling c2 is the owner's",
-    "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS): the note's group C, the metered floor in draw_range.py; independent of A and B per the note; shares files with distinct seams, merged in train order",
+    "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS): the note's group C, the metered floor in draw_range.py; independent of A and B per the note; shares files with distinct seams, merged in train order | set-size M -> L",
     "pr": null
    }
   },
