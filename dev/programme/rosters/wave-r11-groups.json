@@ -187,7 +187,7 @@
    "resume": {
     "stage": "done",
     "branch": null,
-    "commit": "cb19070965d76b84d9a221d4dfb05c7c9b8efbf7",
+    "commit": "cb19070965",
     "last_step": null,
     "next_step": "fixer after R10-DUTY-SWITCH-RESTART-LEARNING merges (size M, no design step): the start counter reads the edge tracker part A adds",
     "note": "design approved 2026-11-14: Design review: approve 18655c84b679af92a83bdccbd4c1a2e88faec8ec (design-verdict 9900aa0068, round 2; carries v0 to v5 in that verdict). Orchestrator ruling under the owner 11-13 condition (ships in round 10 only if closure is unaffected): the reviewer measured one size-L pull request, about 15 files, 30 of 33 closures reached, every push a full gate; CI is the closure bottleneck on 11-14, so no fixer is dispatched before the stamp and the group goes to round 11 with its approved design.",
