@@ -751,12 +751,18 @@ def self_test() -> int:
         tgt = lambda **k: [("set", TARGET_BUDGETS, json.dumps(
             {"_comment": "fixture", "anchor": anchor, "every_merges": 2, "step": 2, **k}))]
         r.merge(5, PRODM + budgets_ops(caps(m1=2, w=3)) + tgt())
-        # 1 merge past the anchor: the target is still 2
-        cand = lambda ops: run_cli(r, "--check", "--base", r.tip, "--head", r.side(ops), "--pr", "9")
+        # 1 merge past the anchor: the target is still 2. Each candidate is
+        # cut from the base's own tree, so no earlier candidate's lines leak in.
+        at = {"files": dict(r.files)}
+
+        def cand(ops: list, drop: tuple = ()) -> tuple[int, str]:
+            r.files = {k: v for k, v in at["files"].items() if k not in drop}
+            return run_cli(r, "--check", "--base", r.tip, "--head", r.side(ops), "--pr", "9")
         rc, txt = cand(MACH)
         ok("target: 1 merge past the anchor is still 2, so a machinery candidate at 2 passes",
            (rc, "ok   target nonproduction_merges 2 <= 2 + band 0 (1 merge(s) past" in txt), (0, True))
         r.merge(6, RECM)                              # 2 merges past: target 0
+        at["files"] = dict(r.files)
         rc, txt = cand(MACH)
         ok("target: 2 merges past it falls to 0 and refuses the machinery candidate under its cap",
            (rc, "FAIL target nonproduction_merges 2 <= 0" in txt, "ok   nonproduction_merges 2 <= 2" in txt),
@@ -772,12 +778,16 @@ def self_test() -> int:
         ok("target: --measure prints it beside the metrics",
            {k: json.loads(run_cli(r, "--measure", "--head", r.tip)[1])[k]
             for k in ("target", "merges_past_anchor")}, {"target": 0, "merges_past_anchor": 2})
-        r.files.pop(TARGET_BUDGETS)
-        ok("target: no file, no target: the refused candidate passes (null control)", cand(MACH)[0], 0)
+        ok("target: no file, no target: the refused candidate passes (null control)",
+           cand(MACH, drop=(TARGET_BUDGETS,))[0], 0)
         for label, ops in (("an unread key", tgt(open_groups=1)), ("a zero every_merges", tgt(every_merges=0)),
                            ("a short anchor", tgt(anchor=anchor[:12])),
                            ("an anchor off the history", tgt(anchor="0" * 40))):
             ok(f"target: {label} is refused, never read as no target", cand(MACH + ops)[0], 2)
+        ok("target: a file that is not an object is refused",
+           cand(MACH + [("set", TARGET_BUDGETS, "[]")])[0], 2)
+        ok("target: every_merges 1 and step 0 are the bounds it reads (null control)",
+           [cand(MACH + tgt(every_merges=1, step=s_))[0] for s_ in (0, 2)], [0, 1])
 
     ok("--check-event: a base and a PR number select PR mode",
        event_args({"MACHINERY_BASE": "b", "MACHINERY_HEAD": "h", "MACHINERY_PR": "7"}), ("h", "b", 7))
