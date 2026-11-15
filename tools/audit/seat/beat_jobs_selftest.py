@@ -489,7 +489,14 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"] = (
         arg(sd, "--train-log") == str(c.state / "train.log") and sd0 and "--train-log" not in sd0)
 
-    # bottleneck
+    # bottleneck: the live merge-wait value survives the digest's norm() (the a7 row's "the digest
+    # line equals the live value"), driven by bottleneck_check's own line, never a copy of it
+    import bottleneck_check as bk
+    live = bk.judge(bk._fixture(merge_wait=(([{"pr": 1, "hours": 4.2}] * 3, 0), "")))
+    c, f = fresh(answers={"bottleneck_check.py": (0, "\n".join(live) + "\n", "")})
+    bj.bottleneck(c)
+    res["bottleneck: a merge-wait line keeps its live hours through the digest"] = (
+        len(live) == 1 and "merge-wait 4.2 hours median" in digest(c))
     c, f = fresh(answers={"bottleneck_check.py": (0, "", "")})
     bj.bottleneck(c)
     bc = next((x for x in f.calls if any(a.endswith("bottleneck_check.py") for a in x)), [])

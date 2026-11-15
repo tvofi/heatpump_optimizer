@@ -142,8 +142,10 @@ def judge(m: dict) -> list[str]:
             med = statistics.median(r["hours"] for r in rows)
             if med > lim:
                 worst = max(rows, key=lambda r: r["hours"])
-                out.append(_line(f"BOTTLENECK: merge-wait {med:.1f} h median ({len(rows)} PRs, 24 h; worst "
-                                 f"#{worst['pr']} {worst['hours']:.1f} h) vs {lim:g} h -- the merge stage "
+                # "hours", never "h": the digest's norm() reads "<n> h" as an age and blanks it,
+                # which would hide the live value this line exists to show.
+                out.append(_line(f"BOTTLENECK: merge-wait {med:.1f} hours median ({len(rows)} PRs, 24 h; worst "
+                                 f"#{worst['pr']} {worst['hours']:.1f} hours) vs {lim:g} hours -- the merge stage "
                                  "is the constraint: check the train is live and every verdicted head "
                                  "is queued before dispatching review or fix work", med))
 
@@ -339,7 +341,7 @@ def self_test(mutate: str | None = None) -> int:
         check("memory: exactly a quarter worse is not past it (null control)", edge == first, edge)
         past = remembered(judge(_fixture(**wait(3.1))), mem)
         check("memory: higher is worse for merge-wait; past the quarter prints live",
-              past and "3.1 h median" in past[0], past)
+              past and "3.1 hours median" in past[0], past)
         mem.unlink()
         first = remembered(judge(_fixture(**wait(4.0))), mem)
         better = remembered(judge(_fixture(**wait(2.5))), mem)
