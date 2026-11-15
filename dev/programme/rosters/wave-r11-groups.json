@@ -1659,9 +1659,9 @@
    "carry": [],
    "source": "programme",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-hotfix-figure-block-base",
-    "commit": null,
+    "commit": "98847b99d7bb3238686efd6869f805c89c6d1ff1",
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
