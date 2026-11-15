@@ -35,14 +35,14 @@ tvofi, 2026-11-15, verbatim: "Also screen the rulings for overlap with policy, i
 - 2026-11-12 the contributor mechanism: decision 0017, Decision.
 - 2026-09-16 clean handover: `orchestrator.md` section 9, "The handover is one file and it is not optional"; `writing-for-agents.md`.
 
-(b) kept as the delta, the rest named: 2026-11-08 the orchestrator posts the mandated review itself (decision 0013); 2026-10-23 no laundering of a seat's denial (`CLAUDE.md` rule 2, decision 0013); the freeze's exceptions and the prototype (`orchestrator.md` section 5, `proposal-triage.md`); RCA immediacy and its L8 timing (`CLAUDE.md`, `defect-root-cause.md`); the rulings file's exclusion (`orchestrator.md` section 0); the pipeline shadow and speculative gating (`fixer.md` step 6); coordinator cap 3 (`orchestrator.md` section 5); reviewer timing (`fix-review.md` step 12); a significant new feature designed whatever its size (`orchestrator.md` section 5); the public plan page and its link in the answer (`orchestrator.md` section 5); stamping without waiting for main (`orchestrator.md` section 11).
+(b) kept as the delta, the rest named: 2026-11-08 the orchestrator posts the mandated review itself (decision 0013); 2026-10-23 no laundering of a seat's denial (`CLAUDE.md` rule 2, decision 0013); the freeze's exceptions and the prototype (`orchestrator.md` section 5, `proposal-triage.md`); RCA immediacy and its L8 timing (`CLAUDE.md`, `defect-root-cause.md`); the rulings file's exclusion (`orchestrator.md` section 0); the pipeline shadow and speculative gating (`fixer.md` step 6); coordinator cap 3 (`orchestrator.md` section 5); a significant new feature designed whatever its size (`orchestrator.md` section 5); the public plan page and its link in the answer (`orchestrator.md` section 5); stamping without waiting for main (`orchestrator.md` section 11).
 
-(c) conflicts, kept and reported to the orchestrator, not resolved here:
-- 2026-11-09 "only fire reviewers before ci is finished for prs on the cr watch" against `orchestrator.md` section 5, "Dispatch a fix's reviewer when the fixer pushes, not when CI settles".
-- Card P2 "severity route narrowed" against `proposal-triage.md`, "Machinery": "`medium`, `high`, `major`, `critical`, root-cause countermeasure, closeout, owner directive skip them".
-- 2026-11-13 "you may have a fixer have more carries based on their kind" against `fixer.md`'s preamble, "at most five findings".
-- 2026-11-13 "always check everything in their dimension, not only small samples" against `D3.md` ("Sample 30–40 mutants") and `D11.md` ("Conformance, sampled").
-- 2026-11-06 "You may always approve such changes under a validscope all mandate" (and 2026-10-20/27) against `orchestrator.md` section 13, "Two things are the owner's ... policy, this file included, approved before merging" (decision 0015 point on contracts reads a mandate as enough).
+(c) conflicts, ruled by tvofi on 2026-11-15 ("I agree with your rulings except that the mandate means you may act as me, so it is already allowed under the mandate with the current wording"):
+- Reviewer timing (2026-11-09) against `orchestrator.md` section 5: the entry is retired; section 5's dispatch at the fixer's push governs, and `bus.sh dispatch` refuses a red head.
+- Card P2's severity route against `proposal-triage.md`'s machinery paragraph: `proposal-triage.md` is amended to match card P2 (repair outside `custom_components/` takes the bar at any severity; a red required check on `main`, a blocked production pull request, a root-cause countermeasure, closeout or an owner directive skips it), paid inside its caps by removing its sentence on in-round instrument fixes, which `orchestrator.md` section 5 states; the rulings file no longer holds the P2 reading.
+- Carries per fixer by kind against `fixer.md`'s five findings: no policy edit; the entry is operational until the round-end proposal triage rules PC-1113-08.
+- Every dimension checks everything against `D3.md` and `D11.md` sampling: no edit here; owned by R11-PRE-BRIEFS-TEXT part 2, and the entry says so.
+- Approving policy under the mandate against `orchestrator.md` section 13: no conflict, since the mandate lets the orchestrator act as the owner; the two mandate-approval entries (2026-10-20/27, 2026-11-06) leave the file as stated by the mandate's own grammar, `CLAUDE.md` rule 2 and decisions 0013 and 0015.
 
 (d) every other in-force entry is not stated in policy and is kept unchanged. Inside the file, duplicates were merged: card P2's and card P11's quotes now live only in the card list, and the two closing lines on the whole-corpus re-read are one line.
 
@@ -53,15 +53,13 @@ The file's purpose (orchestrator's wording, tvofi 2026-11-15: "This is exactly h
 | entry | class | recommendation |
 |---|---|---|
 | A1 current mandate | d | op |
-| A2 mandate is full-scoped | c | → `orchestrator.md` section 13 (with the conflict) |
-| A3 approve sound policy under the mandate | c | → `orchestrator.md` section 13 / decision 0013 |
-| A4 orchestrator posts the mandated review | b | → decision 0013 amendment |
-| A5 no laundering a seat's denial | b | → `ratchet-budgets.md` |
-| A6 owner's own words under the mandate | d | → `CLAUDE.md` dimension-brief line |
-| A7 ruleset toggle | d | op |
-| A8 admin rights, stuck-run deletion | d | op |
-| A9 session grants in his words | d | → `orchestrator.md` section 1 |
-| A10 card X1 | d | op |
+| A2 orchestrator posts the mandated review | b | → decision 0013 amendment |
+| A3 no laundering a seat's denial | b | → `ratchet-budgets.md` |
+| A4 owner's own words under the mandate | d | → `CLAUDE.md` dimension-brief line |
+| A5 ruleset toggle | d | op |
+| A6 admin rights, stuck-run deletion | d | op |
+| A7 session grants in his words | d | → `orchestrator.md` section 1 |
+| A8 card X1 | d | op |
 | B1 5-minute default | d | → `orchestrator.md` |
 | B2 cards only when he is active; the 5-minute wait first (2026-11-15) | d | → `orchestrator.md` |
 | B3 audit findings as decision cards (narrowed) | d | op |
@@ -73,18 +71,18 @@ The file's purpose (orchestrator's wording, tvofi 2026-11-15: "This is exactly h
 | B9 fix every slip | d | op |
 | B10 no no-op replies | d | op |
 | B11 no connectors | d | op |
-| C1 every dimension covers its scope | c | → `COMMON.md` and the dimension briefs (with the conflict) |
+| C1 every dimension covers its scope | d | → `COMMON.md` and the dimension briefs; `D3.md` and `D11.md` sampling owned by R11-PRE-BRIEFS-TEXT part 2 |
 | C2 finder start on the critical set | d | op (round 11) |
 | C3 open groups move at cutover | d | → `dev/audit/README.md` |
 | C4 playbook pickup | d | → `dev/audit/README.md` |
 | C5 owner and outside items fold in | d | → `orchestrator.md` section 5 |
 | D1 freeze exceptions, prototype | b | → `proposal-triage.md` or a decision record |
 | D2 deadlocks by hand | d | → `orchestrator.md` section 13 |
-| D3 limiter first, P2 reading | c | op (round 11 start); P2 → `proposal-triage.md` |
+| D3 limiter first | d | op (round 11 start) |
 | D4 loop-study cards | d | → a decision record |
 | D5 RCA immediacy, L8 | b | → `defect-root-cause.md` |
 | D6 mechanise before policy | d | → `orchestrator.md` section 13 |
-| D7 carries by kind | c | → `fixer.md` (with the conflict) |
+| D7 carries by kind | d | op until the round-end proposal triage rules PC-1113-08 |
 | D8 no CI widening, local macOS seats | d | op |
 | E1 card list | d | op (record of rulings being built) |
 | E2 this file's exclusion | b | op |
@@ -112,10 +110,9 @@ The file's purpose (orchestrator's wording, tvofi 2026-11-15: "This is exactly h
 | G6 a pull request still needs valid evidence | d | → `fix-review.md` |
 | G7 prepr once, scoped hotfix prepr | d | → `fixer.md` |
 | G8 merge verdict before CI is green | d | op |
-| H1 reviewer timing | c | → `orchestrator.md` section 5 (with the conflict) |
-| H2 blocked verdicts back to the fixer | d | → `fix-review.md` / `fixer.md` |
-| H3 reviewer model at least the fixer's (Fable reviewer only for work of that class, orchestrator's reading) | d | → `fix-review.md` |
-| H4 significant features designed | b | → `designer.md` |
+| H1 blocked verdicts back to the fixer | d | → `fix-review.md` / `fixer.md` |
+| H2 reviewer model at least the fixer's (Fable reviewer only for work of that class, orchestrator's reading) | d | → `fix-review.md` |
+| H3 significant features designed | b | → `designer.md` |
 | I1 public plan page in the answer | b | → `orchestrator.md` section 5 |
 | I2 fallback: our version with thanks | d | → decision 0017 amendment |
 | I3 outside security review | d | → `fix-review.md` |
@@ -142,11 +139,11 @@ Each ruling still in force, dated, quoted verbatim where the orchestrator's memo
 
 ## Approval
 
-Policy files touched: `CLAUDE.md` (index entry, the new "What the repository may carry" section, the removed "Root-cause remediation" restatement) and `dev/governance/roles/orchestrator.md` (sections 0, 1, 4, 5, 9, 11); code-owned data beside them: `dev/governance/config/corpus_excluded.json` and `tests/layout.json`. Awaiting the owner's approving review, which the orchestrator may give under mandate 6893738184 (scope all) as decision 0013 allows, declared as an agent's. Every ruling this pull request writes down is tvofi's own, quoted in "Rulings this pull request carries out".
+Policy files touched: `dev/governance/roles/proposal-triage.md` (machinery route per card P2), `CLAUDE.md` (index entry, the new "What the repository may carry" section, the removed "Root-cause remediation" restatement) and `dev/governance/roles/orchestrator.md` (sections 0, 1, 4, 5, 9, 11); code-owned data beside them: `dev/governance/config/corpus_excluded.json` and `tests/layout.json`. Awaiting the owner's approving review, which the orchestrator may give under mandate 6893738184 (scope all) as decision 0013 allows, declared as an agent's. Every ruling this pull request writes down is tvofi's own, quoted in "Rulings this pull request carries out".
 
 ## Head
 
-`464a5891bc7a6bf1baf2ad5ea62f5b6cff5abaf6`, on base `b3831ff64eca1936f0b618193ee86c3e337b51a9` (the cloud step ref's base); diff three-dot against it. Not rebased; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`5efff3e16a74d97ec6608416369ec528477974e8`, on base `b3831ff64eca1936f0b618193ee86c3e337b51a9` (the cloud step ref's base); diff three-dot against it. Not rebased; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
 
@@ -169,14 +166,14 @@ Policy files touched: `CLAUDE.md` (index entry, the new "What the repository may
 
 ## Figures
 
-<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=464a5891bc7a6bf1baf2ad5ea62f5b6cff5abaf6 -->
+<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=5efff3e16a74d97ec6608416369ec528477974e8 -->
 ~~~text
 MODE: SCOPED -- 2 script(s) run, 31 scoped out.
 ~~~
 <!-- /figure-block -->
 - hook self-test: `python3 tools/audit/seat/hooks_setup.py --self-test` printed `hooks_setup self-test: 74 checks, 0 failed` (hooks unchanged since that run).
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69190 tokens, cap 69333 +band 500 = 69833`; `orchestrator.md` stays within 295 lines and 4251 tokens; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
+- policy budgets: `node tools/policy/policy_lint.mjs --budgets` printed `CLAUDE.md 214 221 3605 3605`, `dev/governance/roles/proposal-triage.md 38 40 538 563`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~69190 tokens, cap 69333 +band 500 = 69833`; `orchestrator.md` stays within 295 lines and 4251 tokens; `RULINGS.md` is not measured (excluded). The `CLAUDE.md` and `orchestrator.md` additions were paid inside their existing caps: the `CLAUDE.md` index entry went into the existing "suite, register, handover" list and the root-cause sentence listing what `defect-root-cause.md` and `root-cause.md` contain became a pointer to them; the `orchestrator.md` section-0 and section-9 additions were condensed. No cap changes.
 - policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)`; with `RULINGS.md` named in `CLAUDE.md` and absent from `corpus_excluded.json` the same command printed the `[named-docs] dev/programme/RULINGS.md` error (an earlier head of this branch).
 
 ## Red checks
