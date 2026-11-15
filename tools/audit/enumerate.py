@@ -28,6 +28,9 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
   d16-writes [--cells]   actuator `services.async_call` and `log_held` sites; --cells crosses each
                          with the PUMP_DUTY_MODES parsed from const.py and the four lifecycle conditions
   d17-features           services.yaml keys, strings.json steps/fields/entities, blueprints
+  --briefs               the acceptance of a brief that names a universe: every `enumerate.py <universe>`
+                         a dev/governance/dimensions/D*.md cites, with its --cells or --pairs, runs
+                         non-empty; an unknown universe or a tree citing none is refused
 Stdout is the universe only (deterministic, sorted; `wc -l` is its size); a second identical item on
 one line gets a ` #2` suffix so no two lines are equal. Diagnostics go to stderr.
 Exit 0 on success. Exit 2 with a message on stderr when a source is missing or yields zero items: an
@@ -545,6 +548,27 @@ def run(name, repo, **kw):
     return sorted(out)
 
 
+def briefs(repo):
+    """One `ok` line per (brief, cited command); Refuse on a citation that names no universe,
+    one whose universe refuses, or a tree whose briefs cite none."""
+    out, bad = [], []
+    for f in sorted((repo / "dev/governance/dimensions").glob("D*.md")):
+        text = re.sub(r"\s+", " ", f.read_text())
+        for u, flags in sorted(set(re.findall(r"enumerate\.py (d\d+-[a-z-]+)((?: --(?:cells|pairs))*)", text))):
+            opt = {k: True for k in re.findall(r"--(cells|pairs)", flags)}
+            try:
+                if u not in UNIVERSES:
+                    raise Refuse("no such universe")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    run(u, repo, **opt)
+                out.append(f"ok {f.stem} {u}{flags}")
+            except Refuse as e:
+                bad.append(f"{f.stem} cites `enumerate.py {u}{flags}`: {e}")
+    if bad or not out:
+        raise Refuse("; ".join(bad) or "no dimension brief cites a universe")
+    return out
+
+
 def plant(root):
     P = root / PKG
     for d in ("tests", "dev/audit/config", "blueprints/automation", f"{PKG}/translations", f"{PKG}/www"):
@@ -581,7 +605,11 @@ def plant(root):
                                             {"axis": "size", "kind": None, "no_read": "r", "builder": "G"}]}))
     w(IDENTITIES, json.dumps({"identities": [{"step": "M1", "id": "i1", "identity": "x", "grid": ["mode"]},
                                              {"step": "M3", "id": "i2", "identity": "y", "grid": ["golden", {"axis": "noise", "levels": ["a", "b", "c"]}]}]}))
-    w(BUNDLES, json.dumps({"bundles": [{"install": f"i{k}", "date": "2026-01-02", "round": 1, "steps": ["M1"], "evidence": "tests/profiles.py"} for k in (1, 2)]}))
+    plant_bundles(root)
+
+
+def plant_bundles(root):
+    (root / BUNDLES).write_text(json.dumps({"bundles": [{"install": f"i{k}", "date": "2026-01-02", "round": 1, "steps": ["M1"], "evidence": "tests/profiles.py"} for k in (1, 2)]}))
 
 
 def cut(path, old, new=""):
@@ -672,6 +700,10 @@ def self_test():
                 ls = []
                 fails.append(f"live {u} {opt}: {e}")
             arm(f"live {u} {opt}", (len(ls) >= 1, ls == sorted(ls), len(ls) == len(set(ls))), (True, True, True))
+    try:
+        arm("live briefs", len(briefs(live)) >= 1, True)
+    except Refuse as e:
+        fails.append(f"live briefs: {e}")
     arm("every universe has a planted arm", sorted({n for n, *_ in PLANTED}), sorted(UNIVERSES))
     for u, opt, n, delete, after, empty in PLANTED:
         for label, edit, want in (("planted", None, n), ("one item deleted", delete, after), ("source emptied", empty, "Refuse")):
@@ -707,6 +739,21 @@ def self_test():
             arm("d12 ledger: the joined row prints its source and test", [l for l in run("d12-cells", t, ledger=str(led)) if "not run" not in l],
                 ["level mode=m1\tsimulation\ttests/x.py::t"])
         arm("d12 a missing ledger is refused", count("d12-cells", t, ledger=str(t / "none.tsv")), "Refuse")
+        bd = t / "dev/governance/dimensions"
+        bd.mkdir(parents=True)
+
+        def cited(text):
+            (bd / "D1.md").write_text(text)
+            try:
+                return briefs(t)
+            except Refuse:
+                return "Refuse"
+        arm("briefs: a cited universe that prints is ok, across a line wrap", cited("1. Per line of `python3 tools/audit/enumerate.py\n   d2-identities --cells`.\n"), ["ok D1 d2-identities --cells"])
+        arm("briefs: a citation of no universe is refused", cited("1. `enumerate.py d1-nothing`\n"), "Refuse")
+        arm("briefs: a tree whose briefs cite none is refused", cited("1. Enumerate by hand.\n"), "Refuse")
+        (t / BUNDLES).write_text('{"bundles": []}')
+        arm("briefs: a cited universe that is empty is refused", cited("1. `enumerate.py d15-installs`\n"), "Refuse")
+        plant_bundles(t)
         edit_json(BUNDLES, lambda d: d["bundles"][0].update(evidence="tests/gone.py"))(t)
         arm("d15 a bundle whose evidence is not in the tree is refused", count("d15-installs", t), "Refuse")
         edit_json(IDENTITIES, lambda d: d["identities"][0].update(grid=["no_such_axis"]))(t)
@@ -733,13 +780,14 @@ def main(argv=None):
     ap.add_argument("--by-file", action="store_true")
     ap.add_argument("--ast", action="store_true")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--briefs", action="store_true")
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
-    if not a.universe:
+    if not a.universe and not a.briefs:
         ap.error("universe required")
     try:
-        ls = run(a.universe, a.repo, cells=a.cells, pairs=a.pairs, ledger=a.ledger, status=a.status, plane=a.plane,
+        ls = briefs(Path(a.repo)) if a.briefs else run(a.universe, a.repo, cells=a.cells, pairs=a.pairs, ledger=a.ledger, status=a.status, plane=a.plane,
                  state=a.state, by_file=a.by_file, ast_only=a.ast)
     except (Refuse, SyntaxError, json.JSONDecodeError) as e:
         print(f"REFUSE: {e}", file=sys.stderr)
