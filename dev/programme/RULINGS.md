@@ -29,13 +29,6 @@ divergence"). Re-read on change after every compaction
   12:00Z, post a new mandate in canonical form on the tracking issue for me."
   Cite it in every approval posted as tvofi; ask him for an extension at the
   time, never assume one (2026-11-14: "I will extend the mandate when needed").
-- 2026-10-20: "Mandate is full-scoped so, you have the authority"; 2026-10-27:
-  "Remember, my approval is still not required during your valid mandate to act
-  as me I have told you this many times now." Never park code-owned, policy or
-  budget work as waiting for his review while a mandate is in force.
-- 2026-11-06: "You may always approve such changes under a validscope all
-  mandate of the changes are objectively sound" (policy pull requests, on an
-  independent reviewer's merge verdict; never one the approver wrote).
 - 2026-11-08: "it can still be done by you under the mandate. The mandate means
   you may act as me in any way necessary without asking?" The orchestrator posts
   that review itself and never sends it back to him (what such a review must
@@ -93,7 +86,8 @@ divergence"). Re-read on change after every compaction
 - 2026-11-13: "Also verify that the other dimensions also covers the full
   codebase in their contracts, I want future rounds to always check everything
   in their dimension, not only small samples". 2026-11-13: "I would like the
-  scope of d5 and d6 to always cover that full scope".
+  scope of d5 and d6 to always cover that full scope". Where `D3.md` and `D11.md`
+  still sample, the change is owned by R11-PRE-BRIEFS-TEXT part 2.
 - 2026-11-15: "As soon as everything that is critical to land before the finder
   phase, the finding phase can start in parallel with the remaining groups";
   "Only the finder critical are required for finder start"; "i meant cutover as
@@ -121,9 +115,7 @@ divergence"). Re-read on change after every compaction
   permanent fix." 2026-11-13: "For the relay, this repos shape is fix it
   locally, file permanent fix as a proposal".
 - 2026-11-14: "limiter first, write that in" (R11-PRE-MACHINERY-LIMITER before
-  the other pre-finder instrument groups); card P2 (card list below): only a red
-  required check on main or a blocked production pull request skips the bar for
-  machinery (orchestrator's reading).
+  the other pre-finder instrument groups).
 - 2026-11-14, loop-study cards: "L1 loop ledger: Yes · L2 countermeasure order:
   Yes · L3 unread not red: Yes · L4 price induced work: Yes · L5 triage by
   instrument: Yes · L6 probation revert first: All three parts · L7 kill
@@ -139,7 +131,8 @@ divergence"). Re-read on change after every compaction
   reusable instrument before policy, only policy if no robust script could be
   built at a reasonable cost (tokens, time, complexity)".
 - 2026-11-13: "you may have a fixer have more carries based on their kind,
-  locally for now and filed as a permanent proposal".
+  locally for now and filed as a permanent proposal" (operational until the
+  round-end proposal triage rules PC-1113-08).
 - 2026-11-01: never propose or triage CI-capacity widening: runners, paid plan,
   second account (as recorded). 2026-11-13: "No" to raising the Actions
   concurrency limit; never ask again. 2026-11-12: "You know you can run seats
@@ -251,9 +244,6 @@ divergence"). Re-read on change after every compaction
 
 ## Reviews
 
-- 2026-11-09: "only fire reviewers before ci is finished for prs on the cr
-  watch" (critical path and outside); otherwise once CI is green. The delta-only
-  later review is `fix-review.md` step 12's.
 - 2026-10-04: "in general, blocked review verdicts go back to the original
   fixer."
 - 2026-11-11: "the reviewer has to be fable under the reviewer >= fixer model
@@ -403,6 +393,9 @@ divergence"). Re-read on change after every compaction
 - "architectural calls take a suitable reviewer's recommendation first"
   (2026-10-21): merged into "Send judgement-heavy rulings to a seat for a
   recommendation first" (2026-11-15).
+- Reviewer timing, "only fire reviewers before ci is finished for prs on the cr
+  watch" (2026-11-09): superseded by `orchestrator.md` section 5's dispatch at
+  the fixer's push, with `bus.sh dispatch` refusing a red head (2026-11-15).
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the

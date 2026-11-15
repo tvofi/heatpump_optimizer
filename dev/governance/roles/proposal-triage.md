@@ -5,9 +5,8 @@ passes this gate before building (decision 0015); a required countermeasure
 (root cause, red-check carry, finding fix) keeps its route. **Once per round**
 (tvofi, 2026-11-14: "keep it in the once per round shape"): the round's
 proposals are consolidated and triaged together at round end by one opus seat,
-medium effort; an ACCEPT is built at the start of the next round. A fix to an
-instrument a running seat depends on stays local and in-round, ruled by no one.
-Check rulings against code.
+medium effort; an ACCEPT is built at the start of the next round. Check
+rulings against code.
 
 **Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
 time; tokens (model x effort x runs); API calls; standing CPU
@@ -19,10 +18,9 @@ ACCEPT. Blocking no production merge: LOG, bar the exemption in
 
 **Machinery.** A planned machinery group, or a non-production CI lane or
 seat, stays only on a measured gain of at least 10% on them. Repair of such
-code (outside `custom_components/`) with roster `severity` `low` or `normal`
-meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
-root-cause countermeasure, closeout, owner directive skip them; unset is
-classified first, never assumed major.
+code (outside `custom_components/`) meets both (over 20% to add) at any
+severity; a red required check on `main`, a blocked production pull request, a
+root-cause countermeasure, closeout or an owner directive skips them (tvofi, 2026-11-13, card P2).
 
 **Verdicts:** ACCEPT names a destination (a next-round roster group and carry,
 or new group, brief); DEFER, what would change it or the owning group; REJECT,
