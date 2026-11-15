@@ -473,13 +473,14 @@
     "Re-cut (triage: dev/programme/triage/r10-round-end.md#P762 at 2e17928032; ratified by tvofi 2026-11-15, card C6): this group's pull request #3551 becomes R11-PRE-SHARED-FILES part 1's union half. Keep change (1), the union `record`, with its failing test and mutant; drop change (2), the table-shrink guard, its fixture and its two mutants, because under loop card L9 no pull request edits the table, so a guard over such edits has no input. One delta review of the re-cut head. When it merges, this group is set `absorbed` into R11-PRE-SHARED-FILES."
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "absorbed",
     "branch": null,
     "commit": "b880dc914f3ba2590b7ce655d7419678b1c4968e",
     "last_step": null,
     "next_step": "dispatch cloud fixer (sonnet, Linux) after R10-HOTFIX-SELFTEST-SCOPE-RERECORD merges",
     "note": "triage ACCEPT round 10 (audit-class barrier, part C); cutoff 2026-11-14T18:00Z else round 11; overlap admitted (R10-NUDGE-RETIRE): triage ruling 2026-11-13: audit-class barrier C; shares tools/ci/selftest_closures.json with R10-HOTFIX-SELFTEST-SCOPE-RERECORD, ordered after it",
-    "pr": 3551
+    "pr": 3551,
+    "absorbed_into": "R11-PRE-SHARED-FILES"
    }
   },
   {
