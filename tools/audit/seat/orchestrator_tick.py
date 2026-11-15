@@ -220,7 +220,8 @@ UNBLOCKABLE_STAGES = (None, "", "not-started")
 #: its carries still owe a seat, which UNBLOCKABLE_STAGES (not-started) never named.
 SEATLESS_STAGES = UNBLOCKABLE_STAGES + ("carries-open",)
 START_AFTER = re.compile(r"start after #(\d+)")
-SEAT_REFS = ("refs/heads/dispatch/fixer-*", "refs/heads/handoff/*", "refs/heads/handoff-wip/*")
+SEAT_REFS = ("refs/heads/dispatch/fixer-*", "refs/heads/handoff/*", "refs/heads/handoff-wip/*",
+             "refs/heads/handoff-body/*", "refs/heads/fix/*")
 #: The shared actions whose pin the whole lane rides; a pin drift on one of
 #: these is the class that reddened a composed proof on a twin SHA.
 STATE_ACTIONS = ("actions/checkout", "actions/setup-node", "actions/cache",
@@ -1663,6 +1664,7 @@ class Tick:
         groups = rl.groups_of(roster)
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
+        self.outside_chain_idle(S, rl, roster)
         for gid, g in groups.items():
             stage = (g.get("resume") or {}).get("stage")
             # roster_lib closes refused and deferred groups (is_open is
@@ -1693,15 +1695,9 @@ class Tick:
         touched since its gate opened: its own merge (`resume.commit`) or #N's.
         A ref whose time cannot be read counts as a live seat; a failed ref
         listing is UNREADABLE, never an empty list."""
-        code, o = self.git(["ls-remote", "origin", *SEAT_REFS])
-        if code:
-            return self.unreadable(S, "undispatched groups", o.strip()[-100:])
-        seats: dict = {}
-        for l in o.splitlines():
-            ref = l.split()[1] if len(l.split()) >= 2 else ""
-            t = ref.removeprefix("refs/heads/").split("/", 1)[-1].removeprefix("fixer-") if "/" in ref else ""
-            if t and (gid := rl.group_for_branch(roster, "x/" + t)):
-                seats.setdefault(gid, []).append(ref.removeprefix("refs/heads/"))
+        seats = self._seats(S, rl, roster, "undispatched groups")
+        if seats is None:
+            return
         groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
         critical = set(rl.critical_path(roster))
         clear = rl.RELEASING_STAGES + ("carries-open",)
@@ -1724,6 +1720,57 @@ class Tick:
             hours = (self.now - opened).total_seconds() / 3600.0
             self.line(S, f"UNDISPATCHED:{' CP' if gid in critical else ''} {gid} {hours:.1f}h -- no dispatch, "
                          "handoff or handoff-wip ref since its gate opened; dispatch the next part", flag=True)
+
+    def _seats(self, S: str, rl, roster: dict, what: str):
+        """{group: [seat refs]} over SEAT_REFS, one ls-remote; None (after the
+        UNREADABLE line) when it fails, never an empty map."""
+        code, o = self.git(["ls-remote", "origin", *SEAT_REFS])
+        if code:
+            return self.unreadable(S, what, o.strip()[-100:])
+        seats: dict = {}
+        for l in o.splitlines():
+            ref = l.split()[1] if len(l.split()) >= 2 else ""
+            t = ref.removeprefix("refs/heads/").split("/", 1)[-1].removeprefix("fixer-") if "/" in ref else ""
+            if t and (gid := rl.group_for_branch(roster, "x/" + t)):
+                seats.setdefault(gid, []).append(ref.removeprefix("refs/heads/"))
+        return seats
+
+    def outside_chain_idle(self, S: str, rl, roster: dict) -> None:
+        """`OUTSIDE-CHAIN-IDLE <G> (#issue): <path> idle <h>h`, flagged: an open
+        `source: outside` group G, each `after` edge walked transitively over
+        the groups that still gate (roster_lib.gates), prints one line per
+        deepest group of a blocking path that no seat ref (SEAT_REFS) has
+        moved inside SEAT_WINDOW_MIN. A path ending in a live seat prints
+        nothing; an unreadable ref listing is UNREADABLE, never a clean chain."""
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+        outside = [g for g in open_g if open_g[g].get("source") == "outside"]
+        seats = self._seats(S, rl, roster, "outside chains") if outside else {}
+        if seats is None:
+            return
+        window = datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+
+        def idle(gid):
+            at = [self._commit_at("origin/" + r) for r in seats.get(gid, [])]
+            if any(a is None or self.now - a <= window for a in at):
+                return None  # a live seat, or a ref whose time cannot be read: not provably idle
+            return (self.now - max(a for a in at if a)).total_seconds() / 3600.0 if at else float("inf")
+
+        for gid in outside:
+            deepest, stack = {}, [[gid]]
+            while stack:
+                path = stack.pop()
+                up = [a for a in groups[path[-1]].get("after") or []
+                      if a in groups and a not in path and a in open_g and rl.gates(groups[a])]
+                if up:
+                    stack += [path + [a] for a in sorted(up, reverse=True)]
+                else:
+                    deepest.setdefault(path[-1], path)
+            for last, path in sorted(deepest.items()):
+                h = idle(last)
+                if h is not None:
+                    issues = open_g[gid].get("issues") or ["?"]
+                    self.line(S, f"OUTSIDE-CHAIN-IDLE {gid} (#{str(issues[0]).lstrip('#')}): {' <- '.join(path)} idle "
+                                 f"{'with no seat ref' if h == float('inf') else f'{h:.1f}h'}", flag=True)
 
     def _commit_at(self, ref):
         """The committer instant of `ref`, or None (no ref, or unreadable)."""
@@ -5479,6 +5526,37 @@ def self_test() -> int:
              and not any(x.startswith("UNDISPATCHED") for x in u_un)),
             ("the emitted line keys in owed_unactioned on its group",
              ou.key_of("-> " + u_none[0])[0] in ("R10-OI", "R10-LATE") and bool(ou.FAMILY.match("-> " + u_none[0]))),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- OUTSIDE-CHAIN-IDLE: an outside group's blocking path ends in no live seat ----
+        ocr = {"groups": [
+            {"group": "R10-OUT", "source": "outside", "issues": [3401], "after": ["R10-MID", "R10-FIN"], "resume": {"stage": "not-started"}},
+            {"group": "R10-MID", "after": ["R10-LEAF"], "resume": {"stage": "not-started"}},
+            {"group": "R10-LEAF", "resume": {"stage": "in-progress"}},
+            {"group": "R10-FIN", "resume": {"stage": "done"}},
+            {"group": "R10-PLAIN", "after": ["R10-LEAF"], "resume": {"stage": "not-started"}}]}
+
+        def cboard(refs, leaf_age_h=None, ls_rc=0, roster=ocr):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/dispatch/fixer-*"), ls_rc, refs))
+            if leaf_age_h is not None:
+                t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/handoff/r10-leaf"), 0,
+                                    iso(NOW - datetime.timedelta(hours=leaf_age_h)) + "\n"))
+            t.outside_chain_idle("PLAN", rlm, roster)
+            return flagged(t.sections.get("PLAN", []))
+        leaf_ref = f"{A40}\trefs/heads/handoff/r10-leaf\n"
+        c_old, c_live, c_none, c_un = cboard(leaf_ref, 8.4), cboard(leaf_ref, 0.5), cboard(""), cboard("", ls_rc=1)
+        a, f = check("OUTSIDE-CHAIN-IDLE", [
+            ("an outside group blocked through MID by a LEAF whose seat ref is 8.4 h old prints the whole path and the idle hours",
+             c_old == ["OUTSIDE-CHAIN-IDLE R10-OUT (#3401): R10-OUT <- R10-MID <- R10-LEAF idle 8.4h"]),
+            ("a leaf with no seat ref at all says so, not a number",
+             c_none == ["OUTSIDE-CHAIN-IDLE R10-OUT (#3401): R10-OUT <- R10-MID <- R10-LEAF idle with no seat ref"]),
+            ("null control: a path ending in a seat ref inside the window prints nothing", c_live == []),
+            ("null control: a plain (non-outside) group's chain onto the same idle leaf prints nothing",
+             not any("R10-PLAIN" in x for x in c_old + c_none)),
+            ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
+             any("UNREADABLE: outside chains" in x for x in c_un) and not any(x.startswith("OUTSIDE") for x in c_un)),
         ])
         total, failed = total + a, failed + f
 
