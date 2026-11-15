@@ -452,8 +452,9 @@ def _git(repo_dir: str, *argv: str, stdin: str | None = None) -> str:
 
 
 def _topic_of(group: dict) -> str:
-    """The topic a group's seat returns under: its branch, less the `handoff/` prefix."""
-    return roster_lib.branch_of(group).removeprefix("handoff/")
+    """The topic a group's seat returns under: its branch, less a `handoff/` prefix, else its last path segment."""
+    branch = roster_lib.branch_of(group)  # local fix (tvofi 2026-11-15, P-R11-12): a `fix/<x>` resume branch left a slash in the topic, refused as "needs a topic"
+    return branch.removeprefix("handoff/") if branch.startswith("handoff/") else branch.rsplit("/", 1)[-1]
 
 
 def _tip(repo_dir: str, ref: str) -> str:
@@ -544,6 +545,10 @@ def part_line(group_id: str, pending: list[int], part: int) -> str:
     carries dispatched with none. Over five with no part refuses with the split: a silent part 1
     would re-dispatch part 1's carries at its own handoff, since they stay pending until its merge."""
     split = part_split(pending)
+    light = os.environ.get("HPO_DISPATCH_LIGHT_CARRIES", "").strip()
+    if not part and light and len(pending) > PART_CARRIES:  # local fix (tvofi 2026-11-15, proposal P-R11-09): small or mechanical carries go to one fixer
+        return (f"All {len(pending)} pending carries in this one seat: the orchestrator ruled them small or mechanical "
+                f"({light}); build each, and stop and report if one turns out to be neither")
     if not part:
         if len(pending) <= PART_CARRIES:
             return ""
