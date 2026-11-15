@@ -250,6 +250,21 @@ def run():
     go(sd, w, line("r10-zzz", sha("2")))
     check("NEEDS-TITLE opens nothing", w.launched == [] and any(o.startswith("NEEDS-TITLE r10-zzz") for o in out))
 
+    # every `handoff-no-pr` board topic is listed, once, each pass: SKIP, NEEDS-TITLE or START (the 2026-11-14
+    # aside: r10-arch-docs-delta drew no line). One topic per branch of the pass, the cap arm included.
+    lh = [("r10-cp", sha("1")), ("r10-inst", sha("2")), ("r10-onmain", sha("3")), ("r10-x", sha("4")), ("r10-zzz", sha("5")),
+          ("triage-s9-batch4", sha("6")), ("r10-old", sha("7")), ("r10-sav-comfort", sha("8"))]
+    lb = "\n".join(line(t, s_) for t, s_ in lh + [("r10-gone", sha("9"))])
+    sd, w = world("", heads=lh, landed={sha("3")}, extra=["refs/heads/fix/r10-x"])
+    w.t.pop("refs/heads/handoff-body/r10-old")
+    (sd / "open-cap.txt").write_text("1\n")
+    listed = lambda: sorted(o.split()[1] for o in out if o.split()[0] in ("SKIP", "NEEDS-TITLE", "START"))
+    go(sd, w, lb)
+    first = listed()
+    go(sd, w, lb, NOW + 10)
+    check("listing: each board topic draws exactly one SKIP, NEEDS-TITLE or START line, on the first pass and the next",
+          first == listed() == sorted(t for t, _ in lh + [("r10-gone", sha("9"))]) and len(w.launched) == 1)
+
     # seen only on rc=0; a failure retries with backoff and prints OWED
     d = lambda sd: sd / "open-driver"
     h1 = [("r10-cp", sha("2"))]

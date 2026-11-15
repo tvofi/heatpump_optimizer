@@ -45,10 +45,11 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-retry-nowrite the retry verb writes nothing (P678 (iii)).
   M-retry-refuse  the retry verb does not refuse a topic with no entry.
   M-retry-namesake the retry verb matches a topic by prefix: r10-cp drops r10-cp-2.
+  M-unlisted    a topic held by the cap draws no line: a board topic goes unlisted.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=32
+EXPECTED RESULT mutants=33
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -116,6 +117,7 @@ PLANTS = {
     "M-retry-nowrite": ("    p.write_text(json.dumps(fails))\n    if _load(p, None) != fails:\n", "    if False:\n"),
     "M-retry-refuse": ("    if not keys:\n        out(f\"open_driver retry: REFUSE: {p} holds no entry", "    if False:\n        out(f\"open_driver retry: REFUSE: {p} holds no entry"),
     "M-retry-namesake": ("if k.split()[0] == topic and k.split()[1].startswith", "if k.startswith(topic) and k.split()[1].startswith"),
+    "M-unlisted": ('            skipped[topic] = "cap"\n            log(f"SKIP {topic} {sha[:8]} cap")\n', '            skipped[topic] = "cap"\n'),
     "M-stuckowed": ('f"STUCK {t} {sha[:8]} rc=', 'f"OWED {stamp} open-refused {t} {sha[:8]} rc='),
 }
 
