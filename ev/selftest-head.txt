@@ -1,0 +1,11 @@
+---
+hooks_setup: added seat-interpreter SessionStart
+hooks_setup: added git-identity SessionStart
+hooks_setup: nothing to change
+hooks_setup self-test: 74 checks, 0 failed
+
+real	3m1.885s
+user	2m21.523s
+sys	0m28.914s
+
+[exited with code 0]

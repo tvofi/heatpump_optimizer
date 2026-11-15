@@ -1,0 +1,18 @@
+hooks_setup: backed up to settings.json.bak-1794776831539645021
+hooks_setup: added liveness SessionStart
+hooks_setup: added liveness PostCompact
+hooks_setup: added liveness UserPromptSubmit
+hooks_setup: added seat-interpreter SessionStart
+hooks_setup: added git-identity SessionStart
+hooks_setup: nothing to change
+hooks_setup: backed up to settings.json.bak-1794776831541494637
+hooks_setup: corrected liveness SessionStart
+hooks_setup: added liveness SessionStart
+hooks_setup: added liveness PostCompact
+hooks_setup: added liveness UserPromptSubmit
+hooks_setup: added seat-interpreter SessionStart
+hooks_setup: added git-identity SessionStart
+hooks_setup: nothing to change
+  FAIL read-proof: after a proof the core and an unchanged rule are in full, changed pages and rulings are in, an unchanged page is out
+  FAIL read-proof: a rulings file gone from origin/main is a removed page, and the corpus is still written
+hooks_setup self-test: 51 checks, 2 failed
