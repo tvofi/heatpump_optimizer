@@ -1,0 +1,10 @@
+tree: edge path (running_signal)
+RESULT control=3
+RESULT perturbed=4
+RESULT restored=8
+RESULT s7_60s=0
+RESULT s7_30s=0
+RESULT s7r_60s=0
+RESULT s7r_30s=0
+RESULT s7r_real=6
+rc=0
