@@ -28187,6 +28187,56 @@
     "note": "overlap admitted (R11-PRE-SHARED-FILES): same seam as the parent (candidate stage and runs leaf, test and harness only); shares tests/features.py with the listed groups' distinct seams, merged in train order",
     "pr": null
    }
+  },
+  {
+   "group": "R11-OUTSIDE-HONEST-STARTS-RUNS-P3",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R11-OUTSIDE-HONEST-STARTS-RUNS"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "tests/features.py",
+    "tests/golden/claimed_drift.txt",
+    "docs/configuration.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor)",
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "outside",
+   "brief": "Part 3 of R11-OUTSIDE-HONEST-STARTS-RUNS (outside pull request 3529 by Bankaifan; credit them by name), cut before pull request 3602 merged: the parent goes carries-open at that merge. The default start price for a clamped install. Starts only once 38c254f3fb is an ancestor of origin/main. Ground: since that build an install with clamp_planned_levels on and no configured start price (DEFAULT_CYCLING_COST, zero) prices no start, so its committed plan may hold more starts than before: the parent's grid figure, clamped with no price, 2 to 5 edges at a lower objective (7.8698 to 7.6826), printed by the grid mode of dev/audit/harnesses/r11_honest_starts_runs.py (in the tree at 38c254f3fb).\n\nOwner ruling Q2 (tvofi 2026-11-15, verbatim choice: \"Yes, measure then build (Recommended)\"), binding: step 1 measures before anything is built. For candidate default start prices (zero, then a ladder across the configured field's range), on the grid's clamped no-price row and on the parent's two claimed fixtures, print starts by the edge count, energy, predicted cost and lowest room. The 2-to-5 row is the failing case; a priced install is the null control (a configured price above zero ships an array-equal plan with and without the default), an unclamped unpriced install a second. The table returns to tvofi through the orchestrator before any default ships; step 2 builds only at the value he picks.\n\nStep 2 states where the default lives and why: the coordinator's effective cycling cost (_effective_cycling_cost in custom_components/heatpump_optimizer/coordinator.py), the optimizer config's default, or the options field in custom_components/heatpump_optimizer/config_flow.py and custom_components/heatpump_optimizer/const.py. An install whose options already hold zero cannot be told from one that chose zero, so the body states which installs the new default reaches and whether a user action or a migration is owed; either goes first in the release notes. A golden that moves is claimed in tests/golden/claimed_drift.txt for the version live at build time, never re-recorded. Failing test first, mutation proof. Re-measure every figure and line number in this brief at your own merge base; the figures quoted are one box's.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (M, opus) after pull request 3602 merges: measure first, return the table to tvofi, build at his value (ruling Q2)",
+    "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2): the default start price (owner ruling Q2), a distinct seam from the shared files' other owners; merged in train order",
+    "pr": null
+   }
   }
  ]
 }
