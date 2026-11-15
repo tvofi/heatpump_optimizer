@@ -116,9 +116,11 @@ train → merge → record → stamp. The order is the orchestrator's contract,
    fixer's. A head that moved under the review is a blocked verdict.
 5. **Train and merge.** `tools/audit/seat/merge_train.py` lands verdicted pull
    requests in order at a pitch, and stops at the first refusal.
-6. **Record.** The pull request's row is `dev/programme/delivery/<N>.md`, written
-   at each merge, not at session end; `tools/audit/seat/record_row.py` drives
-   the record-autofix job that rows a merge no branch rowed.
+6. **Record.** The record is the pull-request list and #3394:
+   `tools/audit/seat/postmerge.py` posts one #3394 line per merge. No seat
+   writes a per-PR row; `tools/audit/seat/record_row.py` drives the
+   record-autofix job that rows each merge, which the stamp reads
+   (`dev/governance/rules/delivery-status-tracking.md`).
 7. **Stamp.** `tools/release/stamp.py` assigns the version after the merge. A
    branch never touches `VERSION`, the manifest version, or the
    `RELEASE_NOTES.md` heading.
@@ -342,7 +344,6 @@ flowchart TB
     train -->|"writes"| pr
     train -->|"runs"| post
     post -->|"runs"| rsync
-    post -->|"runs"| docs
     post -->|"writes"| ledger
     rsync -->|"runs"| redit
     hb -->|"writes"| hbref
@@ -397,7 +398,6 @@ cites any file but that script.
 | merge_train.py | writes | pull request | `tools/audit/seat/merge_train.py`: `["gh", "pr", "ready", str(pr), "--repo", t.repo]` |
 | merge_train.py | runs | postmerge.py | `tools/audit/seat/merge_train.py`: `tool("postmerge"), str(pr), "--repo"` |
 | postmerge.py | runs | roster_sync.py | `tools/audit/seat/postmerge.py`: `/roster_sync.py", "--repo", repo, "--apply"` |
-| postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |
 | postmerge.py | writes | obligations ledger | `tools/audit/seat/postmerge.py`: `"open", "postmerge-owed"` |
 | roster_sync.py | runs | roster_edit.py | `tools/audit/seat/roster_sync.py`: `roster_edit.write_roster(` |
 | heartbeat.sh --once | writes | heartbeat ref | `tools/audit/seat/heartbeat.sh`: `"$c:refs/heads/$REF"` |

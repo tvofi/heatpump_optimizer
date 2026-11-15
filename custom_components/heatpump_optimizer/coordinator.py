@@ -309,7 +309,7 @@ from .ledger import (
     restate_total,
     roll_receipts,
 )
-from .wear import StartCounter, wear_price_per_start
+from .wear import RiseHold, StartCounter, wear_price_per_start
 from . import narrative
 from . import diagnosis
 from .freq_control import (
@@ -3891,11 +3891,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #55: the realised compressor-start counter, sharing the ledger's
         # store so counts and the wear SEK they book can never load from
         # different generations of state.
-        self._start_counter = StartCounter()
-        # Part D: it folds the running signal's edges, queued until the ledger
-        # restore (``wear.StartCounter.restore``); ``__init__`` attaches the signal.
+        # Part D: it folds the running signal's edges, a meter's rise held for its
+        # refreshes (S7), queued until the ledger restore; ``__init__`` attaches it.
+        self._start_counter = StartCounter(hold=None if self._ctx._config.compressor_freq_sensor else RiseHold())
         running_signal.subscribe(running_signal.signal_for(self), lambda edge: self._book_starts(
-            self._start_counter.fold(*edge)))
+            self._start_counter.hear(*edge)), lambda read: self._book_starts(self._start_counter.refresh(read)))
         # #40: receipts frozen at month rollover. Frozen rather than
         # recomputed on read, so a receipt never changes after the month it
         # describes has closed.
@@ -6698,7 +6698,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # element is running — a different appliance wearing the pump's meter.
         self._detect_immersion()
         # Part D: the latch and the commanded draw move here with no meter event.
-        running_signal.note(running_signal.signal_for(self), dt_util.now())
+        running_signal.refresh(running_signal.signal_for(self), dt_util.now())
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 

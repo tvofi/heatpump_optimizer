@@ -21,6 +21,13 @@ listener, confirm timer and per-refresh re-read count.
               over 60 s, at 6 offsets inside the window: false starts (offset
               0 fills its window, so its first report is already over)
   s7_30s      the same on a 30 s averaging meter, 6 offsets: false starts
+  s7r_60s     s7_60s with a refresh every period, one landing between the
+              partial's confirmation and over, the element running three
+              periods and cutting out through a partial: false starts
+  s7r_30s     the same on a 30 s averaging meter: false starts
+  s7r_real    the null control of the two s7r rows: the same rig and
+              refreshes with a real compressor start at each of the 6 offsets
+              of a 60 s window: starts counted (6, one each)
 
 Synthetic inputs only. Run from a worktree root, the base's or the head's:
   PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/start_counter_edges.py
@@ -28,8 +35,15 @@ Synthetic inputs only. Run from a worktree root, the base's or the head's:
 EXPECTED RESULT control=3
 EXPECTED RESULT perturbed=4
 EXPECTED RESULT restored=8
-EXPECTED RESULT s7_60s=5
-EXPECTED RESULT s7_30s=5
+EXPECTED RESULT s7_60s=0
+EXPECTED RESULT s7_30s=0
+EXPECTED RESULT s7r_60s=0
+EXPECTED RESULT s7r_30s=0
+EXPECTED RESULT s7r_real=6
+
+The expected values are the head's, the refresh-held start (owner ruling D1);
+the base without it reads s7_60s, s7_30s, s7r_60s and s7r_30s 5 and the rest
+the same.
 """
 from __future__ import annotations
 
@@ -172,10 +186,40 @@ def s7(window_s):
     return false
 
 
+def s7r(window_s, real=False):
+    """``s7`` with the refreshes: one every period from the first, the element
+    running three periods and cutting out through a partial; ``real`` replaces
+    the element by a compressor start at 2 kW at the same instants."""
+    counted = 0
+    for u in [window_s * k / 6 for k in range(6)]:
+        rig = Rig()
+        rig.load(None)
+        rig.c._current_action = {**rig.c._current_action, "power": 2.0, "dhw_power": 0.0}
+        level = 2.0 if real else float(rig.c._ctx._thermal_params.max_electrical_power) * 1.15 + 1.0
+        partial = level * (window_s - u) / window_s
+        rise = T0 + timedelta(seconds=PERIOD_S - 45)
+        rig.set(partial, rise)
+        rig.refresh(T0 + timedelta(seconds=PERIOD_S))
+        rig.set(level, rise + timedelta(seconds=window_s))
+        for k in (2, 3, 4):
+            rig.refresh(T0 + timedelta(seconds=k * PERIOD_S))
+        cut = T0 + timedelta(seconds=4 * PERIOD_S + 60)
+        if not real:
+            rig.set(level * u / window_s, cut)
+            rig.set(0.0, cut + timedelta(seconds=window_s))
+        for k in (5, 6, 7):
+            rig.refresh(T0 + timedelta(seconds=k * PERIOD_S))
+        counted += rig.c._start_counter.lifetime
+    return counted
+
+
 print(f"tree: {'edge path (running_signal)' if EDGES else 'sampled path'}")
 print(f"RESULT control={replay(trace()).c._start_counter.lifetime}")
 print(f"RESULT perturbed={replay(trace(perturb=(90 + 40, 5))).c._start_counter.lifetime}")
 print(f"RESULT restored={restored()}")
 print(f"RESULT s7_60s={s7(60)}")
 print(f"RESULT s7_30s={s7(30)}")
+print(f"RESULT s7r_60s={s7r(60)}")
+print(f"RESULT s7r_30s={s7r(30)}")
+print(f"RESULT s7r_real={s7r(60, real=True)}")
 dt_util.freeze(None)
