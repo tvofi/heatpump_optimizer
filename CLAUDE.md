@@ -154,6 +154,8 @@ individually, because a range reads as complete while covering a fraction:
 | `D13.md` | process yield and cost |
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
+| `D16.md` | actuator write: each command, hold and release against the plan's target |
+| `D17.md` | feature behaviour against its documented effect |
 
 ### Instruments
 
@@ -204,9 +206,7 @@ the contract moves.
 
 ## Root-cause remediation
 
-A qualifying defect owes its cause and the **process** that let the cause get
-that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, when recording that no
+The two triggers, the four process states, the cost test, when recording that no
 countermeasure is worth building is a legitimate result, and the demonstration a
 check-shaped countermeasure owes are in `defect-root-cause.md` and
 `root-cause.md`. The fixer answers a red check in the pull-request body; an
