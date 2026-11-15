@@ -27624,7 +27624,7 @@
    "carry": [],
    "resume": {
     "stage": "done",
-    "branch": "handoff/r10-hotfix-carry-tip-sigpipe",
+    "branch": "archive/handoff/r10-hotfix-carry-tip-sigpipe",
     "commit": "9acc181ca7001ab53d59cf2f15c39042b5ed15b7",
     "pr": 3592,
     "last_step": "handoff cb803e9e pushed; body awaits its carry",
