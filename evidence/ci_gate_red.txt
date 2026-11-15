@@ -1,0 +1,11 @@
+head 93ba227138a2c024bf81e44e74f2b11cb572bd76
+merge_train.py classify 93ba227138a2c024bf81e44e74f2b11cb572bd76 --pr 3451 -> rc=1
+RED 93ba227138a2c024bf81e44e74f2b11cb572bd76 pending: none red: gate
+
+gate job 132741691093 (run 43688486622, kind code), 07:42:24Z:
+FAIL governance / policy-docs: cancelled (this run)
+budget-raise-gate / budget-raise-gate: failure (run 43688983215)
+
+governance / policy-docs job 132734039270: started 07:07:47Z, concluded cancelled 07:12:51Z,
+i.e. at the job's `timeout-minutes: 5` (.github/workflows/governance.yml).
+gate jobs 132741905758 (run 43688487757) and 132741912105 (run 43688983215) also concluded failure at 07:43:29-30Z.

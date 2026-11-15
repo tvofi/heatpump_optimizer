@@ -1,0 +1,37 @@
+diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
+index 722d3d0063..62eabf1f24 100644
+--- a/dev/governance/roles/proposal-triage.md
++++ b/dev/governance/roles/proposal-triage.md
+@@ -2,8 +2,12 @@
+ 
+ A process, tooling or instrument proposal (sweep, seat results, verdict notes)
+ passes this gate before building (decision 0015); a required countermeasure
+-(root cause, red-check carry, finding fix) keeps its route. One opus seat,
+-medium effort, under `standing.md`; check rulings against code.
++(root cause, red-check carry, finding fix) keeps its route. **Once per round**
++(tvofi, 2026-11-14: "keep it in the once per round shape"): the round's
++proposals are consolidated and triaged together at round end by one opus seat,
++medium effort; an ACCEPT is built at the start of the next round. A fix to an
++instrument a running seat depends on stays local and in-round, ruled by no one.
++Check rulings against code.
+ 
+ **Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
+ time; tokens (model x effort x runs); API calls; standing CPU
+@@ -20,12 +24,12 @@ meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+ root-cause countermeasure, closeout, owner directive skip them; unset is
+ classified first, never assumed major.
+ 
+-**Verdicts:** ACCEPT names a destination (roster group and carry, or new group,
+-brief); DEFER, what would change it or the owning group; REJECT, the binding
+-cost; LOG, evidence.
++**Verdicts:** ACCEPT names a destination (a next-round roster group and carry,
++or new group, brief); DEFER, what would change it or the owning group; REJECT,
++the binding cost; LOG, evidence.
+ 
+-**A ruling**: a `## P<n>: <title>` entry in a `dev/programme/triage/` batch
+-file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
++**A ruling**: a `## P<n>: <title>` entry in the round's `dev/programme/triage/`
++batch file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
+ log), `Cost:` (estimate, each capped file's `--budgets` row), `Binding:`. An
+ ACCEPT runs its rule per instance, result beside it. Git and local logs
+ before the API.
