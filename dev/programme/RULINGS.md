@@ -4,8 +4,13 @@ Every ruling of tvofi's still in force, with its date. Quoted text is his words
 verbatim, typos kept; "as recorded" marks a ruling whose words were not kept,
 and "orchestrator's reading" marks an interpretation, never his. A ruling given
 to an orchestrator lands here in its next pull request; one superseded moves to
-the closing list, naming its successor. Re-read on change after every
-compaction (`dev/governance/roles/orchestrator.md` section 0).
+the closing list, naming its successor. An entry belongs here only while no
+policy file states it (tvofi, 2026-11-15: "Also screen the rulings for overlap
+with policy, if both policy and rulings mandates something, policy is the right
+place"; "The point with this is that policy files and policy related files
+should follow good data integrity practice, no duplication, that creats risks of
+divergence"). Re-read on change after every compaction
+(`dev/governance/roles/orchestrator.md` section 0).
 
 ## Authority and the mandate
 
@@ -23,14 +28,11 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   independent reviewer's merge verdict; never one the approver wrote).
 - 2026-11-08: "it can still be done by you under the mandate. The mandate means
   you may act as me in any way necessary without asking?" The orchestrator posts
-  tvofi's approving review itself at the head, declared as an agent's, citing
-  the mandate.
+  that review itself and never sends it back to him (what such a review must
+  carry is decision 0013's).
 - 2026-10-23: "The raise is ok, but you can rule such cases under your mandate".
-  A raise still carries `## Raise justification`; a seat's denial is never
-  laundered through the mandate.
-- 2026-11-12: "They don't need to be read by me, a mandate made by me is valid
-  for my machinery." Mandate approvals by our machinery are valid on contributor
-  fork pull requests.
+  A seat's denial is never laundered through the mandate (the raise itself is
+  `CLAUDE.md` rule 2 and decision 0013's).
 - 2026-11-15: "The owners own words can also be you under the mandate." Wording
   the owner owns (dimension briefs) may be written under the mandate, declared
   with its id.
@@ -39,10 +41,10 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-11-13: "Remember you have GitHub admin rights under the mandate."
   2026-11-09: "Yes delete it, you are free to make that call under the mandate"
   (removing a stuck CI run that holds the programme).
-- 2026-09-17: "I have given you a standing approval, but importantly, it
-  applies to this session ONLY", and "Such exceptional session approvals can
-  never be overstated or uncontrollably extended again." Record a grant in his
-  words with its scope; a session grant dies with the session.
+- 2026-09-17: "I have given you a standing approval, but importantly, it applies
+  to this session ONLY", and "Such exceptional session approvals can never be
+  overstated or uncontrollably extended again." Record a grant in his words with
+  its scope; a session grant dies with the session.
 - 2026-11-13, card X1: "No, mandate stays as is" (actuator-write pull requests
   stay approvable under it).
 
@@ -59,9 +61,9 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   verified findings though" (verified is not decided).
 - 2026-11-12: "It has already been decided that that should be dropped." Read a
   group's roster stage and note before asking; a settled ruling is not re-asked.
-- 2026-10-21 (as recorded): seat questions are decided by the orchestrator
-  under the mandate, never surfaced to him in a seat's final text; architectural
-  calls take a suitable reviewer's recommendation first.
+- 2026-10-21 (as recorded): seat questions are decided by the orchestrator under
+  the mandate, never surfaced to him in a seat's final text; architectural calls
+  take a suitable reviewer's recommendation first.
 - 2026-10-29: "there is never a scenario where I would not want to" (fix every
   slip found; never ask).
 - 2026-11-12: "Stop replying to no-op notifications to be a bit more token
@@ -71,24 +73,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Round scope and the objective
 
-- 2026-11-13: "at least for objective bugs, I want the codebase to converge
-  towards 0 bugs with infinite number of audit rounds."
-- 2026-11-13: "I want the agentic coding process to converge against optimal
-  quality, lead time and token effectiveness, both with the number of audit
-  rounds, and also within the rounds by the self-feeding mechanisms."
-- 2026-11-13: "have a fable seat define that function and add it in the audit
-  process, so that everything can be evaluated against that objective when a new
-  round is started, and any changes needed is made before the finders start".
-  Its acceptance: 'a "perfect" model that reads it, should be able to improve
-  the dimensions, process and machinery so that that round is completed
-  "perfectly"'; 'Running that "perfect" audit round should result in "perfect"
-  production code'; and 'the integration is "perfecty" generic and can run every
-  install in a "perfect" way, resulting in "perfect" savings'. "For 5, this is
-  yours to set using your best judgement": the supported install population and
-  comfort bounds are the orchestrator's, recorded with their basis.
-- 2026-11-15 (carry E11-N-OBJECTIVE-RECORD (b), "Write it now (Recommended)";
-  card "Make it final (Recommended)"): a round closes only with its objective
-  record under `dev/audit/yardstick/`.
 - 2026-11-13: "Also verify that the other dimensions also covers the full
   codebase in their contracts, I want future rounds to always check everything
   in their dimension, not only small samples". 2026-11-13: "I would like the
@@ -107,29 +91,22 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   carries from the previous round."
 - 2026-11-13: "outside and owner filed findings and requests should always fold
   into the ongoing round if not explicitly deferred by the owner or outsider".
-- 2026-10-29: "each full audit round means a new major version, and it should
-  match the round number on closeout"; never a major bump mid-round.
 
 ## The instrument freeze, proposals and root cause
 
-- 2026-11-13, card P11: "Freeze, except production defects, owner orders and red
-  main". 2026-11-13: "This should be the shape for instrument fixes, prototype
+- Card P11 (verbatim in the card list below) sets the freeze's exceptions.
+  2026-11-13: "This should be the shape for instrument fixes, prototype
   local fixes in-round, file proposal permanent fixes for consolidation and
-  cost/benefit that is carried to the start of next round".
+  cost/benefit that is carried to the start of next round". (The local in-round
+  fix and the round-end triage are `orchestrator.md` section 5's and
+  `proposal-triage.md`'s.)
 - 2026-11-01: "On any deadlock, you fix it by hand while waiting on the
   permanent fix." 2026-11-13: "For the relay, this repos shape is fix it
   locally, file permanent fix as a proposal".
 - 2026-11-14: "limiter first, write that in" (R11-PRE-MACHINERY-LIMITER before
-  the other pre-finder instrument groups); card P2: "Declining cap, one in one
-  out, severity route narrowed" (only a red required check on main or a blocked
-  production pull request skips the bar for machinery).
-- 2026-11-08: "bump the triage cost/benefit target to 20% improvement and the
-  limit for keeping already planned instrument groups to 10% instead of 5";
-  "the issue bar only applies to instrument and machinery". Product defects
-  never take the bar.
-- 2026-11-14: "yes, do the once per round shape (preliminary, wait for the
-  investigation as well)"; "No, keep it in the once per round shape"
-  (`proposal-triage.md` stays, triaging once per round).
+  the other pre-finder instrument groups); card P2 (card list below): only a red
+  required check on main or a blocked production pull request skips the bar for
+  machinery (orchestrator's reading).
 - 2026-11-14, loop-study cards: "L1 loop ledger: Yes · L2 countermeasure order:
   Yes · L3 unread not red: Yes · L4 price induced work: Yes · L5 triage by
   instrument: Yes · L6 probation revert first: All three parts · L7 kill
@@ -138,18 +115,12 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   timing: At round 11 start, per the freeze".
 - 2026-09-16: "deploy the rca, it should be done immediately and not deferred as
   owed" (product and release defects and outages; tooling friction is counted by
-  family and analysed at round end, L8).
-- 2026-09-25 (as recorded): three or more instances of an audit class owe a
-  class-eliminating barrier, not a refusal (`defect-root-cause.md`).
+  family and analysed at round end, L8). The trigger and the separate seat are
+  `CLAUDE.md`'s and `defect-root-cause.md`'s.
 - 2026-10-24: "each operation or shape that is not clearly a one shot and could
   be mechanical should be mechanical and wired into the machinery. This means
   reusable instrument before policy, only policy if no robust script could be
   built at a reasonable cost (tokens, time, complexity)".
-- 2026-10-03: "Useful tools should not be kept in local tmp folders only, they
-  should be in the tools folder on remote main"; 2026-10-31: "reusable scripts
-  in a generalized form always belong on main if they are not redundant, wrong
-  or have negative consequences on the machinery." (Under the freeze they land
-  as proposals.)
 - 2026-11-13: "you may have a fixer have more carries based on their kind,
   locally for now and filed as a permanent proposal".
 - 2026-11-01: never propose or triage CI-capacity widening: runners, paid plan,
@@ -163,24 +134,21 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   narrowed · P3: Yes · P4: Yes, local and cloud · P5: Keep and do the rest · P6:
   Yes · P7: Yes, fold in · P8: Yes · P9: Yes, design first in round 11 · P10:
   Yes · P11: Freeze, except production defects, owner orders and red main · P12:
-  Yes, during round 11 · P13: Yes · P14: Yes · R1: Yes, keep one exception seat ·
-  R2: Yes, render on change · R3: "Full for CLAUDE.md, orchestrator contract and
-  rulings; changes only for instrument pages" · X1: No, mandate stays as is · X2:
-  Yes, trial". On P9, P10, P12, P14, R1, R2: "They should be fixed in the
+  Yes, during round 11 · P13: Yes · P14: Yes · R1: Yes, keep one exception seat
+  · R2: Yes, render on change · R3: "Full for CLAUDE.md, orchestrator contract
+  and rulings; changes only for instrument pages" · X1: No, mandate stays as is
+  · X2: Yes, trial". On P9, P10, P12, P14, R1, R2: "They should be fixed in the
   beginning of round 11 before the finders run".
-- 2026-11-15, relayed by the orchestrator: "Rules in full". After a compaction
-  `CLAUDE.md`, the orchestrator's contract and every `.claude/rules/` file are
-  read in full.
 - 2026-11-15, relayed by the orchestrator: "This file should be excluded by the
-  corpus but still needs to be re-read on changes, just like instruments.md".
-  This file and the instrument pages are read only where changed since the last
-  proof; it is listed in `corpus_excluded.json`, outside the policy caps.
-- 2026-11-14: "remerge_main.sh definitely needs to be scoped down aggressively"
-  (main merges into a head only on a real conflict); "Day 1 plus shadow" (the
-  shadow runs beside round 11 as a measurement; the switch to an integration
-  branch is his decision after it); "Yes." to "small shadow first; driver only if
-  the replay passes"; "If cloud seats for speculative gating is feasible, they
-  should run haiku".
+  corpus but still needs to be re-read on changes, just like instruments.md". It
+  is listed in `corpus_excluded.json`, outside the policy caps; the reading rule
+  is `orchestrator.md` section 0's.
+- 2026-11-14: "Day 1 plus shadow" (the shadow runs beside round 11 as a
+  measurement; the switch to an integration branch is his decision after it);
+  "Yes." to "small shadow first; driver only if the replay passes"; "If cloud
+  seats for speculative gating is feasible, they should run haiku";
+  "remerge_main.sh definitely needs to be scoped down aggressively" (merging
+  main only on a conflict is `fixer.md` step 6's).
 - 2026-11-14: "Keep them open" (never close a re-routed pull request to cut the
   branch count).
 - 2026-11-11, study review: "I agree with all the recommendations" (as recorded:
@@ -190,10 +158,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Priority, caps and the critical path
 
-- 2026-10-22: "ready critical-path groups are exempt from the open-PR soft
-  cap->I as an owner demand this, in compination with high priority for the
-  critical path PRs"; 2026-10-28: "critical path does always go above any cap and
-  first in any queue".
 - 2026-11-09: "Your absolute, critical top priority is to never let the critical
   path or outside PRs slip, ever."; "This should under no circumstances never,
   ever be allowed to slip since it is outside request"; "These types of
@@ -211,69 +175,56 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   context: the soft cap of 20 open pull requests before starting new groups,
   2026-11-11).
 - 2026-11-11: "Do it, it is already decided and should be built in, no critical
-  path, outside or hotfix PR should wait in CI queue"; "Dont do A" (no merging on
-  a combined proof with the required-check rule narrowed).
+  path, outside or hotfix PR should wait in CI queue"; "Dont do A" (no merging
+  on a combined proof with the required-check rule narrowed).
 - 2026-11-08: "every item must always have someone on it" for every open pull
   request, ready handoff and unblocked group (as recorded).
 - 2026-10-28: "no pr should wait without reason, in particular not CP prs";
   2026-10-18: "act on work waiting on you, you should never ignore it";
   2026-11-06: "Anything ”owed” means by definition you should act in the same
   round"; 2026-11-14: "Act on everything that is owed in the same turn always".
-- 2026-10-24: "you should not hold ready handoffs while draining PRs, handoffs
-  are more important to drain, so work is not lost".
-- 2026-10-24: "as long as they are separated by seams and clear briefs it is ok"
-  (concurrent pull requests on one hot file); 2026-11-08: "Raise the coordinator
-  cap to 3".
+- 2026-11-08: "Raise the coordinator cap to 3" (ordering by owning seam, not
+  shared file, is `orchestrator.md` section 5's).
 - 2026-11-05: "The point with the roster and plan is to avoid such file
   conflicts" (compare open pull requests' files before queueing).
 - 2026-10-25 (as recorded): new work goes to an existing open group; a new group
   only when nothing is in common.
 - 2026-11-07: "The dependsncy is backwards, user docs verify need to be after
   every user facing change. Verify no other seams are backwards".
-- 2026-11-08: "is it really necessary for a group to feed carries into itself?"
-  and, on the card, "Do it, narrow exceptions": a finding in a group's own seam is
-  built in its pull request.
-- 2026-11-01: "Each time the plan html is updated, compare the real state against
-  the gantt, mechanically if possible, and have slips surfaced to you to act on,
-  defer or accept."
+- 2026-11-01: "Each time the plan html is updated, compare the real state
+  against the gantt, mechanically if possible, and have slips surfaced to you to
+  act on, defer or accept."
 - 2026-10-30: "dark mode should absolutely not be scoped out. you have your
   mandate". User-visible quality is never scoped out for cost or ownership.
 
 ## Merges, CI and reds
 
 - When a merge train is run, it runs in batch mode with combined proof and with
-  overlap, and it pauses while a stamp runs: 2026-11-01: "batch mode should be the
-  default mode but the merge seats keep dropping that info"; 2026-11-07: "I meant
-  the batch mode with combined proof that the train supports"; 2026-10-22: "It is
-  recommended to run the train with --overlap as long as ci of the prs are run";
-  2026-10-24: "have the merge seat run with batch where possible, and always
-  overlap"; 2026-11-08: "The train should pause while a stamp is running the next
-  time." These bind nothing while merges are single (card, 2026-11-15: "Keep,
-  scoped to train runs (Recommended)").
-- 2026-11-04: "keep records such as triage and roster edits on separate branches,
-  and merge them with main only around the stamp and in batches"; "records should
-  not drown out production PRs. Merge the record PRs together with stamps".
-  2026-11-15, card "Hold delivery rows for the stamp too": the automatic
-  delivery-rows pull request (record/autofix) also waits and merges with the
-  stamp batch, never on its own guard between stamps. 2026-10-28: "we should keep them, but that kind of reviews are for sonnet seats"
-  (record pull request reviews).
+  overlap, and it pauses while a stamp runs: 2026-11-01: "batch mode should be
+  the default mode but the merge seats keep dropping that info"; 2026-11-07: "I
+  meant the batch mode with combined proof that the train supports"; 2026-10-22:
+  "It is recommended to run the train with --overlap as long as ci of the prs
+  are run"; 2026-10-24: "have the merge seat run with batch where possible, and
+  always overlap"; 2026-11-08: "The train should pause while a stamp is running
+  the next time." These bind nothing while merges are single (card, 2026-11-15:
+  "Keep, scoped to train runs (Recommended)").
+- 2026-11-04: "keep records such as triage and roster edits on separate
+  branches, and merge them with main only around the stamp and in batches";
+  "records should not drown out production PRs. Merge the record PRs together
+  with stamps". 2026-11-15, card "Hold delivery rows for the stamp too": the
+  automatic delivery-rows pull request (record/autofix) also waits and merges
+  with the stamp batch, never on its own guard between stamps. 2026-10-28: "we
+  should keep them, but that kind of reviews are for sonnet seats" (record pull
+  request reviews).
 - 2026-11-04: "DONT CLOSE THEM. JUST CANCEL THEIR CI RUNS".
-- 2026-11-07: "One thing I want to do immediately is not having anything block
-  because of unnamed reds that is non required."; 2026-11-09: "No pr merge should
-  be blocked on a non-required red". The required set is
-  `merge_train.py owed-reds`'s.
-- 2026-11-05: "It he cause of red is not the pr, comment that and use
-  —allow-red".
-- 2026-11-04: "You don't have to pause merges due to CI ratchets red, since it was
-  not caused by any PR".
+- 2026-11-04: "You don't have to pause merges due to CI ratchets red, since it
+  was not caused by any PR".
 - 2026-10-28 (as recorded): cancel superseded runs every sweep, CP and hotfix
   heads included ("keep cancelling them, yes"); never a live head or main.
   2026-11-13: "2. Yes" (cancelling superseded main runs while Actions is
   healthy); 2026-11-11 (as recorded): never while Actions is degraded.
 - 2026-10-21: "A pr still needs valid evidence" (fix an over-firing check's
   classification, never the requirement).
-- 2026-11-07: "Having the fixers merge main and re-run prepr after each main head
-  move seems extremely wasteful, as the train can handle that."
 - 2026-11-04 (as recorded): a heavy pre-PR script runs once per code; a fixer's
   run is not repeated at the opening. 2026-11-09: "hotfixes should have
   aggressively scoped or no prepr". 2026-10-21: "Tell seats they are allowed to
@@ -283,15 +234,9 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Reviews
 
-- 2026-10-08: "That fixes should be done in an architecturally sound way should
-  always be true, binding and persistent"; "budgets can increase as a last resort
-  if it is the option that lands a truly better architecture".
-- 2026-11-09: "I though it was always only the delta that was reviewed in later
-  review rounds? If not, make it so"; "The only exception should be if the delta
-  touches production code in a way such that the functionality of the other
-  already reviewed code has a risk of being affected in a non obvious way that CI
-  would not detect."; "only fire reviewers before ci is finished for prs on the cr
-  watch" (critical path and outside); otherwise once CI is green.
+- 2026-11-09: "only fire reviewers before ci is finished for prs on the cr
+  watch" (critical path and outside); otherwise once CI is green. The delta-only
+  later review is `fix-review.md` step 12's.
 - 2026-10-04: "in general, blocked review verdicts go back to the original
   fixer."
 - 2026-11-11: "the reviewer has to be fable under the reviewer >= fixer model
@@ -299,22 +244,17 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-11-07: "Remember that a significant new feature should have a design and
   design reviews, especially outside ones. Post on the outside PR that the
   feature is being planned with the design choices made, then post again with a
-  link to the plan html as soon as the public page has landed".
+  link to the plan html as soon as the public page has landed" (whatever its
+  size; design first for L and XL is `orchestrator.md` section 5's).
 
 ## Outside contributions
 
 - 2026-11-06: "the plan html for an ongoing round should be made publically
   available from a suitable place in the developer documentation on the repo.
-  During future audit rounds, issues, PRs or other posts from outside users should
-  be regularly checked, triaged/designed and planned. Fold this shape into the repo
-  machinery. When the plan html is done, and any outside submission is on the
-  roster, the plan HTML should be linked in an answer to the outside submission."
-- 2026-11-12: "Implement a mechanism that allow baikanfans PRs to be accepted as
-  is as long as they follow all our conventions and rules and have a valid merge
-  verdict (the reviewer may also be run by bankaifan). Merges with main and
-  codeowner approvals remain in our machinery even for such PRs." (decision
-  0017). The same ruling's round-11 deferral clause is superseded (closing list).
-- Fallback, for an outside pull request that does not qualify above (order by
+  [...] When the plan html is done, and any outside submission is on the roster,
+  the plan HTML should be linked in an answer to the outside submission." (Each
+  outside submission's disposition is `orchestrator.md` section 5's.)
+- Fallback, for an outside pull request decision 0017 does not admit (order by
   card, 2026-11-15: "I3 first, I2 as fallback (Recommended)"): 2026-11-06:
   "R10-PR-CONTRACT-OUTSIDE should be cancelled, drop that path"; "With our
   additions in mind, change the strategy to mergeing our version, but thank the
@@ -327,12 +267,13 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-09-17: "the orchestrator should route to sonnet and haiku models where
   reasonable"; 2026-09-24: "only start your opus 5.5 fixers with medium effort".
 - 2026-11-11: "Replace L and XL architectural groups that are now routed to opus
-  to fable 5.2, use cheaper seats for easier work"; "S and M groups may go to Opus
-  when no oracle exists or if the groups requires judgement"; 2026-11-12: "Be a
-  bit more economical with the fable seats, L and XL seats only"; "Budget is fine
-  for important work".
+  to fable 5.2, use cheaper seats for easier work"; "S and M groups may go to
+  Opus when no oracle exists or if the groups requires judgement"; 2026-11-12:
+  "Be a bit more economical with the fable seats, L and XL seats only"; "Budget
+  is fine for important work".
 - 2026-10-25: "the triage seat should be opus, since it requires judgement";
-  2026-11-11: "Have the triage seat as fable when triaging new product features".
+  2026-11-11: "Have the triage seat as fable when triaging new product
+  features".
 - 2026-11-01: "I think we should run the majority of the fixers in the cloud so
   the heavy runs are not constrained."; 2026-10-21: "try to keep heavy runs on
   cloud runners to keep the box load under control"; 2026-10-25: "dont forget
@@ -349,7 +290,8 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - 2026-11-04 (as recorded): cloud seats get generous windows, and their liveness
   and output are checked every sweep.
 - 2026-10-22: "You are free to restart seats or start entirely new seats as you
-  see fit"; 2026-11-01: "You would not need my go ahead for something like that."
+  see fit"; 2026-11-01: "You would not need my go ahead for something like
+  that."
 - 2026-11-09: "Drop it, the seats should use cheaper sub seats when the frugal
   guard says so"; 2026-10-21: "The frugal guard should be on but it should allow
   you to read the policy that binds you". No seat edits `.claude/settings.json`.
@@ -357,13 +299,11 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 ## Record, handover and identity
 
-- 2026-09-16: "Always keep a clean handover document up to date so another session
-  can pick up if this fails."
 - 2026-11-14: "The resume prompt is generated mechanically".
 - 2026-10-28: "sweep should also include the record beat"; "mechanically replan
   and generate the plan html". 2026-11-08: "I would like the public plan page to
-  refresh on every update to it without needing a stamp"; "Have a cheap seat read
-  it next time".
+  refresh on every update to it without needing a stamp"; "Have a cheap seat
+  read it next time".
 - 2026-11-13: "5. Leave." (duplicate record lines on #3394 stay).
 - 2026-09-24 (as recorded): the owner is named only "tvofi" (card, 2026-11-15:
   "Keep the naming rule only"; who approves what is `CLAUDE.md`'s Identity).
@@ -387,17 +327,16 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 
 - 2026-11-01: "to not stall the programme when waiting for ci on main when you
   stamp, admin stamp to keep the merges flowing with overlap"; 2026-11-12: "You
-  may stamp without waiting for main"; 2026-11-08: "Stamp manually without waiting
-  for main." Never over a concluded red whose cause is unknown.
+  may stamp without waiting for main"; 2026-11-08: "Stamp manually without
+  waiting for main." (When `--allow-red` may be used is `orchestrator.md`
+  section 11's.)
 - 2026-11-09: "You should have at least one new feature in custom_components or
   3-5 bug fix PRs touching that path between the stamps, if I don't tell you
   otherwise".
 - 2026-11-13: "Every release requiring extra steps should either be shipped with
   an automated migration script or very clearly describe the human action needed
-  at the beginning of the release notes."; "the incorrect config flow text and the
-  release notes omission are defects in themselves".
-- 2026-11-11: "7. Agreed" (stamping with `--allow-red` while main's red is in CI
-  tooling, not product code).
+  at the beginning of the release notes."; "the incorrect config flow text and
+  the release notes omission are defects in themselves".
 
 ## Superseded, spent or expired
 
@@ -412,8 +351,8 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   once-per-round triage.
 - The production-share exemption (2026-11-01): superseded by the 20%/10% bar;
   the exemption itself is policy in `ratchet-budgets.md`.
-- Queue order of 2026-10-28: superseded by outside first (2026-11-07); its hotfix
-  definition stays above.
+- Queue order of 2026-10-28: superseded by outside first (2026-11-07); its
+  hotfix definition stays above.
 - The 20-PR soft cap entry (2026-11-11): retired; the cap is named where the
   production-above-cap ruling cites it.
 - No merge outside the train (2026-10-26) and the orchestrator never runs
@@ -430,9 +369,6 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
   roster work are beat jobs (card "Retire J10").
 - A main-red hotfix merging before its review (2026-10-24): retired, a merge
   verdict precedes every merge (card "Retire G14 (Recommended)").
-- Durable policy memory and the whole-corpus read (2026-10-25, 2026-11-09):
-  superseded by the 2026-11-15 reading rules (card "Retire K11, K12 on parity
-  (Recommended)").
 - Only policy and budget-raise pull requests need his approval (2026-09-24):
   dropped, `CLAUDE.md`'s Identity section states who approves what (card "Keep
   the naming rule only").
@@ -440,23 +376,25 @@ compaction (`dev/governance/roles/orchestrator.md` section 0).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
   corpus but still needs to be re-read on changes" (2026-11-15).
-- Full corpus re-read after every compaction (2026-10-24, 2026-10-25, 2026-11-09)
-  and the session-start corpus hook (2026-10-21): superseded by R3 (2026-11-13)
-  and "Rules in full" (2026-11-15).
+- Durable policy memory, the full corpus re-read after every compaction
+  (2026-10-24, 2026-10-25, 2026-11-09) and the session-start corpus hook
+  (2026-10-21): superseded by R3 (2026-11-13), "Rules in full" and the 2026-11-15
+  reading rules (card "Retire K11, K12 on parity (Recommended)").
 - Non-critical outside and self-fed work goes to round 11 if it moves closure
   (2026-11-12): superseded by the 2026-11-13 fold rule.
 - Severity exemption stays (2026-11-11, item 1): narrowed by card P2.
-- Every-sweep slip proposals and continuous triage (2026-10, 2026-11): superseded
-  by the freeze shape and once-per-round triage (2026-11-13, 2026-11-14).
+- Every-sweep slip proposals and continuous triage (2026-10, 2026-11):
+  superseded by the freeze shape and once-per-round triage (2026-11-13,
+  2026-11-14).
 - Triage bar 10% / keep 5% (before 2026-11-08): superseded by 20% / 10%.
-- Spent with round 10's closure (v10.0.0, 2026-11-15): "Nothing is to be moved to
-  round 11" (2026-11-01); the closure definition and gating list (2026-11-07,
-  2026-11-13); "catalog PR goes after v10.0.0 stamp" (2026-11-04); the 15/11 date,
-  its workarounds and bypass authority (2026-11-13, 2026-11-14); "Only land gating
-  PRs as long as CI capacity is full" and the two top non-gating groups
-  (2026-11-14); the soak before v10.0.0 (2026-11-11, 2026-11-12, 2026-11-14); part
-  D's round-10 condition (2026-11-13); the round-11 session start (2026-11-14);
-  the overnight run and its Fable fallback (2026-11-14); the 2026-11-08 top set and
-  zero-slip directive (2026-10-24); the 2026-11-12 catalog, learner and Pages
-  answers; the 2026-11-11 above-cap starts (items 2, 3, 8); the 2026-11-13
-  handoff archive (item 4).
+- Spent with round 10's closure (v10.0.0, 2026-11-15): "Nothing is to be moved
+  to round 11" (2026-11-01); the closure definition and gating list (2026-11-07,
+  2026-11-13); "catalog PR goes after v10.0.0 stamp" (2026-11-04); the 15/11
+  date, its workarounds and bypass authority (2026-11-13, 2026-11-14); "Only
+  land gating PRs as long as CI capacity is full" and the two top non-gating
+  groups (2026-11-14); the soak before v10.0.0 (2026-11-11, 2026-11-12,
+  2026-11-14); part D's round-10 condition (2026-11-13); the round-11 session
+  start (2026-11-14); the overnight run and its Fable fallback (2026-11-14); the
+  2026-11-08 top set and zero-slip directive (2026-10-24); the 2026-11-12
+  catalog, learner and Pages answers; the 2026-11-11 above-cap starts (items 2,
+  3, 8); the 2026-11-13 handoff archive (item 4).
