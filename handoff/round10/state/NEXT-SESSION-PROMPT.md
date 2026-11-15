@@ -25,9 +25,8 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-LEARNER-DRAW-FLOOR (stage in-progress, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-REFERENCE-BASIS (stage in-progress, branch `handoff/r10-hotfix-reference-basis`): `git fetch origin handoff/r10-hotfix-reference-basis && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-CLOSEOUT-CLEANUP, R10-HOTFIX-REFERENCE-BASIS
+Ready next (after-edges satisfied; nothing open constrains them): R10-CLOSEOUT-CLEANUP
 
 ## Resume steps
 
