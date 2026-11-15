@@ -27724,7 +27724,7 @@
     "stage": "in-progress",
     "branch": "handoff/r10-draw-map-evidence",
     "commit": null,
-    "pr": 3597,
+    "pr": null,
     "last_step": "group added on owner order 2026-11-14; part 1 fixer and part 2 designer dispatched locally",
     "next_step": "Round-11 pickup 2026-11-15, measured: nothing of this group is on main (ledger.landed over origin/main a39627da59 is None for part 1 3533ba12b8, the fix branch 5871af1908, part A cc335482ae, part B 8c1508d9c1 and part F 880b015c8b). PR 3597 (part 1) was closed unmerged by open_pr.sh when its delivery-row push was refused, not by a decision. Review state at the archived probes: part 1 Fix review: merge 3533ba12b8; part A merge cc335482ae (after a blocked round at b3384f6f07); part F merge 880b015c8b; part B has no reviewer dispatch and no verdict. Stack: part A and part B contain part 1; B is on A; F is on part 1 alone. Owed in round 11, non-gating as ordered: restore each handoff from its archive tag, merge origin/main, open part 1's pull request, then A, then B, and F once part 1 merges; a part whose own diff is unchanged keeps its merge verdict (delta review), part B needs its first reviewer.",
     "note": "non-gating by owner order: never delays closure; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): owner order 2026-11-14 after the issue 3106 linearity measurement: build the supported correction and the collection and experiment improvements, never gating closure; same seam as R10-COP-LEARNER-DRAW-FLOOR, ordered after it"
