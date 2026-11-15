@@ -1,28 +1,28 @@
 {
  "generator": "docs/img/readme/render_mermaid.mjs",
- "mermaid": "12.2.0",
+ "mermaid": "12.3.0",
  "source": "README.md",
  "figures": [
   {
    "png": "docs/img/readme/mermaid-how-the-pieces-fit.png",
    "png_dark": "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
-   "block_sha256": "6ba9cc1e027334c1a7c602a43ea25a455915adba2a0df4899fa54fc0f3ca88ac",
-   "png_sha256": "eb8cdfed82662cbd8b9648613429ef291eac4ffd3dcc8be3baea9cfa7f8eefc2",
-   "png_dark_sha256": "01ce3b59e9f686c2137979c042dcd1b0941c155d0de91fab5544f4d7c78ead9f"
+   "block_sha256": "1928b5740e6a18a3e8553578c7b71e9dcded82a2fa28ed09ea255dcb68b84de7",
+   "png_sha256": "6a98bdbc7db5ef521be91e78cd181bb8ff137bd2e32c6d3e10e2d4737e5c28ea",
+   "png_dark_sha256": "2608babc46c0ecfcb7be863d3698daeecbdb4ca3635ee51bbd970f18ff5028f7"
   },
   {
    "png": "docs/img/readme/mermaid-setup-flow.png",
    "png_dark": "docs/img/readme/mermaid-setup-flow-dark.png",
    "block_sha256": "e14dda04c9aa932ef2255be95c1220aacb2475423f59db71972a7d84d51e0e64",
-   "png_sha256": "c73d2f2ef5abb6a37d3ad77c88014afe4597ab7528a1ea63e61379b65dfc9910",
-   "png_dark_sha256": "5db63c422a7f59702ba53a18b5bf4810cb6d022ed3851546ae4778e6e71f0320"
+   "png_sha256": "57b03429cdbed126c15494b4a1515517447730685f9a418ac03fee39a47b43b4",
+   "png_dark_sha256": "3fd4a950793a122073d89662333d1dfb016a7317bbad47077ece1a0041e482d5"
   },
   {
    "png": "docs/img/readme/mermaid-one-interval.png",
    "png_dark": "docs/img/readme/mermaid-one-interval-dark.png",
-   "block_sha256": "bb15e14e25b60cfea3092931d189455da33c117b2fb86f50be0c3ed56287b30c",
-   "png_sha256": "07d112b5c02d8b89feee1aa36f1b4d0c6b27618ee0bbdbbab1d3f4b81dac4a80",
-   "png_dark_sha256": "aba7cb5fe671636c480c0b8de9d36afed3d33b72f224a0fa9fb0297e5738bdb7"
+   "block_sha256": "d15981723b1b26092ec10b8e2c04e0178a1770567878628c33da416f3cb635ba",
+   "png_sha256": "21151a4c0738ac553105d79fbedb34af70d70000742fd22a7c93947b337463a4",
+   "png_dark_sha256": "6d5e8476589ccfb862654641e5f573559fa301087e61e0a009ae92f7a0b1c9d2"
   }
  ]
 }

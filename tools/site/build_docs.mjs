@@ -35,6 +35,9 @@ const BLOB = 'https://github.com/tvofi/heatpump_optimizer/blob/main/'
 const TREEURL = 'https://github.com/tvofi/heatpump_optimizer/tree/main/'
 // Rows of the README Documentation table the site links to GitHub instead of rendering, each with its reason.
 const EXCLUDE = {}
+// Documents that moved: the old page name keeps resolving, as a redirect to the new page with the fragment kept, so a
+// link to the old address still lands (docs/ecl110.md became docs/heat-curve.md; the old file stays as a pointer).
+const MOVED = { 'docs/ecl110.md': 'docs/heat-curve.md' }
 const errors = []
 const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, badges: 0, external: 0, mermaid: 0 }
 
@@ -244,8 +247,25 @@ ${mermaidJs(r.mermaid)}
   fs.writeFileSync(path.join(OUT, r.out), page)
 })
 stats.pages = rendered.length
+stats.redirects = 0
+const redirects = []
+for (const [from, to] of Object.entries(MOVED)) {
+  const target = PUBLISHED.get(to), old = outName(from)
+  // A tree without the old file has nothing to redirect (tests/doc_claims.py pins that this one keeps it).
+  if (!TREE.has(from)) continue
+  if (!target) { errors.push(`MOVED names ${to}, which is not a built page`); continue }
+  if ([...PUBLISHED.values()].includes(old)) { errors.push(`MOVED ${from}: ${old} is also a built page`); continue }
+  fs.writeFileSync(path.join(OUT, old), `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Moved</title>
+<meta http-equiv="refresh" content="0; url=${esc(target)}"><link rel="canonical" href="${esc(target)}">
+<script>location.replace(${JSON.stringify(target)} + location.hash)</script></head>
+<body><p>This page moved to <a href="${esc(target)}">${esc(target)}</a>.</p></body></html>
+`)
+  redirects.push({ src: from, out: old, to: target })
+  stats.redirects++
+}
 if (!rendered.length) errors.push('ANCHOR: zero pages built')
-fs.writeFileSync(path.join(OUT, 'docs-manifest.json'), JSON.stringify({ built: rendered.map((r) => ({ src: r.src, out: r.out, mermaid: r.mermaid })), excluded: EXCLUDE }, null, 1))
+fs.writeFileSync(path.join(OUT, 'docs-manifest.json'), JSON.stringify({ built: rendered.map((r) => ({ src: r.src, out: r.out, mermaid: r.mermaid })), excluded: EXCLUDE, moved: redirects }, null, 1))
 console.log(Object.entries(stats).map(([k, v]) => `${k} ${v}`).join(', '))
 console.log(`built ${rendered.length} page(s): ${rendered.map((r) => r.out).join(', ')}; excluded ${Object.keys(EXCLUDE).join(', ') || 'none'}`)
 for (const e of errors) console.log('FAIL', e)

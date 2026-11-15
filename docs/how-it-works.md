@@ -74,7 +74,7 @@ sequenceDiagram
     O->>O: solve: hot water first (LP + repair),<br/>then space heating around it,<br/>then one co-optimization pass
     O-->>C: space + DHW slot plan
     C->>C: apply manual-plan pins (≤20 h),<br/>safety releases pinned-off slots
-    C->>E: publish plan sensors, switch heat pump,<br/>ECL110 displace / frequency advice
+    C->>E: publish plan sensors, switch heat pump,<br/>heat-curve displace / frequency advice
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree engage / 2 clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction vs reality,<br/>nudge learned parameters
 ```
@@ -1440,5 +1440,5 @@ does raising your minimum temperature. Both work.
 - [architecture.md](architecture.md) — module layout and the internal data flow.
 - [dashboard-card.md](dashboard-card.md) — the card, its options, the plan
   editor and the Setup page.
-- [ecl110.md](ecl110.md) — the optional ECL110 MQTT control path.
+- [heat-curve.md](heat-curve.md) — the optional heat-curve control path, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter.
 - [the archive](../dev/archive/backlog.md) — the delivered archive and the open findings.

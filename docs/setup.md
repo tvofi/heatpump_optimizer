@@ -42,6 +42,15 @@ Have two things to hand:
 Everything else — indoor and outdoor thermometers, tank probes, a power
 meter — is optional and can be pointed at later from the options pages.
 
+So is how the optimizer acts on the heat pump. The on/off switch is a picker on
+[Screen 2](#screen-2--optional-sensors); heat-curve control and compressor
+frequency control are not asked during setup and are set later from the
+options pages. Heat-curve control shifts your controller's own heat curve one
+of three ways: over MQTT topics (a Danfoss ECL110 through an MQTT bridge, for
+example), to an offset `number` entity, or to a curve setting the controller
+stores — see [heat-curve.md](heat-curve.md). With none of these, the plan is
+published on sensors for your own automations to act on.
+
 ## Adding the integration
 
 **Settings → Devices & services → Add integration → Heat Pump Cost

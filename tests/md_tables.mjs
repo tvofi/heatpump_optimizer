@@ -3,7 +3,7 @@
 // (dev/audit/rounds/round9/D5/s1/md_tables.mjs, evidence commit 79aa98ec).
 //
 // Metric (one line, unchanged from the finder): source lines in README.md +
-// docs/{architecture,automations,configuration,dashboard-card,ecl110,
+// docs/{architecture,automations,configuration,dashboard-card,heat-curve,
 // how-it-works,setup}.md that render in the wrong block -- (a) prose lines
 // (not starting with "|") rendered as table rows ("swallowed"), plus (b)
 // pipe-table rows rendered as paragraph text with raw pipes ("orphaned")
@@ -38,7 +38,7 @@ const md = new MarkdownIt('commonmark').enable('table')
 const FILES = [
   'README.md',
   ...['architecture', 'automations', 'configuration', 'dashboard-card',
-    'ecl110', 'how-it-works', 'setup'].map((n) => `docs/${n}.md`),
+    'heat-curve', 'how-it-works', 'setup'].map((n) => `docs/${n}.md`),
 ]
 
 export function analyse(text) {
