@@ -1699,7 +1699,7 @@ class Tick:
         seats: dict = {}
         for l in o.splitlines():
             ref = l.split()[1] if len(l.split()) >= 2 else ""
-            t = ref.split("/", 2)[-1].removeprefix("fixer-") if ref.startswith("refs/heads/") else ""
+            t = ref.removeprefix("refs/heads/").split("/", 1)[-1].removeprefix("fixer-") if "/" in ref else ""
             if t and (gid := rl.group_for_branch(roster, "x/" + t)):
                 seats.setdefault(gid, []).append(ref.removeprefix("refs/heads/"))
         groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
@@ -5435,6 +5435,50 @@ def self_test() -> int:
             ("the stage `design-review` is owed too", len(r_dr) == 1),
             ("the emitted line keys in owed_unactioned on design/<g> and the tip",
              ou.key_of("-> " + r_rev[0]) == ("design/r10-g1", [A40[:12]]) and bool(ou.FAMILY.match("-> " + r_rev[0]))),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- UNDISPATCHED: a group whose gate is open and that no seat touched ----
+        ud_at = NOW - datetime.timedelta(hours=8)
+        udr = {"groups": [
+            {"group": "R10-DONE", "resume": {"stage": "done"}},
+            {"group": "R10-OI", "after": ["R10-DONE"], "carry": ["part 2 builds the intake"],
+             "resume": {"stage": "carries-open", "commit": "e" * 40}},
+            {"group": "R10-LATE", "carry": ["start after #3262, the second part"],
+             "resume": {"stage": "not-started"}},
+            {"group": "R10-HELD", "after": ["R10-OI", "R10-NEW"], "resume": {"stage": "carries-open", "commit": "e" * 40}},
+            {"group": "R10-NEW", "resume": {"stage": "in-progress"}}]}
+
+        def uboard(refs="", stage_of_oi="carries-open", ref_at=None, ls_rc=0):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/dispatch/fixer-*"), ls_rc, refs))
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "e" * 40), 0, iso(ud_at) + "\n"))
+            if ref_at:
+                t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/"), 0, iso(ref_at) + "\n"))
+            t._gh.h.insert(0, (("pulls/3262", ".merged_at"), 0, iso(ud_at) + "\n"))
+            ro = json.loads(json.dumps(udr))
+            ro["groups"][1]["resume"]["stage"] = stage_of_oi
+            t.undispatched("PLAN", rlm, ro)
+            return [x for x in flagged(t.sections.get("PLAN", [])) if x.startswith(("UNDISPATCHED", "UNREADABLE"))]
+        u_none = uboard()
+        u_live = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=1))
+        u_old = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=20))
+        u_un = uboard(ls_rc=1)
+        a, f = check("UNDISPATCHED", [
+            ("a carries-open group whose gate is open and that has no seat ref prints the line with its age",
+             any(x.startswith("UNDISPATCHED: CP R10-OI 8.0h") or x.startswith("UNDISPATCHED: R10-OI 8.0h") for x in u_none)),
+            ("a `start after #N` carry whose #N merged prints it too", any(" R10-LATE 8.0h" in x for x in u_none)),
+            ("null control: a group held behind an unfinished after-group prints nothing",
+             not any("R10-HELD" in x for x in u_none)),
+            ("null control: a dispatch ref newer than the gate opening prints nothing for that group",
+             not any("R10-OI" in x for x in u_live) and any("R10-LATE" in x for x in u_live)),
+            ("a dispatch ref older than the gate opening is no seat", any("R10-OI" in x for x in u_old)),
+            ("a group at stage `in-progress` with no start-after carry prints nothing",
+             not any("R10-NEW" in x for x in u_none) and not any("R10-DONE" in x for x in u_none)),
+            ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: undispatched groups" in x for x in u_un)
+             and not any(x.startswith("UNDISPATCHED") for x in u_un)),
+            ("the emitted line keys in owed_unactioned on its group",
+             ou.key_of("-> " + u_none[0])[0] in ("R10-OI", "R10-LATE") and bool(ou.FAMILY.match("-> " + u_none[0]))),
         ])
         total, failed = total + a, failed + f
 
