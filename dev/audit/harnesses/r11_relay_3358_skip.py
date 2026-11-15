@@ -32,6 +32,8 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "tests"))
+from throwaway_git import throwaway_git_init  # noqa: E402  the scratch repositories' one builder
 PR = "3358"
 BRANCH = "fix/r10-combi-tank-pr"
 HEAD_DEFECT = "88f4d521eb55e62a5b11246396c3f298e932d5b9"
@@ -61,14 +63,14 @@ def run_case(seat: Path, case: str, head: str, scratch: Path) -> "tuple[int, int
     for p in (origin, work, state, d / "bus"):
         p.mkdir(parents=True)
     objects = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=ROOT) + "/objects"
-    git("init", "-q", "--bare", str(origin), cwd=d)
+    throwaway_git_init(origin, "-q", "--bare")
     (origin / "objects" / "info" / "alternates").write_text(objects + "\n")
     bodies = {t: body_commit(origin, tip) for t, tip in (("r10-combi-tank-pr", HANDOFF_PR), ("r10-combi-tank", HANDOFF_OLD))}
     for ref, sha in (("main", MAIN), (BRANCH, head), ("handoff/r10-combi-tank-pr", HANDOFF_PR),
                      ("handoff/r10-combi-tank", HANDOFF_OLD), ("handoff-body/r10-combi-tank-pr", bodies["r10-combi-tank-pr"]),
                      ("handoff-body/r10-combi-tank", bodies["r10-combi-tank"])):
         git("update-ref", f"refs/heads/{ref}", sha, cwd=origin)
-    git("init", "-q", str(work), cwd=d)
+    throwaway_git_init(work, "-q")
     (work / ".git" / "objects" / "info" / "alternates").write_text(objects + "\n")
     git("remote", "add", "origin", str(origin), cwd=work)
     applied = ["r10-combi-tank " + bodies["r10-combi-tank"]]
