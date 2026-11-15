@@ -1,0 +1,9 @@
+RESULT m3-dr-disposition: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+       FAIL DESIGN-REVIEW OWED: null control: a disposition at the tip's sha silences it
+RESULT m5-dr-call-dropped: KILLED [('orchestrator_tick.py', 1, ['IndexError: list index out of range'])]
+RESULT m6-dr-fetch-unreadable: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed'])]
+RESULT m7-ud-seatless: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 2 failed'])]
+       FAIL UNDISPATCHED: a carries-open group whose gate is open and that has no seat ref prints the line with its age
+       FAIL UNDISPATCHED: a dispatch ref older than the gate opening is no seat
+RESULT m8-ud-after-clear: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed'])]
+       FAIL UNDISPATCHED: null control: a group held behind an unfinished after-group prints nothing
