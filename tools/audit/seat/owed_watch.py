@@ -170,7 +170,7 @@ def _group_refs(g: dict, refs: dict, families) -> "list[str]":
 
 
 def _returned_since(g: dict, refs: dict, ctime: dict, t: float) -> bool:
-    return any(ctime.get(refs[r], 0) >= t for r in _group_refs(g, refs, RETURN_FAMILIES + ("verdict", "probe")))
+    return any(ctime[refs[r]] >= t for r in _group_refs(g, refs, RETURN_FAMILIES + ("verdict", "probe")))
 
 
 def cp_owed(groups: dict, prs: list, refs: dict, ctime: dict, first: dict, rows: list, now: float,
@@ -200,7 +200,7 @@ def cp_owed(groups: dict, prs: list, refs: dict, ctime: dict, first: dict, rows:
         if at_head and m[1] == "blocked":
             t = ctime[vsha]
             if not _fired_since(g, rows, t) and not any(  # mut:blockedfire
-                    ctime.get(refs[r], 0) >= t for r in _group_refs(g, refs, ("handoff", "handoff-wip", "handoff-body"))):
+                    ctime[refs[r]] >= t for r in _group_refs(g, refs, ("handoff", "handoff-wip", "handoff-body"))):
                 owe(g, "blocked-no-fire", f"#{n}", t, f"blocked at {head[:12]}, no fire and no repair since")
         if not at_head:
             dsha = refs.get(f"dispatch/reviewer-rev-{n}")
@@ -222,7 +222,7 @@ def cp_owed(groups: dict, prs: list, refs: dict, ctime: dict, first: dict, rows:
                 owe(g, "DESIGN-REVIEW-OWED", gid, ctime[dsha], f"design/{gid} at {dsha[:12]} has no design review")
             elif kind == "approve":
                 t = ctime[vsha]
-                if not any(ctime.get(refs[r], 0) >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))
+                if not any(ctime[refs[r]] >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))
                            if not r.startswith(("dispatch/design", "dispatch/reviewer-rev-"))):  # mut:fixerowed
                     owe(g, "FIXER-OWED", gid, t, f"design approved at {dsha[:12]}, no fixer dispatched")
         last = max((when for when, l in rows if when is not None and _names_group(g, l)), default=None)
@@ -345,12 +345,12 @@ def _world(arm: str, grace0: bool):
     every timestamp 60 min before now. `arm` plants exactly one owed step; "none" plants none."""
     now, t = 1_800_000_000.0, 1_800_000_000.0 - 3600
     h = {k: c * 40 for k, c in (("h11", "1"), ("h12", "2"), ("d", "d"), ("v", "e"), ("x", "f"))}
-    groups = {"CPG": {"gid": "CPG", "topic": "cpg", "tags": ["CP"], "rank": 1, "prs": [11]},
-              "OUT": {"gid": "OUT", "topic": "out", "tags": ["OUTSIDE"], "rank": 1, "prs": [12]}}
+    groups = {"CPG": {"gid": "CPG", "topic": "r11-cpg", "tags": ["CP"], "rank": 1, "prs": [11]},
+              "OUT": {"gid": "OUT", "topic": "r11-out", "tags": ["OUTSIDE"], "rank": 1, "prs": [12]}}
     prs = [{"number": 11, "head": h["h11"], "gid": "CPG", "head_t": t, "approved_t": None},
            {"number": 12, "head": h["h12"], "gid": "OUT", "head_t": t, "approved_t": None}]
     refs = {"dispatch/reviewer-rev-11": "a1" * 20, "dispatch/reviewer-rev-12": "a2" * 20,
-            "verdict/12": "b2" * 20, "handoff/cpg": "c1" * 20}
+            "verdict/12": "b2" * 20, "handoff/r11-cpg": "c1" * 20}
     first = {"a1" * 20: f"CLOUD REVIEWER seat for PR #11, at head {h['h11']}. Bus nonce: x",
              "a2" * 20: f"CLOUD REVIEWER seat for PR #12, at head {h['h12']}. Bus nonce: y",
              "b2" * 20: f"Fix review: blocked {'0' * 40} code: old head"}
@@ -380,7 +380,7 @@ def _world(arm: str, grace0: bool):
         first[h["d"]], first[h["v"]] = "# OUT: a design", f"Design review: approve {h['d']}"
         ctime[h["v"]] = t + 120
     elif arm == "SEAT-SILENT":
-        rows.append((t + 300, "FIRED fixer for out"))
+        rows.append((t + 300, "FIRED fixer for r11-out"))
     for sha in refs.values():
         ctime.setdefault(sha, t)
     if grace0:
@@ -406,8 +406,28 @@ def cases(mod) -> "dict[str, bool]":
     res["DESIGN-REVIEW-OWED null: a class-open revise at the tip is a review (the designer owes)"] = run("revise-at-tip") == []
     res["DESIGN-REVIEW-OWED null: a `Design blocked:` tip is a designer stop, not a review owed"] = run("design-blocked") == []
     w = list(_world("UNFIRED", True))
-    w[2]["handoff/out"], w[3]["c9" * 20] = "c9" * 20, w[3]["8" * 40] + 60
+    w[2]["handoff/r11-out"], w[3]["c9" * 20] = "c9" * 20, w[3]["8" * 40] + 60
     res["UNFIRED null: a return ref newer than the dispatch is a fire"] = mod.cp_owed(*w) == []
+    def variant(arm, **extra):
+        """`arm`'s world with refs added: name -> (sha, seconds after the world's step time, first line)."""
+        w = list(_world(arm, True))
+        for ref, (sha, dt, line) in extra.items():
+            w[2][ref.replace("__", "/")], w[3][sha], w[4][sha] = sha, w[6] - 3600 + dt, line
+        return mod.cp_owed(*w)
+    got = variant("none", dispatch__fixer_x=("f1" * 20, 120, ""))
+    res["UNFIRED: only the group's own dispatch refs count (a stranger's fixer dispatch is not the group's)"] = got == []
+    got = variant("none", **{"dispatch__fixer-r11-out-p2": ("f1" * 20, 120, "")})
+    res["UNFIRED: a fixer dispatch of a family member (-p2) is the group's"] = (
+        [l.split()[1:3] for l in got] == [["UNFIRED", "OUT"]])
+    for name, ref, line in (("a design push", "design__OUT", "Design blocked: x"),
+                            ("a probe verdict", "probe__rev-12-abcd", ""),
+                            ("a family member's step push", "handoff-wip__r11-out-p1", "")):
+        res[f"SEAT-SILENT null: {name} after the fire is a return"] = variant("SEAT-SILENT", **{ref: ("f2" * 20, 400, line)}) == []
+    res["SEAT-SILENT: a design push of another group is no return"] = (
+        [l.split()[1] for l in variant("SEAT-SILENT", design__OUTX=("f2" * 20, 400, "Design blocked: x"))] == ["SEAT-SILENT"])
+    res["blocked-no-fire null: a handoff ref at the verdict's own second is a repair"] = (
+        variant("blocked-no-fire", **{"handoff__r11-out": ("f3" * 20, 0, "")}) == [])
+    res["the line names the step's age in whole minutes"] = " 60m past its 0m grace " in (run("merge-no-approval") or [""])[0]
     w = list(_world("none", True))
     w[0]["OUT"]["tags"], w[0]["OUT"]["rank"] = ["HOTFIX", "OUTSIDE"], 0
     w[0]["CPG"]["tags"] = ["CP"]
@@ -444,8 +464,8 @@ MUTANTS = {
                      "DESIGN-REVIEW-OWED: a seat-refused verdict at the tip is no review"),
     "design_review_dropped": ("            if kind is None:\n", "            if False:\n",
                               "planted DESIGN-REVIEW-OWED: one line at grace 0"),
-    "fixer_owed": ('if not any(ctime.get(refs[r], 0) >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))',
-                   'if any(ctime.get(refs[r], 0) >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))',
+    "fixer_owed": ('if not any(ctime[refs[r]] >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))',
+                   'if any(ctime[refs[r]] >= t for r in _group_refs(g, refs, ("dispatch", "handoff", "handoff-wip"))',
                    "planted FIXER-OWED: one line at grace 0"),
     "silent": ("if last is not None and not _returned_since(g, refs, ctime, last):  # mut:silent",
                "if False:  # mut:silent", "planted SEAT-SILENT: one line at grace 0"),
@@ -456,9 +476,103 @@ MUTANTS = {
 }
 
 
+def read_world_checks() -> "dict[str, bool]":
+    """read_world over a throwaway origin: the roster and critical-path file on main, the watched
+    groups' refs and two pull-request heads; gh answered by a fake, every git read real."""
+    sys.path.insert(0, str(SEAT.parents[2] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_environ, throwaway_git_init
+    res = {}
+    with tempfile.TemporaryDirectory() as d, throwaway_git_environ():
+        o, c = Path(d) / "o", Path(d) / "c"
+        throwaway_git_init(o, "-q", "-b", "main")
+        g = lambda *a, cwd=o: subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+
+        def commit(branch, name, text, when):
+            g("checkout", "-q", "--orphan" if branch != "main" else "-B", branch)
+            g("rm", "-rqf", "--ignore-unmatch", ".")
+            (o / name).parent.mkdir(parents=True, exist_ok=True)
+            (o / name).write_text(text)
+            g("add", name)
+            env = {"GIT_COMMITTER_DATE": f"@{when} +0000", "GIT_AUTHOR_DATE": f"@{when} +0000"}
+            subprocess.run(["git", "commit", "-qm", branch], cwd=o, check=True, capture_output=True,
+                           env={**__import__("os").environ, **env})
+            return g("rev-parse", "HEAD")
+        roster = {"groups": [
+            {"group": "R11-CPG", "resume": {"stage": "not-started", "branch": "fix/r11-cpg"}},
+            {"group": "R11-OUT", "source": "outside", "resume": {"stage": "not-started", "pr": 12}},
+            {"group": "R11-OFF", "resume": {"stage": "not-started"}},
+            {"group": "R11-SHUT", "source": "outside", "resume": {"stage": "done"}}]}
+        commit("main", f"{roster_lib.ROSTERS_DIR}/wave-r11-groups.json", json.dumps(roster), 1_000)
+        (o / roster_lib.CRITICAL_PATH_NAME).write_text(json.dumps({"critical": ["R11-CPG"]}))
+        g("add", "-A")
+        g("commit", "-qm", "cp")
+        h11 = commit("work11", "x", "11", 2_000)
+        h12 = commit("work12", "x", "12", 3_000)
+        v12 = commit("verdict/12", "VERDICT.md", f"Fix review: merge {h12}\n", 4_000)
+        r11 = commit("dispatch/reviewer-rev-11", "PROMPT.md", f"CLOUD REVIEWER seat for PR #11, at head {h11}.\nRole\n", 5_000)
+        dz = commit("design/R11-OUT", "design.md", "# a design\n", 6_000)
+        commit("design/R11-OFF", "design.md", "# not watched\n", 6_000)
+        hf = commit("handoff/r11-cpg", "x", "h", 7_000)
+        g("update-ref", "refs/pull/11/head", h11)
+        g("update-ref", "refs/pull/12/head", h12)
+        g("checkout", "-q", "main")
+        throwaway_git_clone(o, c, "-q")
+        led = Path(d) / "fired.log"
+        led.write_text("2026-11-15T11:30:00Z FIRED reviewer #11\n")
+        prs = [{"number": 11, "headRefOid": h11, "headRefName": "fix/r11-cpg", "reviews": []},
+               {"number": 12, "headRefOid": h12, "headRefName": "patch-1", "reviews": [
+                   {"state": "APPROVED", "submittedAt": "2026-11-15T10:00:00Z", "commit": {"oid": h12}},
+                   {"state": "APPROVED", "submittedAt": "2026-11-15T11:00:00Z", "commit": {"oid": h11}},
+                   {"state": "CHANGES_REQUESTED", "submittedAt": "2026-11-15T12:00:00Z", "commit": {"oid": h12}}]},
+               {"number": 13, "headRefOid": h11, "headRefName": "fix/r11-off", "reviews": []}]
+        calls = []
+
+        def fake(answer):
+            def run(argv, cwd=None):
+                calls.append(argv)
+                return answer if argv[0] == "gh" else sh(argv, cwd)
+            return run
+        groups, got_prs, refs, ctime, first, rows = read_world("o/r", str(c), str(led), None, fake((0, json.dumps(prs))))
+        res["read_world: the watched set is the open critical-path and outside groups, nothing else"] = (
+            sorted(groups) == ["R11-CPG", "R11-OUT"] and groups["R11-CPG"]["tags"] == ["CP"]
+            and groups["R11-OUT"]["tags"] == ["OUTSIDE"] and groups["R11-CPG"]["topic"] == "r11-cpg")
+        res["read_world: a pull request maps by branch, else by resume.pr; an unwatched group's is dropped"] = (
+            [(p["number"], p["gid"]) for p in got_prs] == [(11, "R11-CPG"), (12, "R11-OUT")]
+            and groups["R11-OUT"]["prs"] == [12])
+        res["read_world: approval is the newest APPROVED review at the head, never at another commit"] = (
+            got_prs[1]["approved_t"] == _epoch("2026-11-15T10:00:00Z") and got_prs[0]["approved_t"] is None)
+        res["read_world: the watched groups' refs, never an unwatched group's"] = (
+            sorted(refs) == ["design/R11-OUT", "dispatch/reviewer-rev-11", "handoff/r11-cpg", "verdict/12"])
+        res["read_world: commit times from git, for every ref tip and pull-request head"] = (
+            [ctime.get(x) for x in (h11, h12, v12, r11, dz, hf)] == [2000.0, 3000.0, 4000.0, 5000.0, 6000.0, 7000.0]
+            and [p["head_t"] for p in got_prs] == [2000.0, 3000.0])
+        res["read_world: each tip's note is read to its first line"] = (
+            first.get(v12) == f"Fix review: merge {h12}" and first.get(r11) == f"CLOUD REVIEWER seat for PR #11, at head {h11}."
+            and first.get(dz) == "# a design" and hf not in first)
+        res["read_world: the fire ledger's stamps are epochs"] = rows == [(_epoch("2026-11-15T11:30:00Z"), "2026-11-15T11:30:00Z FIRED reviewer #11")]
+        res["read_world: gh is asked for the open pull requests of the repo given"] = any(
+            a[:3] == ["gh", "pr", "list"] and "o/r" in a and "open" in a for a in calls)
+        for name, answer in (("a gh refusal", (1, "HTTP 403")), ("a non-list answer", (0, "{}"))):
+            try:
+                read_world("o/r", str(c), str(led), None, fake(answer))
+                res[f"read_world: {name} is Unreadable, never an empty list"] = False
+            except Unreadable as e:
+                res[f"read_world: {name} is Unreadable, never an empty list"] = "open pull requests" in str(e)
+        g("checkout", "-q", "main", cwd=c)
+        (c / roster_lib.CRITICAL_PATH_NAME).write_text("not json")
+        g("commit", "-qam", "bad", cwd=c)
+        try:
+            read_world("o/r", str(c), str(led), "HEAD", fake((0, "[]")))
+            res["read_world: an unreadable critical-path file is Unreadable, never an empty set"] = False
+        except Unreadable as e:
+            res["read_world: an unreadable critical-path file is Unreadable, never an empty set"] = "critical path" in str(e)
+    return res
+
+
 def self_test() -> int:
     import importlib.util
     res = cases(sys.modules[__name__])
+    res.update(read_world_checks())
     # the moved FIRE-OWED level and fired-ledger read, against the tick's own fixture shape
     with tempfile.TemporaryDirectory() as d:
         now = datetime.datetime(2026, 11, 15, 12, 0, tzinfo=datetime.timezone.utc)

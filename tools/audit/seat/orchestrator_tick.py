@@ -4353,7 +4353,7 @@ def self_test() -> int:
             fl.write_text(fired)
             tf = tick(prs=[], fired_log=str(fl), payload_dir=str(pd))
             tf.payloads("PRS")
-            return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
+            return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed") and x["flag"]]
         fo, fo0 = fire_owed(""), fire_owed("FIRED payload-fix-86-r1.json\n")
         pd2 = tmp / "payloads-young"
         pd2.mkdir()
