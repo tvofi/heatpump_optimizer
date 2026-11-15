@@ -859,7 +859,7 @@
     "commit": "66865be375f4ee283ee556f53fcd76cc3dbf40e2",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders",
+    "note": "finder-critical (0018:400-403, card P744 'Wait for both'); intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders",
     "pr": 3612
    }
   },
