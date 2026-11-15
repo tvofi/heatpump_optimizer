@@ -1461,7 +1461,8 @@
    ],
    "fixes": [],
    "after": [
-    "R10-COP-LEARNER-DRAW-FLOOR"
+    "R10-COP-LEARNER-DRAW-FLOOR",
+    "R11-OUTSIDE-SELF-SETTING-PUMP"
    ],
    "files": [
     "custom_components/heatpump_optimizer/draw_range.py",
