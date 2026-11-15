@@ -28450,7 +28450,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-pre-briefs-census",
     "commit": null,
     "last_step": null,
     "next_step": "fire now on the cards at the approved eval/r11 sha; D9 held until ruled",
