@@ -13,4 +13,5 @@
   is unmerged prints `PARALLEL <card>`. `--round N --open-cards` prints P3's
   input as JSON when the finders finish: those cards still open at `--ref`, and
   the roster's open groups whose `gates_finders` is not true; exit 1, with an
-  `UNMARKED <group>` line, while an open group carries no boolean.
+  `UNMARKED <card|group>` line, while an accepted card or open group carries
+  no boolean.
