@@ -92500,6 +92500,35 @@ R.check(
     and _hsr_cands_clamp and all(c[3] >= 1.1 and c[5] == 0.0 and c[7] == 0.0 for c in _hsr_cands_clamp),
     f"{[c.round(2).tolist() for c in _hsr_cands]}",
 )
+# A run that continues from a running compressor pays no start, in the
+# program and in the masks the stage builds from the horizon's reading. The
+# start price here (5.0) outbids the energy of the plan's opening run (0.55
+# kWh, which unbought costs 0.83 at the end of the band), so that run is
+# kept from a running compressor and dropped from a stopped one.
+_hsr_open = np.array([1.1, 1.1, 0.0, 0.0, 0.0, 0.0])
+_hsr_open_masks = {
+    on: [_hsr_runs.commit(_hsr_open, 0.2, 1.1, 3.0, 5.0, b, dt=0.25, running=on)[0].tolist() for b in _hsr_runs.BANDS]
+    for on in (True, False)
+}
+_hsr_open_plans = {
+    on: [c.tolist() for c in _hsr_om._run_plans(
+        _hsr_opt(5.0, False, 1.1), _HsrNS(prices=np.full(6, 0.2), dt=0.25, compressor_running=on),
+        _hsr_open, np.zeros(6), np.zeros(6), np.full(6, 5.5), np.zeros(6, dtype=bool))[:-1]]
+    for on in (True, False)
+}
+R.check(
+    "a run that continues from a running compressor pays no start: at a start "
+    "price that outbids its energy the plan's opening run is kept from a running "
+    "compressor and dropped from a stopped one, by the program in every band",
+    _hsr_open_masks == {True: [(_hsr_open > 0.0).tolist()] * 3, False: [[False] * 6] * 3},
+    f"{_hsr_open_masks}",
+)
+R.check(
+    "and the stage commits with the horizon's running reading: its masks keep "
+    "that opening run from a running compressor and drop it from a stopped one",
+    _hsr_open_plans == {True: [_hsr_open.tolist()], False: [[0.0] * 6]},
+    f"{_hsr_open_plans}",
+)
 _hsr_box_of = _hsr_om._run_bounds(np.array([0.0, 1.1, 3.0, 0.4]), np.zeros(4), np.array([5.5, 5.5, 5.5, 0.4]), 1.1)
 R.check(
     "a candidate's levels are re-solved inside its own runs: an off step is held "

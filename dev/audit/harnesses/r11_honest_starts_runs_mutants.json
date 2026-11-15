@@ -262,5 +262,17 @@
   "file": "custom_components/heatpump_optimizer/runs.py",
   "old": "_TIE_BREAK = 1e-9\n",
   "new": "_TIE_BREAK = 0.0\n"
+ },
+ {
+  "name": "COMMIT_INITIAL_STATE",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    cost[min_on - 1 if running else sum(lengths) - 1, half] = 0.0\n",
+  "new": "    cost[sum(lengths) - 1, half] = 0.0\n"
+ },
+ {
+  "name": "COMMIT_RUNNING",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        dt=h.dt, running=h.compressor_running,\n",
+  "new": "        dt=h.dt, running=False,\n"
  }
 ]
