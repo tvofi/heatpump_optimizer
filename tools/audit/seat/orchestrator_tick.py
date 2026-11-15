@@ -5621,6 +5621,36 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- class barrier (R10-RCA-TICK-BLIND section 2): a repair-discharges-line arm per owed-family kind ----
+        # The census reads owed_unactioned's FAMILY, the one list of lines an operator is told to repair:
+        # a kind is ARMED (an arm below runs its named repair in the fakes and the line goes, and one
+        # where the repair cannot run changes the line to say so) or is DEBT, owed an arm; a kind in
+        # neither, or in both, or one the family no longer holds, is a failure of the census itself.
+        fam = set(re.match(r"\^-> \((.*)\)$", ou.FAMILY.pattern).group(1).split("|"))
+        owed_ok = tick(bus_refs=[BUS_CLEAR], state_dir=str(tmp / "state-op"))
+        owed_ok.orphans("REPLAN")
+        armed = {
+            "OWED": [("the opener's repair (the ref carried) removes the OWED handoff line",
+                      not any(x["text"].startswith("OWED handoff:") for x in owed_ok.findings)),
+                     ("the repair that cannot run (3 failures) changes the line to say STUCK", ow_op[0].endswith("STUCK after 3")),
+                     ("the repair skipped by ruling changes it to `held by ruling`", "held by ruling" in ow_op[2]),
+                     ("the repair's missing precondition prints OPENER ABSENT",
+                      any(x["text"].startswith("OPENER ABSENT") for x in t_ab.findings))],
+            "DESIGN-REVIEW OWED:": [("dispatching the reviewer after the tip removes the line", r_new == []),
+                                    ("a verdict at the tip removes it", r_ok == []),
+                                    ("a precondition gone (the group done) removes it", r_done == [])],
+            "UNDISPATCHED:": [("a dispatch ref after the gate opened removes the line for its group",
+                               not any("R10-OI" in x for x in u_live))],
+            "DESIGN-BUILD:": [("a dispatched build removes the line", [x.split()[1] for x in db] == ["R10-G1"])],
+        }
+        debt = {"REVIEW OWED:", "RECORD-OWED:", "DISPATCH:", "OWNER FLAG:", "MERGE-READY:", "BLOCKED-UNFIXED:",
+                "APPROVAL-OWED:", "UNLEVELLED:", "REVIEW STALLED:"}
+        a, f = check("repair-discharges-line census", [
+            ("every owed-family kind is armed or debt, none both, none stale", set(armed) | debt == fam and not set(armed) & debt),
+            ("every armed kind has at least one arm and each arm holds", all(arms and all(ok for _, ok in arms) for arms in armed.values())),
+        ] + [(f"{k}: {label}", ok) for k, arms in sorted(armed.items()) for label, ok in arms])
+        total, failed = total + a, failed + f
+
         # ---- DESIGN OWED carries the dispatch age and a CP mark ----
         aroster = {"groups": [
             {"group": "R10-P", "size": "S", "resume": {"stage": "in-progress", "branch": "handoff/r10-p"}},

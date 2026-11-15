@@ -15,7 +15,7 @@ asked again. On 2026-10-28 the critical-path handoff r10-orch-beatd (#2916) stoo
 two handoffs routed to the opener at 10:55Z stood 8 h.
 
 WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
-starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`,
+starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`, `DESIGN-REVIEW OWED:`, `UNDISPATCHED:`,
 `MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:`, `UNLEVELLED:`, `REVIEW STALLED:` or `RECORD-OWED:` -- and keys each on its obligation: the
 handoff topic, or `#<pr>`. A verdict level (`MERGE-READY: #N <head8>`) carries
 its head8 as the id, so an acknowledgement covers one head and a new head
