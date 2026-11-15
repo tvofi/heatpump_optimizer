@@ -55,7 +55,7 @@ import tempfile
 
 # The tick's cap notice (Tick.orphans) rides the OWED prefix but is no obligation: it names a count, not a topic (carry 10).
 CAP_NOTICE = re.compile(r"^-> OWED handoffs capped at \d+ of \d+(?: \([^)]*\))?;")
-FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|RECORD-OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:|REVIEW STALLED:)")
+FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|RECORD-OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|DESIGN-REVIEW OWED:|UNDISPATCHED:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:|REVIEW STALLED:)")
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
 REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
@@ -116,6 +116,12 @@ def key_of(line: str) -> "tuple[str, list[str]]":
         r = REF.match(subj)
         return (r.group(1) if r else f"#{subj}" if subj.isdigit()
                 else subj.removeprefix("refs/heads/")), shas
+    m = re.match(r"UNDISPATCHED:(?: CP)? (\S+) ", body)  # the group is the subject; its age grows, no sha
+    if m:
+        return m.group(1), []
+    m = re.match(r"DESIGN-REVIEW OWED:(?: CP)? \S+ (design/\S+) ([0-9a-f]{12}) ", body)  # the tip is the id: a new tip re-raises
+    if m:
+        return m.group(1), [m.group(2)]
     m = REF.search(body)
     if m and re.match(r"(DISPATCH|OWNER FLAG|DESIGN-BUILD): ", body):
         return m.group(1), shas

@@ -216,6 +216,11 @@ BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
 ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
 UNBLOCKABLE_STAGES = (None, "", "not-started")
+#: UNDISPATCHED reads these too: a `carries-open` group's own part merged and
+#: its carries still owe a seat, which UNBLOCKABLE_STAGES (not-started) never named.
+SEATLESS_STAGES = UNBLOCKABLE_STAGES + ("carries-open",)
+START_AFTER = re.compile(r"start after #(\d+)")
+SEAT_REFS = ("refs/heads/dispatch/fixer-*", "refs/heads/handoff/*", "refs/heads/handoff-wip/*")
 #: The shared actions whose pin the whole lane rides; a pin drift on one of
 #: these is the class that reddened a composed proof on a twin SHA.
 STATE_ACTIONS = ("actions/checkout", "actions/setup-node", "actions/cache",
@@ -1678,6 +1683,62 @@ class Tick:
                 self.line(S, f"{gid}: in progress (stage {stage})")
         self.design_builds(S, rl, roster)
         self.designs_owed(S, rl, roster)
+        self.undispatched(S, rl, roster)
+
+    def undispatched(self, S: str, rl, roster: dict) -> None:
+        """`UNDISPATCHED:[ CP] <group> <age>`: an open group in SEATLESS_STAGES
+        whose `after` groups are all done or carries-open (a) or whose pending
+        carry reads `start after #N` with #N merged (b), and that no seat ref
+        (dispatch/fixer-<topic>, handoff/<topic>, handoff-wip/<topic>) has
+        touched since its gate opened: its own merge (`resume.commit`) or #N's.
+        A ref whose time cannot be read counts as a live seat; a failed ref
+        listing is UNREADABLE, never an empty list."""
+        code, o = self.git(["ls-remote", "origin", *SEAT_REFS])
+        if code:
+            return self.unreadable(S, "undispatched groups", o.strip()[-100:])
+        seats: dict = {}
+        for l in o.splitlines():
+            ref = l.split()[1] if len(l.split()) >= 2 else ""
+            t = ref.split("/", 2)[-1].removeprefix("fixer-") if ref.startswith("refs/heads/") else ""
+            if t and (gid := rl.group_for_branch(roster, "x/" + t)):
+                seats.setdefault(gid, []).append(ref.removeprefix("refs/heads/"))
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+        critical = set(rl.critical_path(roster))
+        clear = rl.RELEASING_STAGES + ("carries-open",)
+        for gid, g in groups.items():
+            res = g.get("resume") or {}
+            if gid not in open_g or res.get("stage") not in SEATLESS_STAGES:
+                continue
+            opened = None
+            if res.get("stage") == "carries-open" and all(
+                    (groups[a].get("resume") or {}).get("stage") in clear for a in g.get("after") or [] if a in groups):
+                opened = self._commit_at(res.get("commit"))
+            for c in g.get("carry") or []:
+                m = START_AFTER.search(c) if rl.carry_mark(c) is None else None
+                if m and opened is None:
+                    opened = self._merged_at(m.group(1))
+            if opened is None:
+                continue
+            if any((at := self._commit_at("origin/" + r)) is None or at >= opened for r in seats.get(gid, [])):
+                continue
+            hours = (self.now - opened).total_seconds() / 3600.0
+            self.line(S, f"UNDISPATCHED:{' CP' if gid in critical else ''} {gid} {hours:.1f}h -- no dispatch, "
+                         "handoff or handoff-wip ref since its gate opened; dispatch the next part", flag=True)
+
+    def _commit_at(self, ref):
+        """The committer instant of `ref`, or None (no ref, or unreadable)."""
+        code, o = self.git(["log", "-1", "--format=%cI", ref]) if ref else (1, "")
+        try:
+            return None if code else datetime.datetime.fromisoformat(o.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    def _merged_at(self, pr):
+        code, o = self.gh(["api", f"repos/{self.repo}/pulls/{pr}", "--jq", ".merged_at"])
+        try:
+            return None if code else datetime.datetime.fromisoformat(o.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
 
     def designs_owed(self, S: str, rl, roster: dict) -> None:
         """`DESIGN OWED:` an eligible group (size L or XL, decision 0014) whose
@@ -1738,13 +1799,15 @@ class Tick:
         reads `Design review: approve <sha>` at `design/<g>`'s tip. The verdict
         and design refs are read over git; a read that fails is UNREADABLE."""
         lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
-        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*", "refs/heads/design-verdict/*"])
+        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*", "refs/heads/design-verdict/*",
+                            "refs/heads/dispatch/design-reviewer-*"])
         if lg is None or code:
             self.unreadable(S, "approved designs", "ledger.py absent" if lg is None else o.strip()[-100:])
             return
-        designs, verdicts, names = {}, {}, {}
+        designs, verdicts, reviewers, names = {}, {}, {}, {}
         for sha, ref in (l.split()[:2] for l in o.splitlines() if len(l.split()) >= 2):
-            for prefix, into in (("refs/heads/design-verdict/", verdicts), ("refs/heads/design/", designs)):
+            for prefix, into in (("refs/heads/design-verdict/", verdicts), ("refs/heads/design/", designs),
+                                 ("refs/heads/dispatch/design-reviewer-", reviewers)):
                 if ref.startswith(prefix):
                     into[ref[len(prefix):].lower()] = sha
                     names[(prefix, ref[len(prefix):].lower())] = ref
@@ -1770,6 +1833,36 @@ class Tick:
             self.unreadable(S, "obligations ledger", str(e)[:100])
             return
         for text in lg.design_builds(firsts, designs, stage_of, disp):
+            self.line(S, text, flag=True)
+        self.design_reviews_owed(S, rl, roster, lg, (designs, reviewers, firsts, disp), names)
+
+    def design_reviews_owed(self, S: str, rl, roster: dict, lg, seen: tuple, names: dict) -> None:
+        """`DESIGN-REVIEW OWED:` every pass (ledger.design_reviews_owed): the
+        design tips and design-reviewer dispatch tips are fetched once for their
+        committer times; a failed read is UNREADABLE, never an empty list."""
+        designs, reviewers, firsts, disp = seen
+        if not designs:
+            return
+        refs = [names[("refs/heads/design/", t)] for t in designs] \
+            + [names[("refs/heads/dispatch/design-reviewer-", t)] for t in reviewers]
+        if self.git(["fetch", "-q", "origin", *refs])[0]:
+            return self.unreadable(S, "design reviews owed", "could not fetch the design refs")
+        times = {}
+        for sha in {*designs.values(), *reviewers.values()}:
+            code, o = self.git(["log", "-1", "--format=%ct", sha])
+            if code or not o.strip().isdigit():
+                return self.unreadable(S, "design reviews owed", f"no commit time for {sha[:12]}")
+            times[sha] = int(o.strip())
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+
+        def stage_of(t):
+            gid = rl.group_for_branch(roster, f"design/{t}")
+            if gid not in open_g:
+                return gid, "closed"
+            return gid, (groups[gid].get("resume") or {}).get("stage")
+        for text in lg.design_reviews_owed(designs, firsts, {t: times[s] for t, s in designs.items()},
+                                           {t: times[s] for t, s in reviewers.items()}, stage_of, disp,
+                                           self.now.timestamp(), set(rl.critical_path(roster))):
             self.line(S, text, flag=True)
 
     # ---------------------------------------------------------------- MAIN
@@ -2898,6 +2991,7 @@ def self_test() -> int:
         gh.on(lambda argv: any(x.endswith("/comments?per_page=100") for x in argv), out="[]")
         git = Stub()
         git.on(("fetch",), out="")
+        git.on(("ls-remote", "refs/heads/dispatch/fixer-*"), out="")  # UNDISPATCHED: no seat refs unless an arm says
         git.on(("merge-base", "--is-ancestor"), rc=0)
         git.on(("merge-base", "origin/main"), out=V)
         git.on(("diff", "--no-renames", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
@@ -5248,6 +5342,7 @@ def self_test() -> int:
                                 f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"
                                 f"{A40}\trefs/heads/design/r10-g2\n{B40}\trefs/heads/design-verdict/r10-g2\n"))
             t._git.h.insert(0, ((f"{B40}:verdict.md",), 0, verdict_text))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct"), 0, str(int(NOW.timestamp()))))
             t.design_builds("PLAN", rlm, droster)
             return flagged(t.sections.get("PLAN", []))
         db = dboard(f"Design review: approve {A40}\n- point\n")
@@ -5256,6 +5351,7 @@ def self_test() -> int:
         t_pl._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0,
                                f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"))
         t_pl._git.h.insert(0, ((f"{B40}:verdict.md",), 0, f"Design review: approve {A40}\n"))
+        t_pl._git.h.insert(0, (("log", "-1", "--format=%ct"), 0, str(int(NOW.timestamp()))))
         t_pl.plan()
         db_plan = flagged(t_pl.sections.get("PLAN", []))
         db_rev = dboard(f"Design review: revise {A40} class-open\n")
@@ -5292,6 +5388,53 @@ def self_test() -> int:
              not any(g in x for x in ow for g in ("R10-L2", "R10-L3", "R10-S1", "R10-L4"))),
             ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: designs owed" in x for x in ow_un) and not any(x.startswith("DESIGN OWED") for x in ow_un)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- DESIGN-REVIEW OWED: a design tip no verdict names, no reviewer dispatched since ----
+        C40, D40, OLD40 = "c" * 40, "d" * 40, "1" * 40
+        hr = int(NOW.timestamp()) - 3 * 3600
+        rroster = {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}},
+                              {"group": "R10-G9", "resume": {"stage": "done"}}]}
+
+        def rboard(verdict_text, reviewer_at=hr - 3600, stage="not-started", gid="R10-G1", disp=None):
+            hd = tmp / f"rb{len(list(tmp.glob('rb*')))}"
+            hd.mkdir()
+            if disp:
+                (hd / "dispositions.tsv").write_text("".join(f"{r}\t{v[0]}\t{v[1]}\t{v[2]}\n" for r, v in disp.items()))
+            t = tick(relay_log=str(hd / "relay.log"))
+            ls = f"{A40}\trefs/heads/design/{gid}\n"
+            if verdict_text is not None:
+                ls += f"{B40}\trefs/heads/design-verdict/{gid.lower()}\n"
+            if reviewer_at is not None:
+                ls += f"{D40}\trefs/heads/dispatch/design-reviewer-{gid.lower()}\n"
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0, ls))
+            t._git.h.insert(0, ((f"{B40}:verdict.md",), 0, verdict_text or ""))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", A40), 0, str(hr)))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", D40), 0, str(reviewer_at or 0)))
+            tr = {"groups": [dict(rroster["groups"][0], group=gid, resume={"stage": stage})]}
+            t.design_builds("PLAN", rlm, tr)
+            return flagged(t.sections.get("PLAN", []))
+        ou = _module("owed_unactioned_tick", "tools/audit/seat/owed_unactioned.py")
+        _rv = rboard
+        rboard = lambda *a, **k: [x for x in _rv(*a, **k) if x.startswith("DESIGN-REVIEW OWED:")]
+        r_rev, r_none = rboard(f"Design review: revise {OLD40} class-open\n"), rboard(None, reviewer_at=None)
+        r_ok, r_new = rboard(f"Design review: approve {A40}\n"), rboard(f"Design review: revise {OLD40}\n", reviewer_at=hr + 60)
+        r_done, r_disp = rboard(f"Design review: revise {OLD40}\n", stage="done"), \
+            rboard(f"Design review: revise {OLD40}\n", disp={"refs/heads/design/r10-g1": (A40, "t", "h")})
+        r_dr = rboard(f"Design review: revise {OLD40}\n", stage="design-review")
+        a, f = check("DESIGN-REVIEW OWED", [
+            ("a revise verdict naming an older sha, a newer tip and an older reviewer dispatch give exactly one line",
+             len(r_rev) == 1 and f" R10-G1 design/r10-g1 {A40[:12]} " in r_rev[0]
+             and f"verdict revise {OLD40[:12]}" in r_rev[0] and "(3.0h)" in r_rev[0]),
+            ("no verdict and no reviewer ref is owed too, and reads `verdict none`",
+             len(r_none) == 1 and "verdict none -" in r_none[0]),
+            ("null controls: a verdict at the tip, a reviewer dispatched after the tip and a done group print nothing",
+             r_ok == [] and r_new == [] and r_done == []),
+            ("null control: a disposition at the tip's sha silences it", r_disp == []),
+            ("the stage `design-review` is owed too", len(r_dr) == 1),
+            ("the emitted line keys in owed_unactioned on design/<g> and the tip",
+             ou.key_of("-> " + r_rev[0]) == ("design/r10-g1", [A40[:12]]) and bool(ou.FAMILY.match("-> " + r_rev[0]))),
         ])
         total, failed = total + a, failed + f
 
