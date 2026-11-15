@@ -28157,7 +28157,10 @@
    "files": [
     "custom_components/heatpump_optimizer/optimizer.py",
     "tests/features.py",
-    "tests/golden/claimed_drift.txt"
+    "tests/golden/claimed_drift.txt",
+    "custom_components/heatpump_optimizer/runs.py",
+    "dev/audit/harnesses/r11_honest_starts_runs.py",
+    "dev/audit/harnesses/r11_honest_starts_runs_mutants.json"
    ],
    "hot_files": [],
    "fixture": false,
@@ -28184,7 +28187,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M, opus) after pull request 3602 merges; item (ii) waits on its ruling, items (i) and (iii) do not",
-    "note": "overlap admitted (R11-PRE-SHARED-FILES): same seam as the parent (candidate stage and runs leaf, test and harness only); shares tests/features.py with the listed groups' distinct seams, merged in train order",
+    "note": "overlap admitted (R11-PRE-SHARED-FILES): same seam as the parent (candidate stage and runs leaf, test and harness only); shares tests/features.py with the listed groups' distinct seams, merged in train order | set-files files ['custom_components/heatpump_optimizer/optimizer.py', 'tests/features.py', 'tests/golden/claimed_drift.txt'] -> ['custom_components/heatpump_optimizer/optimizer.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'custom_components/heatpump_optimizer/runs.py', 'dev/audit/harnesses/r11_honest_starts_runs.py', 'dev/audit/harnesses/r11_honest_starts_runs_mutants.json'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
     "pr": null
    }
   },
