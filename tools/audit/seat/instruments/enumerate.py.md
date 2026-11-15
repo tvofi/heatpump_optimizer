@@ -8,9 +8,10 @@
   `d16-writes` and `d17-features` are ported for the briefs that will cite
   them). Two universes are registers a round's register pull request
   appends to: `dev/audit/config/identities.json` (D2) and
-  `dev/audit/config/bundles.json` (D15). `d12-cells --ledger TSV` joins a
-  seat's cell ledger (cell, source, asserting test) and refuses a row that
-  names no cell, an unlisted source or no test. Refusal: exit 2 on a missing
+  `dev/audit/config/bundles.json` (D15). `--ledger TSV` joins a seat's
+  ledger to any universe, each line beside its asserting test or `not run`
+  (rows: item, test; `d12-cells`: cell, source, test), and refuses a row
+  that names no item, an unlisted source or no test. Refusal: exit 2 on a missing
   source or an empty universe, never a pass. `--self-test` plants a fake
   repo per universe, deletes one item and empties the source: the null
   control.

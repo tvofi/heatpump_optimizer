@@ -20,9 +20,11 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
   d9-collections         coordinator.py `self.<attr>` bound to a container, once per class and attribute
   d9-attributes          classes defining or assigning extra_state_attributes
   d9-solves              calls of the solver entry, then of each function holding one, to a fixed point
-  d12-cells [--pairs] [--ledger TSV]   every level `check_scopes.py --population` reads, the card and the
-                         blueprints (--pairs: every pair of levels from two axes), each with the ledger
-                         row's source and asserting test, or `not run`
+  d12-cells [--pairs]    every level `check_scopes.py --population` reads, the card and the blueprints
+                         (--pairs: every pair of levels from two axes), each `not run` until a ledger row
+  --ledger TSV           with any universe: each line beside its ledger row's asserting test, or `not run`
+                         (rows: item, test; for d12-cells: cell, source, test); a row naming no item,
+                         an unlisted source or no test is refused
   d14-classes [--status open]   dev/audit/config/bugclasses.json entries that carry a status
   d15-installs           dev/audit/config/bundles.json, one line per bundle an install sent
   d16-writes [--cells]   actuator `services.async_call` and `log_held` sites; --cells crosses each
@@ -443,10 +445,10 @@ def d9solves(repo, **_):
     return out
 
 
-def d12(repo, pairs=False, ledger=None, **_):
+def d12(repo, pairs=False, **_):
     """The generality cells: every level `--population` reads, the card and each blueprint,
-    and under --pairs every pair of levels from two axes; each with its ledger row's source and
-    asserting test, or `not run`. The level and pair counts are asserted against the command's own."""
+    and under --pairs every pair of levels from two axes. The level and pair counts are asserted
+    against the command's own."""
     axes, totals = population_axes(repo)
     cells = [f"level {a}={x}" for a, lv in axes.items() for x in lv]
     if len(cells) != totals.get("LEVELS"):
@@ -461,20 +463,7 @@ def d12(repo, pairs=False, ledger=None, **_):
     surf += [f"surface blueprint {f}" for f in sorted(tracked(repo)) if f.startswith("blueprints/")]
     if not surf:
         raise Refuse("no card and no blueprint is tracked")
-    cells += surf
-    rows = {}
-    if ledger:
-        lp = Path(ledger)
-        for i, l in enumerate(lp.read_text().splitlines(), 1):
-            if not l.strip() or l.startswith("#"):
-                continue
-            c = l.split("\t")
-            if len(c) != 3 or c[1] not in SOURCES or not c[2].strip():
-                raise Refuse(f"{lp}:{i}: a row is cell, source ({', '.join(SOURCES)}) and asserting test, tab-separated; a run that asserts nothing examines nothing")
-            if c[0] not in cells:
-                raise Refuse(f"{lp}:{i}: {c[0]!r} is no cell of this universe" + ("" if pairs else " (a pair needs --pairs)"))
-            rows[c[0]] = f"{c[1]}\t{c[2].strip()}"
-    return [f"{c}\t{rows.get(c, 'not run')}" for c in cells]
+    return cells + surf
 
 
 def d15(repo, **_):
@@ -499,19 +488,42 @@ UNIVERSES = {"d16-writes": d16, "d17-features": d17, "d14-classes": d14, "d0-gri
              "d12-cells": d12, "d15-installs": d15}
 
 
-def run(name, repo, **kw):
+def joined(name, items, ledger):
+    """Each item beside its ledger row, or `not run`: the census with the test that drives each
+    line. A row is item and asserting test, tab-separated; a generality cell also names, between
+    them, which of decision 0018's four sources examined it, and prints `not run` with no ledger."""
+    cell = name == "d12-cells"
+    if not ledger and not cell:
+        return items
+    rows = {}
+    for i, l in enumerate(Path(ledger).read_text().splitlines() if ledger else (), 1):
+        c = [x.strip() for x in l.split("\t")]
+        if not l.strip() or l.startswith("#"):
+            continue
+        if len(c) != 2 + cell or not c[-1] or (cell and c[1] not in SOURCES):
+            raise Refuse(f"{ledger}:{i}: a row is the item, " + (f"its source ({', '.join(SOURCES)}), " if cell else "")
+                         + "and its asserting test, tab-separated; a run that asserts nothing examines nothing")
+        if c[0] not in items:
+            raise Refuse(f"{ledger}:{i}: {c[0]!r} is no item of this universe as printed (check its options)")
+        rows[c[0]] = "\t".join(c[1:])
+    return [f"{x}\t{rows.get(x, 'not run')}" for x in items]
+
+
+def run(name, repo, ledger=None, **kw):
     try:
-        lines = UNIVERSES[name](Path(repo), **kw)
+        lines = joined(name, sorted(_dedupe(UNIVERSES[name](Path(repo), **kw))), ledger)
     except OSError as e:
         raise Refuse(f"missing or unreadable source: {e}")
+    if not lines:
+        raise Refuse(f"{name} yields zero items: an empty universe is a refusal")
+    return lines
+
+
+def _dedupe(lines):
     seen = collections.Counter()
-    out = []
     for l in lines:
         seen[l] += 1
-        out.append(l if seen[l] == 1 else f"{l} #{seen[l]}")
-    if not out:
-        raise Refuse(f"{name} yields zero items: an empty universe is a refusal")
-    return sorted(out)
+        yield l if seen[l] == 1 else f"{l} #{seen[l]}"
 
 
 def briefs(repo):
@@ -716,6 +728,18 @@ def self_test():
             arm("d12 ledger: the joined row prints its source and test", [l for l in run("d12-cells", t, ledger=str(led)) if "not run" not in l],
                 ["level mode=m1\tsimulation\ttests/x.py::t"])
         arm("d12 a missing ledger is refused", count("d12-cells", t, ledger=str(t / "none.tsv")), "Refuse")
+        arm("with no ledger a census prints its items alone", run("d1-inputs", t), ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
+        for label, text, want in (("a census line is joined to its driving test, the rest not run", "# c\n\ninput CONF_A_ENTITY\ttests/x.py::t\n",
+                                   ["input CONF_A_ENTITY\ttests/x.py::t", "input CONF_B_ENTITY\tnot run"]),
+                                  ("a census row naming no test is refused", "input CONF_A_ENTITY\t\n", "Refuse"),
+                                  ("a census row with a source column is refused", "input CONF_A_ENTITY\tsimulation\ttests/x.py::t\n", "Refuse"),
+                                  ("a census row naming no item is refused", "input CONF_Z_ENTITY\ttests/x.py::t\n", "Refuse")):
+            led.write_text(text)
+            try:
+                got = run("d1-inputs", t, ledger=str(led))
+            except Refuse:
+                got = "Refuse"
+            arm(f"ledger: {label}", got, want)
         bd = t / "dev/governance/dimensions"
         bd.mkdir(parents=True)
 
