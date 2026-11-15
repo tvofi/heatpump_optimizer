@@ -27019,7 +27019,7 @@
    "kind": "instrument",
    "class": "process",
    "severity": "medium",
-   "size": "M",
+   "size": "L",
    "wave": 1,
    "issues": [],
    "fixes": [],
@@ -27056,7 +27056,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-TOKEN-LEDGER): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-TOKEN-LEDGER): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run | set-size M -> L"
    }
   },
   {
