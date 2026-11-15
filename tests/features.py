@@ -92276,6 +92276,31 @@ R.check(
     f"{_hsr_own_moved} of {_hsr_own_n}",
 )
 
+# The band is held by a price, step by step (the design's mutation target "the
+# out-of-band penalty"), read at the leaf, where no solve and so no BLAS
+# kernel enters. A trickle at half the floor whose cheap steps are all in the
+# second half: the cheapest mask of all runs that half alone and is ten floor
+# steps behind the plan at mid-horizon. Each band's mask stays inside its
+# band and says so, and a wider band buys a cheaper mask.
+_hsr_late_q, _hsr_late_p = np.full(40, 0.55), np.r_[np.full(20, 2.0), np.full(20, 1.0)]
+_hsr_late = {}
+for _hsr_band in _hsr_runs.BANDS:
+    _hsr_m, _hsr_ok = _hsr_runs.commit(_hsr_late_q, _hsr_late_p, 1.1, 5.5, 0.0, _hsr_band, dt=0.25)
+    _hsr_late[_hsr_band] = (
+        _hsr_ok,
+        float(np.max(np.abs(np.cumsum(np.where(_hsr_m, 1.1, 0.0) - _hsr_late_q)))) / 1.1,
+        float(np.sum(_hsr_late_p[_hsr_m])) * 1.1 * 0.25,
+    )
+R.check(
+    "a balance outside its band is paid for at every step: where the cheapest "
+    "mask of all leaves the band, each band's mask stays within its band of the "
+    "plan's energy and reports it tracked, and a wider band buys a cheaper mask",
+    all(ok and far <= band + 1e-9 for band, (ok, far, _) in _hsr_late.items())
+    and _hsr_late[_hsr_runs.BANDS[-1]][1] > _hsr_runs.BANDS[1]
+    and [c for _, _, c in _hsr_late.values()] == sorted({c for _, _, c in _hsr_late.values()}, reverse=True),
+    f"band: (tracked, floor steps from the plan, price paid) {_hsr_late}",
+)
+
 # 4 and 6. The engaged solve. A buffered single-zone house on a mild day, where
 # the relaxed plan trickles under the floor; 15-minute steps, the contributor's
 # two floors (0.53 and 1.1 kW) and wear price (0.25). No private bundle.
