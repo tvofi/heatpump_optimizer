@@ -1169,7 +1169,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (65 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D1": {
    "object": "dev/governance/dimensions/D1.md",
@@ -1178,7 +1180,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (60 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D10": {
    "object": "dev/governance/dimensions/D10.md",
@@ -1187,7 +1191,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (43 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D11": {
    "object": "dev/governance/dimensions/D11.md",
@@ -1196,7 +1202,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (99 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D12": {
    "object": "dev/governance/dimensions/D12.md",
@@ -1205,7 +1213,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (70 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D14": {
    "object": "dev/governance/dimensions/D14.md",
@@ -1214,7 +1224,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (32 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D15": {
    "object": "dev/governance/dimensions/D15.md",
@@ -1223,7 +1235,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (36 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D2": {
    "object": "dev/governance/dimensions/D2.md",
@@ -1232,7 +1246,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (53 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D3": {
    "object": "dev/governance/dimensions/D3.md",
@@ -1241,7 +1257,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (46 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D4": {
    "object": "dev/governance/dimensions/D4.md",
@@ -1250,7 +1268,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (48 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here. A real Home Assistant frontend is an environment the brief says no seat has (`There is no Home Assistant frontend locally`): the input costs standing one up, or a recorded render from the owner's install, which this card does not price.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D5": {
    "object": "dev/governance/dimensions/D5.md",
@@ -1259,7 +1279,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (41 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D6": {
    "object": "dev/governance/dimensions/D6.md",
@@ -1268,7 +1290,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (28 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D7": {
    "object": "dev/governance/dimensions/D7.md",
@@ -1277,7 +1301,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (40 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D8": {
    "object": "dev/governance/dimensions/D8.md",
@@ -1286,7 +1312,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0; the escapes ledger's row count for a dimension whose step gains no input does not move",
    "cost": "The brief's own lines (56 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-D9": {
    "object": "dev/governance/dimensions/D9.md",
@@ -1295,7 +1323,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` on round 10's reports prints 0 rows with examined/universe for every dimension, this one included: a brief left unchanged keeps printing 0",
    "cost": "The brief's own lines (62 today) and one policy pull request under the owner's review; the seats' token cost is NO-READ until R11-PRE-TOKEN-LEDGER lands. No figure for round 11's work is given here.",
    "finder_critical": "yes: it changes this dimension's brief, which its finder seats run from",
-   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input."
+   "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-COMMON": {
    "object": "dev/governance/roles/COMMON.md",
@@ -1309,7 +1339,9 @@
    "null_control": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over round 10's reports prints `WITH_EXAMINED_UNIVERSE 0`; the same command over a round whose rows carry the pair prints their count, so the read moves only where the rule is present. `python3 tools/audit/check_scopes.py --repo . --ref a39627da59` stays rc 0: no universe changes.",
    "cost": "One policy pull request under the owner's review: COMMON.md is 108 lines and budgeted by `policy_lint.mjs --budgets`; the schema row gains two required keys; every finder report grows by one pair per step. The seats' token cost of reporting it is NO-READ until R11-PRE-TOKEN-LEDGER.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). Only part 1 merged (pull request 3572: a grader in tools/policy/check-wave-script.mjs); the group's stage is `done`. No open group and no carry owes part 2 itself: carries 169 and 180 on R11-INTAKE-R10-RESIDUE only wait on it, and `git ls-remote origin | grep -i dimensions-full` shows archive tags of the merged part and no live branch. The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA)) does not rule it. This card agrees with the owner's ruling and reports that nothing on the roster builds it.",
-   "finder_critical": "yes: it changes the finder's contract, the finding schema and audit-find.js's inlined copy, so every finder report of round 11"
+   "finder_critical": "yes: it changes the finder's contract, the finding schema and audit-find.js's inlined copy, so every finder report of round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept both parts (Recommended)\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-INJECTED": {
    "paths": [
@@ -1321,7 +1353,9 @@
    "null_control": "The record's own: its detector exits 0 at v7.1.11 (before pull request 3404) and 1 at v7.1.12, and 6 of 6 hand mutants are killed. On a merged pull request that adds no refusal on an actuator write the drafted step asks for nothing, so its first verdict cannot move; the hand ledger's in-window rows with no cause named (28 of 31) do not move either.",
    "cost": "The record's cost test: about 1 s per run for the detector and about 20 min of reviewer time per 30 days for the policy line, against about 6 h of programme time per occurrence and a house without heat. `fix-review.md`'s `files_tokens` budget has no headroom (HANDOVER.md, the same paragraph), so the step needs an equal deletion or a raise under decision 0013. Report-only beside it: `review_strength.py --guardrail` prints `would-trip` for the cloud arm (1/20) and the sonnet arm (1/20) at the round's end, and its own action (audit the last reviews with a planted defect) is wired to nothing.",
    "already_ruled": "tvofi, 2026-11-13 (HANDOVER.md lines 1546 to 1557 at the graded SHA): the release rule and the record are owed to round 11; the owner's rule overrides the record's refusal (iv), the stamp-time release-note rule. Not ruled in the round-end triage (P742 to P795 rule instruments); process card P7 (found_by and caused_by fields, folded into P744) builds the record of a cause, not the check.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (the fixer's and the fix reviewer's contracts)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (the fixer's and the fix reviewer's contracts)",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept, pay by deletion (Recommended)\" (a budget raise returns to tvofi only if no sound cut exists). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-OBJECTIVE-RECORD": {
    "object": "dev/governance/roles/orchestrator.md",
@@ -1334,7 +1368,9 @@
    "null_control": "`python3 tools/audit/check_scopes.py --repo . --ref a39627da59` (no `--round`) is rc 0 before and after; with `--round 11` the gap naming `dev/audit/yardstick/round10/OBJECTIVE.json` is printed only while the file is absent.",
    "cost": "One JSON file of 13 rows and one sentence in a 289-line contract under a `--budgets` cap. Until R11-PRE-ROUND-METRICS and R11-PRE-TOKEN-LEDGER land, 9 of the 13 rows can only be `no_read`. A further cost of the record's absence, measured by the reviewer: nothing live guards the unowned cards, since `check_scopes.py --round` compares their count with the record's `unowned` value; dropping one leaves the check silent, while dropping a threshold or a criterion card is refused.",
    "already_ruled": "Round-end triage P747 logs R11-PRE-OBJECTIVE-FUNCTION as done, its carry 5 (the playbook's pointer to the evaluator contract) landed at `dev/audit/README.md`. Part (b) is not that carry: it asks the orchestrator's own contract to name the closing record, which P747 does not list; if the owner reads P747 as closing it, part (b) falls and part (a) stands alone.",
-   "finder_critical": "no: it changes nothing a finder reads. It does gate the finder start mechanically: `audit-find.js` runs `check_scopes.py --round` in its Prepare step, which refuses the baseline while the record is absent"
+   "finder_critical": "no: it changes nothing a finder reads. It does gate the finder start mechanically: `audit-find.js` runs `check_scopes.py --round` in its Prepare step, which refuses the baseline while the record is absent",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Write it now (Recommended)\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-SCORECARD": {
    "object": "tools/audit/seat/instruments/scorecard.py.md",
@@ -1343,7 +1379,9 @@
    "null_control": "`python3 tools/audit/seat/scorecard.py report --dir <empty dir> --train-log <empty file> --repo .` prints `A_gate  unread (runs.json)`: an empty input is never a value (re-run here).",
    "cost": "The cost is roster group R11-PRE-ROUND-METRICS's; no figure is given here.",
    "already_ruled": "Round-end triage P744 (ACCEPT, BUILD): the scorecard's input producer on R11-PRE-ROUND-METRICS. This scoring agrees.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept, built beside finders (Recommended)\". Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-GATE-REDS": {
    "paths": [
@@ -1356,7 +1394,9 @@
    "null_control": "A run with no red job carries no cause field and reads as before; `gate_reds.py report` prints the same share before and after the field exists.",
    "cost": "One field per red-main hotfix group or re-run record. The runner seconds these reds cost are NO-READ (R11-PRE-ROUND-METRICS).",
    "already_ruled": "Process card P7 (tvofi yes, 2026-11-13; found_by and caused_by on hotfix and outside groups, folded into P744 by the round-end triage) already builds the group half of this record: a red main that got a hotfix group gains its cause there. What P7 does not reach is a red cleared by a re-run with no group. Round-end triage P786 rules the `policy-docs` timeout and P762/P763 the self-test scope table. This card agrees with those.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-R-WORKFLOWS": {
    "paths": [
@@ -1367,7 +1407,9 @@
    "term": "No term of 0018 section 2 moves: no layer-1 term is taken through either script. The machinery tie-break (`machinery_ratchet.py --measure`, rule 4) falls by their 146 lines.",
    "null_control": "The same measure is not zero for a script in use: `flow_metrics.py` counts 880 merged fix branches of the live `fix/` pattern in round 10's window.",
    "cost": "`git grep -l 'audit-fix\\|audit-wave' -- tests tools` -> `tests/closure.py`, `tests/closures.json`, `tools/ci/selftest_closures.json` and `tools/audit/seat/plan_audit.py` name them and each needs its entry dropped in the same pull request (a closure re-record on Linux, `gate-scoping.md`); the skill listing loses two entries marked RETIRED. `audit-wave.js`'s header says its prompts are hand-mirrored from `audit-fix.js`, so the pair goes together.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (`audit-find.js` is not touched)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (`audit-find.js` is not touched)",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept both (Recommended)\" (cards E11-R-WORKFLOWS and E11-N-NULL-REVIEWER). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-ROLE-CLAUSE": {
    "paths": [
@@ -1378,7 +1420,9 @@
    "term": "The unscored share of role objects (15 of 19 keep on a NO-READ at this evaluation); no term of section 2 moves.",
    "null_control": "`python3 tools/audit/seat/review_strength.py --repo . --window r10=2026-10-14T13:27:06Z..2026-11-15T05:22:47Z` `--by class` prints 2537 verdicts under class words and no clause id today; a class word that maps to no clause stays its own row.",
    "cost": "Unmeasured; the verdict grammar is `web-fix-wave.js`'s VERDICT_CLASSES, read by review_strength.py.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Build all four reads\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-RULE-YIELD": {
    "paths": [
@@ -1390,7 +1434,9 @@
    "null_control": "`python3 tools/audit/fold_ledger.py check` reads 0 violations before and after a date field is added to an instance: the check does not move, only the rule's yield becomes readable.",
    "cost": "Unmeasured. `.claude/rules/` is generated and loaded by path globs, so a load count would come from the harness, which no tracked script reads.",
    "already_ruled": "Benchmark card G8 (a rule-enforcement registry, accepted; `dev/audit/README.md`) maps a rule to its enforcing check; roster group R10-ROUND-PLAYBOOK carried it and is done, and no open group holds it. Not ruled in the round-end triage.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Build all four reads\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-INSTRUMENT-YIELD": {
    "paths": [],
@@ -1400,7 +1446,9 @@
    "null_control": "An instrument whose `--self-test` passes and that refused nothing logs nothing: its yield reads 0 refusals, not unread.",
    "cost": "Unmeasured. The round-end triage keeps R11-PRE-MACHINERY-LIMITER (P742), which caps machinery by merges and churn, not by yield.",
    "already_ruled": "Not ruled: P742 limits size, and loop-study card L1's enumerator (P744) counts changes per instrument, neither logs a refusal's outcome.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Build all four reads\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-GATE-CAUSE": {
    "paths": [
@@ -1412,7 +1460,9 @@
    "null_control": "A successful run carries no cause field and reads as before.",
    "cost": "Unmeasured.",
    "already_ruled": "Process card P7 (tvofi yes, 2026-11-13, folded into P744) builds caused_by and found_by on hotfix and outside groups: the cause of a red that got a group. A red on a pull-request head and a workflow script's run have no group, and nothing ruled builds their record.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Build all four reads\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-INTAKE-BUILDER": {
    "paths": [
@@ -1425,7 +1475,9 @@
    "null_control": "`roster_lib.carry_receivable` on a group at stage done reads false and `check_scopes.py --round` then refuses the builder: the control does fire on a closed group, it cannot tell a holding group from a builder.",
    "cost": "Roster operations only for the re-homing; the builds' cost is not estimated here.",
    "already_ruled": "Round-end triage P768 splits the group's instrument carries by seam and lists carries 173, 175, 177 and 178 as `Not instrument (the orchestrator's)`, 174 and 176 to P744. This card does not reopen P768; it reports that the non-instrument half, which holds the product terms' reads, has no builder ruled.",
-   "finder_critical": "yes in part: carries 175 and 177 are brief edits (D12's universe and cell ledger, the actuator-write draft, D0 and D15's oracle step, the censuses of D1, D2, D8, D11 and D15) and 174 and 176 hold the per-step denominator, all of which finders run from; the re-homing itself is roster work"
+   "finder_critical": "yes in part: carries 175 and 177 are brief edits (D12's universe and cell ledger, the actuator-write draft, D0 and D15's oracle step, the censuses of D1, D2, D8, D11 and D15) and 174 and 176 hold the per-step denominator, all of which finders run from; the re-homing itself is roster work",
+   "decision": "accepted",
+   "ruling": "tvofi: \"New L group, design first (Recommended)\" (one new group for the product reads, beside the finders; terms first read at round 11's close). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-P744-SCOPE": {
    "paths": [
@@ -1437,7 +1489,9 @@
    "null_control": "0018 itself: `an empty input prints unread, never a value`, the control carries 1 and 3 already ask of each enumerator.",
    "cost": "Not estimated here; it is the group's.",
    "already_ruled": "Round-end triage P744 (ACCEPT, BUILD, M) keeps the group, `narrowed by what is on main, widened by L1 and P7`. This scoring agrees with keeping it and asks only that the narrowing not drop the four reads.",
-   "finder_critical": "yes for two of the four reads: planted-defect recall writes defects into the baseline export the finders audit, and the two-finder overlap seats two finders on one universe, so both must exist before the finders run to be read for round 11; `closure_slip` and `unexamined` are read at the close and are not"
+   "finder_critical": "yes for two of the four reads: planted-defect recall writes defects into the baseline export the finders audit, and the two-finder overlap seats two finders on one universe, so both must exist before the finders run to be read for round 11; `closure_slip` and `unexamined` are read at the close and are not",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Wait for both (Recommended)\" (planted-defect recall and two-finder overlap gate the finders). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-N-NULL-REVIEWER": {
    "paths": [
@@ -1447,7 +1501,9 @@
    "term": "No term moves. It closes a way round the control 0018 section 5's last row calls live for a verdict: an evaluation approved by no named reviewer.",
    "null_control": "`python3 tools/audit/check_scopes.py --self-test` drives a complete record that passes; the new arm refuses the same record with `reviewer` null and nothing else changed.",
    "cost": "One condition and one self-test arm in a 926-line code-owned file; the check runs in under a second per round start.",
-   "finder_critical": "no: it changes no finder's work; it is a refusal at the round start, in the check `audit-find.js` runs before the baseline"
+   "finder_critical": "no: it changes no finder's work; it is a refusal at the round start, in the check `audit-find.js` runs before the baseline",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept both (Recommended)\" (cards E11-R-WORKFLOWS and E11-N-NULL-REVIEWER). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-product_green_floor": {
    "object": "dev/audit/config/objective.json",
@@ -1456,7 +1512,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (value 0.90; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-closure_slip_ceiling": {
    "object": "dev/audit/config/objective.json",
@@ -1465,7 +1523,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "deferred",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (this threshold is left unset; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-band_lead_time": {
    "object": "dev/audit/config/objective.json",
@@ -1474,7 +1534,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "deferred",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (this threshold is left unset; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-band_closure_slip": {
    "object": "dev/audit/config/objective.json",
@@ -1483,7 +1545,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "deferred",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (this threshold is left unset; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-band_tokens_per_change": {
    "object": "dev/audit/config/objective.json",
@@ -1492,7 +1556,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "deferred",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (this threshold is left unset; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-T-band_model_gap": {
    "object": "dev/audit/config/objective.json",
@@ -1501,7 +1567,9 @@
    "term": "No term moves. While it is unset every comparison or result that needs it is undecided, neither held nor missed (0018 section 2).",
    "null_control": "`check_scopes.py --round 11` refuses an unset threshold that no card carries and does not refuse one a card carries: the refusal moves with the card, no read does.",
    "cost": "One value in a code-owned file, by the owner's own pull-request review; an accepted card must name the commit that set it.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11 (a threshold is read when two rounds are compared, at the close)",
+   "decision": "deferred",
+   "ruling": "tvofi: \"Floor 0.90, rest unset (Recommended)\" (this threshold is left unset; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-K-D4": {
    "object": "dev/audit/config/objective.json",
@@ -1510,7 +1578,9 @@
    "term": "No term moves. D4's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D4's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D4's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
+   "decision": "accepted",
+   "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-K-D5": {
    "object": "dev/audit/config/objective.json",
@@ -1519,7 +1589,9 @@
    "term": "No term moves. D5's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D5's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D5's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
+   "decision": "accepted",
+   "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-K-D9": {
    "object": "dev/audit/config/objective.json",
@@ -1528,7 +1600,9 @@
    "term": "No term moves. D9's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D9's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D9's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
+   "decision": "accepted",
+   "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-K-D10": {
    "object": "dev/audit/config/objective.json",
@@ -1537,7 +1611,9 @@
    "term": "No term moves. D10's perfect result stays undecided, not perfect (0018 section 1), and its distance has no enumerator until the criterion is set.",
    "null_control": "`check_scopes.py --round 11` refuses a criterion that names a path not tracked at the ref, and an unset one with no card; `owner_criteria.D7`, already set to decision 0015, is refused by neither.",
    "cost": "One path in a code-owned file, and the criteria file itself if none exists.",
-   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D10's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them"
+   "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D10's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
+   "decision": "accepted",
+   "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-S-SEATS": {
    "object": "dev/audit/config/objective.json",
@@ -1545,7 +1621,9 @@
    "term": "No term moves; `check_scopes.py --round` does not read `seats`.",
    "null_control": "`python3 tools/audit/check_scopes.py --self-test` does not read the two fields; setting them changes no refusal.",
    "cost": "Two values in a code-owned file.",
-   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11"
+   "finder_critical": "no: it changes nothing a finder seat reads or runs in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Record Fable for both\" (evaluator and reviewer on claude-fable-5-2; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U1": {
    "paths": [
@@ -1558,7 +1636,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U2": {
    "paths": [
@@ -1571,7 +1651,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U4": {
    "paths": [
@@ -1584,7 +1666,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U5": {
    "paths": [
@@ -1597,7 +1681,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U6": {
    "paths": [
@@ -1610,7 +1696,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U7": {
    "paths": [
@@ -1623,7 +1711,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U8": {
    "paths": [
@@ -1636,7 +1726,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U9": {
    "paths": [
@@ -1649,7 +1741,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   },
   "E11-U10": {
    "paths": [
@@ -1662,7 +1756,9 @@
    "null_control": "The other 22 in-window rows of the hand ledger keep their owner; a report assigned to the nearest existing dimension instead would show as that dimension's `escapes` rising with no step named for it (0018 section 5's control for `unowned`).",
    "cost": "One new brief (two for the pair of dimensions), its three seats per round and a `scopes.json` universe; the brief's wording is the owner's. No figure for round 11 is given here.",
    "already_ruled": "tvofi, 2026-11-13 (roster group R10-DIMENSIONS-FULL-COVERAGE's brief): every dimension reports a denominator, two dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect). The briefs are owed as drafts `for the owner's wording`; carries 175 and 177 on R11-INTAKE-R10-RESIDUE name the actuator-write draft, and no open carry names the feature-behaviour draft (see card E11-COMMON). This card agrees with the ruling.",
-   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11"
+   "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
+   "decision": "accepted",
+   "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record."
   }
  }
 }
