@@ -341,8 +341,10 @@ done" ]
   [ -f "$t/g.txt.relay.rc" ]
   ck "a TERM to the loop's process group leaves the in-flight relay to write its rc" $?
   # S14-RELAY-CADENCE: a relay that ends during the sleep is followed by the next after HPO_TICK_RELAY_GAP s, no tick between.
+  # Wall-clock rows (about 10 s): the outer run alone, as the nesting block is, so the nested copies stay inside the step's bound.
+  if [ -z "$nested" ]; then
   rm -f "$t/order" "$t/gap.txt"*
-  out=$(HPO_TICK_RELAY_GAP=1 HPO_TICK_RELAY_WAIT=2 HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" timeout 6 bash "$0" --interval 60 --out "$t/gap.txt")
+  out=$(HPO_TICK_RELAY_GAP=1 HPO_TICK_RELAY_WAIT=2 HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" timeout 4 bash "$0" --interval 60 --out "$t/gap.txt")
   [ "$(sed -n 1,3p "$t/order")" = "relay pass --confirm
 tick 
 relay pass --confirm" ] && [ "$(grep -c '^tick' "$t/order")" = 1 ] && printf '%s\n' "$out" | grep -Eq '^TICK-RELAY [0-9T:-]+Z relay=ok started='
@@ -352,6 +354,7 @@ relay pass --confirm" ] && [ "$(grep -c '^tick' "$t/order")" = 1 ] && printf '%s
   [ "$(cat "$t/slow")" = start ] && [ "$(cat "$t/order")" = "tick " ]
   ck "null control: a relay still in flight at the gap starts none" $?
   k=0; while [ ! -f "$t/gap.txt.relay.rc" ] && [ $k -lt 80 ]; do sleep 0.1; k=$((k + 1)); done
+  fi
   # Stubbed and --once, so a mutant that accepts the interval cannot loop on the real tick.
   HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval x --out "$t/b.txt" > "$t/e" 2>&1
   [ $? = 2 ] && grep -q 'interval' "$t/e"
