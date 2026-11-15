@@ -1,0 +1,12 @@
+  ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+  ok   a pull request that is not open is a FAIL
+  ok   an unreadable pull request is a FAIL
+  ok   and a 404 on it is a FAIL after exactly 1 read (no retry masks a refusal)
+  FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+  FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+  FAIL null control: under a --mandate whose scope does not cover policy merging it still PARKs
+  FAIL null control: under an expired --mandate it still PARKs
+  FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
+    raise Stop("outside", f"#{pr} could not be read from the pulls API ({o.strip()[-120:] or 'no output'}); "
+merge_train.Stop: outside: #7 could not be read from the pulls API (no output); an unread head is never taken for ours
+rc=1
