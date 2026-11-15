@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient|stress
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -47,10 +47,31 @@ every gradient returned and over the shipped plan. Runs on a tree before
 the change too: there the two row counts are equal on every line, and the
 two digests are what the change must not move. Exits 1 when the null cell
 has a fixed variable or was handed fewer rows than the full batch.
+
+``stress``: what the second descent costs, by ``tests/stress.py``'s own
+measure (design verdict item r3). The sweep's scenarios that price a cycle
+(``sweep_combinations()``, ``cycling`` above zero; all hold hot water) are
+built by its ``build_case`` with a duty-switch pair on the config the case
+constructs, and each solve's CPU is divided by the trailing median of its
+reference solve, sampled beside it, as the sweep does. Arms: the
+contributor's pair as the tree solves it; the same with the second
+descent's guard reading no stop for the length of ``_relaxed_plans`` (one
+descent and one relaxed plan for the stage to commit; the solve's other
+readers of the stops run outside that call); and an
+empty pair in both forms, the null, which descends once either way. Per
+scenario and arm: the median ratio over ``STRESS_REPEATS`` solves (default
+3), descents per space solve, the calls of the multi-start, and the
+scenario's own recorded budget from ``tests/stress_budgets.json``. The last
+lines print the second descent's cost per scenario and the null's two forms
+against each other, the noise this box puts on such a difference. Runs on a
+tree without ``_relaxed_plans`` too: there each pair has the one arm. Exits
+1 when a null solve descends twice, the null's two forms ship different
+plans, or the pair's solve never descends twice on a tree that can.
 """
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -279,5 +300,94 @@ def gradient() -> int:
     return 1 if bad else 0
 
 
+def _stress_case(stress, spec: dict, pair, first_alone: bool) -> dict:
+    """One build of a sweep scenario with ``pair`` on its config: the solve's
+    CPU ms, descents per space solve, multi-start calls and the plan."""
+    kept_cfg, kept_min = stress.OptimizationConfig, om._multi_start_minimize
+    kept_plans, kept_stops = getattr(om, "_relaxed_plans", None), om._priced_stops
+    seen = {"descents": [], "multi_starts": 0}
+
+    def config(**kw):
+        cfg = kept_cfg(**kw)
+        cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, OFF
+        return cfg
+
+    def counted(*args, **kw):
+        seen["multi_starts"] += 1
+        return kept_min(*args, **kw)
+
+    def plans(*args):
+        if first_alone:
+            om._priced_stops = lambda opt: None
+        try:
+            out = kept_plans(*args)
+        finally:
+            om._priced_stops = kept_stops
+        seen["descents"].append(len(out[1]))
+        return out
+
+    stress.OptimizationConfig, om._multi_start_minimize = config, counted
+    if kept_plans is not None:
+        om._relaxed_plans = plans
+    try:
+        run = stress.build_case(**{k: v for k, v in spec.items() if k != "label"})
+    finally:
+        stress.OptimizationConfig, om._multi_start_minimize = kept_cfg, kept_min
+        if kept_plans is not None:
+            om._relaxed_plans = kept_plans
+    result = run["result"]
+    seen["cpu_ms"] = float(run["solve_cpu_ms"])
+    seen["plan"] = np.r_[result.power_schedule, result.dhw_power_schedule]
+    return seen
+
+
+def stress_cost() -> int:
+    import stress
+
+    repeats = int(os.environ.get("STRESS_REPEATS", "3"))
+    table = stress.load_budget_table()
+    specs = [spec for spec in stress.sweep_combinations() if spec.get("cycling")]
+    two = hasattr(om, "_relaxed_plans")
+    arms = [("pair", PAIR, False), ("null", (0.0, 0.0), False)]
+    if two:
+        arms[1:1] = [("pair, first descent alone", PAIR, True)]
+        arms.append(("null, guard off", (0.0, 0.0), True))
+    cal = stress.Calibration(stress.CALIBRATION_WINDOW)
+    cal.warm_up()
+    bad, cost, noise = 0, [], []
+    for spec in specs:
+        row = {}
+        for name, pair, first_alone in arms:
+            ratios = []
+            for _ in range(repeats):
+                cal.sample()
+                got = _stress_case(stress, spec, pair, first_alone)
+                ratios.append(got["cpu_ms"] / max(cal.unit_ms, 1e-6))
+            row[name] = (float(np.median(ratios)), sorted(set(got["descents"])), got["multi_starts"], got["plan"])
+        budget = stress.scenario_budget(spec["label"], table)
+        print(f"{spec['label']} (recorded budget {budget:.1f}x): " + "; ".join(
+            f"{name} {ratio:.1f}x, descents {descents or 'one per solve, no stage to count'},"
+            f" multi-starts {calls}" for name, (ratio, descents, calls, _plan) in row.items()))
+        if two:
+            cost.append(row["pair"][0] - row["pair, first descent alone"][0])
+            noise.append(row["null"][0] - row["null, guard off"][0])
+            bad += row["null"][1] != [1] or row["null, guard off"][1] != [1]
+            bad += not np.array_equal(row["null"][3], row["null, guard off"][3])
+            bad += 2 not in row["pair"][1] or row["pair, first descent alone"][1] != [1]
+    lo, mid, hi = cal.spread()
+    print(f"reference solve {mid:.1f} ms of CPU (min {lo:.1f}, max {hi:.1f}) over {cal.count} samples;"
+          f" {repeats} solve(s) per arm, the median ratio printed")
+    if two:
+        print("second descent, pair less its first descent alone, x reference per scenario: "
+              + ", ".join(f"{c:+.1f}" for c in cost) + f"; median {float(np.median(cost)):+.1f}")
+        print("null, as the tree less guard off (one descent in both), x reference per scenario: "
+              + ", ".join(f"{c:+.1f}" for c in noise) + f"; median {float(np.median(noise)):+.1f}")
+    else:
+        print("this tree has one descent per space solve: no second descent to cost")
+    print(f"scenarios whose null descended twice or moved, or whose pair never descended twice {bad}")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
-    sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "gradient": gradient}[sys.argv[1]]())
+    sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "gradient": gradient,
+              "stress": stress_cost}[sys.argv[1]]())
