@@ -1,0 +1,4 @@
+  FAIL selection: a realizable relaxed plan that ships changed scores strictly below itself in the scope it ships in, and its start count falls  [scores (8.932632504239377, 8.932632504239377), edges 5 to 5]
+  FAIL each relaxed plan is committed on its own and the lowest score ships: a second relaxed plan lowers the score where its runs are the better ones, in either order, and never raises it  [{'far': 37.5, 'far then near': 37.5, 'near then far': 1.499999999806491e-08}]
+  FAIL each candidate is scored in the scope of a solve started from it and held to that scope's bound, and the plan ships with the scope it was scored in  [[3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+3 of 45 FEATURES BLOCK FAILED

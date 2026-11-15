@@ -1,0 +1,2 @@
+  FAIL beside a hot-water charge, at a zero price on an install that prices no start, every candidate of the stage is the realizable relaxed plan itself; at a flat price the same plans get another  [{'zero price': 60, 'flat price': 60}]
+1 of 102 FEATURES BLOCK FAILED

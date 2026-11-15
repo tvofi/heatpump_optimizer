@@ -1,0 +1,27 @@
+09:57:52Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+09:59:16Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:00:40Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:02:04Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:03:29Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:04:53Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:06:18Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:07:42Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:09:07Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:10:31Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:11:55Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:13:20Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:14:44Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:16:08Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:17:32Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:18:56Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:20:20Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:21:44Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:23:08Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:24:33Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:25:57Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:27:21Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:28:45Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:30:10Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:31:34Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:32:58Z rc=3 WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none
+10:34:59Z final read before the push: WAIT 38c254f3fb6cf9e6d262dcec7ca1de30a474b752 pending: gate red: none

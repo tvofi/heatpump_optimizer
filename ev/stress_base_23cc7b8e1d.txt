@@ -1,0 +1,14 @@
+
+=== Stress and economics ===
+winter/cycle (recorded budget 182.2x): pair 18.2x, descents one per solve, no stage to count, multi-starts 1; null 20.0x, descents one per solve, no stage to count, multi-starts 1
+winter/pv+cycle (recorded budget 181.1x): pair 29.2x, descents one per solve, no stage to count, multi-starts 1; null 28.4x, descents one per solve, no stage to count, multi-starts 1
+winter/tariff+cycle (recorded budget 148.2x): pair 29.1x, descents one per solve, no stage to count, multi-starts 1; null 20.8x, descents one per solve, no stage to count, multi-starts 1
+winter/tariff+pv+cycle (recorded budget 159.0x): pair 23.3x, descents one per solve, no stage to count, multi-starts 1; null 19.9x, descents one per solve, no stage to count, multi-starts 1
+shoulder/cycle (recorded budget 198.1x): pair 44.0x, descents one per solve, no stage to count, multi-starts 1; null 28.6x, descents one per solve, no stage to count, multi-starts 1
+shoulder/pv+cycle (recorded budget 333.6x): pair 49.0x, descents one per solve, no stage to count, multi-starts 2; null 33.0x, descents one per solve, no stage to count, multi-starts 1
+shoulder/tariff+cycle (recorded budget 556.3x): pair 48.6x, descents one per solve, no stage to count, multi-starts 1; null 20.5x, descents one per solve, no stage to count, multi-starts 1
+shoulder/tariff+pv+cycle (recorded budget 505.0x): pair 69.0x, descents one per solve, no stage to count, multi-starts 1; null 42.5x, descents one per solve, no stage to count, multi-starts 1
+reference solve 134.3 ms of CPU (min 80.7, max 518.5) over 55 samples; 3 solve(s) per arm, the median ratio printed
+this tree has one descent per space solve: no second descent to cost
+scenarios whose null descended twice or moved, or whose pair never descended twice 0
+rc=0
