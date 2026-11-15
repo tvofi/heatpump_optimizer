@@ -208,7 +208,8 @@ def load(path: Path | None):
 
 def main(argv: list[str]) -> int:
     if argv[:1] == ["--self-test"]:
-        return self_test(Path(__file__), mutants="--no-mutants" not in argv)
+        tests = Path(argv[argv.index("--tests") + 1]) if "--tests" in argv else Path(__file__).resolve().parents[3] / "tests"
+        return self_test(Path(__file__), "--no-mutants" not in argv, tests)
     ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     ap.add_argument("cmd", choices=["plant", "recall"])
     ap.add_argument("--plants", required=True, type=Path)
@@ -248,10 +249,11 @@ def safe(fn, *a) -> list[str]:
         return [f"crash {type(e).__name__}"]
 
 
-def cases(m) -> dict[str, bool]:
-    import os
+def cases(m, tests: Path) -> dict[str, bool]:
     import subprocess
     import tempfile
+    sys.path.insert(0, str(tests))
+    from throwaway_git import throwaway_git_init
     r: dict[str, bool] = {}
     pop = m.population("layout\t2\tno_valve,slab_shunt\ntank_volume\tNO-READ\tcontinuous\nLEVELS: 2\n")
     r["population: levels read, a NO-READ axis gives none"] = pop == {"layout=no_valve", "layout=slab_shunt"}
@@ -286,13 +288,11 @@ def cases(m) -> dict[str, bool]:
         r["plant: a list inside the tree is refused"] = any("behind no wall" in b for b in ref(doc, where=t / "P.json"))
         r["plant: an empty list is refused"] = any("empty" in b for b in ref({**doc, "plants": []}))
         # git itself is the oracle for the work-tree domain: each tree below is asked of git first.
-        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-        g = lambda *a: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
-                                       *a], capture_output=True, text=True, env=env)
-        inside = lambda d: g("-C", str(d), "rev-parse", "--is-inside-work-tree").stdout.strip() == "true"
         repo, linked = Path(td) / "repo", Path(td) / "linked"
-        (repo / "cc").mkdir(parents=True)
-        g("init", "-q", str(repo))
+        env = throwaway_git_init(repo, "-q")
+        g = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True, env=env)
+        inside = lambda d: g("-C", str(d), "rev-parse", "--is-inside-work-tree").stdout.strip() == "true"
+        (repo / "cc").mkdir()
         (repo / "cc" / "a.py").write_text((t / "a.py").read_text())
         g("-C", str(repo), "add", "-A")
         g("-C", str(repo), "commit", "-q", "-m", "x")
@@ -397,7 +397,7 @@ MUTANTS = {
 }
 
 
-def self_test(path: Path, mutants: bool = True) -> int:
+def self_test(path: Path, mutants: bool, tests: Path) -> int:
     import importlib.util
     import subprocess
     import tempfile
@@ -405,7 +405,7 @@ def self_test(path: Path, mutants: bool = True) -> int:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     bad = []
-    for name, ok in cases(mod).items():
+    for name, ok in cases(mod, tests).items():
         print(("ok   " if ok else "FAIL ") + name)
         if not ok:
             bad.append(name)
@@ -419,7 +419,7 @@ def self_test(path: Path, mutants: bool = True) -> int:
             with tempfile.TemporaryDirectory() as td:
                 mp = Path(td) / path.name
                 mp.write_text(code.replace(old, new) + sep + tail)
-                p = subprocess.run([sys.executable, "-I", str(mp), "--self-test", "--no-mutants"],
+                p = subprocess.run([sys.executable, "-I", str(mp), "--self-test", "--no-mutants", "--tests", str(tests)],
                                    capture_output=True, text=True, timeout=120)
             killed = p.returncode != 0 and any(ln.startswith("FAIL") and case in ln for ln in p.stdout.splitlines())
             print(("ok   " if killed else "FAIL ") + f"mutant killed: {name} (by '{case}')")
