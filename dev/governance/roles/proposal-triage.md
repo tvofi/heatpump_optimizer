@@ -19,10 +19,10 @@ ACCEPT. Blocking no production merge: LOG, bar the exemption in
 
 **Machinery.** A planned machinery group, or a non-production CI lane or
 seat, stays only on a measured gain of at least 10% on them. Repair of such
-code (outside `custom_components/`) with roster `severity` `low` or `normal`
-meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
-root-cause countermeasure, closeout, owner directive skip them; unset is
-classified first, never assumed major.
+code (outside `custom_components/`) meets both (over 20% to add) at any
+roster `severity`; only a red required check on main or a blocked production
+pull request skips them (owner card P2), as do a root-cause
+countermeasure, closeout and an owner directive.
 
 **Verdicts:** ACCEPT names a destination (a next-round roster group and carry,
 or new group, brief); DEFER, what would change it or the owning group; REJECT,

@@ -83,26 +83,18 @@ or fixes a red, meaning the required `gate` job's on main (`tools/ci/gate.py`)
 or a self-test red its own pull request introduces, never one inherited from
 main; the rest waits for an instrument window the owner opens. Each round-11
 machinery group names its ground; the merge seat checks it at admission. Of the owner's open-PR cap (`DEFAULT_CAPS` in
-`tools/plan/replan.py`), 10 slots (the owner's count, not a tree value) are reserved for
-`custom_components/` pull requests; a machinery PR never takes one, nor a
+`tools/plan/replan.py`), `PRODUCTION_SLOTS` are production's
+(`pr_cap.py dispatch-gate --machinery`); a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
-is accepted only when its friction blocks a production merge, else ruled LOG
-(`proposal-triage.md`, once per round at round end). Exempt from all three: a proposal proving over 20% on
+is accepted only when its friction blocks a production merge, else ruled LOG.
+Exempt from all three: a proposal proving over 20% on
 CI time, programme completion time, right-first-time rate or token usage,
 against a measured baseline and a null control
 (`dev/governance/rules/ratchet-budgets.md`).
 
 **Round 11's opening plan carries:**
 
-- An owner decision on moving the repository to an organization so the native
-  merge queue replaces the train (a merge-queue ruleset returns HTTP 422 on a
-  user-owned repository; round 10's D13 probe). Weigh plan, visibility, the
-  HACS redirect, App installations, deploy key, ruleset ids and owner-keyed
-  instruments; after a transfer re-probe queue latency, `merge_group` gate
-  names and CI minutes; adopt or decline, and close the held groups the queue
-  makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
-  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)).
-  Context: the Lean flow pre-study, section K9 (out of the tree).
+- The organization transfer is ruled out (tvofi, 2026-11-14; `dev/programme/HANDOVER.md`).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
   `dev/audit/rounds/round10/protection-census/`. On it, B1 (triage batch 245,
   P740) opens the round unless ordered into round 10: on an all-product diff
@@ -164,7 +156,10 @@ Before phase 1, the pickup; each later step is its owner's rule.
    `python3 -c "import sys,glob,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in F+('refused',)]"`
 2. Evaluation before the baseline: decision 0018, R11-PRE-OBJECTIVE-FUNCTION, `check_scopes.py`.
 3. Denominator, unreached remainder, added dimensions, D11, D13: R10-DIMENSIONS-FULL-COVERAGE part 2, carried on R11-INTAKE-R10-RESIDUE.
-4. Scope: an owner-filed or outside-filed item folds into the ongoing round
+4. Proposals: the prior round's proposals file and prototypes, in
+   `$HPO_STATE_DIR/r<N-1>/` (`orchestrator.md`, the instrument freeze), ruled by
+   its round-end batch in `dev/programme/triage/`; ACCEPTs are built before finders.
+5. Scope: an owner-filed or outside-filed item folds into the ongoing round
    unless its filer explicitly defers it; silence is not one. Record who, when
    and their words in the group's note (`roster_edit.py set-resume --field note`).
 
