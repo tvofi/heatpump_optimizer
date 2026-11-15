@@ -1987,7 +1987,7 @@
         "name": "Heizkurven-Parallelverschiebung"
       },
       "ecl110_effective_displace": {
-        "name": "Effektive Heizkurven-Parallelverschiebung"
+        "name": "Heizkurven-Parallelverschiebung effektiv"
       },
       "floor_heating_return_temperature": {
         "name": "Rücklauftemperatur Fußbodenheizung"
