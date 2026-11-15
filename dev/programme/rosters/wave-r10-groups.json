@@ -26966,9 +26966,7 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [
-    "R10-CATALOG-PR"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/sweep_gantt.py",
