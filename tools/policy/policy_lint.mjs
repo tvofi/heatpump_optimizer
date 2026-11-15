@@ -276,6 +276,11 @@ const POLICY_GLOBS = [
   // is the whole escape `checkOrphanCaps` now refuses, and the fix for THIS
   // file is to measure it rather than to drop its cap.
   /^\.github\/PULL_REQUEST_TEMPLATE\.md$/,
+  // The owner's standing rulings, read in full after every compaction with
+  // CLAUDE.md and the orchestrator's contract (liveness.py). Measured and capped
+  // by the owner's decision of 2026-11-15 ("Count it, raise the cap"), given
+  // under mandate 6893738184's decision-card route.
+  /^dev\/programme\/RULINGS\.md$/,
 ]
 
 // Always loaded by a tool, so their size is charged to every session.

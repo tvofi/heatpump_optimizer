@@ -195,6 +195,8 @@ the closing list, naming its successor. Read in full after every compaction
   After a compaction `CLAUDE.md`, the orchestrator's contract, this file and
   every `.claude/rules/` file are read in full; of the instrument pages only
   those changed since the last proof.
+- 2026-11-15, by decision card: "Count it, raise the cap (Recommended)". This
+  file is measured and capped with the policy corpus (`policy_lint.mjs`).
 - 2026-11-14: "remerge_main.sh definitely needs to be scoped down aggressively"
   (main merges into a head only on a real conflict); "Day 1 plus shadow" (the
   shadow runs beside round 11 as a measurement; the switch to an integration
