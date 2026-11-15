@@ -25900,7 +25900,8 @@
     "From r10-closure-record-2, body item 1cb52cd3: `tools/audit/seat/prune_refs.py` `tip_ages` reads 500 tips per `git log --no-walk=unsorted`, which exits 128 and prints nothing when any one sha is missing from the checkout (reproduced: `git log --no-walk=unsorted --format='%H %ct' <good> 1111111111111111111111111111111111111111 <good>` prints only `fatal: bad object`), so one unfetched tip leaves its whole batch unread and `classify` keeps every ref in it as `keep-young-tip`; a dry closeout pass of this record read `keep-young-tip=698` against 207 one pass earlier, which hides bare citations from `step in-main`. Cure used here: fetch every head before each dry pass. The fix reads ages per sha or drops the missing shas before the batch call, with a self-test arm holding one missing sha. Carry: R11-INTAKE-R10-RESIDUE (items 1cb52cd3)",
     "Steps 3 waits on R10-DIMENSIONS-FULL-COVERAGE part 2: when its denominator rule, remainder dispatch and the two dimension briefs land, replace the group citation with their paths. Carry: R11-INTAKE-R10-RESIDUE",
     "The brief asks that the round start be refused by an instrument while any pickup line is undispositioned. None exists: `audit-find.js`'s baseline step runs `check_scopes.py --round` (evaluation only, #3575). Building the refusal (an exit-1 check over the two enumerators run from `check_scopes.py` or the pickup) is a tooling change outside this one-file prose group. Carry: R11-INTAKE-R10-RESIDUE",
-    "brief-citations: unclear: a group id cited in the playbook (R11-PRE-OBJECTIVE-FUNCTION) is resolved by nothing, so a rename of the group strands the pointer unseen. Carry: R11-INTAKE-R10-RESIDUE"
+    "brief-citations: unclear: a group id cited in the playbook (R11-PRE-OBJECTIVE-FUNCTION) is resolved by nothing, so a rename of the group strands the pointer unseen. Carry: R11-INTAKE-R10-RESIDUE",
+    "A features check pinning a digest of `_compute_baseline_power` for fixed installs, including `replay_install` with its manual valve, recorded beside the literal `REFERENCE_BASIS`, so that a diff changing the booked reference fails until it re-records and faces the bump. First measure whether the digest reproduces across CI's BLAS builds (`tests/features.py`, the reference-basis block). Carry: R11-INTAKE-R10-RESIDUE"
    ],
    "resume": {
     "stage": "not-started",
@@ -27781,9 +27782,9 @@
    "brief": "HOTFIX, 2026-11-14, production, gates the v10.0.0 stamp: pull request 3587 (merge 931970141c) changed the savings reference the ledger books on a two-zone house behind a manual valve (measured: first-step reference power up 1.12 to 1.15 percent at +5, 0, -5 and -15 C without sun; unchanged with 300 W/m2 sun; three control houses bit-identical), and the basis stamp was not bumped although custom_components/heatpump_optimizer/ledger.py says to bump it when the booked reference changes and docs/dashboard-card.md promises that a month booked against an older baseline stops stating a saving. v7.1.17 shipped basis 2, so a month first booked on v7.1.17 would mix two references. Repair: bump the basis by one with its comment extended, move the tests/features.py basis pins and add a check that a stored stamp of the previous value reads as old basis, re-pin the stale mutation pin, and give the release notes their line. Evidence: the read-only verification of 2026-11-14 (its probe ran the baseline power function at both sides of the merge).",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-reference-basis",
-    "commit": null,
+    "commit": "57fa260451b40118b6bc9b4253bb5016f8d2395c",
     "pr": 3599,
     "last_step": "dispatched 2026-11-14",
     "next_step": "handoff, open PR, review, land before the stamp",
