@@ -1,0 +1,14 @@
+diff --git a/tests/layout.json b/tests/layout.json
+index f010712450..497917b883 100644
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@ -89,7 +89,8 @@
+     "dev/audit/rounds/**",
+     "dev/audit/rca/**",
+     "dev/audit/harnesses/**",
+-    "dev/audit/waves/**"
++    "dev/audit/waves/**",
++    "dev/audit/yardstick/**"
+    ]
+   },
+   {

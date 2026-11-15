@@ -1,0 +1,5 @@
+163:+  "tokens_per_change": {
+164:+   "no_read": "no token ledger: every seat class is unledgered, and one unledgered class makes the term NO-READ",
+166:+   "builder": "R11-PRE-TOKEN-LEDGER"
+248:+R10-MIN-POWER-FLOOR	3308	in	outside	2026-11-07T15:26:35Z	D2	Outside report, issue 3289 (rasenschachmatt, 2026-11-07): on a non-modulating heat pump configured with Heat pump min power 2.5 kW and max 3.5 kW, sensor.heat_pump_optimizer_plan_space_heating shows slots with avg_power_kw 0.4 and 0.54
+260:+R10-OUTSIDE-DIAG-REDACT-LOCATION	3447	in	outside	2026-11-11T05:33:00Z	D10	The defect as the author states it: the diagnostics download in custom_components/heatpump_optimizer/diagnostics.py rounded latitude and longitude to one decimal and did not cover the solar-location option at all, so part

@@ -1,0 +1,69 @@
+ref=5c5baf068addb03202c6d951c9192a5b642f664e seats=59
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22943loc, s2:3f/22943loc, s3:3f/22943loc]
+ok D1 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
+ok D2 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
+ok D3 mode=cells seats=3 universe=163 [s1:12f/31615loc, s2:18f/15976loc, s3:133f/42906loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20858loc, s2:15f/20858loc, s3:15f/20858loc]
+ok D5 mode=cells seats=10 universe=868 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37194loc/2856u, s4:48f/53303loc/3302u, s5:71f/0loc/3453u, s6:253f/0loc/3615u, s7:3f/0loc/3925u, s8:44f/0loc/3621u, s9:69f/0loc/3746u, s10:320f/0loc/1760u]
+ok D6 mode=files seats=7 universe=351 [s1:13f/0loc/3906u, s2:106f/0loc/4064u, s3:93f/74071loc/3309u, s4:2f/16426loc/3895u, s5:134f/0loc/3184u, s6:1f/0loc/2282u, s7:2f/0loc/2668u]
+ok D7 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4741loc, s2:6f/4741loc, s3:6f/4741loc]
+ok D9 mode=cells seats=3 universe=93 [s1:93f/90497loc, s2:93f/90497loc, s3:93f/90497loc]
+ok D10 mode=cells seats=3 universe=111 [s1:111f/90497loc, s2:111f/90497loc, s3:111f/90497loc]
+ok D11 mode=cells seats=3 universe=1356 [s1:1356f/0loc, s2:1356f/0loc, s3:1356f/0loc]
+ok D12 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok coverage tracked=11265 in_universe=1603 excluded=9662 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 48 gap(s)
+   dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D0 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D1 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D10 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D11 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D12 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D14 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D15 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D2 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D3 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D4 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D5 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D6 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D7 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D8 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D9 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-GATE-REDS carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-INJECTED carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-GATE-CAUSE carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INSTRUMENT-YIELD carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INTAKE-BUILDER carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-NULL-REVIEWER carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-OBJECTIVE-RECORD carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-ROLE-CLAUSE carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-RULE-YIELD carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-R-WORKFLOWS carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-S-SEATS carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-SCORECARD carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_closure_slip carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_lead_time carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_model_gap carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_tokens_per_change carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-closure_slip_ceiling carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 carries no owner decision
+rc=1

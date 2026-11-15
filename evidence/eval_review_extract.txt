@@ -1,0 +1,23 @@
+KEY verdict
+KEY sha
+KEY round
+KEY scope
+KEY second_review
+KEY notes
+0 {"id": "S1", "state": "resolved", "measured": "`escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, CAUSES 4, R10-HOTFIX-SAV-ESTIMATE<-#2411,2887; `terms.injected.by_hand` reads 4 causes, 3 named by a root-cause record, 2.47 per 100 over 162; card E11-INJECTED names the tracked record and reads 28 of 31 rows with no cause, which the ledger gives."}
+
+1 {"id": "S2", "state": "resolved", "measured": "no card names a directory. E11-U1 names dev/governance/dimensions/D17.md and E11-U2, U4 to U10 name D16.md; neither file exists yet and each `paths_note` says the name rests on the coordinator's word and must follow the file that lands. E11-N-GATE-CAUSE names tools/ci/gate.py (tracked). E11-N-INSTRUMENT-YIELD carries an empty `paths` with the reason."}
+
+2 {"id": "M1", "state": "resolved", "measured": "the four criterion cards read `no as the card stands` with the grep, and their proposal has the brief cite the criteria file; by the record 27 cards begin `yes` and 21 `no`."}
+
+3 {"id": "M2", "state": "resolved", "measured": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with card E11-U10 arguing D0 and D12 out; R10-SAV-ACTUATION is its own `day0` row; 31 in, 8 day0, 1 unreleased, 36 out, 76 candidates rowed."}
+
+4 {"id": "M3", "state": "resolved", "measured": "the ledger's header says which groups the rule does not select and why R10-FLY-REPLAY-MASK is in."}
+
+5 {"id": "M4", "state": "resolved", "measured": "R10-SETPOINT-BOOST's second cause is an input of card E11-D2 and named in E11-U9 and the ledger row."}
+
+6 {"id": "M5", "state": "resolved", "measured": "`first_pass.round_9` reads a first read, the baseline, no move."}
+
+7 {"id": "commit", "state": "clean", "measured": "one commit on 7891b714f8cd, three files (escapes.py, escapes_hand.tsv, the record); `ref_privacy.py guard --ref eval/r11 --commits 02a48db212e0e49af62863575cba86bc339d4958 --over 7891b714f8cd02bf9eb472a3ae74a32560843cd2` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run; tally 198 objects, 173 keep, 23 change, 2 remove, 48 cards; no object verdict moved, four evidence strings did (fixer.md, fix-review.md, root-cause.md, defect-root-cause.md)."}
+
+{"of": "7891b714f8cd02bf9eb472a3ae74a32560843cd2", "review": "Evaluation review: revise 7891b714f8cd02bf9eb472a3ae74a32560843cd2 (round 2, delta only); this revision is bounded to its findings", "changes": {"S1": "escapes_hand.tsv: R10-HOTFIX-SAV-ESTIMATE's `cause_pr` is `2411,2887`, from the tracked dev/audit/rca/R10-RCA-SAV-ESTIMATE.md; escapes.py prints CAUSES. terms.injected (no_read, by_hand: 4 causes, 3 named by a root-cause record, 2.47 per 100); card E11-INJECTED (proposal, term, null_control); objects fixer.md and fix-review.md (evidence: 4 cause pull requests).", "S2": "`paths` are exact files: E11-U1 names dev/governance/dimensions/D17.md, E11-U2 and U4 to U10 name D16.md, E11-N-GATE-CAUSE names tools/ci/gate.py; E11-N-INSTRUMENT-YIELD carries an empty `paths` and says why none can be named. Each carries `paths_note`.", "M1": "the four criterion cards: `finder_critical` reads no as the card stands, with the measure, the condition that makes it yes and the preliminary ruling as relayed; `proposal` gains the brief citing the file. Counts: 27 yes, 21 no.", "M2": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with new card E11-U10; R10-SAV-ACTUATION is rowed `day0` as its own write-timing defect (no verdict moves). terms.escapes.by_hand (31), terms.unowned (9), terms.generality.lead.", "M3": "escapes_hand.tsv gains a header line on what the rule does not select and why R10-FLY-REPLAY-MASK is in.", "M4": "R10-SETPOINT-BOOST's second cause (the draw range on censored samples) is in card E11-D2's inputs and named in E11-U9 and the ledger row.", "M5": "terms.first_pass.round_9 and fixer.md's evidence reworded: a first read, the baseline, no move."}}
