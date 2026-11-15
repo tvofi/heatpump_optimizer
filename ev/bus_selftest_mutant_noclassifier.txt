@@ -1,0 +1,2 @@
+  FAIL ... and bus.sh confirm signs and posts it as any reviewer's proposal
+bus self-test: 237 checks, 1 failed
