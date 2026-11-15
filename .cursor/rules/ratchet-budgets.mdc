@@ -96,7 +96,7 @@ move costs neither). Each cap takes its band as above; the window is frozen.
 **A target, not a record** (tvofi, 2026-11-13, card P2):
 `machinery_target_budgets.json` lowers `nonproduction_merges` by `step` every
 `every_merges` merges past its `anchor` (the rule: the program's THE TARGET;
-the enumerator: `--measure`'s `target` and `merges_past_anchor`). It refuses a
+the enumerator: `--measure`, its target and merges past the anchor). It refuses a
 non-production pull request past it, never a production one or main's push. At
 a round start the orchestrator records the cap down to `--measure` and asks
 the owner for the round's anchor and step: a later anchor or a slower decline
