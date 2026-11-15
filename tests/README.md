@@ -209,6 +209,18 @@ recording (a new selectable script the lanes never ran):
 A change to `tests/closures.json` runs the scripts whose entry differs from
 the merge base's, and those that read the table.
 
+## A self-test stub is host-independent
+
+A shell self-test that puts a stub of a host program (`wc`, `python3`) first on
+`PATH` asserts on what the stub prints, so the stub's output may not depend on the
+host's own formatting: BSD `wc` (macOS) already pads its count to width 8, and a
+stub that prefixed padding to the host's output doubled it there and not on Linux
+CI (`R10-RCA-PREPR-DARWIN-SELFTEST`). A stub normalises the host's output first
+(`| tr -d ' '`) and then shapes it. A stub that calls the host program by absolute
+path is out of reach of a `PATH`-level emulation of another host (bind-mount it
+over `/usr/bin/wc` to emulate BSD). `tools/audit/seat/shell_hazard.py`'s `wc-stub`
+and `wc-compare` rules refuse the two shapes on added lines (`prepr.sh` step 3f8).
+
 ## The Home Assistant stub
 
 `tests/hastub/` is a minimal stand-in for the parts of `homeassistant` the

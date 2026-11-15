@@ -5784,5 +5784,42 @@
       "barriered_any": false,
       "class_rca_on_record": true
     }
+  },
+  "N-host-platform-unrun": {
+    "kind": "instrument",
+    "mechanism": "A shell self-test asserts on output of a host program that differs between the operator's macOS seat and every Linux host that runs it before merge (BSD wc pads its count; the seat's python3 is a shim resolved under HOME), so it is green on Linux CI and red only on the macOS seat, at the opener, the dearest point: three prepr.sh --self-test failures in round 10",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 R10-HOTFIX-PREPR-SELFTEST-DARWIN (seat python3 shim)",
+      "R10 #3455 (raw wc string compare)",
+      "R10 R10-HOTFIX-PREPR-WC-PAD (padding stub over a padded host wc)"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "python3 tools/audit/seat/shell_hazard.py --check, demonstrated red at 003f89cf9c^..003f89cf9c (wc-compare) and 1386441425^..1386441425 (wc-stub) and green at 1386441425..c8780ea33d's repaired stub line",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/shell_hazard.py, run over the lines a branch adds to tools/**/*.sh by tools/pr/prepr.sh step 3f8; the paid macOS CI lane was refused (triage r10-round-end P761)",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "no check is wrong or skipped: the process ran on a host whose userland differs from the one the self-test is graded on",
+    "aliases": [
+      "a macOS-only prepr self-test failure"
+    ],
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-PREPR-DARWIN-SELFTEST"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
   }
 }
