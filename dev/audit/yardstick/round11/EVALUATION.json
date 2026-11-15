@@ -2,8 +2,72 @@
  "round": 11,
  "reads": "dev/audit/yardstick/round10/OBJECTIVE.json",
  "evaluator": "r11-evaluator (Fable 5.2)",
- "reviewer": null,
- "review": null,
+ "reviewer": "r11-evaluation-reviewer (Fable 5.2)",
+ "review": {
+  "verdict": "approve",
+  "sha": "02a48db212e0e49af62863575cba86bc339d4958",
+  "round": 3,
+  "scope": "Delta only: `git diff 7891b714f8cd02bf9eb472a3ae74a32560843cd2 02a48db212e0e49af62863575cba86bc339d4958` and whether each finding of the second review (on the ref eval-review/r11-2) is resolved. No full re-review was made.",
+  "second_review": [
+   {
+    "id": "S1",
+    "state": "resolved",
+    "measured": "`escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, CAUSES 4, R10-HOTFIX-SAV-ESTIMATE<-#2411,2887; `terms.injected.by_hand` reads 4 causes, 3 named by a root-cause record, 2.47 per 100 over 162; card E11-INJECTED names the tracked record and reads 28 of 31 rows with no cause, which the ledger gives."
+   },
+   {
+    "id": "S2",
+    "state": "resolved",
+    "measured": "no card names a directory. E11-U1 names dev/governance/dimensions/D17.md and E11-U2, U4 to U10 name D16.md; neither file exists yet and each `paths_note` says the name rests on the coordinator's word and must follow the file that lands. E11-N-GATE-CAUSE names tools/ci/gate.py (tracked). E11-N-INSTRUMENT-YIELD carries an empty `paths` with the reason."
+   },
+   {
+    "id": "M1",
+    "state": "resolved",
+    "measured": "the four criterion cards read `no as the card stands` with the grep, and their proposal has the brief cite the criteria file; by the record 27 cards begin `yes` and 21 `no`."
+   },
+   {
+    "id": "M2",
+    "state": "resolved",
+    "measured": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with card E11-U10 arguing D0 and D12 out; R10-SAV-ACTUATION is its own `day0` row; 31 in, 8 day0, 1 unreleased, 36 out, 76 candidates rowed."
+   },
+   {
+    "id": "M3",
+    "state": "resolved",
+    "measured": "the ledger's header says which groups the rule does not select and why R10-FLY-REPLAY-MASK is in."
+   },
+   {
+    "id": "M4",
+    "state": "resolved",
+    "measured": "R10-SETPOINT-BOOST's second cause is an input of card E11-D2 and named in E11-U9 and the ledger row."
+   },
+   {
+    "id": "M5",
+    "state": "resolved",
+    "measured": "`first_pass.round_9` reads a first read, the baseline, no move."
+   },
+   {
+    "id": "commit",
+    "state": "clean",
+    "measured": "one commit on 7891b714f8cd, three files (escapes.py, escapes_hand.tsv, the record); `ref_privacy.py guard --ref eval/r11 --commits 02a48db212e0e49af62863575cba86bc339d4958 --over 7891b714f8cd02bf9eb472a3ae74a32560843cd2` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run; tally 198 objects, 173 keep, 23 change, 2 remove, 48 cards; no object verdict moved, four evidence strings did (fixer.md, fix-review.md, root-cause.md, defect-root-cause.md)."
+   }
+  ],
+  "notes": [
+   {
+    "id": "P1",
+    "touches": "record only, no card's ruling",
+    "note": "E11-N-INSTRUMENT-YIELD has an empty `paths`. If it is accepted, `check_scopes.py` line 380 prints `accepted and names no object or paths` until the file its build adds is written there; the card says so. Deferred or rejected it prints nothing."
+   },
+   {
+    "id": "P2",
+    "touches": "record only, no card's ruling",
+    "note": "The names D16.md and D17.md are the coordinator's word, on no roster this seat read. If the briefs land under other names the nine unowned cards' `paths` must follow before any is recorded merged, as each `paths_note` says."
+   },
+   {
+    "id": "P3",
+    "touches": "record only, no card's ruling",
+    "note": "The four criterion cards quote a preliminary ruling of tvofi as the coordinator relayed it, inside `finder_critical`. It is no `ruling` field and this seat did not verify it; the orchestrator writes the ruling where tvofi gave it."
+   }
+  ]
+ },
  "graded": {
   "sha": "a39627da59acbfdcd576e87349167603e9dec734",
   "window": "2026-10-14T13:27:06Z..2026-11-15T05:22:47Z",
