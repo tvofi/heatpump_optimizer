@@ -62,18 +62,25 @@ divergence"). Re-read on change after every compaction
 
 - 2026-11-15: "For any decisions, if i don't answer within 5 minutes, go with
   what you recommend and log it".
+- 2026-11-15: "Dont default to bring me cards when I have not been active the
+  last hour. When I am active, try the 5 minute wait first. Not cards that pause
+  your turn".
 - 2026-11-13: "Describe all the audits findings and han anything to me as
-  decision cards before applying"; "Normal decision cards please". 2026-11-15:
-  "I want Normal decision cards as before"; when the card widget does not render
-  (Remote Control), send the cards through the question tool, never as chat text
-  (as recorded).
+  decision cards before applying", for audit findings he asks to see (narrowed
+  by the 2026-11-15 card rule above).
 - 2026-11-07: "Remember to not act on anything before I have decided on the
   verified findings though" (verified is not decided).
 - 2026-11-12: "It has already been decided that that should be dropped." Read a
   group's roster stage and note before asking; a settled ruling is not re-asked.
 - 2026-10-21 (as recorded): seat questions are decided by the orchestrator under
-  the mandate, never surfaced to him in a seat's final text; architectural calls
-  take a suitable reviewer's recommendation first.
+  the mandate, never surfaced to him in a seat's final text.
+- 2026-11-15: "Send judgement-heavy rulings to a seat for a recommendation first
+  (an Opus reviewer, or Fable when it is truly architectural), then decide. The
+  contract already asks for this on architectural calls." (the orchestrator's
+  proposal, accepted in these words; `orchestrator.md` section 5's architect
+  note covers concurrent fixes only, so the whole rule stays here).
+- 2026-11-15: "Raise effort for a single turn when a ruling warrants it, not for
+  the session.".
 - 2026-10-29: "there is never a scenario where I would not want to" (fix every
   slip found; never ask).
 - 2026-11-12: "Stop replying to no-op notifications to be a bit more token
@@ -389,6 +396,13 @@ divergence"). Re-read on change after every compaction
 - "Have the triage seat as fable when triaging new product features"
   (2026-11-11): superseded by "product-feature triage can run on opus"
   (2026-11-15).
+- Decision cards as the default ("Normal decision cards please", 2026-11-13; "I
+  want Normal decision cards as before" and cards through the question tool on
+  Remote Control, 2026-11-15): superseded by "Dont default to bring me cards
+  when I have not been active the last hour" (2026-11-15).
+- "architectural calls take a suitable reviewer's recommendation first"
+  (2026-10-21): merged into "Send judgement-heavy rulings to a seat for a
+  recommendation first" (2026-11-15).
 - Mandate 6715477401: superseded by 6893738184 (2026-11-15).
 - R3's reading of this file in full (2026-11-13) and the card answer "Count it,
   raise the cap (Recommended)" (2026-11-15): superseded by "excluded by the
