@@ -73,7 +73,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
   # R11-HOTFIX-FIGURE-BLOCK-BASE: the refresh takes the open pull request's recorded base.sha. A commit no branch
   # holds stands for a base other than origin/main's tip (precondition asserted); the null control records equal bases.
-  MAINTIP=$(git -C "$W/repo" rev-parse origin/main); OLDBASE=$(git -C "$W/repo" commit-tree "$MAINTIP^{tree}" -m oldbase)
+  MAINTIP=$(git -C "$W/repo" rev-parse origin/main); OLDBASE=$(cd "$W/repo" && throwaway_git_env && git commit-tree "$MAINTIP^{tree}" -m oldbase)
   st "$([ "$OLDBASE" != "$MAINTIP" ] && echo differ || echo same)" differ "precondition: the stub's recorded base is not origin/main's tip"
   figbase() { drop; run "${1:-t}"; rc=$?; tail -n 1 "$W/flags/figbase" 2>/dev/null || echo none; }
   printf '%s\n' "$OLDBASE" > "$W/pullbase"; echo 5 > "$W/prn"
