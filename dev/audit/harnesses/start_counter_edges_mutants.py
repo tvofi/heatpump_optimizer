@@ -54,6 +54,7 @@ M = [
  ("hear-bypasses-hold", "coordinator.py", "            self._start_counter.hear(*edge)), lambda read:", "            self._start_counter.fold(*edge)), lambda read:"),
  ("refresh-tick-not-subscribed", "coordinator.py", "            self._start_counter.hear(*edge)), lambda read: self._book_starts(self._start_counter.refresh(read)))", "            self._start_counter.hear(*edge)))"),
  ("refresh-ticks-not-called", "running_signal.py", "    for tick in list(sig.ticks):\n        tick(read)\n", ""),
+ ("tick-before-note", "running_signal.py", "    note(sig, when)\n    read = running_now(sig) is True\n", "    read = running_now(sig) is True\n    note(sig, when)\n"),
  ("refresh-reads-unsettled", "running_signal.py", "    read = running_now(sig) is True\n", "    read = True\n"),
  ("refresh-only-note", "coordinator.py", "        running_signal.refresh(running_signal.signal_for(self), dt_util.now())\n", "        running_signal.note(running_signal.signal_for(self), dt_util.now())\n"),
  ("detach-clears-ticks", "running_signal.py", "    sig.ticks.clear()\n", ""),
