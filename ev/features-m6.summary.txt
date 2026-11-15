@@ -1,0 +1,5 @@
+ALL 137 DST / QUARTER-GRID CHECKS PASSED
+  FAIL a month's first savings booking stamps the reference in force, once  [({'sum': 6.0, 'count': 1}, {'month': '2026-02', 'baseline_sek': 2.0, 'actual_sek': 2.0, 'savings_sek': 0.0, 'savings_pct': 0.0, 'old_basis': False, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 0.5, 'calibration_basis': 'meter', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0})]
+  FAIL a month stamped 3, the reference in force, keeps stating its saving as it books on  [({'month': '2026-02', 'baseline_sek': 3.0, 'actual_sek': 3.0, 'savings_sek': None, 'savings_pct': None, 'old_basis': True, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 0.5, 'calibration_basis': 'meter', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0}, {'sum': 3.0, 'count': 1})]
+2 of 5652 FEATURE CHECKS FAILED
+rc=1
