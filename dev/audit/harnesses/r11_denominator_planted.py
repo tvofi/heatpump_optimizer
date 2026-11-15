@@ -13,6 +13,9 @@ Baseline: the head of the pull request that lands the denominator; the driver ha
 """
 import argparse, json, os, re, subprocess, sys, tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tests"))
+from throwaway_git import throwaway_git_init  # noqa: E402
+
 BARE = {"step": "D1.M1", "evidence": "read every file of the step"}
 FULL = {"step": "D2.M1", "enumerator": "git ls-files custom_components | head -3", "universe": 3, "examined": 3,
         "not_reached": [], "redispatched": [], "evidence": "read every file of the step"}
@@ -42,9 +45,9 @@ def reader(root, sha):
         rep = {"reports": {"D1-s1": {"dimension": "D1", "coverage": [BARE]}, "D2-s1": {"dimension": "D2", "coverage": [FULL]}}}
         json.dump(rep, open(os.path.join(repo, "dev/audit/rounds/round99/reports-B1.json"), "w"))
         json.dump({"groups": []}, open(os.path.join(repo, "roster.json"), "w"))
-        g = ["git", "-C", repo, "-c", "user.name=h", "-c", "user.email=h@h"]
-        for c in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "planted"]):
-            subprocess.run(g + c, check=True)
+        env = throwaway_git_init(repo, "-q")
+        for c in (["add", "-A"], ["commit", "-qm", "planted"]):
+            subprocess.run(["git", *c], cwd=repo, env=env, check=True)
         out = subprocess.run([sys.executable, "-I", script, "--repo", repo, "--ref", "HEAD", "--round", "99", "--roster", "HEAD:roster.json"],
                              capture_output=True, text=True, check=True).stdout
     tot = re.search(r"ROWS (\d+) WITH_EXAMINED_UNIVERSE (\d+)", out)
