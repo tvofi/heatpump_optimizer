@@ -280,6 +280,10 @@ def cases(m, tests: Path) -> dict[str, bool]:
             any("no population level" in b for b in ref({**doc, "plants": [P[0], {**P[1], "cell": "layout=moon"}]}))
         r["plant: an old text not in the file once is refused"] = \
             any("not once" in b for b in ref({**doc, "plants": [{**P[0], "old": "y > 2"}, P[1]]}))
+        r["plant: a plant whose file is not in the tree is refused"] = \
+            any("0 times, not once" in b for b in ref({**doc, "plants": [{**P[0], "file": "nowhere.py"}, P[1]]}))
+        r["plant: a plant in neither space is refused"] = \
+            any("neither natural nor config" in b for b in ref({**doc, "plants": P + [{**P[0], "id": "P09", "space": "moon"}]}))
         (t / "c.py").write_text("x < 1\nx < 1\n")
         r["plant: an old text twice in the file is refused"] = \
             any("2 times, not once" in b for b in ref({**doc, "plants": [{**P[0], "file": "c.py"}, P[1]]}))
@@ -347,6 +351,9 @@ def cases(m, tests: Path) -> dict[str, bool]:
                                          {"id": "D9-s1-02", "verdict": "refuted"}]})
     r["recall: a merged finding takes its canonical verdict, either spelling"] = \
         any(x.startswith("FOUND  P01") for x in out) and any(x.startswith("LOST   P02") for x in out)
+    out = m.recall(doc, F, {"verdicts": [{"id": "D2-s1-02", "verdict": "merged", "into": "D9-s1-02"},
+                                         {"id": "D9-s1-02", "verdict": "verified"}]})
+    r["recall: a merged finding (the into field) found real is FOUND"] = any(x.startswith("FOUND  P02") for x in out)
     out = m.recall(doc, F, {"verdicts": [{"id": "D2-s1-02", "verdict": "verified"}]})
     r["recall: a finding with no verdict loses its plant"] = any("D1-s1-01=no verdict" in x for x in out)
     r["recall null: an empty plant list prints unread, never a value"] = \
@@ -381,6 +388,9 @@ MUTANTS = {
     "list inside tree": ("plants_path.resolve().is_relative_to(t.resolve())", "False", "inside the tree"),
     "both spaces": ("if not any(p.get(\"space\") == sp for p in plants)", "if False", "one space only"),
     "config cell": ('p.get("cell") not in pop', "False", "outside the population"),
+    "space known": ('if p.get("space") not in SPACES:', "if False:", "neither space"),
+    "missing file": ('if f.is_file() else 0', "if f.is_file() else 1", "file is not in the tree"),
+    "merged field": ('if v.get("verdict") == "merged":', "if False:", "the into field"),
     "old once": ("if n != 1:", "if n < 1:", "old text twice"),
     "plant changes": ('p.get("old") == p.get("new")', "False", "changing nothing"),
     "empty list": ("if not plants:\n", "if False:\n", "an empty list is refused"),
