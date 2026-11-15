@@ -87,8 +87,8 @@ Codex); it states no policy and binds the seat to this file.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | the record is the pull-request list and one #3394 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
-| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed at the latest at the producing pull request's merge — a PR comment records it, it does not propagate it |
+| `delivery-status-tracking.md` | the record is the PR list and one #3394 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
+| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed by the producing pull request's merge — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
 | `writing-for-agents.md` | what a sentence in the development record must carry to stay; `README.md` and the rest of `docs/` are outside it; and the one living handover, durable in the tree against volatile on #3394 |
@@ -117,6 +117,7 @@ Under `dev/governance/roles/`.
 | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
 | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
 | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
+| `proposal-triage.md` | rules the round's proposals at its end, on cost/benefit |
 | `standing.md` | the standing seats' shared terms |
 | `standing-merge.md` | runs merges, critical path first, never choosing them |
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
@@ -208,6 +209,5 @@ that far, established in its own seat beside the fix and never inside it. The
 two triggers, the four process states, the cost test, when recording that no
 countermeasure is worth building is a legitimate result, and the demonstration a
 check-shaped countermeasure owes are in `defect-root-cause.md` and
-`root-cause.md`. The fixer names a red check in the pull-request body and
-answers it there; an unanswered one is a reviewer's note resolved at merge (card
-C5).
+`root-cause.md`. The fixer answers a red check in the pull-request body; an
+unanswered one is a reviewer's note resolved at merge (card C5).

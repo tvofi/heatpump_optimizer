@@ -88,8 +88,8 @@ machinery group names its ground; the merge seat checks it at admission. Of the 
 `tools/plan/replan.py`), 10 slots (the owner's count, not a tree value) are reserved for
 `custom_components/` pull requests; a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
-is accepted only when its friction blocks a production merge, else ruled LOG.
-Exempt from all three: a proposal proving over 20% on
+is accepted only when its friction blocks a production merge, else ruled LOG
+(`proposal-triage.md`, once per round at round end). Exempt from all three: a proposal proving over 20% on
 CI time, programme completion time, right-first-time rate or token usage,
 against a measured baseline and a null control
 (`dev/governance/rules/ratchet-budgets.md`).

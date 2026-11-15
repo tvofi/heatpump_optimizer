@@ -108,18 +108,12 @@ whenever you merge.
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
-- **A proposal is ruled directly, by the owner or by you** (no standing triage
-  seat; card C6, tvofi 2026-11-05): a process, tooling or instrument proposal
-  from the sweep, a seat's result or a verdict is wired in only when its
-  measured benefit clearly outweighs its cost. A countermeasure policy requires
-  (root cause, red-check carry, finding fix; see Machinery) keeps its route. An
-  exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says so; its PR
-  records it. **Machinery:** a planned instrument/machinery group, or existing
-  non-production CI lane or seat, stays only on a measured gain of at least 10%
-  on them. Repair of such code (outside `custom_components/`) with roster
-  `severity` `low` or `normal` meets both (over 20% to add); `medium`, `high`,
-  `major`, `critical`, root-cause countermeasure, closeout, owner directive skip
-  them; unset is classified first, never assumed major.
+- **A proposal waits for the round-end triage** (`proposal-triage.md`, once per
+  round; tvofi 2026-11-14): a process, tooling or instrument proposal from the
+  sweep, a seat's result or a verdict is consolidated, never routed before its
+  ruling. Where a mandate lets you act on a recommendation absent the owner,
+  that means adding it to the batch; an ACCEPT reaches the next round's roster
+  citing its ruling. An instrument fix stays local and in-round.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments.
 - **Give it the constraints that already exist**: findings carried into its

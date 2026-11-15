@@ -135,7 +135,7 @@ CODE=$(git rev-parse "$CODE")
 git fetch -q origin main || { echo "could not fetch origin/main to judge $CODE over it"; exit 1; }
 python3 -I "$SEAT/ref_privacy.py" guard --ref "$BR" --commits "$CODE" --over refs/remotes/origin/main \
   || { echo "REFUSE: a commit handoff/$TOPIC adds over main carries a tool's attribution or names this host; nothing pushed"; exit 1; }
-git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+git diff --no-renames --name-only "$CODE" "$T" | grep -vE '^handoff/' >/dev/null && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
 # The body is read from the sha origin ANSWERED for the ref, never FETCH_HEAD.

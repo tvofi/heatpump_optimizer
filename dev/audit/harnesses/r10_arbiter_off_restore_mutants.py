@@ -53,8 +53,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M03_no_own_refusal",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    if own:\n        baseline = _space_target(inp, inp.plan, now, None)\n",
-  "new": "    if False:\n        baseline = _space_target(inp, inp.plan, now, None)\n"
+  "old": "    if own:\n        baseline = _space_target(inp, inp.plan, now, None, boosted=False)\n",
+  "new": "    if False:\n        baseline = _space_target(inp, inp.plan, now, None, boosted=False)\n"
  },
  {
   "name": "M04_before_ignored",
