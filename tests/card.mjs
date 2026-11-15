@@ -2116,6 +2116,100 @@ const editable = () => {
     JSON.stringify(iso));
 }
 
+// #3636: a published plan reaching past the manual-plan window made "Apply this
+// plan" fail every time, because `build_override` refuses a slot starting
+// beyond now plus the window. The card trimmed at the edit floor only, so it
+// sent runs the editor itself would not let the user touch. The captured plan
+// is extended to 48 h past its first step with runs before, across, just
+// inside and past the ceiling: the published window (`applyEnd`), not the
+// zoomed visible end `editCeiling` also carries.
+{
+  const STEP = 15 * 60000;
+  const ceiling = FROZEN + 20 * HOUR;
+  const at = (h) => ceiling + h * HOUR;
+  // The forecast's `t` is local wall time with no offset, as the sensor
+  // publishes it, so extended steps are written the same way.
+  const local = (ms) => {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+      `T${p(d.getHours())}:${p(d.getMinutes())}:00`;
+  };
+  // [start, end) in hours from the ceiling, per channel.
+  const runs = {
+    dhw_power: [[-4, -3], [-2, 0.5], [1, 2], [4, 6]],
+    // Starts one step short of the ceiling: inside it on this clock, but past
+    // the server's on a browser clock a step ahead -- the skew allowance.
+    space_power: [[-4, -3], [-0.25, 1], [4, 6]],
+  };
+  const extended = (windowHours) => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    const first = Date.parse(plan.dhw_plan.forecast[0].t);
+    for (const [id, field] of [[DEFAULT_DHW, "dhw_power"],
+                               [DEFAULT_SPACE, "space_power"]]) {
+      if (windowHours !== undefined) {
+        st[id].attributes.manual_plan_window_hours = windowHours;
+      }
+      const fc = st[id].attributes.forecast;
+      const last = fc[fc.length - 1];
+      for (let t = Date.parse(last.t) + STEP; t < first + 48 * HOUR; t += STEP) {
+        fc.push({ ...last, t: local(t) });
+      }
+      for (const f of fc) {
+        const t = Date.parse(f.t);
+        if (t < at(-4.5)) continue;
+        f[field] = runs[field].some(([a, b]) => t >= at(a) && t < at(b)) ? 3 : 0;
+      }
+    }
+    return st;
+  };
+  const applied = (states) => {
+    const c = build(states, { what_if: true });
+    c._hass = mkHass(states);
+    c._onCardClick({});
+    called = null;
+    c.manual.apply();
+    return { card: c, data: (called && called.data) || {} };
+  };
+  const { card, data } = applied(extended());
+  const drafted = [...card.manual.draft().dhw, ...card.manual.draft().space];
+  check("the extended plan drafts runs at and past the window (#3636)",
+    drafted.some((r) => r.start >= ceiling), JSON.stringify(drafted));
+  // Only the seeded tail: the captured plan's own earlier runs are untouched.
+  const span = (slots) => (slots || [])
+    .filter((sl) => Date.parse(sl.start) >= at(-4.5))
+    .map((sl) => [Date.parse(sl.start), Date.parse(sl.end)].map(
+      (ms) => (ms - ceiling) / HOUR));
+  check("no slot sent starts at or after the manual-plan window (#3636)",
+    [...(data.dhw_slots || []), ...(data.space_slots || [])]
+      .every((sl) => Date.parse(sl.start) < ceiling),
+    JSON.stringify(data));
+  check("a run straddling the window is sent whole, later ones dropped (#3636)",
+    JSON.stringify(span(data.dhw_slots)) === JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify(span(data.dhw_slots)));
+  check("a run starting within one step of the window is held back for clock skew (#3636)",
+    JSON.stringify(span(data.space_slots)) === JSON.stringify([[-4, -3]]),
+    JSON.stringify(span(data.space_slots)));
+
+  // Null control: the captured plan ends inside the window, so the payload
+  // must be byte-identical to the one a window too wide to bind produces.
+  check("the captured plan ends inside the window (#3636)",
+    drag.manual.planEnd() < ceiling - STEP,
+    new Date(drag.manual.planEnd()).toISOString());
+  const inside = applied(slotStates).data;
+  const unbound = (() => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    for (const id of [DEFAULT_DHW, DEFAULT_SPACE]) {
+      st[id].attributes.manual_plan_window_hours = 1000;
+    }
+    return applied(st).data;
+  })();
+  check("a plan wholly inside the window sends the same payload (#3636)",
+    (inside.dhw_slots || []).length > 0 &&
+      JSON.stringify(inside) === JSON.stringify(unbound),
+    JSON.stringify({ inside, unbound }));
+}
+
 // Prices are shown in the user's currency, not the author's.
 {
   const saved = drag._hass;
