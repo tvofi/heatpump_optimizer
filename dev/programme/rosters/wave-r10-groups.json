@@ -28002,7 +28002,7 @@
    "source": "outside",
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-outside-contributor-cycle-p3",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M, the carries are the items), opus; reviewer opus",
