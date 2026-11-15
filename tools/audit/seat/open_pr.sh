@@ -115,7 +115,11 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
 }
 op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
   grep -q '^<!-- figure-block: ' $D/body.md || return 0
-  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head HEAD > $D/fig-$1.log 2>&1 && return 0
+  # p1 runs before the pull request exists, so its base is the one the open will record, origin/main; p2 renders
+  # against the recorded base.sha, which pr-contract verifies with.
+  local fb=origin/main
+  if [ "$1" = p2 ]; then fb=$(pr_recorded_base $R "$N") || { OP_WHY="the recorded base.sha of #$N could not be read"; echo "$PR_NAME: $OP_WHY" >&2; return 1; }; fi  # mut:opbase
+  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base "$fb" --head HEAD > $D/fig-$1.log 2>&1 && return 0
   OP_WHY="the figure-block refresh at $1 failed:
 $(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
 }
