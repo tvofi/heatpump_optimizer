@@ -908,7 +908,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN, R11-PRE-ROUND-METRICS): owner decision cards 2026-11-13: process convergence audit, before round 11 finders"
+    "note": "finder-critical (0018:200,274); intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN, R11-PRE-ROUND-METRICS): owner decision cards 2026-11-13: process convergence audit, before round 11 finders"
    }
   },
   {
