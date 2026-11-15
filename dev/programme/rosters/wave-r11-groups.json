@@ -2392,7 +2392,9 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R11-PRE-BRIEFS-CENSUS"
+   ],
    "files": [
     "dev/governance/decisions/0018-objective-function.md",
     "dev/audit/config/objective.json"
