@@ -1,0 +1,7 @@
+recall  1/2 = 50% (found after the judge / planted)
+recall  kind opt: 1/1 = 100% (found after the judge / planted)
+recall  kind scale: 0/1 = 0% (found after the judge / planted)
+recall  space config: 1/1 = 100% (found after the judge / planted)
+recall  space natural: 0/1 = 0% (found after the judge / planted)
+MISSED P01 natural scale custom_components/heatpump_optimizer/currency.py:money_scale (no finding names it)
+FOUND  P02 config opt custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (D0-s1-01,D0-s2-01)

@@ -1,0 +1,9 @@
+RED 56a8a61b92480e770943483d37f08306ae4ee694 pending: none red: gate
+WAIT ba745116ec60db09ab754dd78dec03daf59970e4 pending: gate red: none
+review_carry: 56a8a61b9 -> ba745116e  main=origin/main
+  branch-only commits: 1
+  why: 1 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  ba745116e  record: the delivery row for #3612
+review_carry: CARRY
+a9ea77f1f21ecb66f6ceb1b6b9bc504fdcc5a709
+merge-tree rc=0
