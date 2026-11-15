@@ -1,0 +1,3 @@
+TOTAL: 0 error(s) across 52 policy file(s)
+FIXTURE VACUOUS: checkCoverage did not report dev/governance/dimensions/criteria/sub/D10-criteria.md; the criteria glob must cover one directory level, not a subtree
+exit=1

@@ -1,0 +1,2 @@
+TOTAL: 0 error(s) across 52 policy file(s)
+FIXTURE OVER-FIRES: checkCoverage reported dev/governance/dimensions/criteria/D10-criteria.md: "sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it. Widen the glob, or exclude it deliberately.". The criteria directory is a policy directory with its own glob.
