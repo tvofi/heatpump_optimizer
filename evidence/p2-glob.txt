@@ -1,0 +1,2 @@
+da868a90ffa56ba62502dde5b1268bbb093c8cd2:tools/policy/policy_lint.mjs:267:  /^dev\/governance\/dimensions\/criteria\/[A-Za-z0-9_.-]+\.md$/,
+P2-POLICY_GLOBS-HUNK-IDENTICAL

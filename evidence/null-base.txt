@@ -1,0 +1,4 @@
+dev/governance/dimensions/criteria/X-criteria.md
+  ERROR   [coverage] dev/governance/dimensions/criteria/X-criteria.md: sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it. Widen the glob, or exclude it deliberately.
+TOTAL: 1 error(s) across 52 policy file(s)
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
