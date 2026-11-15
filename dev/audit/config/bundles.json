@@ -1,0 +1,19 @@
+{
+  "_doc": "The installs that sent a diagnostics bundle, one entry per bundle: an opaque install label (never an address, a name or an entity id), the bundle's date, the round whose D15 seats read it, the steps of dev/governance/dimensions/D15.md run on it (that round's rotation.json coverage other than none) and the tracked evidence that names it. `python3 tools/audit/enumerate.py d15-installs` prints it and refuses an entry whose evidence is not in the tree. A round appends its bundles here in its register pull request; a round with none reports 0 of the lines printed.",
+  "bundles": [
+    {
+      "install": "install-1",
+      "date": "2026-10-14",
+      "round": 10,
+      "steps": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M6",
+        "M7"
+      ],
+      "evidence": "dev/audit/rounds/round10/D15/s1/intake.py"
+    }
+  ]
+}
