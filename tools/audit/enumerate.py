@@ -247,7 +247,7 @@ def d3(repo, state=None, by_file=False, ast_only=False, **_):
         mt = repo / "tests/mutation_table.py"
         if not mt.is_file():
             raise Refuse(f"missing source {mt} (use --ast for the ledger-free fallback)")
-        sys.path.insert(0, str(repo / "tests"))
+        sys.path.append(str(repo / "tests"))
         with contextlib.redirect_stdout(sys.stderr):
             import mutation_table as m
             b, inv = m.load_budgets(), m.inventory()
@@ -314,7 +314,7 @@ def population_axes(repo):
     """{axis: [levels]} as `check_scopes.py --population` reads them, by its own reader, and the
     two totals it prints; a binary axis key is its own axis with levels present and absent."""
     obj = repo / OBJECTIVE
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.append(str(Path(__file__).resolve().parent))
     import check_scopes
     lines, ok = check_scopes.population(json.loads(obj.read_text()).get("population", []), tracked(repo), lambda f: (repo / f).read_text())
     if not ok:
@@ -325,7 +325,8 @@ def population_axes(repo):
             k, _, v = l.partition(": ")
             totals[k] = int(v)
             continue
-        name, n, lv = l.split("\t", 2)
+        name, _, rest = l.partition("\t")
+        n, _, lv = rest.partition("\t")
         if n == "NO-READ":
             print(f"NO-READ axis {name}: no cell until {OBJECTIVE} declares its levels", file=sys.stderr)
         elif n.endswith("binary axes"):
@@ -421,7 +422,7 @@ def d9solves(repo, **_):
     function handed to an executor is never called by name), a function that holds one, upward
     by name inside the solver's own module; a site in another module is an entry into the
     solver, printed and not climbed (a name shared with an unrelated function stops there)."""
-    sites, todo, out, seen, home = [], [SOLVER_ENTRY], [], set(), None
+    sites, home = [], None
     for p in pkg_files(repo):
         t = parse(p)
         if any(isinstance(n, ast.FunctionDef) and n.name == SOLVER_ENTRY for n in t.body):
@@ -429,20 +430,14 @@ def d9solves(repo, **_):
         called = {id(n.func) for n in ast.walk(t) if isinstance(n, ast.Call)}
         for n, q in scoped(t):
             if isinstance(n, ast.Call) and fname(n):
-                sites.append((fname(n), "call", rel(repo, p), n.lineno, q))
+                sites.append((fname(n), "", rel(repo, p), n.lineno, q))
             elif isinstance(n, (ast.Name, ast.Attribute)) and isinstance(n.ctx, ast.Load) and id(n) not in called:
-                sites.append((n.id if isinstance(n, ast.Name) else n.attr, "ref", rel(repo, p), n.lineno, q))
-    while todo:
-        name = todo.pop()
-        if name in seen:
-            continue
-        seen.add(name)
-        for callee, how, f, line, q in sites:
-            if callee == name:
-                out.append(f"{'solve' if name == SOLVER_ENTRY else 'path'} {callee} <- {f}:{line} {q}" + (" (ref)" if how == "ref" else ""))
-                if q != "<module>" and f == home:
-                    todo.append(q.rsplit(".", 1)[-1])
-    return out
+                sites.append((n.id if isinstance(n, ast.Name) else n.attr, " (ref)", rel(repo, p), n.lineno, q))
+    names, grown = {SOLVER_ENTRY}, set()
+    while names != grown:
+        grown = set(names)
+        names |= {q.split(".")[-1] for callee, _how, f, _line, q in sites if callee in grown and f == home and q != "<module>"}
+    return [f"{'solve' if callee == SOLVER_ENTRY else 'path'} {callee} <- {f}:{line} {q}{how}" for callee, how, f, line, q in sites if callee in names]
 
 
 def d12(repo, pairs=False, **_):
@@ -561,11 +556,11 @@ def plant(root):
       "CONF_A_ENTITY = 'a'\nCONF_B_ENTITY: Final = 'b'\nCONF_NAME = 'n'\nMODES = ('m1', 'm2')\n")
     w(f"{PKG}/store.py", "K = 'b'\nDOMAINS = {'a': {}, K: {}}\n")
     w(f"{PKG}/__init__.py", "async def async_setup_entry(h, e):\n    pass\ndef helper():\n    pass\n")
-    w(f"{PKG}/optimizer.py", "from .y import z\nfrom . import w\ndef _multi_start_minimize():\n    pass\ndef go(c):\n    return _multi_start_minimize()\n")
-    w(f"{PKG}/y.py", "from custom_components.heatpump_optimizer.v import q\n")
+    w(f"{PKG}/optimizer.py", "from .y import z\nfrom . import w\ndef _multi_start_minimize():\n    pass\ndef go(c):\n    return _multi_start_minimize() or go(c)\n")
+    w(f"{PKG}/y.py", "from custom_components.heatpump_optimizer.v import q\nimport custom_components.heatpump_optimizer.u\n")
     w(f"{PKG}/coordinator.py", "class C:\n    def __init__(self):\n        self.a = {}\n        self.b = deque(maxlen=3)\n        self.c = 0\n        self.a = {}\n"
-      "    def _solve_record(self):\n        return self.a, self.c\n    def _solve_hubs(self):\n        return self.b\n    def cycle(self):\n        return go(self)\n")
-    for n in ("w", "v", "dhw_planner"):
+      "    def _solve_record(self):\n        return self.a, self.c\n    def _solve_hubs(self):\n        return self.b\n    def cycle(self):\n        return go(self)\n    def held(self):\n        return submit(go)\n")
+    for n in ("w", "v", "u", "dhw_planner"):
         w(f"{PKG}/{n}.py", "")
     w(f"{PKG}/services.yaml", "set_a:\n  fields: {}\nset_b:\n")
     w(f"{PKG}/strings.json", json.dumps({"config": {"step": {"user": {"data": {"f1": "", "f2": ""}}}},
@@ -625,7 +620,7 @@ X, CO = f"{PKG}/x.py", f"{PKG}/coordinator.py"
 PLANTED = [
     ("d0-grid", {}, 2 * 1 * 2 * 2 * 5 * 3, cut("tests/profiles.py", "    elif profile == 'p2':\n        pass\n"), 60,
      put("tests/profiles.py", "def prices(profile, s):\n    pass\ndef weather(profile, s):\n    pass\n")),
-    ("d0-modules", {}, 6, cut(f"{PKG}/optimizer.py", "from . import w\n"), 5, rm(f"{PKG}/optimizer.py")),
+    ("d0-modules", {}, 7, cut(f"{PKG}/y.py", "import custom_components.heatpump_optimizer.u\n"), 6, rm(f"{PKG}/optimizer.py")),
     ("d1-lifecycle", {}, 2, cut(X, "    async_track_time_interval(1)\n"), 1, both(put(X, ""), put(f"{PKG}/__init__.py", ""))),
     ("d1-stores", {}, 4, cut(f"{PKG}/store.py", ", K: {}"), 3, put(f"{PKG}/store.py", "")),
     ("d1-inputs", {}, 2, cut(f"{PKG}/const.py", "CONF_A_ENTITY = 'a'\n"), 1, put(f"{PKG}/const.py", "CONF_NAME = 'n'\n")),
@@ -638,7 +633,7 @@ PLANTED = [
     ("d8-cells", {}, 6 * 2, rm(f"{PKG}/translations/sv.json"), 6, rm(f"{PKG}/translations/sv.json", f"{PKG}/translations/en.json")),
     ("d9-collections", {}, 2, cut(CO, "self.b = deque(maxlen=3)", "self.b = None"), 1, put(CO, "")),
     ("d9-attributes", {}, 2, cut(f"{PKG}/e.py", "    _attr_extra_state_attributes = {}", "    pass"), 1, put(f"{PKG}/e.py", "")),
-    ("d9-solves", {}, 2, cut(CO, "return go(self)", "return None"), 1, cut(f"{PKG}/optimizer.py", "return _multi_start_minimize()", "return None")),
+    ("d9-solves", {}, 4, cut(CO, "return submit(go)", "return None"), 3, cut(f"{PKG}/optimizer.py", "return _multi_start_minimize() or go(c)", "return None")),
     ("d12-cells", {}, 4 + 2, rm("blueprints/automation/b.yaml"), 5, rm(OBJECTIVE)),
     ("d12-cells", {"pairs": True}, 4 + 4 + 2, cut(f"{PKG}/const.py", "MODES = ('m1', 'm2')", "MODES = ('m1',)"), 3 + 2 + 2,
      rm("blueprints/automation/b.yaml", f"{PKG}/www/card.js")),
@@ -679,6 +674,17 @@ def self_test():
                 fails.append(f"live {u} {opt}: {e}")
             arm(f"live {u} {opt}", (len(ls) >= 1, ls == sorted(ls), len(ls) == len(set(ls))), (True, True, True))
     try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            d3_all = run("d3-sites", live)
+            by_state = {st: run("d3-sites", live, state=st) for st in ("killed", "triaged", "unrecorded") if any(l.split(" #")[0].endswith(" " + st) for l in d3_all)}
+            by_file = [l.split() for l in run("d3-sites", live, by_file=True)]
+        arm("live d3-sites: the --state filters partition the universe", sorted(l for ls in by_state.values() for l in ls), d3_all)
+        arm("live d3-sites: each --state filter holds only its state", all(l.split(" #")[0].endswith(" " + st) for st, ls in by_state.items() for l in ls), True)
+        arm("live d3-sites --by-file: each file's three state counts sum to its total, and the totals to the universe",
+            (all(int(r[1]) == sum(map(int, r[2:5])) for r in by_file), sum(int(r[1]) for r in by_file)), (True, len(d3_all)))
+    except Refuse as e:
+        fails.append(f"live d3-sites options: {e}")
+    try:
         arm("live briefs", len(briefs(live)) >= 1, True)
     except Refuse as e:
         fails.append(f"live briefs: {e}")
@@ -700,7 +706,11 @@ def self_test():
         arm("d14 open", run("d14-classes", t, status="open"), ["open production A"])
         arm("d1-stores lines", run("d1-stores", t), ["store a", "store b", f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v1->3",
                                                      f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v2->3"])
-        arm("d9-solves lines", [l.split(" <- ")[0] for l in run("d9-solves", t)], ["path go", "solve _multi_start_minimize"])
+        arm("d9-solves lines: the solver's call, the recursive call inside its module, the coordinator's call and its bare reference",
+            [(l.split(" <- ")[0], l.rsplit(" ", 1)[-1]) for l in run("d9-solves", t)],
+            [("path go", "C.cycle"), ("path go", "(ref)"), ("path go", "go"), ("solve _multi_start_minimize", "go")])
+        arm("d0-modules follows an absolute import of the package", f"{PKG}/u.py" in run("d0-modules", t), True)
+        arm("d3-sites --ast --by-file counts the sites per file", run("d3-sites", t, ast_only=True, by_file=True), [f"{X} 5"])
         quiet = contextlib.redirect_stderr(io.StringIO())
         cells = run("d0-grid", t)
         arm("d0-grid a cell names D0.md step 4's axis levels", [sorted({c.split("/")[k] for c in cells}) for k in (2, 3, 4, 5)],
@@ -727,6 +737,14 @@ def self_test():
         with contextlib.redirect_stderr(io.StringIO()):
             arm("d12 ledger: the joined row prints its source and test", [l for l in run("d12-cells", t, ledger=str(led)) if "not run" not in l],
                 ["level mode=m1\tsimulation\ttests/x.py::t"])
+        led.write_text("# a comment\nlevel mode=m9\tsimulation\ttests/x.py::t\n")
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                run("d12-cells", t, ledger=str(led))
+            msg = "passed"
+        except Refuse as e:
+            msg = str(e)
+        arm("a ledger refusal names the row's line", f"{led}:2:" in msg, True)
         arm("d12 a missing ledger is refused", count("d12-cells", t, ledger=str(t / "none.tsv")), "Refuse")
         arm("with no ledger a census prints its items alone", run("d1-inputs", t), ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
         for label, text, want in (("a census line is joined to its driving test, the rest not run", "# c\n\ninput CONF_A_ENTITY\ttests/x.py::t\n",
@@ -752,6 +770,8 @@ def self_test():
         arm("briefs: a cited universe that prints is ok, across a line wrap", cited("1. Per line of `python3 tools/audit/enumerate.py\n   d2-identities --cells`.\n"), ["ok D1 d2-identities --cells"])
         arm("briefs: a citation of no universe is refused", cited("1. `enumerate.py d1-nothing`\n"), "Refuse")
         arm("briefs: a tree whose briefs cite none is refused", cited("1. Enumerate by hand.\n"), "Refuse")
+        arm("briefs: one refused citation beside a good one refuses the tree", cited("1. `enumerate.py d1-inputs` and `enumerate.py d1-nothing`\n"), "Refuse")
+        arm("briefs: a citation's options are run as cited", (cut(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\n")(t), cited("1. `enumerate.py d16-writes --cells`\n"))[1], "Refuse")
         (t / BUNDLES).write_text('{"bundles": []}')
         arm("briefs: a cited universe that is empty is refused", cited("1. `enumerate.py d15-installs`\n"), "Refuse")
         plant_bundles(t)
@@ -778,8 +798,11 @@ def self_test():
         try:
             plant(g)
             (g / "blueprints/automation/untracked.yaml").write_text("")
-            git = lambda *a: subprocess.run(["git", "-C", str(g), "-c", "user.name=t", "-c", "user.email=t@t", *a], capture_output=True, check=True)
-            git("init", "-q"), git("add", "-A", ":!blueprints/automation/untracked.yaml"), git("commit", "-q", "-m", "plant")
+            sys.path.append(str(Path(__file__).resolve().parents[2] / "tests"))
+            from throwaway_git import throwaway_git_init
+            env = throwaway_git_init(g, "-q")
+            for a in (["add", "-A", ":!blueprints/automation/untracked.yaml"], ["commit", "-q", "-m", "plant"]):
+                subprocess.run(["git", *a], cwd=g, env=env, capture_output=True, check=True)
             arm("in a git checkout an untracked file is in no universe", [l for l in run("d17-features", g) if "blueprint" in l], ["blueprint blueprints/automation/b.yaml"])
         finally:
             shutil.rmtree(g, ignore_errors=True)
