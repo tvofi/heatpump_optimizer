@@ -2471,6 +2471,48 @@
    "carry": [
     "Seam ruling by the round-11 orchestrator, 2026-11-15, binding this group's design: the escapes record (found-by and owning dimension per escape, `none` a value) is built by R11-PRE-ROUND-METRICS, which already holds that obligation as its carries moved from the intake group's carries 174 and 176 by the round-end triage (triage: dev/programme/triage/r10-round-end.md#P744). This group does not build a second one: it builds the three product reads no other group owns (the same-information oracle harness behind regret, the actuator-write cell ledger behind operation, the generality cell ledger) and reads escapes and unowned through the round-metrics instrument. The design states the interface it needs from that instrument and returns any gap as a carry to R11-PRE-ROUND-METRICS, never as a parallel implementation."
    ]
+  },
+  {
+   "group": "R11-OWNER-COMMUNITY-STANDARDS",
+   "lane": "DOCS",
+   "kind": "feature",
+   "class": "docs",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "SECURITY.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "user",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-owner-community-standards",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (size S, docs/community files only; design exempt)",
+    "note": "owner item tvofi 2026-11-15, folded into round 11; not finder-critical",
+    "pr": null
+   },
+   "brief": "Owner item, tvofi 2026-11-15, folded into round 11 (not finder-critical). His words: \"Two things I want added to the repo community standards. One code of conduct that should be brief and quite typical. One issue template, that should allow for sufficient information to start buildning fixes without follow up questions, but still simple enough for a human to fill in\", revised the same day: \"Or rather, multiple issue templates for bug reports, feature reqests, feature requests with design notes and any other templates you deem is needed to allow intakes with minimal follow up questions\". Build, in one pull request, so that GitHub's Community Standards page lists both as present: a code of conduct file at the repository root, the Contributor Covenant's substance shortened to one screen with its required attribution, reporting privately through the advisory form SECURITY.md names or GitHub's Report content, with no personal contact and the maintainer named only as tvofi; and YAML issue forms in the issue-template directory under .github: a bug report (what happened and expected, integration and Home Assistant versions, the heat pump or controller and the control method the integration supports, when it happened; optional reproduction steps, a diagnostics download with a privacy warning, logs, card screenshots), a feature request, a feature request with design notes (proposed behaviour, entities, options or services touched, configuration, edge cases, verification, intent to open a pull request; it states that significant features get a design and design review first and links the public plan page), and any other form needed for intake with minimal follow-up (consider a hardware or integration support request and a documentation problem; the body says why each was added or left out); a template chooser routing security reports to SECURITY.md and questions to Discussions only if enabled; a triage label per form. Check that tools/audit/seat/outside_intake.py and the plan page still read issues opened from a form. New tracked files are classified (closure or INERT). No product code, VERSION, manifest or release-notes heading change."
   }
  ]
 }
