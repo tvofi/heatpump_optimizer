@@ -1,0 +1,22 @@
+top keys head ['_comment', 'workflow', 'job', 'steps'] art ['_comment', 'workflow', 'job', 'steps']
+nsteps head 117 mb 117 art 116 main 117
+mb==main table: True
+steps in mb not art: ['seat-gen']
+steps in art not mb: []
+steps head vs mb diff: []
+seat-gen head==mb: True
+head == art (except seat-gen): True
+union mismatches [('open-pr', 'probes'), ('policy-lint-mutants', 'probes'), ('pr-args', 'probes'), ('push-names-the-host', 'probes'), ('temp-or-machine-path', 'probes'), ('update-pr', 'probes')]
+ADD ('dependency-graph-census', 'dirs', ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py'])
+ADD ('policy-lint-mutants', 'probes', ['dev/programme/round10/state/.gitattributes'])
+ADD ('prepr', 'dirs', ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py'])
+ADD ('temp-or-machine-path', 'probes', ['tests/mutation_ledger/killed_by/whatif.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/whatif.py/.gitattributes'])
+REMOVED []
+run_sha changes []
+other top-level keys equal: True ['_comment', 'workflow', 'job']
+open-pr set-equal-union True dups 1 sorted True
+policy-lint-mutants set-equal-union True dups 8 sorted True
+pr-args set-equal-union True dups 1 sorted True
+push-names-the-host set-equal-union True dups 1 sorted True
+temp-or-machine-path set-equal-union True dups 1 sorted True
+update-pr set-equal-union True dups 1 sorted True

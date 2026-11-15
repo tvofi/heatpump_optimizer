@@ -1,0 +1,8 @@
+== mb table
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/programme/round10/state/.gitattributes']
+   UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
+   UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/whatif.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/whatif.py/.gitattributes']
+   UNMEASURED step seat-gen: this run left no trace of it
+   UNDER-SCOPED step prepr: dirs misses ['dev/programme/round10/state', 'tests/mutation_ledger/killed_by/whatif.py', 'tests/mutation_ledger/survivor_triage/whatif.py']
+== head table
+   UNMEASURED step seat-gen: this run left no trace of it
