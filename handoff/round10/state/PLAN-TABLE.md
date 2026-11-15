@@ -537,7 +537,7 @@ gantt
 | R10-HOTFIX-PREPR-WC-PAD | IN | 1 | done | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch223.md#P676 at 4e7aa35d79, line numbers at origin/main 6d16af36c2. |  |
 | R10-HOTFIX-MAIN-IST-PREPR-SCOPE | IN | 1 | done | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch225.md#P680 at 9874c27034, line numbers at origin/main 47788534da. |  |
 | R10-PREPR-DARWIN-SELFTEST-LANE | IN | 3 | deferred | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch227.md#P684 at be04bca1a9, line numbers at origin/main b737e88eee. |  |
-| R10-OUTSIDE-CONTRIBUTOR-CYCLE | IN | 3 | in-progress | - | opus/opus | - | Owner ruling (tvofi, about 2026-11-12T07:35Z, recorded by triage batch 238, entry P714): an outside contributor (today Bankaifan) may run the fixer and fix-r... |  |
+| R10-OUTSIDE-CONTRIBUTOR-CYCLE | IN | 3 | carries-open | - | opus/opus | - | Owner ruling (tvofi, about 2026-11-12T07:35Z, recorded by triage batch 238, entry P714): an outside contributor (today Bankaifan) may run the fixer and fix-r... |  |
 | R10-GATE-PUSH-RATCHET | IN | 1 | done | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
 | R10-MACH-SCORECARD | IN | 1 | done | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
 | R10-PROTECTION-CENSUS | IN | 1 | done | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |

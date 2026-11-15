@@ -17,7 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
