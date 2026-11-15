@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_resolved_dhw_attribute RETURN_DEL fc3a17ce",
+  "killed_by": "tests/entities.py",
+  "old": "    return {\"dhw_windows_resolved\": resolved_spec} if resolved_spec else {}",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

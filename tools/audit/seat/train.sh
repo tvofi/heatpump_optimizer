@@ -125,6 +125,7 @@ fi
 effective="${set_flags[*]:-none}"
 
 if [ "$selftest" = 1 ]; then
+  [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded train bash "$0" --self-test; }  # pr_args.sh's self-test bound
   # 1. missing required arguments refuse.
   for miss in "--repo x" "--state-dir x"; do
     if "$0" --queue /dev/null $miss >/dev/null 2>&1; then

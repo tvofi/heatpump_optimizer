@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:SensorGapAdvisorSensor.native_value GUARD_OFF 8b666c8f",
+  "killed_by": "tests/wood_advisor.py",
+  "old": "        if not gaps:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=1."
+}

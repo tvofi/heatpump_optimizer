@@ -250,7 +250,14 @@ function gridStates(plan) {
     S("score_open_no_evidence", { states: { ...planStates(plan), ...statStatesNoEvidence() }, steps: [["stat", "score"]] }),
     S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
-    S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
+    // The chips render only in the expanded dialog (R10-CARD-COLLAPSE).
+    S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["cardClick"], ["chip", "price"]] }),
+    // The headline's two folds OPEN, so the rules colouring their bodies are
+    // measured (R10-CARD-COLLAPSE); folded, every other cell shows the headers.
+    S("folds_open", { states: { ...planStates(plan), ...statStates(),
+      "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: { language: "en",
+        items: NARRATIVE_ITEMS, lines: NARRATIVE_ITEMS.map((it) => `${it.reason} line`) } } },
+      steps: [["fold", "narrative"], ["fold", "whynow"]] }),
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
     S("override_active", { states: override(), config: wi, steps: [["open"]] }),
     S("wood_alert", { states: wood({ cheaper: true, show_whatif: true, ready: true, slots: [] }) }),
@@ -521,6 +528,108 @@ async function themeMismatch({ browser, check, plan }) {
   }
 }
 
+/** R10-CARD-COLLAPSE: the headline's two folds and the dialog-only legend,
+ * in a real browser, light and dark. Collapsed by default with no body, no
+ * chip and no dashed-line note on the card; Enter and Space on a focused
+ * header toggle it and focus stays on the header; the summary text clears
+ * 4.5:1 against the card in both themes and the header the 24 px target
+ * floor; the expanded dialog carries the chips and the notes. */
+async function cardCollapse({ browser, check, plan, out }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  st["sensor.heat_pump_optimizer_plan_narrative"] = { state: "cheap_price",
+    attributes: { language: "en", items: NARRATIVE_ITEMS.slice(0, 3),
+      lines: NARRATIVE_ITEMS.slice(0, 3).map((it) => `${it.reason} line`) } };
+  const spaceId = Object.keys(st).find((k) => st[k].attributes && st[k].attributes.plan_kind === "space");
+  st[spaceId] = { ...st[spaceId], attributes: { ...st[spaceId].attributes, why_now: {
+    t: plan.space_plan.forecast[0].t, drivers: [
+      { code: "price_rank", direction: "run", weight: 57.1 },
+      { code: "away", direction: "idle", weight: -42.9 }] } } };
+  for (const dark of [false, true]) {
+    const theme = dark ? "dark" : "light";
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } });
+    await ctx.clock.setFixedTime(FROZEN);
+    const page = await ctx.newPage();
+    try {
+      await page.goto("about:blank");
+      await page.addScriptTag({ path: CARD_SRC });
+      const probe = () => page.evaluate(() => {
+        const root = window.__card.shadowRoot;
+        const card = root.querySelector("ha-card");
+        const heads = [...root.querySelectorAll("ha-card [data-fold]")];
+        const lum = (css) => {
+          const [r, g, b] = css.match(/[\d.]+/g).slice(0, 3).map((v) => {
+            const c = Number(v) / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+        // The first opaque background behind the header, crossing out of the
+        // shadow root to its host: a transparent ha-card shows what is under it.
+        let bg = "rgb(255, 255, 255)";
+        for (let el = card; el; el = el.parentElement || (el.getRootNode() && el.getRootNode().host)) {
+          const c = getComputedStyle(el).backgroundColor;
+          if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) { bg = c; break; }
+        }
+        return {
+          heads: heads.map((h) => ({ key: h.dataset.fold, exp: h.getAttribute("aria-expanded"),
+            tag: h.tagName, h: h.getBoundingClientRect().height,
+            sum: ratio(getComputedStyle(h.querySelector(".hl-fold-sum")).color, bg),
+            title: ratio(getComputedStyle(h.querySelector(".hl-fold-title")).color, bg) })),
+          list: !!card.querySelector(".hl-narrative"), why: !!card.querySelector(".why-now"),
+          chips: card.querySelectorAll(".chip").length, notes: card.querySelectorAll(".legend-note").length,
+          focused: root.activeElement ? root.activeElement.dataset.fold || root.activeElement.tagName : null,
+        };
+      });
+      await page.evaluate(([st2, dk]) => {
+        const style = document.createElement("style");
+        style.textContent = dk
+          ? `html{--card-background-color:#1c1c1c;--primary-text-color:#e1e1e1;--secondary-text-color:#9b9b9b;--divider-color:#3a3a3a}`
+          : `html{--card-background-color:#ffffff;--primary-text-color:#212121;--secondary-text-color:#727272;--divider-color:#e0e0e0}`;
+        style.textContent += `body{margin:0;padding:12px;background:var(--card-background-color);font-family:-apple-system,"Segoe UI",sans-serif}` +
+          `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color);border-radius:12px}` +
+          `heatpump-optimizer-card{display:block;width:860px}`;
+        document.head.appendChild(style);
+        const card = document.createElement("heatpump-optimizer-card");
+        document.body.appendChild(card);
+        card.setConfig({ type: "custom:heatpump-optimizer-card" });
+        card.hass = { states: st2, language: "en", themes: { darkMode: dk } };
+        window.__card = card;
+      }, [st, dark]);
+      const shut = await probe();
+      check(`collapse (${theme}): two header buttons, collapsed, no body, no chip and no note on the card`,
+        shut.heads.length === 2 && shut.heads.every((h) => h.tag === "BUTTON" && h.exp === "false")
+        && !shut.list && !shut.why && shut.chips === 0 && shut.notes === 0, JSON.stringify(shut));
+      check(`collapse (${theme}): header text clears 4.5:1 on the card and the header the 24 px floor`,
+        shut.heads.every((h) => h.sum >= 4.5 && h.title >= 4.5 && h.h >= 24), JSON.stringify(shut.heads));
+      if (out) await page.screenshot({ path: path.join(out, `collapse-${theme}-folded.png`), fullPage: true });
+      await page.evaluate(() => window.__card.shadowRoot.querySelector('ha-card [data-fold="narrative"]').focus());
+      await page.keyboard.press("Enter");
+      const opened = await probe();
+      check(`collapse (${theme}): Enter on the focused header opens its fold and keeps focus on it`,
+        opened.heads[0].exp === "true" && opened.list && !opened.why && opened.focused === "narrative",
+        JSON.stringify(opened));
+      await page.keyboard.press("Tab");
+      await page.keyboard.press(" ");
+      const both = await probe();
+      check(`collapse (${theme}): Tab then Space opens the why-now fold`,
+        both.heads.every((h) => h.exp === "true") && both.list && both.why && both.focused === "whynow",
+        JSON.stringify(both));
+      if (out) await page.screenshot({ path: path.join(out, `collapse-${theme}-open.png`), fullPage: true });
+      const dlg = await page.evaluate(() => {
+        window.__card.dialog.open();
+        const d = window.__card.shadowRoot.querySelector("dialog");
+        return { chips: d ? d.querySelectorAll(".chip").length : 0, notes: d ? d.querySelectorAll(".legend-note").length : 0 };
+      });
+      check(`collapse (${theme}): the expanded dialog carries the chips and the dashed-line notes`,
+        dlg.chips >= 3 && dlg.notes >= 1, JSON.stringify(dlg));
+    } finally {
+      await ctx.close();
+    }
+  }
+}
+
 /** R10-HOTFIX-CARD-HEALTH-TEXT, carry 0: HA's default theme in auto mode,
  * switched live with the Health dialog open, in both directions. The page
  * models HA's themes mixin in its order: on the OS colour-scheme change it
@@ -725,6 +834,10 @@ async function narrativeLayout({ browser, check, plan, out }) {
         document.body.appendChild(card);
         card.setConfig({ type: "custom:heatpump-optimizer-card" });
         card.hass = { states: st2, language: "en", themes: { darkMode: true } };
+        // The list is a fold, collapsed by default (R10-CARD-COLLAPSE): open
+        // it through its own header, as a user would.
+        const head = card.shadowRoot.querySelector('[data-fold="narrative"]');
+        if (head) head.click();
         const ul = card.shadowRoot.querySelector(".hl-narrative");
         if (!ul) return null;
         const box = ul.getBoundingClientRect();
@@ -879,6 +992,11 @@ async function cardPages({ browser, check, plan, out }) {
       // space-heating step, so the "likely because" hover (R9-UX-1) is
       // documented from the code rather than from a hand capture.
       for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor", "health"]) {
+        // The dialog is sized to the viewport and scrolls inside; at 860 px the
+        // Health page clipped its first-plan checklist after one item
+        // (R10-USER-DOCS-VERIFY), so that page is taken tall enough to show all
+        // of it.
+        await page.setViewportSize({ width: 1100, height: view === "health" ? HEALTH_VIEWPORT_H : 860 });
         await page.goto("about:blank");
         await page.addScriptTag({ path: CARD_SRC });
         await page.evaluate(([themeCss, st, dark, view]) => {
@@ -966,6 +1084,7 @@ async function cardPages({ browser, check, plan, out }) {
     figureDrift(moved, taken).length === 1 && !figureDrift(taken, taken).length);
 }
 
+const HEALTH_VIEWPORT_H = 1300;
 const FIGURES_MANIFEST = "pages.json";
 const FIGURES_COMMENT = "Written by HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs beside the pictures it takes; "
   + "tests/card_browser.mjs compares the live card to it (P40) and tests/doc_claims.py compares each PNG to it. "
@@ -1303,6 +1422,7 @@ function instrument() {
       if (op === "cardClick") c._onCardClick({});
       else if (op === "open") c.dialog.open();
       else if (op === "stat") { const el = root().querySelector(`[data-stat='${a1}']`); if (el) click(el); else missed.push(`${op} ${a1}`); }
+      else if (op === "fold") { const el = root().querySelector(`[data-fold='${a1}']`); if (el) el.click(); else missed.push(`${op} ${a1}`); }
       else if (op === "chip") { const el = root().querySelector(`.chip[data-key='${a1}']`); if (el) el.click(); else missed.push(`${op} ${a1}`); }
       else if (op === "hover") {
         await frame();
@@ -1672,14 +1792,19 @@ try {
   // The shipped defect: three chips 0.33px apart on a 65k axis read as
   // one chip and hid three traces at once. Chips must be pairwise
   // separated by a visible gap, and every chip label must fit its box.
+  // The chips render only in the expanded dialog (R10-CARD-COLLAPSE), so they
+  // are measured there, and the dialog closed again for the checks below.
   const chips = await page.evaluate(() => {
+    window.__card.dialog.open();
     const root = window.__card.shadowRoot;
-    return [...root.querySelectorAll(".legend-chip, .chip")].map((el) => {
+    const out = [...root.querySelectorAll(".legend-chip, .chip")].map((el) => {
       const b = el.getBoundingClientRect();
       return { x: b.x, y: b.y, w: b.width, h: b.height,
                text: (el.textContent || "").trim(),
                overflow: el.scrollWidth > el.clientWidth + 1 };
     });
+    window.__card.dialog.close();
+    return out;
   });
   check("legend chips exist for the rendered traces", chips.length >= 2,
     `${chips.length} chip(s): ${chips.map((c) => c.text).join(" | ")}`);
@@ -3177,6 +3302,7 @@ try {
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
+  await cardCollapse({ browser, check, plan, out: process.env.HPO_NL_OUT });
 } finally {
   await browser.close();
 }

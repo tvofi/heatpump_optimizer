@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:rotation RETURN_DEL 3c8864c0",
+  "killed_by": "tests/structure.py",
+  "old": "    return _ROTATIONS.setdefault(owner, Rotation())",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

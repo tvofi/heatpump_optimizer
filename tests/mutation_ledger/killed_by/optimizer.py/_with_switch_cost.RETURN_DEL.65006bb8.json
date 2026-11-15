@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_with_switch_cost RETURN_DEL 65006bb8",
+  "killed_by": "tests/plan_view.py",
+  "old": "    return level_cost if switch_cost is None else level_cost + switch_cost",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_signals.py:read_electric_heat BOOLOP c75fa8ed",
+  "killed_by": "tests/features.py",
+  "old": "    started = booster is True and was is False",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`started = booster is True or was is False`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

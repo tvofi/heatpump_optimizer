@@ -218,6 +218,11 @@ ev_case_collision() { # <commit> -> "<a> and <b>" for the first two names under 
       if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }'
 }
 
+pending_red_seen() { # <state dir> <ref sha head> -> the epoch of that key's first RED read, nothing when none (R10-REVIEW-DISPATCH-RESIDUE)
+  awk -v k="$2 " 'index($0, k) == 1 { print substr($0, length(k) + 1); exit }' "$1/cloud-pending-red" 2>/dev/null; }
+pending_red_clear() { # <state dir> <ref sha head>: a check ran (WAIT or GREEN), so the next RED starts a new clock
+  [ -f "$1/cloud-pending-red" ] && { awk -v k="$2 " 'index($0, k) != 1' "$1/cloud-pending-red" > "$1/cloud-pending-red.$$"; mv -f "$1/cloud-pending-red.$$" "$1/cloud-pending-red"; }; return 0; }
+
 relay() { # <pr> <nonce> <head> [<topic>]: with a topic, the verdict was returned at the handoff (probe/revt-<topic>-<n8>, subject `verdict <topic> <head>`)
   local pr=$1 nonce=$2 head=$3 topic=${4:-} ref sha d subj first state led key=$1
   case $pr in ''|*[!0-9]*) die "pr '$pr' is not a number"; return;; esac
@@ -259,19 +264,39 @@ relay() { # <pr> <nonce> <head> [<topic>]: with a topic, the verdict was returne
   # PENDING-CI (R10-CLOUD-POOL carry 5, moved to R10-DISPATCH-AT-HANDOFF): a reviewer whose review is complete
   # while CI at the head is still pending returns the verdict with a `pending-ci: <why>` line instead of waiting
   # without bound. The relay posts it only once classify reads the head GREEN; WAIT holds it (rc 75, one line
-  # each pass, retried); RED refuses it (the PR goes back to its fixer); a PR head that moved refuses the draft,
-  # with the head it was drafted at and the head now.
+  # each pass, retried). A PR head that moved is asked of review_carry (--verdict-only): CARRY classifies the LIVE
+  # head and posts on GREEN (the verdict names the drafted head, as a handoff verdict does), anything else refuses
+  # the draft, with the head it was drafted at and the head now. RED holds as WAIT does (a red the branch did not
+  # cause clears when main is merged, or when a judged run ends, with no fixer work: PRs 3425 and 3430) and is
+  # refused only after HPO_RELAY_PENDING_RED_SECS (default 21600) since the first RED read at that head, no
+  # check having run in between (a WAIT or GREEN read clears the record). Both refusals are OWED re-dispatch.
   if grep -q '^pending-ci: ' "$d/verdict.md"; then  # mut:pendingci
-    local live cls crc
+    local live cls crc cl=$head carried= rkey redsecs=${HPO_RELAY_PENDING_RED_SECS:-21600} seen reds
     live=$(if [ -n "${HPO_RELAY_PRHEAD:-}" ]; then "$HPO_RELAY_PRHEAD" "$pr"; else gh pr view "$pr" -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --json headRefOid --jq .headRefOid; fi 2>/dev/null)
     if ! printf '%s' "$live" | grep -Eq '^[0-9a-f]{40}$'; then echo "cloud_relay: #$pr's head could not be read, so its pending-ci draft is held" >&2; return 75; fi
-    [ "$live" = "$head" ] || { die "the head moved under a pending-ci draft: drafted at $head, #$pr is at $live; it is not posted, and the PR is re-dispatched at its head"; return; }  # mut:pendinghead
-    cls=$(${HPO_RELAY_CLASSIFY:-python3 -I "$HERE/merge_train.py" classify} "$head" --repo "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --pr "$pr" 2>&1); crc=$?
+    case $redsecs in ''|*[!0-9]*) echo "cloud_relay: HPO_RELAY_PENDING_RED_SECS must be seconds; the pending-ci draft is held" >&2; return 75;; esac
+    if [ "$live" != "$head" ]; then
+      git fetch -q origin "$head" "$live" 2>/dev/null || :
+      if ${HPO_RELAY_CARRY:-python3 -I "$HERE/review_carry.py"} "$head" "$live" --verdict-only >/dev/null 2>&1; then  # mut:pendingcarry
+        cl=$live; carried=" (the verdict carried from ${head:0:12}: review_carry CARRY)"
+      else
+        echo "cloud_relay: OWED re-dispatch #$pr $live"
+        die "the head moved under a pending-ci draft: drafted at $head, #$pr is at $live; it is not posted"; return  # mut:pendinghead
+      fi
+    fi
+    rkey="$ref $sha $cl"
+    cls=$(${HPO_RELAY_CLASSIFY:-python3 -I "$HERE/merge_train.py" classify} "$cl" --repo "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --pr "$pr" 2>&1); crc=$?
     case $crc in
-      0|4) echo "cloud_relay: pending-ci draft for #$pr: CI at $head is now GREEN (classify rc $crc); relaying" ;;
-      3) echo "cloud_relay: HELD-PENDING-CI #$pr $head: $(sed -n 's/^WAIT *//p' <<< "$cls" | head -n 1) (classify WAIT); the draft posts when CI is green"; return 75 ;;
-      1) die "CI is red at $head (classify RED): a pending-ci draft is not posted over a red; the PR goes back to its fixer"; return ;;
-      *) echo "cloud_relay: classify could not read $head (rc $crc): $(last_line "$cls"); the pending-ci draft is held" >&2; return 75 ;;
+      0|4) pending_red_clear "$state" "$rkey"; echo "cloud_relay: pending-ci draft for #$pr: CI at $cl is now GREEN (classify rc $crc)$carried; relaying" ;;
+      3) pending_red_clear "$state" "$rkey"; echo "cloud_relay: HELD-PENDING-CI #$pr $cl: $(sed -n 's/^WAIT *//p' <<< "$cls" | head -n 1) (classify WAIT); the draft posts when CI is green"; return 75 ;;
+      1) reds=$(sed -n 's/^RED *//p' <<< "$cls" | head -n 1); seen=$(pending_red_seen "$state" "$rkey")
+        if [ -n "$seen" ] && [ $(($(date +%s) - seen)) -ge "$redsecs" ]; then  # mut:pendingredbound
+          echo "cloud_relay: OWED re-dispatch #$pr $cl"
+          die "CI has read RED at $cl since $(date -u -d "@$seen" +%FT%TZ) with no check running ($reds; classify RED): a pending-ci draft is not posted over a red"; return
+        fi
+        [ -n "$seen" ] || { mkdir -p "$state" && printf '%s %s\n' "$rkey" "$(date +%s)" >> "$state/cloud-pending-red"; }
+        echo "cloud_relay: HELD-PENDING-CI-RED #$pr $cl: $reds (classify RED)"; return 75 ;;  # mut:pendingredhold
+      *) echo "cloud_relay: classify could not read $cl (rc $crc): $(last_line "$cls"); the pending-ci draft is held" >&2; return 75 ;;
     esac
   fi
   local out sha2 wt tip tries=0
@@ -340,6 +365,7 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
     case $ref in refs/heads/probe/rev-*|refs/heads/probe/revt-*) ;;
       *) disposed "$ref" "$sha" || { level_line probe-ref "$ref" "$sha" >> "$state/cloud-level-probe.$$"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
     if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then continue; fi
+    if disposed "$ref" "$sha"; then continue; fi  # mut:probedispose -- handled by the orchestrator at this sha; relayed again once it moves
     if [ -f "$led.refused" ] && grep -qxF "$ref $sha" "$led.refused"; then
       # a refusal is owed until disposed; one recorded before reasons were kept stays silent
       why=$(awk -v r="$ref" -v s="$sha" '$1 == r && $2 == s { $1 = $2 = ""; w = substr($0, 3) } END { print w }' "$led.refused-why" 2>/dev/null)
@@ -760,21 +786,47 @@ stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SE
 # cloud-sessions file is written anywhere in the tree, so the session id is not named; the
 # dispatch tip and its age are. Past HPO_RELAY_NORETURN_WINDOW_SECS (default 172800) a dispatch
 # falls off: its refs may be gone with a merged branch. Deleting the dispatch ref disposes it.
-# A listing or fetch that fails leaves the level as it was. Reviewer and designer seats are out
-# of scope: a reviewer's missing verdict is reviewer-fire's, in the ledger.
+# A listing or fetch that fails leaves the level as it was. Designer seats are out of scope.
+# A reviewer on dispatch/reviewer-* is covered by the same arm with its own bound,
+# HPO_RELAY_NORETURN_REVIEWER_SECS (default 5400, above the 66 min longest returner measured in the
+# s13/rca-noreturn RCA; the fixer's bound stays HPO_RELAY_NORETURN_SECS): one whose dispatch tip is older than
+# that, whose PROMPT.md nonce (first 8) names no probe/rev-<pr>-<n8> or probe/revt-<topic>-<n8>, and whose PR
+# head (read by HPO_RELAY_PRHEAD, else gh) is still the dispatched head, is owed on the same level. A moved
+# head means the dispatch was superseded, and an unreadable head is silent (unknown is not owed). The
+# ledger's reviewer-fire entry closes at the fire, so nothing else owes a reviewer that never returned.
 noreturn_arm() {
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} lim=${HPO_RELAY_NORETURN_SECS:-7200} win=${HPO_RELAY_NORETURN_WINDOW_SECS:-172800}
-  local now sha ref topic t age r rs moved
-  case $lim$win in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW must be seconds; the level stays" >&2; return 0;; esac
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} lim=${HPO_RELAY_NORETURN_SECS:-7200} win=${HPO_RELAY_NORETURN_WINDOW_SECS:-172800} rlim=${HPO_RELAY_NORETURN_REVIEWER_SECS:-5400}
+  local now sha ref topic t age r rs moved first rpr rhead rn8 rlive
+  case $lim$win$rlim in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW/REVIEWER_SECS must be seconds; the level stays" >&2; return 0;; esac
   mkdir -p "$state" || return 0
   # Only the dispatch refs are listed by glob; each candidate's return refs are asked by name, so no
   # glob here lists a handoff-wip step ref (cloud_dispatch.py pins that no handoff arm sees one).
-  git ls-remote origin 'refs/heads/dispatch/fixer-*' > "$state/cloud-nr.$$" \
-    && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' 2>/dev/null \
+  git ls-remote origin 'refs/heads/dispatch/fixer-*' 'refs/heads/dispatch/reviewer-*' > "$state/cloud-nr.$$" \
+    && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' '+refs/heads/dispatch/reviewer-*:refs/hpo-relay/dispatch/reviewer-*' 2>/dev/null \
     || { echo "cloud_relay: the dispatch refs could not be read; the no-return level stays" >&2; rm -f "$state/cloud-nr.$$"; return 0; }
   now=$(date +%s); : > "$state/cloud-level-nr.$$"
   while read -r sha ref; do
-    case $ref in refs/heads/dispatch/fixer-?*) topic=${ref#refs/heads/dispatch/fixer-} ;; *) continue ;; esac
+    case $ref in
+      refs/heads/dispatch/reviewer-?*)
+        t=$(git log -1 --format=%ct "$sha" 2>/dev/null) || continue; age=$((now - t))
+        [ "$age" -gt "$rlim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnrevage
+        first=$(git show "$sha:PROMPT.md" 2>/dev/null | head -n 1)
+        rn8=$(sed -n 's/^CLOUD REVIEWER seat for .*, at head [0-9a-f]\{40\}\. Bus nonce: \([0-9a-f]\{8\}\)[0-9a-f]*\..*/\1/p' <<< "$first")
+        rhead=$(sed -n 's/^CLOUD REVIEWER seat for .*, at head \([0-9a-f]\{40\}\)\. Bus nonce:.*/\1/p' <<< "$first")
+        rpr=$(sed -n 's/^CLOUD REVIEWER seat for PR #\([0-9][0-9]*\) of .*/\1/p' <<< "$first")
+        [ -n "$rn8" ] && [ -n "$rhead" ] || continue  # not a reviewer's prompt, or no nonce to match a return by
+        git ls-remote origin "refs/heads/probe/rev-*-$rn8" "refs/heads/probe/revt-*-$rn8" > "$state/cloud-nrr.$$" || continue
+        [ -s "$state/cloud-nrr.$$" ] && continue  # mut:noreturnrevret -- the verdict came back
+        if [ -n "$rpr" ]; then  # mut:noreturnrevmoved
+          rlive=$(if [ -n "${HPO_RELAY_PRHEAD:-}" ]; then "$HPO_RELAY_PRHEAD" "$rpr"; else gh pr view "$rpr" -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --json headRefOid --jq .headRefOid; fi 2>/dev/null)
+          [ "$rlive" = "$rhead" ] || continue
+        fi
+        echo "cloud_relay: SEAT ENDED NO RETURN reviewer ${rpr:+#$rpr }${ref#refs/heads/dispatch/reviewer-} (dispatch ${sha:0:12}, $((age / 60))min, no probe/rev ref and the PR head unmoved)"
+        level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN reviewer ${rpr:+#$rpr }${ref#refs/heads/dispatch/reviewer-} $((age / 60))min" >> "$state/cloud-level-nr.$$"
+        continue ;;
+      refs/heads/dispatch/fixer-?*) topic=${ref#refs/heads/dispatch/fixer-} ;;
+      *) continue ;;
+    esac
     t=$(git log -1 --format=%ct "$sha" 2>/dev/null) || continue
     age=$((now - t))
     [ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage
@@ -805,8 +857,8 @@ noreturn_arm() {
   rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
 }
 
-fold_judge() { # <memo> <level> <topic> <wip sha> <body sha> <outcome> <epoch> [<OWED level line>]: one judged topic, its level line set
-  printf '%s %s %s %s %s%s\n' "$3" "$4" "${5:--}" "$6" "$7" "${8:+ $8}" >> "$1"; [ -z "${8:-}" ] || printf '%s\n' "$8" >> "$2"; }
+fold_judge() { # <memo> <level> <topic> <wip sha> <body sha> <outcome> <epoch> <BODY.md blob|-> <handoff tip|-> [<OWED level line>]: one judged topic, its level line set
+  printf '%s %s %s %s %s %s %s%s\n' "$3" "$4" "${5:--}" "$6" "$7" "$8" "$9" "${10:+ ${10}}" >> "$1"; [ -z "${10:-}" ] || printf '%s\n' "${10}" >> "$2"; }
 fold_memo_stands() { # <outcome> <epoch> <now>: rc 0 while a judged outcome stands; a failure after the fold expires after 3600 s
   case $1:$2 in blocked:*|folded:*) return 0;; fold-failed:[0-9]*|push-failed:[0-9]*) [ $(($3 - $2)) -lt 3600 ];; *) return 1;; esac; }  # mut:foldttl
 carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md names CARRY-LANDED alone: fold the kept body's carries, re-run body_push.sh
@@ -815,13 +867,15 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
   # by hand (4 times on 2026-11-06, twice more on 11-07). The refusal is folded only when it is the ONLY kind the
   # BLOCKED.md names and the refused body is kept on handoff-wip/<topic>-body; any other BLOCKED.md prints a tick
   # line and folds nothing. carry_fold.py is the designated roster writer; HPO_RELAY_FOLD / HPO_RELAY_BODYPUSH replace the two steps.
-  # Every judged (wip sha, body sha) is memoed in cloud-fold-judged, `<topic> <wip> <body|-> <outcome> <epoch> [<OWED line>]`
-  # (P580); a (topic, body) cloud-folded holds is skipped unmemoed. A memoed pair is neither fetched nor shown, and its
+  # Every judged (wip sha, body sha) is memoed in cloud-fold-judged, `<topic> <wip> <body|-> <outcome> <epoch> <blob|-> <handoff tip|-> [<OWED line>]`
+  # (P580); a (topic, body) cloud-folded holds is skipped unmemoed. body_push.sh keeps every refused body as a NEW parentless
+  # commit, so a failure memoed under the kept commit never hits again (r10-train-residue: four kept commits in an hour,
+  # one BODY.md blob): a failed fold or push also stands for a later kept body with the same stop, BODY.md blob and handoff tip. A memoed pair is neither fetched nor shown, and its
   # stored line is set again, because level_set replaces the whole carry-fold level. A failure after the fold is judged
   # again once fold_memo_stands expires it: an ancestry red can clear with no ref moving. The body is pushed from a
   # worktree at a private ref fetched from handoff/<topic>, deleted after the push, never FETCH_HEAD, which a concurrent
   # fetch in this checkout overwrites, and only at that ref's ls-remote tip (P556).
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc memo now mo me ml htip head
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc memo now mo me ml htip head mb mh blob fo fe fb fh fl
   git ls-remote origin 'refs/heads/handoff-wip/*' 'refs/heads/handoff/*' > "$state/cloud-wip.$$" \
     || { echo "cloud_relay: could not list handoff-wip refs; the carry-fold level stays as it was" >&2; rm -f "$state/cloud-wip.$$"; return 0; }
   memo=$state/cloud-fold-judged; now=$(date +%s)
@@ -830,28 +884,40 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     case $ref in refs/heads/handoff-wip/*) topic=${ref#refs/heads/handoff-wip/};; *) continue;; esac
     case $topic in ''|*/*|*-body|*-carries|*-body-*) continue;; esac
     bsha=$(awk -v r="refs/heads/handoff-wip/$topic-body" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
-    mo= me= ml=; [ -f "$memo" ] && read -r _ _ _ mo me ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
+    htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$"); blob=-
+    mo= me= ml= mb= mh=; [ -f "$memo" ] && read -r _ _ _ mo me mb mh ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
+    [ "${#mb}" = 40 ] || [ "$mb" = - ] || mo=  # a record from before the blob and tip fields is judged again
     if [ -n "$mo" ] && fold_memo_stands "$mo" "$me" "$now"; then
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$mo" "$me" "$ml"; continue  # mut:foldmemo
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$mo" "$me" "$mb" "$mh" "$ml"; continue  # mut:foldmemo
     fi
+    # A failed fold or push stands over a moved kept body when its BODY.md blob, the stop and handoff/<topic>'s tip all
+    # equal the record's; the record keeps its first epoch, so the retry bound runs from the first failure.
+    fo= fe= fb= fh= fl=; [ -n "$bsha" ] && [ -n "$htip" ] && [ -f "$memo" ] \
+      && read -r _ _ _ fo fe fb fh fl < <(awk -v t="$topic" -v w="$sha" -v h="$htip" '$1 == t && $2 == w && ($4 == "fold-failed" || $4 == "push-failed") && $7 == h { print; exit }' "$memo")
+    if [ -n "$fo" ] && fold_memo_stands "$fo" "$fe" "$now" \
+      && git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && blob=$(git rev-parse "$bsha:BODY.md" 2>/dev/null) && [ "$blob" = "$fb" ]; then  # mut:foldblob
+      echo "cloud_relay: OWED carry-fold $topic unchanged since $(date -u -d "@$fe" +%FT%TZ): ${fl#*"$sha "}"
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$fo" "$fe" "$fb" "$fh" "$fl"; continue
+    fi
+    blob=-
     [ -f "$state/cloud-folded" ] && grep -qxF "$topic $bsha" "$state/cloud-folded" && continue
     git fetch -q origin "$ref" 2>/dev/null && bw=$(git show "$sha:BLOCKED.md" 2>/dev/null) || continue
     kinds=$(printf '%s\n' "$bw" | sed -n 's/^body_push: REFUSED \([A-Z-]*\)[[:space:]]*$/\1/p' | sort -u | tr '\n' ' ')
     if [ "$kinds" != "CARRY-LANDED " ] || [ -z "$bsha" ]; then  # mut:foldonly
       why="BLOCKED.md names ${kinds:-no refusal line}${bsha:+; }${bsha:-and no kept body}: not CARRY-LANDED alone, nothing folded"
       echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} $why"
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" blocked "$now" "$(level_line carry-fold "$ref" "$sha" "$why")"; continue
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" blocked "$now" - "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "$why")"; continue
     fi
     body=$state/cloud-fold-$topic.md
     git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && git show "$bsha:BODY.md" > "$body" 2>/dev/null \
       || { echo "cloud_relay: no BODY.md at handoff-wip/$topic-body; nothing folded" >&2; continue; }
+    blob=$(git rev-parse "$bsha:BODY.md" 2>/dev/null || echo -)
     rc=0; why=$(${HPO_RELAY_FOLD:-python3 -I "$HERE/carry_fold.py"} --body "$body" --topic "$topic" --worktree "$state/cloud-fold-wt" 2>&1) || rc=$?
     if [ $rc != 0 ]; then
       why=$(last_line "$why"); echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} carry_fold rc=$rc: $why"
-      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" fold-failed "$now" "$(level_line carry-fold "$ref" "$sha" "carry_fold rc=$rc: $why")"; continue
+      fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" fold-failed "$now" "$blob" "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "carry_fold rc=$rc: $why")"; continue
     fi
     wt=$state/cloud-fold-code; rm -rf "$wt"; git worktree prune; rc=1
-    htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
     if [ -z "$htip" ] || ! git fetch -q origin "+refs/heads/handoff/$topic:refs/hpo-relay/fold/$topic" 2>/dev/null \
       || ! git worktree add -q --detach "$wt" "refs/hpo-relay/fold/$topic" 2>/dev/null; then  # mut:foldref
       why="no handoff/$topic to push the body from"; echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} $why"
@@ -865,8 +931,8 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     fi
     git worktree remove --force "$wt" 2>/dev/null; git update-ref -d "refs/hpo-relay/fold/$topic" 2>/dev/null
     if [ $rc = 0 ]; then echo "$topic $bsha" >> "$state/cloud-folded"; echo "cloud_relay: FOLDED $topic: carries landed, body_push.sh pushed handoff-body/$topic"
-      fold_judge "$memo.$$" /dev/null "$topic" "$sha" "$bsha" folded "$now"
-    else fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" push-failed "$now" "$(level_line carry-fold "$ref" "$sha" "$why")"
+      fold_judge "$memo.$$" /dev/null "$topic" "$sha" "$bsha" folded "$now" "$blob" "${htip:--}"
+    else fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" push-failed "$now" "$blob" "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "$why")"
     fi
   done < "$state/cloud-wip.$$"
   mv -f "$memo.$$" "$memo"; level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$"
@@ -1176,6 +1242,14 @@ EOF
   X=$t/other.log; printf 'OWED 2026-01-01T00:00:00Z probe-ref refs/heads/probe/scan-y %s\n' "$h" > "$X.level"
   chk "dispose --log FILE (the CLI) takes the ref" 0 bash "$HERE/cloud_relay.sh" dispose --log "$X" refs/heads/probe/scan-y "$h"
   chk "and drops its line from the level beside that log" 1 grep -q scan-y "$X.level"
+  # Carry 30: a rev-/revt- ref the orchestrator disposed at its sha is not relayed; once it moves it is relayed at the new sha.
+  rm -f "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.refused-why" "$t/state/cloud-relayed.tries" "$t/pushed"
+  R30=refs/heads/probe/rev-5-${n:0:8}; mk 5 $h $h $n; probe_arm >/dev/null 2>&1
+  chk "null control: an undisposed rev- ref is relayed (pushed for #5)" 0 test "$(cat "$t/pushed" 2>/dev/null)" = 5
+  mk 5 $h $h $n; P30=$(git -C "$t/o.git" rev-parse "$R30"); dispose "$R30" "$P30" >/dev/null; rm -f "$t/pushed"; T30=$(rtip 5); probe_arm >/dev/null 2>&1
+  chk "a rev- ref disposed at its sha is not relayed: nothing pushed, review/5 unmoved" 0 test ! -s "$t/pushed" -a "$(rtip 5)" = "$T30" -a -z "$(grep -x "$R30 $P30" "$t/state/cloud-relayed")"
+  mk 5 $h $h $n; P30B=$(git -C "$t/o.git" rev-parse "$R30"); probe_arm >/dev/null 2>&1
+  chk "null control: a disposed ref whose tip moved is relayed at the new sha" 0 test "$P30B" != "$P30" -a "$(cat "$t/pushed" 2>/dev/null)" = 5 -a -n "$(grep -x "$R30 $P30B" "$t/state/cloud-relayed")"
   # A verdict returned at the handoff (Carry 0): probe/revt-<topic>-<n8>, held until the topic's PR opens (bus.sh rekey),
   # relayed when review_carry answers CARRY for handoff-head..PR-head, refused as stale when it does not.
   LOG=$t/topicv.log; LV=$LOG.level; : > "$LOG"; rm -f "$LV" "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.refused-why" "$t/state/cloud-relayed.tries"
@@ -1208,12 +1282,16 @@ EOF
   chk "null control: the same verdict over a head that carries is relayed at the handoff head, on #71" 0 test "$(cat "$t/pushed")" = 71
   chk "and the carry predicate was asked handoff-head then PR-head" 0 grep -qx "$th $PH --verdict-only" "$t/carry.args"
   chk "and its ref and sha are recorded as relayed" 0 grep -q "^refs/heads/probe/revt-tp-1-${tn:0:8} " "$t/state/cloud-relayed"
+  mkt tp-1 $th; RT30=refs/heads/probe/revt-tp-1-${tn:0:8}; PT30=$(git -C "$t/o.git" rev-parse "$RT30"); dispose "$RT30" "$PT30" >/dev/null; : > "$t/pushed"; out=$(probe_arm 2>&1)
+  chk "Carry 30: a revt- ref disposed at its sha is not relayed either" 0 test ! -s "$t/pushed" -a -z "$(grep -x "$RT30 $PT30" "$t/state/cloud-relayed")"
+  mkt tp-1 $th; probe_arm >/dev/null 2>&1
+  chk "and a disposed revt- ref that moved is relayed at its new sha (null control)" 0 test "$(cat "$t/pushed")" = 71
   unset HPO_RELAY_PRHEAD HPO_RELAY_CARRY
   # PENDING-CI drafts (R10-CLOUD-POOL carry 5): a verdict carrying `pending-ci:` posts only when classify reads its head GREEN.
   rm -f "$t/state/cloud-relayed" "$t/pushed"; HPO_RELAY_PUSH=$stub; CONFIRM=
   clstub=$t/classify.sh; printf '#!/bin/sh\necho "$@" > "%s/classify.args"\ncase "$(cat "%s/cls")" in 0) echo GREEN;; 3) echo "WAIT tests / fast gate";; 1) echo "RED tests / fast gate red: x";; *) echo boom;; esac\nexit "$(cat "%s/cls")"\n' "$t" "$t" "$t" > "$clstub"; chmod +x "$clstub"
   phh=$t/ph-h.sh; printf '#!/bin/sh\necho %s\n' "$h" > "$phh"; chmod +x "$phh"; phm=$t/ph-m.sh; printf '#!/bin/sh\necho %s\n' "$PH" > "$phm"; chmod +x "$phm"
-  mkp() { mk 72 $h $h $n; rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "pc $h" > "$t/pr/ev/e"
+  mkp() { mk 72 $h $h $n; rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "pc $h $((c=c+1))" > "$t/pr/ev/e"
     printf 'Fix review: merge %s\n\nbus-nonce: %s\npending-ci: tests / fast gate\n' "$h" "$n" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict 72 $h"; git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-72-${n:0:8}"; }
   export HPO_RELAY_CLASSIFY=$clstub HPO_RELAY_PRHEAD=$phh; mkp
@@ -1222,8 +1300,8 @@ EOF
   chk "and nothing is pushed or recorded while it is held" 0 test ! -s "$t/pushed" -a ! -s "$t/state/cloud-relayed"
   chk "classify was asked the head and the PR" 0 grep -qx "$h --repo tvofi/heatpump_optimizer --pr 72" "$t/classify.args"
   echo 1 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
-  chk "a pending-ci draft over a RED head is refused (rc 2), naming the red" 0 test "$rc" = 2 -a -n "$(grep -m1 'classify RED' <<< "$out")"
-  export HPO_RELAY_PRHEAD=$phm; echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a pending-ci draft over a RED head is held (rc 75), naming the red, not refused (R10-REVIEW-DISPATCH-RESIDUE carry 23)" 0 test "$rc" = 75 -a -n "$(grep -m1 "HELD-PENDING-CI-RED #72 $h: tests / fast gate red: x (classify RED)" <<< "$out")"
+  export HPO_RELAY_PRHEAD=$phm HPO_RELAY_CARRY=$cstubno; echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
   chk "a pending-ci draft whose PR head moved is refused (rc 2), naming both heads, though CI is green" 0 test "$rc" = 2 -a -n "$(grep -m1 "drafted at $h, #72 is at $PH" <<< "$out")"
   export HPO_RELAY_PRHEAD=$phh; echo 9 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
   chk "an unreadable classify holds the draft (rc 75), never reads it as green" 0 test "$rc" = 75 -a ! -s "$t/pushed"
@@ -1231,6 +1309,40 @@ EOF
   chk "null control: the same draft over a GREEN head at the same head relays on #72" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
   rm -f "$t/state/cloud-relayed" "$t/pushed"; mk 72 $h $h $n; echo 3 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
   chk "null control: a verdict with no pending-ci line never asks classify (a WAIT head still relays)" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
+  # Carry 21: a moved head is asked of review_carry; CARRY classifies the LIVE head and posts on GREEN.
+  rm -f "$t/state/cloud-relayed" "$t/pushed" "$t/carry.args" "$t/classify.args"; mkp
+  export HPO_RELAY_PRHEAD=$phm HPO_RELAY_CARRY=$cstubok; echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "moved head + review_carry CARRY + GREEN at the live head posts on #72, saying the verdict was carried" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72 -a -n "$(grep -m1 'GREEN.*verdict carried from' <<< "$out")"
+  chk "and review_carry was asked drafted head then live head, and classify the live head" 0 grep -qx "$h $PH --verdict-only" "$t/carry.args" -a "$(cut -d' ' -f1 "$t/classify.args")" = "$PH"
+  rm -f "$t/state/cloud-relayed" "$t/pushed"; mkp; export HPO_RELAY_CARRY=$cstubno; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "moved head + review_carry FRESH-REVIEW + GREEN refuses (rc 2), posts nothing, owes the re-dispatch" 0 test "$rc" = 2 -a ! -s "$t/pushed" -a -n "$(grep -m1 "^cloud_relay: OWED re-dispatch #72 $PH" <<< "$out")"
+  export HPO_RELAY_CARRY=$cstubun; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "moved head + review_carry CANNOT DECIDE refuses as today (rc 2)" 0 test "$rc" = 2 -a ! -s "$t/pushed"
+  export HPO_RELAY_CARRY=$cstubok; echo 3 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "moved head + CARRY + WAIT at the live head holds (rc 75), naming the live head" 0 test "$rc" = 75 -a ! -s "$t/pushed" -a -n "$(grep -m1 "HELD-PENDING-CI #72 $PH" <<< "$out")"
+  echo 1 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "moved head + CARRY + RED at the live head posts nothing (held rc 75, the red is not the carry's to post over)" 0 test "$rc" = 75 -a ! -s "$t/pushed"
+  rm -f "$t/state/cloud-pending-red"
+  export HPO_RELAY_PRHEAD=$phh; rm -f "$t/carry.args"; echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "null control: the same head + GREEN posts as today and never asks review_carry" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72 -a ! -e "$t/carry.args"
+  # Carry 23: RED holds (rc 75) and is refused only past the bound since its first read at that head.
+  rm -f "$t/state/cloud-relayed" "$t/pushed" "$t/state/cloud-pending-red"; mkp; echo 1 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "RED records its first read in the state dir, keyed ref sha head" 0 grep -qE "^refs/heads/probe/rev-72-${n:0:8} [0-9a-f]{40} $h [0-9]+$" "$t/state/cloud-pending-red"
+  echo 1 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a second RED pass holds again and keeps the first read (one record)" 0 test "$rc" = 75 -a "$(grep -c . "$t/state/cloud-pending-red")" = 1
+  echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "RED, then GREEN at the same head, posts on #72 and clears the record" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72 -a ! -s "$t/state/cloud-pending-red"
+  rm -f "$t/state/cloud-relayed" "$t/pushed"; mkp; echo 1 > "$t/cls"; relay 72 $n $h >/dev/null 2>&1; echo 3 > "$t/cls"; relay 72 $n $h >/dev/null 2>&1
+  chk "a WAIT read between two REDs clears the record (a check ran, so the clock restarts)" 0 test ! -s "$t/state/cloud-pending-red"
+  echo 1 > "$t/cls"; relay 72 $n $h >/dev/null 2>&1; export HPO_RELAY_PENDING_RED_SECS=0; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "RED past the bound refuses (rc 2), prints the OWED re-dispatch line, posts nothing" 0 test "$rc" = 2 -a ! -s "$t/pushed" -a -n "$(grep -m1 "^cloud_relay: OWED re-dispatch #72 $h$" <<< "$out")"
+  chk "and the first RED read never refuses, whatever the bound (null control: nothing to age yet)" 0 test "$(rm -f "$t/state/cloud-pending-red"; relay 72 $n $h >/dev/null 2>&1; echo $?)" = 75
+  # a non-numeric bound is refused before classify is read: GREEN would otherwise post
+  rm -f "$t/state/cloud-relayed" "$t/pushed" "$t/state/cloud-pending-red"; mkp; echo 0 > "$t/cls"; export HPO_RELAY_PENDING_RED_SECS=abc; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a non-numeric HPO_RELAY_PENDING_RED_SECS holds the pending-ci draft (rc 75), says why, and posts nothing even at GREEN" 0 test "$rc" = 75 -a ! -s "$t/pushed" -a -n "$(grep -m1 'HPO_RELAY_PENDING_RED_SECS must be seconds' <<< "$out")"
+  export HPO_RELAY_PENDING_RED_SECS=60; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "null control: a numeric bound at the same GREEN head posts" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
+  unset HPO_RELAY_PENDING_RED_SECS HPO_RELAY_CARRY; rm -f "$t/state/cloud-pending-red"
   unset HPO_RELAY_CLASSIFY HPO_RELAY_PRHEAD
   # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
   unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
@@ -1878,6 +1990,31 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   LOG=$t/nr2.log; : > "$LOG"; nrc dispatch/fixer-nr-p 10800
   nro=$(handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1)
   chk "a pass runs the no-return arm" 0 grep -q "SEAT ENDED NO RETURN nr-p " <<< "$nro"
+  # Carry 7: a reviewer dispatched (dispatch/reviewer-*) past HPO_RELAY_NORETURN_REVIEWER_SECS with no probe/rev ref and an unmoved PR head.
+  LOG=$t/nr3.log; : > "$LOG"; rm -f "$LOG.level"; RH=$h; RM=2222222222222222222222222222222222222222
+  printf '#!/bin/sh\ncase "$1" in 3400) echo %s;; *) echo %s;; esac\n' "$RM" "$RH" > "$t/nrph.sh"; chmod +x "$t/nrph.sh"; export HPO_RELAY_PRHEAD=$t/nrph.sh
+  nrn() { printf '%08d%s' "$1" abcdef0123456789abcdef01; }  # the nonce for PR <n>: its first 8 name the return ref
+  nrv() { # <pr> <age s> <returned 0|1>: dispatch/reviewer-rev-<pr> aged <age>, its PROMPT.md first line as cloud_dispatch.py renders it
+    printf 'CLOUD REVIEWER seat for PR #%s of tvofi/heatpump_optimizer, at head %s. Bus nonce: %s. Never send push notifications.\n' "$1" "$RH" "$(nrn "$1")" > "$t/nr/PROMPT.md"
+    git -C "$t/nr" add PROMPT.md; nrc dispatch/reviewer-rev-$1 "$2"; git -C "$t/nr" rm -q --cached PROMPT.md; rm -f "$t/nr/PROMPT.md"
+    [ "$3" != 1 ] || nrc probe/rev-$1-$(nrn "$1" | cut -c1-8) 60; }
+  for pr in 3339 3350 3297 3325; do nrv $pr 6000 0; done; for pr in 3352 3353 3304 3359; do nrv $pr 6000 1; done
+  nrv 3400 6000 0; nrv 3401 4000 0; nrc dispatch/fixer-nr-mid 6000
+  nro=$(noreturn_arm 2>&1)
+  for pr in 3339 3350 3297 3325; do chk "Carry 7: reviewer #$pr dispatched 100 min ago with no probe/rev ref is SEAT ENDED NO RETURN" 0 grep -q "SEAT ENDED NO RETURN reviewer #$pr rev-$pr (dispatch [0-9a-f]\{12\}, 100min" <<< "$nro"; done
+  chk "and owed seat-no-return on the level" 0 grep -qE "^OWED [^ ]+ seat-no-return refs/heads/dispatch/reviewer-rev-3339 [0-9a-f]{40} SEAT ENDED NO RETURN reviewer #3339 rev-3339 100min$" "$LOG.level"
+  for pr in 3352 3353 3304 3359; do chk "Carry 7: reviewer #$pr whose probe/rev-$pr-<n8> came back is silent" 1 grep -q "reviewer #$pr " <<< "$nro"; done
+  chk "a reviewer whose PR head moved since the dispatch is silent" 1 grep -q "reviewer #3400 " <<< "$nro"
+  chk "a reviewer dispatched 4000 s ago (under 5400 s) is silent" 1 grep -q "reviewer #3401 " <<< "$nro"
+  chk "the bounds are distinct: a fixer dispatched 6000 s ago (under 7200 s) is silent beside the reviewers" 1 grep -q " nr-mid " <<< "$nro"
+  nrv 3402 200000 0; nrv 3403 6000 0; nrc probe/revt-nr-topic-$(nrn 3403 | cut -c1-8) 60
+  nro=$(noreturn_arm 2>&1)
+  chk "a reviewer dispatched past HPO_RELAY_NORETURN_WINDOW_SECS (172800 s) is silent (null control: #3339 at 6000 s fires)" 1 grep -q "reviewer #3402 " <<< "$nro"
+  chk "a reviewer whose verdict came back as a handoff probe/revt-<topic>-<n8> is silent (null control: #3339 has no return ref)" 1 grep -q "reviewer #3403 " <<< "$nro"
+  chk "null control for both: the unreturned in-window reviewer #3339 still fires in the same pass" 0 grep -q "reviewer #3339 " <<< "$nro"
+  nro=$( git() { if [ "$1" = ls-remote ] && [[ "$*" == *"probe/rev-"* ]]; then return 1; fi; command git "$@"; }; noreturn_arm 2>&1)
+  chk "a failed return listing owes no reviewer (unknown is not owed; null control: the same dispatches fire in the pass above)" 1 grep -q "SEAT ENDED NO RETURN reviewer" <<< "$nro"
+  unset HPO_RELAY_PRHEAD
   # THE CARRY-FOLD ARM (R10-CARRY-RESIDUE-2 carry 14): a BLOCKED.md naming CARRY-LANDED alone, with its body kept on
   # handoff-wip/<topic>-body, is folded (carry_fold.py) and re-pushed (body_push.sh); any other block prints a line and folds nothing.
   throwaway_git_init "$t/cf.git" -q --bare; throwaway_git_init "$t/cfw" -q; cd "$t/cfw" || exit 1
@@ -1964,6 +2101,48 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "... with no cloud-folded entry" 1 grep -q "^cf-h " "$t/state/cloud-folded"
   chk "... no FOLDED announcement" 1 grep -q "FOLDED cf-h" <<< "$cfo"
   chk "... and no body_push.sh run" 1 grep -q "^cf-h " "$t/bps"
+  # Carry 17 (P566): body_push.sh keeps each refused body as a NEW parentless commit; a failed fold stands for a later kept
+  # body with the same stop, BODY.md blob and handoff tip, and runs again when any of the three moves.
+  printf '#!/bin/bash\necho "$@" >> %s/bpk\nexit 1\n' "$t" > "$t/bpfail"; chmod +x "$t/bpfail"; export HPO_RELAY_BODYPUSH=$t/bpfail
+  : > "$t/bpk"; cfref handoff/cf-k code.txt "code K"; cfref handoff-wip/cf-k BLOCKED.md "body_push: REFUSED CARRY-LANDED"
+  cfref handoff-wip/cf-k-body BODY.md "the body K"
+  cfo=$(carry_fold_arm 2>&1); kb1=$(cftip handoff-wip/cf-k-body)
+  chk "null control (carry 17): a stop with no record runs body_push.sh as today" 1 test "$(grep -c '^cf-k ' "$t/bpk")" != 1
+  GIT_AUTHOR_DATE="2001-01-01T00:00:00Z" GIT_COMMITTER_DATE="2001-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K"
+  chk "the train-residue shape: the refused body is kept again as a new commit with the same BODY.md blob" 1 test "$(cftip handoff-wip/cf-k-body)" = "$kb1"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "... and is not pushed again (same stop, blob and handoff tip)" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 1
+  chk "... the tick line says OWED, unchanged since the first failure" 0 grep -q "OWED carry-fold cf-k unchanged since 20[0-9-]*T[0-9:]*Z: body_push rc=1" <<< "$cfo"
+  chk "... and its OWED level line still stands" 0 grep -q "carry-fold refs/heads/handoff-wip/cf-k .*body_push rc=1" "$LOG.level"
+  cfref handoff-wip/cf-k-body BODY.md "the body K, edited"; carry_fold_arm >/dev/null 2>&1
+  chk "a changed BODY.md blob runs body_push.sh again" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 2
+  GIT_AUTHOR_DATE="2002-01-01T00:00:00Z" GIT_COMMITTER_DATE="2002-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"; carry_fold_arm >/dev/null 2>&1
+  chk "null control: the edited body kept again as a new commit is skipped" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 2
+  GIT_AUTHOR_DATE="2003-01-01T00:00:00Z" GIT_COMMITTER_DATE="2003-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"
+  cfref handoff/cf-k code.txt "code K, moved"; carry_fold_arm >/dev/null 2>&1
+  chk "a moved handoff/<topic> tip with the same blob runs body_push.sh again" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 3
+  GIT_AUTHOR_DATE="2004-01-01T00:00:00Z" GIT_COMMITTER_DATE="2004-01-01T00:00:00Z" cfref handoff-wip/cf-k-body BODY.md "the body K, edited"
+  awk -v e=$(( $(date +%s) - 3601 )) '$1 == "cf-k" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  carry_fold_arm >/dev/null 2>&1
+  chk "a record an hour old no longer stands over a new kept commit" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 4
+  # A failed carry_fold.py (fold-failed) stands over a re-kept body alike, and the standing record keeps its first epoch.
+  printf '#!/bin/bash\necho "$@" >> %s/fk\necho "fold refused"; exit 1\n' "$t" > "$t/foldfail"; chmod +x "$t/foldfail"
+  fsave=${HPO_RELAY_FOLD:-}; export HPO_RELAY_FOLD=$t/foldfail; : > "$t/fk"
+  cfref handoff/cf-f code.txt "code F"; cfref handoff-wip/cf-f BLOCKED.md "body_push: REFUSED CARRY-LANDED"
+  cfref handoff-wip/cf-f-body BODY.md "the body F"; carry_fold_arm >/dev/null 2>&1
+  e0=$(( $(date +%s) - 1800 ))
+  awk -v e=$e0 '$1 == "cf-f" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  GIT_AUTHOR_DATE="2005-01-01T00:00:00Z" GIT_COMMITTER_DATE="2005-01-01T00:00:00Z" cfref handoff-wip/cf-f-body BODY.md "the body F"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "a failed carry_fold.py (fold-failed) stands over a re-kept body with the same blob and handoff tip" 0 test "$(grep -c 'topic cf-f ' "$t/fk")" = 1
+  chk "... its tick line says OWED, unchanged" 0 grep -q "OWED carry-fold cf-f unchanged since" <<< "$cfo"
+  chk "... and the standing record keeps its first epoch, so the retry bound runs from the first failure" 0 \
+    awk -v e=$e0 '$1 == "cf-f" && $5 == e { f = 1 } END { exit !f }' "$t/state/cloud-fold-judged"
+  if [ -n "$fsave" ]; then export HPO_RELAY_FOLD=$fsave; else unset HPO_RELAY_FOLD; fi
+  cfref handoff-wip/cf-l BLOCKED.md "the fixer is stuck, again"; carry_fold_arm >/dev/null 2>&1
+  awk '$1 == "cf-l" { $6 = ""; $7 = ""; gsub(/  +/, " ") } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  : > "$t/fetches"; cfo=$(git() { [ "$1" != fetch ] || echo "$*" >> "$t/fetches"; command git "$@"; }; carry_fold_arm 2>&1)
+  chk "a memo record from before the blob and tip fields is judged again, not read with shifted fields" 0 grep -q "handoff-wip/cf-l\$" "$t/fetches"
   unset HPO_RELAY_FOLD HPO_RELAY_BODYPUSH; cd "$t/w" || exit 1
   cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]

@@ -1,0 +1,11 @@
+{
+  "_comment": "CI-priority order and knobs only; the group-to-tier mapping is read from the roster through roster_lib (see tools/audit/seat/ci_priority.py).",
+  "order": ["main-push", "cp-hotfix", "tier1", "instrument"],
+  "major_savings_h": 12,
+  "tiebreak": ["cp-rank", "savings-desc", "train-position", "age"],
+  "never_pause": ["main-push", "cp-hotfix", "train-head"],
+  "never_cancel": ["main-push", "cp-hotfix"],
+  "pause_queued_min": 5,
+  "pause_gap_min": 5,
+  "priority_cancel": false
+}

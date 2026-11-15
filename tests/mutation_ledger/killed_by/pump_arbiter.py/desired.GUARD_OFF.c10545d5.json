@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF c10545d5",
+  "killed_by": "tests/block_duty.py",
+  "old": "    if duty == \"space\" and mode != pump_mode.MODE_HEAT:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.add BOOLOP feb13356",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if not (np.isfinite(kwh) and np.isfinite(sek)):",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if not (np.isfinite(kwh) or np.isfinite(sek)):`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

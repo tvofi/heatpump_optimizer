@@ -111,6 +111,8 @@ from .thermal_model import (
     project_space_against,
     valve_charge_demand,
     valve_hold_temperature,
+    valve_top_draw,
+    valve_top_equilibrium,
     weather_or_calm,
     power_for_heat_per_cop_kw,
     added_power_for_heat_per_cop_kw,
@@ -128,6 +130,7 @@ from .tariff import (
     window_factors,
 )
 from .dhw_schedule import format_resolved_day_spec
+from . import duty_legs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -190,6 +193,223 @@ def _realize_joint(
 def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
     """Whether the objective scores the levels that ship rounded."""
     return opt.config.clamp_planned_levels and not opt._levels_relaxed
+
+
+def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
+    """The learned stop probability per switch direction, ``None`` when no direction stops.
+
+    The lost running time is charged on this alone; the price is this times
+    ``cycling_cost``, so an install that prices no cycle prices no switch.
+    """
+    stops = duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0)
+    return stops if max(stops) > 0 else None
+
+
+def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
+    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    return duty_legs.leg_rule(
+        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
+        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+    )
+
+
+def _stop_availability(
+    opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
+) -> np.ndarray | None:
+    """The running share a priced stop leaves each step of the profile a solve starts from.
+
+    Read on the levels that profile ships, so the charged step holds a
+    heating leg the arbiter serves. ``None`` unless a stop with a measured off
+    time is priced: the caller then makes today's calls.
+    """
+    stops = _priced_stops(opt)
+    if stops is None:
+        return None
+    lost = duty_legs.lost_share(
+        stops, duty_legs.priced_pair(opt.config.duty_switch_off_seconds)
+    )
+    space, tank = _realize_joint(
+        opt.config.clamp_planned_levels,
+        np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
+        dhw_plan, opt.model.params.min_electrical_power, p_max,
+    )
+    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
+
+
+def _with_stop_availability(
+    opt: HeatPumpOptimizer,
+    start: np.ndarray,
+    dhw_plan: np.ndarray,
+    p_max: float,
+    objective: Callable[..., float],
+    objective_batch: Callable[..., np.ndarray],
+) -> tuple[np.ndarray, Callable[..., float], Callable[..., np.ndarray]]:
+    """What a priced stop changes about one space solve: its bound and its objectives.
+
+    The heat pump serves one circuit at a time, so a DHW block eats into the
+    capacity available for space heating during that step, and a stop after
+    it into the step that follows. The availability vector is constant for
+    the solve and is kept on the optimizer beside the requirement, so the
+    plan that is adopted publishes with the vector it was scored with. With
+    none, the bound is ``p_max - dhw`` and the objectives the ones handed in.
+    """
+    avail = opt._space_avail = _stop_availability(opt, start, dhw_plan, p_max)
+    headroom = duty_legs.space_headroom(p_max, dhw_plan, avail, _duty_floor(opt))
+    if avail is None:
+        return headroom, objective, objective_batch
+    return headroom, partial(objective, avail=avail), partial(objective_batch, avail=avail)
+
+
+def _shipped_and_received(
+    opt: HeatPumpOptimizer,
+    space: np.ndarray,
+    dhw: np.ndarray | None,
+    avail: np.ndarray | None,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+    """The level each circuit ships at, and the space draw the house receives.
+
+    The two differ only where a priced stop keeps the compressor off for part
+    of a step (``duty_legs.delivered_space``); with no availability vector the
+    received draw is the shipped array itself, the same object. A relaxed
+    start of a clamped install gets the clamped reading on its unrounded
+    level: the stop is the install's, whatever the rounding.
+    """
+    space, dhw = _realize_draw(
+        _scores_rounded(opt), space, dhw,
+        opt.model.params.min_electrical_power, opt.model.params.max_electrical_power,
+    )
+    if avail is None or dhw is None:
+        return space, dhw, space
+    return space, dhw, duty_legs.delivered_space(space, dhw, avail, _duty_floor(opt))
+
+
+def _switch_cost_fn(
+    opt: HeatPumpOptimizer,
+) -> Callable[[np.ndarray, np.ndarray | None], Any]:
+    """The duty-switch term of shipped plans, beside the cycling term.
+
+    One entry per row of a ``[B, n]`` batch, a float for one plan: the
+    one-row case of the same reduction, so the two agree bit for bit.
+    ``None`` when no direction is priced or there is no hot-water plan, and
+    :func:`_with_switch_cost` then adds no operand at all.
+    """
+    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
+    p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
+
+    def switch_cost(space: np.ndarray, dhw: np.ndarray | None) -> Any:
+        if stops is None or dhw is None or not cost > 0:
+            return None
+        term = cost * duty_legs.switch_weights_batch(
+            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
+        return term if np.ndim(space) == 2 else float(term[0])
+
+    return switch_cost
+
+
+def _with_switch_cost(level_cost: Any, switch_cost: Any) -> Any:
+    """The cycling and capacity terms plus the duty-switch term, when there is one."""
+    return level_cost if switch_cost is None else level_cost + switch_cost
+
+
+def _dhw_build(
+    planner: DhwPlanner, h: _Horizon, p_max: float, **extra: Any
+) -> tuple[Any, np.ndarray]:
+    """One hot-water build, with what every pass of a solve hands the planner.
+
+    The block honours an external ceiling through one scalar, the horizon's
+    minimum -- the same conservative, never-over-the-line approximation the
+    fuse guard's cap already makes. A quiet silent window's cap therefore
+    bounds every block the same way (#1910); its OFF steps are per-step,
+    through the forced-off door where the energy is re-bought elsewhere. The
+    mode's block rides every build (#1747): a replan without it plans hot
+    water the mode cannot make, and masks the breach.
+    """
+    return planner._build_dhw_requirements(
+        h,
+        p_max=p_max,
+        p_run_cap=(
+            float(np.min(h.power_caps_extra))
+            if h.power_caps_extra is not None
+            else None
+        ),
+        blocked=h.dhw_blocked,
+        off_steps=h.off_steps,
+        **extra,
+    )
+
+
+def _avoid_priced_switches(
+    opt: HeatPumpOptimizer,
+    h: _Horizon,
+    planner: DhwPlanner,
+    solve_space: Callable[..., Any],
+    objective: Callable[..., float],
+    p_max: float,
+    incumbent: tuple[np.ndarray, np.ndarray, str],
+) -> tuple[np.ndarray, np.ndarray, str]:
+    """Try one hot-water plan placed where no priced switch follows it.
+
+    Where the block sits is combinatorial, so it is taken by candidate and
+    score, as ``_co_optimize`` takes its own: hot water is banned from the
+    steps whose heating would make the switch, and the plan is adopted only
+    if it scores lower on the same objective, keeps off every banned step a
+    manual pin does not force on, and holds its own requirement wherever the
+    incumbent holds its. A refused candidate leaves the incumbent's
+    requirement and availability in place. Not on a combi store, whose
+    hot-water plan is a feasibility repair and never a scored candidate.
+    """
+    space, dhw, _ = incumbent
+    stops = _priced_stops(opt)
+    if stops is None or not opt.config.cycling_cost > 0 or opt.model.params.dhw_store.combi:
+        return incumbent
+    floor = _duty_floor(opt)
+    shipped, tank = _realize_joint(
+        opt.config.clamp_planned_levels, space, dhw,
+        opt.model.params.min_electrical_power, p_max,
+    )
+    kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
+    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
+        return incumbent
+    try:
+        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
+        plan, requirement = _dhw_build(
+            planner, h, p_max,
+            wood_temps=planner._dhw_coil_wood_forecast(h), placement_ban=ban,
+        )
+        forced_on = (
+            np.zeros(ban.shape, dtype=bool) if h.dhw_pins is None
+            else np.nan_to_num(_padded(h.dhw_pins, ban.size)) >= 0.5
+        )
+
+        def first_short(
+            schedule: np.ndarray, floor_temps: np.ndarray, excused: set[int]
+        ) -> tuple[Any, int | None]:
+            """The planner's own tank walk and shortfall rule, past ``excused`` steps."""
+            temps, _, step = planner._dhw_shortfall(
+                temps_of.get(id(schedule)), schedule, h.initial_state.dhw_temperature,
+                h.outdoor_temps, plan.draw_rates, h.dt, h.humidity, floor_temps, excused,
+            )
+            temps_of[id(schedule)] = temps
+            return temps, step
+
+        # The steps the incumbent is itself short on excuse the candidate there.
+        temps_of: dict[int, Any] = {}
+        unheld: set[int] = set()
+        while (step := first_short(dhw, kept_requirement, unheld)[1]) is not None:
+            unheld.add(step)
+        if (
+            not np.any(plan.schedule[ban & ~forced_on] > 0)
+            and first_short(plan.schedule, requirement, unheld)[1] is None
+        ):
+            base = float(objective(space, dhw, None, kept_avail))
+            candidate_space, candidate_status, score = solve_space(plan.schedule, space)
+            if score < base - 1e-9:
+                opt._dhw_requirement = requirement
+                return candidate_space, plan.schedule, candidate_status
+    except Exception as err:  # noqa: BLE001 - a candidate is optional: the incumbent stands
+        _LOGGER.debug("Duty-switch candidate pass skipped: %s", err)
+    opt._space_avail = kept_avail
+    return incumbent
 
 
 def _relaxed_starts(
@@ -579,51 +799,167 @@ def _wood_covered_share(model: ThermalModel, state: ThermalState, reference_kwh:
     return min(1.0, usable_kwh_th / p.cop_nominal_floored / reference_kwh)
 
 
+def _held_zones(
+    model: ThermalModel, state: ThermalState, weather0: tuple[float, float, float, float],
+    temp: float,
+) -> ThermalState:
+    """``state`` with the zones at ``temp`` and the slab at the temperature that
+    delivers the floor's steady demand there -- the cascade's own slab target
+    with no pull-back."""
+    q_floor = _floor_demand_at_target(model, temp, *weather0)
+    return replace(
+        state,
+        room_temperature=temp,
+        upper_floor_temperature=temp,
+        lower_floor_temperature=temp,
+        slab_temperature=temp + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,
+    )
+
+
+#: Bisection steps for the held zone temperature: 2**-40 of the
+#: outdoor-to-target span, far below any sensor's resolution.
+_HELD_BISECTIONS = 40
+
+
 def _thermostat_held_state(
     model: ThermalModel, state: ThermalState, weather: WeatherSeries, target: float
 ) -> ThermalState:
     """``state`` as a thermostat holding ``target`` all along would have it (#2255).
 
-    The zones at ``target`` and the slab at the temperature that delivers the
-    step's demand -- the cascade's own slab target with no pull-back -- so the
-    first step draws the steady holding power. Behind a valve its tank sits at
-    the temperature that delivers the need, whatever the plan left in the
-    measured one. Every other field stays as measured.
+    The zones at ``target`` (``_held_zones``), so the first step draws the
+    steady holding power. Behind a valve its tank sits at the temperature
+    that delivers the need, whatever the plan left in the measured one.
+    Where the reference cannot deliver that steady heat at ``target`` --
+    either bound its own step clips at (``_held_unreachable``) -- a
+    thermostat running all along has sagged to where it can: the zones sit
+    at the highest temperature the step can hold, an equilibrium, so the
+    booked steps draw no stored heat (R10-SAV-VALUATION-RESIDUE).
+    Every other field stays as measured.
     """
     if not len(weather.outdoor_temps):
         return state
     assert weather.wind_speeds is not None and weather.precipitation is not None
     assert weather.solar_radiation is not None
-    q_floor = _floor_demand_at_target(
-        model, target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
-        float(weather.precipitation[0]), float(weather.solar_radiation[0]),
-    )
-    held = replace(
-        state,
-        room_temperature=target,
-        upper_floor_temperature=target,
-        lower_floor_temperature=target,
-        slab_temperature=target + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,
-    )
+    outdoor, wind = float(weather.outdoor_temps[0]), float(weather.wind_speeds[0])
+    rain, solar = float(weather.precipitation[0]), float(weather.solar_radiation[0])
+    weather0 = (outdoor, wind, rain, solar)
+    humidity = None if weather.humidity is None else float(weather.humidity[0])
     p = model.params
-    if not mixing_valve.is_throttling(p.mixing_valve_mode):
-        return held
-    wind, rain = float(weather.wind_speeds[0]), float(weather.precipitation[0])
-    outdoor = float(weather.outdoor_temps[0])
+    valved = mixing_valve.is_throttling(p.mixing_valve_mode)
     zoned = _thermostat_demand_two_zone if p.two_zone_enabled else _thermostat_demand_single
-    need = zoned(
-        model, held, target, outdoor, wind, rain, float(weather.solar_radiation[0]),
-        0.25, p.slab_heat_transfer_floored,
-    )
-    held.buffer_tank_temperature = (
-        valve_hold_temperature(model, held, need, outdoor, wind, rain)
-        if need > 0.0 else held.buffer_tank_temperature
-    )
+
+    def need(h: ThermalState) -> float:
+        # Zones level at their own temperature: no pull-back, the steady need.
+        return zoned(model, h, h.room_temperature, *weather0, 0.25, p.slab_heat_transfer_floored)
+
+    def held_at(temp: float) -> ThermalState:
+        h = _held_zones(model, state, weather0, temp)
+        if valved and (h_need := need(h)) > 0.0:
+            h.buffer_tank_temperature = valve_hold_temperature(
+                model, h, h_need, outdoor, wind, rain)
+        return h
+
+    def unreachable(h: ThermalState) -> bool:
+        return _held_unreachable(model, h, need(h), weather0, humidity)
+
+    held = held_at(target)
+    if unreachable(held):
+        held = _held_at_valve_top(model, held, need(held), weather0, humidity) or _held_bisected(
+            held_at, unreachable, min(outdoor, target), target)
     if p.two_tank_modelled:
         # The reference has no wood: below every zone the valve takes nothing
         # from this side (``wood_share`` 0), so the step is the plain valve's.
         held.wood_tank_temperature = _NO_WOOD_TANK_C
     return held
+
+
+def _held_reference(
+    model: ThermalModel, state: ThermalState, weather: WeatherSeries,
+    comfort_targets: np.ndarray | None, default_target: float,
+) -> ThermalState:
+    """``state`` as a thermostat holding the solve's own schedule would have it, wood side as measured.
+
+    The one reference both the settlement's start gap and a held-start solve
+    (``SolveInputs.held_start``, #2257) use, so that solve's gap is zero.
+    """
+    return _sharing_wood_side(_thermostat_held_state(
+        model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+    ), state)
+
+
+def _held_bisected(
+    held_at: Callable[[float], ThermalState], unreachable: Callable[[ThermalState], bool],
+    lo: float, hi: float,
+) -> ThermalState:
+    """The zones level at the highest temperature in ``[lo, hi]`` the step can
+    hold: unreachable needs heat, so the outdoor ``lo`` is below the target ``hi``."""
+    for _ in range(_HELD_BISECTIONS):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
+    return held_at(lo)
+
+
+def _held_at_valve_top(
+    model: ThermalModel, held: ThermalState, need_kw: float,
+    weather0: tuple[float, float, float, float], humidity: float | None,
+) -> ThermalState | None:
+    """A two-zone house behind a valve whose curve cannot deliver ``need_kw``,
+    the held zones' steady need at the target:
+    the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
+    tank ``held``'s, already at the curve's top -- or ``None`` where the pump cannot
+    make it, or on any other house, which the level-zone bisection holds
+    (Carry 9: the floors held level sat below this ceiling, and the
+    reference's day warmed to it)."""
+    p = model.params
+    outdoor, wind, rain, solar = weather0
+    if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)
+            and need_kw > valve_top_draw(model, held, outdoor, wind, rain)):
+        return None
+    top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
+    if top is None:
+        return None
+    # A steady draw: the tank at its goal, charged over no finite step.
+    made = valve_charge_demand(
+        model, top, valve_top_draw(model, top, outdoor, wind, rain), outdoor, wind, rain, math.inf)
+    return None if _pump_unreachable(model, top, made, outdoor, humidity) else top
+
+
+def _pump_unreachable(
+    model: ThermalModel, held: ThermalState, made_kw: float, outdoor: float,
+    humidity: float | None,
+) -> bool:
+    """Whether making ``made_kw`` of heat at the step's own COP
+    (``_reference_cop``, defrost and part-load included) needs a draw past
+    ``max_electrical_power``, where the step clips."""
+    cop = _reference_cop(model, held, outdoor, humidity)
+    p = model.params
+    return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
+
+
+def _held_unreachable(
+    model: ThermalModel, held: ThermalState, need_kw: float,
+    weather0: tuple[float, float, float, float], humidity: float | None,
+) -> bool:
+    """Whether the reference's own step cannot deliver ``need_kw``, the held
+    zones' steady emitter need, from ``held``: every bound on the heat it
+    delivers (R10-SAV-VALUATION-RESIDUE).
+
+    Behind a valve, the curve's top draw (``valve_top_draw``): a hotter tank
+    reaches no emitter. On every install, the pump: the steady heat the
+    step makes (``_thermostat_demand``, the tank's standing loss on top)
+    needs a draw past ``max_electrical_power`` at the step's own COP
+    (``_reference_cop``, defrost and part-load included), where the step
+    clips. Nothing else bounds it: the wood side is off in the reference and
+    ``buffer_max_temp`` caps the curve's top.
+    """
+    p = model.params
+    outdoor, wind, rain, solar = weather0
+    if mixing_valve.is_throttling(p.mixing_valve_mode) and need_kw > valve_top_draw(
+            model, held, outdoor, wind, rain):
+        return True
+    made = _thermostat_demand(
+        model, held, held.room_temperature, *weather0, 0.25, p.slab_heat_transfer_floored)
+    return _pump_unreachable(model, held, made, outdoor, humidity)
 
 
 def _thermostat_demand_single(
@@ -1457,11 +1793,8 @@ def _combi_flux_exchange(
             weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
             valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
         space_net = combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
-        plan, opt._dhw_requirement = planner._build_dhw_requirements(
-            h, p_max=p_max, space_demand=space_power,
-            p_run_cap=None if h.power_caps_extra is None else float(np.min(h.power_caps_extra)),
-            blocked=h.dhw_blocked, off_steps=h.off_steps, tank_exo_kw=space_net,
-        )
+        plan, opt._dhw_requirement = _dhw_build(
+            planner, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
         if np.allclose(plan.schedule, dhw_power, atol=1e-4):
             break
         dhw_power = plan.schedule
@@ -2142,6 +2475,12 @@ class OptimizationConfig:
     #: had silently drifted apart once before, which meant the tests were
     #: measuring a slightly different optimizer from the integration.
     cycling_cost: float = DEFAULT_CYCLING_COST
+    #: Per direction (hot water to heating, heating to hot water): the learned
+    #: probability that a duty switch stops the compressor, and the seconds it
+    #: then stays off. Zeros price nothing and leave every plan as it was;
+    #: ``duty_legs`` owns what they mean.
+    duty_switch_stop_probability: tuple[float, float] = (0.0, 0.0)
+    duty_switch_off_seconds: tuple[float, float] = (0.0, 0.0)
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of
@@ -2462,6 +2801,66 @@ class SolveInputs:
     forecast: ForecastSeries
     start_time: datetime | None = None
     limits: SolveLimits = field(default_factory=SolveLimits)
+    #: #2257: plan from the house as a thermostat holding this solve's own
+    #: schedule would have it (``_held_reference``), not as measured, so the
+    #: cost carries no one-off coast or heat-up. The what-if's steady pair.
+    held_start: bool = False
+
+
+def _horizon_weather(series: ForecastSeries, n_steps: int) -> WeatherSeries:
+    """A forecast's weather as one solve reads it, ``n_steps`` long: calm, dry
+    and dark where a series is missing, the rest cut to the horizon."""
+    wind_speeds, precipitation, solar_radiation = weather_or_calm(
+        n_steps, series.wind_speeds, series.precipitation, series.solar_radiation
+    )
+    # Forecast humidity (#21), normalised to horizon length; short series pad
+    # with NaN, which the model reads as "unknown, use the ambient value" —
+    # never as 0 % humidity. An all-NaN series is the same as none at all,
+    # and dropping it keeps the objective's inner loop free of per-step
+    # lookups that can only fall back.
+    humidity = series.humidity
+    if humidity is not None:
+        hum = np.asarray(humidity, dtype=float)
+        if hum.size < n_steps:
+            hum = np.concatenate([hum, np.full(n_steps - hum.size, np.nan)])
+        humidity = hum[:n_steps]
+        if not np.any(np.isfinite(humidity)):
+            humidity = None
+    # Free-heat forecast, normalised to horizon length like the arrays above.
+    # All-zero is the same as none at all, and is treated so.
+    external_heat_kw = series.external_heat_kw
+    if external_heat_kw is not None:
+        external_heat_kw = _padded_nonneg(external_heat_kw, n_steps)
+        if not np.any(external_heat_kw > 0.0):
+            external_heat_kw = None
+    return WeatherSeries(
+        outdoor_temps=series.outdoor_temps[:n_steps], wind_speeds=wind_speeds[:n_steps],
+        precipitation=precipitation[:n_steps], solar_radiation=solar_radiation[:n_steps],
+        humidity=humidity, external_heat_kw=external_heat_kw,
+    )
+
+
+def _step_clock(start_time: datetime, n_steps: int, dt: float) -> tuple[list[datetime], np.ndarray]:
+    """Each step's start and its hour of day, which the comfort schedule keys off."""
+    step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+    return step_datetimes, np.array([d.hour + d.minute / 60.0 for d in step_datetimes])
+
+
+def _day_mean_weather(weather: WeatherSeries, n_steps: int) -> WeatherSeries:
+    """``weather`` over its first ``n_steps`` with each series at its mean there:
+    a day with no hour's weather in it. An unknown humidity stays unknown."""
+    def flat(values: Any) -> Any:
+        if values is None:
+            return None
+        head = np.asarray(values, dtype=float)[:n_steps]
+        known = head[np.isfinite(head)]
+        return np.full(n_steps, float(np.mean(known)) if known.size else np.nan)
+
+    return WeatherSeries(
+        outdoor_temps=flat(weather.outdoor_temps), wind_speeds=flat(weather.wind_speeds),
+        precipitation=flat(weather.precipitation), solar_radiation=flat(weather.solar_radiation),
+        humidity=flat(weather.humidity), external_heat_kw=flat(weather.external_heat_kw),
+    )
 
 
 def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
@@ -2753,6 +3152,9 @@ class HeatPumpOptimizer:
         # loop: the tank temperature the plan must keep the DHW trajectory
         # above. Assigned at each build, so the last build of a solve wins.
         self._dhw_requirement: np.ndarray | None = None
+        #: The ``duty_legs.availability`` vector the last space solve scored
+        #: with, riding beside its plan; ``None`` when no stop is charged.
+        self._space_avail: np.ndarray | None = None
         #: The solve's starting buffer temperature; floors the settlement
         #: value cap so pre-stored heat cannot be drained for free.
         self._initial_buffer_temp: float | None = None
@@ -2907,9 +3309,8 @@ class HeatPumpOptimizer:
         traj: dict[str, np.ndarray],
         grid_power: np.ndarray,
         *,
+        level_cost: np.ndarray,
         energy_cost_of: Callable[[np.ndarray], Any],
-        cycling_batch: Callable[[np.ndarray], np.ndarray],
-        capacity_batch: Callable[[np.ndarray], np.ndarray],
         terminal_cost_batch: Callable[[dict[str, np.ndarray]], np.ndarray],
         comfort_targets: np.ndarray,
         temp_min_bounds: np.ndarray,
@@ -2930,6 +3331,8 @@ class HeatPumpOptimizer:
         path -- because the energy, cycling and capacity terms are
         properties of the combined draw, while the comfort and terminal
         terms read ``traj``, which the space schedule alone produces.
+        ``level_cost`` is what the caller priced on the shipped level, which
+        a priced stop makes differ from that draw: cycling, capacity, switches.
         """
         weight = self.config.price_weight
         penalty, comfort_cost = self._comfort_terms_batch(
@@ -2942,7 +3345,7 @@ class HeatPumpOptimizer:
             energy_cost_of(grid_power) * weight
             + penalty
             + comfort_cost
-            + (cycling_batch(grid_power) + capacity_batch(grid_power)) * weight
+            + level_cost * weight
             + terminal_cost_batch(traj)
         )
 
@@ -3345,7 +3748,8 @@ class HeatPumpOptimizer:
         it (``combi_space_net_kw``, R10-COMBI-TANK), the flux exchange.
         """
         try:
-            headroom = np.maximum(0.0, p_max - dhw_power)
+            headroom = duty_legs.space_headroom(
+                p_max, dhw_power, self._space_avail, _duty_floor(self))
             # Where space heating sits hard against the ceiling hot water left
             # it, it wanted more power than it could have; its unconstrained
             # demand there is at least the full compressor.
@@ -3364,30 +3768,22 @@ class HeatPumpOptimizer:
             if not bool(np.any(pinned)) and not coil_replan:
                 return space_power, dhw_power, status
 
-            replanned_plan, self._dhw_requirement = planner._build_dhw_requirements(
-                h,
-                p_max=p_max,
+            replanned_plan, self._dhw_requirement = _dhw_build(
+                planner, h, p_max,
                 space_demand=np.where(pinned, p_max, space_power),
-                p_run_cap=(
-                    float(np.min(h.power_caps_extra))
-                    if h.power_caps_extra is not None
-                    else None
-                ),
-                # The first build's block (#1747): a replan without it plans
-                # hot water the mode cannot make, and masks the breach.
-                blocked=h.dhw_blocked,
-                off_steps=h.off_steps,
                 wood_temps=wood_temps,
             )
             replanned = replanned_plan.schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
 
+            kept_avail = self._space_avail
             candidate_space, candidate_status, score = solve_space(
                 replanned, space_power
             )
             if score < best_score - 1e-9:
                 return candidate_space, replanned, candidate_status
+            self._space_avail = kept_avail
         except Exception as err:  # pragma: no cover - defensive
             _LOGGER.debug("DHW/space co-optimization pass skipped: %s", err)
 
@@ -3756,9 +4152,12 @@ class HeatPumpOptimizer:
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
 
-        wind_speeds, precipitation, solar_radiation = weather_or_calm(
-            n_steps, wind_speeds, precipitation, solar_radiation
-        )
+        weather = _horizon_weather(series, n_steps)
+        outdoor_temps, wind_speeds, precipitation, solar_radiation, humidity, external_heat_kw = (
+            weather.outdoor_temps, weather.wind_speeds, weather.precipitation,
+            weather.solar_radiation, weather.humidity, weather.external_heat_kw)
+        # ``_horizon_weather`` fills these three: a horizon's, never None.
+        assert wind_speeds is not None and precipitation is not None and solar_radiation is not None
         if price_known is None:
             price_known = np.ones(n_steps, dtype=bool)
         if pv_surplus is None:
@@ -3767,12 +4166,7 @@ class HeatPumpOptimizer:
         if start_time is None:
             start_time = datetime.now()
 
-        # Truncate arrays to n_steps
         prices = prices[:n_steps]
-        outdoor_temps = outdoor_temps[:n_steps]
-        wind_speeds = wind_speeds[:n_steps]
-        precipitation = precipitation[:n_steps]
-        solar_radiation = solar_radiation[:n_steps]
         prices = self._stash_price_horizon(
             initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
         )
@@ -3780,28 +4174,6 @@ class HeatPumpOptimizer:
         planner = DhwPlanner(
             self.model, self.config, self._pv_surplus, self._price_known
         )
-
-        # Forecast humidity (#21), normalised to horizon length; short
-        # series pad with NaN, which the model reads as "unknown, use the
-        # ambient value" — never as 0 % humidity. An all-NaN series is the
-        # same as none at all, and dropping it keeps the objective's inner
-        # loop free of per-step lookups that can only fall back.
-        if humidity is not None:
-            hum = np.asarray(humidity, dtype=float)
-            if hum.size < n_steps:
-                hum = np.concatenate(
-                    [hum, np.full(n_steps - hum.size, np.nan)]
-                )
-            humidity = hum[:n_steps]
-            if not np.any(np.isfinite(humidity)):
-                humidity = None
-
-        # Free-heat forecast, normalised to horizon length like the arrays
-        # above. All-zero is the same as none at all, and is treated so.
-        if external_heat_kw is not None:
-            external_heat_kw = _padded_nonneg(external_heat_kw, n_steps)
-            if not np.any(external_heat_kw > 0.0):
-                external_heat_kw = None
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(
@@ -3823,10 +4195,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
-        step_hours = np.array([
-            d.hour + d.minute / 60.0 for d in step_datetimes
-        ])
+        step_datetimes, step_hours = _step_clock(start_time, n_steps, dt)
         # Weekday per step, for weekly DHW windows (#3) and the per-weekday
         # overrides (#1260); the helper returns None unless either is
         # configured, so the flat no-override install pays nothing.
@@ -3844,6 +4213,9 @@ class HeatPumpOptimizer:
             )
         )
         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
+        if inputs.held_start:
+            initial_state = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
+            self._stash_buffer_seed(initial_state)
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current
@@ -4049,15 +4421,7 @@ class HeatPumpOptimizer:
 
         if power_caps is not None and throttling:
             result = self._repair_throttled_buffer_caps(
-                WeatherSeries(
-                    outdoor_temps=outdoor_temps,
-                    wind_speeds=wind_speeds,
-                    precipitation=precipitation,
-                    solar_radiation=solar_radiation,
-                    humidity=humidity,
-                    external_heat_kw=external_heat_kw,
-                ),
-                initial_state, result, power_caps, dt,
+                weather, initial_state, result, power_caps, dt,
                 prices, step_hours, valve_targets, _solve,
             )
 
@@ -4109,6 +4473,15 @@ class HeatPumpOptimizer:
             return None
         return (np.clip(np.asarray(prev, dtype=float), 0.0, self.model.params.max_electrical_power),)
 
+    def _stash_buffer_seed(self, initial_state: ThermalState) -> None:
+        """The buffer temperature the settlement ceiling is floored at: the solve's own start."""
+        self._initial_buffer_temp = (
+            float(initial_state.buffer_tank_temperature)
+            if self.model.params.buffer_is_store
+            and initial_state.buffer_tank_temperature is not None
+            else None
+        )
+
     def _stash_price_horizon(
         self,
         initial_state: ThermalState,
@@ -4131,12 +4504,7 @@ class HeatPumpOptimizer:
             )
 
         self._price_known = price_known
-        self._initial_buffer_temp = (
-            float(initial_state.buffer_tank_temperature)
-            if self.model.params.buffer_is_store
-            and initial_state.buffer_tank_temperature is not None
-            else None
-        )
+        self._stash_buffer_seed(initial_state)
         self._pv_surplus = pv_surplus
 
         # Risk-adjusted pricing on the unpublished horizon (#34). The prior
@@ -4367,9 +4735,9 @@ class HeatPumpOptimizer:
         objective_batch: Callable[..., np.ndarray],
     ) -> tuple[np.ndarray, str, float]:
         """Optimize space heating around a fixed DHW schedule."""
-        # The heat pump serves one circuit at a time, so a DHW block eats
-        # into the capacity available for space heating during that step.
-        headroom = np.maximum(0.0, p_max - dhw_plan)
+        guess = init_base if warm_start is None else warm_start
+        headroom, objective, objective_batch = _with_stop_availability(
+            self, guess, dhw_plan, p_max, objective, objective_batch)
         if h.power_caps is not None:
             headroom = np.minimum(headroom, h.power_caps)
         if h.power_caps_extra is not None:
@@ -4381,7 +4749,6 @@ class HeatPumpOptimizer:
                 headroom,
                 np.maximum(0.0, h.power_caps_extra - dhw_plan),
             )
-        guess = init_base if warm_start is None else warm_start
         guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
         bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
         # Manual space pins apply here just as in the DHW-free path. Forcing
@@ -4759,9 +5126,7 @@ class HeatPumpOptimizer:
         initial_state, prices, dt, comfort_targets = (
             h.initial_state, h.prices, h.dt, h.comfort_targets
         )
-        outdoor_temps, wind_speeds, precipitation, solar_radiation = (
-            h.outdoor_temps, h.wind_speeds, h.precipitation, h.solar_radiation
-        )
+        outdoor_temps = h.outdoor_temps
         weather = WeatherSeries.from_horizon(h)
         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
 
@@ -4777,6 +5142,7 @@ class HeatPumpOptimizer:
             self._grid_terms(h.n_steps, dt, h.start_time)
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
+        switch_cost = _switch_cost_fn(self)
 
         def _space_traj(power_schedule: np.ndarray, buffer_exo_kw: Any = None) -> Any:
             return self.model.simulate_trajectory(
@@ -4792,14 +5158,13 @@ class HeatPumpOptimizer:
             space_power: np.ndarray,
             dhw_plan_power: np.ndarray | None = None,
             buffer_exo_kw: np.ndarray | None = None,
+            avail: np.ndarray | None = None,
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
-            space_power, dhw_plan_power = _realize_draw(
-                _scores_rounded(self), space_power, dhw_plan_power,
-                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
-            )
+            space_power, dhw_plan_power, heat_power = _shipped_and_received(
+                self, space_power, dhw_plan_power, avail)
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
-                _space_traj(space_power, buffer_exo_kw)
+                _space_traj(heat_power, buffer_exo_kw)
             )
 
             # The compressor is one machine: the grid sees the *combined*
@@ -4813,8 +5178,9 @@ class HeatPumpOptimizer:
 
             # Electricity cost, piecewise in PV surplus. ``float()`` is
             # identity on the 1-D branch's return and states it.
+            drawn = combined if heat_power is space_power else heat_power + dhw_plan_power
             energy_cost = (
-                float(energy_cost_of(combined)) * self.config.price_weight
+                float(energy_cost_of(drawn)) * self.config.price_weight
             )
 
             penalty, comfort_cost = self._comfort_terms(
@@ -4831,7 +5197,9 @@ class HeatPumpOptimizer:
                 # Currency terms scale with price_weight as the energy cost
                 # does, or a non-default weight silently re-prices starts and
                 # peaks relative to the electricity they trade against.
-                + (cycling(combined) + capacity(combined))
+                + float(_with_switch_cost(
+                    cycling(combined) + capacity(combined),
+                    switch_cost(space_power, dhw_plan_power)))
                 * self.config.price_weight
                 + terminal_cost(
                     room_temps,
@@ -4846,6 +5214,7 @@ class HeatPumpOptimizer:
             space_matrix: np.ndarray,
             dhw_plan_power: np.ndarray | None = None,
             buffer_exo_kw: np.ndarray | None = None,
+            avail: np.ndarray | None = None,
         ) -> np.ndarray:
             """The same objective, for B schedules at once (issue #97).
 
@@ -4857,13 +5226,11 @@ class HeatPumpOptimizer:
             asserted by test, because a divergence here would move plans
             silently.
             """
-            space_matrix, dhw_plan_power = _realize_draw(
-                _scores_rounded(self), space_matrix, dhw_plan_power,
-                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
-            )
+            space_matrix, dhw_plan_power, heat_matrix = _shipped_and_received(
+                self, space_matrix, dhw_plan_power, avail)
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
-                power_matrix=space_matrix,
+                power_matrix=heat_matrix,
                 weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
@@ -4875,10 +5242,12 @@ class HeatPumpOptimizer:
                 else space_matrix + dhw_plan_power
             )
             return self._cost_terms_batch(
-                traj, grid_power,
+                traj,
+                grid_power if heat_matrix is space_matrix else heat_matrix + dhw_plan_power,
+                level_cost=_with_switch_cost(
+                    cycling_batch(grid_power) + capacity_batch(grid_power),
+                    switch_cost(space_matrix, dhw_plan_power)),
                 energy_cost_of=energy_cost_of,
-                cycling_batch=cycling_batch,
-                capacity_batch=capacity_batch,
                 terminal_cost_batch=terminal_cost_batch,
                 comfort_targets=comfort_targets,
                 temp_min_bounds=temp_min_bounds,
@@ -5165,8 +5534,7 @@ class HeatPumpOptimizer:
         initial_state, prices, dt, n_steps = (
             h.initial_state, h.prices, h.dt, h.n_steps
         )
-        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
-        precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        outdoor_temps = h.outdoor_temps
         weather = WeatherSeries.from_horizon(h)
         comfort_targets = h.comfort_targets
         step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
@@ -5192,24 +5560,8 @@ class HeatPumpOptimizer:
         # hot water must be available; outside it there is no requirement, so
         # the only reason to run the pump is to be ready for the *next* window
         # — and the energy-cost term then decides *when* that happens.
-        dhw_plan, self._dhw_requirement = planner._build_dhw_requirements(
-            h,
-            p_max=p_max,
-            # The DHW block honours an external ceiling through this scalar,
-            # the horizon's minimum — the same conservative, never-over-the-
-            # line approximation the fuse guard's cap already makes here. A
-            # quiet silent window's cap therefore bounds every DHW block the
-            # same way (#1910); its OFF steps are per-step, below, through
-            # the forced-off door where the energy is re-bought elsewhere.
-            p_run_cap=(
-                float(np.min(h.power_caps_extra))
-                if h.power_caps_extra is not None
-                else None
-            ),
-            blocked=h.dhw_blocked,
-            off_steps=h.off_steps,
-            wood_temps=planner._dhw_coil_wood_forecast(h),
-        )
+        dhw_plan, self._dhw_requirement = _dhw_build(
+            planner, h, p_max, wood_temps=planner._dhw_coil_wood_forecast(h))
 
         dhw_floor_temps = dhw_plan.floor_temps
         dhw_ready_temps = dhw_plan.ready_temps
@@ -5286,10 +5638,18 @@ class HeatPumpOptimizer:
             planner=planner,
             draw_rates=dhw_draw_rates,
         )
+        optimal_space, optimal_dhw, status = _avoid_priced_switches(
+            self, h, planner, solve_space, objective, p_max,
+            (optimal_space, optimal_dhw, status),
+        )
         optimal_space, optimal_dhw = _realize_joint(
             self.config.clamp_planned_levels, optimal_space, optimal_dhw,
             p_min, p_max,
         )
+        # Received through the vector the adopted solve scored with, never a
+        # rebuilt one; the schedule and the achieved objective keep the level.
+        heat_space = optimal_space if self._space_avail is None else duty_legs.delivered_space(
+            optimal_space, optimal_dhw, self._space_avail, _duty_floor(self))
 
         # Simulate with optimal schedule
         published_end: list[ThermalState] = []
@@ -5303,7 +5663,7 @@ class HeatPumpOptimizer:
             wood_temps,
         ) = self.model.simulate_trajectory_with_dhw(
             initial_state=initial_state,
-            space_power_schedule=optimal_space,
+            space_power_schedule=heat_space,
             dhw_power_schedule=optimal_dhw,
             weather=WeatherSeries.from_horizon(h),
             start_hour=start_hour,
@@ -5319,6 +5679,7 @@ class HeatPumpOptimizer:
             combi_dhw_net_series(
                 self.model, buffer_temps, optimal_dhw, dhw_draw_rates, outdoor_temps, h.humidity)
             if self.model.params.dhw_store.combi else None,
+            self._space_avail,
         ))
 
         # Baseline cost. The reference holds the comfort schedule, not the comfort the plan
@@ -5329,7 +5690,7 @@ class HeatPumpOptimizer:
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             planner._baseline_dhw_economics(
                 initial_state, outdoor_temps, n_steps, dhw_setpoint,
-                energy_cost_of, baseline_power, optimal_space, optimal_dhw, h.humidity,
+                energy_cost_of, baseline_power, heat_space, optimal_dhw, h.humidity,
             )
         )
 
@@ -5639,12 +6000,45 @@ class HeatPumpOptimizer:
                 electrical += gap / cop_store - gap / cop
         return float(_bought_back(p, electrical, len(prices), self.config.dt_hours) * refill_price)
 
+    def reference_day(self, inputs: SolveInputs) -> tuple[list[float], float]:
+        """The thermostat's setpoints over the week ``inputs``' horizon opens and
+        the electricity it draws holding them on that week's average day, kWh;
+        no solve (#2257).
+
+        The what-if's figure for a schedule change is this energy differenced
+        between two schedules, so it carries nothing but the schedule
+        (``whatif``'s THE REFERENCE DAY): each distinct day of the seven is
+        looped twice and the second pass, started where the first ended, is the
+        one counted; every weather series is its mean over the horizon's first
+        day. Weather and setpoints are ``optimize``'s own (``_horizon_weather``,
+        ``_step_clock``, ``_build_comfort_bounds``).
+
+        A horizon under a day prices no day: the energy is nan.
+        """
+        series, dt = inputs.forecast, self.config.dt_hours
+        n_steps = min(len(series.prices), len(series.outdoor_temps), self.config.n_steps)
+        day = min(n_steps, int(round(24.0 / dt)))
+        weather = _day_mean_weather(_horizon_weather(series, n_steps), day)
+        week: list[float] = []
+        day_kwh: dict[tuple[float, ...], float] = {}
+        for offset in range(7):
+            when, hours = _step_clock((inputs.start_time or datetime.now()) + timedelta(days=offset), day, dt)
+            comfort = self._build_comfort_bounds(hours, day, None, None, when)[0]
+            targets = tuple(_baseline_targets(comfort, day, self.config.target_temp))
+            week.extend(targets)
+            if day * dt >= 24.0 and targets not in day_kwh:
+                _, settled = self._compute_baseline_power(weather, inputs.state, dt, comfort)
+                power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort, start=settled)
+                day_kwh[targets] = float(np.sum(power)) * dt
+        return week, sum(day_kwh.get(tuple(week[k:k + day]), math.nan) for k in range(0, 7 * day, day)) / 7.0
+
     def _compute_baseline_power(
         self,
         weather: WeatherSeries,
         initial_state: ThermalState,
         dt: float,
         comfort_targets: np.ndarray | None = None,
+        start: ThermalState | None = None,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -5674,6 +6068,9 @@ class HeatPumpOptimizer:
         wood's heat counts in the saving, and firewood's cost is not counted;
         the card says so where wood is configured.
 
+        ``start`` replaces that held state: ``reference_day``'s second pass
+        starts where its first ended. No solve passes it.
+
         Returns the power schedule and the final state, whose stored heat the
         caller settles at the horizon's end.
         """
@@ -5692,7 +6089,8 @@ class HeatPumpOptimizer:
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
         k_slab = p.slab_heat_transfer_floored
-        state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
+        state = start if start is not None else _thermostat_held_state(
+            self.model, initial_state, weather, targets[0])
 
         for i in range(n_steps):
             target = targets[i]
@@ -5715,40 +6113,7 @@ class HeatPumpOptimizer:
                 humidity=hum_i,
             )
 
-        if mixing_valve.is_throttling(p.mixing_valve_mode):
-            baseline_power = self._apportion_by_steady_demand(baseline_power, weather, targets)
         return baseline_power, state
-
-    def _apportion_by_steady_demand(
-        self, simulated: np.ndarray, weather: WeatherSeries, targets: list[float]
-    ) -> np.ndarray:
-        """The simulated horizon's energy, spread by the steady demand per step.
-
-        Behind a valve the first steps are the stores' transient, not the
-        thermostat's power: a tank above the curve zeroes them, one below it
-        overshoots. The settlement books step 0 of a plan re-made every
-        interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when, never past the
-        pump: a step held at it gives its excess to the rest by the same demand.
-        """
-        assert weather.wind_speeds is not None and weather.precipitation is not None
-        assert weather.solar_radiation is not None
-        steady = np.array([
-            max(0.0, _floor_demand_at_target(
-                self.model, targets[i], float(weather.outdoor_temps[i]),
-                float(weather.wind_speeds[i]), float(weather.precipitation[i]),
-                float(weather.solar_radiation[i]),
-            ))
-            for i in range(len(simulated))
-        ])
-        energy, cap = float(np.sum(simulated)), float(self.model.params.max_electrical_power)
-        held = np.zeros(len(steady), dtype=bool)
-        while (total := float(np.sum(steady[~held]))) > 0.0:
-            spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
-            if not (over := ~held & (spread > cap)).any():
-                return spread
-            held |= over
-        return simulated
 
     def _settle_horizon(
         self,
@@ -5799,10 +6164,7 @@ class HeatPumpOptimizer:
         heat the thermostat buys plus the end's credit (``end_cost`` below 0),
         never more -- a summer house's passive warmth displaced nothing.
         """
-        held = _sharing_wood_side(_thermostat_held_state(
-            self.model, initial_state, weather,
-            _baseline_target(comfort_targets, 0, self.config.target_temp),
-        ), initial_state)
+        held = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
         capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )

@@ -14,7 +14,9 @@
     python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
         implemented <sha> | moved <GROUP> | dismissed <reason>
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+    python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class> <value>
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
@@ -150,6 +152,12 @@ resolve is refused whether or not the text names a proposal.
                `_size_why` check append-group runs -- and, with --cite, a
                cite whose ref does not hold the sha. The old size and the
                cite go to resume.note; the current size writes nothing.
+  set-price    writes the group's owner-stated price, the planner's hours for it
+               (`replan.group_hours`): `owner_price_minutes` beside
+               `owner_price_cite`, the owner's words. Refuses a price without
+               a citation and a non-positive one -- `roster_lib.owner_price_why`,
+               the definition the planner reads; the old price and the
+               citation go to resume.note; the current price writes nothing.
   set-source   writes the group's `source`, a word in roster_lib.SOURCES
                (`outside`: an accepted outside request, which replan.py's
                dispatch_tier ranks in the top tier), or `-` to remove the
@@ -203,7 +211,9 @@ LABEL = r"P(?:\d+|-[A-Q])\b"
 PROPOSAL_RE = re.compile(rf"\b(?:triage|proposal)\s+{LABEL}", re.I)
 RULING_CITE_RE = re.compile(
     rf"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#({LABEL})")
-VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
+#: LOG (proposal-triage.md, tvofi 2026-11-01): friction blocking no production merge,
+#: recorded and never routed, so it is read as itself, not as "unreadable".
+VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER|LOG)\b", re.M)
 
 
 #: One push plus two re-applications on a rival's new tip; past that the
@@ -407,6 +417,15 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
     for field in ("lane", "brief"):
         if not new.get(field):
             raise Refuse(f"append-group: {gid} needs a {field}")
+    if new.get("source") not in roster_lib.SOURCES:
+        raise Refuse(f"append-group: {gid} needs a source, one of {', '.join(roster_lib.SOURCES)} "
+                     "(P268: the CI-priority rule reads it)")
+    if new.get("savings") is not None and not new.get("savings_source"):
+        raise Refuse(f"append-group: {gid} has savings and no savings_source")
+    if new.get("hotfix") is True:
+        why = _hotfix_by_why(new, new.get("hotfix_by"))
+        if why:
+            raise Refuse(f"append-group: {gid} hotfix true: {why}")
     stage = (new.get("resume") or {}).get("stage")
     if stage is not None:
         why = _stage_why(stage, rel, gid)
@@ -438,6 +457,101 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
         new["resume"]["note"] = (f"{new['resume']['note']}; {note}"
                                  if new["resume"].get("note") else note)
     roster.setdefault("groups", []).append(new)
+
+
+#: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class")
+CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
+REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
+
+
+def required_contexts() -> set:
+    """The ruleset's required check names: the fixture merge_train.gating_names reads."""
+    try:
+        got = json.loads(REQUIRED_CONTEXTS.read_text())
+        return set(got.get("contexts") or []) | set(got.get("gate_required") or [])
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
+def _hotfix_by_why(g, by) -> "str | None":
+    """Why `by` ({rule, evidence}) is no admissible hotfix_by of group `g`, else None."""
+    if not isinstance(by, dict):
+        return "hotfix_by must be a JSON object {rule, evidence}"
+    rule, ev = by.get("rule"), by.get("evidence")
+    if rule not in roster_lib.HOTFIX_RULES:
+        return f"hotfix_by rule {rule!r} is none of {', '.join(roster_lib.HOTFIX_RULES)}"
+    if not ev:
+        return f"hotfix_by rule {rule} needs non-empty evidence"
+    if rule == "user-production-bug" and not (
+            g.get("source") == "user" and roster_lib.touches_production(g)):
+        return "user-production-bug needs source user and a group touching production code"
+    if rule == "main-red-required":
+        ctx = ev.get("context") if isinstance(ev, dict) else None
+        if not (isinstance(ev, dict) and ev.get("run_id") and ctx):
+            return "main-red-required evidence must be {run_id, context}: the red required check-run on a main SHA"
+        if ctx not in required_contexts():
+            return f"main-red-required names context {ctx!r}, which is not a required check of the ruleset"
+    return None
+
+
+def op_set_field(roster, group, field, raw):
+    """Write one P268 mapping field of a group, validated; `-` drops it. Order matters on
+    purpose: hotfix_by before hotfix true, savings_source before savings."""
+    g = _need(roster, group)
+    if field not in SET_FIELDS:
+        raise Refuse(f"set-field: {field!r} is not one of {', '.join(SET_FIELDS)}")
+    if raw == "-":
+        new = None
+    elif field == "hotfix":
+        if raw not in ("true", "false"):
+            raise Refuse("set-field: hotfix is true or false")
+        new = raw == "true"
+    elif field == "hotfix_by":
+        try:
+            new = json.loads(raw)
+        except ValueError:
+            raise Refuse("set-field: hotfix_by must be a JSON object {rule, evidence}")
+        why = _hotfix_by_why(g, new)
+        if why:
+            raise Refuse(f"set-field: {why}")
+    elif field == "savings":
+        try:
+            new = float(raw)
+        except ValueError:
+            raise Refuse("set-field: savings is a number of hours")
+        if not new > 0:
+            raise Refuse("set-field: savings must be positive")
+        new = int(new) if new == int(new) else new
+        if not g.get("savings_source"):
+            raise Refuse("set-field: savings needs a savings_source first (set-field savings_source "
+                         "dev/programme/triage/<batch>.md#P<n>)")
+    elif field == "savings_source":
+        if not CITATION.match(raw):
+            raise Refuse("set-field: savings_source is a citation, dev/programme/triage/<batch>.md#P<n>")
+        new = raw
+    elif field == "source":
+        if raw not in roster_lib.SOURCES:
+            raise Refuse(f"set-field: {raw!r} is not a source; one of {', '.join(roster_lib.SOURCES)}")
+        new = raw
+    else:
+        if not raw.strip():
+            raise Refuse("set-field: class needs a value")
+        new = raw
+    if field == "hotfix" and new is True:
+        why = _hotfix_by_why(g, g.get("hotfix_by"))
+        if why:
+            raise Refuse(f"set-field: hotfix true needs a valid hotfix_by first: {why}")
+    if field == "source" and g.get("hotfix_by", {}).get("rule") == "user-production-bug" and new != "user":
+        raise Refuse("set-field: source cannot leave user while hotfix_by is user-production-bug")
+    old = g.get(field)
+    if old == new:
+        return
+    if new is None:
+        g.pop(field, None)
+    else:
+        g[field] = new
+    _note_append(g, f"set-field {field} {old if old is not None else 'unset'} -> {new if new is not None else 'unset'}")
 
 
 def op_set_source(roster, group, source):
@@ -636,6 +750,8 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
         op_drop_carry(roster, group, value, match)
     elif op == "set-source":
         op_set_source(roster, group, value)
+    elif op == "set-field":
+        op_set_field(roster, group, value, (list(rest) or [""])[0])
     elif op == "mark-carry":
         kind, *arg = list(rest) or [""]
         op_mark_carry(roster, group, value, match, kind, " ".join(arg))
@@ -793,6 +909,29 @@ def op_set_size(roster, group, size, sizes, rel="", cite=None, cite_check=None):
     _note_append(g, _cited(f"set-size {old or 'unset'} -> {size}", cite))
 
 
+def op_set_price(roster, group, minutes, price_cite):
+    """Write a group's owner-stated price (`roster_lib.OWNER_PRICE_MINUTES`
+    beside `OWNER_PRICE_CITE`), validated by `roster_lib.owner_price_why`."""
+    g = _need(roster, group)
+    try:
+        value = float(minutes)
+    except (TypeError, ValueError):
+        raise Refuse(f"set-price: {group}: minutes {minutes!r} is not a number")
+    if value == value and abs(value) != float("inf") and value == int(value):
+        value = int(value)
+    why = roster_lib.owner_price_why(value, price_cite)
+    if why:
+        raise Refuse(f"set-price: {group}: {why}")
+    price_cite = price_cite.strip()
+    old = g.get(roster_lib.OWNER_PRICE_MINUTES)
+    if old == value and g.get(roster_lib.OWNER_PRICE_CITE) == price_cite:
+        return
+    g[roster_lib.OWNER_PRICE_MINUTES] = value
+    g[roster_lib.OWNER_PRICE_CITE] = price_cite
+    _note_append(g, f"set-price {old if old is not None else 'unset'} -> {value} min "
+                    f"(cite {price_cite})")
+
+
 def _paths(spec, what):
     if spec == "-":
         return []
@@ -907,7 +1046,7 @@ def privacy_refusal(texts):
 
 def ruling_verdict(src, pid):
     """The `Verdict:` of the `## <pid>:` entry in a triage batch file: ACCEPT,
-    REJECT or DEFER; None when no such entry; "unreadable" when it has no
+    REJECT, DEFER or LOG; None when no such entry; "unreadable" when it has no
     verdict line."""
     m = re.search(rf"^## {re.escape(pid)}:.*?$(.*?)(?=^## |\Z)", src, re.M | re.S)
     if not m:
@@ -1248,7 +1387,8 @@ def build_parser():
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
                                   "set-after", "drop-carry", "mark-carry",
-                                  "set-size", "set-files", "set-source"))
+                                  "set-size", "set-files", "set-source", "set-field",
+                                  "set-price"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("rest", nargs="*",
@@ -1268,6 +1408,8 @@ def build_parser():
                         "containing it")
     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
                    "that must hold the sha; recorded in resume.note")
+    p.add_argument("--price-cite", help="set-price: the owner's words the "
+                   "price rests on; required")
     p.add_argument("--add", nargs="+", action="extend",
                    help="set-files: paths appended to files; repeatable "
                         "(the default store action kept only the last list)")
@@ -1303,7 +1445,9 @@ def parse_op(argv):
     if a.op == "mark-carry" and a.match is not None and a.value is not None:
         # with --match there is no index: the first positional is the kind
         rest, a.value = [a.value] + rest, None
-    if rest and a.op != "mark-carry":
+    if a.op == "set-field" and (len(rest) != 1 or a.value is None):
+        p.error("set-field needs <group> <field> <value>")
+    if rest and a.op not in ("mark-carry", "set-field"):
         p.error(f"{a.op} takes one value; extra arguments: {rest}")
     if a.op == "mark-carry" and not rest:
         p.error("mark-carry needs implemented <sha>, moved <GROUP> or "
@@ -1323,6 +1467,8 @@ def parse_op(argv):
         p.error("--into is a set-stage flag")
     if a.reason is not None and a.op != "append-group":
         p.error("--reason is an append-group flag")
+    if a.op != "set-price" and a.price_cite is not None:
+        p.error("--price-cite is a set-price flag")
     if a.op not in ("set-size", "set-files") and a.cite:
         p.error("--cite is a set-size / set-files flag")
     if a.op != "set-files" and (a.add or a.set_files is not None
@@ -1357,6 +1503,9 @@ def make_edit(a, value, rest):
                     roster_lib.read_durations(a.worktree))
             except roster_lib.SchemaError as e:
                 raise Refuse(str(e))
+        if a.op == "set-price":
+            op_set_price(roster, a.group, value, a.price_cite)
+            return True
         if a.op in ("set-size", "set-files"):
             apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
             return True
@@ -1412,7 +1561,7 @@ def batch_edit(edits):
 # environment; the structural ops refuse any caller that does not carry it.
 LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
 STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
-                  "set-after", "drop-carry", "set-source")
+                  "set-after", "drop-carry", "set-source", "set-field")
 
 
 def lane_refusal(op, group):
@@ -1777,7 +1926,7 @@ def _self_test() -> int:
           sysrc(lambda: edit("unwire-issue", "R9-A", "10", field="stage"))
           != 0)
     newg = Path(tmp, "new.json")
-    newg.write_text(json.dumps({"group": "R9-C", "lane": "L2",
+    newg.write_text(json.dumps({"group": "R9-C", "source": "audit", "lane": "L2",
                                 "after": ["R9-A"], "brief": "fixture C"}),
                     encoding="utf-8")
     check("append-group rc", edit("append-group", "R9-C", str(newg)) == 0)
@@ -1788,7 +1937,7 @@ def _self_test() -> int:
     check("dup append-group refused",
           edit("append-group", "R9-C", str(newg)) == 2)
     fxg = Path(tmp, "fx.json")
-    fxg.write_text(json.dumps({"group": "R9-F", "lane": "L2", "after": [],
+    fxg.write_text(json.dumps({"group": "R9-F", "source": "audit", "lane": "L2", "after": [],
                                "brief": "fixture F", "issues": [8],
                                "fixes": [7, 8]}), encoding="utf-8")
     check("append-group with fixes rc", edit("append-group", "R9-F", str(fxg)) == 0)
@@ -1801,13 +1950,13 @@ def _self_test() -> int:
           edit("unwire-issue", "R9-F", "7", field="fixes") == 2)
     badg = Path(tmp, "bad.json")
     badg.write_text(json.dumps({"group": "R9-D", "after": ["R9-NOPE"],
-                                "lane": "L2", "brief": "x"}), encoding="utf-8")
+                                "source": "audit", "lane": "L2", "brief": "x"}), encoding="utf-8")
     check("dangling after refused",
           edit("append-group", "R9-D", str(badg)) == 2)
     # A new group carries a stage and a size like any other entry, so
     # append-group validates both against the registry and the duration model.
     badstage = Path(tmp, "bad-stage.json")
-    badstage.write_text(json.dumps({"group": "R9-G", "lane": "L2", "after": [],
+    badstage.write_text(json.dumps({"group": "R9-G", "source": "audit", "lane": "L2", "after": [],
                                     "brief": "fixture G",
                                     "resume": {"stage": "shipped"}}),
                         encoding="utf-8")
@@ -1816,7 +1965,7 @@ def _self_test() -> int:
           and "not a classified roster stage" in said and "R9-G" in said
           and "shipped" in said, (rc, said[-300:]))
     badsize = Path(tmp, "bad-size.json")
-    badsize.write_text(json.dumps({"group": "R9-H", "lane": "L2", "after": [],
+    badsize.write_text(json.dumps({"group": "R9-H", "source": "audit", "lane": "L2", "after": [],
                                    "brief": "fixture H", "size": "XS"}),
                        encoding="utf-8")
     rc, said = refusal("append-group", "R9-H", str(badsize))
@@ -1824,7 +1973,7 @@ def _self_test() -> int:
           and "not in the durations model" in said and "R9-H" in said
           and "XS" in said and FIXTURE_ROSTER in said, (rc, said[-300:]))
     goodsize = Path(tmp, "good-size.json")
-    goodsize.write_text(json.dumps({"group": "R9-I", "lane": "L2", "after": [],
+    goodsize.write_text(json.dumps({"group": "R9-I", "source": "audit", "lane": "L2", "after": [],
                                     "brief": "fixture I", "size": "S"}),
                         encoding="utf-8")
     check("append-group accepts a modelled size (null control)",
@@ -1856,6 +2005,7 @@ def _self_test() -> int:
         "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
         "## P3: no verdict line\nSource: sweep\n\n"
         "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n\n"
+        "## P5: friction off the production path\nVerdict: LOG\nSource: sweep\n\n"
         "## P-C: a lettered proposal\nVerdict: ACCEPT -> R9-B (carry)\n\n"
         "## P-D: a lettered reject\nVerdict: REJECT\n", encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
@@ -1873,6 +2023,8 @@ def _self_test() -> int:
           refuses("REJECT", "append-carry", "R9-B", f"proposal P2: a watcher. triage: {ruling}#P2"))
     check("triage gate: a DEFER ruling is refused: only an ACCEPT is routed",
           refuses("DEFER", "append-carry", "R9-B", f"proposal P4: a watcher. triage: {ruling}#P4"))
+    check("triage gate: a LOG ruling is refused as LOG, never routed",
+          refuses("(LOG)", "append-carry", "R9-B", f"proposal P5: a watcher. triage: {ruling}#P5"))
     check("triage gate: an entry with no verdict line is refused",
           refuses("unreadable", "append-carry", "R9-B", f"proposal P3. triage: {ruling}#P3"))
     check("triage gate: a cited entry the batch lacks is refused",
@@ -2006,7 +2158,7 @@ def _self_test() -> int:
     check("no-op set-source commits nothing",
           edit("set-source", "R9-B", "outside") == 0 and tip() == t0)
     check("set-source refuses a word outside roster_lib.SOURCES, moving nothing",
-          refuses("is not a source", "set-source", "R9-B", "audit") and tip() == t0)
+          refuses("is not a source", "set-source", "R9-B", "bogus") and tip() == t0)
     check("set-source refuses an unknown group",
           refuses("no roster group", "set-source", "R9-ZZ", "outside"))
     check("set-source - removes the key, and the old value is in resume.note",
@@ -2014,6 +2166,71 @@ def _self_test() -> int:
           and "set-source outside -> unset" in (
               next(g for g in branch_roster()["groups"]
                    if g["group"] == "R9-B")["resume"].get("note") or ""))
+
+    # P268 intake: append-group needs a source; set-field validates the mapping fields.
+    def new_group(name, **kw):
+        f = Path(tmp, f"{name}.json")
+        f.write_text(json.dumps({"group": name, "lane": "L2", "after": [], "brief": "fixture " + name, **kw}),
+                     encoding="utf-8")
+        return str(f)
+
+    def grp(name):
+        return next(g for g in branch_roster()["groups"] if g["group"] == name)
+
+    t0 = tip()
+    check("append-group without a source is refused, moving nothing",
+          refuses("needs a source", "append-group", "R9-S1", new_group("R9-S1")) and tip() == t0)
+    check("append-group with source user is accepted (null control)",
+          edit("append-group", "R9-S1", new_group("R9-S1", source="user")) == 0
+          and grp("R9-S1")["source"] == "user")
+    edit("append-group", "R9-S2", new_group("R9-S2", source="audit"))
+    edit("append-group", "R9-S3", new_group("R9-S3", source="user", files=["custom_components/x/y.py"]))
+    t0 = tip()
+    check("set-field savings without savings_source is refused",
+          refuses("savings_source", "set-field", "R9-S2", "savings", rest=("14",)) and tip() == t0)
+    check("set-field savings_source then savings is accepted and reads back",
+          edit("set-field", "R9-S2", "savings_source", rest=("dev/programme/triage/s6-batch57.md#P268",)) == 0
+          and edit("set-field", "R9-S2", "savings", rest=("14",)) == 0
+          and grp("R9-S2")["savings"] == 14)
+    t0 = tip()
+    check("set-field hotfix true without hotfix_by is refused",
+          refuses("hotfix_by", "set-field", "R9-S2", "hotfix", rest=("true",)) and tip() == t0)
+    check("set-field hotfix_by with an unknown rule is refused",
+          refuses("nope", "set-field", "R9-S2", "hotfix_by", rest=('{"rule":"nope","evidence":"x"}',)))
+    check("set-field hotfix_by with empty evidence is refused",
+          refuses("non-empty evidence", "set-field", "R9-S2", "hotfix_by",
+                  rest=('{"rule":"merge-deadlock","evidence":""}',)))
+    check("user-production-bug is refused on a source-audit group",
+          refuses("user-production-bug needs source user", "set-field", "R9-S2", "hotfix_by",
+                  rest=('{"rule":"user-production-bug","evidence":"issue 1"}',)))
+    check("user-production-bug is refused on a source-user group with no production file",
+          refuses("user-production-bug needs source user", "set-field", "R9-S1", "hotfix_by",
+                  rest=('{"rule":"user-production-bug","evidence":"issue 1"}',)))
+    check("user-production-bug is accepted on a source-user group touching custom_components, then hotfix true",
+          edit("set-field", "R9-S3", "hotfix_by",
+               rest=('{"rule":"user-production-bug","evidence":"issue 1"}',)) == 0
+          and edit("set-field", "R9-S3", "hotfix", rest=("true",)) == 0
+          and grp("R9-S3")["hotfix"] is True)
+    for rule_ in ("fixing-phase-critical", "merge-deadlock"):
+        check(f"{rule_} is accepted with evidence and refused without",
+              refuses("non-empty evidence", "set-field", "R9-S2", "hotfix_by",
+                      rest=(json.dumps({"rule": rule_, "evidence": ""}),))
+              and edit("set-field", "R9-S2", "hotfix_by",
+                       rest=(json.dumps({"rule": rule_, "evidence": "e"}),)) == 0)
+    check("main-red-required is accepted with a required context",
+          edit("set-field", "R9-S2", "hotfix_by",
+               rest=('{"rule":"main-red-required","evidence":{"run_id": 1, "context": "gate"}}',)) == 0)
+    check("main-red-required is refused for a context that is no required check",
+          refuses("not a required check", "set-field", "R9-S2", "hotfix_by",
+                  rest=('{"rule":"main-red-required","evidence":{"run_id": 1, "context": "not-a-required-check"}}',)))
+    check("main-red-required is refused for a plain-string evidence",
+          refuses("{run_id, context}", "set-field", "R9-S2", "hotfix_by",
+                  rest=('{"rule":"main-red-required","evidence":"red"}',)))
+    t0 = tip()
+    check("set-field source with a word outside SOURCES is refused, moving nothing",
+          refuses("is not a source", "set-field", "R9-S2", "source", rest=("bogus",)) and tip() == t0)
+    check("set-field class is accepted",
+          edit("set-field", "R9-S2", "class", rest=("docs",)) == 0 and grp("R9-S2")["class"] == "docs")
 
     # set-size / set-files (R10-ROSTER-OPS-2 part 1): one op pair for the
     # carries that asked for set-size (with and without a cite), set-files
@@ -2104,6 +2321,46 @@ def _self_test() -> int:
     check("set-size from a recorded size names the old one",
           more("set-size", "R9-B", value="S") == 0
           and "M -> S" in grp("R9-B")["resume"]["note"])
+
+    # set-price: the owner-stated price the planner reads (group_hours).
+    words = 'owner-stated price, test 2026-11-12: "Price it at 4h"'
+    t_sf = tip()
+    rc, said = more_refusal("set-price", "R9-A", "240")
+    check("set-price refuses a price with no citation, moving nothing",
+          rc == 2 and "citation" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-price", "R9-A", "240", "--price-cite", "  ")
+    check("set-price refuses a blank citation",
+          rc == 2 and "citation" in said and tip() == t_sf, (rc, said[-200:]))
+    for bad in ("0", "-30", "abc", "inf"):
+        rc, said = more_refusal("set-price", "R9-A", bad, "--price-cite", words)
+        check(f"set-price refuses minutes {bad!r}, moving nothing",
+              rc == 2 and "minutes" in said and tip() == t_sf, (rc, said[-200:]))
+    check("set-price refuses an unknown group",
+          more_refusal("set-price", "R9-ZZ", "240", "--price-cite", words)[0] == 2
+          and "no roster group" in more_refusal(
+              "set-price", "R9-ZZ", "240", "--price-cite", words)[1])
+    before_p = grp("R9-A")
+    check("set-price with a citation lands both fields",
+          more("set-price", "R9-A", "--price-cite", words, value="240") == 0
+          and grp("R9-A").get("owner_price_minutes") == 240
+          and grp("R9-A").get("owner_price_cite") == words)
+    check("... recording it in resume.note and touching no other field",
+          "set-price unset -> 240 min" in grp("R9-A")["resume"]["note"]
+          and sans(grp("R9-A"), "owner_price_minutes", "owner_price_cite")
+          == sans(before_p, "owner_price_minutes", "owner_price_cite"))
+    check("what it wrote is a price the planner's reader accepts",
+          roster_lib.owner_price(grp("R9-A")) == (240.0, words))
+    t_sf = tip()
+    check("set-price to the price already held is byte-identical (null control)",
+          more("set-price", "R9-A", "--price-cite", words, value="240") == 0
+          and tip() == t_sf)
+    check("an unpriced group carries neither field (null control)",
+          "owner_price_minutes" not in grp("R9-B")
+          and roster_lib.owner_price(grp("R9-B")) is None)
+    check("set-price stores the citation stripped, and the stored text re-reads equal",
+          more("set-price", "R9-B", "--price-cite", f"  {words}\n", value="90") == 0
+          and grp("R9-B").get("owner_price_cite") == words
+          and roster_lib.owner_price(grp("R9-B")) == (90.0, words))
 
     t_sf = tip()
     rc, said = more_refusal("set-files", "R9-A", "--add", "no/such/path.py")
@@ -2375,7 +2632,7 @@ def _self_test() -> int:
     # with a done stage), since append-carry now refuses a closed destination.
     legacyg = Path(tmp, "legacy-group.json")
     legacyg.write_text(json.dumps({
-        "group": "R9-L", "lane": "L2", "after": [], "brief": "fixture L",
+        "group": "R9-L", "source": "audit", "lane": "L2", "after": [], "brief": "fixture L",
         "carry": ["legacy carry"], "resume": {"stage": "done", "branch": "handoff/l"}}),
         encoding="utf-8")
     edit("append-group", "R9-L", str(legacyg), branch="mark-1")
@@ -2440,7 +2697,7 @@ def _self_test() -> int:
 
     def jgroup(name, **kw):
         f = Path(tmp, f"{name}.json")
-        f.write_text(json.dumps({"group": name, "lane": "L2", "after": [],
+        f.write_text(json.dumps({"group": name, "source": "audit", "lane": "L2", "after": [],
                                  "brief": f"fixture {name}", **kw}),
                      encoding="utf-8")
         return str(f)
@@ -2702,7 +2959,7 @@ def _self_test() -> int:
     # remote stays where it was.
     before = run(["git", "-C", str(origin), "rev-parse", "refs/heads/edit-1"]).strip()
     badb = Path(tmp, "bad-brief.json")
-    badb.write_text(json.dumps({"group": "R9-E", "lane": "L2", "after": [],
+    badb.write_text(json.dumps({"group": "R9-E", "source": "audit", "lane": "L2", "after": [],
                                 "brief": "a brief with __bad__ in it"}),
                     encoding="utf-8")
     rc = edit("append-group", "R9-E", str(badb), push=True, wt="wt-lint")

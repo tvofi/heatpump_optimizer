@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_immersion BOOLOP 7b98a6ee",
+  "killed_by": "tests/features.py",
+  "old": "            if self._immersion_active and self._immersion_clear_count >= 2:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self._immersion_active or self._immersion_clear_count >= 2:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

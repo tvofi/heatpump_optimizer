@@ -142,6 +142,11 @@ MUTANTS = [
      "if n != group_id", ROSTER_REL),
     ("enum-line-dropped", '    if enum:\n        out.append(f"Class-enumeration', '    if False:\n        out.append(f"Class-enumeration',
      ROSTER_REL),
+    ("fixer-guard-off", 'if role == "fixer" and (part or len', 'if (part or len'),
+    ("readback-nonce", 'f"`git ls-remote origin refs/heads/probe/{ref_key}-{nonce.strip()[:8]}`, and push again',
+     'f"`git ls-remote origin refs/heads/probe/{ref_key}-{nonce.strip()}`, and push again'),
+    ("legacy-refusal-swallow", '        except roster_lib.RosterNotFound as e:\n            raise Refusal(str(e))\n        pline',
+     '        except roster_lib.RosterNotFound as e:\n            pass\n        pline'),
 ]
 SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")
 
