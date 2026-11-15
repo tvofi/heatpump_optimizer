@@ -3895,7 +3895,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # different generations of state.
         # Part D: it folds the running signal's edges, a meter's rise held for its
         # refreshes (S7), queued until the ledger restore; ``__init__`` attaches it.
-        self._start_counter = StartCounter(hold=None if self._config.compressor_freq_sensor else RiseHold())
+        self._start_counter = StartCounter(hold=None if self._ctx._config.compressor_freq_sensor else RiseHold())
         running_signal.subscribe(running_signal.signal_for(self), lambda edge: self._book_starts(
             self._start_counter.hear(*edge)), lambda read: self._book_starts(self._start_counter.refresh(read)))
         # #40: receipts frozen at month rollover. Frozen rather than

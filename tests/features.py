@@ -24531,6 +24531,8 @@ _cw = _t2_coord(
 _cw._start_counter.restore(None)
 for _cw_hear in running_signal.signal_for(_cw).subscribers:
     _cw_hear((_T6, True))
+for _cw_tick in running_signal.signal_for(_cw).ticks * 2:  # a meter's rise counts at its second refresh (S7)
+    _cw_tick(True)
 R.check(
     "a confirmed start books its wear price on the ledger's wear line",
     _cw._start_counter.lifetime == 1

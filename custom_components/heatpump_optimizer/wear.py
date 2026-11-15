@@ -130,8 +130,9 @@ class RiseHold:
         if running is True:
             self.held, self.seen = (since, rose_from is False), 0
             return []
-        short_run = held is not None and held[1] and running is False
-        return ([(held[0], True)] if short_run else []) + [(since, running)]
+        if held is not None and held[1] and running is False:  # a short run
+            return [(held[0], True), (since, running)]
+        return [(since, running)]
 
     def refresh(self, running: bool) -> list[tuple[datetime, bool | None]]:
         """One refresh, ``running`` its read of the settled class; the held rise, once released."""
