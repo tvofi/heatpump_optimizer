@@ -1,4 +1,4 @@
-ref=5c5baf068addb03202c6d951c9192a5b642f664e seats=59
+ref=0b8b0f849afd534507164d29e78366b137ed09fc seats=59
 ok D0 mode=cells seats=3 universe=3 [s1:3f/22943loc, s2:3f/22943loc, s3:3f/22943loc]
 ok D1 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
 ok D2 mode=cells seats=3 universe=92 [s1:92f/74071loc, s2:92f/74071loc, s3:92f/74071loc]
@@ -18,52 +18,52 @@ ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
 ok coverage tracked=11265 in_universe=1603 excluded=9662 unclassified=0
 ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
 FAIL start evaluation round=11: 48 gap(s)
-   dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D0 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D1 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D10 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D11 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D12 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D14 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D15 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D2 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D3 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D4 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D5 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D6 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D7 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D8 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-D9 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-GATE-REDS carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-INJECTED carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-GATE-CAUSE carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INSTRUMENT-YIELD carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INTAKE-BUILDER carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-NULL-REVIEWER carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-OBJECTIVE-RECORD carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-ROLE-CLAUSE carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-N-RULE-YIELD carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-R-WORKFLOWS carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-S-SEATS carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-SCORECARD carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_closure_slip carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_lead_time carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_model_gap carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-band_tokens_per_change carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-closure_slip_ceiling carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 carries no owner decision
-   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 carries no owner decision
+   dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D0 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D1 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D10 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D11 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D12 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D14 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D15 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D2 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D3 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D4 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D5 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D6 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D7 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D8 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-D9 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-GATE-REDS is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-INJECTED is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D10 is accepted for criterion D10, which dev/audit/config/objective.json still leaves unset
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D4 is accepted for criterion D4, which dev/audit/config/objective.json still leaves unset
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D5 is accepted for criterion D5, which dev/audit/config/objective.json still leaves unset
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-K-D9 is accepted for criterion D9, which dev/audit/config/objective.json still leaves unset
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-GATE-CAUSE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INSTRUMENT-YIELD is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-INTAKE-BUILDER is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-NULL-REVIEWER is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-OBJECTIVE-RECORD is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-ROLE-CLAUSE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-RULE-YIELD is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-R-WORKFLOWS is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-S-SEATS is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-SCORECARD is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-T-product_green_floor is accepted for threshold product_green_floor, which dev/audit/config/objective.json still leaves unset
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 is accepted and not merged at this ref
 rc=1
