@@ -1,9 +1,0 @@
-import sys, subprocess, json
-sys.path.insert(0, "tools/audit"); sys.path.insert(0, ".")
-import check_scopes as cs
-show = lambda f, at=None: subprocess.check_output(["git", "show", f"HEAD:{f}"], text=True)
-tree = set(subprocess.check_output(["git", "ls-tree", "-r", "--name-only", "HEAD"], text=True).split())
-ev = cs.evaluation_self_test(tree, show)
-bad = [k for k, v in ev.items() if not v]
-print(f"held {len(ev)-len(bad)}/{len(ev)}"); [print("  FAIL", k) for k in bad]
-sys.exit(1 if bad else 0)

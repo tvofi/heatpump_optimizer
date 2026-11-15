@@ -1,29 +1,36 @@
-Fix review: blocked e1e3197e3aff48ee7afd6d43db153e232f7b6134 tests-gap: --open-cards output untested and silently empty on unmarked cards
+Fix review: blocked 6f4b8cd7b729316f4ed9fa0f7bf26f6cdaea2d14 tests-gap: --open-cards exit code and UNMARKED stderr unpinned at the CLI
 
-bus-nonce: 5222f6bae840a95f8da6548601e6d793
+bus-nonce: e9b5ea8fff58ed6b212148dc0754ad09
 
-Round 1 (first review of this PR). Head reviewed: e1e3197e3aff48ee7afd6d43db153e232f7b6134. Merge base b880dc914f3ba2590b7ce655d7419678b1c4968e. Role contract unchanged on main since the merge base.
+Round 2 (a later round over the reviewed head e1e3197e3aff48ee7afd6d43db153e232f7b6134). Scope: the delta only, per the packet's `## Review scope: delta`. The delta adds dev/programme/delivery/3620.md and changes tools/audit/check_scopes.py: `open_cards_report`, three self-test arms and main()'s `--open-cards` branch. It touches no custom_components/ code, so nothing widens. The role contract is unchanged on main since the merge base.
 
 ## Block
 
-- `--open-cards` is P3's input (architect-planner.md, Inputs and step 3: "none is dropped silently"). Two problems, one fix:
-  1. **Nothing tests its output.** Mutant M11 survives the full `check_scopes.py --self-test` (rc 0, `evaluation arms: 59/59 held; --open-cards rc=2`). M11 drops the `out` argument in `main()` (`evaluation_gaps(a.round, tree, show, merged, anc, changed, out)` -> `evaluation_gaps(a.round, tree, show, merged, anc, changed)`), so `open_cards` is always `[]`. The only `--open-cards` arm covers the case where no evaluation is tracked (rc 2). No arm runs the CLI on a record that has a PARALLEL card and checks that the card is listed. Evidence: `ev/mutants-full.txt`.
-  2. **It silently prints an empty list on a record whose cards are unmarked.** `--open-cards` throws away every gap `evaluation_gaps` returns, including the new "carries no boolean gates_finders" gap. On the real round-11 evaluation (origin/eval-review/r11-4 = f6d35cf73f) as written, 43 accepted cards are unmerged and none has `gates_finders`. `python3 tools/audit/check_scopes.py --repo . --ref f6d35cf73f19a053c99e6627071984ff4190aa04 --round 11 --open-cards` prints `{"round": 11, ..., "open_cards": []}` and exits 0 (`ev/open-cards-r11-4.txt`). The architect would read "no open cards". The body already applies the opposite rule to part 2's groups (an unmarked group is flagged `UNMARKED` and the listing exits non-zero) and to an untracked evaluation (exit 2, "never an empty list"). Unmarked cards need the same treatment.
-- Wanted: `--open-cards` refuses (non-zero exit, naming the cards) when any accepted card lacks a boolean `gates_finders`. Add a self-test arm that runs the CLI path on a record with one non-gating unmerged card and asserts that card is listed, which kills M11. Add another arm asserting an unmarked card is refused rather than omitted.
+- The previous block asked for "a self-test arm that runs the CLI path". The repair tests `open_cards_report`, the function main() calls, and leaves untested the two lines main() adds to act on its result. Mutants on those lines survive the full `check_scopes.py --self-test` (rc 0, `evaluation arms: 62/62 held; --open-cards rc=2`; `ev/mutants.txt`):
+  - M17: main's `sys.exit(rc)` -> `sys.exit(0)`. `--open-cards` then exits 0 over unmarked cards, which is exactly the silent pass the previous block was about, for any caller keying on the exit code.
+  - M18: `print(line, file=sys.stderr)` -> `pass`. The `UNMARKED <card>` lines the body promises on stderr disappear.
+- The only CLI arm (`run_oc`) still covers just the untracked-evaluation case (rc 2).
+- Wanted (either is enough): extend the `default_run` subprocess arm to a record tracking an evaluation with one unmarked accepted card, asserting rc 1 and the `UNMARKED` line on stderr. Or move main()'s print-and-exit into a function the self-test drives, and assert its rc and stderr. Then re-run M17 and M18 and show both killed.
 
 ## Findings
 
-- none open beyond the block, which this PR settles.
+- Follow-up: M19 (`"open_cards": sorted(out)` -> unsorted `out`) survives. Every arm lists at most one open card, so the sort is unpinned. It is low risk because P3 reads the list as a set. An arm with two open cards in reverse order would pin it. Carry: R11-PRE-ROUND-CHECK-GATE
 
 ## Evidence
 
-- CI: `merge_train.py classify e1e3197e3aff48ee7afd6d43db153e232f7b6134 --pr 3620` printed `GREEN e1e3197e3aff48ee7afd6d43db153e232f7b6134 pending: none red: none`, rc 0 (`ev/classify-1.txt`). No red, so no `## Red checks` answer is owed. The body's `none` stands.
-- Merge with main: `git merge-tree --write-tree origin/main e1e3197e` rc 0, no conflict (`ev/merge-tree.txt`).
-- VERSION, manifest and RELEASE_NOTES.md are untouched in the three-dot diff. The diff touches 4 files (`ev/diffstat.txt`).
-- Self-test at the head: `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` printed `evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=2` and `SELF-TEST passed`, rc 0 (`ev/selftest-head.txt`). This matches the body's figure.
-- Mutation proof, re-run with my own driver (`evaluation_self_test` at HEAD, exits 1 on any failing arm; `ev/mutants.txt`). NULL held 59/59. Killed: M1 (isinstance -> False), M2 (-> `gating is None`), M3 (merged guard dropped), M4 (`elif False`), M5 (no append), M6 (no `continue`), M7 (old `norm(ev.get(k, ""))`), M9 (an unmerged non-gating card still checked as a gap). This confirms the body's M1 to M7. M8 (`not gating` -> `gating is False`) survives and is equivalent, since `gating` is a bool on that branch. In the full self-test, M10 (`--open-cards` exit 2 -> 0) is killed and M11 survives (see Block).
-- Null control, re-derived with my own driver (`ev/null-written.txt`, `ev/null-true.txt`) on f6d35cf73f. As written: 92 gaps, 43 of them "no boolean gates_finders" and 43 "not merged". With every accepted card true: 49 gaps (43 not merged) and 0 PARALLEL. Those 49 lines are identical, as an ordered list, to `check_scopes.py --round 11` run on main's code (origin/main e0ad8b2bd3) at that ref (`ev/main-round11.txt`, `ev/null-compare.txt`). The body's figures hold.
-- Not re-derived: the third null-control arm (31 true / 12 false -> 36 gaps, 12 PARALLEL). The gating list is held outside this PR, so I could not rebuild it.
-- Policy text: architect-planner.md's new holdout pointer, "the first five fitness functions step 7 names", resolves to step 7's structure budgets, gate-only tripwires, behaviour inventory, mutation kill rate and change coupling. That is the list it replaces. "read-only on code" is covered by the remaining "writing only the plan" and "You do not write production code". These policy edits still need the owner's approving review (or one under the mandate) before merging. That is not this verdict's to give.
-- The body's head and code-head SHAs match the head I measured. When I re-read before posting, `refs/pull/3620/head` had moved to 9b6adde88a8049f4cd5f9b7ad81879b226affafb. That commit is one non-merge commit, `record: the delivery row for #3620`, and adds only dev/programme/delivery/3620.md. `review_carry.py e1e3197e 9b6adde8` prints CARRY (`ev/head-moved.txt`). check_scopes.py did not change, so every number above and the block hold at both heads. This verdict names e1e3197e, as dispatched.
-- The body's `Carry: R11-PRE-ROUND-CHECK-GATE` part-2 carry: the packet's carry_audit reports it routed to origin/handoff/audit-r10-roster.
+- Previous verdict's block, part 1 (M11 survived): resolved. M11 (`out` dropped from the `evaluation_gaps` call, now in `open_cards_report`) is killed at 61/62 (`ev/mutants.txt`).
+- Previous verdict's block, part 2 (an empty list over unmarked cards): resolved in the function and verified live. The head's code at f6d35cf73f (round 11 as originally written) exits 1, prints 43 UNMARKED lines and returns `"open_cards": []` with 43 `unmarked_cards` (`ev/open-cards-r11-4.txt`). At c6ce415b77 it exits 0 with `unmarked_cards: []` and 12 `open_cards`, the same 12 cards as the 12 accepted cards whose `gates_finders` is false (43 accepted in all; `ev/open-cards-c6ce415b.txt`). Both figures in the body's `### Repair` re-derive.
+- Mutants, my own driver (full `check_scopes.py --self-test` at the head, applied and restored in a detached worktree at 6f4b8cd7b; `ev/mutants.txt`):
+  - NULL: rc 0, 62/62 held.
+  - Killed: M11, M12 (rc always 0 in `open_cards_report`), M13 (only a missing key counts as unmarked), M14 (decision filter dropped), M16 (UNMARKED lines empty).
+  - M15 (`unmarked = [] or sorted(...)`) survives but is equivalent, my own mis-built mutant.
+  - Survived: M17 and M18 (see Block) and M19 (see Findings).
+  - The body's M11 to M14 re-derive as killed.
+- Self-test at the head: `evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2`, `SELF-TEST passed`, rc 0 (`ev/selftest-head.txt`). This matches the body's 62 of 62.
+- CI: `merge_train.py classify 6f4b8cd7b729316f4ed9fa0f7bf26f6cdaea2d14 --pr 3620` printed `GREEN 6f4b8cd7b729316f4ed9fa0f7bf26f6cdaea2d14 pending: none red: none`, rc 0 (`ev/classify.txt`, `ev/classify-log.txt`). The packet's `gate failure` and introduced-red refusal were read while jobs were still running; classify decides, and no red is owed a `## Red checks` answer.
+- Merge with main: `git merge-tree --write-tree origin/main 6f4b8cd7b` rc 0, no conflict (`ev/merge-tree.txt`).
+- VERSION, the manifest and RELEASE_NOTES.md are untouched in the three-dot diff (5 files: 0018, architect-planner.md, delivery/3620.md, check_scopes.py, instruments/check_scopes.py.md).
+- Head: refs/pull/3620/head is still 6f4b8cd7b at the time of writing, and it is the head the body names. `review_carry.py e1e3197e 6f4b8cd7b` prints FRESH-REVIEW (`ev/review-carry.txt`).
+- Note: stale-body: the body's opening `--open-cards` bullet still describes `{round, ref, open_cards}` and only exit 2. The `### Repair` section gives the current shape (`unmarked_cards`, rc 1).
+- The policy edits (0018 sections 5 and 6, architect-planner.md) still need tvofi's approving review, or one under mandate 6893738184, before merging. Giving it is not this verdict's job.
+- Closing self-audit: `carry_audit.py check` rc 0, `2 finding item(s): 2 routed, 0 unrouted` (`ev/carry-audit.txt`). The body file it read is an abridged copy of the PR body, read via the API: Head, Red checks, Forward-carry and Friction.
