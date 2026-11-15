@@ -1,0 +1,4 @@
+  ERROR   [index] CLAUDE.md: does not name `dev/governance/dimensions/criteria/X-criteria.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
+dev/governance/dimensions/criteria/X-criteria.md
+  ERROR   [budgets] dev/governance/dimensions/criteria/X-criteria.md: no line cap recorded in dev/governance/config/policy_budgets.json. A new policy file is classified deliberately or not at all.
+TOTAL: 2 error(s) across 53 policy file(s)
