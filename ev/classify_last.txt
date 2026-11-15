@@ -1,0 +1,2 @@
+RED 35ebd383cdc6909a17e808ba656b249e615b157e pending: gate red: none introduced: 1
+INTRODUCED Show the carry check and the queue pre-flight refusing their own fixtures

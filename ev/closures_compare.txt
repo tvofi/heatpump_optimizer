@@ -1,0 +1,8 @@
+head steps 116 main steps 116 c50eee33 steps 115
+head vs origin/main a72ae19952: differing steps ['pr-merger'] only-head [] only-main []
+ pr-merger files head-only ['tools/pr/outside.py'] main-only []
+ pr-merger probes head-only ['tools/pr'] main-only []
+ pr-merger dirs head-only [] main-only []
+ pr-merger git head-only [] main-only []
+steps c50eee33 moved against 9fdba3b854: 13 ['app-verdict-poster', 'field-coverage', 'obligations-ledger', 'open-pr', 'outside-contract', 'policy-lint-mutants', 'pr-args', 'pr-merger', 'review-carry', 'self-tests-outside-seat', 'selftest-wiring', 'update-pr', 'verdict-bus']
+c50eee33 entries not a subset of head entry: [('beat-job-rows', 'probes', ['tools/audit', 'tools/audit/seat']), ('fragment-check', 'files', ['dev/programme/carries/carry-201.json']), ('policy-lint-mutants', 'files', ['dev/programme/carries/carry-1922.json', 'dev/programme/carries/carry-2065.json', 'dev/programme/carries/carry-2066.json', 'dev/programme/carries/carry-2075.json']), ('policy-lint-mutants', 'probes', ['dev/programme/carries/carry-201.json']), ('self-tests-outside-seat', 'files', ['dev/programme/carries/carry-1922.json', 'dev/programme/carries/carry-2065.json', 'dev/programme/carries/carry-2066.json', 'dev/programme/carries/carry-2075.json'])]

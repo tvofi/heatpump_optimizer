@@ -1,0 +1,54 @@
+Traceback (most recent call last):
+  File "<scratch>/wt/tools/audit/seat/queue_pre_flight.py", line 602, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "<scratch>/wt/tools/audit/seat/queue_pre_flight.py", line 266, in main
+    return _self_test()
+  File "<scratch>/wt/tools/audit/seat/queue_pre_flight.py", line 494, in _self_test
+    due(dict(MANDATED)) == mt.MID and due({**MANDATED, "thread": [revoke()]}) is None
+    ~~~^^^^^^^^^^^^^^^^
+  File "<scratch>/wt/tools/audit/seat/queue_pre_flight.py", line 491, in due
+    return t.policy_approval_due(7, H0, MANDATED["files"])[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<scratch>/wt/tools/audit/seat/merge_train.py", line 3026, in policy_approval_due
+    if self.fork_head(pr) is not None:
+       ~~~~~~~~~~~~~~^^^^
+  File "<scratch>/wt/tools/audit/seat/merge_train.py", line 2673, in fork_head
+    raise Stop("outside", f"#{pr} could not be read from the pulls API ({o.strip()[-120:] or 'no output'}); "
+               "an unread head is never taken for ours")
+merge_train.Stop: outside: #7 could not be read from the pulls API (no output); an unread head is never taken for ours
+
+== queue_pre_flight.py differs head vs main: 0 line(s) of stat
+== rows present at reviewed head b372f8e9?
+1
+== main commits adding them
+$ at the reviewed head b372f8e935: queue_pre_flight.py --self-test
+rc=1
+35:  FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+38:  FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+39:  FAIL null control: under a --mandate whose scope does not cover policy merging it still PARKs
+40:  FAIL null control: under an expired --mandate it still PARKs
+41:  FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
+60:merge_train.Stop: outside: #7 could not be read from the pulls API (no output); an unread head is never taken for ours
+== is the fork_head call in policy_approval_due this pull request's line (three-dot diff at the head)
+176-         bf.write_text(body)
+177-         if self.head(pr) != h:
+178-@@ -2740,6 +2876,8 @@ class Train:
+179-             item["carry_refused"] = why
+180-         if not self.approval_carry or not self.mandate:
+181-             return no("--approval-carry or --mandate is not given")
+182:+        if self.fork_head(pr) is not None:
+183-+            return no("the head is cross-repository, where the train carries no owner approval (decision 0017)")
+184-         chain = [c for c in item.get("carried_chain") or [item.get("carried_from")] if is_sha(c or "") and c != h]
+185-         if not chain:
+--
+239-         bf = self.state / f"{name}{pr}.md"
+240-         bf.write_text(body)
+241-@@ -2863,6 +3023,9 @@ class Train:
+242-         pol = self.policy_paths(files) if cid else []
+243-         if not pol:
+244-             return None, pol, ""
+245:+        if self.fork_head(pr) is not None:
+246-+            # Policy paths are class R: adoption refused this head, and `policy_gate` stops it.
+247-+            return None, pol, "the head is cross-repository, where the train posts no approval (decision 0017)"
+248-         g = _mandate_gate()
