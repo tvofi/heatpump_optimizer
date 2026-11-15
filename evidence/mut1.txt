@@ -1,0 +1,13 @@
+RESULT m1-dr-dispatch-clause: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 3 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+       FAIL DESIGN-REVIEW OWED: null controls: a verdict at the tip, a reviewer dispatched after the tip and a done group print nothing
+       FAIL repair-discharges-line census: every armed kind has at least one arm and each arm holds
+       FAIL repair-discharges-line census: DESIGN-REVIEW OWED:: dispatching the reviewer after the tip removes the line
+RESULT m2-dr-stage-gate: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 3 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+       FAIL DESIGN-REVIEW OWED: null controls: a verdict at the tip, a reviewer dispatched after the tip and a done group print nothing
+       FAIL repair-discharges-line census: every armed kind has at least one arm and each arm holds
+       FAIL repair-discharges-line census: DESIGN-REVIEW OWED:: a precondition gone (the group done) removes it
+RESULT m3-dr-disposition: KILLED [('orchestrator_tick.py', 1, ['SyntaxError: unexpected character after line continuation character']), ('ledger.py', 1, ['SyntaxError: unexpected character after line continuation character'])]
+RESULT m4-dr-verdict-at-tip: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 6 failed']), ('ledger.py', 0, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+       FAIL DESIGN-BUILD: an approved design whose group is not dispatched owes a build; the dispatched one does not
+       FAIL DESIGN-BUILD: null control: a revise verdict owes no build
+       FAIL DESIGN-REVIEW OWED: null controls: a verdict at the tip, a reviewer dispatched after the tip and a done group print nothing

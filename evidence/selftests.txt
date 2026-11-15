@@ -1,0 +1,17 @@
+head 7caa9f561c3f9407b060b579c7a2c512d223bc8d
+== python3 tools/audit/seat/orchestrator_tick.py --self-test
+orchestrator_tick self-test: 356 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/owed_unactioned.py --self-test
+owed_unactioned self-test: 60 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/ledger.py --self-test
+ledger self-test: 104 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/beat_jobs.py --self-test
+beat_jobs self-test: 251 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/beat_jobs_selftest.py
+rc=0
+== base 98847b99d7 orchestrator_tick --self-test: 319 checks, 0 failed
+== merge-tree --write-tree origin/main 7caa9f561c3f9407b060b579c7a2c512d223bc8d: rc 0, tree 61b91caff24df2c691e8a0b8400c7fad8823896f

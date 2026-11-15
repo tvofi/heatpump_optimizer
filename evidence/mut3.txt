@@ -1,0 +1,19 @@
+RESULT m9-ud-startafter: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 2 failed'])]
+       FAIL UNDISPATCHED: a `start after #N` carry whose #N merged prints it too
+       FAIL UNDISPATCHED: null control: a dispatch ref newer than the gate opening prints nothing for that group
+RESULT m10-ud-ref-age: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed'])]
+       FAIL UNDISPATCHED: a dispatch ref older than the gate opening is no seat
+RESULT m11-ud-unreadable: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 2 failed'])]
+       FAIL UNDISPATCHED: an unreadable ref listing is UNREADABLE
+       FAIL OUTSIDE-CHAIN-IDLE: an unreadable ref listing is UNREADABLE and owes nothing it cannot know
+RESULT m12-ud-cp: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed'])]
+RESULT m13-oc-window: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed'])]
+       FAIL OUTSIDE-CHAIN-IDLE: null control: a path ending in a seat ref inside the window prints nothing
+RESULT m14-oc-gates: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 3 failed'])]
+       FAIL OUTSIDE-CHAIN-IDLE: an outside group blocked through MID by a LEAF whose seat ref is 8.4 h old prints the whole path and the idle hours
+       FAIL OUTSIDE-CHAIN-IDLE: a leaf with no seat ref at all says so, not a number
+       FAIL OUTSIDE-CHAIN-IDLE: null control: a path ending in a seat ref inside the window prints nothing
+RESULT m15-oc-outside: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 3 failed'])]
+       FAIL OUTSIDE-CHAIN-IDLE: an outside group blocked through MID by a LEAF whose seat ref is 8.4 h old prints the whole path and the idle hours
+       FAIL OUTSIDE-CHAIN-IDLE: a leaf with no seat ref at all says so, not a number
+       FAIL OUTSIDE-CHAIN-IDLE: null control: a plain (non-outside) group's chain onto the same idle leaf prints nothing
