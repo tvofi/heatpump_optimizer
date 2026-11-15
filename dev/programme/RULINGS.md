@@ -1,5 +1,15 @@
 # The owner's standing rulings
 
+Purpose (the orchestrator's wording, confirmed by tvofi on 2026-11-15: "This is
+exactly how I see it"): this file is a holding area below policy, not a second
+rulebook. (1) An entry policy already states is dropped. (2) An entry that should
+bind every session permanently graduates into policy, or into a decision record
+when it is structural and its reasoning must be kept, and then leaves this file.
+(3) What remains is operational or temporary: the current mandate,
+round-specific direction, and preferences too fine-grained for policy. (4) The
+file should stay small and shrink over time; a growing file is a signal that
+rulings are not being promoted.
+
 Every ruling of tvofi's still in force, with its date. Quoted text is his words
 verbatim, typos kept; "as recorded" marks a ruling whose words were not kept,
 and "orchestrator's reading" marks an interpretation, never his. A ruling given
