@@ -1,12 +1,15 @@
 """Compressor start counting and the wear price it implies (T6 #55).
 
 Every heat pump datasheet rates the compressor in starts, yet nothing in the
-integration counted them — the cycling penalty priced an *assumed* cost. This
-module builds the first realised counter: edge detection on the measured
-power, debounced with a two-sample hysteresis so a single noisy meter reading
-never books a start, and blind to the immersion element on purpose — #11's
-classifier already knows when the draw is resistive, and a resistive spike is
-exactly the shape a naive edge detector would call a compressor start.
+integration counted them — the cycling penalty priced an *assumed* cost. A
+start is a confirmed edge of the running class, ``compressor_running`` over
+one reading debounced by :class:`EdgeTracker`, to running from a last known
+class of stopped (R10-START-COUNTER-EDGES, part D of Bankaifan's outside
+pull request 3420). The edges come from ``running_signal``, the one owner of
+the signal, as each reading lands rather than once per refresh, so a stop
+and restart between two refreshes is a start. The meter source reads no
+signal while the immersion element runs (#11): a resistive spike is exactly
+the shape a naive edge detector would call a compressor start.
 
 The money side is deliberately simple: one start costs
 ``replacement_cost / rated_starts``. With the default replacement cost of 0
@@ -24,7 +27,6 @@ from typing import Any
 
 import numpy as np
 
-from .const import START_HYSTERESIS_SAMPLES
 from .drift import utc_elapsed_seconds
 
 #: Months of per-month counts kept, matching the ledger's horizon.
@@ -38,6 +40,11 @@ RUNNING_FLOOR_HZ = 1.0
 #: than a one-frame zero or a meter's dip, shorter than any stop worth
 #: counting. A constant, not a measured threshold.
 EDGE_DEBOUNCE_S = 30.0
+#: Refreshes that must read the meter's signal settled running before a rise
+#: on it is a start (S7, owner ruling D1): the first can fall inside an
+#: averaging meter's partial report, the second is a refresh period later,
+#: past any report period up to that interval.
+HOLD_REFRESHES = 2
 
 
 def compressor_running(
@@ -96,59 +103,104 @@ class EdgeTracker:
 
 
 @dataclass
-class StartCounter:
-    """Debounced compressor-start counter over measured power samples."""
+class RiseHold:
+    """The meter source's rises, held until :data:`HOLD_REFRESHES` refreshes read them running.
 
-    #: Confirmed running state (after hysteresis), not the raw sample.
+    S7 (owner ruling D1): a meter reporting its window's average gives an
+    element cut-in, compressor off, one partial report between the
+    on-threshold and the over level. It holds one report period, at least
+    :data:`EDGE_DEBOUNCE_S`, so it is a confirmed rise before over arrives,
+    and over reads no class. A held rise is passed on at its own time once
+    the refreshes read the class settled running; a no-class edge drops it. A
+    stop passes it on with the stop when it rose from a stop (a short run),
+    and drops it when it rose from no class: an element's falling average as
+    it cuts out.
+    """
+
+    #: The class of the last edge heard.
+    last: bool | None = None
+    #: (the rise's time, whether it rose from a stop, the refreshes that read
+    #: it running), while one is held.
+    held: tuple[datetime, bool, int] | None = None
+
+    def admit(self, since: datetime, running: bool | None) -> list[tuple[datetime, bool | None]]:
+        """Hear one confirmed edge; the edges to fold now, in order."""
+        held, rose_from, self.held, self.last = self.held, self.last, None, running
+        if running is True:
+            self.held = (since, rose_from is False, 0)
+            return []
+        if held is not None and held[1] and running is False:  # a short run
+            return [(held[0], True), (since, running)]
+        return [(since, running)]
+
+    def refresh(self, running: bool) -> list[tuple[datetime, bool | None]]:
+        """One refresh, ``running`` its read of the settled class; the held rise, once released."""
+        if self.held is None or not running:
+            return []
+        since, from_stop, seen = self.held
+        seen += 1
+        if seen < HOLD_REFRESHES:
+            self.held = (since, from_stop, seen)
+            return []
+        self.held = None
+        return [(since, True)]
+
+
+@dataclass
+class StartCounter:
+    """Compressor starts, folded from the running signal's confirmed edges.
+
+    A counter built bare is **unrestored**: it folds no edge but queues it in
+    order, because the listener is armed before the ledger store is read.
+    :meth:`restore` reads the stored payload and replays the queue against
+    the stored ``running``, so an edge before the read is neither lost nor
+    counted twice.
+    """
+
+    #: The last known running class: a ``None`` edge (no signal) leaves it,
+    #: so an outage, or the element on the meter, never books a start.
     running: bool = False
-    #: Consecutive samples on the far side of the threshold.
-    _streak: int = 0
     lifetime: int = 0
     months: dict[str, int] = field(default_factory=dict)
+    #: Edges seen before :meth:`restore`; ``None`` once restored.
+    queued: list[tuple[datetime, bool | None]] | None = field(default_factory=list)
+    #: The meter source's :class:`RiseHold`; ``None`` on the frequency source.
+    hold: RiseHold | None = None
 
-    def observe(
-        self,
-        when: datetime,
-        measured_kw: float | None,
-        threshold_kw: float,
-        immersion_active: bool,
-    ) -> bool:
-        """Fold one power sample; True when a start was just confirmed.
+    def hear(self, since: datetime, running: bool | None) -> list[datetime]:
+        """Fold one confirmed edge of the signal through the hold; the starts counted."""
+        edges = [(since, running)] if self.hold is None else self.hold.admit(since, running)
+        return [at for edge in edges for at in self.fold(*edge)]
 
-        ``immersion_active`` freezes the state machine entirely rather than
-        clamping the sample: while the element runs, the meter reads
-        compressor-plus-resistive and neither edge direction can be trusted.
-        The streak resets too — half an edge observed before the element cut
-        in must not combine with half an edge observed after it drops out.
-        """
-        if measured_kw is None or not np.isfinite(measured_kw):
-            # A meter outage resets the streak for the same reason the
-            # element does: "two CONSECUTIVE samples" is the promise, and
-            # two noise spikes separated by hours of missing readings are
-            # not consecutive.
-            self._streak = 0
-            return False
-        if immersion_active:
-            self._streak = 0
-            return False
-        above = float(measured_kw) >= float(threshold_kw)
-        if above == self.running:
-            self._streak = 0
-            return False
-        self._streak += 1
-        if self._streak < START_HYSTERESIS_SAMPLES:
-            return False
-        self._streak = 0
-        self.running = above
-        if not above:
-            return False
+    def refresh(self, running: bool) -> list[datetime]:
+        """One refresh's read of the settled class; the start a held rise it releases counted."""
+        edges = [] if self.hold is None else self.hold.refresh(running)
+        return [at for edge in edges for at in self.fold(*edge)]
+
+    def fold(self, since: datetime, running: bool | None) -> list[datetime]:
+        """Fold one confirmed edge; the start it counted, at ``since``, or none."""
+        if self.queued is not None:
+            self.queued.append((since, running))
+            return []
+        if running is None:
+            return []
+        started, self.running = running and not self.running, running
+        if not started:
+            return []
         self.lifetime += 1
-        key = when.strftime("%Y-%m")
+        key = since.strftime("%Y-%m")
         self.months[key] = int(self.months.get(key, 0)) + 1
         extra = sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]
         for old in extra:
             del self.months[old]
-        return True
+        return [since]
+
+    def restore(self, data: dict[str, Any] | None) -> list[datetime]:
+        """Read the stored counter, then replay the queue; the starts the replay counted."""
+        stored = StartCounter.from_dict(data)
+        queued, self.queued = self.queued or [], None
+        self.running, self.lifetime, self.months = stored.running, stored.lifetime, stored.months
+        return [at for edge in queued for at in self.fold(*edge)]
 
     def month_count(self, month: str) -> int:
         return int(self.months.get(month, 0))
@@ -164,7 +216,8 @@ class StartCounter:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "StartCounter":
-        counter = cls()
+        """A restored counter from the stored payload; absent or invalid fields read as zero."""
+        counter = cls(queued=None)
         if not isinstance(data, dict):
             return counter
         try:

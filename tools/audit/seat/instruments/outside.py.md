@@ -16,7 +16,8 @@
   posts the one mandated class-O approval, through the reviews API with
   `commit_id` the head read, and reads it back. When: `bus.sh adopt` runs
   main's copy as the gate; our class-O read seat returns through `approve`;
-  the merge train reads `check` again at the landing head (part 2). Refusal:
+  the merge train reads `check` again at the landing head on every base, and
+  `merge_pr.sh` app mode before it posts. Refusal:
   any unread fact (the allowlist, CODEOWNERS, the pull request, the review
   list, the mandate) refuses; `approve` refuses, posting nothing, without
   `--mandate`, under a mandate not in force now with scope all, on a head
