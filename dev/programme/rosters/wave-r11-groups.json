@@ -2137,7 +2137,7 @@
     "From r11-pre-briefs-census, body item dcd38e1b: `d16-writes [--cells]` and `d17-features` are in `tools/audit/enumerate.py` under the prototype's names, which card E11-U10 also uses, for the two new dimension briefs to cite; `--briefs` will then run them as acceptance. `rotation.json` and `scopes.json` already carry D0.M8 and D15.M9 from this head, so that group's rows for the new dimensions land on distinct keys. Carry: R11-PRE-NEW-DIMENSIONS (items dcd38e1b)"
    ],
    "resume": {
-    "stage": "design",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-new-dimensions",
     "commit": null,
     "last_step": null,
