@@ -21,7 +21,24 @@ Not yet given. These policy edits are kept minimal and await tvofi's approving r
 
 ## Head
 
-0d46ea8bd9ddc6b9dad231dbfce072d69516a999 (handoff/r11-pre-round-check-gate; merge base b3831ff64e, origin/main at 2026-11-15). Every figure below was measured at this commit.
+fc369d59a88e5c613a445ab16f8c9a258a072674 (handoff/r11-pre-round-check-gate). It is the round-1 repair of fix review 3620 (blocked e1e3197e, tests-gap), on top of 9b6adde88a (the PR head: e1e3197e merged main, then the delivery row). Every figure under `### Repair` was measured at this commit. The figures above it were measured at 0d46ea8bd9, and they hold here because check_scopes.py's evaluation path is unchanged except for the `--open-cards` report.
+
+### Repair (fix review 3620, round 1)
+
+- **Block**: `--open-cards` printed `open_cards: []` and exited 0 on a record whose accepted cards carry no `gates_finders`, and nothing tested its output (M11 survived).
+- **Fix**: `open_cards_report(rnd, tree, show, merged, anc, changed)` is the function main() prints. It lists the open non-gating cards and names each accepted card with no boolean `gates_finders`. It prints `UNMARKED <card>: accepted, no boolean gates_finders ...` to stderr, adds `unmarked_cards` to the JSON, and exits 1. The no-evaluation path still exits 2.
+- **Tests**: the self-test drives `open_cards_report` through the same synthetic record as the other evaluation arms.
+  - A non-gating unmerged card is listed: `({"round": 8, "open_cards": ["C1"], "unmarked_cards": []}, 0, [])`.
+  - A complete record lists nothing, rc 0 (null control).
+  - An accepted card with no `gates_finders`, or with `"no"`, is named, rc 1, whether merged or not.
+  - The evaluation arms now hold 62 of 62.
+- **Mutants**: `mutant_run.py --spec <scratch mutants3.json> --in-place --cmd "python3 <scratch evtest.py>"`. NULL survived and 4 of 4 were killed:
+  - M11: `out` is dropped from the `evaluation_gaps` call, the reviewer's mutant.
+  - M12: rc is always 0.
+  - M13: no card is ever unmarked.
+  - M14: only a missing value counts as unmarked, so `"no"` passes.
+- **Live**: `python3 tools/audit/check_scopes.py --repo . --ref f6d35cf73f19a053c99e6627071984ff4190aa04 --round 11 --open-cards` exits 1 with `"open_cards": []` and 43 `unmarked_cards`, and prints 43 UNMARKED lines on stderr. The null control is the same evaluation with every card marked (above): no card is unmarked.
+- **After the owner's values landed** (eval/r11 c6ce415b77, `gates_finders` written by the orchestrator from the rulings): the same command exits 0 with no UNMARKED line, `unmarked_cards: []`, and 12 `open_cards`. Those 12 are exactly the cards whose value is false: E11-GATE-REDS, E11-INJECTED, E11-N-GATE-CAUSE, E11-N-INSTRUMENT-YIELD, E11-N-INTAKE-BUILDER, E11-N-NULL-REVIEWER, E11-N-ROLE-CLAUSE, E11-N-RULE-YIELD, E11-R-WORKFLOWS, E11-S-SEATS, E11-SCORECARD and E11-T-product_green_floor.
 
 ## Mutation proof
 
@@ -55,7 +72,7 @@ The evaluation at origin/eval-review/r11-4 (f6d35cf73f) was run through `evaluat
 - `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` at 0d46ea8bd9 printed `evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=2` and `SELF-TEST passed (every perturbed scope refused)`, rc 0. The evaluation arms gained 10 (49 at main), plus one subprocess arm for `--open-cards`.
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and the one script is `tests/entities.py`. Locally, `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `1 of 2722 ENTITY CHECKS FAILED`. The one failure is `hb:positive_control`: on a loaded macOS host the py-spy sampler did not name a 600 ms spin in 3 tries (one sample `timed out after 0.5 seconds`). This diff touches neither the heartbeat nor tests/nightly_ha.py, so CI's run is the authority.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-<!-- figure-block: scope-line mb=b3831ff64eca1936f0b618193ee86c3e337b51a9 head=0d46ea8bd9ddc6b9dad231dbfce072d69516a999 -->
+<!-- figure-block: scope-line mb=b880dc914f3ba2590b7ce655d7419678b1c4968e head=fc369d59a88e5c613a445ab16f8c9a258a072674 -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
