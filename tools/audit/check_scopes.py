@@ -683,7 +683,8 @@ def evaluation_self_test(tree, show):
                 {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}}]}))
             == ({"round": 8, "open_cards": ["C1"], "unmarked_cards": [], "open_groups": ["N"], "unmarked_groups": []}, 0, []),
         "--open-cards whole fails on an unmarked group alone, or an unmarked card alone":
-            run(check=lambda *a: p3_input(*a, {"groups": [{"group": "U", "resume": {"stage": "not-started"}}]}))[1] == 1
+            run(check=lambda *a: p3_input(*a, {"groups": [{"group": "U", "resume": {"stage": "not-started"}}]}))[1:]
+            == (1, ["UNMARKED U: open, no boolean gates_finders (roster_edit.py set-field U gates_finders true|false)"])
             and run(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), check=lambda *a: p3_input(*a, {"groups": []}))[1] == 1,
         "a null, absent or blank reviewer or evaluator is refused":
             all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [])]
