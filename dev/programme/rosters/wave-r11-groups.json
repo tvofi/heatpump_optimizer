@@ -2936,6 +2936,52 @@
     "next_step": "designer first (L, decision 0014)",
     "note": "created 2026-11-15 for owner ruling D4 (self-setting pump residual of PR 3593), design first"
    }
+  },
+  {
+   "group": "R11-OUTSIDE-APPLY-PLAN-CEILING",
+   "lane": "IN",
+   "kind": "product",
+   "class": "bug",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [
+    3636
+   ],
+   "fixes": [
+    3636
+   ],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "tests/card.mjs"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "outside",
+   "brief": "Issue 3636 (outside report): Apply this plan in the dashboard card fails whenever the published plan has a slot starting more than 20 hours from now. The card apply method trims the payload at the edit floor but not at the apply ceiling, so it sends slots the editor refuses to let the user touch, and the backend build_override in manual_plan.py rejects them, correctly, as beyond the manual-plan window. Fix in the card only: when building each channel slot list, drop every run that starts at or after now plus the published manual_plan_window_hours (the applyEnd part of ceilingParts, not editCeiling, which also carries the zoomed visible window). Keep the lower-bound handling. Do not relax the backend refusal; it protects the stored plan across restarts. Handle browser/server clock skew at the boundary. Failing check first in tests/card.mjs beside the existing apply block: seed a slot past the ceiling, assert no sent slot starts at or after it. Null control: a plan wholly inside the window sends exactly the same payload. Mutation proof: removing the new filter turns the check red. No user-facing text changes. Release notes credit the reporter.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "commit": null,
+    "branch": "fix/r11-outside-apply-plan-ceiling",
+    "last_step": null,
+    "next_step": "fixer dispatched 2026-11-15 high priority (owner)"
+   }
   }
  ]
 }
