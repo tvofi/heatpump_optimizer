@@ -24311,7 +24311,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (S)",
-    "note": "triage s14 batch 202 P628; overlap admitted (R10-TRAIN-RESIDUE-P2, R10-GATE-DEFER-BARRIER, R10-SEAT-SCRIPT-OUTPUT, R10-GH-READ-RESIDUE-P3, R10-INTRODUCED-REDS-BARRIER): distinct seam, the approve step and review_settle; overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3, R10-INTRODUCED-REDS-BARRIER): triage s14 batch 202 P628 ACCEPT narrowed: the train approves queued entries at batch start"
+    "note": "absorbed by the round-10 round-end triage, ratified by tvofi 2026-11-15 (card C4, C14); carries and brief content moved to the receiving groups"
    }
   },
   {
