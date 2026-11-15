@@ -6,9 +6,9 @@
   {
    "png": "docs/img/readme/mermaid-how-the-pieces-fit.png",
    "png_dark": "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
-   "block_sha256": "1928b5740e6a18a3e8553578c7b71e9dcded82a2fa28ed09ea255dcb68b84de7",
-   "png_sha256": "6a98bdbc7db5ef521be91e78cd181bb8ff137bd2e32c6d3e10e2d4737e5c28ea",
-   "png_dark_sha256": "2608babc46c0ecfcb7be863d3698daeecbdb4ca3635ee51bbd970f18ff5028f7"
+   "block_sha256": "5cec01a40765b96e51f85a4cd8e65a223162c034c58701cc43acb088668dac57",
+   "png_sha256": "20b98c412361363d5fd1a5dd172f60630f5de432351d3168db0740ad52afb1f6",
+   "png_dark_sha256": "aa93a61d222e40baff87f1fad1bbdb16b252db64c729156f5b73bfb2e040f2c4"
   },
   {
    "png": "docs/img/readme/mermaid-setup-flow.png",
@@ -20,9 +20,9 @@
   {
    "png": "docs/img/readme/mermaid-one-interval.png",
    "png_dark": "docs/img/readme/mermaid-one-interval-dark.png",
-   "block_sha256": "d15981723b1b26092ec10b8e2c04e0178a1770567878628c33da416f3cb635ba",
-   "png_sha256": "21151a4c0738ac553105d79fbedb34af70d70000742fd22a7c93947b337463a4",
-   "png_dark_sha256": "6d5e8476589ccfb862654641e5f573559fa301087e61e0a009ae92f7a0b1c9d2"
+   "block_sha256": "a9e8fdb9d6f7956aff52a9a123766d95cdbdce1764536b2edf050447f088429a",
+   "png_sha256": "5efa80ae8c2358b86510bc67f9b1d3f3603a8c5a1adf9b8ad3bafa53afd10b84",
+   "png_dark_sha256": "e3cefd8a1dbd3b885586cc07b3444a9b2180ec778c8853a6636233bde308537e"
   }
  ]
 }

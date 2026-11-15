@@ -61,8 +61,9 @@ and a cool-only heat-curve correction are all estimated
 from your own house. Every learner is snapshotted weekly (the last eight are
 kept), and a drift watchdog can roll them back to the last healthy snapshot.
 
-**Knows what your electricity actually costs.** Tibber spot prices, time-of-use
-grid transfer fees, the monthly capacity (*effekt*) tariff and its billing clock,
+**Knows what your electricity actually costs.** Spot prices from Tibber or a
+price sensor, time-of-use grid transfer fees, the monthly capacity (*effekt*)
+tariff and its billing clock,
 PV self-consumption priced at what consuming actually costs you, and a learned
 diurnal price prior for the part of the horizon that has not been published yet.
 A live peak guard and a main-fuse headroom advisor act inside the metering window
@@ -128,7 +129,7 @@ or history. Monetary units follow your instance currency.
 ```mermaid
 flowchart LR
     subgraph inputs["Inputs"]
-        tibber["Tibber API<br/>hourly prices"]
+        tibber["Tibber API or a price sensor<br/>hourly prices"]
         weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
         meteo["Open-Meteo<br/>optional irradiance"]
         ha["Your HA sensors<br/>temps, power, presence"]
@@ -852,7 +853,7 @@ hard-coded to the entity ids the examples assume.
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model

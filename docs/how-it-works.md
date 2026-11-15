@@ -55,7 +55,7 @@ survivable — a wrong guess about hour 20 is corrected forty times before hour
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model
@@ -736,7 +736,8 @@ zero confidence.
 
 Added per kWh moved through the grid, and increasingly by time of day: several
 Swedish grid companies charge roughly 25 öre/kWh more on winter weekdays 06–22.
-Tibber's price does not include it. Configure it on the Grid costs page — as
+Tibber's price does not include it, and a price sensor includes it only if you
+added it there yourself. Configure it on the Grid costs page — as
 time-of-use rules like `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure,
 or as a live sensor — and every planned hour is priced at spot *plus* fee, which
 moves load to nights and weekends in winter even when spot alone would not. The

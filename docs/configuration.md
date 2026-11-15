@@ -716,8 +716,8 @@ writes, at every 15-minute plan step:
   fields appear once that unit is saved). Those defaults suit a controller
   that holds its **supply** at the set-point.
 - **For a *Return temperature* entity** — a controller that takes the
-  number as its **return-water** target, as, for example, a Luxtronik (alpha
-  innotec, Novelan) through its Smart Home Interface is assumed to — everything above
+  number as its **return-water** target, as, for example, a Luxtronik
+  (alpha innotec, Novelan) through its Smart Home Interface is assumed to — everything above
   applies, with these differences:
   - The values derived from a supply temperature — the 35 °C hold, the
     weather curve and the 25 °C gate — are written 5 K lower (the rated

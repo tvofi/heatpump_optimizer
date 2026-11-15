@@ -12,7 +12,7 @@ whole word: a name glued to `_` or a letter (`ecl110_displace_set_topic`, an
 option key or entity id) is an identifier, not prose, and is not a hit.
 
 One line per hit: `path:locator<TAB>brand<TAB>excerpt`. `--counts` prints
-only `brand count` lines and a `total N` line. Exit 0 always: this is an
+only `brand<TAB>count` lines and a `total<TAB>N` line. Exit 0 always: this is an
 enumerator whose output a seat rules hit by hit (an example of a generic
 shape, a real restriction, or a leftover), not a gate.
 
@@ -102,8 +102,8 @@ def main(argv: list[str]) -> int:
         for _, _, brand, _ in hits:
             counts[brand] = counts.get(brand, 0) + 1
         for brand, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
-            print(f"{brand} {n}")
-        print(f"total {len(hits)}")
+            print(f"{brand}\t{n}")
+        print(f"total\t{len(hits)}")
         return 0
     for rel, locator, brand, excerpt in hits:
         print(f"{rel}:{locator}\t{brand}\t{excerpt}")
