@@ -80,13 +80,21 @@ ROWS (the job table's `interval_s` in brackets):
                      `unheld_skip`); its UNHELD lines.
   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
                      UNREADABLE lines to the digest.
-  cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
+  cancel-sweep [600] cancel_superseded.py `sweep --repo R --priority` (+ `--train-state
+                     <train_state>` when the overlay has one); failures only (a
+                     remembered 409 zombie is no failure).
   disk [900]         worktree_gc.sh when `/` has under `disk_floor_gib` free;
                      a line only if still under afterwards.
   opener [300]       open_driver.py `--board` (one pass; its state stays in
                      `S/open-driver/`); its `OWED ... open-refused`,
                      `NEEDS-TITLE`, `STARVED` and `STUCK` lines, STUCK also
                      to events.txt.
+  loop-cwd [900]     the long-lived loops outside the job table, named by the overlay's
+                     `loop_cwd_patterns` (`pgrep -f` patterns): per pid `lsof -a -p <pid> -d cwd
+                     -Fin`, then `stat` of the named path. A differing inode or a path that
+                     does not resolve gives `DEAD <name> pid=<p> cwd gone`; an `lsof` that
+                     returns nothing gives `UNREADABLE`, never DEAD. Inodes, never only the
+                     path: `lsof` keeps the old path and a recreated checkout resolves.
   head-watch [120]   open pull-request heads from the API against heads.tsv.
   audit-dispatch [1800] review_strength.py `--fetch --guardrail`; each arm line
                      that reads `would-trip` gives one `DISPATCH: planted-defect-audit
@@ -153,8 +161,8 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck", "scorecard",
-        "darwin-selftest")
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
+        "scorecard", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -545,9 +553,14 @@ def cancel_sweep(ctx: Ctx) -> None:
     got = ctx.need("cancel-sweep", "repo")
     if got is None:
         return
-    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0])
+    extra = ["--priority"]
+    if ctx.overlay.get("train_state"):
+        extra += ["--train-state", str(ctx.overlay["train_state"])]
+    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0], *extra)
+    # A known zombie (a 409 run, remembered in cancel-zombies.json) prints `zombie <id>` once and is
+    # no failure; only a cancel or re-run that failed, an unreadable answer or a truncation is.
     bad = [ln for ln in out.splitlines()
-           if re.search(r"could not cancel| rc=-?\d+|unreadable|truncated", ln)]
+           if re.search(r"could not (?:cancel|re-run)| rc=-?\d+|unreadable|truncated", ln)]
     if rc != 0:
         bad.append(f"cancel-sweep: rc={rc}: {(err.strip().splitlines() or [''])[-1]}")
     write_job(ctx, "cancel-sweep", bad)
@@ -575,6 +588,29 @@ def opener(ctx: Ctx) -> None:
         if ln.startswith("STUCK "):
             event(ctx, norm(ln))
     write_job(ctx, "opener", lines)
+
+
+def loop_cwd(ctx: Ctx) -> None:
+    got = ctx.need("loop-cwd", "loop_cwd_patterns")
+    if got is None:
+        return
+    pats = ctx.overlay["loop_cwd_patterns"]
+    lines = []
+    for name in (pats if isinstance(pats, list) else [pats]):
+        _, out, _ = ctx.run(["pgrep", "-f", str(name)], ctx.repo, ctx.env)
+        for pid in (p for p in out.split() if p.isdigit() and int(p) != os.getpid()):
+            _, lo, _ = ctx.run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fin"], ctx.repo, ctx.env)
+            fields = {ln[0]: ln[1:] for ln in lo.splitlines() if ln[:1] in ("i", "n")}
+            if not (fields.get("i", "").isdigit() and fields.get("n")):
+                lines.append(f"loop-cwd: UNREADABLE {name} pid={pid} lsof returned no cwd")
+                continue
+            try:
+                now = os.stat(fields["n"].removesuffix(" (deleted)")).st_ino  # lsof marks a removed cwd; the path may still resolve
+            except OSError:
+                now = None
+            if now != int(fields["i"]):
+                lines.append(f"DEAD {name} pid={pid} cwd gone")
+    write_job(ctx, "loop-cwd", lines)
 
 
 def head_watch(ctx: Ctx) -> None:
@@ -746,7 +782,7 @@ def darwin_selftest(ctx: Ctx) -> None:
 
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
-       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
+       "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
        "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard,
        "darwin-selftest": darwin_selftest}
 

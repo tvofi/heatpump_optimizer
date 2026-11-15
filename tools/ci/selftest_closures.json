@@ -2992,6 +2992,27 @@
    "objects": false,
    "git": []
   },
+  "ci-priority": {
+   "run_sha": "40746e39355997eb3ebee6c0a396ae4e0a27faf5313538d009d8b44c857a7408",
+   "files": [
+    "dev/audit/config/ci_priority.json",
+    "tools/audit/seat/ci_pause.py",
+    "tools/audit/seat/ci_priority.py",
+    "tools/audit/seat/roster_lib.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "ci-probe-instrument": {
    "run_sha": "80189dc4b271d2c5242734dec361f9fa8920e2beb5a67d7965c979630570ca57",
    "files": [
@@ -5385,6 +5406,7 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
+    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",
@@ -6396,6 +6418,9 @@
     "dev/programme/rosters/.gitattributes",
     "dev/programme/rosters/wave-r1-groups.json",
     "dev/programme/round10/**",
+    "dev/programme/round10/.gitattributes",
+    "dev/programme/round10/rechain/.gitattributes",
+    "dev/programme/round10/state/.gitattributes",
     "dev/programme/round9/.gitattributes",
     "dev/programme/round9/state/.gitattributes",
     "dev/programme/triage/.gitattributes",
@@ -6760,6 +6785,7 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
+    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/audit/seat/.gitattributes",
     "tools/audit/seat/hooks/.gitattributes",
@@ -8268,6 +8294,25 @@
    "objects": false,
    "git": []
   },
+  "seat-gen": {
+   "run_sha": "bdcf3a8fb40688838be502bc2e91f3d6250b8420289aa407f59c96000492e77d",
+   "files": [
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "seat-venv-recipe": {
    "run_sha": "0737fc74c297df24dcc3f058fa3564008fd5443912d9d4bc06f747a5aff2edf1",
    "files": [
@@ -9470,6 +9515,7 @@
     "tools/audit/archscore/planted/.gitattributes",
     "tools/audit/archscore/planted/perturb/.gitattributes",
     "tools/audit/archscore/planted/redteam/.gitattributes",
+    "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",

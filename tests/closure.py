@@ -589,11 +589,24 @@ INERT_EXCEPT = (
     # CI's closures-autofix refused: INERT and read. Same route as the files below:
     # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
     "tools/audit/seat/orchestrator_tick.py",
+    # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
+    # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
+    "dev/audit/config/ci_priority.json",
+    # ... and that file's own readers: tests/entities.py loads the two new
+    # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
+    # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
+    "tools/audit/seat/ci_priority.py",
+    "tools/audit/seat/ci_pause.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
     "tools/policy/budget_raise_gate.py",
     "tools/pr/app_approve.sh",
+    # R10-SEAT-IDENTITY-P5: tests/entities.py reads the seat generator and its
+    # self-test (both added by this group). Same route as orchestrator_tick.py:
+    # tools/audit/seat/ stays INERT, these two join the recorded closure.
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be

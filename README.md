@@ -625,7 +625,7 @@ every sensor is created on every install regardless of which group it is in.
 | Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
-| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; disabled by default; needs measured power |
+| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded; with **Pump duty control** at Control, how often a duty switch stopped the compressor rides in `duty_switch_*` attributes | Diagnostic; disabled by default; needs measured power |
 | Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency number or sensor |
 
 #### The sun, and what the house is storing
