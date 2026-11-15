@@ -1,0 +1,6 @@
+head 2aff0cc4fe1ea58c40c1113b300592211ee75d3f; plan_page.py:710 calls plan_phases.section with no guard
+RESULT case=phases[0].entry=5 violations=0 section=AttributeError: 'int' object has no attribute 'replace'
+RESULT case=phases[1].items[1].name=7 violations=0 section=AttributeError: 'int' object has no attribute 'replace'
+RESULT case=phases[3].forecast.basis=3 violations=0 section=AttributeError: 'int' object has no attribute 'replace'
+RESULT case=note=1 violations=0 section=AttributeError: 'int' object has no attribute 'replace'
+RESULT case=null-control violations=0 section= rendered
