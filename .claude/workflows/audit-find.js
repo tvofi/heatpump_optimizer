@@ -111,6 +111,7 @@ const seatsFromScopes = (table, dim) => {
 // sits alone (dev/audit/README.md, "Resource rules on the audit box"): D4-s1
 // drives the card and D4-s3 renders it for the visual and accessibility pass.
 // The leads seat runs after the fan-out, on the box named by LEADS_BOX.
+// B11-B13 hold the D5 and D6 ledger seats past the third (scopes.json `ledger`).
 const BOXES = {
   B1: { heavy: ['D0-s1', 'D3-s1', 'D9-s1'], light: ['D5-s1', 'D6-s1', 'D10-s1'] },
   B2: { heavy: ['D0-s2', 'D3-s2', 'D9-s2'], light: ['D5-s2', 'D6-s2', 'D10-s2'] },
@@ -122,6 +123,9 @@ const BOXES = {
   B8: { heavy: ['D15-s2', 'D15-s3'], light: ['D13-s1', 'D13-s2', 'D13-s3', 'D15-s1'] },
   B9: { heavy: [], light: ['D4-s1'] },
   B10: { heavy: [], light: ['D4-s3'] },
+  B11: { heavy: [], light: ['D5-s4', 'D5-s5', 'D5-s6'] },
+  B12: { heavy: [], light: ['D5-s7', 'D5-s8', 'D5-s9', 'D5-s10'] },
+  B13: { heavy: [], light: ['D6-s4', 'D6-s5', 'D6-s6', 'D6-s7'] },
 }
 const CHROMIUM = new Set(['D4-s1', 'D4-s3'])
 const LEADS_BOX = 'B8'
@@ -212,7 +216,7 @@ const prep = await agent(
 4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in ${ROUND_DIR}/BASELINE.md inside the export.
 5. Read dev/audit/config/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension {steps, rounds} are exactly these (compare parsed JSON): ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, { steps: rotation[d]?.steps ?? null, rounds: rotation[d]?.rounds ?? null }])))}; otherwise false, with the difference in rotation_note.
 6. Read dev/audit/config/scopes.json in ${repo}. scopes_ok is true only if it parses to exactly this object (compare parsed JSON, not bytes): ${JSON.stringify(scopes)}; otherwise false, with the difference in scopes_note.
-7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
+7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --round ${round}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
 Return JSON {exportDir, worktrees: {<seat id>: <absolute path>} for the seats of step 2, python, node, rotation_ok, rotation_note, scopes_ok, scopes_note, scopes_rc, scopes_out}.`,
   { label: 'prepare', schema: { type: 'object', required: ['exportDir', 'worktrees', 'python', 'rotation_ok', 'scopes_ok', 'scopes_rc', 'scopes_out'], properties: { exportDir: { type: 'string' }, worktrees: { type: 'object' }, python: { type: 'string' }, node: { type: 'string' }, rotation_ok: { type: 'boolean' }, rotation_note: { type: 'string' }, scopes_ok: { type: 'boolean' }, scopes_note: { type: 'string' }, scopes_rc: { type: 'integer' }, scopes_out: { type: 'string' } } } },
 )

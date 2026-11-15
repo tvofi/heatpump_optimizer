@@ -739,9 +739,10 @@ class ThermalParameters:
         meter that under-reads. Keyed on the floor, not on the nameplate
         maximum: an overstated maximum (14 kW on a pump drawing 2.5) put a
         third of it above every draw and no sample ever folded. With no
-        modulation floor configured (0) the nameplate third stands. Until the
-        meter shows the draw follows the ask, an interval departing from its
-        ask must also clear the nameplate third (``MeasuredCop.judge_ratio``).
+        modulation floor configured (0) the nameplate third stands. The folds
+        read it through ``draw_range.power_floor_kw``, which caps it by the
+        metered running draw. An interval departing from its ask is judged on
+        the draw evidence besides (``MeasuredCop.judge_ratio``).
         """
         if self.min_electrical_power > 0.0:
             return max(0.8 * self.min_electrical_power, 0.2)
@@ -751,9 +752,10 @@ class ThermalParameters:
     def nameplate_power_floor_kw(self) -> float:
         """The pre-#2066 duty floor: a third of nameplate, never below 0.2 kW.
 
-        Still the bar for an interval whose draw departs from its ask while
-        there is no evidence the draw follows the ask, so such an install folds
-        nothing base would not have.
+        Still the bar for an interval whose draw departs from its ask where
+        the evidence that the draw follows the ask is unobtainable or never
+        came (``MeasuredCop.release``), so such an install folds nothing base
+        would not have.
         """
         return max(0.3 * self.max_electrical_power, 0.2)
 
@@ -2369,6 +2371,47 @@ def valve_top_draw(
     circuits = _valve_draw_circuits(
         model, state, outdoor_temp, wind_speed, precipitation)
     return _circuit_draw(circuits, model.params.buffer_max_temp)
+
+
+
+def valve_top_equilibrium(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float, solar_radiation: float,
+) -> ThermalState | None:
+    """The two-zone house where the plant settles with every circuit behind
+    the valve drawing at the curve's top (``valve_top_draw``): the floors
+    apart, radiators above, slab-fed floor below -- the warmest steady state
+    the valve lets through. ``None`` where a circuit's top sits at or below
+    the zone it heats, which draws nothing there.
+
+    With each zone below its circuit's top the plant's rates
+    (``_two_zone_rates``) are affine in the three zone temperatures, so one
+    linear solve of them is the equilibrium, exact.
+    """
+    p = model.params
+    (ua_rad, top_rad, _), (ua_floor, top_floor, _) = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    t_rad, t_floor = min(top_rad, p.buffer_max_temp), min(top_floor, p.buffer_max_temp)
+    u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
+
+    def rates(x: np.ndarray) -> np.ndarray:
+        return np.array(model._two_zone_rates(
+            x[0], x[1], x[2], outdoor_temp, ua_rad * (t_rad - x[0]),
+            ua_floor * (t_floor - x[2]), u_upper, u_lower, solar_radiation, None))
+
+    x0 = np.array([state.upper_floor_temperature, state.lower_floor_temperature, state.slab_temperature])
+    at_x0 = rates(x0)
+    upper, lower, slab = x0 + np.linalg.solve(
+        np.column_stack([rates(x0 + e) - at_x0 for e in np.eye(3)]), -at_x0)
+    if upper >= t_rad or slab >= t_floor:
+        return None
+    return replace(
+        state,
+        room_temperature=float(upper * p.upper_floor_area_ratio
+                               + lower * (1.0 - p.upper_floor_area_ratio)),
+        upper_floor_temperature=float(upper), lower_floor_temperature=float(lower),
+        slab_temperature=float(slab),
+    )
 
 
 def valve_charge_demand(

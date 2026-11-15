@@ -39,9 +39,11 @@ own tank thermostat must not spend them. A disinfection cycle the
 integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
 into Heating + DHW, so the planned anti-legionella run can make hot water.
 *Idle* writes no mode: see :func:`desired`. A both step is split by
-:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
-then Heating, each through its own row above; a share under
-:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
+:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
+only for the step's hot-water share of its 15 minutes, then Heating, each
+through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
+to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
+legs by ``duty_legs.leg_rule``, the rule the planner prices.
 A block drops its duty out of :func:`_planned_duty` and again out of
 whatever :func:`_share` and the hot-water lease return, so a blocked
 duty is served as idle and a lease expiry cannot hand it back. The
@@ -177,7 +179,9 @@ from .const import (
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
+    DEFAULT_FLOW_HEAT_C,
     DOMAIN,
+    FLOW_HEAT_C_MAX,
     MODE_AUTO,
     MODE_BOOST,
     MODE_ECONOMY,
@@ -197,7 +201,6 @@ from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
-from .duty_legs import both_step_legs
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
@@ -616,13 +619,16 @@ def _planned_room(
 
 
 def _space_target(
-    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool
 ) -> float | None:
-    """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+    """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
+
+    ``boosted``: a space boost or the global boost mode is live (:func:`_level_kw`).
+    """
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
         log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
-        return _flow_target(inp, duty, now)
+        return _flow_target(inp, duty, now, boosted=boosted)
     room = _planned_room(result, now)
     low = setpoint_range_c(inp.hass, entity)[0]
     # An "indoor" entity that cannot hold the room target is a flow
@@ -646,6 +652,25 @@ def _space_target(
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
     return finite_float(_planned_room(result, now, "power_schedule"))
+
+
+def _level_kw(inp: ArbiterInputs, now: datetime, boosted: bool) -> float | None:
+    """The space level a heating step's flow set-point maps (:func:`_flow_target`), kW.
+
+    The experiment's commanded power where the action is the experiment's
+    (:func:`_experiment_kw`). Under a live space boost or the global boost
+    mode with a ceiling to write (``boosted``, :func:`_boost_ceiling_c`), the
+    band's top: a boost replaces the plan's power for the space channel with
+    the maximum (``boost.overlay``), so the plan's own partial level for the
+    step is not the one served, and mapped it wrote a set-point between the
+    floor and the ceiling (tvofi, 2026-11-13: 41, then 43, during a boost;
+    R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
+    """
+    if (kw := _experiment_kw(inp)) is not None:
+        return kw
+    if boosted:
+        return finite_float(_band_kw(inp)[1])
+    return _step_kw(inp.plan, now)
 
 
 def _experiment_kw(inp: ArbiterInputs) -> float | None:
@@ -862,7 +887,38 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
     return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
 
-def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
+def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
+    """The space water set-point a live boost writes, °C in the entity's own terms, or ``None``.
+
+    The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
+    maximum value"), capped by a heating ceiling (``flow_heat_c``) set to
+    anything but its default, and by the controller's upper-limit sensor
+    where it reads (:func:`_setpoint_limits_c`). The default caps nothing: an
+    absent key reads as it, and an untouched options page must change
+    nothing (``tests/config_flow_steps.py``), so a stored default cannot be
+    told from no setting.
+    The maximum and the cap are both in the entity's own terms, so a return
+    target is not moved. ``None``, and the boost follows the planned level as
+    before, where the maximum does not read, sits at or below the gate, or
+    sits above :data:`~.const.FLOW_HEAT_C_MAX`, the highest ceiling the options
+    offer: such an entity is no heating-flow set-point to drive to its top.
+    """
+    entity = _entities(inp.config)["space_setpoint"]
+    high = setpoint_range_c(inp.hass, entity)[1] if entity else None
+    if high is None or not _gate_floor_c(inp.config) < high <= FLOW_HEAT_C_MAX:
+        return None
+    caps = [high]
+    if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
+        caps.append(ceiling)
+    limit = _setpoint_limits_c(inp)[1]
+    if limit is not None and limit > _gate_floor_c(inp.config):
+        caps.append(limit)
+    return min(caps)
+
+
+def _flow_target(
+    inp: ArbiterInputs, duty: str | None, now: datetime, *, boosted: bool = False,
+) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
     The model's weather curve is a pricing curve, not a set-point: it sizes
@@ -874,7 +930,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     (``thermal_model.start_flow_min_lift_k``: ``flow_min_lift_k``, never
     below the pump's own heating start hysteresis where one is read) at the
     modulation floor, so the pump's own water thermostat can realize a
-    lower level.
+    lower level. Under a boost (``boosted``) with a ceiling to write
+    (:func:`_boost_ceiling_c`), the level is the band top and the ceiling
+    that one, so a boost writes it on every step: at the band top the level
+    formula gives the ceiling exactly.
     With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
     return terms on a return target (:func:`_as_target`), as is the
     fallback's hold below. A
@@ -886,7 +945,8 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     """
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
-        heat_c = _heat_ceiling_c(inp.config)
+        boost_c = _boost_ceiling_c(inp) if boosted else None
+        heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
         floor_c = _or_hold(modulation_floor_flow_c(
             _flow_inlet_c(inp), _gate_c(inp),
             start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
@@ -894,10 +954,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(
-                _step_kw(inp.plan, now) if (kw := _experiment_kw(inp)) is None else kw,
-                p_min, p_max, heat_c, floor_c,
-            ),
+            flow_setpoint_for_level(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c),
             _gate_floor_c(inp.config),
             lo=min(floor_c, heat_c),
             hi=heat_c,
@@ -1243,7 +1300,10 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty)
+    # The boost fact is read for a water set-point only: an indoor one maps no
+    # level, and a caller may hand no coordinator for it.
+    space = _space_target(inp, result, now, duty, boosted=_flow_unit(inp.config) and (
+        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now)))
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1665,7 +1725,7 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
         and reading is not None and not _differs("space_setpoint", reading, last)
     baseline = None
     if own:
-        baseline = _space_target(inp, inp.plan, now, None)
+        baseline = _space_target(inp, inp.plan, now, None, boosted=False)
         _LOGGER.info("Pump duty: %s reads %s, the optimizer's own last write; turning the "
                      "optimizer off restores %s instead", entity, reading, baseline)
     held.space_before = reading
@@ -1864,7 +1924,11 @@ async def _lead_mode(coord: Any, on: bool) -> None:
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
-    """On a planned both step, hot water first for its share, then heating.
+    """On a planned both step, the first duty for its share, then the other.
+
+    Hot water goes first unless ``duty_switch`` has learned that only the
+    switch from hot water to heating stops the compressor; the order, and
+    whether the first duty keeps the whole step, is its latched decision.
 
     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
     2026-09-27). The share is the step's hot-water power over its total.
@@ -1876,11 +1940,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return duty
     result = inp.plan
     i = bisect.bisect_right(result.timestamps, now) - 1
-    legs = both_step_legs(
-        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
-    )
-    first_ends = timedelta(minutes=legs[0][1])
-    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
+    start = result.timestamps[i]
+    return duty_switch.both_step_duty(
+        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
+        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:

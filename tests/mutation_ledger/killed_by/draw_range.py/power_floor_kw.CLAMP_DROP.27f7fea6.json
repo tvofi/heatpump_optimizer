@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:power_floor_kw CLAMP_DROP 27f7fea6",
+  "killed_by": "tests/features.py",
+  "old": "    return max(float(on_threshold_kw(params)), min(floor, low_kw))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (float(on_threshold_kw(params)))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10. Each of the 2 sites under this anchor was killed."
+}
