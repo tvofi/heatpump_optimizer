@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.normalize_profile CLAMP_DROP 9bd7154c",
+  "killed_by": "tests/features.py",
+  "old": "        out = raw if abs(avg - 1.0) <= 1e-12 else np.clip(raw / avg, lo, hi)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`out = raw if abs(avg - 1.0) <= 1e-12 else (raw / avg)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
