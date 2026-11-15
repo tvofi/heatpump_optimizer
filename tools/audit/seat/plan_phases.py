@@ -27,7 +27,10 @@ REFUSALS (`violations`; `--check` exits 1): a status outside `STATUSES`; a
 phase outside `PHASES`, repeated, or out of the playbook's order; `waiting`
 with no `waiting_on`; a date that is not ISO-8601 UTC; a `started` or
 `finished` date on a not-started phase; a `finished` date on a phase not done;
-a forecast with no `basis` (a date with no plan behind it). A phase the file
+a forecast with no `basis` (a date with no plan behind it); a text field
+(`note`, a phase's `waiting_on`, `entry`, `exit`, an item's `name`, `waiting_on`,
+`detail`, a forecast's `basis`) that is not a string, and `items` that is not a
+list: a file `--check` accepts is a file `section` draws. A phase the file
 does not list is drawn "not started" with dashes, never omitted; the page
 prints no date or count the file does not carry. An invalid file is drawn as
 PHASES UNAVAILABLE with its first violation: the rest of the plan page stands.
@@ -76,11 +79,25 @@ def _date_ok(v) -> bool:
         return False
 
 
+# The text the section prints, by the object holding it (an item's name is
+# checked with its presence, a forecast's basis with its own). Every value is a
+# string when present: `section` escapes each, and an escape of a number or a
+# list is a crash on the plan page, not a refusal in the file.
+_TEXT_DOC = ("note",)
+_TEXT_PHASE = ("waiting_on", "entry", "exit")
+_TEXT_ITEM = ("waiting_on", "detail")
+
+
+def _text_violations(where: str, x: dict, keys: tuple) -> list:
+    return [f"{where}: {k} not text ({x[k]!r})"
+            for k in keys if x.get(k) is not None and not isinstance(x[k], str)]
+
+
 def violations(doc) -> list:
     """Every refusal the file earns, in reading order; empty when it is sound."""
     if not isinstance(doc, dict):
         return ["the file is not a JSON object"]
-    bad = []
+    bad = _text_violations("file", doc, _TEXT_DOC)
     if not isinstance(doc.get("round"), int):
         bad.append("round: not an integer")
     if not _date_ok(doc.get("as_of")):
@@ -99,7 +116,7 @@ def violations(doc) -> list:
         if order.index(pid) <= last:
             bad.append(f"{where}: out of the playbook's order, or repeated")
         last = max(last, order.index(pid))
-        bad += _status_violations(where, ph)
+        bad += _status_violations(where, ph) + _text_violations(where, ph, _TEXT_PHASE)
         st = ph.get("status")
         for k in ("started", "finished"):
             if ph.get(k) is not None and not _date_ok(ph[k]):
@@ -110,23 +127,29 @@ def violations(doc) -> list:
             bad.append(f"{where}: finished on a phase not done")
         fc = ph.get("forecast")
         if fc is not None:
-            if not (isinstance(fc, dict) and str(fc.get("basis") or "").strip()):
+            if not (isinstance(fc, dict) and isinstance(fc.get("basis"), str) and fc["basis"].strip()):
                 bad.append(f"{where}: a forecast with no basis (a date with no plan behind it)")
             elif not (_date_ok(fc.get("start_from")) and _date_ok(fc.get("start_to"))):
                 bad.append(f"{where}: forecast start_from/start_to not ISO-8601 UTC")
-        for j, it in enumerate(ph.get("items") or []):
-            if not (isinstance(it, dict) and str(it.get("name") or "").strip()):
-                bad.append(f"{where} items[{j}]: no name")
+        items = ph.get("items")
+        if items is not None and not isinstance(items, list):
+            bad.append(f"{where}: items not a list")
+            items = []
+        for j, it in enumerate(items or []):
+            if not (isinstance(it, dict) and isinstance(it.get("name"), str) and it["name"].strip()):
+                bad.append(f"{where} items[{j}]: no name (text)")
                 continue
-            bad += _status_violations(f"{where} item {it['name']}", it)
+            iw = f"{where} item {it['name']}"
+            bad += _status_violations(iw, it) + _text_violations(iw, it, _TEXT_ITEM)
     return bad
 
 
 def _status_violations(where: str, x: dict) -> list:
     st = x.get("status")
-    if st not in STATUSES:
+    if not isinstance(st, str) or st not in STATUSES:
         return [f"{where}: unknown status {st!r} (one of {', '.join(STATUSES)})"]
-    if st == "waiting" and not str(x.get("waiting_on") or "").strip():
+    wo = x.get("waiting_on")
+    if st == "waiting" and not (isinstance(wo, str) and wo.strip()):
         return [f"{where}: waiting on nothing named (waiting_on)"]
     return []
 
@@ -361,6 +384,7 @@ def fixture_checks(check) -> None:
     refuses(lambda d: ph(d, 3)["forecast"].pop("basis"), "a forecast with no basis")
     refuses(lambda d: ph(d, 1).update(finished="2026-01-03T00:00:00Z"), "finished on a phase not done")
     refuses(lambda d: ph(d, 1).update(started="2 Jan"), "not ISO-8601 UTC")
+    _census(check)
     rows = rows_of(doc)
     check("phases: every playbook phase is a row, in order; an unlisted one is not started",
           [r["phase"] for r in rows] == [p for p, _ in PHASES]
@@ -417,6 +441,58 @@ def fixture_checks(check) -> None:
     with tempfile.TemporaryDirectory() as td:
         check("phases: null control, a checkout with no phases file discovers none",
               discover(td) is None)
+
+
+_JUNK = (5, 1.5, True, False, 0, [], ["x"], {}, {"x": "y"}, "")
+
+
+def _nodes(x, path=()):
+    """Every node of a JSON value as its path: the file's whole input surface."""
+    yield path
+    if isinstance(x, dict):
+        for k, v in x.items():
+            yield from _nodes(v, path + (k,))
+    elif isinstance(x, list):
+        for i, v in enumerate(x):
+            yield from _nodes(v, path + (i,))
+
+
+def _census(check) -> None:
+    """A file `violations` accepts is a file `section` draws: every node of a
+    fully populated file, each replaced by each junk value, either earns a
+    violation or draws -- on the plan page's axis and without one -- and
+    `violations` itself never raises. The nodes come from the file, not from a
+    list of field names, so a field the section starts reading is covered by
+    being in the fixture."""
+    import copy
+    full = fixture()
+    full["note"] = "NOTE-FULL"
+    full["phases"][0]["waiting_on"] = "WAIT-FULL"
+    axis = (dt.datetime(2026, 1, 1), dt.datetime(2026, 1, 8))
+    paths = list(_nodes(full))
+    keys = {p[-1] for p in paths if p and isinstance(p[-1], str)}
+    read = {"note", "waiting_on", "entry", "exit", "detail", "name", "basis"}
+    check("phases census: the fixture populates every text field the section reads",
+          read <= keys, sorted(read - keys))
+    crashed, ran = [], 0
+    for path in paths[1:]:
+        for junk in _JUNK:
+            d = copy.deepcopy(full)
+            at = d
+            for k in path[:-1]:
+                at = at[k]
+            at[path[-1]] = junk
+            ran += 1
+            try:
+                if not violations(d):
+                    section(d, [], "f.json", axis)
+                    section(d, [], "f.json")
+            except Exception as exc:  # noqa: BLE001 -- any crash is the finding
+                crashed.append((path, junk, type(exc).__name__))
+    check("phases census: no accepted file crashes the section, no check crashes", not crashed, crashed[:5])
+    check("phases census: null control, the unmutated full file is accepted and drawn",
+          violations(full) == [] and "NOTE-FULL" in section(full, [], "f.json")
+          and ran == len(_JUNK) * (len(paths) - 1), ran)
 
 
 def page(doc, bad: list, where: str) -> str:
