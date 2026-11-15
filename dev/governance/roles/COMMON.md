@@ -32,8 +32,9 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   (owner seat, file, symbol, what) into your report: not a finding, no harness.
 - Your box is shared. Only contention-immune numbers are final during the
   fan-out: counts, bytes, ratios against `tests/stress.py:reference_solve`.
-  Every wall, CPU or RSS number is provisional, re-taken in a quiet window,
-  and carries `load1` and `thread_factor` so the judge sees the conditions.
+  Every wall, CPU or RSS number, and a full gate run, is provisional: report
+  it with the command, and the quiet window re-takes it; it carries `load1`
+  and `thread_factor` so the judge sees the conditions.
 
 ## What a finding is
 
@@ -86,48 +87,31 @@ not go beyond what the block states (`fixer.md` step 8).
 Owner's rule (tvofi, 2026-11-13): *"I want future rounds to always check
 everything in their dimension, not only small samples."* A step ranges over
 everything its **enumerator** prints: the command that, run alone from the
-export root, lists the step's universe one item per line. Your brief names
-it; where it names none, write one before you measure and commit it with
-your harnesses. Per step you own, your report's `coverage` row carries:
-
-- `enumerator`, and `universe`, the lines it printed at the baseline;
-- `examined`, the items you ran the step's method on;
-- `not_reached`, every other item by the enumerator's name for it, or by its
-  groups (a file, a class, a grid plane) past the schema's cap;
-- `redispatched`, each item your task handed you from the round before, by
-  its id, `examined` or `not_reached`. Those are your first work.
-
-You sample nothing: an item is examined, or it is named not reached and the
-next round's dispatch opens with it. Where `rotation.json` declares a
-rotation for a step, examine the round's share and name the rest; an item
-your task marks overdue has reached the rotation's bound and is examined now.
-A step with no row, or a row whose counts do not close, counts 0 examined:
-the schema refuses it at return, and intake (`audit-find.js`,
-`denominatorGaps`) reads the seat as not reported.
+export root, lists the step's universe one item per line; where your brief
+names none, write and commit one before you measure. Per step you own, your
+`coverage` row carries `enumerator`, `universe` (its lines at the baseline),
+`examined`, `not_reached` (every other item, by the enumerator's name or its
+groups past the schema's cap) and `redispatched` (each item your task hands
+over from the round before, by id, `examined` or `not_reached`: your first
+work; one marked overdue is examined now). You sample nothing: what you do
+not examine is named, and the next round's dispatch opens with it. A step
+with no row, or a row whose counts do not close, counts 0: intake
+(`audit-find.js`, `denominatorGaps`) reads the seat as not reported. Your
+bound is your cells as `python3 tools/audit/check_scopes.py --repo <repo>
+--ref <baseline> --seat <seat id>` prints them, not a count of findings or a
+clock: what time cut is `not_reached`.
 
 ## What a non-finding is
 
 Everything you checked that held, each with the command and the number that
-showed it. These matter as much as findings: they are what lets a later round
-be called dry, and they stop the next auditor re-doing your work. Disproved
-leads that turned out to be harness gaps go here with the gap named.
+showed it; a later round is called dry on them. Disproved leads that turned
+out to be harness gaps go here with the gap named.
 
 ## Output
 
 - `REPORT.md` in your round directory: method, findings, non-findings,
   harnesses, what you could not finish, `exposure`.
 - The JSON report returned from your task, validating against
-  `dev/audit/config/finding.schema.json`. The schema makes `evidence`,
-  `instrumented_symbol`, `perturbation` and `metric_definition` required; a
-  finding without them cannot be returned, so do not try to return one.
+  `dev/audit/config/finding.schema.json`.
 - Harnesses committed in place, each runnable by the single command in its
   header.
-
-## Budget
-
-Your bound is your cells, as `python3 tools/audit/check_scopes.py --repo <repo>
---ref <baseline> --seat <your seat id>` prints them: no count of findings and
-no clock ends a seat, and what time cut is `not_reached`.
-If a measurement needs the quiet box (a full gate run, a long solve series),
-report it as `provisional` with the fan-out number and the command, and the
-quiet window re-takes it.
