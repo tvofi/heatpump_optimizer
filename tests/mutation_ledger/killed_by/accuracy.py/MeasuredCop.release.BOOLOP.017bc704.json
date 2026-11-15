@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.release BOOLOP 017bc704",
+  "killed_by": "tests/features.py",
+  "old": "                if i >= over and 0.0 <= utc_elapsed_seconds(now, row.at) <= COP_HOLD_HORIZON_S:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if i >= over or 0.0 <= utc_elapsed_seconds(now, row.at) <= COP_HOLD_HORIZON_S:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

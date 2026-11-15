@@ -602,6 +602,11 @@ INERT_EXCEPT = (
     "tools/audit/seat/pr_cap.py",
     "tools/policy/budget_raise_gate.py",
     "tools/pr/app_approve.sh",
+    # R10-SEAT-IDENTITY-P5: tests/entities.py reads the seat generator and its
+    # self-test (both added by this group). Same route as orchestrator_tick.py:
+    # tools/audit/seat/ stays INERT, these two join the recorded closure.
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
