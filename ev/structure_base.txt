@@ -1,0 +1,6 @@
+RESULT class_excess_loc=17453 count
+RESULT coordinator_attrs=137 count
+RESULT coordinator_multiassigned_attrs=106 count
+RESULT max_class_loc=7894 count
+RESULT seam_cut_total=416 count
+STRUCTURE RATCHET PASSED

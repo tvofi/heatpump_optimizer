@@ -1,0 +1,7 @@
+MUTANT R4 release 0.0 <= -> 0.0 <
+  ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+  FAIL release: a row stamped at the clock itself is zero seconds old and waits; a microsecond ahead of the clock it leaves by base's rule  [([(5.0, 6.0)], 0) / ([(5.0, 6.0)], 0)]
+1 of 37 FEATURES BLOCK FAILED
+ALL 34 FEATURES BLOCK PASSED
+ALL 78 FEATURES BLOCK PASSED
+driver rc=1
