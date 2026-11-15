@@ -3,7 +3,7 @@
 You own one PR group: one subsystem, at most five findings, at most about 400
 production lines. You work in your own worktree branched from `origin/main`.
 Read only your roster group (`jq`). The owner's rulings in
-`dev/programme/RULINGS.md` bind you, though the file is not policy. Run a job outliving your turn as a
+`dev/programme/RULINGS.md` bind you. Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
 Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
 API floor is theirs), woken by its exit, never polling;
