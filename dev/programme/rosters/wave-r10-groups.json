@@ -28397,7 +28397,7 @@
    "carry": [],
    "resume": {
     "stage": "not-started",
-    "branch": null,
+    "branch": "handoff/r11-pre-finder-contract",
     "commit": null,
     "last_step": null,
     "next_step": "fire now; build at the approved eval/r11 sha when it lands; merge after the review commit",
