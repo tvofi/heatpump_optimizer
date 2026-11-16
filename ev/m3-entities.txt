@@ -1,0 +1,11 @@
+ALL 2723 ENTITY CHECKS PASSED
+
+real	8m34.634s
+ tests/closures.json | 4 ----
+ 1 file changed, 4 deletions(-)
+  FAIL every tracked file is either measured or deliberately classified  [these force the FULL suite when touched: dev/governance/dimensions/criteria/D10-criteria.md, dev/governance/dimensions/criteria/D4-criteria.md, dev/governance/dimensions/criteria/D5-criteria.md, dev/governance/dimensions/crite
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   a failed lane is superseded only by a NEWER in-flight run that concluded the same job green; every other arm stays FAILED
+  ok   main fetches the in-flight run's jobs and grades with them: a superseded failure exits 0, a newer failed or unreadable lane stays FAILED, and a green concluded run fetches nothing
+
+[exited with code 0]
