@@ -1454,7 +1454,7 @@ jobs:
           python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
           grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
 
-      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
+      - name: Show the beat's Gantt, verdict-audit and owed-watch instruments (sweep_gantt.py, verdict_audit.py, owed_watch.py) refusing their own fixtures
         id: gantt-and-verdict-audit
         if: ${{ !cancelled() && steps.scope.outputs.gantt-and-verdict-audit == 'true' }}
         run: |
@@ -1463,6 +1463,8 @@ jobs:
           grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
           python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          python3 -I tools/audit/seat/owed_watch.py --self-test | tee "$RUNNER_TEMP/owed-watch-self-test.txt"
+          grep -Eq '^owed_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-watch-self-test.txt"
 
       - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
         id: survivor-list

@@ -260,6 +260,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -4209,6 +4210,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -4522,15 +4524,23 @@
    "git": []
   },
   "gantt-and-verdict-audit": {
-   "run_sha": "d1f9161e487c99eb5be4378579e90ac6800a56240f6f3d5a8bd71abdc277e1ae",
+   "run_sha": "16bbc5a7a78f977e26aabe9f3756fcab21ffc79c4ad03ac92f57d5a1fbfdc634",
    "files": [
+    "tools/audit/seat/owed_watch.py",
+    "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/sweep_gantt.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/verdict_audit.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -4788,6 +4798,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -5299,6 +5310,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -5480,6 +5492,7 @@
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/pr_cap.py",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/record_row.py",
@@ -5597,6 +5610,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -6716,6 +6730,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -8869,6 +8884,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
@@ -9623,6 +9639,7 @@
     "tools/audit/seat/outside_intake.py",
     "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/owed_watch.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
