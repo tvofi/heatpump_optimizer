@@ -17,13 +17,19 @@
   `--skip-mirror` reuses a corpus already there.
   - **`probe --private-root <dir>`** exits 0 only when the running account can
     read no owner identity directory or deploy key, gets no password from
-    `git credential fill`, holds no agent socket, private key or token
-    variable, reaches no logged-in `gh`, resolves `gh` to the seat shim in its
-    owner-only mode, has a private root of mode 700 outside every work tree,
-    and is no cloud session. A line names a path or a variable, never a
-    content. Both workflow drivers run it again in Prepare.
+    `git credential fill`, holds no agent socket, private key or
+    credential-named variable (`CREDENTIAL_WORD`; the one model credential
+    `launch` recorded in `probe.json` apart), reaches no logged-in `gh`,
+    resolves `gh` to the seat shim in its owner-only mode, has a private root
+    of mode 700 outside every work tree, and is no cloud session. It refuses
+    an owner path that does not exist, and every question left unanswered: a
+    git or `gh` that cannot be run or does not return, a git exit that is
+    neither answer. A line names a path or a variable, never a content. Both
+    workflow drivers run it again in Prepare.
   - What the probe cannot see is in the script's docstring: a credential in
-    a file it is not told of, and, on a host with one account, the
-    two-account property itself.
-  `--self-test`: the probe over a fixture view of an account, the allow-list,
-  the launch order, and one mutant per predicate.
+    a file it is not told of, one in a variable whose name says nothing of
+    it, an owner path mistyped below a directory the account cannot enter,
+    and, on a host with one account, the two-account property itself.
+  `--self-test`: the probe over a fixture view of an account and over the
+  real `Host` with the real git, the allow-list, the launch order, and one
+  mutant per predicate.

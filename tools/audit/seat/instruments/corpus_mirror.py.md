@@ -20,13 +20,18 @@
   - **`MANIFEST.json`** holds each source's denominator (enumerator,
     universe, examined, not_reached with a reason) and the scan's state. A
     ref namespace outside heads, tags and pull is a `not_reached` line and a
-    non-zero exit. An archive that traverses, links, or passes a size or
-    ratio cap is refused whole, in `refused.json`.
+    non-zero exit. An archive that traverses, links, passes a size or
+    ratio cap, names its own directory as a file, holds a path that is both
+    a file and a directory, or that the file system will not write, is
+    refused whole, in `refused.json`: `safe_extract` raises for none. A
+    per-item read that answers an error is `not_reached` in its pass and is
+    read again by the next.
   - `cost` prints the scan's own calls per bucket; `gh_calls.py --top --since
     <scan start>` prints the shim's.
   - Not yet run against GitHub: the self-test stubs `gh`, `git` and HTTPS. An
     endpoint that does not serve what the script expects becomes a
     `not_reached` line, never a dropped row.
   `--self-test`: pause and exact resume under a secondary limit and a spent
-  bucket, the floor, the namespace assertion, hostile archives, and one
+  bucket, the floor, the namespace assertion, hostile archives, the re-read
+  of a unit that answered an error, and one
   mutant per predicate.

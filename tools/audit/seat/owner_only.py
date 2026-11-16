@@ -424,7 +424,8 @@ ENDING, WHOLE = ("TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "CREDENT
 
 def name_corpus() -> tuple[list[str], list[str]]:
     """(names that say credential, names that do not): every word in every position, delimiter, case and gluing."""
-    yes, no = ["PUSH_AUTH"], ["PATH", "HOME", "LANG", "TOKENIZER", "AUTHOR_NAME", "KEYBOARD_LAYOUT", "COMPAT_MODE", "SECRETARY",
+    # first the variables this tree's own writers read a credential from (merge_main_bot.py, the workflows' env blocks)
+    yes, no = ["PUSH_AUTH", "PUSH_TOKEN", "CLOSURES_PUSH_TOKEN", "HPO_RUNS_PEM", "RUNS_PEM", "HPO_LEDGER_PEM", "HPO_RECORD_PEM", "HPO_APPROVER_PEM"], ["PATH", "HOME", "LANG", "TOKENIZER", "AUTHOR_NAME", "KEYBOARD_LAYOUT", "COMPAT_MODE", "SECRETARY",
                               "HPO_IDENTITY_DIR", "HPO_PRIVATE_ROOT", "HPO_STATE_DIR", "HPO_OWNER_ONLY", "MONKEY", "SSH_AUTH_SOCK"]
     for word in ENDING + WHOLE:
         for name in [word] + [shape.format(w=word, d=d) for d in ("_", ".", "-") for shape in ("XA{d}{w}", "{w}{d}YB", "XA{d}{w}{d}YB")]:

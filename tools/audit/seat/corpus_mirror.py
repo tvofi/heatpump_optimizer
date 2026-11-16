@@ -35,7 +35,9 @@ is the driver's export and costs nothing):
       row counts one); artifacts under the size cap.
 MANIFEST.json holds each source's denominator -- enumerator, universe,
 examined, not_reached with a reason per unit -- and the scan's state. A unit
-GitHub no longer serves (404, 410) is `gone`, read once. What no endpoint
+GitHub no longer serves (404, 410) is `gone`, read once. A per-item read that
+answers an error is a not_reached line of its pass, and the next pass reads
+the unit again; only an answer (`answered`) is kept. What no endpoint
 serves is stated there too (a job's step summary; status contexts of commits
 heading no pull request).
 
@@ -72,6 +74,7 @@ import io
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -105,6 +108,15 @@ ITEM_FIELDS = """i%d: issueOrPullRequest(number:%d){__typename
   commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{__typename ... on StatusContext{context description}}}}}}}}}"""
 
 
+#: What a per-item read answers for good. Any other state (an HTTP error, a transport failure) is no answer:
+#: it is a not_reached line of its pass, and the next pass reads the unit again.
+ANSWERED = ("ok", "gone", "size", "not a sha", "no check suite")
+
+
+def answered(state: str) -> bool:
+    return state in ANSWERED or state.startswith("refused: ")
+
+
 class Paused(Exception):
     """The scan stops at its cursor: the budget floor, or a rate-limit answer."""
 
@@ -121,7 +133,7 @@ def unmapped(ls_remote: str) -> list[str]:
 
 def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
     """The rule an archive breaks, or "": judged whole, before any member is written."""
-    base, total = os.path.realpath(dest), 0
+    base, total, files, parents = os.path.realpath(dest), 0, set(), set()
     for info in zf.infolist():
         name = info.filename
         if stat.S_ISLNK(info.external_attr >> 16):
@@ -129,6 +141,13 @@ def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
         target = os.path.realpath(os.path.join(base, name))
         if name.startswith(("/", "\\")) or re.match(r"[A-Za-z]:", name) or not (target == base or target.startswith(base + os.sep)):
             return "a member's path leaves the archive's directory"
+        if target == base and not info.is_dir():
+            return "a member's path is the archive's directory"
+        (parents if info.is_dir() else files).add(target)
+        parent = os.path.dirname(target)
+        while len(parent) > len(base):  # every directory between the member and the archive's own
+            parents.add(parent)
+            parent = os.path.dirname(parent)
         if info.file_size > MAX_MEMBER:
             return "a member is past the size cap"
         if info.file_size > MAX_RATIO * max(info.compress_size, 1):
@@ -136,11 +155,17 @@ def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
         total += info.file_size
         if total > MAX_ARCHIVE:
             return "the archive is past the size cap"
+    if files & parents:
+        return "a member's path is both a file and a directory"
     return ""
 
 
 def safe_extract(data: bytes, dest: Path) -> str:
-    """Extract a zip under `dest` -> "" when whole, else the rule it broke (and nothing extracted)."""
+    """Extract a zip under `dest` -> "" when whole, else the rule it broke (and nothing extracted).
+
+    It answers for every archive: one whose member the file system will not write (a name too long, a
+    collision the rules above do not name) is refused like any other, and what was written is removed.
+    """
     try:
         zf = zipfile.ZipFile(io.BytesIO(data))
     except (zipfile.BadZipFile, ValueError):
@@ -149,15 +174,19 @@ def safe_extract(data: bytes, dest: Path) -> str:
         why = archive_refusal(zf, dest)
         if why:
             return why
-        os.makedirs(dest, mode=0o700, exist_ok=True)
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            target = Path(os.path.join(dest, info.filename))
-            os.makedirs(target.parent, mode=0o700, exist_ok=True)
-            with zf.open(info) as src:
-                target.write_bytes(src.read(MAX_MEMBER + 1)[:MAX_MEMBER])
-            os.chmod(target, 0o600)
+        try:
+            os.makedirs(dest, mode=0o700, exist_ok=True)
+            for info in zf.infolist():
+                if info.is_dir():
+                    continue
+                target = Path(os.path.join(dest, info.filename))
+                os.makedirs(target.parent, mode=0o700, exist_ok=True)
+                with zf.open(info) as src:
+                    target.write_bytes(src.read(MAX_MEMBER + 1)[:MAX_MEMBER])
+                os.chmod(target, 0o600)
+        except (OSError, ValueError, zipfile.BadZipFile) as e:
+            shutil.rmtree(dest, ignore_errors=True)
+            return f"a member cannot be written ({type(e).__name__})"
     return ""
 
 
@@ -310,7 +339,7 @@ class Mirror:
         return page if isinstance(page, list) else []
 
     def each(self, s: str, name: str, ids, fetch, enumerator: str):
-        """Run `fetch(id) -> state` once per id, ever: a unit read (or found gone) is never read again."""
+        """Run `fetch(id) -> state` once per id and pass; a unit that answered (`answered`) is never read again."""
         done = self.cur["items"].setdefault(name, {})
         u = self.unit(s, name, enumerator)
         ids = [str(i) for i in ids]
@@ -512,6 +541,9 @@ class Mirror:
         if self.cur["state"] in ("new", "complete"):  # a new pass: every list is walked again, against its cached ETags
             for st in self.cur["lists"].values():
                 st["next"], st["done"] = 1, False
+            for done in self.cur["items"].values():  # with the not_reached lines cleared below, what gave no answer is asked again
+                for i in [i for i, state in done.items() if not answered(state)]:
+                    del done[i]
             self.cur["pass"] += 1
             self.cur["calls"] = {}
             for s in self.man["sources"].values():
@@ -631,6 +663,7 @@ class Stub:
         self.hostile = hostile or {}
         self.fresh: list[str] = []   # every path answered 200, in order
         self.limit_download = 0  # the nth download answers a rate limit, once
+        self.down: set[str] = set()  # a read whose path holds one of these answers 502, every time
         self.downloads: list[str] = []
 
     @staticmethod
@@ -661,6 +694,8 @@ class Stub:
         if argv[:3] == ["gh", "api", "graphql"]:
             return 0, json.dumps({"data": {"repository": {"i1": {"__typename": "Issue"}}}})
         path = argv[3]
+        if any(d in path for d in self.down):
+            return 1, self.inc(502, [], "", "gh: Bad Gateway (HTTP 502)\n")
         etag = argv[argv.index("-H") + 1].split(": ", 1)[1] if "-H" in argv else ""
         tag = 'W/"' + hashlib.sha256(path.encode()).hexdigest()[:8] + '"'
         if etag == tag:
@@ -805,6 +840,10 @@ def cases(m) -> dict[str, bool]:
         r["refs: a force-pushed commit no ref reaches is fetched by SHA once; refused, it is not_reached: gone"] = \
             me.man["sources"]["S2"].get("served_by_sha_only") == ["1" * 40] \
             and any(x.endswith("2" * 40 + ": gone") for x in me.man["sources"]["S2"]["not_reached"])
+        n_gone = lambda: sum(1 for c_ in e.calls if "fetch" in c_ and any(a_.startswith("2" * 40) for a_ in c_))  # noqa: E731
+        first_gone = n_gone()
+        mirror(Path(td) / "s2", e, only=("S2",))
+        r["refs: a commit found gone is an answer, and a later pass does not fetch it again"] = (first_gone, n_gone()) == (1, 1)
         f = Stub(ls="a\trefs/heads/main\nb\trefs/notes/commits\nc\trefs/pull/7/head\nd\trefs/notes/x\ne\trefs/gh-readonly-queue/main/q\n")
         mf, rc = mirror(Path(td) / "s2b", f, only=("S2",))
         r["refs: a fourth namespace is a not_reached line per namespace and a non-zero exit, and the mapped ones are still fetched"] = \
@@ -825,6 +864,53 @@ def cases(m) -> dict[str, bool]:
             (corpus / "artifacts" / "5" / "job" / "1_step.txt").read_text() == "log line\n" \
             and stat.S_IMODE(os.stat(corpus / "artifacts" / "5" / "job" / "1_step.txt").st_mode) == 0o600 \
             and mg.cur["items"]["artifacts"] == {"5": "ok", "6": "gone"} and not any(c_[2:3] == ["repos/o/r/actions/artifacts/6/zip"] for c_ in g.calls)
+        mirror(Path(td) / "s5", g, only=("S5",))
+        r["archives: a refused archive is an answer, and a later pass does not download it again"] = \
+            sorted(d_ for d_ in g.downloads if d_.endswith("/logs")) == sorted(f"repos/o/r/actions/runs/{n}/logs" for n in (900, 901, 902))
+        shapes = {"a member named for the directory itself": [(".", "x")], "the same through a parent": [("ok.txt", "x"), ("a/..", "x")],
+                  "a file that is also a directory": [("a", "x"), ("a/b", "y")], "a directory that is also a file": [("a/b", "y"), ("a", "x")],
+                  "a directory entry and a file of one name": [("a/", ""), ("a", "x")]}
+        got = {}
+        for n_, (label, members) in enumerate(shapes.items()):
+            try:
+                got[label] = m.safe_extract(zip_of(members), Path(td) / "shape" / str(n_)), (Path(td) / "shape" / str(n_)).exists()
+            except Exception as e_:  # the defect: the archive's shape reaches the caller as a traceback
+                got[label] = type(e_).__name__, None
+        r["archives: a member that is the directory itself, or a path that is both a file and a directory, is refused whole by rule and never raises"] = \
+            got == {**{label: ("a member's path is both a file and a directory", False) for label in shapes},
+                    "a member named for the directory itself": ("a member's path is the archive's directory", False),
+                    "the same through a parent": ("a member's path is the archive's directory", False)}
+        try:
+            long_name = m.safe_extract(zip_of([("ok.txt", "x"), ("n" * 300, "x")]), Path(td) / "shape" / "long"), (Path(td) / "shape" / "long").exists()
+        except Exception as e_:
+            long_name = type(e_).__name__, None
+        r["archives: a member the file system will not write is refused, and what was written before it is removed"] = \
+            long_name == ("a member cannot be written (OSError)", False)
+        r["archives null: nested files, a directory entry and a repeated ancestor extract whole"] = \
+            m.safe_extract(zip_of([("./", ""), ("a", "x"), ("b/", ""), ("b/c", "y"), ("b/d/e", "z")]), Path(td) / "shape" / "ok") == "" \
+            and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"]
+        s_ = Stub(hostile={"repos/o/r/actions/runs/901/logs": zip_of([("a", "x"), ("a/b", "y")])})
+        try:
+            ms, rc = mirror(Path(td) / "s5shape", s_, only=("S5",))
+        except OSError:  # the defect: the scan dies with its cursor unsaved
+            ms, rc = m.Mirror(Path(td) / "none", run=s_.run, run_bytes=s_.run_bytes, git=s_.git, http=s_.http, new_bare=s_.new_bare, repo="o/r"), None
+        r["archives: an archive of such a shape is recorded as refused, the scan completes, and the other runs are read"] = \
+            rc == 0 and ms.cur["state"] == "complete" and ms.cur["items"].get("run logs") == {"900": "ok", "901": "refused: a member's path is both a file and a directory", "902": "ok"} \
+            and ms._load("refused.json", []) == [{"archive": "logs/901", "rule": "a member's path is both a file and a directory"}]
+        t = Stub()
+        t.down = {"/check-suites/71/"}
+        mt, rc1 = mirror(Path(td) / "s5t", t, only=("S5",))
+        unit1, nr1 = dict(mt.man["sources"]["S5"]["units"]["run check runs"]), list(mt.man["sources"]["S5"]["not_reached"])
+        asked1 = sum(1 for c_ in t.calls if "/check-suites/71/" in " ".join(c_))
+        t.down, n_before = set(), len(t.calls)
+        mt2, rc2 = mirror(Path(td) / "s5t", t, only=("S5",))
+        later = [" ".join(c_) for c_ in t.calls[n_before:]]
+        r["transient: a read that answers an error is not_reached in its pass and is read again by the next, where it is examined"] = \
+            rc1 == 0 and (unit1["universe"], unit1["examined"]) == (3, 2) and [x for x in nr1 if x.startswith("run check runs 901: error")] != [] and asked1 >= 1 \
+            and mt2.man["sources"]["S5"]["units"]["run check runs"]["examined"] == 3 and mt2.man["sources"]["S5"]["not_reached"] == [] \
+            and mt2.cur["items"]["run check runs"] == {"900": "ok", "901": "ok", "902": "ok"}
+        r["transient null: the pass that re-reads it reads no answered unit again"] = \
+            sum(1 for c_ in later if "/check-suites/71/" in c_) == 1 and not any("/check-suites/70/" in c_ or "/check-suites/72/" in c_ or c_.endswith("/logs") for c_ in later)
         h = Stub()
         mh, rc = mirror(Path(td) / "s5ok", h, only=("S5",))
         n_logs = sum(1 for c_ in h.calls if c_[2:3] and str(c_[2]).endswith("/logs"))
@@ -890,6 +976,16 @@ MUTANTS = {
     "traversal": ("not (target == base or target.startswith(base + os.sep)):", "False:", "a traversing member"),
     "link": ("        if stat.S_ISLNK(info.external_attr >> 16):\n", "        if False:\n", "a link and a ratio bomb"),
     "ratio": ("        if info.file_size > MAX_RATIO * max(info.compress_size, 1):\n", "        if False:\n", "a ratio bomb"),
+    "directory itself": ("        if target == base and not info.is_dir():\n", "        if False:\n", "a member that is the directory itself"),
+    "file and directory": ("    if files & parents:\n", "    if False:\n", "a member that is the directory itself"),
+    "ancestors": ("        while len(parent) > len(base):  #", "        while False:  #", "a member that is the directory itself"),
+    "never raises": ("        except (OSError, ValueError, zipfile.BadZipFile) as e:\n", "        except zipfile.BadZipFile as e:\n", "the file system will not write"),
+    "partial removed": ("            shutil.rmtree(dest, ignore_errors=True)\n", "", "the file system will not write"),
+    "no answer is asked again": ("if not answered(state)]:", "if False]:", "is read again by the next"),
+    "an answer is kept": ("if not answered(state)]:", "if True]:", "reads no answered unit again"),
+    "refused is an answer": (' or state.startswith("refused: ")', "", "a refused archive is an answer"),
+    "gone is an answer": ('ANSWERED = ("ok", "gone", ', 'ANSWERED = ("ok", ', "a commit found gone is an answer"),
+    "an error is no answer": ("    return state in ANSWERED or", "    return True or", "is read again by the next"),
     "judged whole": ("        why = archive_refusal(zf, dest)\n        if why:\n            return why\n", "", "nothing of them is extracted"),
     "read once": ("                if i in done:\n                    continue\n", "", "a later pass reads none of them again"),
     "expired": ('            if arts[i].get("expired"):\n                return "gone"\n', "", "an expired artifact is gone"),
