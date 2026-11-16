@@ -20,3 +20,5 @@
 1794858852 CKPT D12-s3 12 file(s)
 1794858988 HB alive
 1794859214 CKPT D12-s3 16 file(s)
+1794859463 HB alive
+1794859463 HB container restarted; seats D2-s3 D12-s3 D11-s1 interrupted, re-starting them over their checkpointed directories
