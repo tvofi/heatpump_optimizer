@@ -55,3 +55,4 @@
 1794867479 HB alive
 1794868083 HB alive
 1794868322 SEAT D3-s1 missing
+1794868328 HB D3-s1 missing: its one re-run was also killed by a container restart before writing REPORT.json (partial harnesses only, no finding)
