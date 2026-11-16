@@ -1,3 +1,0 @@
-2c86b548d4 Merge remote-tracking branch 'origin/main' into fix/r11-pre-round-metrics
-6c87325160 round_metrics: code-owned with scorecard.py, a self-test step, and its instrument entry
-b0051ab6df beat: the scorecard row runs round_metrics' producer first; a ci-attempt row flags a ci.yml run at attempt 20 or more
