@@ -47528,6 +47528,106 @@ R.check(
     },
     repr(_vr_digests),
 )
+# R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
+# reaches the room through `slab_heat_transfer` in series, and the house's own
+# gains offset part of its loss. The curve holds its target only with both in
+# it, and a thermostat behind that valve then reaches its setpoint.
+def _vr_single_zone_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _vr_held
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+
+    _vr_p = _vr_one_tank()
+    _vr_model = ThermalModel(_vr_p)
+    _vr_out = {}
+    for _vr_outdoor in (5.0, -5.0, -15.0):
+        _vr_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _vr_w = _VrWeather(
+            outdoor_temps=np.full(96, _vr_outdoor), wind_speeds=np.full(96, 3.0),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96))
+        _vr_h = _vr_held(_vr_model, _vr_start, _vr_w, 21.0)
+        _vr_s = _vr_h
+        for _ in range(960):
+            _vr_s = _vr_model.simulate_step(
+                _vr_s, _vr_p.max_electrical_power, _vr_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _vr_out[_vr_outdoor] = (_vr_h.room_temperature, _vr_s.room_temperature)
+    return _vr_p.mixing_valve_target or _vr_p.comfort_ceiling, _vr_out
+
+
+_vr_target, _vr_holds = _vr_single_zone_holds()
+R.check(
+    "single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K",
+    all(abs(_vr_plant - _vr_target) < 0.02 for _, _vr_plant in _vr_holds.values()),
+    f"target {_vr_target}: " + ", ".join(
+        f"{o:+.0f} C {pl:.3f}" for o, (_, pl) in _vr_holds.items()),
+)
+R.check(
+    "single-zone valve: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_vr_room - 21.0) < 1e-3 for _vr_room, _ in _vr_holds.values()),
+    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _) in _vr_holds.items()),
+)
+
+
+def _vr_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_cases = {
+        "one-tank": _vr_one_tank(),
+        "defaults": ThermalParameters(mixing_valve_mode="manual"),
+        "floors apart": ThermalParameters(
+            mixing_valve_mode="manual", upper_floor_heat_loss=0.12, lower_floor_heat_loss=0.09),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_cases.items():
+        _vr_model = ThermalModel(_vr_p)
+        _vr_u = _vr_model.effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+        for _vr_outdoor in (5.0, -5.0, -15.0):
+            _vr_out[(_vr_name, _vr_outdoor)] = (
+                _vr_model.flow_target_for_indoor(21.0, _vr_outdoor),
+                _valve_flow_set(_vr_p, 21.0, _vr_outdoor, _vr_u, _valve_ua(_vr_p)))
+    return _vr_out
+
+
+_vr_agree = _vr_curve_agrees()
+R.check(
+    "single-zone valve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(_vr_rep == _vr_plant for _vr_rep, _vr_plant in _vr_agree.values()),
+    repr(_vr_agree),
+)
+
+
+def _vr_direct_curve():
+    from heatpump_optimizer import mixing_valve as _vr_mv
+    from profiles import house as _vr_house
+
+    _vr_cfg = dict(flow_curve_cop_enabled=True, heat_pump_max_power=3.0,
+                   upper_floor_heat_loss=0.2, lower_floor_heat_loss=0.2)
+    _vr_p = ThermalParameters.from_config(_vr_house(**_vr_cfg))
+    _vr_p.flow_curve_bias = 5.0
+    _vr_model = ThermalModel(_vr_p)
+    # The new curve is reached only behind a throttling valve, and the price
+    # path reads a curve only with `flow_curve_cop`: `from_config` is what keeps
+    # the two apart, so a throttling mode must turn the priced curve off.
+    _vr_coupled = all(
+        ThermalParameters.from_config(_vr_house(mixing_valve_mode=_vr_mode, **_vr_cfg)).flow_curve_cop
+        is (not _vr_mv.is_throttling(_vr_mode))
+        for _vr_mode in (_vr_mv.MODE_NONE, *sorted(_vr_mv.THROTTLING_MODES)))
+    return _vr_p.flow_curve_cop, _vr_coupled, [
+        (_vr_model.flow_target_for_indoor(21.0, _vr_o), _vr_model.curve_flow_temp(_vr_o))
+        for _vr_o in (5.0, -5.0, -15.0)]
+
+
+_vr_priced, _vr_coupled, _vr_direct = _vr_direct_curve()
+R.check(
+    "no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit",
+    _vr_priced is True and _vr_coupled is True and _vr_direct == [
+        (30.142857142857146, 35.142857142857146),
+        (35.85714285714286, 40.85714285714286),
+        (41.57142857142857, 46.57142857142857),
+    ],
+    repr((_vr_priced, _vr_coupled, _vr_direct)),
+)
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
 # At one outdoor the steady demand is flat, so a sound step 0 is the horizon mean;
