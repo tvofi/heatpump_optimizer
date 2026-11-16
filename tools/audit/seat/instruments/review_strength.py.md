@@ -5,6 +5,8 @@
   over git only (no REST), per window and per stratum: reviewer kind (a
   probe-ref return is cloud), class, the class the wave routes (`route`, the
   vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
+  the role-contract clause the class enforces (`clause`, read from the same
+  file's VERDICT_CLAUSES; an unnumbered step prints `UNRESOLVED <clause>`),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
   verdicts, `--tree` and the roster ref cut there). `--guardrail` prints the
