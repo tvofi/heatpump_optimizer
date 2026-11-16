@@ -2265,14 +2265,12 @@ def _self_test() -> int:
                    rest=('{"cause": "R9-S3", "rca": "R10-N-log-flood"}',)) == 0
           and grp("R9-S4")["caused_by"] == {"cause": "R9-S3", "rca": "R10-N-log-flood"})
     # An escape that started with no rca: caused_by is written once a planted root-cause
-    # record declares it its subject (a status row naming it is refused), and the ledger's injected and refix then read values (verdict/3657).
+    # record's opening paragraph names it, and the ledger's injected and refix then read values (verdict/3657).
     import loop_ledger
     edit("append-group", "R9-ESC", new_group("R9-ESC", source="outside"))
     vroot = Path(tmp, "vocab")
     for rel, text in (("dev/governance/dimensions/D8.md", "x\n"), ("dev/audit/rca/R10-N-log-flood.md", "x\n"),
-                      ("dev/audit/rca/R10-RCA-PLANT.md", "Root cause of R9-ESC, merged in #3520.\n"),
-                      ("dev/audit/rca/R10-RCA-BOARD.md", "# R10-RCA-BOARD: a process record\n\nWhy the board"
-                       " stalled.\n\n| group | state |\n|---|---|\n| R9-ESC | dispatched |\n"),
+                      ("dev/audit/rca/R10-RCA-PLANT.md", "This is the root-cause seat for R9-ESC, merged in #3520.\n"),
                       ("dev/audit/config/bugclasses.json", '{"N-log-flood": {}}')):
         (vroot / rel).parent.mkdir(parents=True, exist_ok=True)
         (vroot / rel).write_text(text, encoding="utf-8")
@@ -2287,13 +2285,11 @@ def _self_test() -> int:
         t0 = tip()
         refused = refuses("rca record under", "set-field", "R9-ESC", "caused_by",
                           rest=('{"cause": "#3520", "rca": "R10-N-log-flood"}',)) and tip() == t0
-        refused = refused and refuses("rca record under", "set-field", "R9-ESC", "caused_by",
-                                      rest=('{"cause": "#3520", "rca": "R10-RCA-BOARD"}',)) and tip() == t0
         wrote = edit("set-field", "R9-ESC", "caused_by", rest=('{"cause": "#3520", "rca": "R10-RCA-PLANT"}',)) == 0
         after = ledger()
     finally:
         roster_lib._ROOT = keep_root
-    check("set-field caused_by on a group with no rca: admitted by a record declaring it its subject, not a status row, and injected and refix read",
+    check("set-field caused_by on a group with no rca: admitted by a record naming it, and injected and refix read",
           set_ok and "rca" not in grp("R9-ESC") and refused and wrote
           and before[1].startswith("injected unread (1 of 1") and before[2].startswith("refix unread (1 of 1")
           and after[1].startswith("injected 1 (external 0, original 0;") and after[2] == "refix 0",

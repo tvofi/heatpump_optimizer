@@ -9,11 +9,11 @@
   - `owned_by` — the owning dimension `D<n>`, or `none`;
   - `caused_by` — `{"cause": "#<pr>" | <group> | "external" | "original", "rca": <id>}`,
     the id a record under `dev/audit/rca/` that is one of the group's own `rca`
-    records or declares the group its subject in its title and opening paragraph,
-    table rows aside (`roster_lib.rca_lists`, `rca_subjects`), so the cause is the
-    root-cause seat's, never the fixer's; a group with no `rca` of its own takes
-    `caused_by` once a record declares it so, and until then that read stays `unread`;
-    a group a record names only later, as a status row or a sibling, is refused;
+    records or whose opening paragraph declares a root-cause seat and names the
+    group (`roster_lib.rca_lists`, `rca_subject`), so the cause is the root-cause
+    seat's, never the fixer's; a record naming the group only elsewhere (a status
+    row, a later paragraph) admits nothing; a group with no `rca` of its own takes
+    `caused_by` once such a record exists, and until then that read stays `unread`;
   - `family` — a class of `dev/audit/config/bugclasses.json`;
   - `cm_kind` — `delete`, `self-heal`, `narrow`, `widen`, `new-refusal` or `policy-text`;
   - `parent` — the roster group this one descends from;
