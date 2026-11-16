@@ -2,3 +2,4 @@
 1794869711 HB alive
 1794869796 CKPT step 1: defaults measurement mode written, runs started at b425502da8 snapshot ba8f01bedf92
 1794869852 CKPT grid reproduced at head and pre-parent; harness WIP pushed snapshot 5dc6525c7776
+1794870008 CKPT BLOCKED.md pushed at 88b8618ef6: owner pick of default start price snapshot 7ec35a14cbda
