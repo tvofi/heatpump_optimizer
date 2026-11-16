@@ -483,10 +483,10 @@ const STRINGS = {
     "why.sub_other": "the other channel has the capacity",
     "why.sub_fuse": "the fuse limit caps heating",
     "why.sub_solar": "the plan is waiting for solar",
-    "why.sub_dearer": "this hour is dearer than the hours the plan uses",
+    "why.sub_dearer": "this hour is pricier than the hours the plan uses",
     "why.sub_coasting": "the temperature is above the floor, so the plan is coasting",
     "why.price_rank":
-      "{price} {unit} is among the dearest {pct} % of the plan " +
+      "{price} {unit} is among the most expensive {pct} % of the plan " +
       "(cheapest {min})",
     "why.coast_space": "the house is coasting on heat stored {from}\u2013{to}",
     "why.coast_dhw": "the tank was heated {from}\u2013{to}",
@@ -629,7 +629,7 @@ const STRINGS = {
     // cost delta row
     "stats.no_plan_to_compare": "No plan data to compare against yet.",
     "stats.cheaper": "cheaper",
-    "stats.dearer": "dearer",
+    "stats.dearer": "pricier",
     "stats.the_same": "the same",
     "stats.delta_detail":
       "{verdict} than the saved plan ({planned} → {edited}&nbsp;{currency}, " +
@@ -919,7 +919,7 @@ const STRINGS = {
     "whynow.weight": "{sign}{w}%",
     "whynow.driver_price_rank": "Price rank",
     "whynow.explain_price_rank":
-      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the dearest toward idle.",
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the most expensive toward idle.",
     "whynow.driver_comfort_floor": "Comfort floor",
     "whynow.explain_comfort_floor":
       "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",

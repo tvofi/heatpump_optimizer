@@ -260,13 +260,13 @@ space heating and hot water together above 0.1 kW, and that channel's own
 share is above 0.05 kW; a smaller planned draw is idle, not a slow run. When the plan publishes an exact reason for that step the heading says
 *Because* and the list is that reason: the other channel has the capacity,
 the fuse limit caps heating, the plan is waiting for solar, the hour is
-dearer than the hours used, or the temperature is above the floor and the
-plan is coasting. Otherwise the heading says *Likely because*, and each line
+more expensive than the hours used, or the temperature is above the floor
+and the plan is coasting. Otherwise the heading says *Likely because*, and each line
 comes from what the plan sensors publish for that step and nothing else:
 
-- the step's price, when it is among the dearer half of the plan's horizon,
-  with the share of the horizon that is at least as dear and the cheapest
-  price in it;
+- the step's price, when it is among the more expensive half of the plan's
+  horizon, with the share of the horizon that is at least as dear and the
+  cheapest price in it;
 - the last run before it, which the house is coasting on, or when the tank
   was last heated;
 - the next run of that channel, with its time and price;

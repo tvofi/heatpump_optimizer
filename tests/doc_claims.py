@@ -2882,9 +2882,12 @@ def check_docs_subpages() -> None:
     for old, new in MOVED_PAGES.items():
         to, page = b["moved"].get(old, ("", ""))
         stub = (ROOT / old).read_text() if (ROOT / old).is_file() else ""
+        # The meta refresh drops the fragment; only the script line keeps it, so a deep link still lands.
+        keeps = f"location.replace({json.dumps(to)} + location.hash)" in page
         R.check(f"{old} still resolves: a pointer to {new} in the tree, a redirect to its page on the site",
-                to == b["pages"].get(new) and f'url={to}"' in page and f"]({os.path.basename(new)})" in stub,
-                f"site redirect to {to or 'nothing'}; the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
+                to == b["pages"].get(new) and f'url={to}"' in page and keeps and f"]({os.path.basename(new)})" in stub,
+                f"site redirect to {to or 'nothing'}, fragment kept: {keeps}; "
+                f"the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")

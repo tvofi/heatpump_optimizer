@@ -145,7 +145,7 @@ action:
                 elif data.cause == 'idle_other_channel' %}: the other channel
                 has the capacity{% elif data.cause == 'idle_solar' %}: the
                 plan is waiting for solar{% elif data.cause == 'idle_dearer'
-                %}: the hour is dearer than the hours used{% elif
+                %}: the hour is more expensive than the hours used{% elif
                 data.cause == 'idle_coasting' %}: the house is above the floor
                 and coasting{% elif data.peak_guard_suppressing %}: the peak
                 guard is holding heating back{% endif %}.

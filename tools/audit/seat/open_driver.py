@@ -2,6 +2,7 @@
 """The open driver: one pass opens the pull requests the tick board owes.
 
     python3 -I tools/audit/seat/open_driver.py [--board FILE] [--once]
+    python3 -I tools/audit/seat/open_driver.py retry <topic> [<sha>]
     python3 -I tools/audit/seat/open_driver.py --self-test
 
 A pass reads the board's `OWED <utc> handoff-no-pr refs/heads/handoff/<topic>
@@ -20,7 +21,7 @@ for the topic), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
 landed`, the classifier cloud_relay.sh and bus.sh orphans use), `fix-branch`
 (fix/<topic> or fix/<topic>-pr exists), `seen` (opened at this sha), `live`
 (its run is still going), `backoff` (a failed open waiting its turn), `stuck` (three
-runs failed), `cap`.
+runs failed), `stale-checkout` (refused STALE CHECKOUT at the tools HEAD still checked out), `cap`.
 
 TOPIC -> GROUP (P337 rule 3, P363), each candidate checked against the roster:
 the override in open-titles.json first; `triage-s<N>-batch<M>` -> R10-TRIAGE-S<N>
@@ -60,6 +61,20 @@ regex reads the `STUCK ` prefix). A new sha is a new key and starts fresh.
 Per-topic files are `t-<stem>.log`/`.rc`, so no topic name can equal
 `open-driver.log`; `stem` escapes `%` before `/` so two topics never share a stem.
 Log lines: START / RESULT rc=<n> / SKIP / RETIP / NEEDS-TITLE / STARVED.
+
+STALE CHECKOUT (P627) is the environment's refusal, not the branch's: `pr_args.sh`'s
+`pr_tools_fresh` line names the tools checkout HEAD it refused at. Such a result
+records that HEAD, sets no backoff and counts toward no stuck; the (topic, sha)
+is skipped `stale-checkout` while `World.tools_head` still starts with it (an
+unreadable HEAD is not a changed one) and retried on the first pass after, the
+rule merge_train.py applies to a [HOLDER] skip. Every other failure is counted.
+
+RETRY (P678): `retry <topic> [<sha>]` removes the topic's fails.json entries
+(only the (topic, sha) one when a sha or its prefix is given), prints each as
+`RETRY <topic> <sha8> n=<n> next=<utc> why=<reason>`, writes the file as a pass
+does and reads it back; a topic with no entry is refused (rc 1) and nothing is
+written. It is the cure once an environment failure is fixed, in place of a
+hand edit of fails.json, which every pass loads and rewrites.
 """
 from __future__ import annotations
 
@@ -82,6 +97,9 @@ BOARD_RE = re.compile(r"^(?:-> OWED: )?OWED \S+ handoff-no-pr refs/heads/handoff
 STARVE_S = 2 * 3600
 BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3
 DEFAULT_CAP = 2
+# pr_refuse's line for pr_tools_fresh (pr_args.sh), whole: `<name>: REFUSE: STALE CHECKOUT <head> behind ...`.
+# A NOTICE (HPO_ALLOW_STALE_TOOLS) or the phrase quoted inside another refusal is the branch's failure.
+STALE_RE = re.compile(r"\S+: REFUSE: STALE CHECKOUT ([0-9a-f]{12,40}) behind ")
 
 
 def state_dir() -> Path:
@@ -152,6 +170,16 @@ def backoff(n: int) -> int:
     return min(BACKOFF_S * 2 ** max(n - 1, 0), BACKOFF_MAX_S)
 
 
+def stale_head(why: str) -> str | None:
+    """The tools checkout HEAD a STALE CHECKOUT refusal names, None for any other result."""
+    m = STALE_RE.match(why)
+    return m.group(1) if m else None
+
+
+def utc(t: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+
+
 class World:
     """Everything a pass reads or starts outside its own state files."""
 
@@ -189,6 +217,11 @@ class World:
         argv = ["bash", "-c", cmd, str(self.opener), str(d / f"t-{stem(topic)}.log"), str(rc), topic, sha, title, group]
         return subprocess.Popen(argv, cwd=self.repo, start_new_session=True, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).pid
+
+    def tools_head(self) -> str:
+        """HEAD of the checkout holding open_pr.sh, the one pr_tools_fresh judges; "" when unreadable."""
+        r = subprocess.run(["git", "-C", str(self.opener.parent), "rev-parse", "HEAD"], capture_output=True, text=True)
+        return r.stdout.strip() if r.returncode == 0 else ""
 
     def alive(self, pid: int) -> bool:
         try:
@@ -228,7 +261,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     seen = set(_lines(d / "seen.txt"))
     runs = _load(d / "runs.json", {})
     fails = _load(d / "fails.json", {})
-    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
+    stamp = utc(now)
 
     def log(msg):
         out(msg)
@@ -248,8 +281,13 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             with open(d / "seen.txt", "a") as fh:
                 fh.write(key + "\n")
         else:
-            n = fails.get(key, {}).get("n", 0) + 1
-            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / f"t-{stem(t)}.log")}
+            why, prev = reason(d / f"t-{stem(t)}.log"), fails.get(key, {})
+            head = stale_head(why)
+            if head:  # the environment's refusal: the count and any backoff stand as they were
+                fails[key] = {"n": prev.get("n", 0), "next": prev.get("next", 0), "rc": rc, "why": why, "stale": head}
+            else:
+                n = prev.get("n", 0) + 1
+                fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": why}
         del runs[t]
     (d / "fails.json").write_text(json.dumps(fails))
 
@@ -274,6 +312,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     except ValueError:
         cap = DEFAULT_CAP
     skipped, cands, board_topics = {}, [], []
+    tools = world.tools_head() if any(f.get("stale") for f in fails.values()) else ""
     for topic, sha, ct in parse_board(board):
         def skip(why):
             skipped[topic] = why
@@ -300,6 +339,8 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             skip("stuck")
         elif fails.get(f"{topic} {sha}", {}).get("next", 0) > now:
             skip("backoff")
+        elif fails.get(f"{topic} {sha}", {}).get("stale") and (not tools or tools.startswith(fails[f"{topic} {sha}"]["stale"])):
+            skip("stale-checkout")  # retried on the first pass after the tools HEAD changes, never before
         else:
             board_topics.append((topic, sha, ct))
             g, title = resolve(topic, groups, world.body_head(topic), titles)
@@ -328,10 +369,33 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     return {"started": started, "skipped": skipped}
 
 
+def retry(sd: Path, topic: str, sha: str | None, out=print) -> int:
+    """Drop the topic's fails.json entries (one (topic, sha) when a sha is given). 0 removed, 1 refused."""
+    p = sd / "open-driver" / "fails.json"
+    fails = _load(p, {})
+    keys = [k for k in sorted(fails) if k.split()[0] == topic and k.split()[1].startswith(sha or "")]
+    if not keys:
+        out(f"open_driver retry: REFUSE: {p} holds no entry for {topic}{' at ' + sha if sha else ''}; nothing written")
+        return 1
+    for k in keys:
+        f = fails.pop(k)
+        out(f"RETRY {topic} {k.split()[1][:8]} n={f.get('n')} next={utc(f.get('next', 0))} why={f.get('why')}")
+    p.write_text(json.dumps(fails))
+    if _load(p, None) != fails:
+        out(f"open_driver retry: REFUSE: {p} read back differs from what was written")
+        return 1
+    return 0
+
+
 def main(argv) -> int:
     if argv[:1] == ["--self-test"]:
         import open_driver_selftest
         return open_driver_selftest.run()
+    if argv[:1] == ["retry"]:
+        if len(argv) not in (2, 3):
+            print("usage: open_driver.py retry <topic> [<sha>]", file=sys.stderr)
+            return 2
+        return retry(state_dir(), argv[1], argv[2] if len(argv) == 3 else None)
     board = None
     if "--board" in argv:
         board = argv[argv.index("--board") + 1]
