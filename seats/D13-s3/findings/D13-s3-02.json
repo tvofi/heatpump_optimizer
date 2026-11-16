@@ -19,7 +19,7 @@
   "thread_factor": 1.009
  },
  "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:latest_by_name driven on the check runs of .github/workflows/governance.yml job `instrument-self-tests` (whose push-only step is tools/ci/selftest_scope.py `check`)",
- "perturbation": "`--exclude 'governance / instrument-self-tests'` (in memory): cfr_raw_merge_keyed falls 0.808 -> 0.24 and merges_failing_only_excluded_jobs_merge rises 3 -> 165; a window ending before the first red (D13S3_W1=2026-11-09T13:00:00Z) reads ist_fail_merge 0",
+ "perturbation": "`--exclude 'governance / instrument-self-tests'` (in memory): cfr_raw_merge_keyed falls 0.808 -> 0.24 and merges_failing_only_excluded_jobs_merge rises 3 -> 165 (the 162 merges whose only red it is, plus the 3 `record`-only)",
  "metric_definition": "ist_fail_merge_pass_head = count of window merges whose latest `governance / instrument-self-tests` run concluded failure at the merge commit and success at the PR head; TTR = completed_at of the first failing run at a merge to completed_at of the next succeeding run at a later merge, first-parent order",
  "phenomenon_property": "A job whose check runs on a push to main also runs, with the same verdict, at the pull-request head that produced the merge, so its red is answered before the merge rather than restored after it",
  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py | grep \"per name\" | grep 'head=0.0 (0)'   (every name failing at merge commits and at no head)",
