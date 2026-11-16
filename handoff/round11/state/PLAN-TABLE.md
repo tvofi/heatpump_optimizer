@@ -110,7 +110,7 @@ gantt
 | R11-PRE-BRIEFS-TEXT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
 | R11-PRE-NEW-DIMENSIONS | IN | 2 | carries-open | - | fable/fable | - | Finder-critical. |  |
 | R11-PRE-OWNER-CRITERIA | IN | 1 | carries-open | - | opus/opus | - | Finder-critical by tvofi's ruling of 2026-11-15 on the owner-criteria cards, "All four before finders". |  |
-| R11-PRE-NO-READ-BUILDERS | IN | 2 | in-progress | - | fable/fable | - | NOT finder-critical. |  |
+| R11-PRE-NO-READ-BUILDERS | IN | 2 | carries-open | - | fable/fable | - | NOT finder-critical. |  |
 | R11-PRE-RCA-LATCH-CLAUSES | IN | 1 | done | - | opus/opus | - | NOT finder-critical, and HELD: tvofi has not ruled card E11-INJECTED; dispatch only on his ruling, building what it accepts. |  |
 | R11-OWNER-GENERIC-CONTROL-TEXT | DOCS | 1 | in-progress | #3643 | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11. |  |
 | R11-PRE-ROUND-CHECK-GATE | IN | 1 | in-progress | - | opus/opus | - | Finder-critical. |  |
@@ -132,7 +132,7 @@ gantt
 | R11-PREPR-STEP-TIMING | IN | 3 | not-started | - | opus/opus | - | Two remeasured countermeasures from dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md, both in tools/pr/prepr.sh, carried below verbatim: the per-step elapsed field (... |  |
 | R11-SERVICE-SCHEMA | CORE | 1 | in-progress | - | opus/opus | - | Service schema and service text disagreements carried below verbatim. |  |
 | R11-PRODUCT-TEXT-PINS | CORE | 2 | not-started | - | opus/opus | - | Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below ver... |  |
-| R11-ADVISOR-MEASURES | CORE | 1 | in-progress | - | opus/opus | - | Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked f... |  |
+| R11-ADVISOR-MEASURES | CORE | 1 | carries-open | - | opus/opus | - | Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked f... |  |
 | R11-VALVE-REFERENCE | CORE | 1 | in-progress | - | opus/opus | - | Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, t... |  |
 | R11-POLICY-TOKEN-CAP | IN | 1 | in-progress | - | opus/opus | - | Drop the files_tokens cap kept for the retired orchestrator turn and extend policy_lint.mjs's orphan-cap check to files_tokens, as the carry below states ver... |  |
 | R11-START-EVALUATION-LAND | IN | 1 | done | - | opus/opus | - | Land the approved round-11 start evaluation (eval/r11, approved at the evaluation review round 4, c04cef7fca) on main so check_scopes.py --round 11 can read... |  |
