@@ -909,6 +909,8 @@ def rca_lists(rca, group: dict, root=None) -> bool:
     except (OSError, UnicodeDecodeError):
         return False
     me, own = group.get("group"), group.get("rca")
+    if isinstance(own, list) and rca in own:
+        return True
     subject = rca_subject(text)
     return subject is not None and me in {t.strip(".-") for t in re.findall(r"[\w.-]+", subject)}
 
@@ -1377,9 +1379,10 @@ def _self_test() -> int:
         (froot / "dev/audit/rca/R10-RCA-NAMED.md").write_text(
             "# R10-RCA-NAMED: a record whose subject is two groups\n\nThis is the root-cause seat for R10-D,\n"
             "found again in R10-E-2.\n\nA later paragraph names R10-S.\n\n| R10-T | in progress |\n")
-        # A process record: groups in its opening paragraph and status table, no subject declared.
+        # A process record: groups in its title, opening paragraph, status table and a quoted
+        # seat, and no root-cause seat declared in its opening paragraph.
         (froot / "dev/audit/rca/R10-RCA-BOARD.md").write_text(
-            "# R10-RCA-BOARD: the board was present and stalls happened anyway\n\n"
+            "# R10-RCA-BOARD (R10-V): the board was present and stalls happened anyway\n\n"
             "Owner's question: why did R10-D sit for hours?\n\n| R10-U | in progress |\n\n"
             "> From the root-cause seat for R10-U, quoted.\n")
         (froot / "dev/audit/config").mkdir(parents=True)
@@ -1414,7 +1417,8 @@ def _self_test() -> int:
         check("convergence: caused_by refuses a record that mentions a group but is not its root-cause seat",
               all("rca record under" in (cw("caused_by", {"cause": "original", "rca": r}, {"group": n}) or "")
                   for r, n in (("R10-RCA-NAMED", "R10-S"), ("R10-RCA-NAMED", "R10-T"),
-                               ("R10-RCA-BOARD", "R10-D"), ("R10-RCA-BOARD", "R10-U")))
+                               ("R10-RCA-BOARD", "R10-D"), ("R10-RCA-BOARD", "R10-U"),
+                               ("R10-RCA-BOARD", "R10-V")))
               and rca_subject("# T\n\n<!-- note -->\nRoot-cause seat, run beside\nthe fixer of R10-X.\n\nR10-Y.\n")
               == "Root-cause seat, run beside\nthe fixer of R10-X."
               and rca_subject("# T\n\nOwner's question: R10-X.\n\nThe root-cause seat for R10-X.\n") is None
