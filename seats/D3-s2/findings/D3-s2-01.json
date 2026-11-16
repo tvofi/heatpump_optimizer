@@ -1,0 +1,32 @@
+{
+ "id": "D3-s2-01",
+ "scope": "D3-s2",
+ "step": "D3.M5",
+ "title": "Import-level closures select 9 scripts (525.7 s recorded) for a payload.py function-body edit none of them executes",
+ "severity": "low",
+ "claim": "Of the 170 (script, D3-s2 cell) closure pairs whose traced unmutated run is clean, 29 claim a cell whose function bodies the script never executes and never reads as text, so closure.py select runs that script for any function-body-only edit of that cell although the edit cannot change its run; payload.py alone carries 525.7 s of 3051.3 s recorded selected seconds this way (boost_drift_replay.py 341.1 s, optimality.py 142.5 s, validate.py 21.5 s, guard_pins.py 8.2 s, manual_plan.py 6.5 s, ...).",
+ "mechanism": "tests/closures.json records the files a run imported or opened (derive_closures.sh); a module imported for its constants or a type is a closure member even when no function of it runs. tests/mutation_table.py already exploits the finer fact (reach_skip / never_reaches) for mutants, but the scoped gate's selection does not.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+  "harness_path": "dev/audit/rounds/round11/D3/s2/m5_reach.py",
+  "value": 29,
+  "unit": "over-approximated (script, cell) pairs of 170 clean pairs",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B2, 4 cores, shared with D0-s2 and D9-s2",
+  "cpu_or_wall": "count",
+  "contention_note": "count from traced baselines (mutation_table.traced_baseline, run by prescreen.py); contention-immune; the seconds weights are tests/closures.json's recorded seconds, not measured here",
+  "tolerance": "exact",
+  "load1": 5.83,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/mutation_table.py:traced_baseline/collect/reach_problems over tests/closures.json:closures (the selection tests/closure.py select reads)",
+ "perturbation": {"change": "--claim-only tests/boost_drift_replay.py:payload.py (drop that pair from the closure the count reads, the effect of a body-granular closure for that pair)", "expected_direction": "down", "observed_value": "28 pairs; over_seconds[payload.py] 525.7 -> 184.6 s"},
+ "metric_definition": "pairs (script, cell) in closures.json with a clean traced baseline that executed zero function-body lines of the cell and did not read it as text",
+ "phenomenon_property": "A scoped-gate selection should not run a script for an edit confined to function bodies that script's measured run never executes.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": ["tests/closures.json", "tests/closure.py", "tests/derive_closures.sh"],
+ "proposed_fix_scope": "Measure only; a body-granular selection is a gate-design change (module-level edits must still select every importer). At most a closure.py selection refinement that skips a script for a function-body-only hunk in a file its recorded reach never executes, reusing mutation_table.never_reaches.",
+ "reproduction_steps": ["Run prescreen.py to produce run/reach/*.json (traced baselines)", "Run m5_reach.py over that directory", "Re-run with --claim-only tests/boost_drift_replay.py:payload.py and see 29 -> 28"]
+}

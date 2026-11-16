@@ -1,0 +1,14 @@
+  2165 unpinned site(s) of 7768 candidate sites, 2165 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 9 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+MUTATION TABLE -- scope full: every production module
+DRAIN -- 258 of 2165 unpinned site(s), whole anchors under --seed 20260911, to drive
+  258 mutant(s) over 95 file(s); drivers in play: tests/arch_score_head.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/frontend.py, tests/guard_pins.py, tests/manual_plan.py, tests/open_meteo.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'HEAD^1' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/__init__.py:37 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/arch_score_head.py: rc=0 failed=0 318s
+  baseline tests/env_drift.py: rc=0 failed=0 719s
+  baseline tests/block_duty.py: rc=0 failed=0 57s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 153s
+  baseline tests/debug_collect.py: rc=0 failed=0 9s
+  baseline tests/deployment_shape.py: rc=0 failed=0 13s
+  baseline tests/doc_claims.py: rc=0 failed=0 68s
+  baseline tests/boost_drift_replay.py: rc=124 failed=0 1200s
