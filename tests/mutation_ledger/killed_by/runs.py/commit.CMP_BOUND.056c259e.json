@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CMP_BOUND 056c259e",
+  "killed_by": "tests/features.py",
+  "old": "        asked = bool(q[k] > 0.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`asked = bool(q[k] >= 0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

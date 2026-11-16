@@ -209,6 +209,38 @@ const VERDICT_CLASSES = [
 // routes alike: the split measures the gate, it does not loosen it.
 const ROOT_CAUSE_CLASSES = ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded']
 
+// THE CLAUSE EACH CLASS ENFORCES (card E11-N-ROLE-CLAUSE, decision 0018 section
+// 3). A role contract is scorable per clause only when a block's class names
+// the clause, so each taught class is keyed here, once, to the step of its
+// role contract whose breach it reports: `<role>.md step N`, the role file
+// under dev/governance/roles/. `null` is a value: no numbered step teaches
+// that word. tools/audit/seat/review_strength.py reads this literal from the
+// tree (`--by clause`), never a copy, refuses a map whose keys are not exactly
+// VERDICT_CLASSES, and prints a clause the role file does not number as
+// UNRESOLVED. Keyed on the class word, so no verdict subject changes and a
+// window reviewed before this map reads by clause without a re-review. Keep
+// every comment above the literal: its reader takes the text between the
+// braces.
+const VERDICT_CLAUSES = {
+  'mutation-vacuous': 'fix-review.md step 1',
+  'harness': 'fix-review.md step 2',
+  'null-control': 'fix-review.md step 3',
+  'claims': 'fix-review.md step 4',
+  'version': 'fix-review.md step 5',
+  'head-moved': 'fix-review.md step 12',
+  'carry-missing': 'fix-review.md step 10',
+  'root-cause-unanswered': 'fix-review.md step 11',
+  'preflight-mismatch': null,
+  'class-open': 'fix-review.md step 6',
+  'conflict': null,
+  'other': null,
+  'product-tradeoff-regression': null,
+  'metric-gamed': 'fix-review.md step 14',
+  'architecture-unsound': 'fix-review.md step 15',
+  'root-cause-detectable': 'fix-review.md step 11',
+  'root-cause-unrecorded': 'fix-review.md step 11',
+}
+
 // The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an
 // abbreviated form parses here but tools/pr/app_approve.sh requires exact
 // equality against the full head SHA and refuses it there, so an abbreviated
