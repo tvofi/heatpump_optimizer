@@ -43,6 +43,7 @@ PERTURB = "--perturb-ignore" in sys.argv
 MODE_ST = {"select.hp_mode": FakeState("heat", attributes={"options": ["heat", "dhw", "heat_dhw", "cool"]})}
 FLOW_ST = {"number.flow": FakeState("35", attributes={"min": 20, "max": 60, "step": 0.5})}
 HC_ST = {"number.curve": FakeState("0", unit="K", attributes={"min": -10, "max": 10, "step": 0.5})}
+HC5_ST = {"number.curve": FakeState("5", unit="K", attributes={"min": -10, "max": 10, "step": 0.5})}
 POWER = {"heat_pump_power_entity": "sensor.hp_power"}
 POWER_ST = {"sensor.hp_power": FakeState("1500", unit="W")}
 PEAK = {"peak_tariff_enabled": True}
@@ -89,6 +90,30 @@ async def debugger_post(coord, hass, entry, obs):
     obs["_collector"] = col
 
 
+async def guard_post(coord, hass, entry, obs):
+    """Entry setup registers the meter listener; then the meter reports, as HA fires it."""
+    await coord._async_setup_peak_guard()
+    listeners = [a for ids, a in getattr(hass, "state_listeners", [])
+                 if "sensor.house_power" in (ids if isinstance(ids, (list, tuple)) else [ids])]
+    obs["guard_listeners"] = len(listeners)
+    st = hass.states.get("sensor.house_power")
+    t0 = dt_util.now()
+    for i in range(60):  # one reading a minute through the whole hour window
+        dt_util.freeze(t0 + timedelta(minutes=i))
+        ev = type("Ev", (), {"data": {"entity_id": "sensor.house_power", "new_state": st, "old_state": st}})()
+        for a in listeners:
+            r = a(ev)
+            if asyncio.iscoroutine(r):
+                await r
+    for t in list(getattr(hass, "_tasks", [])):
+        try:
+            await t
+        except Exception:  # noqa: BLE001
+            pass
+    obs["guard_suppressing"] = coord._peak_guard.suppressing
+    dt_util.freeze(t0)
+
+
 async def override_post(coord, hass, entry, obs):
     coord.record_setpoint_override(23.0)
 
@@ -130,24 +155,26 @@ ARMS = {
     "grid_connection.peak_guard_enabled": [
         A(f"peaks recorded, house {kw} kW, heat curve entity", True,
           pre={**PEAK, "house_power_entity": "sensor.house_power", "heat_curve_displace_entity": "number.curve"},
-          states={"sensor.house_power": FakeState(str(kw * 1000), unit="W"), **HC_ST}, seed=seed_peaks, cycles=2)
+          states={"sensor.house_power": FakeState(str(kw * 1000), unit="W"), **HC_ST}, seed=seed_peaks, cycles=1,
+          post=guard_post)
         for kw in (1.7, 9.0)],
     "grid_connection.peak_guard_margin_kw": [
         A(f"guard on, peaks recorded, house {kw} kW", 0.1, same={"peak_guard_enabled": True},
           pre={**PEAK, "house_power_entity": "sensor.house_power", "heat_curve_displace_entity": "number.curve"},
-          states={"sensor.house_power": FakeState(str(kw * 1000), unit="W"), **HC_ST}, seed=seed_peaks, cycles=2)
+          states={"sensor.house_power": FakeState(str(kw * 1000), unit="W"), **HC_ST}, seed=seed_peaks, cycles=1,
+          post=guard_post)
         for kw in (1.7, 9.0)],
     "grid_fees.contract_fixed_price": [A("metered, 4 cycles", 0.9, pre=POWER, states=POWER_ST, cycles=4)],
     "heat_curve.ecl110_state_topic": [A("entry setup subscribes", "ecl/state", same={"ecl110_displace_set_topic": "ecl/d"},
                                         post=mqtt_post)],
-    "heat_curve.heat_curve_target_kind": [A("entity readable, 3 cycles", "persistent",
-                                            same={"heat_curve_displace_entity": "number.curve"}, states=HC_ST, cycles=3)],
+    "heat_curve.heat_curve_target_kind": [A("entity holds a stored curve value 5, 3 cycles", "persistent",
+                                            same={"heat_curve_displace_entity": "number.curve"}, states=HC5_ST, cycles=3)],
     "heat_curve.heat_curve_persistent_band_k": [
         A("persistent, 3 cycles", 0.5, same={"heat_curve_displace_entity": "number.curve",
                                              "heat_curve_target_kind": "persistent"}, states=HC_ST, cycles=3)],
     "heat_curve.heat_curve_persistent_min_dwell_minutes": [
-        A("persistent, 4 cycles", 180, same={"heat_curve_displace_entity": "number.curve",
-                                             "heat_curve_target_kind": "persistent"}, states=HC_ST, cycles=4)],
+        A("persistent, 12 cycles (3 h)", 180, same={"heat_curve_displace_entity": "number.curve",
+                                                    "heat_curve_target_kind": "persistent"}, states=HC_ST, cycles=12)],
     "heat_curve.heat_curve_persistent_writes_per_day": [
         A("persistent, 3 cycles", 0, same={"heat_curve_displace_entity": "number.curve",
                                            "heat_curve_target_kind": "persistent"}, states=HC_ST, cycles=3)],

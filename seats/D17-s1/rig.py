@@ -54,6 +54,10 @@ def load1():
 
 
 def new_flow(data=None, options=None, entry_id="d17s1"):
+    """A fresh install: the stub's process-wide store disk is emptied first, so no
+    arm inherits another arm's persisted state (a restart inside one arm keeps it)."""
+    from homeassistant.helpers import storage
+    storage._reset_store_disk()
     hass = FakeHass()
     entry = FakeEntry(data=dict(data if data is not None else BASE_DATA),
                       options=dict(options or {}), entry_id=entry_id)
