@@ -1,0 +1,6 @@
+NOTE body item 6ceaaf5d: R11-PRE-PRODUCT-READS: R11-PRE-PRODUCT-READS resolved on origin/handoff/audit-r10-roster
+NOTE body item d65f4c4c: R11-PRE-PRODUCT-READS: R11-PRE-PRODUCT-READS resolved on origin/handoff/audit-r10-roster
+NOTE body item 31b27b88: R11-PRE-PRODUCT-READS: R11-PRE-PRODUCT-READS resolved on origin/handoff/audit-r10-roster
+NOTE body item 94f5e481: R11-PRE-PRODUCT-READS: R11-PRE-PRODUCT-READS resolved on origin/handoff/audit-r10-roster
+NOTE body item 064b33b5: dismissed:no unlisted writer on the seed run, nothing measured to carry
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

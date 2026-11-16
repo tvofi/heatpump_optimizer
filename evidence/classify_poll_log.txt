@@ -1,0 +1,15 @@
+14:00:28 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:01:46 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:03:04 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:04:22 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:05:39 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:06:57 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:08:15 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:09:33 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:10:51 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:12:09 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:13:27 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:14:46 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:16:03 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:17:21 rc=3 WAIT 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none
+14:18:41 rc=1 INTRODUCED Show the self-test scope (tools/ci/selftest_scope.py) refusing its own fixtures
