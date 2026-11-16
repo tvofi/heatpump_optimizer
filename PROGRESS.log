@@ -13,3 +13,4 @@
 1794854930 DONE returned: handoff 8d2eb5c41a, body 68945c41be, prepr rc=0
 1794854949 DONE returned: handoff 8d2eb5c41a, handoff-body 68945c41be, prepr rc=0; step-ref delete refused by remote
 1794862922 HB alive
+1794862936 CKPT worktree at e0238c1, reading string_compared snapshot 67d563148599
