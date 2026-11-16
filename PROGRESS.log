@@ -11,3 +11,4 @@
 1794844584 DONE rev-3667: Fix review: blocked b0c7114dd6 mutation-vacuous (read_room sensor unit); probe/rev-3667-fea91490 at cc9b7738a1
 1794873329 HB alive
 1794873387 CKPT setup done, packet rendered snapshot 5da5e7391d12
+1794873497 CKPT M6 and instance-unit mutants killed by block; full features runs in flight snapshot 3b01d43e8737
