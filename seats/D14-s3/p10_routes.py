@@ -24,6 +24,7 @@ Run (from the repository root):
     ... --arm owner-learner            # one arm (see ARMS)
     ... --tree /path/to/old/export     # replay a pre-fix tree's own coordinator
     ... --reintroduce                  # perturbation: _await_off_loop runs fn inline
+    P10_PERTURB_WHATIF=1 ... --arm owner-1h   # perturbation: whatif.schedule_days -> None
 
 Expected at 92d38ecb6 (box B7, 4 vCPU): loop=0 executor=0 on every arm (a
 non-finding: the barrier holds on both fixtures); --reintroduce: loop > 0
@@ -59,6 +60,7 @@ ARMS = {
     "synthetic": ("synthetic-dhw-only.json", 6.0, False),
     "synthetic-learner": ("synthetic-dhw-only.json", 6.0, True),
     "owner": ("owner-2026-10-30-away.json", 2.0, False),
+    "owner-1h": ("owner-2026-10-30-away.json", 1.0, False),
     "owner-learner": ("owner-2026-10-30-away.json", 2.0, True),
     # The day, then what a user does beside it: the config-entry diagnostics
     # download, every button press, every options page rendered.
@@ -82,6 +84,8 @@ def _arm(tree: Path, arm: str, reintroduce: bool) -> dict:
     counts: Counter = Counter()
     sites: Counter = Counter()
     worker_sites: Counter = Counter()
+    stacks: Counter = Counter()
+    off_cpu: Counter = Counter()  # thread CPU of the outermost off-worker kernel calls, ms
 
     def pkg_frames(start):
         out, f = [], start
@@ -108,6 +112,14 @@ def _arm(tree: Path, arm: str, reintroduce: bool) -> dict:
                                        if not fr.startswith(("thermal_model.py", "sysid.py"))),
                                       frames[0])
                         sites[f"{route} {caller} {label}"] += 1
+                        stacks[f"{route} " + " <- ".join(frames[:7])] += 1
+                        began = time.thread_time()
+                        tl.inside = getattr(tl, "inside", 0) + 1
+                        try:
+                            return real(*a, **k)
+                        finally:
+                            tl.inside -= 1
+                            off_cpu[route] += (time.thread_time() - began) * 1000.0
             tl.inside = getattr(tl, "inside", 0) + 1
             try:
                 return real(*a, **k)
@@ -178,6 +190,11 @@ def _arm(tree: Path, arm: str, reintroduce: bool) -> dict:
         cm.HeatPumpOptimizerCoordinator._learning_frozen = lambda self, *a, **k: None
         if hasattr(cm.HeatPumpOptimizerCoordinator, "_interval_space_power"):
             cm.HeatPumpOptimizerCoordinator._interval_space_power = lambda self: 3.0
+    if os.environ.get("P10_PERTURB_WHATIF"):
+        # The seam's own perturbation: the what-if's schedule pricing returns
+        # "no schedule change" without pricing a reference day.
+        from heatpump_optimizer import whatif
+        whatif.schedule_days = lambda live, sim: None
     if reintroduce:
         # The one-line re-introduction: the P10 helper runs its job inline.
         async def inline(hass, fn, *args):
@@ -245,6 +262,8 @@ def _arm(tree: Path, arm: str, reintroduce: bool) -> dict:
     return {"arm": arm, "cycles": run["cycles"], "cycle_offenders": run["counts"].get("cycle"),
             "surface_errors": surface_errors[:20],
             "counts": dict(counts), "sites": dict(sites.most_common()),
+            "stacks": dict(stacks.most_common(6)),
+            "off_cpu_ms": {k: round(v, 1) for k, v in off_cpu.items()},
             "worker_sites": {k: v for k, v in worker_sites.items()
                              if k.startswith("coordinator.py:_async_learn")
                              or k.endswith(("_replay_interval", "_replay_fabric",
@@ -293,6 +312,11 @@ def main() -> int:
         for e in d.get("surface_errors") or []:
             print(f"  surface error {e}")
         print(f"  reached in worker: {sorted(d['worker_sites'])}")
+        for st, n in d.get("stacks", {}).items():
+            print(f"  stack x{n}: {st}")
+        for route, ms in d.get("off_cpu_ms", {}).items():
+            print(f"RESULT {arm}_{route}_kernel_cpu_ms={ms} ms (provisional)")
+            print(f"RESULT {arm}_{route}_kernel_cpu_ms_per_cycle={ms / max(1, d['cycles']):.1f} ms (provisional)")
         print(f"RESULT {arm}_loop={c.get('loop', 0)} count")
         print(f"RESULT {arm}_executor={c.get('executor', 0)} count")
         print(f"RESULT {arm}_worker={c.get('worker', 0)} count")
