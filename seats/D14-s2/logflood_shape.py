@@ -10,8 +10,10 @@ barrier's count rose, 0 when it is blind. Plus the package's live sites of the
 blind shapes (``SITE`` lines), each needing a disposition.
 Key: the barrier function's own Counter total.
 
-Perturbation: the control plant (``_LOGGER.warning``) must read 1; removing it
-(``--no-control``) reads 0.
+Perturbation (``--widen``): the barrier's one attribute test widened in memory to
+("warning", "error", "exception", "critical") -> counted_exception and
+counted_critical 0 -> 1 (and barrier_sites_baseline +1: the sysid _finish site).
+Control: the ``_LOGGER.warning`` plant must read 1; ``--no-control`` drops it.
 
 Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py
 Expected at 92d38ecb640bd462f2e19c0814d0f0b7df1ee692: RESULT counted_warning=1,
@@ -46,8 +48,13 @@ SHAPES = {
 }
 
 
-def _barrier():
+def _barrier(widen=False):
     src = Path("tests/entities.py").read_text()
+    if widen:
+        # the one-line barrier repair: count every level a flood can log at
+        old = 'child.func.attr in ("warning", "error")'
+        assert src.count(old) == 1, "barrier line moved"
+        src = src.replace(old, 'child.func.attr in ("warning", "error", "exception", "critical")')
     tree = ast.parse(src)
     keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name == "_r10_unlatched_logs")
             or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "_R10_LATCH_WORD" for t in n.targets))]
@@ -60,9 +67,10 @@ def _barrier():
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-control", action="store_true")
+    ap.add_argument("--widen", action="store_true")
     a = ap.parse_args()
     t0, c0 = time.thread_time(), time.process_time()
-    fn = _barrier()
+    fn = _barrier(a.widen)
     pkg = Path("custom_components/heatpump_optimizer")
     sources = {p.name: p.read_text() for p in sorted(pkg.glob("*.py"))}
     base = sum(fn(sources).values())
