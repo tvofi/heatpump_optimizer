@@ -969,7 +969,12 @@ check("what_if: false still hides the panel",
 
 let called = null;
 const simResult = {
-  monthly_cost_delta: -42.5,
+  // The plan's own spend is in every answer and is never the money shown
+  // (#2257): the line reads the steady figure, here a schedule estimate's two
+  // pricings, which round apart.
+  monthly_cost_delta: -97.0,
+  monthly_steady_cost_delta: -42.5,
+  monthly_steady_cost_delta_shifted: -30.2,
   min_room_temperature: 19.4,
   baseline_min_room_temperature: 20.1,
   min_dhw_temperature: 46.0,
@@ -1137,7 +1142,33 @@ check("the simulator sends the hot water windows",
 
 const resultText = whatIf.shadowRoot.querySelector(".wi-result").textContent;
 check("a cheaper answer is reported as a monthly saving",
-  /43 less per month/.test(resultText));
+  /30–43 less per month/.test(resultText));
+check("#2257: a schedule estimate's money is the range between its two pricings and says what it is: " +
+  "at the day's average weather and price, without the optimizer's load shifting",
+  /30–43 less per month/.test(resultText) && !/97/.test(resultText)
+  && /an estimate at the day's average weather and price that leaves out the optimizer's load shifting\./.test(resultText)
+  && !/in steady state/.test(resultText));
+{
+  // The summary's own markup is matched as it is built: stripping tags out of
+  // it is the shape of an HTML sanitiser (the note at `tableOf` below).
+  const money = (answer) => whatIf.whatIf.summary({ ...simResult, ...answer });
+  const opens = (amount, rest) => new RegExp(`^<div><b class="[a-z-]+">${amount}</b> ${rest}`);
+  check("#2257: two pricings that round to one amount, or no second pricing, show one number, still as the estimate",
+    opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: -42.9 }))
+    && opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: null })));
+  check("#2257: a dearer schedule estimate orders its range small to large",
+    opens("12–19 more per month", "than the current plan, an estimate").test(
+      money({ monthly_steady_cost_delta: 18.6, monthly_steady_cost_delta_shifted: 12.1 })));
+  const pair = { ...simResult, monthly_steady_cost_delta: 13.0 };
+  delete pair.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer priced by the two held plans has no second pricing and reads as steady state, one number",
+    opens("13 more per month", "than the current plan, in steady state\\.").test(whatIf.whatIf.summary(pair)));
+  const none = { ...simResult };
+  delete none.monthly_steady_cost_delta;
+  delete none.monthly_steady_cost_delta_shifted;
+  check("#2257: an answer without the steady figure shows no money at all, never the plan's own spend",
+    !/per month|97|same cost/.test(whatIf.whatIf.summary(none)));
+}
 // Reporting only the saving would invite the obvious mistake: a plan is always
 // cheaper if it is allowed to be colder.
 check("the comfort consequence is reported alongside the money",
@@ -2083,6 +2114,122 @@ const editable = () => {
   check("slots are sent as ISO timestamps",
     !iso || (!Number.isNaN(Date.parse(iso.start)) && /T/.test(iso.start)),
     JSON.stringify(iso));
+}
+
+// #3636: a published plan reaching past the manual-plan window made "Apply this
+// plan" fail every time, because `build_override` refuses a slot starting
+// beyond now plus the window. The card trimmed at the edit floor only, so it
+// sent runs the editor itself would not let the user touch. The captured plan
+// is extended to 48 h past its first step with runs before, across, just
+// inside and past the ceiling: the published window (`applyEnd`), not the
+// zoomed visible end `editCeiling` also carries.
+{
+  const STEP = 15 * 60000;
+  const ceiling = FROZEN + 20 * HOUR;
+  const at = (h) => ceiling + h * HOUR;
+  // The forecast's `t` is local wall time with no offset, as the sensor
+  // publishes it, so extended steps are written the same way.
+  const local = (ms) => {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+      `T${p(d.getHours())}:${p(d.getMinutes())}:00`;
+  };
+  // [start, end) in hours from the ceiling, per channel.
+  const runs = {
+    dhw_power: [[-4, -3], [-2, 0.5], [1, 2], [4, 6]],
+    // Starts one step short of the ceiling: inside it on this clock, but past
+    // the server's on a browser clock a step ahead -- the skew allowance.
+    space_power: [[-4, -3], [-0.25, 1], [4, 6]],
+  };
+  const extended = (windowHours, seeded = runs) => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    const first = Date.parse(plan.dhw_plan.forecast[0].t);
+    for (const [id, field] of [[DEFAULT_DHW, "dhw_power"],
+                               [DEFAULT_SPACE, "space_power"]]) {
+      if (windowHours !== undefined) {
+        st[id].attributes.manual_plan_window_hours = windowHours;
+      }
+      const fc = st[id].attributes.forecast;
+      const last = fc[fc.length - 1];
+      for (let t = Date.parse(last.t) + STEP; t < first + 48 * HOUR; t += STEP) {
+        fc.push({ ...last, t: local(t) });
+      }
+      for (const f of fc) {
+        const t = Date.parse(f.t);
+        if (t < at(-4.5)) continue;
+        f[field] = seeded[field].some(([a, b]) => t >= at(a) && t < at(b)) ? 3 : 0;
+      }
+    }
+    return st;
+  };
+  const applied = (states, geom) => {
+    const c = build(states, { what_if: true });
+    c._hass = mkHass(states);
+    c._onCardClick({});
+    if (geom) c.geomAt = () => geom;
+    called = null;
+    c.manual.apply();
+    return { card: c, data: (called && called.data) || {} };
+  };
+  const { card, data } = applied(extended());
+  const drafted = [...card.manual.draft().dhw, ...card.manual.draft().space];
+  check("the extended plan drafts runs at and past the window (#3636)",
+    drafted.some((r) => r.start >= ceiling), JSON.stringify(drafted));
+  // Only the seeded tail: the captured plan's own earlier runs are untouched.
+  const span = (slots) => (slots || [])
+    .filter((sl) => Date.parse(sl.start) >= at(-4.5))
+    .map((sl) => [Date.parse(sl.start), Date.parse(sl.end)].map(
+      (ms) => (ms - ceiling) / HOUR));
+  check("no slot sent starts at or after the manual-plan window (#3636)",
+    [...(data.dhw_slots || []), ...(data.space_slots || [])]
+      .every((sl) => Date.parse(sl.start) < ceiling),
+    JSON.stringify(data));
+  check("a run straddling the window is sent whole, later ones dropped (#3636)",
+    JSON.stringify(span(data.dhw_slots)) === JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify(span(data.dhw_slots)));
+  check("a run starting within one step of the window is held back for clock skew (#3636)",
+    JSON.stringify(span(data.space_slots)) === JSON.stringify([[-4, -3]]),
+    JSON.stringify(span(data.space_slots)));
+  // The ceiling is the window, not the zoomed view: zoomed in so the visible
+  // end falls 3 h before the window, `editCeiling` would drop the run that
+  // straddles the window and the one before it. Design choice: what is applied
+  // does not depend on the zoom.
+  const zoomed = applied(extended(), { windowStart: 0, windowEnd: at(-3) });
+  check("a zoomed-in view does not change the applied runs (#3636)",
+    zoomed.card.manual.editCeiling() <= at(-3) &&
+      JSON.stringify(span(zoomed.data.dhw_slots)) ===
+        JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify({ editCeiling: (zoomed.card.manual.editCeiling() - ceiling) / HOUR,
+                     dhw: span(zoomed.data.dhw_slots) }));
+  // The skew allowance is one step, not more: a run starting two steps
+  // before the window is inside the server's acceptance and is sent.
+  const twoSteps = applied(extended(undefined, {
+    dhw_power: [],
+    space_power: [[-4, -3], [-0.5, 1]],
+  })).data;
+  check("a run starting two steps before the window is sent (#3636)",
+    JSON.stringify(span(twoSteps.space_slots)) ===
+      JSON.stringify([[-4, -3], [-0.5, 1]]),
+    JSON.stringify(span(twoSteps.space_slots)));
+
+  // Null control: the captured plan ends inside the window, so the payload
+  // must be byte-identical to the one a window too wide to bind produces.
+  check("the captured plan ends inside the window (#3636)",
+    drag.manual.planEnd() < ceiling - STEP,
+    new Date(drag.manual.planEnd()).toISOString());
+  const inside = applied(slotStates).data;
+  const unbound = (() => {
+    const st = JSON.parse(JSON.stringify(slotStates));
+    for (const id of [DEFAULT_DHW, DEFAULT_SPACE]) {
+      st[id].attributes.manual_plan_window_hours = 1000;
+    }
+    return applied(st).data;
+  })();
+  check("a plan wholly inside the window sends the same payload (#3636)",
+    (inside.dhw_slots || []).length > 0 &&
+      JSON.stringify(inside) === JSON.stringify(unbound),
+    JSON.stringify({ inside, unbound }));
 }
 
 // Prices are shown in the user's currency, not the author's.

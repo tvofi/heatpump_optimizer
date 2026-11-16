@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/whatif.py:limited_answer RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL) in `limited_answer`: the mutated line is the function's last statement, `return None`; replaced by `pass` the function falls off its end and returns None all the same. The limited arm above it is pinned by tests/features.py, \"the user's slot is spent once\".",
+  "verdict": "equivalent"
+}

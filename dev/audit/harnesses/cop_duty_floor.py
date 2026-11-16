@@ -53,6 +53,12 @@ Rows, each "folded/intervals scale":
     folded count must equal the base's (a held interval is not a lost one).
   * ``true_0.6_max_cycle_move`` -- the largest change of the COP scale in one
     cycle of the ``true_0.6`` run: a release folds many held intervals at once.
+  * ``sub_min_true_0.6_x<n>`` -- the round-1 handoff reviewer's row: a heat-led
+    pump of true scale 0.6 whose plan never asks at or above its configured
+    minimum (min == max == 3 kW, asks 1.9-2.55 kW), over ``n`` intervals. No
+    run-asked pair ever exists, so the evidence is pending until the window
+    is full (``draw_range.WINDOW`` running samples) and unobtainable after:
+    the departures base folded at once wait for that, then fold in one cycle.
 
 The folded column is ``_cop_samples`` at the end of the run, replays included.
 """
@@ -212,6 +218,10 @@ def main() -> None:
     moves: list[float] = []
     run(matched * 3, true=0.6, noise=0.05, moves=moves)
     print(f"RESULT true_0.6_max_cycle_move={max(moves):.3f}")
+    # The wait before the evidence turns unobtainable (the unobtainable-arm decision's row).
+    for n in (288, 384, 480):
+        got = run(cyc(matched, n), p_max=3.0, p_min=3.0, true=0.6, noise=0.05)
+        print(f"RESULT sub_min_true_0.6_x{n}={got.replace(' ', '_scale=')}")
 
 
 if __name__ == "__main__":

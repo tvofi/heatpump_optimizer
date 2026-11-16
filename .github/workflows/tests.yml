@@ -1451,9 +1451,8 @@ jobs:
           python -I -S tests/nightly_status.py
 
   # THE PULL REQUEST'S OWN COPY OF EACH PINNED GRADER (decision 0013, amended
-  # 2026-09-24). `coverage-ratchet`, `nightly-status` and governance.yml's
-  # `delivery-status` restore their grader from the base, so a pull request
-  # that changes one is graded by the old copy there. This job runs the new
+  # 2026-09-24). `coverage-ratchet` and `nightly-status` restore their grader from the
+  # base, so a pull request that changes one is graded by the old copy there. This job runs the new
   # copy the way that job does, so a changed grader still shows red or green
   # on the pull request that changes it. It is not a required context, and
   # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. Its
@@ -1503,7 +1502,7 @@ jobs:
         run: |
           set -euo pipefail
           python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
-          for g in coverage_ratchet delivery_status; do
+          for g in coverage_ratchet; do
             if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
               echo "$g=true" >> "$GITHUB_OUTPUT"
               echo "tests/$g.py changed: its own copy runs below"
@@ -1556,47 +1555,6 @@ jobs:
         run: |
           python3 tests/coverage_ratchet.py \
             --coverage "$RUNNER_TEMP/coverage/coverage.json"
-
-      - name: The pull request's delivery_status.py, as `delivery-status` runs it
-        if: always() && steps.changed.outputs.delivery_status == 'true'
-        run: |
-          git fetch --no-tags --quiet origin main
-          # A non-zero exit shared with the base copy on this tree is that
-          # copy's own. Exit with the pull request's code only when the two
-          # differ, and exit 1 when this copy prints OVERDUE and the base
-          # copy does not: both of those exits are 1, so the codes alone
-          # cannot separate them.
-          head_copy="$RUNNER_TEMP/delivery_status.head.py"
-          cp tests/delivery_status.py "$head_copy"
-          git show origin/main:tests/delivery_status.py > tests/delivery_status.py
-          set +e
-          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
-          base_rc=$?
-          set -e
-          cp "$head_copy" tests/delivery_status.py
-          set +e
-          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
-          head_rc=$?
-          set -e
-          cat "$RUNNER_TEMP/delivery_status.base.out"
-          echo "----- head copy -----"
-          cat "$RUNNER_TEMP/delivery_status.head.out"
-          echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
-          head_overdue=0
-          base_overdue=0
-          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
-            head_overdue=1
-          fi
-          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
-            base_overdue=1
-          fi
-          if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
-            exit 1
-          fi
-          if [ "$head_rc" -ne "$base_rc" ]; then
-            exit "$head_rc"
-          fi
-          exit 0
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}

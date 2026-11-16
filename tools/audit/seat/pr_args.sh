@@ -189,6 +189,15 @@ pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2
 PR_FRESH_PATHS=(:/tools/audit/seat :/tools/pr)  # mut:freshpaths
 # This file's own directory, absolute, fixed once at source time. A caller that sourced it by a relative path and then changed directory (update_pr.sh and open_pr.sh `cd "$M"`) would otherwise resolve the relative BASH_SOURCE against the new directory and measure the main checkout, not the one holding these tools: a false STALE CHECKOUT (P362, P401). Every reader uses this, never BASH_SOURCE at call time.
 PR_ARGS_DIR=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)  # mut:argsdir
+# The base a figure block is rendered against is the pull request's recorded base.sha, the value pr-contract
+# verifies with (pr-contract.yml, "base="), never origin/main's tip, which moves past it
+# (R10-RCA-FAMILY-FIGURE-BLOCK-STALE). Prints the sha, present locally; fails when unread or malformed.
+pr_recorded_base() { # <repo> <pull request number>
+  local b; b=$(gh api "repos/$1/pulls/$2" --jq .base.sha 2>/dev/null) || return 1
+  [[ $b =~ ^[0-9a-f]{40}$ ]] || return 1
+  git cat-file -e "$b^{commit}" 2>/dev/null || git fetch -q origin "$b" 2>/dev/null || return 1
+  printf '%s\n' "$b"
+}
 pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's checkout is behind it in PR_FRESH_PATHS
   local d=${PR_ARGS_DIR:-} n h o why
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
@@ -445,30 +454,32 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
     found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js')
   fi
   for f in $found; do
-    kind=$(printf '%s\n' "$PR_PUSHERS" | awk -v f="$f" '$1 == f { print $2; exit }')
+    kind=$(awk -v f="$f" '$1 == f { print $2; exit }' <<<"$PR_PUSHERS")
     if [ -n "$rev" ]; then txt=$(git -C "$root" show "$rev:$f"); else txt=$(cat "$root/$f"); fi
     txt=$(printf '%s\n' "$txt" | grep -vE '^[[:space:]]*#')  # a comment runs nothing
     case $kind in
       '') echo "OPEN $f: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS"; bad=1 ;;
       runner)
-        if ! printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_exit_trap([[:space:]]|$)'; then
+        # Here-strings, not `printf | grep -q`: a script's whole text overflows the pipe, and a
+        # grep that leaves at its match SIGPIPEs the writer (141 under pipefail).
+        if ! grep -qE '(^|[;{[:space:]])pr_exit_trap([[:space:]]|$)' <<<"$txt"; then
           echo "OPEN $f runner: no pr_exit_trap, so a stop leaves its tree"; bad=1
-        elif printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' \
+        elif grep -E 'bash "\$(_push|prepr)"' <<<"$txt" \
              | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
           echo "OPEN $f runner: a push runs in the foreground, so an INT waits behind it"; bad=1
-        elif printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_branch_lock[[:space:]]' \
-             && printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' | grep -qv 'pr_push_hold'; then
+        elif grep -qE '(^|[;{[:space:]])pr_branch_lock[[:space:]]' <<<"$txt" \
+             && grep -E 'bash "\$(_push|prepr)"' <<<"$txt" | grep -qv 'pr_push_hold'; then
           echo "OPEN $f runner: a push under the branch lock holds no push lock, so the lock can end before it"; bad=1
         else echo "ok   $f runner"; fi ;;
       runner-py)
-        if printf '%s\n' "$txt" | grep -qF '.terminate()' && printf '%s\n' "$txt" | grep -qE '^[[:space:]]+stop_on_signal\(\)'; then
+        if grep -qF '.terminate()' <<<"$txt" && grep -qE '^[[:space:]]+stop_on_signal\(\)' <<<"$txt"; then
           echo "ok   $f runner-py"
         else echo "OPEN $f runner-py: a stop SIGKILLs or orphans its tool"; bad=1; fi ;;
       *) echo "ok   $f $kind" ;;
     esac
   done
   for f in $(printf '%s\n' "$PR_PUSHERS" | awk '{ print $1 }'); do
-    printf '%s\n' $found | grep -qxF "$f" || { echo "OPEN $f: stale -- the rule no longer returns it"; bad=1; }
+    grep -qxF "$f" <<<"$found" || { echo "OPEN $f: stale -- the rule no longer returns it"; bad=1; }
   done
   [ "$bad" = 0 ]
 }
@@ -1260,7 +1271,7 @@ STUB
       && git -C "$o" branch fix/u "$base" && touch "$t/fixr"
   fi
   codeR=$(git -C "$o" rev-parse handoff/r)
-  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh"
+  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; api*pulls/*) cat "%s/pullbase" ;; *) exit 99 ;; esac\n' "$t" "$t" "$t" > "$t/bin/gh"
   racerun() {
     local sd=$t/race-${1//+/_} sdir=$t/race-${1//+/_}-stub g k=0 op
     rm -rf "$sd" "$sdir" "$t/s$i"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)  # git lists worktrees by physical path
@@ -1403,7 +1414,7 @@ STUB
     git -C "$o" add f tools/pr/app_push.sh && git -C "$o" commit -q -m "code f" && git -C "$o" checkout -q main && touch "$t/fixf"
   fi
   codeF=$(git -C "$o" rev-parse handoff/f)
-  printf 'import re, subprocess, sys\nf = sys.argv[sys.argv.index("refresh") + 1]\nh = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\nt = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())\nopen(f, "w").write(t)\n' > "$m/tools/pr/figure_block.py"
+  printf 'import os, re, subprocess, sys\nf = sys.argv[sys.argv.index("refresh") + 1]\nh = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\nt = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())\nopen(f, "w").write(t)\nopen(os.environ["FIGBASE_LOG"], "a").write(sys.argv[sys.argv.index("--base") + 1] + "\\n")\n' > "$m/tools/pr/figure_block.py"
   figbody() { # <block|none>: handoff-body/f carries a body with a figure block naming the code head, or none
     local blob tree
     if [ "$1" = block ]; then blob=$(printf '## Head\n\nthe body\n\n## Figures\n\n<!-- figure-block: scope-line mb=%s head=%s -->\n~~~text\nx\n~~~\n<!-- /figure-block -->\n' "$codeF" "$codeF" | git -C "$o" hash-object -w --stdin)
@@ -1427,8 +1438,16 @@ STUB
     cp "$sd/pr/f/p2.log" "$t/fp2" 2>/dev/null || : > "$t/fp2"
     git -C "$o" reset -q --hard "$base"; true
   }
+  export FIGBASE_LOG=$t/figbase
+  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"
   figrun - block; [ "$(cat "$t/frc")" = 0 ] && grep -q '^PR=5 ' "$t/fo" && [ "$(cat "$t/frow")" = 1 ]
   ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
+  # R11-HOTFIX-FIGURE-BLOCK-BASE: figrun moves main past $base, which the stub gh reports as the pull request's
+  # recorded base.sha: the p2 render (after the PR exists) takes it, the p1 render (no PR yet) origin/main.
+  [ "$(tail -n 1 "$FIGBASE_LOG")" = "$base" ] && [ "$(head -n 1 "$FIGBASE_LOG")" = origin/main ]
+  ck "open_pr: the row-head figure render takes the pull request's recorded base.sha, not origin/main, main having moved past it" $?
+  figrun opbase block; [ "$(tail -n 1 "$FIGBASE_LOG")" = origin/main ]
+  ck "  mutant mut:opbase (its line deleted): the row-head render falls back to the local origin/main" $?
   figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
   ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
   figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
@@ -1443,6 +1462,13 @@ STUB
   ck "open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens" $?
   figrun opfig2 block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
   ck "  mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)" $?
+  # The same re-run on a host with many worktrees: `worktree list --porcelain | grep -q` under pr_trap's
+  # pipefail read the left-over checkout, listed early, as absent once the list outgrew the pipe (SIGPIPE,
+  # 141), so it was never removed. The wrapper appends 300 KB of entries after git's own list.
+  mkdir -p "$t/wtpad"; ( k=0; while [ "$k" -lt 3000 ]; do printf 'worktree /nonexistent/pad-%d\nHEAD %040d\ndetached\n\n' "$k" "$k"; k=$((k + 1)); done ) > "$t/wtpad/list"
+  printf '#!/bin/bash\n"%s" "$@" || exit\ncase " $* " in *" worktree list --porcelain "*) exec cat "%s" ;; esac\n' "$(command -v git)" "$t/wtpad/list" > "$t/wtpad/git"; chmod +x "$t/wtpad/git"
+  figrun opfig2 block; PATH="$t/wtpad:$PATH" figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: the same re-run with 3000 more worktrees listed after the left-over one still clears it and opens" $?
   # R10-HOTFIX-UPDATEPR-FIGURE-REFRESH: update_pr.sh re-renders the body's figure blocks at the head it
   # pushes (moved-head path, before app_push) or patches (body-only path, before body_patch.sh), as
   # open_pr.sh's op_figures does. fix/g starts at $base; handoff/f's pusher stub is lint's figure-block
@@ -1455,9 +1481,10 @@ f = sys.argv[sys.argv.index("refresh") + 1]
 h = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 t = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())
 open(f, "w").write(t)
+open(os.environ["FIGBASE_LOG"], "a").write(sys.argv[sys.argv.index("--base") + 1] + "\n")
 STUBF
   cp "$t/bin/gh" "$t/gh.orig"
-  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) echo CLEAN ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' > "$t/bin/gh"
+  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) echo CLEAN ;; "pr view"*) echo "a title" ;; api*pulls/*) cat "%s/pullbase" ;; *) exit 99 ;; esac\n' "$t" > "$t/bin/gh"
   printf '#!/bin/bash\necho called >> "%s/ubp.log"\nh=$(grep -o "^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*" "$5" | grep -o "head=.*" | cut -c6-)\n[ -z "$h" ] || [ "$h" = "$4" ] || { echo "body_patch: REFUSE: figure-block scope-line names another head ($h)"; exit 1; }\necho "body_patch: OK"\n' "$t" > "$t/ubp.sh"
   ufig() { # <mutant|-> <code sha|-> <block|none>: update_pr.sh fix/g over a body with (or without) a figure block naming the code head
     rm -f "$t/figcalled"
@@ -1472,6 +1499,23 @@ STUBF
   ufresh; ufig - "$codeF" block
   [ "$(cat "$t/rc")" = 0 ] && [ "$(ubody)" = "$(cat "$t/uafter")" ] && [ "$(cat "$t/uafter")" != "$(cat "$t/ubefore")" ]
   ck "update_pr: a moved head with a figure block pushes a body whose block names the new head" $?
+  # R11-HOTFIX-FIGURE-BLOCK-BASE: the render takes the recorded base.sha. Main has moved past $base (precondition
+  # asserted); the null control records origin/main's own tip, where the render is the same sha either way.
+  printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moves on"
+  [ "$(git -C "$o" rev-parse main)" != "$base" ]; ck "update_pr: precondition, origin/main has moved past the base the stub records" $?
+  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig - "$codeF" block
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(tail -n 1 "$FIGBASE_LOG")" = "$base" ]
+  ck "update_pr: a recorded base differing from origin/main's tip renders the recorded one" $?
+  git -C "$o" rev-parse main > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig - "$codeF" block
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(tail -n 1 "$FIGBASE_LOG")" = "$(git -C "$o" rev-parse main)" ]
+  ck "  null control: equal bases render the one sha, as before" $?
+  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig updbase "$codeF" block
+  [ "$(tail -n 1 "$FIGBASE_LOG")" = origin/main ]
+  ck "  mutant mut:updbase (its line deleted): the render falls back to the local origin/main" $?
+  printf '' > "$t/pullbase"; ufresh; ufig - "$codeF" block
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "recorded base.sha could not be read" "$t/out" && [ "$(cat "$t/uafter")" = "$base" ]
+  ck "update_pr: an unreadable recorded base refuses and pushes nothing" $?
+  printf '%s\n' "$base" > "$t/pullbase"; git -C "$o" reset -q --hard "$base"
   ufresh; ufig updfig1 "$codeF" block
   [ "$(cat "$t/rc")" != 0 ] && grep -qF "figure-block scope-line names another head" "$t/out"
   ck "  mutant mut:updfig1 (its line deleted): the push carries a block naming another head and is refused" $?

@@ -14,11 +14,13 @@ comments, dispatch briefs, roster edits, and what you tell the owner.
 every role contract here are instructions you follow, not relay. Where a rule
 names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
-will treat as established.
+will treat as established. The owner's rulings in `dev/programme/RULINGS.md`
+bind you and whoever you brief, though that file is not policy. **After each compaction** read `CLAUDE.md`, this
+contract and the rules in full, and the instrument pages and
+`dev/programme/RULINGS.md` the liveness hook's `policy-corpus.txt` carries as changed, then run its
+`PROOF` line (tvofi, 2026-11-13, P6 and R3; 2026-11-15).
 
 ## 1. Verify before claiming
-
-**`fixer.md` step 8: a quoted number states its rule, not just its value.**
 
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
@@ -27,18 +29,13 @@ cannot answer the second, you have not measured — you have expected.
 
 - Describing an artifact without opening it is the same defect. A wrong claim
   is corrected under `fixer.md` step 9.
-- **Never print a conclusion beside a command** (`fixer.md` step 3): the
-  `(empty means identical)` form shipped a commit message asserting untouched
-  files that carried fourteen changed lines.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
-  not the check refused. Use `check && publish` — and for the body and the
-  push, that `&&` is already wired as `tools/pr/push.sh` (#678).
+  not the check refused. Use `check && publish`.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
 **Work a worker can do is dispatched, not performed.** You hold context and
-authority no seat has — sequencing, merging, the record, the freeze, stamps,
-and speaking to the owner. Everything else is a seat's.
+authority no seat has; everything else is a seat's.
 
 The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
 with a harness they wrote is measuring themselves*. Work you perform needs a
@@ -67,15 +64,12 @@ target or the critical chain would feel goes back to the owner first.
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
 `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
-instance by you counts toward the third: three symptoms recorded separately are
-worth less than one analysis of why they were possible. The product, the four
-process states and the demonstration a check owes are `root-cause.md`'s and
-`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
+instance by you counts toward the third. It runs in **its own seat**
+(`root-cause.md`), never inside the fix (section 2).
 
 ## 4. The merge message is a second closing surface
 
-A pull request's closing references describe its **body**, and no method on
-the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
+A pull request's closing references describe its **body**. The merge message is a separate artifact, written by you at merge
 time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
 merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
@@ -89,11 +83,10 @@ whenever you merge.
 ## 5. Before dispatching a seat
 
 - **The soft cap gates only dispatching a new roster group** (tvofi,
-  2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
-  refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
-  Opening or updating a pull request for an owed handoff is never refused by it.
+  2026-10-20; its value is in `dev/programme/RULINGS.md`): opening or updating a
+  pull request for an owed handoff is never refused by it.
 - **A ready critical-path group starts regardless of every cap** (tvofi,
-  2026-10-22, restated three times): a group in the current plan's
+  2026-10-22): a group in the current plan's
   `critical_path` whose `after` groups are all done, and whose design verdict
   is approved where it has one, is dispatched at the WIP cap, a drain-first
   hold, a coordinator K/2 limit or the seat cap alike, with `pr_cap.py
@@ -112,20 +105,23 @@ whenever you merge.
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
-- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
-  tooling or instrument proposal from the sweep, a seat's result or a verdict.
-  Where a mandate lets you act on a recommendation absent the owner, that means
-  sending it to triage; an ACCEPT reaches the roster citing its ruling.
+- **A proposal waits for the round-end triage** (`proposal-triage.md`, once per
+  round; tvofi 2026-11-14): a process, tooling or instrument proposal from the
+  sweep, a seat's result or a verdict is consolidated, never routed before its
+  ruling. Where a mandate lets you act on a recommendation absent the owner,
+  that means adding it to the batch; an ACCEPT reaches the next round's roster
+  citing its ruling. An instrument fix stays local and in-round.
 - **Establish the work is not already done or in flight.** One
-  `list_pull_requests` over the open set, and the issue's comments: a seat
-  was dispatched to fix what an open pull request fixed.
+  `list_pull_requests` over the open set, and the issue's comments.
 - **Give it the constraints that already exist**: findings carried into its
   stage, the numbers it must re-measure, and the destination its carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account never writes: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
-  (a relay, a delivery row) the cheapest model that does it.
+  (a relay, a delivery row) the cheapest model that does it. A fixer is a local
+  seat only where SendMessage steering is likely, else cloud (tvofi,
+  2026-11-15).
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
   shape); it binds them (`fixer.md` 17). A serial chain orders groups whose
@@ -138,11 +134,10 @@ whenever you merge.
   fixer only after `Design review: approve <sha>`, read back from
   `design-verdict/<group>`. The approved note is its architect note.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
-- **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
-  relative one resolves against the seat's cwd, which was yours for three seats.
-  Seats share one scratchpad, `/tmp` and process table, and a generic name at a
-  root has destroyed another seat's work. It stops only a PID it started, never
-  by pattern.
+- **Name its scratch directory ABSOLUTE, and its own worktree under it.** Seats
+  share one scratchpad, `/tmp` and process table, and a generic name at a root
+  has destroyed another seat's work. It stops only a PID it started, never by
+  pattern.
 
 ## 5b. Before dispatching a seat to a lane, read the ref, not the record
 
@@ -151,8 +146,7 @@ opener, never a fresh implementer.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
-Not by reading the diff. A word-level diff licensed a union that silently dropped
-a clause, in a commit claiming nothing was dropped.
+Not by reading the diff.
 
 When both sides carry real content, **union rather than take a side**, and prove
 it: reconstruct both parents and read the merged result back for each side's
@@ -192,11 +186,12 @@ established fact, with nothing gating it. A real finding you must not touch goes
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
-frozen by the handoff costs a record pull request; that is the price.
+`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #3394 line and roster `resume`,
+no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 **Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
-sets.
+sets. **A round closes only with its objective record** under
+`dev/audit/yardstick/` (tvofi, 2026-11-15, E11-N-OBJECTIVE-RECORD).
 
 Failure shapes already produced, all yours:
 
@@ -214,8 +209,6 @@ Failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request, and you too: you
 write the rosters and order the merges.
 
-- **A comment is not propagation** — including yours on #3394.
-- **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
   it), each stamp, and before branch cleanup, which keeps the roster
@@ -231,7 +224,7 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
-  <head>` names miss the branch's own diff bar its delivery row,
+  <head>` names miss the branch's own diff,
   or keep its patch (L6); else a resolution delta for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
@@ -246,7 +239,9 @@ Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
-  reach → establish that, and it is its own issue. Never `--allow-red`.
+  reach → establish that, and it is its own issue. `--allow-red` only when the
+  red's cause is established as not the pull request's and commented on it or recorded; never over a
+  concluded red whose cause is unknown (tvofi, 2026-11-05, 2026-11-11).
 - After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
 
 ## 12. The gate lease
@@ -285,7 +280,8 @@ before merging — so open the pull request and surface it.
 - **Do not build an automated gate that clears your own work.** A check you
   wrote, run by you, on text you wrote is three roles this programme separates,
   and `judge.md`'s void rule applies to it. Run tools, but the reviewer stays the
-  authority.
+  authority. The start evaluation is `evaluator.md`'s, decision 0018 the
+  owner's.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.

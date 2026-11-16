@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:power_floor_kw GUARD_OFF 6134045d",
+  "killed_by": "tests/features.py",
+  "old": "    if draw is None or cfg_min <= 0.0 or draw.config != (cfg_min, cfg_max):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

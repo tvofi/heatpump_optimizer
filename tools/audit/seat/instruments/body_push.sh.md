@@ -18,3 +18,5 @@
   handoff arm reads it: a body naming another head is held as
   `handoff-body-stale`, and a body naming a tip the PR head already holds is
   applied body-only (`update_pr.sh` with code `-`).
+- Refuses `head-stale` (exit 1, body kept at `handoff-wip/<topic>-body`) when the body's `## Head` does not name `handoff/<topic>`'s code sha: a repair body kept the previous handoff's head (#3212, #3230, #3231; R10-PROCESS-SLIM carry 1).
+- Renders the body's figure block (`figure_block.py refresh`) against the base `pr-contract` verifies with: the open pull request's recorded `base.sha` when origin holds `fix/<topic>` with an open pull request (read by `pr_args.sh`'s `pr_recorded_base`, as `update_pr.sh` and `open_pr.sh`'s p2 do), `origin/main` where none exists yet (R11-HOTFIX-FIGURE-BLOCK-BASE). An unreadable recorded base refuses, nothing pushed.

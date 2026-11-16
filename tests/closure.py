@@ -602,6 +602,11 @@ INERT_EXCEPT = (
     "tools/audit/seat/pr_cap.py",
     "tools/policy/budget_raise_gate.py",
     "tools/pr/app_approve.sh",
+    # R10-SEAT-IDENTITY-P5: tests/entities.py reads the seat generator and its
+    # self-test (both added by this group). Same route as orchestrator_tick.py:
+    # tools/audit/seat/ stays INERT, these two join the recorded closure.
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -639,6 +644,9 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R11-PRE-PLAN-RENDER: plan_page.py imports the round's phases section, so
+    # the same self-test opens it; it joins the recorded closure beside it.
+    "tools/audit/seat/plan_phases.py",
     # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
     # the topic grammar's one owner in-process, so tests/entities.py's load of it
     # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
@@ -771,6 +779,7 @@ INERT_EXCEPT = (
     "tools/audit/seat/instruments/beatd.py.md",
     "tools/audit/seat/instruments/cloud_dispatch.py.md",
     "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/merge_train.py.md",
     "tools/audit/seat/instruments/tick_loop.sh.md",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/postmerge.py",

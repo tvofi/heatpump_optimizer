@@ -1,3 +1,91 @@
+## v10.0.2
+
+**Patch stamp: 12 merges since v10.0.1 (`git log --first-parent --merges --format=%h v10.0.1..HEAD | wc -l`): the card's "Apply this plan" now works when the published plan runs past the manual-plan window, and a floor-return reading far above the room no longer seeds the slab estimate; the rest is tooling and records.**
+
+### Action needed
+
+None: no step is asked of you. No option is added, no default changed, no entity renamed, and no store needs a migration. If a "floor return implausible" repair appears after the upgrade, it names the sensor to check (#3640, below).
+
+### #3649 "Apply this plan" applies the plan only up to the manual-plan window (R11-OUTSIDE-APPLY-PLAN-CEILING, issue #3636)
+
+"Apply this plan" failed whenever the published plan had a run starting 20 hours or more from now, because the card sent runs that start past the manual-plan window and the service refuses any such slot. The card now drops every run starting at or after now plus the published manual-plan window, less one plan step for clock skew between the browser and the server. A run that straddles the window is still sent whole, and a zoomed-in view does not change what is applied. Reported, with the suggested fix, by rasenschachmatt in issue #3636; thanks.
+
+### #3640 A floor-return reading far above the room no longer seeds the slab estimate (R11-OUTSIDE-SLAB-SEED-GUARD, issue #3616)
+
+A heat-pump return reading wired to the floor-return field, far above any floor loop, was believed as stored heat and the plan held none. A reading more than 12 K above the room, or one taken during a hot-water run or a defrost, is now refused and the slab follows the model's own estimate, as on an install with no floor-return sensor. A new repair, `floor_return_implausible`, names the sensor, its reading, the room and the bound, and clears on the next plausible cycle. The floor-return option text (en, de, sv) and the README say which sensor belongs there. Issue #3616's multi-zone request stays open.
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3652 (self-test scope re-record, part 4), #3629 (self-test red on main), #3622 (plan render), #3642 (brief texts), #3638 (RCA latch clauses), #3646 (new audit dimensions), #3626 (rulings file), #3566 (nudge retirement), #3650 (delivery rows, autofix), #3634 (delivery rows, autofix).
+
+## v10.0.1
+
+**Patch stamp: 20 merges since v10.0.0 (`git log --first-parent --merges --format=%h v10.0.0..HEAD | wc -l`): compressor starts are counted from the running signal's own on and off edges, so a short cycle between two refreshes is no longer missed, and the COP learner's power floor follows what the pump is metered drawing; the rest is tooling and records.**
+
+### Action needed
+
+None: no step is asked of you. No option is added, no default changed, no entity renamed, and no store needs a migration: the start counter keeps its stored lifetime, monthly and running figures and continues from them, and a compressor running across the upgrade is not counted again. If your install has both a compressor frequency sensor and a power meter, starts are now read from the frequency sensor (#3598, below).
+
+### #3598 Compressor starts are counted from the running signal's edges (R10-START-COUNTER-EDGES)
+
+The compressor start counter used to sample the running signal once per refresh and needed two running samples in a row, so a compressor that stopped and restarted between two refreshes counted no start. It now listens to the running signal itself, in every Pump duty control mode including off, and counts each confirmed off-to-on edge, so short cycles are counted. On a power meter, a rise counts as a start once two refreshes read the pump settled running, or when it stops again after a real stop; the brief partial reading an averaging meter shows while the immersion element cuts in or out is not a start. An unavailable or unknown reading counts nothing. Where a frequency sensor and a meter are both set, the counter reads the frequency sensor. The count feeds the month receipt's compressor starts, the wear line of the cost ledger (when a wear price is set) and the insights; the plan itself does not read it, so plans are unchanged. Built on outside design pull request 3420 by Bankaifan, with thanks for the report and the design.
+
+### #3593 The COP learner's power floor follows the pump's metered draw (R10-COP-LEARNER-DRAW-FLOOR)
+
+The measured-COP learner refuses intervals whose power is below a floor taken from your configuration, so a pump that genuinely runs below that figure was refused as if it were cycling and its COP was never learned. Where you set a minimum electrical power, the floor is now capped by the low end of the draws metered while the plan asked the pump to run at or above that minimum, never below the on-threshold; with too few such samples, or no minimum set, it is the configured figure as before. A COP departure from the planned power is now held until the metered draw shows whether the pump follows the plan's ask, then learned if it does and dropped if it does not; while held, the card reads "Waiting to see whether the power draw follows the plan." A held interval is judged by the earlier rule after a week without that evidence, and held intervals are not kept across a restart. The diagnostics download shows the held count (`held_intervals`).
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3631 (owner criteria, part 1), #3624 (CI predict timeout), #3614 (figure block base), #3618 (brief texts), #3621 (finder contract), #3612 (round metrics, part 1), #3619 (outside contributor cycle, part 3), #3521 (outside contributor cycle, part 2), #3615 (policy-docs timeout), #3551 (self-test scope union guard), #3613 (self-test flake arms), #3606 (self-test scope re-record, part 3), #3610 (test-only Python dependency bumps), #3609 (round-10 round-end triage), #3451 (process slimming, part 2), #3611 (round-10 objective record), #3607 (round-10 closure record), #3617 (delivery rows, autofix).
+
+## v10.0.0
+
+**Round 10 closeout: 30 merges since v7.1.17 (`git log --first-parent --merges --format=%h v7.1.17..HEAD | wc -l`): the what-if figure is now a steady-state estimate, restart learning prices a hot-water to heating switch, learning that waits out a boost is easier to read, a boost writes the set-point entity's own maximum, and the savings reference behind a mixing valve is corrected, with its reference marker bumped; the user docs and the architecture page were re-read against the code.**
+
+This release closes a development round. Since v7.0 the integration gained, for the people who run it: a plan that respects the heat pump's minimum power and its own start condition, a heat-curve and water set-point control with lift and ceiling options, a COP that is no longer graded against itself, a combi tank store, a "Why now" explanation on the card, a German translation, a supply switch that keeps a minimum run and pause, and a learner that records how the pump behaves after a switch between hot water and heating. The settings pages, the card and the docs were also read sentence by sentence against the code, and a long list of stale or false texts was corrected. This entry adds the last product changes and the final docs pass.
+
+### Action needed
+
+One setting to review, and only if it applies to you. If you use Pump duty control at Control with a flow or return temperature set-point entity on a low-temperature floor heating, and you never changed "Heating flow ceiling" (`flow_heat_c`, 55 °C by default), a space boost or Boost mode now writes the set-point entity's own maximum (up to 70 °C) on every step (#3562). Open the options, go to the entities step, and set the heating flow ceiling to what your floor heating should be fed at (35 to 40 °C is a common starting point); a value other than 55 °C caps the boost as well. Installs with an indoor-temperature set-point entity, or without Pump duty control at Control, are not affected. Nothing else in this release asks anything of you: no option is added, no default changed, no entity renamed, and no store needs a migration. On a two-zone house behind a throttling valve, the month open at the upgrade may show "old basis" on the Savings tab (#3599, below); that needs no step.
+
+### #3481 The what-if figure is a steady-state estimate (R10-ADVISOR-STEADY-START)
+
+The what-if panel's money line no longer moves with where the rooms and the slab start, with the age of the plan or with the weekday you ask on, and a schedule change now reads on its own side of zero. A comfort-temperature or day-window change is priced as an estimate at the day's average weather and price that leaves out the optimizer's load shifting, and the card says which basis a figure has ("in steady state", or that estimate). The `simulate_plan` service answer keeps its keys, but the monthly cost field now carries the steady-state figure rather than the one settled over the horizon, so an automation that reads it sees a different number for the same question. With "Refresh price tiles after each solve" on (off by default) a degree tile now costs one extra solve and the power-cap tile up to three; the option text says so. Closes the last open item of the what-if work in #2257.
+
+### #3532 A step serving both hot water and heating is split by what the pump has been learned to do (R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, part 2)
+
+The restart learner that watches how the compressor behaves after a mode switch now steers the split of a step that serves both duties: heating goes first only where the switch from hot water to heating is the one that stops the compressor, and a second share that would be shorter than the minimum split plus the learned off time stays with the first duty when the next step serves the second. An install with no learned record splits as before. The learner's count is capped, and a latched direction that stops recurring releases after about two half-lives so the default split tests it again. A factory reset now also clears this learner's store, and the undo restores it. Built on the finding of outside pull request 3420 by Bankaifan, with thanks.
+
+### #3556 Learners that wait out a boost say so (R10-OUTSIDE-LEARNER-ROBUSTNESS-P3)
+
+Part 3, the last, of outside pull request 3435 by Bankaifan, with thanks for it and for the live-install report behind it. A learner held by a boost, an open window or an unusable input now shows as paused on the card, with the boost's end, and each learner shows only its own pause. The settling tail after a space boost is scaled to how long the boost ran instead of always being the longest, so a short boost no longer freezes learning for the full tail. Why a span was skipped or closed is logged at DEBUG only.
+
+### #3562 A boost writes the set-point entity's own maximum (R10-HOTFIX-BOOST-FLOW-CEILING)
+
+With Pump duty control at Control and a flow set-point, a space boost or Boost mode wrote 41, then 43, then climbing to 53 °C instead of the maximum, because the written value followed the plan's partial level and the rising inlet temperature. A boost now writes the entity's own maximum on every step (up to 70 °C; an entity whose maximum is higher is not treated as a heating-flow set-point and keeps the planned level), capped by the heating flow ceiling when you set one other than 55 °C and by the controller's upper-limit sensor where it reads. See the action above. The help text and the options range are updated in English, Swedish and German.
+
+### #3587, #3588 The savings reference behind a mixing valve, and a label on the combi hot-water figures (R10-SAV-VALUATION-RESIDUE, parts 4 and 3)
+
+Part 4 (#3587): on a two-zone house behind a throttling mixing valve whose curve cannot hold the target, the savings reference started below its own ceiling and warmed up to it during the day, so every booked day was charged the warming and the saving was overstated. The reference now holds the plant's own equilibrium at the valve's top where the valve is the limit and the pump can make that draw; anywhere else it holds as before. This changes the reference only for two-zone valved installs of that kind; the reference marker is bumped for it by #3599, below.
+
+Part 3 (#3588): on a combi store, the hot-water cost and energy figures (DHW Heating Cost next 24 h, DHW Energy and DHW Cost lifetime, and the climate entity's `dhw_heating_cost`) carry a `dhw_split` attribute saying what the split shows: what the heat pump spends in hot-water mode, including space heat drawn from the store. No figure moves and nothing is renamed; the attribute is kept out of the recorder, and README and the configuration docs say the same.
+
+### #3599 A month first booked on v7.1.17 shows "old basis" after this update (R10-HOTFIX-REFERENCE-BASIS)
+
+If you run a two-zone house behind a throttling valve, the savings baseline is now booked about 1 % higher in cold hours with little sun. A month first booked on v7.1.17 that is still open when you upgrade shows "old basis" on the Savings tab: it keeps its baseline and paid columns but states no saving, and next month states its saving again. Nothing to do.
+
+### #3568, #3582, #3596 The user docs and the architecture page re-read against the code (R10-USER-DOCS-VERIFY, R10-ARCH-DOCS-DELTA)
+
+README, setup, configuration, how-it-works, automations, dashboard-card and ECL110 pages were re-read against the last product changes and corrected where a sentence was stale: the both-duties split rule, what a boost writes, the paused learner phase and its settle tail, and the combi hot-water split. The architecture page was corrected for the duty-switch split. A last pass (#3596) re-read the same pages and the architecture page against the savings-reference and combi-split changes (#3587, #3588). Docs only.
+
+### Developer tooling, CI and audit machinery only
+
+#3592 (carry check SIGPIPE), #3571 (D5/D6 full scope), #3560 (CI priority pause), #3590 (ci-ratchet skipped run), #3589 (self-test scope re-record), #3577 (feedback settle large lift, measurement only, no production change), #3514 (outside contributor cycle part 1), #3583 (features weekend clock root cause), #3565 (macOS self-test lane), #3595 (self-test scope re-record from main's run), #3491 (seat identity: the session start read on macOS), #3553 (closeout preparation, part 2), #3575 (decision 0018: the objective function and the evaluation that opens a round), #3600 (the playbook's round-start section).
+
+### Record only
+
+#3591 (delivery rows, autofix), #3594 (delivery rows, autofix), #3603 (delivery rows, autofix), #3605 (delivery rows, autofix), #3601 and #3604 (the round-10 closure record and its follow-up: roster, state docs and handover).
+
 ## v7.1.17
 
 **Patch stamp: 18 merges since v7.1.16 (`git log --first-parent --merges --format=%h v7.1.16..HEAD | wc -l`): a Pump duty control install whose space set-point stayed stuck after an upgrade now releases on its own, a disinfection cycle that the hot water set-point's step would leave uncounted is now named before it runs, the savings reference changes basis, and the settings pages, the card and the docs now describe what the integration does; the rest is tooling.**

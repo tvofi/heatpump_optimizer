@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_day_mean_weather.flat RETURN_DEL bb2ac37d",
+  "killed_by": "tests/features.py",
+  "old": "        return np.full(n_steps, float(np.mean(known)) if known.size else np.nan)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

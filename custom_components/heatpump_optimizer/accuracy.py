@@ -982,7 +982,7 @@ class MeasuredCop:
     def release(self, draw: DrawRange | None, params: Any, now: datetime) -> list[CopInterval]:
         """The held intervals to fold now, oldest first; the one place one is judged.
 
-        Called once a cycle, after the interval's own judgement. On evidence
+        Called ahead of a cycle's own judgement, never on a frozen or unread cycle. On evidence
         the hold empties: every row folds where the draw follows the ask, none
         where it does not. Where the evidence is unobtainable it empties by
         base's rule (:meth:`_base_folds`). While the evidence is pending a row

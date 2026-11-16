@@ -67,15 +67,17 @@
   },
   {
    "name": "dev/programme",
-   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
+   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
    "globs": [
     "dev/programme/HANDOVER.md",
+    "dev/programme/RULINGS.md",
     "dev/programme/plan-*.md",
     "dev/programme/delivery/*.md",
     "dev/programme/carries/carry-*.json",
     "dev/programme/rosters/*.json",
     "dev/programme/round9/**",
     "dev/programme/round10/**",
+    "dev/programme/round*/phases.json",
     "dev/programme/register/*.md",
     "dev/programme/triage/*.md"
    ]
@@ -89,7 +91,8 @@
     "dev/audit/rounds/**",
     "dev/audit/rca/**",
     "dev/audit/harnesses/**",
-    "dev/audit/waves/**"
+    "dev/audit/waves/**",
+    "dev/audit/yardstick/**"
    ]
   },
   {
@@ -763,11 +766,6 @@
    "since": null
   },
   {
-   "old": "tools/audit/briefs/nudge.md",
-   "new": "dev/governance/roles/nudge.md",
-   "since": null
-  },
-  {
    "old": "tools/audit/briefs/orchestrator.md",
    "new": "dev/governance/roles/orchestrator.md",
    "since": null
@@ -948,6 +946,7 @@
   "dev/programme/plan-2026-09-open-issues.md",
   "dev/programme/rosters/",
   "dev/programme/round9/",
+  "dev/programme/round10/",
   "RELEASE_NOTES.md",
   "tests/golden/",
   "tests/mutation_ledger/",

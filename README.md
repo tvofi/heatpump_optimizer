@@ -563,7 +563,7 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
 | Heat Pump Action | — | What the plan is doing now: `off` (neither circuit runs), `hot_water` (only the tank heats), `eco`, `normal`, `pre_heat` or `boost`, `comfort` while comfort mode holds, `idle` before there is a plan to run or once it is empty, and `system_identification` while the step-response experiment drives the pump | |
-| Optimal Setpoint | °C | The setpoint the current plan step asks for | |
+| Optimal Setpoint | °C | The current plan step's heating power, written as a temperature: the coldest acceptable temperature at no heat, the warmest acceptable at full power, linear between. It is not the room temperature the plan aims for; the comfort settings are | Read Recommended Power for the power itself |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
 | Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
@@ -625,7 +625,7 @@ every sensor is created on every install regardless of which group it is in.
 | Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
-| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; disabled by default; needs measured power |
+| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded; with **Pump duty control** at Control, how often a duty switch stopped the compressor rides in `duty_switch_*` attributes | Diagnostic; disabled by default; needs measured power |
 | Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency number or sensor |
 
 #### The sun, and what the house is storing
@@ -1073,6 +1073,7 @@ Each clears itself once the cause is gone.
 - **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
 - **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
 - **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **The floor return sensor reads far warmer than any floor loop** — the floor return field reads more than 12 K above the room, almost always the heat pump's own return or a buffer-tank sensor. The reading is ignored and the slab is estimated as with no sensor; pick a sensor in the floor loop itself, after any buffer tank or mixing valve, or leave the field empty.
 - **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.

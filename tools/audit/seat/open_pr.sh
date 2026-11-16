@@ -45,7 +45,7 @@ pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_o
 # branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
 # (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
 # finished run's leftover, which takes the -pr name below as a lone run does.
-OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
+OP_REG=$(awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}' <<<"$(git -C "$M" worktree list --porcelain)")  # mut:opreg
 if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
 elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
 mkdir -p "$D"; cd "$M"
@@ -115,14 +115,19 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
 }
 op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
   grep -q '^<!-- figure-block: ' $D/body.md || return 0
-  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head HEAD > $D/fig-$1.log 2>&1 && return 0
+  # p1 runs before the pull request exists, so its base is the one the open will record, origin/main; p2 renders
+  # against the recorded base.sha, which pr-contract verifies with.
+  local fb=origin/main
+  if [ "$1" = p2 ]; then fb=$(pr_recorded_base $R "$N") || { OP_WHY="the recorded base.sha of #$N could not be read"; echo "$PR_NAME: $OP_WHY" >&2; return 1; }; fi  # mut:opbase
+  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base "$fb" --head HEAD > $D/fig-$1.log 2>&1 && return 0
   OP_WHY="the figure-block refresh at $1 failed:
 $(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
 }
 op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
   git -C "$M" worktree prune
   git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
-  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+  # A here-string, not a pipe: under pr_trap's pipefail a grep -q leaving at an early match SIGPIPEs a long list (141)
+  if grep -qxF "worktree $WT" <<<"$(git -C "$M" worktree list --porcelain)"; then  # a stray unregistered directory still stops at worktree add
     [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
       || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
     git -C "$M" worktree remove --force "$WT"

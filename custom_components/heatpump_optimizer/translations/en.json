@@ -223,7 +223,7 @@
           "solar_radiation_entity": "Optional. Sunshine in W/m² measured at your house. It tells the optimizer how much solar heat the house is getting right now, which it uses for the current state and for learning. Expected sun later in the day comes from the Solar irradiance source, not from this sensor.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
-          "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
+          "floor_return_temp_entity": "Optional. A sensor in the floor loop itself: the water coming back from the floor loops, after any buffer tank or mixing valve. It gauges how much heat the slab is holding. Do not use the heat pump's own return sensor: on a plant with a buffer tank it reads the heat pump's circuit, far warmer than the floor, and the plan would believe the slab is already full and plan no heating. A reading more than 12 K above the room is ignored and raises a repair notice. Leave empty if there is no sensor in the floor loop.",
           "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
@@ -273,7 +273,7 @@
             "data_description": {
               "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
               "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
-              "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
+              "floor_return_temp_entity": "Optional. A sensor in the floor loop itself: the water coming back from the floor loops, after any buffer tank or mixing valve. It gauges how much heat the slab is holding. Do not use the heat pump's own return sensor: on a plant with a buffer tank it reads the heat pump's circuit, far warmer than the floor, and the plan would believe the slab is already full and plan no heating. A reading more than 12 K above the room is ignored and raises a repair notice. Leave empty if there is no sensor in the floor loop.",
               "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
               "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
               "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything.",
@@ -613,7 +613,7 @@
             "data_description": {
               "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
               "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
-              "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
+              "floor_return_temp_entity": "Optional. A sensor in the floor loop itself: the water coming back from the floor loops, after any buffer tank or mixing valve. It gauges how much heat the slab is holding. Do not use the heat pump's own return sensor: on a plant with a buffer tank it reads the heat pump's circuit, far warmer than the floor, and the plan would believe the slab is already full and plan no heating. A reading more than 12 K above the room is ignored and raises a repair notice. Leave empty if there is no sensor in the floor loop.",
               "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
               "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible."
             }
@@ -934,7 +934,7 @@
             "data_description": {
               "confidence_margins_enabled": "A plan that promises 19.0 °C twelve hours ahead rests on a twelve-hour prediction, and the optimizer knows from its own history how wrong those get. With this on, the comfort floor rises by exactly that expected error — capped at 0.8 °C and shrinking to nothing as accuracy improves — so deep price-riding coasts are taken only where the model has earned the trust.",
               "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value.",
-              "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — the comfort schedule one degree lower, one degree higher, and power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile is a full extra solve of real CPU."
+              "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — the comfort schedule one degree lower, one degree higher, and power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile costs extra solves of real CPU: one for a degree tile, up to three for the power-cap tile."
             }
           }
         }
@@ -1865,6 +1865,10 @@
     "grid_fee_sign": {
       "title": "A configured grid fee is negative",
       "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). A transfer fee is a charge, so a negative one is almost always a sign slip — and the plan is pricing every hour it applies to as subsidised, favouring exactly the hours the grid company charges for. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value on the \"Transfer fees and contract\" options page (or fix the fee sensor) and this notice clears on the next planning cycle."
+    },
+    "floor_return_implausible": {
+      "title": "The floor return sensor reads far warmer than any floor loop",
+      "description": "{entity} reads {reading} °C with the room at {room} °C, more than {bound} K above it. Water returning from a floor loop runs a few kelvin above the room it heats, so this is almost always the heat pump's own return or a buffer-tank sensor configured in the floor return field. The integration estimates how much heat the floor slab holds from that field: a reading this warm made the plan believe the slab was already full, and plan little or no heating while the rooms were below target. Until this clears, the reading is ignored and the slab is estimated by the model, as it is with no sensor. Under the sensor options, pick a sensor in the floor loop itself, after any buffer tank or mixing valve, or leave the field empty; this notice clears on the next cycle once the reading is plausible."
     },
     "lower_floor_modelled": {
       "title": "The downstairs temperature is modelled, not measured",

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop RETURN_DEL 6c806196",
+  "killed_by": "tests/features.py",
+  "old": "        return self._fold_cop_evidence(commanded, row.drawn_kw, heat_kw, row.reference)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=32."
+}

@@ -26,9 +26,31 @@ that does not is refused by name.
 steps, axis values, file. `rest` is resolved here, so a finder is handed files, not a rule.
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
+--round <N> adds the start evaluation (dev/governance/decisions/0018-objective-function.md): round
+N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
+--ref, every term is read or NO-READ with its reason, every object file has a verdict with
+evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
+an accepted one merged at --ref. Each gap is refused by the path or id it names; audit-find.js
+passes its round. --self-test drives a complete record (passes) and one perturbation per rule.
+The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
+graded the same objects, a ruling on every decided card, an accepted card's commit after that review
+and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
+what would read them and who builds it (a group the newest roster at --ref can still hand a
+carry, or a card), no removal on a NO-READ in any spelling, and a card for every unset threshold, owner
+criterion and unowned item, an accepted one only once its value is set. The two records live under
+dev/audit/yardstick/, which scopes.json excludes from every universe: --self-test adds one of each
+to the tree and has coverage pass, and refuse both by name once the exclusion loses the directory.
+--population prints the install population objective.json lists, read from the sources at --ref:
+one line per axis (levels), then LEVELS, PAIRS (level pairs from two axes) and NO-READ AXES; exit 1
+and `UNREADABLE <axis>: <why>` when a source is missing or an axis yields no level. A `name` axis is
+the identifiers a module uses outside its imports, less each one its calls mark required and never
+optional: a key no install can leave out, or one no step presents, is no two-level axis.
 """
-import argparse, contextlib, copy, importlib.util, io, itertools, json, re, subprocess, sys, tempfile
+import argparse, ast, contextlib, copy, importlib.util, io, itertools, json, math, re, subprocess, sys, tempfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
+import roster_lib
 
 _spec = importlib.util.spec_from_file_location("text_ledger", Path(__file__).with_name("text_ledger.py"))
 text_ledger = importlib.util.module_from_spec(_spec)
@@ -211,6 +233,446 @@ def verdict(scopes, tree, loc, harnesses, briefs, quiet=False, units=lambda dim,
             print(f"   {h} names {b} in its header; {b} does not cite it")
     return ok and cov_ok and not bad
 
+OBJECTIVE = "dev/audit/config/objective.json"
+YARDSTICK = "dev/audit/yardstick/"
+SCRIPT_SUFFIXES = (".py", ".mjs", ".js", ".sh")
+VERDICTS = ("keep", "change", "remove")
+DECISIONS = ("accepted", "rejected", "deferred")
+
+
+def object_globs(spec):
+    return [g for v in spec["objects"].values() for g in ([v] if isinstance(v, str) else v)]
+
+
+def records(rnd):
+    """(the closing round's objective record, round `rnd`'s start evaluation)."""
+    return f"{YARDSTICK}round{rnd - 1}/OBJECTIVE.json", f"{YARDSTICK}round{rnd}/EVALUATION.json"
+
+
+def isnum(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def is_read(v):
+    """A read is a finite number, or a non-empty dict of them."""
+    return isnum(v) or (isinstance(v, dict) and bool(v) and all(isnum(x) for x in v.values()))
+
+
+def is_no_read(text):
+    """The text says NO-READ as words of its own, in any case, separator or
+    position: `no` then `read`, with only non-letters between them and no
+    letter or digit touching either end, so `no reader` and `piano read` are not one."""
+    return bool(re.search(r"(?<![^\W_])no[\W_]*read(?![^\W_])", str(text).casefold()))
+
+
+def full(v):
+    return isinstance(v, str) and bool(v.strip())
+
+
+def norm(s):
+    return re.sub(r"[\W_]+", "", str(s).casefold())
+
+
+def enumerates(cmd, tree):
+    """The first path-like token of an enumerator command is a tracked script.
+    A design choice: a tracked document is no enumerator, whatever follows it."""
+    for tok in cmd.split() if isinstance(cmd, str) else ():
+        if tok not in ("python3", "python", "node", "bash", "sh") and not tok.startswith("-") and "=" not in tok:
+            return tok in tree and tok.endswith(SCRIPT_SUFFIXES)
+    return False
+
+
+def open_builders(tree, show):
+    """The groups that can still build a read: those of the newest roster
+    tracked at the ref that a carry may be routed to (roster_lib.carry_receivable,
+    the rule a carry's destination is checked by), since a build nobody was
+    handed is carried to its builder. No roster at the ref is no group."""
+    newest = roster_lib.newest_roster(f for f in tree if f.startswith(roster_lib.ROSTERS_DIR + "/"))
+    groups = roster_lib.groups_of(json.loads(show(newest))) if newest in tree else {}
+    return {k for k, g in groups.items() if roster_lib.carry_receivable(g)}
+
+
+def evaluation_gaps(rnd, tree, show, merged, anc, changed):
+    """Why round `rnd` may not start, one line per gap, [] when it may.
+    `show(path, at=None)` is the file's text at the ref (or at commit `at`);
+    `merged(sha)` says whether the ref contains that commit, `anc(a, b)` whether
+    a is an ancestor of or equal to b, `changed(sha)` the paths it changed
+    against its first parent. The terms and the object globs come from
+    OBJECTIVE at the ref, so the record is checked against the definition it
+    was written under, and neither list is carried here."""
+    spec = json.loads(show(OBJECTIVE))
+    prev, path = records(rnd)
+    gaps, terms, builders, groups = [], {}, [], open_builders(tree, show)
+    if prev not in tree:
+        gaps.append(f"{prev} is not in the tree: round {rnd - 1}'s close wrote no record to evaluate")
+    else:
+        terms = json.loads(show(prev)).get("terms", {})
+        for t in spec["terms"]:
+            row = terms.get(t)
+            v = row.get("value") if isinstance(row, dict) else None
+            if not isinstance(row, dict):
+                gaps.append(f"{prev} has no term {t}")
+            elif "value" in row and not str(row.get("enumerator", "")).strip():
+                gaps.append(f"{prev} term {t} carries a value and no enumerator")
+            elif "value" in row and not is_read(v):
+                gaps.append(f"{prev} term {t} value is not a finite number or a non-empty dict of them")
+            elif "value" in row and not enumerates(row["enumerator"], tree):
+                gaps.append(f"{prev} term {t} enumerator names no script tracked at the ref")
+            elif "value" not in row and not str(row.get("no_read", "")).strip():
+                gaps.append(f"{prev} term {t} is neither read nor NO-READ with its reason")
+            elif "value" not in row:
+                gaps += [f"{prev} term {t} NO-READ carries no {k}" for k in ("would_read", "builder") if not full(row.get(k))]
+                if full(row.get("builder")) and row["builder"].startswith("card:"):
+                    builders.append((t, row["builder"][5:]))
+                elif full(row.get("builder")) and row["builder"] not in groups:
+                    gaps.append(f"{prev} term {t} builder {row['builder']} is no group the roster at the ref can still hand a build, and no card")
+    if path not in tree:
+        return gaps + [f"{path} is not in the tree: the start evaluation has not run"]
+    ev = json.loads(show(path))
+    if ev.get("round") != rnd or ev.get("reads") != prev:
+        gaps.append(f"{path} is not round {rnd}'s evaluation of {prev}")
+    seat, rev = (norm(ev.get(k, "")) for k in ("evaluator", "reviewer"))
+    if not seat or not rev or seat == rev or "orchestrator" in seat or "orchestrator" in rev:
+        gaps.append(f"{path} evaluator {seat!r} and reviewer {rev!r} must be two seats, neither the orchestrator")
+    cards, rows = ev.get("cards", {}), ev.get("objects", {})
+    rv, revsha = ev.get("review"), None
+    if not isinstance(rv, dict) or rv.get("verdict") != "approve":
+        gaps.append(f"{path} review is not an approve verdict")
+    elif not (full(rv.get("sha")) and merged(rv["sha"])):
+        gaps.append(f"{path} review sha {rv.get('sha')!r} is not a commit in the ref's history")
+    else:
+        revsha = rv["sha"]
+        try:
+            graded = json.loads(show(path, revsha)).get("objects")
+        except Exception:
+            graded = None
+        if graded != rows:
+            gaps.append(f"{path} at review sha {revsha} is missing or graded other objects than this record")
+    for t, b in builders:
+        if b not in cards:
+            gaps.append(f"{prev} term {t} builder card:{b} is no card of {path}")
+    objects = match(tree, object_globs(spec))
+    gaps += [f"{path} grades {f}, which is no object of {OBJECTIVE}" for f in sorted(rows) if f not in objects]
+    for f in sorted(objects):
+        row = rows.get(f)
+        if not isinstance(row, dict) or row.get("verdict") not in VERDICTS:
+            gaps.append(f"{path} has no keep/change/remove verdict for {f}")
+        elif not str(row.get("evidence", "")).strip():
+            gaps.append(f"{path} verdict for {f} carries no evidence")
+        elif row["verdict"] == "remove" and is_no_read(row["evidence"]):
+            gaps.append(f"{path} remove verdict for {f} rests on a NO-READ")
+        elif row["verdict"] != "keep" and row.get("card") not in cards:
+            gaps.append(f"{path} {row['verdict']} verdict for {f} names no card")
+    for cid, card in sorted(cards.items()):
+        if card.get("decision") not in DECISIONS:
+            gaps.append(f"{path} card {cid} carries no owner decision")
+            continue
+        if not full(card.get("ruling")):
+            gaps.append(f"{path} card {cid} carries no ruling naming where the owner ruled")
+        if card["decision"] != "accepted":
+            continue
+        c = card.get("merged")
+        want = {x for x in (card.get("object"), *(card.get("paths") or ())) if x}
+        if not (c and merged(c)):
+            gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
+        elif revsha and anc(c, revsha):
+            gaps.append(f"{path} card {cid} merged {c} is not after the review at {revsha}")
+        elif not want:
+            gaps.append(f"{path} card {cid} is accepted and names no object or paths")
+        elif not want & changed(c):
+            gaps.append(f"{path} card {cid} merged {c} changes none of its object or paths")
+        unset = [f"{k} {card[k]}" for k, vals in (("threshold", {t: th.get("value") for t, th in spec.get("thresholds", {}).items()}),
+                                                 ("criterion", spec.get("owner_criteria", {}))) if card.get(k) in vals and vals[card[k]] is None]
+        gaps += [f"{path} card {cid} is accepted for {u}, which {OBJECTIVE} still leaves unset" for u in unset]
+    carded = lambda k: {c.get(k) for c in cards.values()}
+    for k, th in spec.get("thresholds", {}).items():
+        if th.get("value") is None and k not in carded("threshold"):
+            gaps.append(f"{path} threshold {k} is unset and no card carries it")
+    for d, p in spec.get("owner_criteria", {}).items():
+        if p is None and d not in carded("criterion"):
+            gaps.append(f"{path} owner criterion {d} is unset and no card carries it")
+        elif p is not None and p not in tree:
+            gaps.append(f"{OBJECTIVE} owner criterion {d} names {p}, not tracked at the ref")
+    for ax in spec.get("population", []):
+        if ax.get("kind") is not None:
+            continue
+        gaps += [f"{OBJECTIVE} population axis {ax.get('axis')} is NO-READ and carries no {k}"
+                 for k in ("no_read", "builder") if not full(ax.get(k))]
+        b = ax.get("builder")
+        if full(b) and b not in groups and not (b.startswith("card:") and b[5:] in cards):
+            gaps.append(f"{OBJECTIVE} population axis {ax.get('axis')} builder {b} is no group the roster at the ref can still hand a build, and no card")
+    u = terms.get("unowned")
+    n = sum(1 for c in cards.values() if str(c.get("unowned", "")).strip())
+    if isinstance(u, dict) and isnum(u.get("value")) and n < u["value"]:
+        gaps.append(f"{path} carries {n} card(s) with an unowned item but {prev} counts {u['value']}")
+    return gaps
+
+
+def population(axes, tree, show):
+    """(lines, ok): the install population's levels per axis as read from the
+    sources at the ref, then the totals. An axis that cannot be read prints
+    UNREADABLE in its place, never an empty axis, and fails the run."""
+    def module_assign(mod, name):
+        for n in mod.body:
+            if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in n.targets):
+                return n.value
+            if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name) and n.target.id == name and n.value:
+                return n.value
+
+    def tuple_levels(f, symbol):
+        mod = ast.parse(show(f))
+        const = f.rpartition("/")[0] + "/const.py" if "/" in f else "const.py"
+        def lookup(name):
+            node = module_assign(mod, name)
+            if node is None and const in tree:
+                node = module_assign(ast.parse(show(const)), name)
+            if node is None:
+                raise ValueError(f"{name} is bound in neither {f} nor {const}")
+            return node
+        def strs(node):
+            if isinstance(node, ast.Dict):
+                elts = node.keys
+            elif isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+                elts = node.elts
+            else:
+                raise ValueError(f"{symbol} is not a literal collection")
+            out = []
+            for e in elts:
+                if isinstance(e, ast.Starred):
+                    out += strs(lookup(e.value.id) if isinstance(e.value, ast.Name) else e.value)
+                    continue
+                if isinstance(e, ast.Name):
+                    e = lookup(e.id)
+                if not (isinstance(e, ast.Constant) and isinstance(e.value, str)):
+                    raise ValueError(f"element {ast.unparse(e) if e else '**'} is not a string")
+                out.append(e.value)
+            return out
+        node = module_assign(mod, symbol)
+        if node is None:
+            raise ValueError(f"symbol {symbol} is not assigned at module level in {f}")
+        return strs(node)
+
+    def compare_levels(f, function, argument):
+        fn = next((n for n in ast.parse(show(f)).body if isinstance(n, ast.FunctionDef) and n.name == function), None)
+        if fn is None:
+            raise ValueError(f"function {function} is not defined at module level in {f}")
+        isarg = lambda n: isinstance(n, ast.Name) and n.id == argument
+        out = []
+        for c in (n for n in ast.walk(fn) if isinstance(n, ast.Compare)):
+            for op, l, r in zip(c.ops, [c.left, *c.comparators], c.comparators):
+                if isinstance(op, ast.Eq):
+                    out += [x.value for x in ((r,) if isarg(l) else (l,) if isarg(r) else ()) if isinstance(x, ast.Constant)]
+                elif isinstance(op, ast.In) and isarg(l) and isinstance(r, (ast.Tuple, ast.List, ast.Set)):
+                    out += [x.value for x in r.elts if isinstance(x, ast.Constant)]
+        return out
+
+    def name_levels(f, pattern):
+        """The module's identifiers matching `pattern`, imports apart (an
+        import binds an alias, never a Name), less each a call marks required
+        and none marks optional. Required: the first argument of X.Required(),
+        or an argument beside required=True. Optional: the first argument of
+        X.Optional(), or an argument of a call to the same function without
+        required=True. A name in neither stays: its absence is not shown
+        unreachable."""
+        calls = [n for n in ast.walk(ast.parse(show(f))) if isinstance(n, ast.Call)]
+        named = lambda args: {a.id for a in args if isinstance(a, ast.Name)}
+        marked = lambda c: any(k.arg == "required" and isinstance(k.value, ast.Constant) and k.value.value is True for k in c.keywords)
+        attr = lambda c, a: isinstance(c.func, ast.Attribute) and c.func.attr == a
+        rows = {c.func.id for c in calls if marked(c) and isinstance(c.func, ast.Name)}
+        req = set().union(*(named(c.args[:1]) if attr(c, "Required") else named(c.args) for c in calls if attr(c, "Required") or marked(c)))
+        opt = set().union(*(named(c.args[:1]) if attr(c, "Optional") else named(c.args) for c in calls
+                            if attr(c, "Optional") or (not marked(c) and isinstance(c.func, ast.Name) and c.func.id in rows)))
+        used = {n.id for n in ast.walk(ast.parse(show(f))) if isinstance(n, ast.Name) and re.fullmatch(pattern, n.id)}
+        return used - (req - opt)
+
+    def levels(ax):
+        k, f = ax.get("kind"), ax.get("file")
+        if k == "glob":
+            return [Path(g).stem for g in match(tree, [ax["glob"]])]
+        if f not in tree:
+            raise ValueError(f"{f} is not tracked at the ref")
+        if k == "tuple":
+            return tuple_levels(f, ax["symbol"])
+        if k == "regex":
+            return [m if isinstance(m, str) else m[0] for m in re.findall(ax["pattern"], show(f))]
+        if k == "compare":
+            return [x for x in compare_levels(f, ax["function"], ax["argument"]) if isinstance(x, str)]
+        if k == "name":
+            return name_levels(f, ax["pattern"])
+        raise ValueError(f"unknown kind {k!r}")
+
+    lines, sizes, noread, ok = [], [], 0, True
+    for ax in axes:
+        name = ax.get("axis")
+        if ax.get("kind") is None:
+            noread += 1
+            lines.append(f"{name}\tNO-READ\t{ax.get('no_read')} (builder: {ax.get('builder')})")
+            continue
+        try:
+            lv = sorted(set(levels(ax)))
+            if not lv:
+                raise ValueError("no level found")
+        except Exception as e:
+            ok = False
+            lines.append(f"UNREADABLE {name}: {e}")
+            continue
+        if ax.get("binary"):
+            sizes += [2] * len(lv)
+            lines.append(f"{name}\t{len(lv)} binary axes\t{','.join(lv)}")
+        else:
+            sizes.append(len(lv))
+            lines.append(f"{name}\t{len(lv)}\t{','.join(lv)}")
+    lines += [f"LEVELS: {sum(sizes)}", f"PAIRS: {(sum(sizes) ** 2 - sum(n * n for n in sizes)) // 2}", f"NO-READ AXES: {noread}"]
+    return lines, ok
+
+
+def evaluation_self_test(tree, show):
+    """{arm: held}. A complete record over the live object files passes; each
+    perturbation of it is refused by the path, term or card it names, checked
+    alone so none masks another. The spec is the live one plus the owner-value
+    keys, so the arms do not depend on the shape committed at the ref."""
+    ME = "tools/audit/check_scopes.py"
+    live = json.loads(show(OBJECTIVE))
+    spec = {**live, "thresholds": {"floor": {"value": None}, "band": {"value": 0.2}},
+            "owner_criteria": {"D4": None, "D7": ME},
+            "population": [{"axis": "n", "kind": None, "no_read": "r", "builder": "G1"}]}
+    (prev, path), roster = records(8), roster_lib.ROSTERS_DIR + "/wave-r99-groups.json"
+    groups = {"groups": [{"group": "G1", "resume": {"stage": "in-progress"}}, {"group": "G0", "resume": {"stage": "done"}},
+                         {"group": "G2", "resume": {"stage": "carries-open"}}, {"group": "G3", "files": [], "resume": {"stage": "not-started"}}]}
+    objs = sorted(match(tree, object_globs(spec)))
+    terms = {t: {"value": 1, "enumerator": "python3 " + ME} for t in spec["terms"]}
+    terms[spec["terms"][-1]] = {"no_read": "no ledger", "would_read": "a ledger", "builder": "card:C2"}
+    terms[spec["terms"][-2]] = {"no_read": "no history", "would_read": "a history", "builder": "G1"}
+    good = {"round": 8, "reads": prev, "evaluator": "evaluator-r8", "reviewer": "plan-review-r8",
+            "review": {"verdict": "approve", "sha": "rev"},
+            "objects": {f: {"verdict": "keep", "evidence": "e"} for f in objs},
+            "cards": {"C1": {"decision": "accepted", "ruling": "R1", "merged": "abc", "object": ME},
+                      "C2": {"decision": "rejected", "ruling": "R2", "unowned": "u", "threshold": "floor", "criterion": "D4"}}}
+    good["objects"][objs[0]] = {"verdict": "change", "evidence": "e", "card": "C1"}
+    # commits: old is an ancestor of the review rev, abc is after it
+    def run(ev=good, tm=terms, drop=(), sp=spec, revdoc=None, merged=lambda sha: sha in ("abc", "rev", "old")):
+        files = {OBJECTIVE: json.dumps(sp), prev: json.dumps({"terms": tm}), path: json.dumps(ev), roster: json.dumps(groups)}
+        sh = lambda f, at=None: (revdoc or json.dumps({"objects": ev.get("objects")})) if at else files[f]
+        return evaluation_gaps(8, (tree | set(files)) - set(drop), sh, merged,
+                               lambda a, b: (a, b) in (("old", "rev"), ("rev", "rev")),
+                               lambda c: {"abc": {ME}, "old": {ME}}.get(c, set()))
+    def edit(fn, base=good):
+        c = copy.deepcopy(base)
+        fn(c)
+        return c
+    only = lambda gaps, needle: len(gaps) == 1 and needle in gaps[0]
+    t0, t8, t9 = spec["terms"][0], spec["terms"][-2], spec["terms"][-1]
+    card = lambda k, **kw: edit(lambda c: c["cards"][k].update(kw))
+    term = lambda t, **kw: run(tm=edit(lambda c: c[t].update(kw), terms))
+    last = lambda **kw: run(edit(lambda c: c["objects"][objs[-1]].update(kw)))
+    # NO-READ spelled every way a record might: case, separator, wrapping, position.
+    spellings = [pre + a + sep + b + post for a, b in (("NO", "READ"), ("no", "read"), ("No", "Read"), ("nO", "rEAD"))
+                 for sep in ("-", "_", " ", "", "\u2011", " - ", "\n") for pre, post in (("", ""), ("", ": no ledger"), ("unscored (", ": none)"), ("'", "'"), ("  ", ""))]
+    return {
+        "a complete record passes": bool(objs) and run() == [],
+        "round N reads round N-1's objective record and its own evaluation": records(8) == (YARDSTICK + "round7/OBJECTIVE.json", YARDSTICK + "round8/EVALUATION.json"),
+        "every object class has a file": all(match(tree, [g]) and match(tree, [g]) <= set(objs) for v in spec["objects"].values() for g in ([v] if isinstance(v, str) else v)),
+        "a missing evaluation is refused": only(run(drop=[path]), path + " is not in the tree"),
+        "a missing previous record is refused": only(run(drop=[prev]), prev + " is not in the tree"),
+        "a missing term is refused": only(run(tm={k: v for k, v in terms.items() if k != t0}), "no term " + t0),
+        "a value with no enumerator is refused": only(run(tm=edit(lambda c: c[t0].pop("enumerator"), terms)), t0 + " carries a value"),
+        "a NO-READ with no reason is refused": only(run(tm=edit(lambda c: c[t9].update(no_read=" "), terms)), t9 + " is neither"),
+        "another round's record is refused": only(run(edit(lambda c: c.update(round=9))), "is not round 8's"),
+        "one seat as evaluator and reviewer is refused": only(run(edit(lambda c: c.update(reviewer="evaluator-r8"))), "two seats"),
+        "the orchestrator as evaluator is refused": only(run(edit(lambda c: c.update(evaluator="orchestrator"))), "two seats"),
+        "an object with no verdict is refused": only(run(edit(lambda c: c["objects"].pop(objs[-1]))), "verdict for " + objs[-1]),
+        "a verdict with no evidence is refused": only(run(edit(lambda c: c["objects"][objs[-1]].update(evidence=""))), objs[-1] + " carries no evidence"),
+        "a change with no card is refused": only(run(edit(lambda c: c["objects"][objs[0]].pop("card"))), objs[0] + " names no card"),
+        "an undecided card is refused": only(run(edit(lambda c: c["cards"]["C2"].pop("decision"))), "card C2 carries no owner decision"),
+        "an accepted card not merged is refused": only(run(merged=lambda sha: sha != "abc"), "card C1 is accepted and not merged"),
+        "B1 a disguised orchestrator or the same seat respelled is refused":
+            all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
+                ("evaluator", "orchestrator-r10"), ("evaluator", "the orchestrator"), ("reviewer", "Orchestrator"), ("reviewer", "Evaluator R8"))),
+        "B2 a review that is no approve verdict is refused":
+            only(run(edit(lambda c: c.pop("review"))), "review is not an approve") and only(run(edit(lambda c: c["review"].update(verdict="revise"))), "review is not an approve"),
+        "B2 a review sha outside the ref's history is refused": only(run(edit(lambda c: c["review"].update(sha="zzz"))), "is not a commit in the ref"),
+        "B2 a review that graded other objects or none is refused":
+            only(run(revdoc=json.dumps({"objects": {}})), "graded other objects") and only(run(revdoc="not json"), "graded other objects"),
+        "B3 a decided card with no ruling is refused": only(run(edit(lambda c: c["cards"]["C2"].pop("ruling"))), "card C2 carries no ruling"),
+        "B4 an accepted commit that predates the review is refused": only(run(card("C1", merged="old")), "is not after the review"),
+        "B4 an accepted commit that changes none of the card's file is refused": only(run(card("C1", object="other")), "changes none of"),
+        "B4 an accepted card naming no file is refused": only(run(edit(lambda c: c["cards"]["C1"].pop("object"))), "names no object or paths"),
+        "B4 paths stand for object": run(edit(lambda c: c["cards"]["C1"].update(object=None, paths=[ME]))) == [],
+        "B5 a null value is refused": only(term(t0, value=None), t0 + " value is not a finite number"),
+        "B5 a value that is no finite number is refused": all(only(term(t0, value=v), t0 + " value is not a finite number")
+                                                               for v in (float("nan"), float("inf"), True, "1", {}, {"a": "x"}, {"a": 1, "b": None})),
+        "B5 an enumerator naming no tracked file is refused": only(term(t0, enumerator="by hand"), t0 + " enumerator names no script"),
+        "B5 a tracked document is no enumerator": "CLAUDE.md" in tree and only(term(t0, enumerator="CLAUDE.md by hand"), t0 + " enumerator names no script"),
+        "B5 an untracked script is no enumerator": "no/such_script.py" not in tree and only(term(t0, enumerator="python3 no/such_script.py"), t0 + " enumerator names no script"),
+        "B5 an enumerator that is an interpreter and no file is refused": only(term(t0, enumerator="python3 -I"), t0 + " enumerator names no script"),
+        "B5 a dict of numbers is a value": run(tm=edit(lambda c: c[t0].update(value={"a": 1}), terms)) == [],
+        "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read") and only(run(tm=edit(lambda c: c[t9].pop("builder"), terms)), t9 + " NO-READ carries no builder"),
+        "B6 a builder card the evaluation lacks is refused": only(run(tm=edit(lambda c: c[t9].update(builder="card:C9"), terms)), "card:C9 is no card"),
+        "B6 a builder the roster cannot hand a build is refused: unknown, done, carries-open, a sink":
+            all(only(term(t8, builder=b), t8 + " builder " + b + " is no group the roster") for b in ("R99-NOBODY", "G0", "G2", "G3", "g1", "card")),
+        "B6 with no roster at the ref every group builder is refused":
+            [g.partition(" builder G1 is no group the roster")[0].rsplit(" ", 1)[-1] for g in run(drop=[f for f in tree | {roster} if f.startswith(roster_lib.ROSTERS_DIR + "/")])] == [t8, "n"],
+        "B7 a removal on a NO-READ is refused in every spelling":
+            len(spellings) == 140 and all(only(last(verdict="remove", evidence=e, card="C2"), "rests on a NO-READ") for e in spellings),
+        "B7 a removal whose evidence has the letters inside other words passes":
+            all(last(verdict="remove", evidence=e, card="C2") == [] for e in ("no reader of this file exists in the tree", "casino readings", "the piano read 0", "piano reads 0")),
+        "B7 a removal on a measured zero passes": last(verdict="remove", evidence="yield 0 in rounds 6 and 7", card="C2") == [],
+        "B8 an unset threshold with no card is refused": only(run(card("C2", threshold="band")), "threshold floor is unset"),
+        "B8 an unset owner criterion with no card is refused": only(run(card("C2", criterion="D7")), "owner criterion D4 is unset"),
+        "B8 an owner criterion naming an untracked path is refused": only(run(sp=edit(lambda s: s["owner_criteria"].update(D7="no/such"), spec)), "owner criterion D7 names"),
+        "B8 a NO-READ axis with no builder is refused": only(run(sp=edit(lambda s: s["population"][0].pop("builder"), spec)), "population axis n is NO-READ and carries no builder"),
+        "B8 a NO-READ axis with no reason is refused": only(run(sp=edit(lambda s: s["population"][0].pop("no_read"), spec)), "population axis n is NO-READ and carries no no_read"),
+        "B8 a NO-READ axis whose builder the roster cannot hand a build is refused":
+            all(only(run(sp=edit(lambda s: s["population"][0].update(builder=b), spec)), "population axis n builder " + b + " is no group the roster") for b in ("G0", "card:C9"))
+            and run(sp=edit(lambda s: s["population"][0].update(builder="card:C2"), spec)) == [],
+        "B8 an accepted card for a value still unset is refused":
+            only(run(card("C1", threshold="floor")), "card C1 is accepted for threshold floor") and only(run(card("C1", criterion="D4")), "card C1 is accepted for criterion D4"),
+        "B8 an accepted card for a value that is set passes": run(card("C1", threshold="band", criterion="D7")) == [],
+        "B9 fewer unowned cards than the read counts is refused": only(run(tm=edit(lambda c: c["unowned"].update(value=2), terms)), "1 card(s) with an unowned item but"),
+        "B11 a row for a file outside the object globs is refused": only(run(edit(lambda c: c["objects"].update({"README.md": {"verdict": "keep", "evidence": "e"}}))), "grades README.md, which is no object"),
+        "B10 a verdict outside keep/change/remove is refused": only(run(edit(lambda c: c["objects"][objs[-1]].update(verdict="retain", card="C1"))), "no keep/change/remove verdict for " + objs[-1]),
+    }
+
+
+def population_self_test():
+    """{arm: held} on a synthetic tree: one axis per kind with levels counted by
+    hand, a missing symbol and an empty glob refused, a NO-READ axis kept."""
+    flow = ("from .const import (\n    CONF_I_ENTITY,\n)\nS = {v.Required(CONF_A_ENTITY): 1, v.Required(CONF_B_ENTITY): 1, v.Optional(CONF_B_ENTITY): 1, v.Optional(CONF_C_ENTITY): 1}\n"
+            "R = (_F('p', CONF_D_ENTITY, required=True), _F('p', CONF_E_ENTITY, required=True), _F('q', CONF_E_ENTITY), _F('q', CONF_F_ENTITY, required=False),\n"
+            "     *(_F('q', k) for k in (CONF_G_ENTITY,)), get(CONF_A_ENTITY), get(CONF_D_ENTITY), get(CONF_H_ENTITY), get(CONF_K_ENTITY_ID))\n# CONF_Z_ENTITY\n")
+    files = {"p/flow.py": flow, "p/const.py": 'K = "k"\n', "p/m.py": 'T = (K, "w")\nD = {"d1": 1, "d2": 2}\nL = [*T, "v"]\nX = tuple(T)\n'
+             'def f(profile):\n    if profile == "flat" or "ramp" == profile:\n        return 0\n    return profile in ("flat", "dip")\n',
+             "p/cfg.py": "CONF_A_ENTITY CONF_B_ENTITY CONF_A_ENTITY", "t/en.json": "", "t/fi.json": ""}
+    pop = lambda *axes: population(list(axes), set(files), lambda f: files[f])
+    tup = lambda sym: {"axis": "a", "kind": "tuple", "file": "p/m.py", "symbol": sym}
+    binary = {"axis": "e", "kind": "regex", "file": "p/cfg.py", "pattern": r"\b(CONF_[A-Z]_ENTITY)\b", "binary": True}
+    glob = {"axis": "g", "kind": "glob", "glob": "t/*.json"}
+    cmp = {"axis": "c", "kind": "compare", "file": "p/m.py", "function": "f", "argument": "profile"}
+    nr = {"axis": "n", "kind": None, "no_read": "why", "builder": "G1"}
+    every = pop(tup("T"), tup("D"), tup("L"), binary, glob, cmp, nr)
+    return {
+        "a tuple axis resolves a Name through const.py": pop(tup("T"))[0][0] == "a\t2\tk,w",
+        "a dict axis reads its keys": pop(tup("D"))[0][0] == "a\t2\td1,d2",
+        "a starred element expands": pop(tup("L"))[0][0] == "a\t3\tk,v,w",
+        "a regex binary axis is one two-level axis per capture":
+            pop(binary)[0] == ["e\t2 binary axes\tCONF_A_ENTITY,CONF_B_ENTITY", "LEVELS: 4", "PAIRS: 4", "NO-READ AXES: 0"],
+        "a glob axis takes the file stems": pop(glob)[0][0] == "g\t2\ten,fi",
+        "a compare axis takes the compared strings": pop(cmp)[0][0] == "c\t3\tdip,flat,ramp",
+        "levels and pairs match the hand count": every[1] and every[0][-3:] == ["LEVELS: 16", "PAIRS: 109", "NO-READ AXES: 1"],
+        "a NO-READ axis prints its reason and builder": "n\tNO-READ\twhy (builder: G1)" in every[0],
+        "a missing symbol is UNREADABLE and fails": pop(tup("nope")) [1] is False and pop(tup("nope"))[0][0].startswith("UNREADABLE a: symbol nope"),
+        "a call-built symbol is UNREADABLE": not pop(tup("X"))[1],
+        "an empty glob is UNREADABLE": not pop({**glob, "glob": "none/*"})[1],
+        "an untracked source file is UNREADABLE by name": pop({**tup("T"), "file": "p/none.py"}) == (
+            ["UNREADABLE a: p/none.py is not tracked at the ref", "LEVELS: 0", "PAIRS: 0", "NO-READ AXES: 0"], False),
+        # A required everywhere, D a required row: no absent level. I import only, Z a comment: never presented.
+        # B and E are required in one step and optional in another, G is generated, H only read: each stays.
+        # CONF_K_ENTITY_ID only starts like one: the pattern is the whole identifier.
+        "a name axis drops a key required everywhere or never presented":
+            pop({"axis": "o", "kind": "name", "file": "p/flow.py", "pattern": "CONF_[A-Z]_ENTITY", "binary": True})[0][0]
+            == "o\t6 binary axes\tCONF_B_ENTITY,CONF_C_ENTITY,CONF_E_ENTITY,CONF_F_ENTITY,CONF_G_ENTITY,CONF_H_ENTITY",
+    }
+
 
 def blob_units(repo, ref):
     """units(dim, path): text_ledger's unit count of the file at ref, read once per file at ref."""
@@ -244,8 +706,20 @@ def main():
     ap.add_argument("--scopes", default=str(_repo / _locate_scopes("dev/audit/config/scopes.json", root=_repo)))
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
+    ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
+    ap.add_argument("--population", action="store_true", help="print the install population's levels read at --ref and exit")
     a = ap.parse_args()
+    show = lambda f, at=None: subprocess.check_output(["git", "-C", a.repo, "show", f"{at or a.ref}:{f}"], text=True)
+    anc = lambda x, y: subprocess.run(["git", "-C", a.repo, "merge-base", "--is-ancestor", str(x), y],
+                                      capture_output=True).returncode == 0
+    merged = lambda sha: anc(sha, a.ref)
+    changed = lambda c: set(subprocess.run(["git", "-C", a.repo, "diff", "--name-only", f"{c}^1", str(c)],
+                                           capture_output=True, text=True).stdout.split())
     tree = set(subprocess.check_output(["git", "-C", a.repo, "ls-tree", "-r", "--name-only", a.ref], text=True).split())
+    if a.population:
+        lines, ok = population(json.loads(show(OBJECTIVE)).get("population", []), tree, show)
+        print("\n".join(lines))
+        sys.exit(0 if ok else 1)
     loc = {}
     for f in tree:
         if f.startswith("custom_components/") and f.endswith((".py", ".js")):
@@ -399,22 +873,54 @@ def main():
         no_bp = copy.deepcopy(scopes)
         for k in ("D4", "D6"):
             no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
-        def default_run(sc):
+        def default_run(sc, *more):
             with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
                 json.dump(sc, fh)
                 fh.flush()
                 return subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", a.repo,
-                                       "--ref", a.ref, "--scopes", fh.name], capture_output=True, text=True)
+                                       "--ref", a.ref, "--scopes", fh.name, *more], capture_output=True, text=True)
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
         cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
+        # The start evaluation: the rules as a function, then the default
+        # invocation whole. Round 1 has no evaluation and never will, so
+        # --round 1 exits 1 naming the file while the run without --round
+        # (above) exits 0: the refusal is --round's and reaches the exit code.
+        # The two records --round reads are tracked files of the round that
+        # writes them: with one of each in the tree the live scopes still cover
+        # it, and an exclusion table without their directory names both. So a
+        # round that follows 0018 section 6 is not refused by coverage.
+        recs = set(records(11))
+        bare_y = copy.deepcopy(scopes)
+        bare_y["_coverage_excluded"] = {next(q for q in expand_braces(g) if not q.startswith(YARDSTICK)) if any(q.startswith(YARDSTICK) for q in expand_braces(g)) else g: r
+                                        for g, r in scopes.get("_coverage_excluded", {}).items()}
+        cov["the round's records are covered once written"] = coverage(scopes, tree | recs, quiet=True) == (True, [])
+        cov["and refused by name without the exclusion"] = coverage(bare_y, tree | recs, quiet=True) == (False, sorted(recs))
+        print(f"   yardstick records: covered={cov['the round\'s records are covered once written']}, refused without the exclusion={cov['and refused by name without the exclusion']}")
+        ev = evaluation_self_test(tree, show)
+        cov.update({"evaluation: " + k: v for k, v in ev.items()})
+        run_r1 = default_run(scopes, "--round", "1")
+        cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
+            and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
+        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}")
+        pop = population_self_test()
+        cov.update({"population: " + k: v for k, v in pop.items()})
+        print(f"   population arms: {sum(pop.values())}/{len(pop)} held")
         good = not any(res) and all(cov.values())
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
         sys.exit(0 if good else 1)
-    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units) else 1)
+    ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units)
+    if a.round is not None:
+        gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed)
+        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s)")
+        for g in gaps:
+            print(f"   {g}")
+        ok = ok and not gaps
+    sys.exit(0 if ok else 1)
 
-main()
+if __name__ == "__main__":
+    main()

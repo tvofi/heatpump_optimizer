@@ -119,9 +119,9 @@ naming a host path is refused at the op with a scrub hint, not at the
 landing of the roster on main.
 
 THE TRIAGE GATE (decision 0015). Every process, tooling or instrument proposal
-passes dev/governance/roles/proposal-triage.md before it reaches the roster, so
-the write path refuses roster text a proposal sourced that cites no ACCEPT
-ruling. The text judged is what this write ADDS (a new group's brief and
+passes dev/governance/roles/proposal-triage.md, once per round at round end,
+before it reaches the roster, so the write path refuses roster text a proposal
+sourced that cites no ACCEPT ruling. The text judged is what this write ADDS (a new group's brief and
 carries, a changed brief, an appended carry), so every caller of
 `write_roster()` -- this file's ops and roster_sync.py's carries -- passes it.
 Text is proposal-sourced when it names one (`triage P<n>`, `proposal P<n>`,
@@ -1567,7 +1567,7 @@ STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
 def lane_refusal(op, group):
     """The refusal text for a structural op called outside the roster queue
     runner, else None. set-stage, append-group and set-resume stay directly
-    callable (nudge.md and sweep_template.md run them by hand). A caller that
+    callable (sweep_template.md runs them by hand). A caller that
     sets the variable by hand is out of scope: the guard stops a caller that
     does not know the lane, not one that forges it."""
     if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""After a merge: the bookkeeping nudge.md step 12 used to hand an agent.
+"""After a merge: the bookkeeping no contract hands an agent (`standing-merge.md`).
 
     python3 tools/audit/seat/postmerge.py [--repo O/R] [--state-dir D] [--dry-run] [--retry] <PR>
     python3 tools/audit/seat/postmerge.py --self-test
@@ -14,10 +14,12 @@ the merge is confirmed. It runs, in order, and a failure in any is printed as
            merged pull request. A refused sync prints `set-stage owed <GROUP>
            <merge sha>`, the group resolved from the roster (`record_beat.
            resolve_group`) or `no-group <merge sha>`, never guessed.
-  docs     `state_docs.py --push`.
   main     `merge_train.py classify <merge sha> --main`: main's own suite
            state, the one rule the train and the sweep read (no third). RED or
            unreadable is owed; WAIT (the push's checks still running) is not.
+
+The state docs are the plan-beat's alone (beat_jobs.py `plan-beat`): a second
+writer here raced it and its rejected push printed `OWED docs: rc 2: hi`.
 
 An owed step is opened in the ledger as the event `postmerge-owed`
 (`ledger.py open postmerge-owed <pr> <merge-sha40> <why>`); `--retry` after a
@@ -45,7 +47,6 @@ def steps(pr: int, repo: str, state_dir: Path, sha: str, group: str) -> "list[tu
     seat = str(SEAT)
     return [
         ("stage", [*PY, f"{seat}/roster_sync.py", "--repo", repo, "--apply"], True),
-        ("docs", [*PY, f"{seat}/state_docs.py", "--repo", repo, "--push"], True),
         ("main", [*PY, f"{seat}/merge_train.py", "classify", sha, "--repo", repo, "--main"], False),
     ]
 
@@ -148,7 +149,7 @@ def self_test() -> int:
                                       "closingIssuesReferences": [{"number": 5}]})
             if "rev-parse" in j:
                 return 0, full + "\n"
-            for key in ("gh_comment.py", "roster_sync.py", "state_docs.py", "classify", "ledger.py"):
+            for key in ("gh_comment.py", "roster_sync.py", "classify", "ledger.py"):
                 if key in j:
                     return rc.get(key, 0), said.get(key, f"{key} said" + (" REFUSED" if rc.get(key) else ""))
             return 0, ""
@@ -163,23 +164,23 @@ def self_test() -> int:
 
     code, lines, log = go()
     check("a clean run owes nothing, exits 0 and says so", code == 0 and lines[-1].endswith("nothing owed"), lines)
-    check("a clean run runs the comment, the sync, the docs push and the main read, once each",
-          [sum(k in c for c in log) for k in ("gh_comment.py post", "roster_sync.py", "state_docs.py",
-                                              "merge_train.py classify")] == [1, 1, 1, 1], log)
+    check("a clean run runs the comment, the sync and the main read, once each",
+          [sum(k in c for c in log) for k in ("gh_comment.py post", "roster_sync.py",
+                                              "merge_train.py classify")] == [1, 1, 1], log)
+    check("postmerge runs no state_docs.py (the plan-beat owns the state docs)",
+          not any("state_docs.py" in c for c in log), log)
     code, lines, log = go(dry=True)
     check("the dry run prints the exact comment and every command, runs none, exits 0",
           code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #{rb.RECORD_ISSUE} open."
-          and [l.split(":")[0] for l in lines[1:5]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN docs",
-                                                         "DRY-RUN main"]
-          and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "state_docs", "classify", "ledger")),
+          and [l.split(":")[0] for l in lines[1:4]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN main"]
+          and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "classify", "ledger")),
           lines)
-    for key, step in (("gh_comment.py", "record"), ("roster_sync.py", "stage"), ("state_docs.py", "docs"),
-                      ("classify", "main")):
+    for key, step in (("gh_comment.py", "record"), ("roster_sync.py", "stage"), ("classify", "main")):
         code, lines, log = go({key: 1})
         owed = [l for l in lines if l.startswith("OWED ")]
         check(f"a refused {step} step prints OWED {step}, exits non-zero, after the other steps ran",
               code == 1 and len(owed) == 1 and owed[0].startswith(f"OWED {step}:")
-              and sum("state_docs.py" in c or "gh_comment" in c for c in log) >= 2, lines)
+              and sum("roster_sync.py" in c or "gh_comment" in c for c in log) >= 2, lines)
         check(f"... and opens postmerge-owed for the pull request and the full merge sha ({step})",
               any(f"ledger.py open postmerge-owed 7 {full} " in c for c in log), log)
     code, lines, _ = go({"roster_sync.py": 1})
@@ -199,9 +200,26 @@ def self_test() -> int:
     code, lines, log = go()
     check("without --retry a clean run closes nothing (null control)",
           not any("ledger.py" in c for c in log), log)
-    step12 = (ROOT / "dev/governance/roles/nudge.md").read_text().split("## 12.")[1].split("\n## ")[0]
-    check("nudge.md step 12 names no beat this tool runs (CARRY 3)",
-          not any(b in step12 for b in ("worktree_gc", "gh_comment", "roster_edit", "state_docs")), step12[:80])
+    # CARRY 3: a beat this tool runs is never also handed to an agent by the
+    # contract owning the post-merge bookkeeping, or it runs twice. The beats are
+    # read from `steps()` itself, so a step added there is checked here unedited.
+    beats = {f"{rb.__name__}.py", "gh_comment.py"} | {
+        Path(argv[2]).name + ("" if argv[3].startswith("-") else " " + argv[3])
+        for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X")}
+    check("the beats are read from steps(): a subcommand is kept, an option is not",
+          {"roster_sync.py", "merge_train.py classify"} <= beats, sorted(beats))
+
+    def handed(text: str) -> "list[str]":
+        return sorted(b for b in beats if b in text)
+    orch = (ROOT / "dev/governance/roles/orchestrator.md").read_text()
+    sec = orch.split("\n## 11.")[1].split("\n## ")[0] if "\n## 11." in orch else ""
+    owner = sec + (ROOT / "dev/governance/roles/standing-merge.md").read_text()
+    check("orchestrator.md section 11 still holds the after-each-merge duty this pin reads",
+          "After each merge" in sec, sec[:80])
+    check("orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3)",
+          handed(owner) == [], handed(owner))
+    check("a contract handing an agent `roster_sync.py --apply` is caught (null control)",
+          handed(owner + "\n- After each merge: run `roster_sync.py --apply`.") == ["roster_sync.py"])
     print(f"postmerge self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 

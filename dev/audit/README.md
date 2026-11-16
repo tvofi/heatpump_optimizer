@@ -27,7 +27,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | phase | entry | exit | instrument | contract | artefact |
 |---|---|---|---|---|---|
 | 1 mandate and rulings | the prior round's final state comment on #201 | the owner's mandate comment, scope and expiry, and rulings on #201 | `tools/policy/budget_raise_gate.py` reads a mandate's state | `dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md`, `CLAUDE.md` | the mandate comment id |
-| 2 dimensions and finders | a pinned baseline SHA | every scope reported | `.claude/workflows/audit-find.js`, `tools/audit/check_scopes.py` over `dev/audit/config/scopes.json` | `dev/governance/roles/COMMON.md`, `dev/governance/dimensions/` | reports under `dev/audit/rounds/` |
+| 2 dimensions and finders | a baseline SHA pinned after `evaluator.md`'s evaluation | every scope reported | `.claude/workflows/audit-find.js`, `tools/audit/check_scopes.py` over `dev/audit/config/scopes.json` | `dev/governance/roles/COMMON.md`, `dev/governance/dimensions/` | reports under `dev/audit/rounds/` |
 | 3 verify and judge | the finders' reports | every finding judged, classes swept | `.claude/workflows/audit-verify.js` | `verifier.md`, `judge.md`, `dev/governance/rules/defect-root-cause.md` | the round's judge record, `dev/audit/config/bugclasses.json` |
 | 4 P3 plan and owner approval | the judged register | `Plan review: approve`, then the owner's approval | `.claude/workflows/audit-plan.js`, `tools/audit/archscore/`, `tools/audit/seat/plan_audit.py` | `architect-planner.md`, `plan-review.md`, decision 0015 | the plan branch, ADRs |
 | 5 roster and waves | the approved plan | the roster lints clean | `tools/audit/seat/roster_edit.py`, `tools/policy/brief_lint.mjs` | `standing-roster.md`, `dev/governance/rules/brief-citations.md` | `dev/programme/rosters/`, `critical-path.json` |
@@ -38,17 +38,15 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
-| 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201 |
+| 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201; the round's objective record |
 
 Lessons (triage batch 141, P545): stack a later part only under the stack
-study's conditions, at the parent's merge verdict, never its handoff (round
-10's replay: 0.00 to 0.06 h gained in every arm); log a cloud fire by the
+study's conditions, at the parent's merge verdict, never its handoff; log a cloud fire by the
 session id `list_runs` shows about 2 min later, never by the trigger id, which
 later answers 404; an owner order with a trigger condition joins the
 orchestrator's pending list the turn it is given, and rotation carries it;
 `roster_edit.py append-carry` takes no `--reason`, and each queued op's drain
-refusal is read back, since a refused line is never retried. A shape
-classifier is driven over a spelling corpus (`fixer.md` step 2).
+refusal is read back, since a refused line is never retried.
 
 Closure, the owner's sentence (tvofi, 2026-11-07): "The programme is not
 considered closed until both v.10.0.0 and the catalog PR has landed, there are
@@ -59,19 +57,18 @@ only after tvofi says they opened the card's tabs on it, never without.
 
 **Round 10's final shape** (owner cards 1, 2 and 6, 2026-10-24):
 
-- The standing set: the triage seat (`proposal-triage.md`) and the beat jobs
-  `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
+- The standing set: the beat jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
   `jobs/<row>`: the tick seat's `tick-digest` and `owed-check`, the roster
   seat's `roster-drain`; the merge seat runs `train.sh` under
   `tools/audit/seat/daemonize.py`; the dispatch and relay seat has no row and
   stays. Owner, verbatim: "make sure the retirement of the standing seats dont
   cause you to run things inline": a seat stays until its job is live and
   verified, and its work never moves into the orchestrator's turns.
-- Context rotation, a fresh context between stages (rca, fix, handoff), never
-  mid-task or mid-merge: about 150 k tokens for mechanical, standing and relay
-  seats, reviewers and S and M fixers; about 300 k for L and XL fixers,
-  designers, pre-studies, root-cause and plan seats; about 500 k for the
-  orchestrator, which rotates through `state_docs.py` and the resume.
+- Context rotation between stages, never mid-task or mid-merge: fixers,
+  reviewers and standing seats by `fixer.md`, `fix-review.md` and
+  `standing.md`; about 150 k tokens for mechanical and relay seats; about 300 k
+  for designers, pre-studies, root-cause and plan seats; about 500 k for the
+  orchestrator, through `state_docs.py` and the resume.
 - A blocked verdict of a mechanical class (carry-*, body or figure staleness,
   red-check answer, row-format, head-moved, conflict) goes to a script where
   one exists, else to a fresh sonnet or haiku seat on a short brief; a
@@ -90,7 +87,7 @@ machinery group names its ground; the merge seat checks it at admission. Of the 
 `custom_components/` pull requests; a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
 is accepted only when its friction blocks a production merge, else ruled LOG
-(`proposal-triage.md`). Exempt from all three: a proposal proving over 20% on
+(`proposal-triage.md`, once per round at round end). Exempt from all three: a proposal proving over 20% on
 CI time, programme completion time, right-first-time rate or token usage,
 against a measured baseline and a null control
 (`dev/governance/rules/ratchet-budgets.md`).
@@ -102,27 +99,22 @@ against a measured baseline and a null control
   user-owned repository; round 10's D13 probe). Weigh plan, visibility, the
   HACS redirect, App installations, deploy key, ruleset ids and owner-keyed
   instruments; after a transfer re-probe queue latency, `merge_group` gate
-  names and CI minutes against the train; adopt or decline, and close the held
-  groups the queue makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
-  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)). Context: the Lean flow
-  pre-study, section K9 (out of the tree).
+  names and CI minutes; adopt or decline, and close the held groups the queue
+  makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
+  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)).
+  Context: the Lean flow pre-study, section K9 (out of the tree).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
-  `dev/audit/rounds/round10/protection-census/`. On it, B1
-  (triage batch 245, P740) opens the round unless ordered into round 10: on an
-  all-product diff `briefs`, `policy-docs` and `wave-script` turn advisory, and
-  `blueprints/` joins the product predicate.
+  `dev/audit/rounds/round10/protection-census/`. On it, B1 (triage batch 245,
+  P740) opens the round unless ordered into round 10: on an all-product diff
+  `briefs`, `policy-docs` and `wave-script` turn advisory, and `blueprints/`
+  joins the product predicate.
 - Retire the merge and dispatch seats into beat jobs (tvofi 2026-11-12;
   R10-STANDING-CONTRACTS-P2 carries 9, 12-14), size L, design first: the train
   (`train.sh`, `merge_train.py`) reports each pitch to the digest and retires
   `standing-merge.md`; `standing-dispatch.md`'s dispatch half calls `bus.sh
   dispatch`, never a second writer of the registry or reviewer-fire close. A
   seat stops only after its job ran one real cycle beside it (one pitch merged,
-  the seat agreeing), never into the orchestrator's turns. Load, session s14
-  from 2026-11-11T01:02Z: 48 merges, 46 reviewer fires.
-- Every round-10 group at stage deferred reopens as written, brief and
-  carries kept (triage batches 238, 240 and 241 name them and the carries
-  re-homed to the groups owning `merge_train.py`,
-  `tools/pr/cancel_superseded.py` and `tests/entities.py`).
+  the seat agreeing), never into the orchestrator's turns.
 - R11-INTAKE-R10-RESIDUE holds R10-ROUND-PLAYBOOK-FINAL's carries 17, 25, 26 and
   35 to 41, as written on the roster. Carry 31 goes with it: one paragraph each
   in `dev/governance/dimensions/D11.md` and `D13.md`, naming the convergence
@@ -162,6 +154,19 @@ against a measured baseline and a null control
   #1721's token-view detector stays unproven until an RCA refusal settles it;
   a decision record is named by number, never by path, so none joins
   `policy_lint`'s corpus.
+
+## Round start
+
+Before phase 1, the pickup; each later step is its owner's rule.
+
+1. Pickup: read each line to none, a disposition per line by `tools/audit/seat/roster_edit.py` (scheduled, built before finders, refused with a reason):
+   `python3 tools/audit/carry_audit.py roster`
+   `python3 -c "import sys,glob,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in F+('refused',)]"`
+2. Evaluation before the baseline: decision 0018, R11-PRE-OBJECTIVE-FUNCTION, `check_scopes.py`.
+3. Denominator, unreached remainder, added dimensions, D11, D13: R10-DIMENSIONS-FULL-COVERAGE part 2, carried on R11-INTAKE-R10-RESIDUE.
+4. Scope: an owner-filed or outside-filed item folds into the ongoing round
+   unless its filer explicitly defers it; silence is not one. Record who, when
+   and their words in the group's note (`roster_edit.py set-resume --field note`).
 
 ## The harness contract
 
@@ -244,11 +249,6 @@ moves.
   `stress.py` and `structure.py` have `__main__` guards.
   `entities.py`, `features.py`, `rolling.py`, `backtest.py` and
   `optimality.py` run every check at import and `sys.exit`.
-- `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
-  every Node harness reads it; `card.mjs` alone falls back to an unhashed
-  legacy path with a warning, the others fail. Set `HPO_PLANDATA` per harness.
-- `tests/env_drift.py` runs `git worktree add` in the repository it is run
-  from and refuses a ref that resolves to `HEAD`.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
   `tests/run.sh`'s wiring check does the same. A script in a subdirectory is
   invisible to both and to `no-copies`.
@@ -261,9 +261,8 @@ moves.
   L-BFGS-B starts (`_multi_start_minimize`), in `_lbfgsb_restart` and at the
   DHW-to-space seam; grep, never count them.
 
-`check_scopes.py` proves `scopes.json`'s seats disjoint and complete, every
-tracked path in a universe or on `_coverage_excluded`, and a harness naming a
-brief cited by it.
+`check_scopes.py` refuses a round on `scopes.json`'s seats, tree coverage, an
+uncited harness and, by `--round`, a missing start evaluation.
 
 ## Harnesses that read moved paths are retired
 
@@ -276,26 +275,25 @@ repaired, old path first. A seat re-running a retired one repairs it first.
 
 A defect your dimension's method meets in an instrument (`tests/hastub`, the
 gate's checks and budgets, the harness contract, the lint lanes, this toolkit)
-is a finding **of your dimension** under the same bar as any other, not prose
-in a report. It goes panel, judge, then issue, and **filing waits for the
-judge**, who re-measures with the accused instrument; a verifier who cannot
-make the accused check fire has not refuted it, and says which they could not
-separate. `CLAUDE.md`'s order still governs: a one-line instrument repair is
-made in place, with no issue.
+is a finding **of your dimension** under the same bar as any other. It goes
+panel, judge, then issue, and **filing waits for the judge**, who re-measures
+with the accused instrument; a verifier who cannot make the accused check fire
+has not refuted it, and says which they could not separate. `CLAUDE.md`'s
+order still governs: a one-line instrument repair is made in place, with no
+issue.
 
 ## Rounds 1-3 are at a SHA
 
 `tools/audit/round1/` to `round3/`, the done rosters `wave-1b-groups.json`,
 `wave-2-groups.json` and `wave-3-groups.json`, `web-phase0.js` and
 `triage-quiet-judges.json` are at
-**`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`origin/main` at v6.3.18, on
-`main`'s first-parent history; `git show d5d8c4a:tools/audit/round2/JUDGE.md`);
-their briefs record what a judge established and refuted, so read them before
-re-deriving anything a group in them settled. Every number anything still acts
-on is in `dev/programme/register/audit-2026-09.md`. Round 2's harnesses are at
-`757e164` (which still run is `round2/HARNESSES.md` at `d5d8c4a`, final at
-that commit only), its numbers recorded at `c398fc84`; the tag `audit-round2-evidence` moved once, so cite the SHA. A
-harness's root rule varies (`D6/claims.py` measures the working directory,
+**`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (v6.3.18; `git show
+d5d8c4a:tools/audit/round2/JUDGE.md`); their briefs record what a judge
+established and refuted, so read them before re-deriving. Every number anything
+still acts on is in `dev/programme/register/audit-2026-09.md`. Round 2's
+harnesses are at `757e164` (`round2/HARNESSES.md` at `d5d8c4a` says which still
+run), its numbers at `c398fc84`; the tag `audit-round2-evidence` moved once, so
+cite the SHA. A harness's root rule varies (`D6/claims.py` measures the working directory,
 `D7/sysid_plant.py` its own checkout): copy it into the tree under test and say
 which it used.
 
@@ -310,6 +308,3 @@ evidence is archived, instruments are kept.
 | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
 | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
-
-All four drive production symbols under the harness contract; never run
-`j5_gil.py` on `FakeHass` (the first trap above).
