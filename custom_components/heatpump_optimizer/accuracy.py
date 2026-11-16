@@ -32,13 +32,27 @@ import numpy as np
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    COP_SCALE_MAX,
+    COP_SCALE_MIN,
     COP_TRACKING_ERROR_GATE,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
     finite_float,
 )
 from .thermal_model import is_sunlit_interval
-from .draw_range import ASK_FOLLOWS, ASK_IGNORED, ASK_PENDING, WINDOW, DrawRange, ask_evidence, follows_ask, power_floor_kw
+from .draw_range import (
+    ASK_FOLLOWS,
+    ASK_IGNORED,
+    ASK_PENDING,
+    ASK_UNOBTAINABLE,
+    MIN_SAMPLES,
+    WINDOW,
+    DrawRange,
+    ask_evidence,
+    draw_response,
+    follows_ask,
+    power_floor_kw,
+)
 from .drift import stored_instant, utc_shift
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -898,6 +912,16 @@ class MeasuredCop:
     ``held`` is the departures from the ask waiting for the evidence that
     judges them: :meth:`judge_ratio` appends, :meth:`release` is the only way
     out. Neither it nor ``ratio_ewma`` is persisted: a restart drops both.
+
+    ``scale_response`` answers what the window's evidence cannot where it is
+    unobtainable (asks that never span ``FOLLOW_ASK_SPAN``) on an install
+    with no measured heat: whether the draw follows the HEAT ask, ``asked_kw x
+    cop_scale``, whose span the learner's own scale moves supply. A heat-led
+    pump's draw answers the scale; a pump that sets its own power does not,
+    and its ratio of draw to ask would walk the scale to a clamp (owner
+    ruling D4). ``probe`` holds the rows that judge it; ``restore_due`` says
+    the scale is owed a return to the configured one (:meth:`take_restore`).
+    Only ``scale_response`` persists.
     """
 
     cop: float | None = None
@@ -914,12 +938,25 @@ class MeasuredCop:
     ratio_ewma: float | None = None
     #: Departures awaiting ``draw_range.ask_evidence``, oldest first.
     held: Deque[CopInterval] = field(default_factory=deque)
+    #: ``ASK_PENDING``, then ``ASK_FOLLOWS`` or ``ASK_IGNORED`` once ``probe``
+    #: judges it (:meth:`_admit`); only a reset (:meth:`release`) clears it.
+    scale_response: str = ASK_PENDING
+    #: The admitted intervals' (drawn, heat ask) rows, kW, oldest first.
+    probe: Deque[tuple[float, float]] = field(default_factory=lambda: deque(maxlen=WINDOW))
+    #: The scale is owed the configured one: the draw ignores the heat ask, so
+    #: every fold since configuration read a draw the scale did not move; or
+    #: the probe's first row was read at a clamp, where the scale cannot span.
+    restore_due: bool = False
+    #: The probe re-seeded at a clamp since its last reset: once, so a
+    #: configured scale at a clamp keeps base's rule instead of re-seeding forever.
+    reseeded: bool = False
 
     @staticmethod
-    def judge_floor(asked_kw: float, drawn_kw: float, params: Any, draw: DrawRange | None = None) -> str | None:
+    def judge_floor(asked_kw: float, drawn_kw: float | None, params: Any, draw: DrawRange | None = None) -> str | None:
         """``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
-        floor (``draw_range.power_floor_kw`` on the window ``draw``), else None."""
-        if min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
+        floor (``draw_range.power_floor_kw`` on the window ``draw``), else None;
+        None with no draw (a heat counter's install, judged at its span close)."""
+        if drawn_kw is not None and min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
             return COP_REFUSED_DUTY_FLOOR
         return None
 
@@ -941,10 +978,56 @@ class MeasuredCop:
         clear the nameplate third (``nameplate_power_floor_kw``)."""
         return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= params.nameplate_power_floor_kw)
 
+    @staticmethod
+    def _admits(state: str, draw: DrawRange | None, measured_heat: bool) -> bool:
+        """Whether an interval is judged on the heat ask (``scale_response``):
+        the window's evidence is unobtainable, a window exists, and the
+        install measures no heat (``probe_install(...).measured_heat``)."""
+        return state == ASK_UNOBTAINABLE and draw is not None and not measured_heat
+
+    def _admit(self, row: CopInterval) -> str:
+        """Admit ``row`` to the probe; ``scale_response`` after it.
+
+        A latched verdict, or a restore not yet applied, keeps no row. The
+        first row read at a clamp (``COP_SCALE_MIN``/``COP_SCALE_MAX``),
+        where the scale's clip holds the heat ask flat, is kept by none: the
+        restore falls due and the probe starts again from the configured
+        scale, once per reset. ``MIN_SAMPLES`` rows whose heat asks span
+        judge the verdict by ``draw_range.draw_response``; ``ASK_IGNORED``
+        makes the restore due.
+        """
+        if self.scale_response != ASK_PENDING or self.restore_due:
+            return self.scale_response
+        if not self.probe and not self.reseeded and not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:
+            self.reseeded = self.restore_due = True
+            return ASK_PENDING
+        self.probe.append((float(row.drawn_kw), float(row.asked_kw) * float(row.cop_scale)))
+        if len(self.probe) >= MIN_SAMPLES and (state := draw_response(self.probe)) != ASK_UNOBTAINABLE:
+            self.scale_response, self.restore_due = state, state == ASK_IGNORED
+        return self.scale_response
+
+    def take_restore(self) -> bool:
+        """Whether the scale is owed the configured one now; clears it."""
+        due, self.restore_due = self.restore_due, False
+        return due
+
     def judge_ratio(
-        self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None
+        self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None, measured_heat: bool = False
     ) -> str | None:
-        """The ratio gates' refusal for the interval ``row``, or None.
+        """The ratio gates' refusal for the interval ``row``, or None; a refusal is logged."""
+        refusal = self._judge_ratio(ewma, row, params, draw, measured_heat)
+        if refusal is not None:
+            _LOGGER.debug(
+                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
+                "against the running ratio %.2f -- not an efficiency reading",
+                refusal, row.asked_kw, row.drawn_kw, ewma,
+            )
+        return refusal
+
+    def _judge_ratio(
+        self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None, measured_heat: bool
+    ) -> str | None:
+        """:meth:`judge_ratio`'s rule.
 
         ``ewma`` is the walking ratio BEFORE this interval (:meth:`walk_ratio`).
         ``COP_REFUSED_TRACKING``: a one-off blip off the walking ratio
@@ -961,7 +1044,10 @@ class MeasuredCop:
         evidence is unobtainable nothing would ever release it, so it folds
         only where base would have -- :meth:`_base_folds` -- and is otherwise
         ``COP_REFUSED_NO_EVIDENCE``: an install whose asks never span
-        ``FOLLOW_ASK_SPAN`` keeps base's reach for them.
+        ``FOLLOW_ASK_SPAN`` keeps base's reach for them. Where :meth:`_admits`
+        holds, the interval joins the probe first: under ``ASK_IGNORED`` it
+        reads ``COP_REFUSED_OFF_ASK``, under ``ASK_FOLLOWS`` it folds, and
+        while ``ASK_PENDING`` it keeps the outcome above.
         """
         ratio = row.ratio
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
@@ -972,6 +1058,8 @@ class MeasuredCop:
             # efficiency reading at ANY ratio; one within the tolerance only
             # happened to land near the ask.
             return COP_REFUSED_OFF_ASK
+        if self._admits(state, draw, measured_heat) and (verdict := self._admit(row)) != ASK_PENDING:
+            return COP_REFUSED_OFF_ASK if verdict == ASK_IGNORED else None
         if abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
         if state == ASK_PENDING:
@@ -979,7 +1067,9 @@ class MeasuredCop:
             return COP_REFUSED_NO_EVIDENCE
         return None if self._base_folds(row, params) else COP_REFUSED_NO_EVIDENCE
 
-    def release(self, draw: DrawRange | None, params: Any, now: datetime) -> list[CopInterval]:
+    def release(
+        self, draw: DrawRange | None, params: Any, now: datetime, measured_heat: bool = False
+    ) -> list[CopInterval]:
         """The held intervals to fold now, oldest first; the one place one is judged.
 
         Called ahead of a cycle's own judgement, never on a frozen or unread cycle. On evidence
@@ -991,9 +1081,25 @@ class MeasuredCop:
         ``now``), or the hold is over ``draw_range.WINDOW`` rows and it is the
         oldest. So every held row leaves, and none that base folded is lost
         for want of evidence that never came.
+
+        The state is read first: where :meth:`_admits` does not hold, the
+        probe and ``scale_response`` reset (a due restore survives it, but
+        not measured heat, whose folds are no ratio's), and the arms below
+        run as before. Where it holds, every row is admitted, then judged
+        once: none folds under ``ASK_IGNORED``, every one under
+        ``ASK_FOLLOWS``, and base's rule while pending.
         """
         state, rows = ask_evidence(draw), list(self.held)
         self.held.clear()
+        if not self._admits(state, draw, measured_heat):
+            self.probe.clear()
+            self.scale_response, self.reseeded = ASK_PENDING, False
+            self.restore_due = self.restore_due and not measured_heat
+        elif rows:
+            for row in rows:
+                verdict = self._admit(row)
+            if verdict != ASK_PENDING:
+                return [] if verdict == ASK_IGNORED else rows
         if state == ASK_FOLLOWS:
             return rows
         if state == ASK_IGNORED:
@@ -1031,13 +1137,31 @@ class MeasuredCop:
         return round(float(self.cop) - float(modelled), 3)
 
     def as_dict(self) -> dict[str, Any]:
-        """The measurement only; a refusal describes one interval."""
+        """The measurement and ``scale_response``; a refusal describes one interval."""
         at = None if self.at is None else self.at.isoformat()
-        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp, "at": at}
+        return {
+            "cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp, "at": at,
+            "scale_response": self.scale_response,
+        }
 
     @classmethod
     def from_dict(cls, raw: Any) -> MeasuredCop:
-        """A stored record, or none: an unreadable field drops the record whole.
+        """A stored record, with its ``scale_response`` read apart from it.
+
+        Absent or unreadable, the verdict is pending and the measurement
+        stands; a stored ``ASK_IGNORED`` loads with the restore due, so a save
+        between the latch and the restore it owes loses neither (restoring the
+        configured scale twice is restoring it once).
+        """
+        record = cls._stored_measurement(raw)
+        response = raw.get("scale_response") if isinstance(raw, dict) else None
+        if isinstance(response, str) and response in (ASK_FOLLOWS, ASK_IGNORED):
+            record.scale_response, record.restore_due = response, response == ASK_IGNORED
+        return record
+
+    @classmethod
+    def _stored_measurement(cls, raw: Any) -> MeasuredCop:
+        """A stored measurement, or none: an unreadable field drops the record whole.
 
         The record is the unit: a COP without a readable curve would be judged
         against the wrong one. A COP the learner could not have written (not
@@ -1068,7 +1192,8 @@ def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -
     (None: none yet), and ``held_intervals`` counts the departures waiting for
     it (``MeasuredCop.held``): with ``last_refusal`` at
     ``COP_REFUSED_NO_EVIDENCE``, a count above zero says the interval is held
-    for replay rather than refused.
+    for replay rather than refused; ``scale_response`` is whether the draw
+    follows the heat ask where that evidence is unobtainable.
     """
     return {
         "last_refusal": record.refusal,
@@ -1077,4 +1202,5 @@ def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -
         "power_floor_kw": round(power_floor_kw(draw, params), 3),
         "draw_follows_ask": follows_ask(draw),
         "held_intervals": len(record.held),
+        "scale_response": record.scale_response,
     }
