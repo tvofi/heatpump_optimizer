@@ -93199,6 +93199,8 @@ _mf_down, _ = _mf_run(lambda a, f, i: 0.8 if a <= 1.3 and a > 0.6 else a, 2 * _m
                       d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
 _mf_out, _ = _mf_run(lambda a, f, i: 0.4, 2 * _mf_dr.MIN_SAMPLES + 2,
                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
+_mf_hold, _ = _mf_run(lambda a, f, i: 1.0 if a <= 1.3 and a > 0.6 else a, 2 * _mf_dr.MIN_SAMPLES + 2,
+                      d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=0))
 _mf_recfg = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0), floor_since=10)
 _mf_recfg.observe(1.2, 2.0, 0.6, 5.0)
 # A move reads only post-move pairs: sixty runs asked at 1.0 drawing 0.8 (within
@@ -93210,10 +93212,12 @@ for _ in range(60):
 for _ in range(_mf_dr.MIN_SAMPLES):
     _mf_post.observe(1.1, 0.53, 0.53, 5.0)
 R.check(
-    "metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8; 0.4 kW (under the "
+    "metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8, and 1.0 kW (within "
+    "15 % under it) holds it; 0.4 kW (under the "
     "configured 0.53) clears it, never under configured; a reconfiguration clears it; a raise "
     "restarts its evidence, so runs asked near the new floor before the move do not lower it",
     _mf_down.floor_kw is not None and round(_mf_down.floor_kw, 3) == 0.8
+    and _mf_hold.floor_kw == 1.1 and _mf_hold.floor_since > _mf_dr.MIN_SAMPLES
     and _mf_out.floor_kw is None
     and _mf_recfg.floor_kw is None and _mf_recfg.floor_since == 1
     and _mf_post.floor_kw is not None and round(_mf_post.floor_kw, 3) == 1.1
@@ -93357,6 +93361,8 @@ R.check(
         "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
                            "learned_min_kw": 1.1, "samples": 0},
         "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
+    and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
+    == _mf_within.min_samples != _mf_within.samples
     and _mf_sensor._pump_min_power(None) == {
         "pump_min_power": None, "pump_min_power_source": None, "pump_min_power_reason": None},
     f"{_mf_set_attrs} {_mf_min_attrs}",

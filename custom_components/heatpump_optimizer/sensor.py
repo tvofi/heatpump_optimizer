@@ -2095,34 +2095,34 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
 
 def _pump_max_power(band: Any) -> dict[str, Any]:
     """Which electrical maximum the live plan booked, and why (R10-COP-GATE
-    part D). ``source`` and ``reason`` are top-level codes, so the entity's
-    ``state_attributes`` translations render them; the evidence rides the
-    ``pump_max_power`` row. No plan publishes all three as ``None``."""
-    b = _mapping(band)
-    row = {k: b.get(k) for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
-    return {
-        "pump_max_power": row if b else None,
-        "pump_max_power_source": b.get("source"),
-        "pump_max_power_reason": b.get("reason"),
-    }
+    part D)."""
+    return _pump_power_end(band, "max", _MAX_ROW, "source", "reason")
 
 
 def _pump_min_power(band: Any) -> dict[str, Any]:
     """Which electrical minimum the live plan booked, and why
-    (R11-OUTSIDE-HONEST-METERED-FLOOR): ``_pump_max_power``'s shape for the
-    bottom end, read off the same stamp. No plan publishes all three as
-    ``None``."""
+    (R11-OUTSIDE-HONEST-METERED-FLOOR), read off the same stamp."""
+    return _pump_power_end(band, "min", _MIN_ROW, "min_source", "min_reason")
+
+
+#: Each end's evidence row: the attribute key and the stamp key it reads.
+_MAX_ROW = {k: k for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
+_MIN_ROW = {
+    "configured_min_kw": "configured_min_kw", "planned_min_kw": "planned_min_kw",
+    "learned_min_kw": "learned_min_kw", "samples": "min_samples",
+}
+
+
+def _pump_power_end(band: Any, end: str, row: dict[str, str], source: str, reason: str) -> dict[str, Any]:
+    """One end of the band stamped on the live plan (``draw_range.SolveBand``).
+    The source and reason are top-level codes, so the entity's
+    ``state_attributes`` translations render them; the evidence rides the
+    ``pump_<end>_power`` row. No plan publishes all three as ``None``."""
     b = _mapping(band)
-    row = {
-        "configured_min_kw": b.get("configured_min_kw"),
-        "planned_min_kw": b.get("planned_min_kw"),
-        "learned_min_kw": b.get("learned_min_kw"),
-        "samples": b.get("min_samples"),
-    }
     return {
-        "pump_min_power": row if b else None,
-        "pump_min_power_source": b.get("min_source"),
-        "pump_min_power_reason": b.get("min_reason"),
+        f"pump_{end}_power": {k: b.get(v) for k, v in row.items()} if b else None,
+        f"pump_{end}_power_source": b.get(source),
+        f"pump_{end}_power_reason": b.get(reason),
     }
 
 
