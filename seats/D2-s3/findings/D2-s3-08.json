@@ -1,0 +1,47 @@
+{
+ "id": "D2-s3-08",
+ "scope": "D2-s3",
+ "step": "D2.M5",
+ "title": "A charge longer than one sample books its whole charge-start dip as a hot-water draw on every combi tank",
+ "severity": "medium",
+ "claim": "With no hot water drawn at all, dhw_learning.DhwProfileLearner books the 4 K charge-start dip of a 60-minute charge into DrawStats as 3.016 kWh of draw (2.459 kWh on internal_coil), the whole dip, on all three combi_tank constructions, because ChargeSettle.advance takes back only rises seen on UNHEATED intervals and the reading recovers while the charge is still heated; the one-sample charge the take-back was built for books 0.039 kWh.",
+ "mechanism": "async_learn_dynamics folds every interval's beyond-standby drop into draw_stats (charge=started_heated or settling); the interval ending at the first heated sample is folded with charge=False (not provisional at all), and a dip on a later heated interval is provisional but ChargeSettle.advance returns 0 on every heated interval, so the recovery during the charge is never credited; the first unheated non-rise closes the charge with the dip still booked. The p90 ready target (dhw_draws.DrawStats.quantile) then asks the plan to hold more hot water than any draw needed.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+  "value": 3.016,
+  "unit": "kWh",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "n/a",
+  "contention_note": "fan-out, up to three seats on the box; an energy figure, contention-immune",
+  "tolerance": "\u00b10.05 kWh",
+  "load1": 7.8,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.dhw_learning:DhwProfileLearner.async_learn_dynamics (ChargeSettle.advance, async_fold_draw_stats -> dhw_draws.DrawStats)",
+ "perturbation": {
+  "change": "--perturb-skip-heated: async_fold_draw_stats books no fall on an interval that starts or ends on a heated sample",
+  "expected_direction": "to_zero",
+  "observed_value": 0.0
+ },
+ "metric_definition": "booked_kwh = sum of every DrawStats occurrence (closed + open) after a trace with zero real draw; identity 0 kWh",
+ "phenomenon_property": "A fall of the tank reading that a charge's loading transient explains is never booked as draw, whatever the charge's length relative to the sampling interval and whether the dip lands on the first or a later heated sample.",
+ "seam_rule": "grep -n 'charge=started_heated or settling\\|def advance\\|heated_interval' custom_components/heatpump_optimizer/dhw_learning.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+  "value": 0.0389,
+  "note": "the 'short' shape (one-sample charge, dip recovers unheated) books 0.039 kWh on every cell: the take-back works where it was designed to"
+ },
+ "reproduction_steps": [
+  "Run the harness; read the long_a/long_b booked figures per combi_tank cell against dip_equiv",
+  "Re-run with --perturb-skip-heated: every booked figure goes to 0"
+ ],
+ "proposed_fix_scope": "dhw_learning: credit the dip's recovery across heated intervals of the open charge (or hold every charge-affected fall provisional until the charge closes), including the interval ending at the first heated sample",
+ "files": [
+  "custom_components/heatpump_optimizer/dhw_learning.py",
+  "custom_components/heatpump_optimizer/dhw_draws.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

@@ -8,6 +8,7 @@ Perturbations (each moves exactly its named RESULT to zero):
   --perturb tomorrow  prices_from_tibber_payload also reads 'tomorrow'   -> tibber_rows_dropped to_zero
   --perturb oneperday _one_per_day keeps each day's highest window       -> tracker_peak_err to_zero
   --perturb topk      _exact_topk_sum takes the k largest                -> peak_cost_err to_zero
+  --perturb realhours ledger.month_hours counts the month's real hours   -> coverage_full_23h to 1.0
 
 Metric definitions (one line each), count keyed on the production value delivered:
   fold_err            = max_step |coordinator._price_series step price - time mean of the entries over [s, s+15min)|
@@ -82,6 +83,12 @@ if A.perturb == "oneperday":
                 best[day] = (kw, day)
         return undated + list(best.values())
     tariff._one_per_day = _opd
+if A.perturb == "realhours":
+    def _real_month_hours(now):
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        nxt = (start + timedelta(days=32)).replace(day=1)
+        return (nxt.astimezone(UTC) - start.astimezone(UTC)).total_seconds() / 3600.0
+    ledger.month_hours = _real_month_hours
 if A.perturb == "topk":
     tariff._exact_topk_sum = lambda excess, k: float(np.sum(np.sort(excess)[-k:]))
 

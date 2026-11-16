@@ -17,6 +17,8 @@ Metric definitions (one line each):
                  half-width the gate admitted it on (slab_ua_adoption_halfwidth),
                  i.e. the 95 % interval's non-coverage; nominal 0.05
   over_bar     = share of admitted fits with |bias| > 10 % (the bar's claim)
+  weighted_bias= decision.weight * bias, the error the coordinator's blend
+                 ((1-w)*scale + w*fit) carries into house_heat_loss_scale from a learner at the truth
 Count key: the result's heat_loss_kw_per_c and the decision's admit, both
 delivered by production.
 
@@ -106,7 +108,7 @@ for kind in ("none", "white_0.005", "white_0.02", "white_0.05", "quantised_0.1C"
     for s_true in (0.8, 1.0, 1.25):
         for cr_mult in (0.7, 1.4):
             truth, ua_true = truth_series(s_true, cr_mult, 0.3)
-            biases, misses, adm, completed, cb, hws = [], 0, 0, 0, [], []
+            biases, misses, adm, completed, cb, hws, wbias = [], 0, 0, 0, [], [], []
             seeds = 1 if kind == "none" else A.seeds
             for _ in range(seeds):
                 res, dec, hw = fit(noisy(truth, kind, rng))
@@ -119,22 +121,23 @@ for kind in ("none", "white_0.005", "white_0.02", "white_0.05", "quantised_0.1C"
                     lb = float(np.log(res.heat_loss_kw_per_c / ua_true))
                     biases.append(res.heat_loss_kw_per_c / ua_true - 1.0)
                     misses += abs(lb) > hw
+                    wbias.append(dec.weight * (res.heat_loss_kw_per_c / ua_true - 1.0))
             b = np.array(biases) if biases else np.array([np.nan])
             over = int(np.sum(np.abs(b) > 0.10)) if biases else 0
             if kind != "none":
                 grand["adm"] += adm
                 grand["miss"] += misses
                 grand["over"] += over
-            rows_out.append((kind, s_true, cr_mult, adm, seeds, misses, over, b))
+            rows_out.append((kind, s_true, cr_mult, adm, seeds, misses, over, b, wbias))
             print(f"CELL sysid-bias noise={kind} s_true={s_true} cr_mult={cr_mult} completed={completed}/{seeds} "
                   f"admitted={adm}/{seeds} miss_rate={misses / adm if adm else float('nan'):.3f} "
                   f"over_bar={over}/{adm} bias_median={np.nanmedian(b):+.4f} bias_min={np.nanmin(b):+.4f} "
                   f"bias_max={np.nanmax(b):+.4f} completed_bias_median={np.median(cb) if cb else np.nan:+.4f} "
                   f"completed_absbias_max={np.max(np.abs(cb)) if cb else np.nan:.4f} hw_median={np.nanmedian(hws) if hws else np.nan:.4f} "
-                  f"conf_med={0:.0f}", flush=True)
+                  f"weighted_bias_max={max(wbias, key=abs) if wbias else float('nan'):+.4f}", flush=True)
 
-for kind in ("white", "quantised_0.1C", "drifting"):
-    sel = [r for r in rows_out if r[0].startswith(kind)]
+for kind in ("white_0.005", "white_0.02", "white_0.05", "quantised_0.1C", "drifting"):
+    sel = [r for r in rows_out if r[0] == kind]
     adm = sum(r[3] for r in sel)
     miss = sum(r[5] for r in sel)
     over = sum(r[6] for r in sel)
@@ -142,6 +145,9 @@ for kind in ("white", "quantised_0.1C", "drifting"):
     print(f"RESULT {kind}_admitted={adm} count")
     print(f"RESULT {kind}_miss_rate={miss / adm if adm else float('nan'):.3f} ratio")
     print(f"RESULT {kind}_over_bar={over} count")
+    wb = [w for r in sel for w in r[8]]
+    print(f"RESULT {kind}_misses={miss} count")
+    print(f"RESULT {kind}_weighted_abs_bias_max={(max(abs(w) for w in wb) if wb else float('nan')):.4f} ratio")
     print(f"RESULT {kind}_abs_bias_max={(np.nanmax(np.abs(allb)) if adm else float('nan')):.4f} ratio")
 null = [r for r in rows_out if r[0] == "none"]
 print(f"RESULT null_abs_bias_max={max(float(np.nanmax(np.abs(r[7]))) for r in null):.2e} ratio")

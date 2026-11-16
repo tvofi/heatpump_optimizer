@@ -9,11 +9,11 @@ every store the closure credits raised to its settlement cap
 same golden window solved again by the production optimizer from E and from E*.
 
 Metric definitions (one line each):
-  sign      : T(E) >= 0, T(E*) == 0, and dC = spend(E) - spend(E*) >= -0.01 when T(E) > 0
+  sign      : T(E) >= 0, T(E*) == 0, and dJ >= -0.05 when T(E) > 0
   r_C       = T(E) / dC   spend = predicted_cost of the continuation (currency)
   r_J       = T(E) / dJ   dJ = objective_value(E) - objective_value(E*) (the
               continuation's whole objective, comfort included)
-A cell fails when the sign identity fails or r_J falls outside [0.5, 2].
+A cell fails when the sign identity fails or |T(E) - dJ| > max(0.5*|dJ|, 0.1 currency).
 Count key: T from the production closure, dC/dJ from production re-solves.
 
 Run:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_terminal.py [--only NAME]
@@ -40,7 +40,7 @@ def main():
         om._refill_price = lambda prices: 2.0 * orig(prices)
 
     names = [a.only] if a.only else golden_names()
-    fails, rows = 0, []
+    fails, rows, over_credit = 0, [], []
     for name in names:
         rec = solve_golden(name)
         opt, res = rec["opt"], rec["result"]
@@ -68,19 +68,21 @@ def main():
         cEs = solve_golden(name, state=copy.copy(Es), keep=False)["result"]
         dC = cE.predicted_cost - cEs.predicted_cost
         dJ = cE.objective_value - cEs.objective_value
-        sign_ok = tE >= 0 and abs(tEs) < 1e-12 and (tE <= 1e-9 or dC >= -0.01)
+        sign_ok = tE >= 0 and abs(tEs) < 1e-12 and (tE <= 1e-9 or dJ >= -0.05)
         rC = tE / dC if abs(dC) > 1e-6 else float("nan")
         rJ = tE / dJ if abs(dJ) > 1e-6 else float("nan")
-        bad = (not sign_ok) or (tE > 0.05 and not (0.5 <= rJ <= 2.0))
+        bad = (not sign_ok) or abs(tE - dJ) > max(0.5 * abs(dJ), 0.1)
         fails += bad
         if tE > 0.05 and np.isfinite(rJ):
             rows.append((name, rJ, rC))
+        over_credit.append(tE - dJ)
         print(f"CELL terminal-credit golden={name} T_E={tE:.4f} T_Estar={tEs:.2e} dC={dC:.4f} dJ={dJ:.4f} "
               f"r_C={rC:.3f} r_J={rJ:.3f} deficit_K slab={Es.slab_temperature - E.slab_temperature:.2f} "
               f"room={(Es.upper_floor_temperature - E.upper_floor_temperature) if p.two_zone_enabled else (Es.room_temperature - E.room_temperature):.2f} "
               f"buffer={Es.buffer_tank_temperature - E.buffer_tank_temperature:.2f} {'FAIL' if bad else 'OK'}", flush=True)
     print(f"RESULT terminal_failures={fails} count")
     print(f"RESULT cells={len(names)} count")
+    print(f"RESULT over_credit_max={max(over_credit):.4f} currency")
     if rows:
         rj = np.array([r[1] for r in rows])
         print(f"RESULT r_J_median={np.median(rj):.3f} ratio")

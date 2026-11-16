@@ -20,8 +20,9 @@
  },
  "instrumented_symbol": "heatpump_optimizer.ledger:coverage_factor (month_hours)",
  "perturbation": {
-  "change": "settle 744 h into March (one phantom hour): coverage_full_23h goes to 1.0",
-  "expected_direction": "down"
+  "change": "--perturb realhours: ledger.month_hours counts the month's real hours in the zone",
+  "expected_direction": "down",
+  "observed_value": 1.0
  },
  "metric_definition": "coverage_full = ledger.coverage_factor of a month whose settled-hours meta equals its real UTC hours, read on the month's last minute (identity 1.0)",
  "phenomenon_property": "An open month settled over all of its real hours is estimated at scale 1.0, its real hours counted in the zone the month is booked in.",
