@@ -46,3 +46,4 @@
 1794863575 HB alive
 1794864180 HB alive
 1794864234 CKPT code handed off at e1fa50dd75 (prepr rc=0); body_push REFUSED BODY-LINT (figure-block base mismatch between body_push and prepr); BLOCKED.md at ca1d3940f7 snapshot 66b4155d9e57
+1794864239 DONE blocked at body push: code e1fa50dd75 on handoff/ (prepr rc=0, class closed: 0/2370 selfset follows, 0/360 heatled dnf); body kept at handoff-wip/...-body 302a27ee63; body_push.sh refuses its own figure-block render (PR base vs origin/main); two heat-led rows stop learning under the design (repriced, sub_min); BLOCKED.md ca1d3940f7
