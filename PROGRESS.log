@@ -5,3 +5,4 @@
 1794869450 CKPT figures, carry6, citations verified; entities.py running snapshot 7568676f2e53
 1794869484 HB alive
 1794870007 CKPT verdict pushed: probe/rev-3688-e2ecf6c2 at 80813b6 snapshot 210378f98604
+1794870011 DONE Fix review: merge f7ef7c06 returned on probe/rev-3688-e2ecf6c2 (80813b62)
