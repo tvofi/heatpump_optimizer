@@ -8,9 +8,9 @@ whose levels ship rounded (``clamp_planned_levels``), p_min 1.5 kW, p_max
 5.5 kW: two-zone off/on x hot water off/on x heat-loss scale 0.6/1.0 x outdoor
 mean -4/+2 degC x starting tank 25/34 degC = 32 cells, one sinusoidal price
 day (1.3 +/- 0.9) and its flat mean. Each cell is solved twice per price
-vector on the tree it runs in: as shipped, and with
-``optimizer._relaxed_starts`` replaced by the identity (the control arm; on a
-tree without the function both arms are the tree). Printed per price vector:
+vector on the tree it runs in: as shipped, and with the relaxed descent
+removed (the control arm: ``optimizer._multi_start_minimize`` returning its
+first start, which the candidate stage then commits). Printed per price vector:
 how many cells the shipped solve scores lower / higher by the plan's own
 ``objective_value`` than the control arm, how many publish the identical plan,
 and the failure count. No private data: every input is written here.
@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import itertools
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -45,9 +46,15 @@ def solve(cell: tuple, prices: np.ndarray, relaxed: bool) -> tuple[np.ndarray, f
     params.house_heat_loss_scale = loss
     outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
     opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(clamp_planned_levels=True))
-    kept = getattr(opt_mod, "_relaxed_starts", None)
-    if not relaxed and kept is not None:
-        opt_mod._relaxed_starts = lambda _opt, *args: args[-2]
+    # The control arm removes the relaxed descent: the multi-start returns its
+    # first start as it stands and the candidate stage commits that. Ported in
+    # R11-OUTSIDE-HONEST-STARTS-RUNS from ``_relaxed_starts`` as identity, the
+    # function that pull request deleted; a tree before it has no relaxed
+    # descent to remove, so run the harness of that tree there.
+    kept = opt_mod._multi_start_minimize
+    if not relaxed:
+        opt_mod._multi_start_minimize = lambda _objective, starts, _bounds, **_kw: SimpleNamespace(
+            x=np.asarray(starts[0], float), success=True)
     try:
         result = opt.optimize(inputs=solve_inputs(
             initial_state=ThermalState(
@@ -60,8 +67,7 @@ def solve(cell: tuple, prices: np.ndarray, relaxed: bool) -> tuple[np.ndarray, f
             start_time=datetime(2026, 1, 10, tzinfo=timezone.utc),
         ))
     finally:
-        if kept is not None:
-            opt_mod._relaxed_starts = kept
+        opt_mod._multi_start_minimize = kept
     return np.asarray(result.power_schedule, float), float(result.objective_value)
 
 

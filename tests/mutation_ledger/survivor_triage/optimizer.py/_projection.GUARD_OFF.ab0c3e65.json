@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_projection GUARD_OFF ab0c3e65",
+  "old": "    if opt.config.clamp_planned_levels:",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. With the clamped arm off, a clamped install's candidate (1) is built by the duty-cycle arm (each level raised to the floor against its cap). On the block's clamped fixtures the stage ships a committed candidate either way, and no check compares a clamped install's projection with `_realize_draw`'s. A check on `_projection` alone, clamped against unclamped on one relaxed plan with a sub-floor level beside hot water, would kill it; none is recorded.",
+  "verdict": "gap"
+}
