@@ -1,0 +1,47 @@
+{
+ "id": "D11-s1-04",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "Claim-file merge driver's mutation control is dead: its null control fails, 0 of 16 mutants reached",
+ "severity": "medium",
+ "claim": "dev/audit/harnesses/claim_merge_mutants.py, the one control that empties each rule of the claimnotes merge driver, fails its own null control at the baseline (baseline_pass=0) and so reaches 0 of its 16 mutants; giving its copy custom_components/ restores 16 of 16 killed.",
+ "mechanism": "The harness copies only tests/ and .gitattributes into its temp tree, then imports tests/harness.py, which since aa631f7c5d (2026-11-11) lists custom_components/heatpump_optimizer/translations at import. The import raises FileNotFoundError, the null control exits 1, and main() returns before any mutant. Nothing wires the harness (no workflow, no self-test step), so the break was silent.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/claim_control.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/claim_control.py",
+  "value": 0,
+  "unit": "mutants reached by the claim driver's mutation control",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared (load1 10.3); return codes and kill counts, contention-immune",
+  "tolerance": "exact",
+  "load1": 10.34,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "dev/audit/harnesses/claim_merge_mutants.py:main (run_section), over tests/entities.py's claim-file merge-driver section and tests/env_drift.py:merge_claim_file",
+ "perturbation": {
+  "change": "the harness's temp copy also takes custom_components/ (claim_control.py --perturb wraps its shutil.copytree)",
+  "expected_direction": "up",
+  "observed_value": 16
+ },
+ "metric_definition": "Mutants of tests/env_drift.py's claimnotes driver that claim_merge_mutants.py actually runs (killed + survived) after its unmutated null control.",
+ "phenomenon_property": "A control that copies a partial tree carries every path its imports read at load time, and a control nobody runs on a schedule is wired somewhere that reddens when its null control fails.",
+ "seam_rule": "grep -ln 'copytree(ROOT / \"tests\"' dev/audit/harnesses/*.py tools/audit/seat/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/claim_control.py --perturb",
+  "value": "baseline_pass=1, killed=16, survived=0",
+  "note": "with the missing directory supplied, the same control kills every mutant, so 0 is the copy's defect and not the driver's"
+ },
+ "reproduction_steps": [
+  "claim_control.py -> RESULT baseline_pass=0, mutants_reached=0",
+  "claim_control.py --perturb -> RESULT baseline_pass=1, mutants_reached=16"
+ ],
+ "proposed_fix_scope": "Copy custom_components/ (or the translations directory) into the harness's temp tree, and wire the harness as a governance.yml instrument-self-tests step (or a tests/entities.py arm) so a red null control is seen.",
+ "files": [
+  "dev/audit/harnesses/claim_merge_mutants.py",
+  "tests/harness.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I1"
+}
