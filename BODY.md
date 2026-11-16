@@ -4,11 +4,17 @@ Carries as dispositioned: Carry 0 and Carry 2 (duplicates) are the stub rule and
 
 ## Head
 
-8d2eb5c41a480f91fc092db7e89354807de6925c (repair of 296a0a30d41de41aced099d6c16045cbaefaa1d7, blocked by verdict/3639 as mutation-vacuous: one commit on it, touching only `tools/audit/seat/shell_hazard.py`; `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main is not merged). The figures from the Null control section on that were not re-measured describe the unchanged rest of the diff.
+3d12f40a506961f777d05c101c4a6db57102911f (repair, round 3, of e0238c1fe8bc36541e3ecb9fea4c1e59e71e5245, blocked by verdict/3639 as mutation-vacuous: one commit on it, two added lines in `self_test()` of `tools/audit/seat/shell_hazard.py`, no production line changed; `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main is not merged). The figures in the sections below that were not re-measured describe the unchanged rest of the diff.
 
-prepr: passed rc=0 at 8d2eb5c41a480f91fc092db7e89354807de6925c
+prepr: passed rc=0 at 3d12f40a506961f777d05c101c4a6db57102911f
 
 ## Mutation proof
+
+Round 3, the survivor: in `string_compared()`, replacing the last-opener loop (`opener = None` / `for opener in TEST_OPEN.finditer(pre): pass`) with `opener = TEST_OPEN.search(pre)` (the first opener) left `--self-test` at ok. The repair is one self-test row: `[ "$a" = b ] && [ "$(wc -l <f)" = 3 ]` must be refused. Failing test first: with the row added and the first-opener mutant applied, `--self-test` printed `FAILED` (rc 1) with one FAIL row, that row, `got [], want ['wc-compare']`. Null control: the same row at the unmutated head passes, `shell_hazard self-test: ok` (rc 0); and the first-opener mutant without the row still prints ok (rc 0), so the row is what kills it.
+
+The reviewer's mutant replacements (ev/mutants.txt, ev/mutants2.txt), re-run at 3d12f40a50, one replacement on the file, then `--self-test`, then restore; the count is FAIL rows, not counting the summary line: `STR_SUBJECT` always False: killed, 5. `STR_SUBJECT` without `case`: killed, 1. Without `st`: killed, 4. Closed-bracket check removed: killed, 1. Opener-None check removed: killed, rc 1 with 0 rows (the run raises on `None.end()`). `STR_OP_AFTER` removed: killed, 54. `STR_OP_BEFORE` removed: killed, 50. `!=` dropped from `STR_OP_AFTER`: killed, 18; from `STR_OP_BEFORE`: killed, 17. `==` dropped from `STR_OP_AFTER`: killed, 18. First opener instead of last: killed, 1 (was the survivor). `TEST_OPEN` without `[[`: killed, 50. `NORMALISE` exemption removed: killed, 3. `RAW` exemption removed: killed, 1. `string_compared` always True: killed, 199. `break` removed: survived, 0 (dismissed by the reviewer, not touched). Unmutated control: ok, rc 0. The file keeps no mutant list, so none was extended.
+
+Round 2:
 
 The block: deleting ` or NUMERIC.search(line)` left `--self-test` at ok, and the line-wide search excused a raw wc string compare on any line also holding `-eq`, `((` or `$((`. The repair deletes `NUMERIC` and the line-wide `STRING_CMP`. A new `string_compared(line, m)` judges only the compare that holds the substitution: it is `st`'s or `case`'s subject (`STR_SUBJECT`), or a side of `=`, `==` or `!=` (`STR_OP_AFTER`, `STR_OP_BEFORE`) inside the `[`/`[[` test that holds it (`TEST_OPEN`, and no `]` between that opener and the substitution).
 
@@ -41,8 +47,9 @@ Brief item (a): the RCA body is landed verbatim as `dev/audit/rca/R10-RCA-PREPR-
 
 ## Unpinned sites
 
-- `NUMERIC.search(line)` in `hazards()` (verdict/3639's survivor): deleted, with the line-wide `STRING_CMP` it qualified. Its replacement's predicates are each killed above.
-- prepr step 6d', `MUTANT_CMD="python3 -I tools/audit/seat/shell_hazard.py --self-test"` at 8d2eb5c41a, printed 11 `SURVIVED` lines, all inside `self_test()` and none in `hazards()` or `string_compared()`: `shell_hazard.py:134` GUARD_OFF (`if got != want:` in the `st` helper) and `:135` CALL_DEL (its `fails.append`) disable the assertion itself; `:143`-`:147` and `:155`-`:158` CALL_DEL each delete one self-test row. Disposition: a value check. A mutant of the self-test's own assertion or rows cannot be killed by that same self-test. Each deleted row is the check that kills a production mutant named in the Mutation proof (for example `:158`, the `case` row, is the one row that kills M1 `STR_SUBJECT` limited to `st`), and those production mutants were run on the file by hand above, each rc 1.
+- `NUMERIC.search(line)` in `hazards()` (verdict/3639's round-1 survivor): deleted, with the line-wide `STRING_CMP` it qualified. Its replacement's predicates are each killed above, the last-opener loop by the round-3 row.
+- The `break` after `out.append((n, "wc-compare", ...))` in `hazards()`: removing it survives the self-test. Disposition: a value check, dismissed by the round-2 reviewer: without it a line with two raw wc compares yields a duplicate report line on a line already refused, so no refusal changes.
+- prepr step 6d', `MUTANT_CMD="python3 -I tools/audit/seat/shell_hazard.py --self-test"` at 8d2eb5c41a, printed 11 `SURVIVED` lines (the round-3 row shifts the later self-test line numbers by 2), all inside `self_test()` and none in `hazards()` or `string_compared()`: `shell_hazard.py:134` GUARD_OFF (`if got != want:` in the `st` helper) and `:135` CALL_DEL (its `fails.append`) disable the assertion itself; `:143`-`:147` and `:155`-`:158` CALL_DEL each delete one self-test row. Disposition: a value check. A mutant of the self-test's own assertion or rows cannot be killed by that same self-test. Each deleted row is the check that kills a production mutant named in the Mutation proof (for example `:158`, the `case` row, is the one row that kills M1 `STR_SUBJECT` limited to `st`), and those production mutants were run on the file by hand above, each rc 1.
 - `test "$(wc -l <f)" = 3`, which the verdict names as optional and outside the stated rule: not matched (the rule knows `st`, `case`, `[` and `[[`). Left alone, as the brief scopes this repair to the numeric exemption.
 
 ## Red checks
