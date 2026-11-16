@@ -1,0 +1,6 @@
+RESULT links=115
+RESULT broken=0
+RESULT external=0
+RESULT thread_factor=1.00
+RESULT load1=3.72
+RESULT swapins=0
