@@ -23,10 +23,10 @@ Run (from the export root):
   ``--at`` needs this checkout's git (git archive into a private temp root).
 
 Expected at baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (box B7, linux):
-  RESULT quiet_stale_q255=13 keys (exact), quiet_stale_q480=18 keys (exact),
+  RESULT quiet_stale_q255=13 keys (exact), quiet_stale_q480=19 keys (exact),
   polled_stale_q255=0, polled_stale_q480=0. At 3e9f1878bd^: indoor_temp_entity
-  among the q255 seams (RESULT refind_D1_s5_51=1). At 9c988fc580^:
-  heat_pump_power_entity among the q480 seams (RESULT refind_D14_s3_02=1).
+  among the q255 seams (RESULT refind_D1_s5_51=1; all 25 keys stale at q255). At 9c988fc580^:
+  heat_pump_power_entity among the q480 seams (RESULT refind_D14_s3_02=1; q255=20, q480=25). --reintroduce power: q255 13 -> 14.
   Counts are exact (no timing); thread_factor/load1 printed per the contract.
 """
 import os

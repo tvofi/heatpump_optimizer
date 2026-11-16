@@ -1,0 +1,6 @@
+RESULT classes=36
+RESULT norow=0
+ROW I1 rc=0 wall_s=0.2 cpu_s=0.1 wired=.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=--scope changed needs an origin/main diff; argv parse only
+TAIL I1 pair on a synthetic fixture (selftest_pin_drive) and | exit: no tree, no driver -- the drives are fakes | sleeping the recorded seconds, scaled
+ROW I2 rc=2 wall_s=0.1 cpu_s=0.1 wired=.github/workflows/ci.yml,.github/workflows/governance.yml,.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=check --in-dir needs a strace recording; self-test
+TAIL I2 usage: closure.py [-h] | {record,merge,check,autofix,autofix-report,canonical,prune,select,affected,changed,replay-reach,lane-plan,not-run,coverage-split,coverage-trust,coverage-summary,proof-consume,show,no-copies,selftest} ... | closure.py: error: the following arguments are required: cmd
