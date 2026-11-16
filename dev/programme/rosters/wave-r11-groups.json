@@ -3397,6 +3397,49 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-START-EVALUATION-LAND",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/yardstick/round11/EVALUATION.json",
+    "dev/audit/rounds/round11/evaluation/"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "user",
+   "brief": "Land the approved round-11 start evaluation (eval/r11, approved at the evaluation review round 4, c04cef7fca) on main so check_scopes.py --round 11 can read it; decision 0018 section 5. Finder critical path.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r11-start-evaluation-land",
+    "commit": null,
+    "last_step": null,
+    "next_step": "re-cut from eval/r11 c04cef7fca; open the PR",
+    "note": null,
+    "pr": null
+   }
   }
  ]
 }
