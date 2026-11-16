@@ -67,9 +67,10 @@ AGREE_TOLERANCE = 0.15
 #: a flat ask is no test of following.
 FOLLOW_ASK_SPAN = 1.15
 #: ... and the draw follows when the slope of log drawn on log asked is at
-#: least this. A draw proportional to its ask has slope 1, an efficiency shift
-#: included (it scales every draw alike); a draw the pump's own controller
-#: sets has slope 0 whatever its level. Halfway between the two.
+#: least this, and its level holds (``ask_evidence``). A draw proportional
+#: to its ask has slope 1, an efficiency shift included (it scales every draw
+#: alike); a draw the pump's own controller sets has slope 0 whatever its
+#: level. Halfway between the two.
 FOLLOW_SLOPE_MIN = 0.5
 #: ``ask_evidence``'s four states. ``ASK_FOLLOWS`` and ``ASK_IGNORED`` are the
 #: evidence itself. ``ASK_UNOBTAINABLE``: this window will not say -- no window,
@@ -480,8 +481,14 @@ def ask_evidence(draw: DrawRange | None) -> str:
     One of the ``ASK_*`` states, judged on the run-asked pairs
     (``DrawRange._run_asked``). With ``MIN_SAMPLES`` of them whose asks span
     ``FOLLOW_ASK_SPAN`` the slope of log drawn on log asked decides
-    (``FOLLOW_SLOPE_MIN``). Without that evidence the state says whether to
-    wait for it: ``ASK_PENDING`` while the window is still filling, else
+    (``FOLLOW_SLOPE_MIN``), and so does the level: the draw follows only where
+    one ratio of drawn to asked holds across the span, its fitted value at the
+    span's top and low end within ``DISAGREE_FACTOR`` of each other. The
+    COP learner reads a departure as an efficiency shift on ``ASK_FOLLOWS``,
+    and a shift scales every draw alike; a slope of 0.7 over asks spanning
+    3.9 moved the level from 2.1 to 1.4 times the ask. Without that
+    evidence the state says whether to wait for it: ``ASK_PENDING`` while
+    the window is still filling, else
     ``ASK_UNOBTAINABLE`` -- no window at all, asks that never moved, or a
     full window (``WINDOW`` samples) that holds too few run-asked pairs, which
     more of the same operation will not change.
@@ -499,15 +506,16 @@ def draw_response(pairs: Any) -> str:
 
     ``ASK_UNOBTAINABLE`` where the regressor's ``LOW_PERCENTILE`` to
     ``HIGH_PERCENTILE`` does not span ``FOLLOW_ASK_SPAN``, else the slope of
-    log drawn on log regressor against ``FOLLOW_SLOPE_MIN``. The caller
+    log drawn on log regressor and the level it leaves (``_verdict``). The caller
     counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask; a
     regressor the draw moves is :func:`step_response`'s.
     """
     pairs = np.asarray(pairs, dtype=float)
-    if not _spans(pairs):
+    if (span := _span(pairs)) is None:
         return ASK_UNOBTAINABLE
     asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
-    return _slope_verdict(asked - asked.mean(), drawn - drawn.mean())
+    asked = asked - asked.mean()
+    return _verdict(float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked)), span)
 
 
 def step_response(pairs: Any) -> str:
@@ -515,8 +523,8 @@ def step_response(pairs: Any) -> str:
     regressor) rows, kW, one per interval, oldest first.
 
     ``ASK_UNOBTAINABLE`` where the regressor does not span (as
-    :func:`draw_response`), else the slope of the row-to-row change of log
-    drawn on that of log regressor against ``FOLLOW_SLOPE_MIN``. Where the
+    :func:`draw_response`), else :func:`draw_response`'s rule on the slope of
+    the row-to-row change of log drawn on that of log regressor. Where the
     regressor moves only as a learner folds the draw (the COP learner's heat
     ask, ``accuracy.MeasuredCop``), its levels split the rows by time, and a
     draw drifting on its own over the window (a weather front) reads as
@@ -525,22 +533,30 @@ def step_response(pairs: Any) -> str:
     same row; each row's regressor is the one its draw was read under.
     """
     pairs = np.asarray(pairs, dtype=float)
-    if not _spans(pairs):
+    if (span := _span(pairs)) is None:
         return ASK_UNOBTAINABLE
-    return _slope_verdict(np.diff(np.log(pairs[:, 1])), np.diff(np.log(pairs[:, 0])))
+    asked, drawn = np.diff(np.log(pairs[:, 1])), np.diff(np.log(pairs[:, 0]))
+    return _verdict(float(np.dot(asked, drawn) / np.dot(asked, asked)), span)
 
 
-def _spans(pairs: Any) -> bool:
-    """Whether the regressor's ``LOW_PERCENTILE`` to ``HIGH_PERCENTILE`` spans ``FOLLOW_ASK_SPAN``."""
+def _span(pairs: Any) -> float | None:
+    """The regressor's ``HIGH_PERCENTILE`` over its ``LOW_PERCENTILE``, or
+    None where that does not reach ``FOLLOW_ASK_SPAN``."""
     low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
-    return bool(high >= FOLLOW_ASK_SPAN * low)
+    return None if high < FOLLOW_ASK_SPAN * low else float(high / low)
 
 
-def _slope_verdict(regressor: Any, drawn: Any) -> str:
-    """``ASK_FOLLOWS`` where the least-squares slope of ``drawn`` on the
-    centred or differenced ``regressor`` reaches ``FOLLOW_SLOPE_MIN``."""
-    slope = float(np.dot(regressor, drawn) / np.dot(regressor, regressor))
-    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGNORED
+def _verdict(slope: float, span: float) -> str:
+    """``ASK_FOLLOWS`` where ``slope`` reaches ``FOLLOW_SLOPE_MIN`` and the
+    level holds, else ``ASK_IGNORED``.
+
+    The level: drawn over the regressor on the fitted line moves by
+    ``span ** |1 - slope|`` from the span's low end to its top. One
+    efficiency shift is one level at every ask; a level that moves by more
+    than ``DISAGREE_FACTOR`` is the pump's own map, not efficiency.
+    """
+    level_moves = span ** abs(1.0 - slope)
+    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED
 
 
 def follows_ask(draw: DrawRange | None) -> bool | None:

@@ -5325,8 +5325,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         commanded = self._commanded_power()
         params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
         # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
-        # lets out, then the configured scale a draw that ignores the heat ask is owed (owner ruling D4);
-        # this interval's row keeps ``priced``, the scale its ask ran under (``CopInterval.cop_scale``).
+        # lets out, then the configured scale a draw that ignores the heat ask is owed (owner ruling D4).
         for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
         if self._measured_cop.take_restore():

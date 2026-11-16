@@ -35,10 +35,21 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
                 (OPENER-LIVE-TIP, P603): the line at A no longer opens at B.
   M-moved-gone  drops the SKIP moved on an absent handoff ref: the null control
                 (a gone ref still prints SKIP moved) fails.
+  M-stale-env   every rc 1 is the environment's (P627 (iv)): a merge conflict
+                neither backs off nor counts.
+  M-stale-key   the HEAD key is dropped: a STALE CHECKOUT result is retried
+                every pass.
+  M-stale-count a STALE CHECKOUT result counts toward MAX_TRIES.
+  M-stale-unread an unreadable tools HEAD reads as a changed one.
+  M-stale-notice a NOTICE under HPO_ALLOW_STALE_TOOLS classifies as the refusal.
+  M-retry-nowrite the retry verb writes nothing (P678 (iii)).
+  M-retry-refuse  the retry verb does not refuse a topic with no entry.
+  M-retry-namesake the retry verb matches a topic by prefix: r10-cp drops r10-cp-2.
+  M-unlisted    a topic held by the cap draws no line: a board topic goes unlisted.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=24
+EXPECTED RESULT mutants=33
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -98,6 +109,15 @@ PLANTS = {
     "M-reap-log": ('{reason(d / f"t-{stem(t)}.log")}', '{reason(d / f"t-{t}.log")}'),
     "M-escape": ('topic.replace("%", "%25").replace("/", "%2F")', 'topic.replace("/", "%2F")'),
     "M-maxtries": ('        elif fails.get(f"{topic} {sha}", {}).get("n", 0) >= MAX_TRIES:\n', "        elif False:\n"),
+    "M-stale-env": ("            head = stale_head(why)\n", '            head = stale_head(why) or "0" * 12\n'),
+    "M-stale-key": ('.get("stale") and (not tools or tools.startswith(fails[f"{topic} {sha}"]["stale"])):', '.get("stale") and False:'),
+    "M-stale-count": ('fails[key] = {"n": prev.get("n", 0), "next": prev.get("next", 0)', 'fails[key] = {"n": prev.get("n", 0) + 1, "next": prev.get("next", 0)'),
+    "M-stale-unread": ("and (not tools or tools.startswith(", "and (tools.startswith("),
+    "M-stale-notice": ('r"\\S+: REFUSE: STALE CHECKOUT', 'r"\\S+: (?:REFUSE|NOTICE): STALE CHECKOUT'),
+    "M-retry-nowrite": ("    p.write_text(json.dumps(fails))\n    if _load(p, None) != fails:\n", "    if False:\n"),
+    "M-retry-refuse": ("    if not keys:\n        out(f\"open_driver retry: REFUSE: {p} holds no entry", "    if False:\n        out(f\"open_driver retry: REFUSE: {p} holds no entry"),
+    "M-retry-namesake": ("if k.split()[0] == topic and k.split()[1].startswith", "if k.startswith(topic) and k.split()[1].startswith"),
+    "M-unlisted": ('            skipped[topic] = "cap"\n            log(f"SKIP {topic} {sha[:8]} cap")\n', '            skipped[topic] = "cap"\n'),
     "M-stuckowed": ('f"STUCK {t} {sha[:8]} rc=', 'f"OWED {stamp} open-refused {t} {sha[:8]} rc='),
 }
 
