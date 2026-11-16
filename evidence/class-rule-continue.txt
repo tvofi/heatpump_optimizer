@@ -1,0 +1,21 @@
+25:    [ -n "$pr" ] || continue
+33:    [ -n "$hs" ] || continue  # no handoff ref: nothing to apply, so nothing owed
+37:      || { skip_owed "$pr" "$topic" "$hs" "handoff/$topic or the head ${head:0:12} could not be fetched"; continue; }  # mut:skipunread
+42:      [ -n "$bs" ] || continue
+43:      grep -qxF "$topic $bs" "$bf" && continue
+44:      [ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }
+48:      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr NOBODY" >> "$state/cloud-level-held.$$"; continue  # mut:nobody
+52:      else level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr HOLD" >> "$state/cloud-level-held.$$"; fi; continue; fi  # mut:holdowed
+56:      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
+62:      level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue
+66:    if [ "${tries% *}" != 0 ] && [ "$(date +%s)" -lt $(( ${tries#* } + ${HPO_RELAY_RETRY_BACKOFF:-1800} )) ]; then why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null); level_line handoff-upda
+70:    bd=$(mktemp -d "$state/cloud-body.XXXXXX") || { skip_owed "$pr" "$topic" "$hs" "no body directory under $state"; continue; }
+73:      && git show "$bs:BODY.md" > "$body" 2>/dev/null || { skip_owed "$pr" "$topic" "$hs" "no BODY.md at handoff-body/$topic ${bs:0:12}"; rm -rf "$bd"; continue; }
+80:      level_line handoff-body-stale "refs/heads/handoff/$topic" "$hs" "body names ${code:0:12}" >> "$state/cloud-level-stale.$$"; rm -rf "$bd"; continue
+87:      rm -rf "$bd"; continue; fi
+92:      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr BODY" >> "$state/cloud-level-held.$$"; rm -rf "$bd"; continue
+111:        rm -rf "$bd"; continue
+123:    if [ "$urc" = 75 ]; then skip_owed "$pr" "$topic" "$hs" "BUSY: update_pr: $(last_line "$(cat "$bd/update.out")")"; rm -rf "$bd"; continue; fi  # mut:skipbusy
+136:      level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; rm -rf "$bd"; continue
+140:    if [ -n "$bonly" ]; then echo "cloud_relay: BODIED #$pr $head with handoff-body/$topic $bs" >&2; continue; fi
+145:    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { ledger_open dispatch "$pr" - "no new head read after the update"; continue; }

@@ -1,0 +1,6 @@
+RESULT defect_updated=0 defect_owed=0
+RESULT null_updated=0 null_owed=0
+
+real	0m3.109s
+user	0m2.384s
+sys	0m0.722s

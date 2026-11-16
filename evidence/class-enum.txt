@@ -1,0 +1,7 @@
+tools/audit/seat/bus.sh:257:    [ -n "$ref" ] && topic=(--topic "$(python3 -I "$ROOT/tools/audit/seat/topic_grammar.py" pr-topic "$ref")")  # mut:landtopic
+tools/audit/seat/cloud_relay.sh:607:  python3 -I "$HERE/topic_grammar.py" handoff-topics $(cut -f2 "$state/cloud-prs.$$") > "$state/cloud-topics.$$"
+tools/audit/seat/cloud_relay.sh:646:    for ht in $(python3 -I "$HERE/topic_grammar.py" handoff-topics "$br"); do  # mut:handofftopics
+tools/audit/seat/instruments/cloud_relay.sh.md:86:  `topic_grammar.py handoff-topics <headRefName>` with a `handoff/` ref
+tools/audit/seat/review_packet.py:330:handoff_topics = topic_grammar.handoff_topics
+tools/audit/seat/review_packet.py:408:    for t in handoff_topics(branch):
+tools/audit/seat/review_packet.py:783:        on_roster, carries_at = roster_carry_reader(handoff_topics(branch), rref)

@@ -1,0 +1,2 @@
+RESULT defect_updated=0 defect_owed=0
+RESULT null_updated=0 null_owed=0
