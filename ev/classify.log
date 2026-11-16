@@ -1,0 +1,27 @@
+08:16:26 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:17:44 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:19:01 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:20:19 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:21:36 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:22:54 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:24:12 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:25:30 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:26:47 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:28:05 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:29:23 rc=3 WAIT b197da1e6bf2c51ad95aa819a78ed020b3db2549 pending: gate red: none
+08:30:40 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+DONE
+08:32:06 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:33:20 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:34:33 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:35:46 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:37:00 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:38:13 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:39:27 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:40:40 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:41:54 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:43:07 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:44:21 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:45:34 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+08:46:47 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 133162504346 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+DONE2
