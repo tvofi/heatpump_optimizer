@@ -1,0 +1,27 @@
+RESULT check_units=2668
+RESULT check_rows=2668
+RESULT check_claims=2067
+RESULT check_false=5
+RESULT check_stale=37
+RESULT check_true=46
+RESULT check_unverifiable=1979
+RESULT check_unrowed=0
+RESULT check_orphan=0
+RESULT check_malformed=0
+RESULT check_exit=0
+RESULT plant_units=2668
+RESULT plant_rows=2668
+RESULT plant_claims=2067
+RESULT plant_false=5
+RESULT plant_stale=37
+RESULT plant_true=46
+RESULT plant_unverifiable=1979
+RESULT plant_unrowed=0
+RESULT plant_orphan=0
+RESULT plant_malformed=0
+RESULT plant_plant_refused=1 planted_units=1 in docs/CONTRIBUTING.md
+RESULT plant_exit=0
+RESULT d2_path_stale_rows=29
+RESULT thread_factor=1.000
+RESULT load1=4.09
+RESULT swapins=0
