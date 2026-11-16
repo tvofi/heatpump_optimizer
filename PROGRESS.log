@@ -2,3 +2,4 @@
 1794865750 RESUMED from 7a5e1c4e9f6a
 1794865750 INIT box B13
 1794865760 HB alive
+1794865819 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
