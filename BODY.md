@@ -43,6 +43,8 @@ Design choices: (1) a design-tip disposition is recordable because `ledger.ARMS`
 - Seams enumerated for carry 1: `python3 -c "import re,sys; sys.path.insert(0,'tools/audit/seat'); import owed_unactioned as o; print(re.match(r'\^-> \((.*)\)$', o.FAMILY.pattern).group(1).split('|'))"` lists 13 kinds; 4 are armed here (OWED, DESIGN-REVIEW OWED:, UNDISPATCHED:, DESIGN-BUILD:), 9 are DEBT (REVIEW OWED:, RECORD-OWED:, DISPATCH:, OWNER FLAG:, MERGE-READY:, BLOCKED-UNFIXED:, APPROVAL-OWED:, UNLEVELLED:, REVIEW STALLED:). The census fails on a kind in neither set.
 - The finder's harness is a recorded case, not a script: DESIGN-REVIEW OWED's measured replay (three groups at 2026-11-11T05:06Z) needs the live remote refs of that instant, which this container cannot reproduce; the self-test's revise-verdict, old-dispatch and newer-tip fixture is its stand-in.
 
+Carries not built in this part (parts 2 and 3 build them, none is answered here): Carry 5, Carry 6, Carry 8, Carry 9, Carry 10, Carry 11, Carry 12, Carry 13, Carry 14, Carry 15, Carry 16, Carry 17.
+
 ## Red checks
 
 none
