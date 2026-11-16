@@ -686,8 +686,8 @@ def evaluation_self_test(tree, show):
             run(check=lambda *a: p3_input(*a, {"groups": [{"group": "U", "resume": {"stage": "not-started"}}]}))[1:]
             == (1, ["UNMARKED U: open, no boolean gates_finders (roster_edit.py set-field U gates_finders true|false)"])
             and run(edit(lambda c: c["cards"]["C1"].pop("gates_finders")), check=lambda *a: p3_input(*a, {"groups": []}))[1] == 1,
-        "a null, absent or blank reviewer or evaluator is refused":
-            all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [])]
+        "a null, absent, blank or non-string reviewer or evaluator is refused":
+            all(only(run(ev), "two seats") for ev in [edit(lambda c: c.update(**{k: v})) for k in ("reviewer", "evaluator") for v in (None, "", "  ", 0, [], 1, ["x"])]
                 + [edit(lambda c: c.pop(k)) for k in ("reviewer", "evaluator")]),
         "B1 a disguised orchestrator or the same seat respelled is refused":
             all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
