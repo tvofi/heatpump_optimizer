@@ -7,3 +7,4 @@
 1794853217 CKPT cases committed; spec1/spec2 all 9 KILLED, NULL SURVIVED; wip pushed snapshot 7af51ae9ca1d
 1794853491 CKPT cadence committed 411d996; specs all KILLED; running prepr snapshot b11482b894c4
 1794853619 HB alive
+1794854212 CKPT code pushed 411d996; body_push refused figure-block base mismatch; BLOCKED.md pushed 08154d5 snapshot 8ca2343b124e
