@@ -2,7 +2,7 @@
   "id": "D9-s2-01",
   "scope": "D9-s2",
   "step": "D9.M1",
-  "title": "Card HistorySource never trims recorded rows outside its 48 h span: retained rows grow linearly with the card element's life",
+  "title": "Card HistorySource never trims rows past its 48 h span: retained rows grow linearly with the card's life",
   "severity": "low",
   "claim": "On a long-lived card element whose plan dialog is panned into the past once a day, HistorySource retains 1,448 more rows per day (log 476, actionLog 152, seen keys 628, memoized overlay points 192; 60 covered chunks after 30 days against a 48 h reach of 4-5), with no plateau, while its own HISTORY_SPAN_MS caps what it can ever show at 48 h.",
   "mechanism": "HistorySource is built once per card element (constructor) and survives every dialog session (ViewWindow.onDialogClosed resets only the range). absorb() appends every fetched row to this.log[field], this.actionLog and this.seen, and fetchChunk adds each chunk to this.covered; ensure() deletes only the stale live-edge chunk's 'loaded' mark. Nothing drops a row older than Date.now() - HISTORY_SPAN_MS, and overlays() re-materialises one point per plan step of every covered chunk into this.memo, so the memo also grows per day.",
@@ -39,7 +39,9 @@
     "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan"
   ],
   "proposed_fix_scope": "HistorySource: drop log/actionLog rows, seen keys and covered chunks older than Date.now() - HISTORY_SPAN_MS when a chunk is absorbed (or clear the collaborator when the dialog session ends), and build overlays only over covered chunks inside the span.",
-  "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+  "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+  ],
   "expected_golden_drift": [],
   "stop_rule_class": "bug",
   "class_guess": "N-no-expiry"
