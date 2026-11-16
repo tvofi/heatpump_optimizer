@@ -152,7 +152,7 @@ def reads(groups: list, every: list) -> list[str]:
     gens = collections.Counter(generation(g, by_name) for g in groups if g.get("parent") or g["group"] in cm_names)
     broken = gens.pop(None, 0)
     ladder = " ".join(f"g{i}:{gens[i]}" + (f"({gens[i] / gens[i - 1]:.2f})" if i and gens[i - 1] else "")
-                      for i in range(max(gens, default=-1) + 1))
+                      for i in range(max(gens) + 1)) if gens else ""
     k = f"{kids / len(cms):.2f}" if cms else "none (no countermeasure)"
     out.append(f"loop countermeasures {len(cms)} by family {_counts(collections.Counter(g['family'] for g in cms))} "
                f"by cm_kind {_counts(collections.Counter(g['cm_kind'] for g in cms))}; k {k}; "
@@ -304,6 +304,9 @@ def self_test() -> int:
         check("a group carried into a later roster is counted once in its week",
               report([(9, "a", {"groups": [x]}), (10, "b", {"groups": [x]})], {"R9-OUT": 0})[-4]
               .startswith("  escapes 1 "))
+        check("an unrecorded list names its first five groups, and an ellipsis only past five",
+              _unread("x", list("ABCDE"), 9) == "x unread (5 of 9 owing groups unrecorded: A, B, C, D, E)"
+              and _unread("x", list("ABCDEF"), 9) == "x unread (6 of 9 owing groups unrecorded: A, B, C, D, E ...)")
         check("owed: a plain group owes nothing; a machinery hotfix owes no owned_by",
               owed({"group": "P"}) == () and owed(fx[2]) == ("found_by", "caused_by", "family", "cm_kind"))
         check("generation: a cycle and a missing parent are None",
