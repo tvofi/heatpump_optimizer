@@ -103,7 +103,7 @@ gantt
 | R11-PRE-FINDER-CONTRACT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
 | R11-PRE-BRIEFS-CENSUS | IN | 1 | in-progress | - | fable/fable | - | Finder-critical. |  |
 | R11-PRE-BRIEFS-TEXT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
-| R11-PRE-NEW-DIMENSIONS | IN | 2 | in-progress | - | fable/fable | - | Finder-critical. |  |
+| R11-PRE-NEW-DIMENSIONS | IN | 2 | carries-open | - | fable/fable | - | Finder-critical. |  |
 | R11-PRE-OWNER-CRITERIA | IN | 1 | in-progress | - | opus/opus | - | Finder-critical by tvofi's ruling of 2026-11-15 on the owner-criteria cards, "All four before finders". |  |
 | R11-PRE-NO-READ-BUILDERS | IN | 2 | not-started | - | fable/fable | - | NOT finder-critical. |  |
 | R11-PRE-RCA-LATCH-CLAUSES | IN | 1 | in-progress | - | opus/opus | - | NOT finder-critical, and HELD: tvofi has not ruled card E11-INJECTED; dispatch only on his ruling, building what it accepts. |  |
