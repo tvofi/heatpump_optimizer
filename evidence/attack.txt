@@ -1,9 +1,0 @@
-RESULT case=null-control violations=0 section=drawn
-RESULT case=prev-entry-int violations=1 section=drawn first='phases[0] round-start: entry not text (5)'
-RESULT case=prev-item-name-int violations=1 section=drawn first='phases[1] finders items[1]: no name (text)'
-RESULT case=prev-basis-int violations=1 section=drawn first='phases[3] plan: a forecast with no basis (a date with no plan behind it)'
-RESULT case=prev-note-int violations=1 section=drawn first='file: note not text (1)'
-RESULT case=started-after-finished violations=0 section=drawn
-RESULT case=start_from-after-start_to violations=0 section=drawn
-RESULT case=round-true violations=0 section=drawn
-RESULT fuzz=multi-node runs=18285 crashes=0
