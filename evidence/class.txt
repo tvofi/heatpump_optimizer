@@ -1,0 +1,81 @@
+$ git grep -n -E 'D15\b|D1[0-5]\]|1\[0-5\]' -- .claude/workflows tools/audit tools/policy tests/entities.py dev/audit/README.md dev/audit/config/finding.schema.json | cut -c1-230
+.claude/workflows/audit-find.js:13://                                        -- optional, out of tree: D15's diagnostics
+.claude/workflows/audit-find.js:41:if ([debugBundle, debugExport].some((x) => x && !x.startsWith('/'))) throw new Error('args.debug_bundle and args.debug_export are absolute paths outside every tree (dev/governance/dimensions/D15.
+.claude/workflows/audit-find.js:52:const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17']
+.claude/workflows/audit-find.js:64:// D15 is isolated because its perturbations edit production (dev/governance/dimensions/D15.md).
+.claude/workflows/audit-find.js:68:const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14', 'D15', 'D16'])
+.claude/workflows/audit-find.js:82:// D15 debugs the owner's own install from its diagnostics download, which no
+.claude/workflows/audit-find.js:84:const BUNDLE_DIMS = new Set(['D15'])
+.claude/workflows/audit-find.js:125:  B8: { heavy: ['D15-s2', 'D15-s3'], light: ['D13-s1', 'D13-s2', 'D13-s3', 'D15-s1'] },
+dev/audit/README.md:139:- D15 reads the next bundle's `unhealthy_input` (only the newest snapshot
+tools/audit/check_scopes.py:959:        # Harness citations: a harness naming D15.md in its header, against a
+tools/audit/check_scopes.py:961:        planted = {HARNESS_DIR + "planted.py": '"""Planted: D15.md step 1 rule."""\n'}
+tools/audit/check_scopes.py:962:        cov["a harness the brief does not cite is refused"] = uncited_harnesses(planted, {"D15": "no citation"}) == [
+tools/audit/check_scopes.py:963:            (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
+tools/audit/check_scopes.py:964:        cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
+tools/audit/check_scopes.py:1027:        uncited_refused = not verdict(scopes, tree, loc, {**hs, **planted}, {**bs, "D15": "no citation"}, quiet=True)
+tools/audit/prepare_baseline.sh:12:#                                     (the instrumenting finders, D14, D15, D16, and D11 and D13, which
+tools/audit/prepare_baseline.sh:248:# D15 joined because its perturbations edit production (dev/governance/dimensions/D15.md).
+tools/audit/prepare_baseline.sh:252:ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15 D16"
+tools/audit/seat/instruments/enumerate.py.md:7:  universe (D0, D1, D2, D8, D9, D12, D15, D16, D17; `d3-sites` and
+tools/audit/seat/instruments/enumerate.py.md:10:  `dev/audit/config/bundles.json` (D15). `--ledger TSV` joins a seat's
+tools/policy/check-wave-script.mjs:1143:  // D15's bundle is out of tree, so its path reaches a seat only from args; with
+tools/policy/check-wave-script.mjs:1147:  // (#2268). Which briefs take a bundle is a design choice written here: D15.md's
+tools/policy/check-wave-script.mjs:1149:  const bundleDims = ['D15'].filter((d) => L.briefs.includes(d))
+tools/policy/check-wave-script.mjs:1155:  t(`once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'no D15 brief'})`,
+tools/policy/check-wave-script.mjs:1156:    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 20
+tools/policy/check-wave-script.mjs:1158:  t(`a relative bundle path is refused before Prepare (${armed ? 'D15 brief' : 'no D15 brief'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error)
+rc=0
+$ git grep -n -E 'D[0-9]+(, | and |/| or )(and )?D[0-9]+' -- dev/governance/roles dev/governance/rules | cut -c1-230
+dev/governance/roles/COMMON.md:21:  makes you read `docs/` (D5, D6, D17) or GitHub (D11), record it under `exposure`.
+dev/governance/roles/COMMON.md:29:  (D3, D11, D16, and D0/D9 when instrumenting).
+rc=0
+$ git grep -n -i 'worktree' -- dev/governance/dimensions | cut -c1-200
+dev/governance/dimensions/D13.md:11:comments, reviews, bodies — from a worktree with `.git`, each recorded under
+dev/governance/dimensions/D16.md:7:Read `COMMON.md` first. You have an isolated worktree (with `.git`): P1 and
+dev/governance/dimensions/D3.md:6:Read `COMMON.md` first. You have an **isolated worktree**
+dev/governance/dimensions/D3.md:46:worktree in your checkout — one at a time.
+dev/governance/dimensions/D9.md:18:cost. You have an isolated worktree for instrumentation.
+rc=0
+$ git grep -n '| duty=' origin/main -- . ':!tools/audit/enumerate.py' | head -3
+rc=0
+$ git grep -n -E 'D14, D15|D15\)|D0.{0,6}D15|through D15|to D15|D0-D15|sixteen' -- . ':!dev/archive' ':!dev/audit/rounds' ':!dev/programme/delivery' ':!RELEASE_NOTES.md' ':!tools/audit/round*' | cut -c1-230 | head -40
+.claude/hooks/pre-edit.sh:139:  # must read it (round-10 D11-s1-01: one of sixteen seams escaped).
+custom_components/heatpump_optimizer/optimizer.py:4865:        # plateau with a short tall spike -- sixteen expensive steps in
+custom_components/heatpump_optimizer/tariff.py:640:    # spring arm alone accounts for two of sixteen), and 120 is unchanged. The
+dev/audit/rca/r10-ci-critpath-3.md:115:sixteen-run windows over 40 runs. It kept the band at 1.3 against a measured
+dev/audit/rca/r10-ci-critpath-3.md:119:module named the failure mode itself: "fifteen of sixteen runs drawing slow moves it as
+dev/governance/decisions/0003-enumerate-what-you-may-ignore.md:42:toml, jpeg, woff — sixteen of which no tracked file has. `CORPUS_EXCLUDED` named
+dev/programme/plan-2026-09-open-issues.md:642:- [#618](https://github.com/tvofi/heatpump_optimizer/pull/618) — **merged `785963e`**, the archive pass and the three defects it exposed by moving the ground under four hand-kept lis
+dev/programme/plan-2026-09-open-issues.md:848:- [#788](https://github.com/tvofi/heatpump_optimizer/pull/788) — **row written before the merge**, and it is this pull request: **W5-G7 tranche 1 of 4** (#195). Twenty-four checks ov
+dev/programme/plan-2026-09-open-issues.md:992:- [#1017](https://github.com/tvofi/heatpump_optimizer/pull/1017) — **row written before the merge, and it is this pull request**: #1011 delivered per the owner's in-session Option 2 
+dev/programme/plan-2026-09-open-issues.md:2179:  sixteen and do. The trap the rule is written around is that a gate file or
+dev/programme/rosters/wave-r10-groups.json:25869:    "From the round-10 orchestrator, 2026-11-14 (main red, measured by the hotfix seat): the push-time ci-ratchet fails closed on a push run whose prelude was cancelled. Main's job 
+dev/programme/rosters/wave-r10-groups.json:25896:    "From #3575 (r11-pre-objective-function), body item 7ce997a6: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 1 owes these brief edits from this gr
+dev/programme/rosters/wave-r10-groups.json:25898:    "Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) section 1 owes these brief edits from this group. D12: its universe is `python3 tools/audit/check_scopes.p
+dev/programme/rosters/wave-r10-groups.json:27539:   "brief": "HOTFIX ordered by the owner on 2026-11-14 (verbatim: \"Do a CI-ratchet fix, but don't let it delay anything\"). It must delay nothing: it never takes a runner or a queu
+docs/configuration.md:326:There are **24 pages**: eight on the first menu, and sixteen more behind
+tests/ci_budgets.json:28: "reason": "critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; n
+tests/ci_ratchet.py:1371:        # Twenty runs, the one fast draw newest: the newest sixteen grade 32.1;
+tests/ci_ratchet.py:1372:        # a record over all twenty reads every sixteen-run window and keeps the
+tests/closure.py:9:reaches six, a change to the optimizer reaches fourteen of sixteen.
+tests/closure.py:317:    # people run by hand to eyeball the setup diagram -- ran all sixteen
+tests/doc_claims.py:3046:    "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+tests/entities.py:17327:# script people run by hand, ran all sixteen scripts including stress.py.
+tests/entities.py:20309:    "an unmeasured helper forced sixteen scripts to run",
+tests/features.py:49686:#: sixteen flag combinations -- the diagram's whole vocabulary, reached
+tools/audit/prepare_baseline.sh:12:#                                     (the instrumenting finders, D14, D15, D16, and D11 and D13, which
+tools/audit/seat/instruments/enumerate.py.md:10:  `dev/audit/config/bundles.json` (D15). `--ledger TSV` joins a seat's
+tools/policy/check-wave-script.mjs:1438:  const sixteen = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)]
+tools/policy/check-wave-script.mjs:1439:  const sh = P.shardsFor(sixteen, 15)
+tools/policy/check-wave-script.mjs:1440:  t('sixteen findings over two seats make two units, each within one seat; fifteen make one',
+tools/policy/check-wave-script.mjs:1441:    sh.length === 2 && sh.every((s) => new Set(s.map(P.seatOf)).size === 1) && sh.flat().length === 16 && P.shardsFor(sixteen.slice(0, 15), 15).length === 1,
+tools/policy/check-wave-script.mjs:1493:    t('one verifier per unit carrying all three lenses, and D2\'s sixteen findings get two units (3 calls in all)',
+tools/policy/check-wave-script.mjs:1502:    t('three verifiers per triple, one per lens, and D2\'s sixteen findings get two triples (9 calls in all)',
+tools/policy/counts.mjs:150:// Number words the corpus actually uses, so "fourteen of sixteen" is checked.
+tools/policy/counts.mjs:153:  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
+tools/policy/fixtures/policy-rot/counts.md:4:fourteen of sixteen scripts.
+tools/policy/policy_lint.mjs:846:// reported seventeen extra findings, all `tools/audit/round2/**`: sixteen
+tools/policy/policy_lint.mjs:849:// measured on `e4a388a`, the tree whose body wrote sixteen: an EXACT-CASE
+tools/policy/policy_lint.mjs:851:// between them is `round2/JUDGE.md`. So sixteen is the count from before the
+rc=0

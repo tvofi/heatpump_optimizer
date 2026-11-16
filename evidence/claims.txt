@@ -1,0 +1,104 @@
+$ git diff 4632a10bff41d516b5a5cf1176f14b29c8481f51 e078a0bb2e3b4663cc505282d70aaad8053a566b --stat -- tools/audit/enumerate.py tools/audit/check_scopes.py tools/audit/seat/finder_overlap.py
+rc=0
+$ git diff 4632a10bff41d516b5a5cf1176f14b29c8481f51 e078a0bb2e3b4663cc505282d70aaad8053a566b --stat
+ CLAUDE.md                                          |  10 +-
+ dev/audit/config/objective.json                    |  42 ++++--
+ dev/audit/config/scopes.json                       |   4 +-
+ dev/audit/harnesses/r10_open_driver_mutants.py     |  22 ++-
+ dev/audit/harnesses/r11_main_cancel_mutants.py     |  97 ++++++++++++
+ dev/audit/harnesses/r11_owner_criteria.py          | 134 +++++++++++++++++
+ dev/governance/config/policy_budgets.json          |  18 ++-
+ dev/governance/dimensions/D10.md                   |  28 +---
+ dev/governance/dimensions/D4.md                    |  12 +-
+ dev/governance/dimensions/D5.md                    |   4 +-
+ dev/governance/dimensions/D9.md                    |   6 +-
+ dev/governance/dimensions/criteria/D10-criteria.md |  30 ++++
+ dev/governance/dimensions/criteria/D4-criteria.md  |  52 +++++++
+ dev/governance/dimensions/criteria/D5-criteria.md  |  43 ++++++
+ dev/governance/dimensions/criteria/D9-criteria.md  |  49 ++++++
+ dev/programme/delivery/3641.md                     |   1 +
+ dev/programme/delivery/3645.md                     |   1 +
+ tests/closure.py                                   |   1 +
+ tests/closures.json                                |   6 +
+ tests/layout.json                                  |   1 +
+ .../audit/seat/instruments/cancel_superseded.py.md |  10 ++
+ tools/audit/seat/instruments/open_driver.py.md     |  10 +-
+ tools/audit/seat/open_driver.py                    |  72 ++++++++-
+ tools/audit/seat/open_driver_selftest.py           | 164 +++++++++++++++++++++
+ tools/pr/cancel_superseded.py                      | 151 ++++++++++++++++++-
+ 25 files changed, 907 insertions(+), 61 deletions(-)
+rc=0
+$ git log --oneline -1 47f0f18a7e; git merge-base --is-ancestor 47f0f18a7e origin/main && echo p1-on-main; git log origin/main --oneline --grep='#3646' --grep='#3647' | head -5
+47f0f18a7e Merge pull request #3646 from tvofi/fix/r11-pre-new-dimensions
+p1-on-main
+b107103f70 Merge pull request #3660 from tvofi/record/autofix
+b94425b94f Merge pull request #3647 from tvofi/fix/r11-pre-finder-contract-pr
+47f0f18a7e Merge pull request #3646 from tvofi/fix/r11-pre-new-dimensions
+b2e0163b7f record: the delivery row for #3647
+194a755946 record: the delivery row for #3646
+rc=0
+$ grep -n 'ISOLATED_DIMS=' tools/audit/prepare_baseline.sh; git show origin/main:tools/audit/prepare_baseline.sh | grep -n 'ISOLATED_DIMS='
+252:ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15 D16"
+252:ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15 D16"
+rc=0
+$ git diff origin/main HEAD --stat -- tools/policy/check-wave-script.mjs dev/audit/config/finding.schema.json
+rc=0
+$ grep -n 'D(' dev/audit/config/finding.schema.json | head -8
+7:    "dimension": {"type": "string", "pattern": "^D(1[0-7]|[0-9])$"},
+17:          "step": {"type": "string", "pattern": "^D(1[0-7]|[0-9])\\.M[0-9]+$"},
+33:        "properties": {"step": {"type": "string", "pattern": "^D(1[0-7]|[0-9])\\.M[0-9]+$"}, "what": {"type": "string"}}
+46:    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^(?:tools/audit/round|dev/audit/rounds/round)[0-9]+/D(1[0-7]|[0-9])/"}},
+53:        "properties": {"owner_seat": {"type": "string", "pattern": "^(D(1[0-7]|[0-9])-s[0-9]+|unknown)$", "description": "The seat whose cells hold it (check_scopes.py --seat lists a seat's cells), or unknown"}, "file": {"type": "string"}, "symbol": {"type": "string"}, "what": {"type": "string"}}
+63:        "harness_path": {"type": "string", "pattern": "^(?:tools/audit/round|dev/audit/rounds/round)[0-9]+/D(1[0-7]|[0-9])/"},
+79:        "id": {"type": "string", "pattern": "^D(1[0-7]|[0-9])(-s[0-9]+)?-[0-9]{2}$", "description": "D<k>-<nn>, or D<k>-s<seat>-<nn> when a round runs more than one finder seat per dimension"},
+80:        "scope": {"type": "string", "pattern": "^D(1[0-7]|[0-9])-s[0-9]+$", "description": "The finder seat whose cells the finding measures, a seat of dev/audit/config/scopes.json; the finding's id starts with it"},
+rc=0
+$ git grep -l '| duty=' -- . ':!tools/audit/enumerate.py'
+rc=1
+$ git grep -n 'CONDITIONS' -- tools/ tests/ dev/audit/config .claude | grep -v 'enumerate.py' | head -5
+tests/features.py:44087:from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+tools/plan/replan.py:136:CLOSURE_CONDITIONS = ("no open pull requests", "no handoffs", "no carries", "no findings",
+tools/plan/replan.py:1555:            "closure_conditions": list(CLOSURE_CONDITIONS),
+tools/plan/replan.py:1839:    if s.get("closure_conditions") != list(CLOSURE_CONDITIONS):
+tools/plan/replan.py:3135:             _m('"closure_conditions": list(', 'CLOSURE_CONDITIONS),'),
+rc=0
+$ git grep -n '_honest_coordinator' -- tests/entities.py | head -2; git grep -n 'def coord_all_features\|coord_all_features =' -- tests tools dev | head -3; ls tests/ha_contract.py
+tests/entities.py:2636:def _honest_coordinator(extra_config=None, states=None, dhw=True):
+tests/entities.py:2658:_blind_hass, _blind_coord, _blind = _honest_coordinator()
+tests/ha_contract.py
+rc=0
+$ for s in power_schedule dhw_power_schedule optimal_setpoints room_temp_trajectory duty_floor_kw timestamps; do printf '%s %s\n' $s $(git grep -l "\b$s\b" -- custom_components | wc -l); done
+power_schedule 7
+dhw_power_schedule 8
+optimal_setpoints 3
+room_temp_trajectory 3
+duty_floor_kw 3
+timestamps 13
+rc=0
+$ grep -nE 'def (desired|step_duty|_step_kw)\b' custom_components/heatpump_optimizer/*.py
+custom_components/heatpump_optimizer/pump_arbiter.py:509:def step_duty(result: Any, now: datetime) -> str | None:
+custom_components/heatpump_optimizer/pump_arbiter.py:652:def _step_kw(result: Any, now: datetime) -> float | None:
+custom_components/heatpump_optimizer/pump_arbiter.py:1291:def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
+rc=0
+$ grep -nE '^[0-9]+\. ' dev/governance/dimensions/D1.md | head -4; grep -nE '^[0-9]+\. ' dev/governance/dimensions/D3.md | wc -l; grep -n 'void' tests/README.md | head -5
+20:1. **A real-loop harness.** Subclass `tests/harness.py:FakeHass` so
+29:2. **Store corruption fuzzing.** Per line of `enumerate.py d1-stores` (an
+40:3. **Staleness.** Per line of `enumerate.py d1-inputs`: the input missing and
+48:4. **Executor boundary.** `enumerate.py d1-solve-state` lists every `self._*`
+5
+rc=0
+$ git grep -n '6893738184' -- . | head -8
+dev/governance/dimensions/D16.md:4:the seat under mandate 6893738184: *every write to the pump, its hold and its
+dev/governance/dimensions/criteria/D10-criteria.md:8:Drafted by a fixer seat under mandate 6893738184 (scope all);
+dev/governance/dimensions/criteria/D4-criteria.md:8:Drafted by a fixer seat under mandate 6893738184 (scope all);
+dev/governance/dimensions/criteria/D5-criteria.md:8:Drafted by a fixer seat under mandate 6893738184 (scope all);
+dev/governance/dimensions/criteria/D9-criteria.md:10:Drafted by a fixer seat under mandate 6893738184 (scope all);
+dev/programme/RULINGS.md:27:- **Current mandate:** comment 6893738184 on #3394, scope all, until
+dev/programme/RULINGS.md:396:- Mandate 6715477401: superseded by 6893738184 (2026-11-15).
+tools/policy/policy_lint.mjs:266:  // under mandate 6893738184).
+rc=0
+$ git ls-remote origin refs/heads/eval/r11 'refs/heads/design/*new-dimensions*'
+c04cef7fca50e00fa23466dab28f941a4d5034af	refs/heads/eval/r11
+rc=0
+$ git diff e352724335c136b65562cd3e71f728549ad04a82...HEAD --stat -- tests/golden VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json
+rc=0

@@ -1,0 +1,8 @@
+$ git merge-tree --write-tree origin/main e078a0bb2e3b4663cc505282d70aaad8053a566b   (origin/main 6f422812d5d8b918beace0283419c153f6df66ce)
+LEDGER-MERGE: resolved tests/closures.json
+8a0fbcd4999c6c3b553423548b71dbc8ebe52625
+rc=0
+$ git ls-remote origin refs/heads/handoff/r11-pre-new-dimensions-p2
+e078a0bb2e3b4663cc505282d70aaad8053a566b	refs/heads/handoff/r11-pre-new-dimensions-p2
+$ git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/ | wc -c  (at the head worktree)
+0
