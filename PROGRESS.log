@@ -2,3 +2,4 @@
 1794871544 HB alive
 1794871577 CKPT baseline check_scopes captured: 13 gaps snapshot a465141256a4
 1794871852 CKPT revision_6 committed, check_scopes 13->2 gaps, wip pushed snapshot c1599d124352
+1794872052 CKPT scoped gate green (MODE SCOPED, 4 passed), running prepr snapshot 1bdf9849975d
