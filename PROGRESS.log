@@ -10,3 +10,4 @@
 1794854212 CKPT code pushed 411d996; body_push refused figure-block base mismatch; BLOCKED.md pushed 08154d5 snapshot 8ca2343b124e
 1794854217 DONE blocked: body_push figure-block base mismatch; code 411d996 on handoff/, prepr rc=0; BLOCKED.md at handoff-wip 08154d5
 1794856693 HB alive
+1794856744 CKPT net case + mutant written; fails on mutant, ok at head snapshot ba292fc741ca
