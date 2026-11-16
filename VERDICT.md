@@ -1,29 +1,51 @@
-Fix review: merge 56fda94e8568b6ae57d1af8227386f8dc096f61c
+Fix review: blocked 43c1c7dbfd7a642a3543c1912469b2ce30f05584 introduced-red: merging main pushes tools/audit/briefs/orchestrator.md to 4286 tokens, over its 4251 files_tokens cap, so policy_lint exits 1 and governance / policy-docs and governance / env-matrix go red
 
-bus-nonce: 8e741bc844c2497b1fb9b0b2445fe91d
+bus-nonce: e507e1814e2144e10fd3a6a5ed07a2c8
 
-Round: second. This is a delta review over the reviewed head 3ad61a1f6e09044cd47db34952a3ab681db1b1e5. The delta is 2986495e9c, which adds tests to the self-tests of `machinery_ratchet.py` and `pr_cap.py` and lets `pr_cap.open_slots` take an optional caps dict, and 56fda94e85, which merges that commit in. The delta touches nothing under custom_components/, so the review is not widened.
+Round: third. This is a delta review over the reviewed head 56fda94e8568b6ae57d1af8227386f8dc096f61c. The delta is 2fa85b69db, which merges origin/main e30408f788 (#3566, the nudge.md retirement) into the branch, and 43c1c7dbfd, which merges that commit in. The delta touches nothing under custom_components/, so the review is not widened.
+
+## Block
+
+- `node tools/policy/policy_lint.mjs` at 43c1c7dbfd exits 1 with `ERROR [budgets] tools/audit/briefs/orchestrator.md: about 4286 tokens across its lines exceeds its cap of 4251 tokens (files_tokens)` (`ev/policy_lint_head.txt`). The `--budgets` row for that file (`ev/budgets_orchestrator.txt`, `ev/budgets_prev_head.txt`) reads:
+  - 4248 at the previously reviewed head 56fda94e85, inside the cap;
+  - 4172 at origin/main e30408f788, inside the cap;
+  - 4286 at this head, over the cap.
+- Neither side breaks the cap alone. The branch's edits to `dev/governance/roles/orchestrator.md` (`ev/orchestrator_own_diff.txt`, 2608 to 2673 words) left 3 tokens of headroom, and main's #3566 re-pointing then added text to the same file. The auto-merged result is over the cap.
+- `dev/governance/config/policy_budgets.json` is not in this PR's diff, so no cap raise covers the overflow.
+- The same error is the cause of both new CI reds at this head, and both are in `merge_train.py owed-reds`:
+  - `governance / policy-docs` (job 133020850696): `TOTAL: 1 error(s) across 51 policy file(s)`, `by check: {"budgets":1}`.
+  - `governance / env-matrix` (job 133020850695): 7 of its 16 declared outcomes fail. Every failing outcome is either `policy_lint rc=0` with that same ERROR line or the follow-on `MUTANTS: the entry point exited 1 on the corpus as it stands`.
+- Both checks were green at 56fda94e85, according to the previous verdict.
+- The PR body has no `## Red checks` answer for either, and review_packet refuses `red-unanswered` for both.
+- To resolve: cut orchestrator.md by about 35 tokens, or raise its cap with the case stated in the body (a budget raise, so the owner's approval under budget-raise-gate). Then re-run `policy_lint.mjs`.
 
 ## Findings
 
-- Note: figure: under `## Figures` the body says "Re-taken: `--measure --head HEAD` prints `target` 478, `merges_past_anchor` 1". At 56fda94e85 that command prints `merges_past_anchor 2`, because the head is now itself a merge (`Merge commit '2986495e9c'`) on the branch's first-parent chain. The body's `## Head` also has a stray line holding only `2986495e9c...` under the head line. Both are paperwork, and PR mode reads the schedule on the base, so the figure has no effect on the check. Carry: R11-PRE-MACHINERY-LIMITER
-- Note: figure: the body still says `policy_lint.mjs --budgets` has "every row within its cap". The previous verdict found always-loaded and the role fixer and role policy rows above their caps but inside the band, and identical at the merge base. Carry: dismissed: inherited from the base, unchanged by this diff
-- Note: instrument: `merge_train.py classify 56fda94e85 --pr 3627` reads `RED ... red: gate`, not `APPROVAL-OWED`, although the only failing unit is the raise gate. `gate_raise_only` (`tools/audit/seat/merge_train.py`) reads every `gate` suite at the head, including the two superseded runs 132991972635 and 132994443710. Their logs give `run(s) [43772481940] at this head are still being judged; their gate decides`, which never matches RAISE_REASON. The latest gate, 133002088920, gives only `budget-raise-gate / budget-raise-gate: failure (run 43773226832)`. `raise_hold` reads 5 raises, not held ("no decisive review by tvofi"). The head is in substance APPROVAL-OWED, but the instrument cannot say so whenever a gate run was superseded. No issue found (search `gate_raise_only`, `APPROVAL-OWED superseded`). Carry: dismissed: an instrument defect outside this PR's diff, handed to the orchestrator in this verdict for routing (this seat may not file or comment)
-- Note: test-coverage: the new `open_slots(caps=None)` default path (`tools/audit/seat/pr_cap.py:227-228`, which loads `replan.py` `DEFAULT_CAPS`) is not exercised by `pr_cap.py`'s own self-test. `mutant_run.py` on the delta reports `227 GUARD_OFF` and `228 STMT_DEL` SURVIVED there. Both are killed in the closure: `orchestrator_tick.py --self-test` calls `cap_mod.open_slots()` and crashes with AttributeError under the guard-off mutant, rc 1 against rc 0 unmutated (`ev/orchestrator_tick_under_open_slots_guard_off.txt`). This is not a block. Carry: dismissed: killed by orchestrator_tick's self-test in the same closure
+- Note: figure: the branch's change to `dev/governance/roles/proposal-triage.md` conflicted with main's #3566 and was resolved by taking main's text verbatim. The head's file equals main's, so the PR no longer changes that file (own-diff stat goes from 13 files to 12: `ev/own_diff_stat_old.txt`, `ev/own_diff_stat_new.txt`). Main's wording carries the same rule (repair at any severity; a red required check on main, a blocked production PR, a root-cause countermeasure, closeout or an owner directive skip the bar). Any body text that claims this PR rewrites proposal-triage.md is now stale. Carry: R11-PRE-MACHINERY-LIMITER
+- Note: instrument: the previous verdict's `gate_raise_only` note (classify reads RED, not APPROVAL-OWED, when a gate run was superseded) still stands and was not re-examined here. Carry: dismissed: an instrument defect outside this PR's diff, handed to the orchestrator in the previous verdict
 
 ## Evidence
 
-- Head reviewed: 56fda94e8568b6ae57d1af8227386f8dc096f61c (`ev/HEAD.txt`), checked out in a detached worktree. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- Previous block resolved. The six mutants the round-1 verdict blocked on were each re-applied alone at this head with the file's `--self-test` run (`ev/mut.py`, `ev/mutants.txt`), and all six are KILLED: M1 band dropped (2 checks FAIL), M2 `== 3` -> `>= 2` (merges_past_anchor 3, want 2), M3 `base or head` -> `head` (got (0, False), want (1, True)), M4 `max(0, ...)` removed, M5 `and v > PRODUCTION_SLOTS` removed, M6 dispatch-gate wiring `if False:` (2 checks FAIL). Unmutated: machinery_ratchet 72 checks, 0 failed; pr_cap 32, 0 failed; orchestrator_tick 322, 0 failed. These match the body.
-- Delta mutant sweep: `mutant_run.py --diff 3ad61a1f6e...HEAD --path tools/audit/seat/pr_cap.py --cmd 'python3 tools/audit/seat/pr_cap.py --self-test' --report-only` (`ev/mutant_run_delta.txt`) reports 8 survivors. Two are on production lines 227/228, and both are killed by orchestrator_tick (see the Note). Six are on self-test lines (442, 460, 461, 462, 464, 465), which are fixture cleanup, an import and an equivalent index swap in an assertion.
-- The `open_slots` refactor preserves behaviour: called with no argument at this head it returns 20 (replan.py DEFAULT_CAPS), and `True`, 9 and 10 read None.
-- `git merge-tree --write-tree origin/main 56fda94e85` exits 0 with tree d35513aaad (`ev/merge-tree.txt`), so the PR merges cleanly.
-- VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched (empty `git diff --stat` from the merge base).
-- `--check --base origin/main --head HEAD --pr 3627` at this head (`ev/check.txt`): ok nonproduction_merges 481 <= 478 + band 5; ok churn 13905 <= 14797 + 3636; ok target 481 <= 478 + band 5 (15 merges past anchor). The body's 11 was read on an older main.
-- Owed reds (`merge_train.py owed-reds`) include budget-raise-gate / budget-raise-gate, pr-contract / pr-contract and gate. The body answers each under `## Red checks` by its full name. budget-raise-gate is red by design until the owner's approving review (a code-owned policy and budget raise).
-- CI: `merge_train.py classify 56fda94e85 --pr 3627` read `WAIT ... pending: gate red: none` from 23:08:53 to 23:38:30 UTC. At 23:40:05 it read `RED 56fda94e8568b6ae57d1af8227386f8dc096f61c pending: none red: gate` (`ev/classify.log`). The check runs at the head show no in-progress run. The only non-success conclusions are three `budget-raise-gate / budget-raise-gate` failures and three `gate` failures. instrument-self-tests, coverage, fast (3.14), closures, browser, policy-docs, env-matrix, mutation and typing are success, so nothing is INTRODUCED. The latest gate log (job 133002088920) prints only `FAIL budget-raise-gate / budget-raise-gate: failure (run 43773226832)`. Both reds are in `owed-reds` and the body answers both. budget-raise-gate is the owner's approval of a code-owned budget, which follows this verdict. I judge the head as APPROVAL-OWED (see the instrument Note on why classify prints RED), so this is no block (C5/C8). The relay will see RED until the owner approves.
+- Head reviewed: 43c1c7dbfd7a642a3543c1912469b2ce30f05584 (`ev/HEAD.txt`), checked out in a detached worktree.
+- Merge resolution: `git merge-tree --write-tree 56fda94e85 e30408f788` conflicts only in `dev/governance/roles/proposal-triage.md`. The head tree dfee30d92b differs from that auto-merge only in that file, where main's side was taken. No other hand edit rides in the merge.
+- Own diff: `git diff e30408f788...43c1c7dbfd` and `git diff 66865be375...56fda94e85` agree, line for line, in every file except proposal-triage.md, which dropped out. Untouched by this PR: VERSION, the manifest, RELEASE_NOTES.md, tests/golden and custom_components.
+- Merge with main: `git merge-tree --write-tree origin/main 43c1c7dbfd` exits 0 with tree dfee30d92b (`ev/merge-tree.txt`). The head already contains origin/main e30408f788.
+- Self-tests at the head (`ev/selftest_*.txt`):
+  - machinery_ratchet: 72 checks, 0 failed;
+  - pr_cap: 32 checks, 0 failed;
+  - orchestrator_tick: 322 checks, 0 failed.
+- Mutants re-applied at the head (`ev/mutants.txt`), each killed:
+  - `pr_cap.py:230` with `and v > PRODUCTION_SLOTS` removed: 1 check fails;
+  - `machinery_ratchet.py:359` with `max(0, ...)` removed: 1 check fails.
+- `machinery_ratchet.py --check --base origin/main --head HEAD --pr 3627` exits 0 (`ev/check.txt`):
+  - ok nonproduction_merges 481 <= 478 + band 5;
+  - ok churn 13948 <= 14797 + 3636;
+  - ok target 481 <= 478 + band 5 (17 merges past anchor).
+- `--measure --head HEAD` prints `merges_past_anchor 3`.
+- CI: `merge_train.py classify 43c1c7dbfd --pr 3627` read `WAIT ... pending: gate red: none` from 00:53:09 to 00:59:34 UTC (`ev/classify.log`). The wait was stopped once the block was established. The block rests on the policy_lint failure reproduced locally, not on classify.
+- Owed reds (`ev/owed-reds.txt`) include governance / env-matrix and governance / policy-docs.
+- I ran the env-matrix driver locally, but it produced no output within 230 s (timeout rc 124). The CI log above is the evidence for that check.
 
 ## Friction
 
-- To list the non-success check runs I called `gh api repos/.../commits/<sha>/check-runs`, against this session's rule that `gh` is for search only. It was read-only. The MCP `get_check_runs` read of the same head agrees.
-- `pr_cap.py`'s self-test alone lets the `open_slots` default-path mutants survive. Seeing that they are killed took a second self-test (orchestrator_tick) that the body's driver command does not run.
+- The local `policy_lint_envmatrix.mjs` run exceeds a 240 s tool call. CI's log was read instead.
