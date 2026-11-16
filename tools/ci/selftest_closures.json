@@ -8212,11 +8212,15 @@
    "run_sha": "69d134ca93555d9ce85205a52a5eb7ef397b6bf559866955924dc0fee3152065",
    "files": [
     "dev/audit/config/bugclasses.json",
+    "dev/audit/rca/R10-N-log-flood.md",
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/round_metrics.py",
+    "tools/audit/seat/scorecard.py",
     "tools/policy/fixtures/required-contexts.json"
    ],
    "probes": [

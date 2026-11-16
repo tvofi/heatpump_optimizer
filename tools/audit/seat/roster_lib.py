@@ -877,16 +877,17 @@ def _bug_families(root) -> set:
 def rca_lists(rca, group: dict, root=None) -> bool:
     """Whether dev/audit/rca/<rca>.md is a root-cause record of `group`: the file
     exists, and its id is one of the group's own `rca` records (the group is its
-    countermeasure) or its text names the group as a whole token (the group is
-    the defect it analyses). `root` defaults to the repository at call time."""
+    countermeasure; round 9's rosters hold a bool there, which lists no id) or its
+    text names the group as a whole token (the group is the defect it analyses).
+    `root` defaults to the repository at call time."""
     if not isinstance(rca, str) or not _RCA_ID.match(rca):
         return False
     try:
         text = ((root or _ROOT) / "dev/audit/rca" / f"{rca}.md").read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return False
-    me = group.get("group")
-    return rca in (group.get("rca") or []) or (
+    me, own = group.get("group"), group.get("rca")
+    return (isinstance(own, list) and rca in own) or (
         isinstance(me, str) and bool(re.search(r"(?<![\w.-])" + re.escape(me) + r"(?![\w-]|\.\w)", text)))
 
 
@@ -1384,7 +1385,9 @@ def _self_test() -> int:
                                        {"group": "R10-C", "rca": ["R10-N-gone"]})
               and rca_lists("R10-N-log-flood", cg, froot) and not rca_lists("R10-N-gone", {"rca": ["R10-N-gone"]}, froot)
               and not rca_lists("../rca/R10-N-log-flood", {"rca": ["../rca/R10-N-log-flood"]}, froot)
-              and not rca_lists(None, cg, froot))
+              and not rca_lists(None, cg, froot)
+              and not rca_lists("R10-N-log-flood", {"group": "R10-C", "rca": True}, froot)
+              and rca_lists("R10-RCA-NAMED", {"group": "R10-D", "rca": True}, froot))
         check("convergence: recorded needs every named field present and admissible",
               recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot)
               and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn, froot)
