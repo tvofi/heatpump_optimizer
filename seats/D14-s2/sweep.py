@@ -52,7 +52,7 @@ ROWS = {
     "P7": ([PY, "tests/dst_checks.py"], STK, "dst_checks.py", "features.py spawns it"),
     "P9": (["node", "tests/card_browser.mjs"], {}, "card_browser.mjs", "needs Playwright/Chromium"),
     "I1": ([PY, "tests/mutation_table.py", "--help"], {}, "mutation_table.py", "--scope changed needs an origin/main diff; argv parse only"),
-    "I2": ([PY, "tests/closure.py", "--self-test"], {}, "closure.py", "check --in-dir needs a strace recording; self-test"),
+    "I2": ([PY, "tests/closure.py", "selftest"], {}, "closure.py", "check --in-dir needs a strace recording; self-test"),
     "I3": (["node", "tools/policy/field_coverage.mjs"], {}, "field_coverage.mjs", ""),
     "I4": (["node", "tools/policy/agreement.mjs", "--self-test"], {}, "agreement.mjs", ""),
     "I5": ([PY, "tests/doc_claims.py"], HT, "doc_claims.py", ""),

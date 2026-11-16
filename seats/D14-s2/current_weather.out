@@ -1,0 +1,8 @@
+# h=30 covering-row wind 40.0, _current_weather 10.0
+RESULT h0_match=1
+RESULT wind_mismatch_hours=72 hours (of 72)
+RESULT outdoor_sibling_mismatch_hours=0 hours (of 72)
+RESULT booked_planned_wind_h30=10.0 m/s
+RESULT thread_factor=1.000
+RESULT load1=4.31
+RESULT swapins=0
