@@ -20,3 +20,4 @@
 1794851649 HB alive
 1794851921 CKPT sweep at new tree: 0/2370 selfset follows, 0/360 heatled dnf; reviewer attack rows 35/35 dnf 1.000; mutants + null sweep running snapshot 09199509c89a
 1794852254 HB alive
+1794852392 CKPT evidence runs at candidate tree; hand mutants 20+/38 all killed bar one boundary case now pinned; body next snapshot 1e179f641ee7
