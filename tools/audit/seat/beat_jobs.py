@@ -128,6 +128,11 @@ ROWS (the job table's `interval_s` in brackets):
                      A failed slot-take or worktree add is `darwin-selftest: UNREADABLE
                      <step> rc=N: ...`, runs nothing and leaves the cycle where it was, so
                      the next pass retries it.
+  cp-owed [300]      owed_watch.py `cp-owed --repo R --fired <fire_ledger> --checkout <repo>`: one
+                     `CP-OWED <arm> <subject>` line per critical-path or outside step past its
+                     grace (owner directive tvofi 2026-11-09, "never let the critical path or
+                     outside PRs slip, ever"); `cp-owed: UNREADABLE` on a non-zero rc, never
+                     its partial lines.
   bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
                      <train_log> --wip-cap <plan_slots> --memory
                      state/bottleneck.json`: its `BOTTLENECK:` and
@@ -135,10 +140,19 @@ ROWS (the job table's `interval_s` in brackets):
                      owner's thresholds, 2026-11-07); a held breach re-prints its
                      first line, so it is new once per trip. A line suggests; the
                      orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
-  scorecard [86400]  scorecard.py `report --dir S/scorecard --train-log <train_log>
+  scorecard [86400]  round_metrics.py `produce --dir S/scorecard --repo <checkout>
+                     --gh-repo <repo>` refreshes the inputs (one REST batch), then
+                     scorecard.py `report --dir S/scorecard --train-log <train_log>
                      [--sweep-record <sweep_record>]` into `S/beatd/scorecard.txt`
-                     (ten report-only lines, none a gate); the digest hears only
-                     `scorecard: UNREADABLE rc=<n>` when the instrument fails.
+                     (report-only lines, none a gate); the digest hears only
+                     `scorecard: UNREADABLE produce rc=<n>` (the report then does not
+                     run, so scorecard.txt keeps its last dated read) or
+                     `scorecard: UNREADABLE rc=<n>` when an instrument fails.
+  ci-attempt [1800]  one `gh api` read of ci.yml's newest 100 runs: `CI-ATTEMPT: run
+                     <id> at attempt >= CI_ATTEMPT_ALARM on <branch> (#<pr>)` per run
+                     re-attempted that often (R10-RCA-SWEEP-SETTLE-LOOP countermeasure
+                     B: 1089 bot re-attempts on 11-08 were seen about 16 h late); a
+                     run below it is silent; `ci-attempt: UNREADABLE gh rc=<n>`.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -161,8 +175,8 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
-        "scorecard", "darwin-selftest")
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
+        "scorecard", "ci-attempt", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -171,7 +185,7 @@ ROSTER_PASS_BUDGET_S = 450
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
 FAMILY = re.compile(
-    r"^(?:OWED\b|DISPATCH:|OWNER FLAG:|BLOCKED-UNFIXED:|DESIGN-BUILD:|UNREADABLE:|DESIGN OWED:"
+    r"^(?:OWED\b|DISPATCH:|OWNER FLAG:|BLOCKED-UNFIXED:|DESIGN-BUILD:|UNREADABLE:|DESIGN OWED:|DESIGN-REVIEW OWED:|UNDISPATCHED:|OUTSIDE-CHAIN-IDLE "
     r"|REVIEW OWED:|RECORD-OWED:|REVIEW STALLED:|UNLEVELLED:|APPROVAL-OWED:|MERGE-READY:|main-red "
     r"|main \S+: REQUIRED not green"
     r"|#\d+: (?:RAISE APPROVAL OWED|NOT REVIEWABLE|mergeable state DIRTY|RED unanswered"
@@ -677,6 +691,19 @@ def outside_intake(ctx: Ctx) -> None:
     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
 
 
+def cp_owed(ctx: Ctx) -> None:
+    """owed_watch.py cp-owed: one CP-OWED line per critical-path or outside step past its grace."""
+    got = ctx.need("cp-owed", "repo", "fire_ledger")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/owed_watch.py", "cp-owed", "--repo", got[0], "--fired", got[1],
+                          "--checkout", str(ctx.repo))
+    if rc != 0:
+        why = next((ln for ln in out.splitlines() if ln.startswith("cp-owed: UNREADABLE")), None)
+        return write_job(ctx, "cp-owed", [why or f"cp-owed: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    write_job(ctx, "cp-owed", [ln for ln in out.splitlines() if ln.startswith("CP-OWED ")])
+
+
 def bottleneck(ctx: Ctx) -> None:
     """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
     got = ctx.need("bottleneck", "train_log", "plan_slots")
@@ -691,10 +718,15 @@ def bottleneck(ctx: Ctx) -> None:
 
 
 def scorecard(ctx: Ctx) -> None:
-    """scorecard.py report into S/beatd/scorecard.txt; report-only, so the digest hears only of a failed run."""
-    got = ctx.need("scorecard", "train_log")
+    """round_metrics.py produce, then scorecard.py report into S/beatd/scorecard.txt; report-only,
+    so the digest hears only of a failed run."""
+    got = ctx.need("scorecard", "train_log", "repo")
     if got is None:
         return
+    rc, _, err = ctx.py("tools/audit/seat/round_metrics.py", "produce", "--dir", str(ctx.state / "scorecard"),
+                        "--repo", str(ctx.repo), "--gh-repo", got[1])
+    if rc != 0:
+        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     args = ["report", "--dir", str(ctx.state / "scorecard"), "--train-log", got[0], "--repo", str(ctx.repo)]
     if ctx.overlay.get("sweep_record"):
         args += ["--sweep-record", str(ctx.overlay["sweep_record"])]
@@ -703,6 +735,30 @@ def scorecard(ctx: Ctx) -> None:
         return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     atomic(ctx.state / "beatd" / "scorecard.txt", out)
     write_job(ctx, "scorecard", [])
+
+
+#: ci-attempt flags a run at this attempt or more; gate.py's ATTEMPT_CAP (45) is where the hooks stop.
+CI_ATTEMPT_ALARM = 20
+CI_RUN = re.compile(r"(\d+) (\d+) (\S+) ?([\d,]*)")
+
+
+def ci_attempt(ctx: Ctx) -> None:
+    """One line per ci.yml run at attempt CI_ATTEMPT_ALARM or more among the newest 100, named with its PR."""
+    got = ctx.need("ci-attempt", "repo")
+    if got is None:
+        return
+    rc, out, _ = ctx.run(["gh", "api", f"repos/{got[0]}/actions/workflows/ci.yml/runs?per_page=100", "--jq",
+                          '.workflow_runs[] | "\\(.id) \\(.run_attempt) \\(.head_branch) \\([.pull_requests[].number] | join(","))"'],
+                         ctx.repo, ctx.env)
+    if rc != 0:
+        return write_job(ctx, "ci-attempt", [f"ci-attempt: UNREADABLE gh rc={rc}"])
+    lines = []
+    for ln in out.splitlines():
+        m = CI_RUN.fullmatch(ln.strip())
+        if m and int(m[2]) >= CI_ATTEMPT_ALARM:
+            prs = " ".join(f"#{n}" for n in m[4].split(",") if n) or "no pull request"
+            lines.append(f"CI-ATTEMPT: run {m[1]} at attempt >= {CI_ATTEMPT_ALARM} on {m[3]} ({prs})")
+    write_job(ctx, "ci-attempt", lines)
 
 
 DARWIN_SEAT = "audit/seat/"
@@ -783,7 +839,8 @@ def darwin_selftest(ctx: Ctx) -> None:
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard,
+       "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
+       "ci-attempt": ci_attempt,
        "darwin-selftest": darwin_selftest}
 
 
