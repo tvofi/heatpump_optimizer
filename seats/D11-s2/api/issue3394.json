@@ -1,0 +1,597 @@
+[
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T01:59:10Z",
+  "body": "Merged #3572 8af37bdf444d46715272a8bc2fdda02e1d8376e3 (R10-DIMENSIONS-FULL-COVERAGE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T02:44:17Z",
+  "body": "Merged #3578 c987209cc7a891e0e4066d4ad8dc5cf55357c5ae (R10-HOTFIX-FEATURES-WEEKEND-CLOCK). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T03:23:14Z",
+  "body": "Merged #3579 513a07dfdc0daf09a054826974dbb64bfea9de27 (R10-HOTFIX-ENTITIES-REDACTION-FLAKE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T03:54:26Z",
+  "body": "Merged #3547 0f37833e2194739b431656a70c652b0679c8fa58 (R10-PREPR-RESIDUE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T04:30:37Z",
+  "body": "Merged #3573 f7e7a0244a3d5f7763c4ec15d193d03ef4bb3274 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T08:12:10Z",
+  "body": "Volatile state, round 10 session 14, read 2026-11-14T08:10Z. Leaves #3394 open.\n\n- main tip f7e7a024 (merge of #3573); latest tag v7.1.16.\n- Merges on main since v7.1.16: #3572, #3578 (weekend-clock hotfix), #3579 (entities redaction flake), #3547, #3573.\n- Train: running since 04:08Z. Current entry #3544 (8 merge attempts refused by base-branch policy, then MAIN-MOVED; last log line is a train-ho"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T09:08:17Z",
+  "body": "Merged #3544 a77d71fb755f231934e5e59ce1c38c51f86b6439 (R10-REVIEW-DISPATCH-RESIDUE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T11:36:57Z",
+  "body": "Merged #3584 1791869fdb5398d3bf23db1c16eacc1490b623f8 (R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-14T12:28:44Z",
+  "body": "record-autofix beat: opened #3586 with delivery rows for #3544 (`a77d71f`), #3547 (`0f37833`), #3572 (`8af37bd`), #3573 (`f7e7a02`), #3576 (`d051cb3`), #3578 (`c987209`), #3579 (`513a07d`), #3584 (`1791869`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T12:29:04Z",
+  "body": "Merged #3576 d051cb3edfb944649a1b13d898568123824fa26b (R10-DOCS-STRINGS-RESIDUE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T12:32:18Z",
+  "body": "Merged #3574 a2ef25b4b25b7d34bfe17e04697bef70ae454277 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:07:11Z",
+  "body": "Merged #3569 cbc42e0924404b16cdee3b2dfc5bf51ab3630c6d (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-14T13:09:48Z",
+  "body": "record-autofix beat: opened #3586 with delivery rows for #3544 (`a77d71f`), #3547 (`0f37833`), #3569 (`cbc42e0`), #3572 (`8af37bd`), #3573 (`f7e7a02`), #3574 (`a2ef25b`), #3576 (`d051cb3`), #3578 (`c987209`), #3579 (`513a07d`), #3584 (`1791869`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-fo"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:18:36Z",
+  "body": "Merged #3563 82fa3884c268c386a18908c9e543b18b3c00afed (R10-USER-TEXT-VERIFY-CARD). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:44:11Z",
+  "body": "Merged #3561 2f126c59b9ac6b45bc75adf6aba6d556dc5062f1 (R10-HOTFIX-FLOW-SETPOINT-STUCK). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:47:54Z",
+  "body": "Merged #3564 cc0fb2548aa570a73eb19eeaa6af7e762b97da59 (R10-CONFIG-FLOW-TEXT-VERIFY). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:53:33Z",
+  "body": "Merged #3567 5e3274a19fea1bb153e897ebdd3784c1cbdadb06 (R10-USER-TEXT-VERIFY-STRINGS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:55:56Z",
+  "body": "Merged #3570 97a3a921e0d6c3bbed11345d032a36683f56f023 (R10-CLOSEOUT-PREP). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T13:58:07Z",
+  "body": "Merged #3585 c130ae98564407c3e3c8f0331032ab6bc4e83fc2 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T14:00:28Z",
+  "body": "Merged #3585 c130ae98564407c3e3c8f0331032ab6bc4e83fc2 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T14:04:17Z",
+  "body": "Merged #3581 c3ec011b804c016bc2dbda9e11321bf21aab5685 (R10-DISINFECTION-STEP-NOTICE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T14:56:32Z",
+  "body": "Merged #3565 6b61e47cc22461e9aab23dcbad4afe43876734ea (R10-HOTFIX-MACOS-SELFTEST-LANE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T14:59:28Z",
+  "body": "Merged #3583 009643687b47bc51bda9b3fd98a99f0ece5307cc (R10-RCA-FEATURES-WEEKEND-CLOCK). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T15:25:16Z",
+  "body": "Merged #3562 237fad44532d1927cf65612d395cc5833c60ce99 (R10-HOTFIX-BOOST-FLOW-CEILING). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T15:41:10Z",
+  "body": "Merged #3556 9fdba3b8547f9762438dc19b98b310a63d34dcb1 (R10-OUTSIDE-LEARNER-ROBUSTNESS-P3). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T17:00:22Z",
+  "body": "Merged #3514 6790cd3fd83dd5e29251917d3a418d2d74f787c8 (R10-OUTSIDE-CONTRIBUTOR-CYCLE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T17:04:22Z",
+  "body": "Merged #3587 931970141cf9e213ab0f5283bdcfdb128a0f127c (R10-SAV-VALUATION-RESIDUE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T17:05:49Z",
+  "body": "Merged #3577 6858b4abc1941f8f69fe8eebc5a1101527733dff (R10-FEEDBACK-SETTLE-LARGE-LIFT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T17:23:57Z",
+  "body": "Merged #3588 5cd7b874134350b87a72062f4d5df73404a58aff (R10-SAV-VALUATION-RESIDUE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-14T17:25:11Z",
+  "body": "record-autofix beat: opened #3591 with delivery rows for #3514 (`6790cd3`), #3556 (`9fdba3b`), #3562 (`237fad4`), #3565 (`6b61e47`), #3577 (`6858b4a`), #3583 (`0096436`), #3587 (`9319701`), #3588 (`5cd7b87`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T18:08:48Z",
+  "body": "Merged #3589 f42e518c71238ca71477db5b4796f28f01835f93 (R10-HOTFIX-MAIN-SELFTEST-SCOPE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T18:23:40Z",
+  "body": "Merged #3590 ee9e23372c9e41b46a4503e92d8c2cd0a4367d29 (R10-HOTFIX-CI-RATCHET-SKIPPED-RUN). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T18:35:04Z",
+  "body": "Merged #3560 d2e7805b7cf91cc8231729ef29383b3ae67a27ae (R10-CI-PRIORITY-PAUSE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T18:38:58Z",
+  "body": "Merged #3571 5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db (R10-D5-D6-FULL-SCOPE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T19:27:49Z",
+  "body": "Merged #3532 4058469d79a3b43d840921b82b23f31494ba14b2 (R10-DUTY-SWITCH-RESTART-LEARNING-PR-B). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T20:27:10Z",
+  "body": "Merged #3592 9acc181ca7001ab53d59cf2f15c39042b5ed15b7 (R10-HOTFIX-CARRY-TIP-SIGPIPE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T20:53:15Z",
+  "body": "Merged #3481 0a1ef512f42cbf380049b11b096eb89c5a222ccc (R10-ADVISOR-STEADY-START). Closed issues: #2257. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T21:02:53Z",
+  "body": "Merged #3582 e901e9ef295471f85c4f86e84ee0686c38400bc6 (R10-ARCH-DOCS-DELTA). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-14T21:05:21Z",
+  "body": "record-autofix beat: opened #3594 with delivery rows for #3481 (`0a1ef51`), #3532 (`4058469`), #3560 (`d2e7805`), #3571 (`5b8f05b`), #3582 (`e901e9e`), #3589 (`f42e518`), #3592 (`9acc181`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat's edit to a neutral"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T21:06:55Z",
+  "body": "Merged #3568 d7004eaa775dd7b42aa392df0eb53aeec198b2b0 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T21:18:45Z",
+  "body": "Merged #3568 d7004eaa775dd7b42aa392df0eb53aeec198b2b0 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T22:09:45Z",
+  "body": "Merged #3595 033e4cf7dc57ef9415a36d58a7ad90652a139857 (R10-HOTFIX-MAIN-SELFTEST-SCOPE-2). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T23:04:57Z",
+  "body": "Merged #3596 6abf88e617ee32844e809b3a3daad82d3d7e7f80 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-14T23:44:34Z",
+  "body": "Merged #3553 a72ae19952e3dac9717a5be27c83f182be34c567 (R10-CLOSEOUT-PREP). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T00:24:10Z",
+  "body": "Merged #3575 4eea986a62963ad814b30e507a7e1f7da99b53d4 (R11-PRE-OBJECTIVE-FUNCTION). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T00:29:53Z",
+  "body": "Merged #3601 29b3e5a74cbb30474120c84a27b4e6130f6346bc (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T00:52:18Z",
+  "body": "Merged #3600 2a257fce0895e9e1a77d049f879adac438517c3a (R10-PLAYBOOK-ROUND-START). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T00:52:57Z",
+  "body": "record-autofix beat: opened #3603 with delivery rows for #3553 (`a72ae19`), #3568 (`d7004ea`), #3575 (`4eea986`), #3595 (`033e4cf`), #3596 (`6abf88e`), #3601 (`29b3e5a`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat's edit to a neutral row takes it off t"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T03:48:55Z",
+  "body": "Merged #3491 099d4fa3f2196240cf3f6327821cfe94304a7b2b (R10-SEAT-IDENTITY-P5). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T03:49:28Z",
+  "body": "Merged #3599 57fa260451b40118b6bc9b4253bb5016f8d2395c (R10-HOTFIX-REFERENCE-BASIS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T04:10:45Z",
+  "body": "Merged #3604 946eb6d2551d9968de258bc47ee27efa10e7b3ea (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T04:18:37Z",
+  "body": "record-autofix beat: opened #3605 with delivery rows for #3491 (`099d4fa`), #3599 (`57fa260`), #3600 (`2a257fc`), #3604 (`946eb6d`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat's edit to a neutral row takes it off the automerge path and back to a manual"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T06:16:08Z",
+  "body": "Merged #3606 dd62a612a2ef0377d0e89762e27c26ae6d19a847 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T06:21:11Z",
+  "body": "Merged #3521 dc46b1222facc717bea6add2d18a582b35577581 (R10-OUTSIDE-CONTRIBUTOR-CYCLE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T06:33:19Z",
+  "body": "Merged #3607 60aefaf7b0d1f53a932f184e1e41efc206c435d4 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T07:44:45Z",
+  "body": "Merged #3593 b046b22d6ed8e0ebc5fead18b6f5cd9178b1b12d (R10-COP-LEARNER-DRAW-FLOOR). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T08:40:01Z",
+  "body": "Merged #3451 a39627da59acbfdcd576e87349167603e9dec734 (R10-PROCESS-SLIM). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T08:43:42Z",
+  "body": "Round 10 closure record, 2026-11-15T08:43:34Z.\n\n- v10.0.0 stamped at `13cbe48de4236b7979c754640cc5b1a099ef7475` (tag `v10.0.0`), release published with `heatpump_optimizer.zip`. Its notes name every pull request merged since v7.1.17.\n- Gating set merged:\n  - 3481: R10-ADVISOR-STEADY-START, `0a1ef512f4`\n  - 3582: R10-ARCH-DOCS-DELTA, `e901e9ef29`\n  - 3568: R10-USER-DOCS-VERIFY, `d7004eaa77`\n  - 359"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T10:43:03Z",
+  "body": "Merged #3609 26dbf7c43ec3742101398b098dbdcc61bbee8f19 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T11:38:02Z",
+  "body": "MANDATE: agents may approve as tvofi, scope all, from 2026-11-15T11:38Z until 2026-12-15T12:00Z\nSuccessor to mandate 6715477401, whose stated end (2026-11-16T18:00Z) falls inside round 11's start: the pre-finder instrument groups, the round-start evaluation's policy changes and the open production pull requests all need approvals past it. Identities per decision 0011; budget raises only under this"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T14:37:52Z",
+  "body": "Merged #3613 57fd742ea9fc93372da066b1c36ae1ae10546ffd (R11-HOTFIX-SELFTEST-FLAKE-ARMS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T14:38:00Z",
+  "body": "record-autofix beat: opened #3617 with delivery rows for #3451 (`a39627d`), #3521 (`dc46b12`), #3593 (`b046b22`), #3606 (`dd62a61`), #3607 (`60aefaf`), #3609 (`26dbf7c`), #3610 (`b3831ff`), #3613 (`57fd742`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T14:49:03Z",
+  "body": "Merged #3611 646352ff1364bcbc25875b949072f98e7a53b5fe (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T14:49:41Z",
+  "body": "record-autofix beat: opened #3617 with delivery rows for #3451 (`a39627d`), #3521 (`dc46b12`), #3593 (`b046b22`), #3606 (`dd62a61`), #3607 (`60aefaf`), #3609 (`26dbf7c`), #3610 (`b3831ff`), #3611 (`646352f`), #3613 (`57fd742`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T15:36:02Z",
+  "body": "Merged #3551 b880dc914f3ba2590b7ce655d7419678b1c4968e (R10-SELFTEST-SCOPE-UNION-GUARD). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T16:11:15Z",
+  "body": "Merged #3615 e0ad8b2bd32b60a67975039f8573dbba2207757f (R11-HOTFIX-POLICY-DOCS-TIMEOUT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T17:36:18Z",
+  "body": "Merged #3619 755b7f57675b2a56d8bf674b9b6846bdb184eb11 (R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T18:03:49Z",
+  "body": "Merged #3612 66865be375f4ee283ee556f53fcd76cc3dbf40e2 (R11-PRE-ROUND-METRICS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T19:35:44Z",
+  "body": "Merged #3621 e75ad291ff5c58f7c8362b0a20fbe6b230adf717 (R11-PRE-FINDER-CONTRACT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T19:51:29Z",
+  "body": "Merged #3618 511cf165f77359be8daf2b402e754d9dc0b6a5a2 (R11-PRE-BRIEFS-TEXT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T19:56:44Z",
+  "body": "Merged #3614 98847b99d7bb3238686efd6869f805c89c6d1ff1 (R11-HOTFIX-FIGURE-BLOCK-BASE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:12:08Z",
+  "body": "Merged #3624 ebe83a1b8265b56bde009b70185585e736dbdb82 (R11-HOTFIX-CI-PREDICT-TIMEOUT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T21:12:49Z",
+  "body": "record-autofix beat: opened #3634 with delivery rows for #3551 (`b880dc9`), #3612 (`66865be`), #3614 (`98847b9`), #3615 (`e0ad8b2`), #3618 (`511cf16`), #3619 (`755b7f5`), #3621 (`e75ad29`), #3624 (`ebe83a1`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:14:59Z",
+  "body": "Merged #3624 ebe83a1b8265b56bde009b70185585e736dbdb82 (R11-HOTFIX-CI-PREDICT-TIMEOUT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:30:14Z",
+  "body": "Merged #3598 cb19070965d76b84d9a221d4dfb05c7c9b8efbf7 (R10-START-COUNTER-EDGES). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T21:30:51Z",
+  "body": "record-autofix beat: opened #3634 with delivery rows for #3551 (`b880dc9`), #3598 (`cb19070`), #3612 (`66865be`), #3614 (`98847b9`), #3615 (`e0ad8b2`), #3618 (`511cf16`), #3619 (`755b7f5`), #3621 (`e75ad29`), #3624 (`ebe83a1`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:39:22Z",
+  "body": "Merged #3631 31117b1029de63938d949e78dcbcd8f9451e5e33 (R11-PRE-OWNER-CRITERIA). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-15T21:40:12Z",
+  "body": "record-autofix beat: opened #3634 with delivery rows for #3551 (`b880dc9`), #3598 (`cb19070`), #3612 (`66865be`), #3614 (`98847b9`), #3615 (`e0ad8b2`), #3618 (`511cf16`), #3619 (`755b7f5`), #3621 (`e75ad29`), #3624 (`ebe83a1`), #3631 (`31117b1`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-fo"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:40:16Z",
+  "body": "Merged #3631 31117b1029de63938d949e78dcbcd8f9451e5e33 (R11-PRE-OWNER-CRITERIA). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T21:40:31Z",
+  "body": "Merged #3624 ebe83a1b8265b56bde009b70185585e736dbdb82 (R11-HOTFIX-CI-PREDICT-TIMEOUT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T22:32:09Z",
+  "body": "Merged #3629 f7ead6bb1fff59bf5bf1f5b75acde48f23be322d (R11-HOTFIX-MAIN-SELFTEST-RED). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T22:32:43Z",
+  "body": "Merged #3629 f7ead6bb1fff59bf5bf1f5b75acde48f23be322d (R11-HOTFIX-MAIN-SELFTEST-RED). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-15T23:25:57Z",
+  "body": "Merged #3626 921214bf4246338c1a83fbc5269eaa0bfe91b7d5 (R11-PRE-RULINGS-FILE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T00:16:08Z",
+  "body": "Merged #3566 e30408f7881cd5602a2c4d7ea9517b0d765652f6 (R10-NUDGE-RETIRE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T00:24:55Z",
+  "body": "Merged #3566 e30408f7881cd5602a2c4d7ea9517b0d765652f6 (R10-NUDGE-RETIRE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T00:27:53Z",
+  "body": "Merged #3566 e30408f7881cd5602a2c4d7ea9517b0d765652f6 (R10-NUDGE-RETIRE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-16T00:57:07Z",
+  "body": "record-autofix beat: opened #3650 with delivery rows for #3566 (`e30408f`), #3626 (`921214b`), #3629 (`f7ead6b`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat's edit to a neutral row takes it off the automerge path and back to a manual review.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T00:57:28Z",
+  "body": "Merged #3646 47f0f18a7ecebaa0f6ff0e4948b4f8d82e616e1a (R11-PRE-NEW-DIMENSIONS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T01:57:19Z",
+  "body": "Merged #3638 07d771a2c1c861e77bbb85f7d5647bd7165b47bf (R11-PRE-RCA-LATCH-CLAUSES). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T01:59:35Z",
+  "body": "Merged #3642 62f6bb2006892b59171b14ea4c3f7d025c2e74ce (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T04:17:21Z",
+  "body": "Merged #3622 56ce2f695bcba5218444f52c04a5ed923a07d563 (R11-PRE-PLAN-RENDER). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T04:18:46Z",
+  "body": "Merged #3640 40bf3115c058fe300da54e5615b6ea1572bfb9c8 (R11-OUTSIDE-SLAB-SEED-GUARD). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T04:19:56Z",
+  "body": "Merged #3649 d93bd44135b854490fa59e510039592a00796761 (R11-OUTSIDE-APPLY-PLAN-CEILING). Closed issues: #3636. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T04:21:00Z",
+  "body": "Merged #3652 5aaf9c112fd676437de26455d8a263453b8c0dd2 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T04:49:21Z",
+  "body": "Merged #3644 d4968fe08ba0b18f9d96f6ca308edf45f35ca469 (R11-PRE-ROUND-METRICS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T05:19:21Z",
+  "body": "Merged #3653 824a016f7562c307b81b30a3c39e3844b1b4b630 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T06:06:46Z",
+  "body": "Merged #3648 315dda8f629fdb0da523ce4866f4a50f68fac80e (R11-PRE-RELAY-REBUILD). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T06:10:06Z",
+  "body": "Merged #3627 4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc (R11-PRE-MACHINERY-LIMITER). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T06:36:18Z",
+  "body": "Merged #3620 6d55bf6fd1cd3dd0677d98f6c2da33d259b35b18 (R11-PRE-ROUND-CHECK-GATE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T06:55:24Z",
+  "body": "Merged #3625 f1520e3539b82407e56be9fe915d8a57ad6aedef (R11-PRE-BRIEFS-CENSUS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T07:42:21Z",
+  "body": "Merged #3651 1f7c59ebc47bb506dcbcf5793d7a220efb338c60 (R11-PRE-STANDING-SCRIPTS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T07:51:40Z",
+  "body": "Merged #3635 31255c328918573ef29007dac22d7184a0f0247c (R11-PRE-ACK-COMPLETION). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-16T07:52:27Z",
+  "body": "record-autofix beat: opened #3660 with delivery rows for #3620 (`6d55bf6`), #3625 (`f1520e3`), #3627 (`4ce615b`), #3635 (`31255c3`), #3644 (`d4968fe`), #3648 (`315dda8`), #3651 (`1f7c59e`), #3653 (`824a016`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T08:08:17Z",
+  "body": "Merged #3647 b94425b94f0d25a02576e98fa10a8ff324974a0c (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-16T08:08:45Z",
+  "body": "record-autofix beat: opened #3660 with delivery rows for #3620 (`6d55bf6`), #3625 (`f1520e3`), #3627 (`4ce615b`), #3635 (`31255c3`), #3644 (`d4968fe`), #3647 (`b94425b`), #3648 (`315dda8`), #3651 (`1f7c59e`), #3653 (`824a016`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T09:29:34Z",
+  "body": "Merged #3661 030a4d377f9f26f5b8befe5721d86aea454f29e0 (R11-HOTFIX-TICK-SEAT-WINDOW). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T13:11:02Z",
+  "body": "Merged #3641 367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c (R11-PRE-OWNER-CRITERIA). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T13:36:59Z",
+  "body": "Merged #3660 b107103f706314ebc581274e6bc6403a9933ff5f (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T13:41:18Z",
+  "body": "Merged #3624 ebe83a1b8265b56bde009b70185585e736dbdb82 (R11-HOTFIX-CI-PREDICT-TIMEOUT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T14:21:34Z",
+  "body": "Merged #3645 e352724335c136b65562cd3e71f728549ad04a82 (R11-PRE-TOOLCHAIN-PIN). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T15:52:39Z",
+  "body": "Merged #3659 6f422812d5d8b918beace0283419c153f6df66ce (R10-DRAW-MAP-EVIDENCE). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T17:50:05Z",
+  "body": "Merged #3657 2c911234e1455e819d8ff6cd8e2e0d4216e6b31b (R11-PRE-ROUND-METRICS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T18:01:43Z",
+  "body": "Merged #3671 30f9caac90735c402c8e3ae60fbaa80c45dc6d26 (R11-HOTFIX-MAIN-SELFTEST-DRIFT). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T18:17:25Z",
+  "body": "Merged #3630 95e81782ffb2c03f0157cc5f26f7a12cc035fdd6 (no-group). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T18:35:41Z",
+  "body": "Merged #3664 ef6363d5f291e2eaa60620b5ea12d8d5fb902478 (R11-PRE-HANDOFF-BOOKKEEPING). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-16T18:37:53Z",
+  "body": "record-autofix beat: opened #3681 with delivery rows for #3630 (`95e8178`), #3641 (`367c3b9`), #3645 (`e352724`), #3657 (`2c91123`), #3659 (`6f42281`), #3661 (`030a4d3`), #3664 (`ef6363d`), #3671 (`30f9caa`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-for line stays manual by design. A seat'"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T19:04:16Z",
+  "body": "Merged #3602 2c84a85c8cb3fdbcdffa581c337ed168ad848d5c (R11-OUTSIDE-HONEST-STARTS-RUNS). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "tvofi",
+  "created_at": "2026-11-16T19:05:35Z",
+  "body": "Merged #3669 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (R11-START-EVALUATION-LAND). Closed issues: none. Leaves #3394 open.\n"
+ },
+ {
+  "user": "hpo-author[bot]",
+  "created_at": "2026-11-16T19:15:53Z",
+  "body": "record-autofix beat: opened #3681 with delivery rows for #3602 (`2c84a85`), #3630 (`95e8178`), #3641 (`367c3b9`), #3645 (`e352724`), #3657 (`2c91123`), #3659 (`6f42281`), #3661 (`030a4d3`), #3664 (`ef6363d`), #3669 (`92d38ec`), #3671 (`30f9caa`), generated from REST API facts (`tools/audit/seat/record_row.py`). It merges with no review seat where `--automerge-check` passes; the HANDOVER updated-fo"
+ }
+]
