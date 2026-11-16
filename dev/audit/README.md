@@ -107,10 +107,6 @@ against a measured baseline and a null control
   dispatch`, never a second writer of the registry or reviewer-fire close. A
   seat stops only after its job ran one real cycle beside it (one pitch merged,
   the seat agreeing), never into the orchestrator's turns.
-- R11-INTAKE-R10-RESIDUE holds R10-ROUND-PLAYBOOK-FINAL's carries 17, 25, 26 and
-  35 to 41, as written on the roster. Carry 31 goes with it: one paragraph each
-  in `dev/governance/dimensions/D11.md` and `D13.md`, naming the convergence
-  scorecard and round 11's two measurement groups, exempt from the 20% bar.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
@@ -151,11 +147,19 @@ against a measured baseline and a null control
 
 Before phase 1, the pickup; each later step is its owner's rule.
 
-1. Pickup: read each line to none, a disposition per line by `tools/audit/seat/roster_edit.py` (scheduled, built before finders, refused with a reason):
-   `python3 tools/audit/carry_audit.py roster`
-   `python3 -c "import sys,glob,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;r=max(glob.glob('dev/programme/rosters/wave-r*-groups.json'),key=lambda p:int(p.split('-r')[1].split('-')[0]));[print(g['group'],g['resume']['stage']) for g in json.load(open(r))['groups'] if g['resume']['stage'] not in F+('refused',)]"`
+1. Pickup: every line the commands below print has a disposition set by
+   `roster_edit.py`: a stage the round schedules (`not-started`, `design`,
+   `in-progress`, `carries-open` with a named next step), `done` or `refused`;
+   `deferred` is not one here. `M` is main's newest roster round
+   (`roster_lib.round_ref`; round 11's roster rides `audit-r10-roster`).
+
+       R=origin/handoff/audit-r<M>-roster
+       python3 tools/audit/carry_audit.py --roster-ref $R roster
+       git show $R:dev/programme/rosters/wave-r<N>-groups.json | python3 -c "import sys,json;sys.path[:0]=['tools/audit/seat'];from roster_lib import FINISHED_STAGES as F;[print(g['group'],s) for g in json.load(sys.stdin)['groups'] if (s:=g['resume']['stage']) not in F+('refused',)]"
+
 2. Evaluation before the baseline: decision 0018, R11-PRE-OBJECTIVE-FUNCTION, `check_scopes.py`.
-3. Denominator, unreached remainder, added dimensions, D11, D13: R10-DIMENSIONS-FULL-COVERAGE part 2, carried on R11-INTAKE-R10-RESIDUE.
+3. Denominator and unreached remainder: `dev/governance/roles/COMMON.md`,
+   `finding.schema.json`'s `coverage`, `audit-find.js`'s `denominatorGaps`.
 4. Proposals: the prior round's proposals file and prototypes, in
    `$HPO_STATE_DIR/r<N-1>/` (`orchestrator.md`, the instrument freeze), ruled by
    its round-end batch in `dev/programme/triage/`; ACCEPTs are built before finders.
