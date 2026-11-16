@@ -1720,14 +1720,14 @@ class Tick:
         `source: outside` group G, each `after` edge walked transitively over
         the groups that still gate (roster_lib.gates), prints one line per
         deepest group of a blocking path that no seat ref (SEAT_REFS) has
-        moved inside SEAT_WINDOW_MIN. A path ending in a live seat prints
+        moved inside owed_watch.SEAT_WINDOW_MIN. A path ending in a live seat prints
         nothing; an unreadable ref listing is UNREADABLE, never a clean chain."""
         groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
         outside = [g for g in open_g if open_g[g].get("source") == "outside"]
         seats = self._seats(S, rl, roster, "outside chains") if outside else {}
         if seats is None:
             return
-        window = datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+        window = datetime.timedelta(minutes=owatch.SEAT_WINDOW_MIN)
 
         def idle(gid):
             at = [self._commit_at("origin/" + r) for r in seats.get(gid, [])]
