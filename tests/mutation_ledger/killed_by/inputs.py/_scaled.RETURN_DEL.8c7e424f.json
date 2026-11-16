@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:_scaled RETURN_DEL 8c7e424f",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return base_minutes * min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

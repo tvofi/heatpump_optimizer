@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/rooms.py:<module> CONST 2e73c51e",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "ROOMS_MAX = 32",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`ROOMS_MAX = 64`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}
