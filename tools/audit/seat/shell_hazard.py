@@ -155,6 +155,8 @@ def self_test() -> int:
     st(rules('[ 3 = "$(wc -l <f)" ]\n'), ["wc-compare"], "a raw wc on the right of = is refused")
     st(rules('[ "$(wc -l <f)" != 3 ]\n'), ["wc-compare"], "!= is a string compare")
     st(rules('[[ $(wc -l <f) == 3 ]]\n'), ["wc-compare"], "[[ == ]] is a string compare")
+    st(rules('[ "$a" = b ] && [ "$(wc -l <f)" = 3 ]\n'), ["wc-compare"],
+       "a closed test before the compare does not hide it: the test holding the substitution is the last opener")
     st(rules('case "$(wc -l <f)" in 3) x;; esac\n'), ["wc-compare"], "a case subject is a string compare")
     st(rules('(( $(wc -l <f) == 3 ))\n'), [], "an arithmetic == reads a number (null)")
     st(rules('n=$(( $(wc -l <f) + 1 ))\n'), [], "an arithmetic expansion reads a number (null)")
