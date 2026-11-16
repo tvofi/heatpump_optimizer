@@ -3136,7 +3136,7 @@
     "branch": "fix/r11-outside-dearer-wording",
     "last_step": null,
     "next_step": "dispatch fixer after R11-OWNER-GENERIC-CONTROL-TEXT",
-    "note": "triage 2026-11-16 fable seat: accept in full"
+    "note": "folded into R11-OWNER-GENERIC-CONTROL-TEXT by owner ruling 11-16"
    },
    "source": "outside"
   },
