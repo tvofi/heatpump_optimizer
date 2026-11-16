@@ -67,6 +67,11 @@ def main():
         print(f"RESULT claimed_pos={claimed[0]},{claimed[1]} line")
         print(f"RESULT header_items={len(items)} count ({'; '.join(items)})")
         print(f"RESULT other_items={len(others)} count (claimed {claimed[2]})")
+        # the header also cites "HANDOVER trap 11": is there an 11th numbered trap in the one handover?
+        ho = subprocess.run(["git", "-C", a.repo, "show", f"{a.ref}:dev/programme/HANDOVER.md"], capture_output=True, text=True).stdout
+        traps = ho.split("## Traps that cost a session", 1)[-1] if "## Traps" in ho else ""
+        found = bool(re.search(r"(?m)^\s*(?:11[.)]\s|.*\btrap 11\b)", traps))
+        print(f"RESULT handover_trap_11_found={int(found)} bool (null: the traps section exists={int(bool(traps))})")
         mism = (behind != claimed[0]) + (tip != claimed[1]) + (len(others) != claimed[2])
         print(f"RESULT mismatches={mism} count")
     finally:
