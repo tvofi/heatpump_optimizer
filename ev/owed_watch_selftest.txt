@@ -1,0 +1,82 @@
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+roster_lib: origin/handoff/audit-r11-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
+  ok   null: every step answered, nothing is owed (grace 0)
+  ok   planted merge-no-approval: one line at grace 0
+  ok   null merge-no-approval: inside its grace prints nothing
+  ok   planted approved-unmerged: one line at grace 0
+  ok   null approved-unmerged: inside its grace prints nothing
+  ok   planted blocked-no-fire: one line at grace 0
+  ok   null blocked-no-fire: inside its grace prints nothing
+  ok   planted head-no-dispatch: one line at grace 0
+  ok   null head-no-dispatch: inside its grace prints nothing
+  ok   planted UNFIRED: one line at grace 0
+  ok   null UNFIRED: inside its grace prints nothing
+  ok   planted DESIGN-REVIEW-OWED: one line at grace 0
+  ok   null DESIGN-REVIEW-OWED: inside its grace prints nothing
+  ok   planted FIXER-OWED: one line at grace 0
+  ok   null FIXER-OWED: inside its grace prints nothing
+  ok   planted SEAT-SILENT: one line at grace 0
+  ok   null SEAT-SILENT: inside its grace prints nothing
+  ok   DESIGN-REVIEW-OWED: a seat-refused verdict at the tip is no review
+  ok   DESIGN-REVIEW-OWED null: a class-open revise at the tip is a review (the designer owes)
+  ok   DESIGN-REVIEW-OWED null: a `Design blocked:` tip is a designer stop, not a review owed
+  ok   UNFIRED null: a return ref newer than the dispatch is a fire
+  ok   UNFIRED: only the group's own dispatch refs count (a stranger's fixer dispatch is not the group's)
+  ok   UNFIRED: a fixer dispatch of a family member (-p2) is the group's
+  ok   SEAT-SILENT null: a design push after the fire is a return
+  ok   SEAT-SILENT null: a probe verdict after the fire is a return
+  ok   SEAT-SILENT null: a family member's step push after the fire is a return
+  ok   SEAT-SILENT: a design push of another group is no return
+  ok   blocked-no-fire null: a handoff ref at the verdict's own second is a repair
+  ok   UNFIRED null: a FIRED line naming the group, stamped at the dispatch's own second, is a fire
+  ok   UNFIRED: a FIRED line a second before the dispatch is no fire for it
+  ok   FIXER-OWED's age runs from the approve verdict, not from another ref
+  ok   the line names the step's age in whole minutes
+  ok   rank: a hotfix group ahead of a critical-path one (roster_lib.dispatch_rank)
+  ok   rank: inside one rank the critical path is ahead of outside
+  ok   read_world: the watched set is the open critical-path and outside groups, nothing else
+  ok   read_world: a pull request maps by branch, else by resume.pr; an unwatched group's is dropped
+  ok   read_world: approval is the newest APPROVED review at the head, never at another commit
+  ok   read_world: the watched groups' refs, never an unwatched group's
+  ok   read_world: commit times from git, for every ref tip and pull-request head
+  ok   read_world: each tip's note is read to its first line
+  ok   read_world: the fire ledger's stamps are epochs
+  ok   read_world: gh is asked for the open pull requests of the repo given
+  ok   read_world: a gh refusal is Unreadable, never an empty list
+  ok   read_world: a non-list answer is Unreadable, never an empty list
+  ok   read_world: a failed ls-remote is Unreadable (ls-remote)
+  ok   read_world: a failed fetch is Unreadable (fetch)
+  ok   read_world: a failed log is Unreadable (commit times)
+  ok   read_world: a failed log missing a head is Unreadable (#11's head)
+  ok   read_world: an unreadable roster ref is Unreadable
+  ok   read_world: an unreadable critical-path file is Unreadable, never an empty set
+  ok   fired: FIRED lines only, stamped as UTC, an unstamped one None
+  ok   fire_owed: an unfired payload past its grace owes; one a FIRED line names does not
+  ok   fire_owed: a payload exactly FIRE_GRACE_MIN old is still inside its grace
+  ok   graces are carry 4's figures, UNFIRED at FIRE_GRACE_MIN; the tick's two windows unchanged (120, 15)
+  ok   seat_on: a fire or a ref move exactly SEAT_WINDOW_MIN old is still a seat; one minute older is not
+  ok   fire_names: #3 names PR 3, never PR 30; a topic matches as a whole word
+  ok   main: cp-owed exits 2 printing cp-owed
+  ok   main: cp-owed exits 0 printing CP-OWED merge-no-approval
+  ok   main: cp-owed without --fired is a usage error
+  ok   mutant grace_ignored killed by: null merge-no-approval: inside its grace prints nothing
+  ok   mutant approval_ignored killed by: planted approved-unmerged: one line at grace 0
+  ok   mutant merge_arm killed by: planted merge-no-approval: one line at grace 0
+  ok   mutant blocked_fire killed by: planted blocked-no-fire: one line at grace 0
+  ok   mutant dispatch_head killed by: planted head-no-dispatch: one line at grace 0
+  ok   mutant unfired killed by: UNFIRED null: a return ref newer than the dispatch is a fire
+  ok   mutant unfired_dropped killed by: planted UNFIRED: one line at grace 0
+  ok   mutant design_blocked killed by: DESIGN-REVIEW-OWED null: a `Design blocked:` tip is a designer stop, not a review owed
+  ok   mutant seat_refused killed by: DESIGN-REVIEW-OWED: a seat-refused verdict at the tip is no review
+  ok   mutant design_review_dropped killed by: planted DESIGN-REVIEW-OWED: one line at grace 0
+  ok   mutant fixer_owed killed by: planted FIXER-OWED: one line at grace 0
+  ok   mutant silent killed by: planted SEAT-SILENT: one line at grace 0
+  ok   mutant rank_cp_first killed by: rank: inside one rank the critical path is ahead of outside
+  ok   mutant rank_dropped killed by: rank: a hotfix group ahead of a critical-path one (roster_lib.dispatch_rank)
+owed_watch self-test: 73 checks, 0 failed
+rc=0
