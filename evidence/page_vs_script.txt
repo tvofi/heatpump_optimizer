@@ -1,0 +1,114 @@
+## page
+# `loop_ledger.py`
+
+- `loop_ledger.py` — the convergence record's enumerator (R11-PRE-ROUND-METRICS
+  part 2; decision 0018 sections 2 and 4; process cards P7 and L1). Report-only.
+  Its rules and null controls are the script's docstring. It reads seven
+  roster fields, each written only through `roster_edit.py set-field`, which
+  refuses a word outside its vocabulary (`roster_lib.convergence_why`):
+  - `found_by` — a finder dimension `D<n>`, `reviewer`, `ci-main`, `owner` or `outside`;
+  - `owned_by` — the owning dimension `D<n>`, or `none`;
+  - `caused_by` — `{"cause": "#<pr>" | <group> | "external" | "original", "rca": <id>}`,
+    the id a record under `dev/audit/rca/` that is one of the group's own `rca`
+    records or declares the group its subject in its title and opening paragraph,
+    table rows aside (`roster_lib.rca_lists`, `rca_subjects`), so the cause is the
+    root-cause seat's, never the fixer's; a group with no `rca` of its own takes
+    `caused_by` once a record declares it so, and until then that read stays `unread`;
+    a group a record names only later, as a status row or a sibling, is refused;
+  - `family` — a class of `dev/audit/config/bugclasses.json`;
+  - `cm_kind` — `delete`, `self-heal`, `narrow`, `widen`, `new-refusal` or `policy-text`;
+  - `parent` — the roster group this one descends from;
+  - `follows` — the fix a re-report follows (a fix that did not fix).
+
+  Every outside group and every hotfix or bug group touching the product owes
+  `found_by`, `owned_by` and `caused_by`; any other hotfix group `found_by` and
+  `caused_by`; a group with an `rca` record `caused_by`, `family` and
+  `cm_kind`. When: the orchestrator sets them at intake and at the RCA's
+  landing, and runs
+
+      python3 -I tools/audit/seat/loop_ledger.py [--roster-ref REF]
+
+  at a round's close and weekly; it prints, per round (each roster) and per
+  ISO week of roster entry, `escapes` by found_by and owned_by, `injected`,
+  `refix` and `loop` (countermeasures by family and cm_kind, k, generations).
+  A read whose owing groups are not all recorded prints `unread (k of n ...)`.
+  `scorecard.py`'s `E` line prints the owning-dimension split through
+  `owned_split`. `--self-test`: the null controls (an empty directory, one
+  dropped field per read), the vocabulary refusals and a two-commit history.
+## wc
+353 tools/audit/seat/loop_ledger.py
+fatal: path 'tools/audit/seat/loop_ledger.py' exists on disk, but not in 'v7.0.0'
+## provenance
+30d545ce63aa60aabaa594d8d8ba0a62d4e3acc8 loop_ledger: the convergence record per round and week (cards P7, L1; 0018 sections 2 and 4), its roster fields through set-field, and scorecard E's owning-dimension split
+is-ancestor v10 rc=1
+is-ancestor main rc=0
+0
+0
+## roster names it
+0
+## fields
+852:CONVERGENCE_FIELDS = ("found_by", "owned_by", "caused_by", "family", "cm_kind", "parent", "follows")
+853-#: `found_by` besides a finder dimension `D<n>` (card P7's list).
+854:FOUND_BY = ("reviewer", "ci-main", "owner", "outside")
+855-#: `caused_by.cause` besides a pull request `#<n>` or a roster group (card L1).
+856:CAUSES = ("external", "original")
+857-#: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
+858:CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
+859-_ROOT = Path(__file__).resolve().parents[3]
+860-_DIM = re.compile(r"\AD\d{1,2}\Z")
+861-_PR = re.compile(r"\A#[1-9]\d*\Z")
+862-_RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
+863-
+864-
+865-def _dimension(word, root) -> bool:
+866-    """A finder dimension: `D<n>` with its brief under dev/governance/dimensions/."""
+867-    return isinstance(word, str) and bool(_DIM.match(word)) and (root / "dev/governance/dimensions" / f"{word}.md").is_file()
+868-
+869-
+870-def _bug_families(root) -> set:
+## SET_FIELDS
+464:SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class") + roster_lib.CONVERGENCE_FIELDS
+465-CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
+466-REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
+467-
+468-
+469-def required_contexts() -> set:
+470-    """The ruleset's required check names: the fixture merge_train.gating_names reads."""
+471-    try:
+472-        got = json.loads(REQUIRED_CONTEXTS.read_text())
+473-        return set(got.get("contexts") or []) | set(got.get("gate_required") or [])
+474-    except (OSError, ValueError, AttributeError):
+475-        return set()
+476-
+477-
+478-def _hotfix_by_why(g, by) -> "str | None":
+479-    """Why `by` ({rule, evidence}) is no admissible hotfix_by of group `g`, else None."""
+480-    if not isinstance(by, dict):
+481-        return "hotfix_by must be a JSON object {rule, evidence}"
+482-    rule, ev = by.get("rule"), by.get("evidence")
+483-    if rule not in roster_lib.HOTFIX_RULES:
+484-        return f"hotfix_by rule {rule!r} is none of {', '.join(roster_lib.HOTFIX_RULES)}"
+485-    if not ev:
+486-        return f"hotfix_by rule {rule} needs non-empty evidence"
+487-    if rule == "user-production-bug" and not (
+488-            g.get("source") == "user" and roster_lib.touches_production(g)):
+489-        return "user-production-bug needs source user and a group touching production code"
+## scorecard
+tools/audit/seat/scorecard.py:55:           has none (loop_ledger.owned_split).
+tools/audit/seat/scorecard.py:168:    """Line E's two sets, which loop_ledger.py reads as the escapes: outside groups, and
+tools/audit/seat/scorecard.py:176:def owned_split(groups: list[dict]) -> str:
+tools/audit/seat/scorecard.py:177:    """loop_ledger.owned_split, imported here so this module's mutant copies, which run
+tools/audit/seat/scorecard.py:181:        import loop_ledger
+tools/audit/seat/scorecard.py:183:        return "by owning dimension unread (no loop_ledger.py beside scorecard.py)"
+tools/audit/seat/scorecard.py:184:    return loop_ledger.owned_split(groups, {x.get("group") for x in groups})
+tools/audit/seat/scorecard.py:191:            f"{len(ph)}; open among both {openn}; " + owned_split(groups))
+dev/audit/yardstick/round11/EVALUATION.json:892:   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 92d38ecb64 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/loop_ledger.py` 353 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 30d545ce63 (R11-PRE-ROUND-METRICS part 2, pull request 3657): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 92d38ecb64 and not at the graded SHA a39627da59. The page's claims hold against the script at 92d38ecb64: its seven fields are roster_lib.CONVERGENCE_FIELDS, all in roster_edit.py's SET_FIELDS; its vocabularies are roster_lib.FOUND_BY, CAUSES, CM_KINDS and convergence_why's D<n>, none, bugclasses.json and other-group rules; its owing rules are loop_ledger.owed; scorecard.py's E line calls owned_split. `python3 -I tools/audit/seat/loop_ledger.py --self-test` -> 21 ok, 0 failed, rc 0, covering each self-test claim on the page (empty directory, one dropped field per read, vocabulary refusal, two-commit history). `python3 -I tools/audit/seat/loop_ledger.py --repo . --roster-ref HEAD` -> rc 0, rounds 9 and 10 and weeks 2026-W42 on, with escapes, injected, refix and loop `unread (k of n ...)` wherever an owing group is unrecorded (round 10: escapes 43 of 43), as the page says."
+tools/audit/seat/instruments/loop_ledger.py.md:35:  `owned_split`. `--self-test`: the null controls (an empty directory, one
+tools/audit/seat/instruments/scorecard.py.md:25:    both sets by owning dimension (`loop_ledger.owned_split`), unread while
+tools/audit/seat/loop_ledger.py:100:def owned_split(groups: list, names) -> str:
+tools/audit/seat/loop_ledger.py:299:        check("owned_split splits by dimension, and is unread with an unrecorded escape",
+tools/audit/seat/loop_ledger.py:300:              owned_split(fx, {g["group"] for g in fx}) == "by owning dimension {D8: 1, none: 1}"
+tools/audit/seat/loop_ledger.py:301:              and owned_split(g3[:1] + [{"group": "X", "source": "outside"}], {"X", "R9-OUT"})
+tools/audit/seat/scorecard.py:55:           has none (loop_ledger.owned_split).
+tools/audit/seat/scorecard.py:176:def owned_split(groups: list[dict]) -> str:
+tools/audit/seat/scorecard.py:177:    """loop_ledger.owned_split, imported here so this module's mutant copies, which run

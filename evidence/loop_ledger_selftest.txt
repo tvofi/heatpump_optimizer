@@ -1,0 +1,23 @@
+ok    NULL: an empty input directory prints unread and no value
+ok    a fully recorded roster reads every line
+ok    NULL: one escape without owned_by turns read 0 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (owned_by)
+ok    NULL: one escape without caused_by turns read 1 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (caused_by)
+ok    NULL: one escape without family turns read 3 unread naming it, never a partial value
+ok    ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (family)
+ok    a value outside the vocabulary is unrecorded
+ok    a countermeasure whose family is no bug class reads loop unread, never the word
+ok    a non-escape hotfix owes found_by: refix reads unread, escapes stay read
+ok    owned_split splits by dimension, and is unread with an unrecorded escape
+ok    k counts a countermeasure's children in every period, not only its own
+ok    refix counts only a follows naming a roster group
+ok    a group with no entry time falls in the week unentered
+ok    a group carried into a later roster is counted once in its week
+ok    an unrecorded list names its first five groups, and an ellipsis only past five
+ok    owed: a plain group owes nothing; a machinery hotfix owes no owned_by
+ok    generation: a cycle and a missing parent are None
+ok    history: each group's week is its first roster entry, carried into a later roster or not
+ok    --dir has no history: its weeks are unread
+loop_ledger self-test: 0 failed
+rc=0

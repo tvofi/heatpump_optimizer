@@ -1,0 +1,97 @@
+## PR of 30d545ce63
+95da81dcf7 Merge remote-tracking branch 'origin/main' into HEAD
+b378d7d89b Merge remote-tracking branch 'origin/main' into fix/r11-pre-round-metrics-p2
+2c911234e1 Merge pull request #3657 from tvofi/fix/r11-pre-round-metrics-p2
+c1a69f7a02 rca_lists: admit only a group a record declares its subject
+3868879d09 record: the delivery row for #3657
+## owed
+def owed(g: dict) -> tuple:
+    """The convergence fields this group owes, in CONVERGENCE_FIELDS order."""
+    want = set()
+    if is_escape(g):
+        want.update(ESCAPE_FIELDS)
+    elif roster_lib.is_hotfix(g):
+        want.update(HOTFIX_FIELDS)
+    if g.get("rca"):
+        want.update(CM_FIELDS)
+    return tuple(f for f in roster_lib.CONVERGENCE_FIELDS if f in want)
+
+
+def _gap(groups: list, fields, names) -> list:
+## convergence_why
+def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
+    """Why `value` is no admissible `field` of `group`, else None. `names` is every
+    group name the reader can see (the cause, parent and follows targets).
+    `caused_by` is {cause, rca}: `rca_lists(rca, group)`, so the cause is the
+    root-cause seat's record and never the fixer's (decision 0018 section 2,
+    `injected`), and a defect group with no `rca` of its own takes one once a
+    record under dev/audit/rca/ declares it as its subject (`rca_subjects`). `root` defaults to the repository."""
+    root = root or _ROOT
+    me = group.get("group")
+    if field == "found_by":
+        return None if value in FOUND_BY or _dimension(value, root) else (
+            f"found_by {value!r} is neither a finder dimension D<n> nor one of {', '.join(FOUND_BY)}")
+    if field == "owned_by":
+        return None if value == "none" or _dimension(value, root) else (
+            f"owned_by {value!r} is neither a dimension D<n> nor none")
+    if field == "family":
+        return None if value in _bug_families(root) else (
+            f"family {value!r} is no class of dev/audit/config/bugclasses.json")
+    if field == "cm_kind":
+        return None if value in CM_KINDS else f"cm_kind {value!r} is none of {', '.join(CM_KINDS)}"
+    if field in ("parent", "follows"):
+        return None if value in names and value != me else f"{field} {value!r} is no other roster group"
+    if field != "caused_by":
+        return f"{field!r} is no convergence field"
+    if not isinstance(value, dict) or set(value) != {"cause", "rca"}:
+        return "caused_by must be a JSON object {cause, rca}"
+    cause, rca = value["cause"], value["rca"]
+    if not (cause in CAUSES or (isinstance(cause, str) and _PR.match(cause)) or (cause in names and cause != me)):
+        return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
+    if not rca_lists(rca, group, root):
+        return (f"caused_by rca {rca!r} is no rca record under dev/audit/rca/ that is the group's own"
+                f" or declares {me} its subject")
+    return None
+
+
+def recorded(group: dict, fields, names, root=None) -> bool:
+## self-test checks
+265:        check("NULL: an empty input directory prints unread and no value",
+269:        check("a fully recorded roster reads every line",
+289:        check("a value outside the vocabulary is unrecorded", "escapes unread (1 of 2" in reads(g3, g3)[0])
+292:        check("a countermeasure whose family is no bug class reads loop unread, never the word",
+296:        check("a non-escape hotfix owes found_by: refix reads unread, escapes stay read",
+299:        check("owned_split splits by dimension, and is unread with an unrecorded escape",
+305:        check("k counts a countermeasure's children in every period, not only its own",
+308:        check("refix counts only a follows naming a roster group",
+310:        check("a group with no entry time falls in the week unentered",
+312:        check("a group carried into a later roster is counted once in its week",
+315:        check("an unrecorded list names its first five groups, and an ellipsis only past five",
+318:        check("owed: a plain group owes nothing; a machinery hotfix owes no owned_by",
+320:        check("generation: a cycle and a missing parent are None",
+341:        check("history: each group's week is its first roster entry, carried into a later roster or not",
+346:        check("--dir has no history: its weeks are unread",
+21
+## json semantic diff
+moved: objects / tools/audit/seat/instruments/loop_ledger.py.md (added)
+moved: revision_5 (added)
+top keys: ['round', 'reads', 'evaluator', 'reviewer', 'review', 'graded', 'terms', 'not_followed', 'revision', 'revision_2', 'objects', 'cards', 'revision_3', 'revision_4', 'revision_5']
+evaluator: r11-evaluator (Fable 5.2) | reviewer: r11-evaluation-reviewer (Fable 5.2) | review: {'verdict': 'approve', 'sha': '83dc9488180379b859042b5f24b87d94a5a02c95', 'round': 4, 'scope': 'Delta only: `git diff c6ce415b7711d76cf6c08f926f30da91f7bda924 83dc9488180379b859042b5f24b87d94a5a02c95`, the `revision_4` block, read against origin/main 030a4d377f9f26f5b8befe5721d86aea454f29e0. No full re-review was made. The round-3 approve of 02a48db212e0e49af62863575cba86bc339d4958 is commit 92991d2a49cf72d182d3a8ac32ca378cca83069b on this line.', 'delta': [{'id': 'R4-1', 'state': 'confirmed', 'measured': '`git merge-base --is-ancestor 1ed1329e41 origin/main` -> rc 0 and its diff deletes dev/governance/roles/nudge.md; the row is dropped and nothing else of `objects` is removed.'}, {'id': 'R4-2', 'state': 'confirmed', 'measured': '`python3 -I dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, OBJECTS 128, rows enumerate.py 956 0 0 0 0, finder_overlap.py 263 0 0 0 0, plant_recall.py 443 0 0 0 0, round_metrics.py 452 0 0 0 0: the four new `keep` rows carry these figures. 267655f306, 2e7bced82e and 6c87325160 each add the guide named and none is an ancestor of v10.0.0 (rc 1). Each row is `keep` on a NO-READ yield with card E11-N-INSTRUMENT-YIELD as the builder; none is a `remove`.'}, {'id': 'R4-3', 'state': 'confirmed', 'measured': "each of the 17 `merged` commits is on origin/main's first-parent line, an ancestor of origin/main (rc 0), no ancestor of 02a48db212, c6ce415b77 or 83dc948818 (rc 1 each), and `git diff --name-only <merged>^1 <merged>` names the card's object or a path: b94425b94f (pull request 3647) COMMON.md; f1520e3539 (3625) D0, D1, D2, D8, D9, D12, D15; 511cf165f7 (3618) D3, D4, D5, D6, D7, D10, D14; 62f6bb2006 (3642) D11; 921214bf42 (3626) orchestrator.md. Both `merged_note's hold: 511cf165f7 also changes D11.md, and 646352ff13 changes dev/audit/yardstick/round10/OBJECTIVE.json."}, {'id': 'R4-4', 'state': 'confirmed', 'measured': "check_scopes.py's own `match(tree, object_globs(spec))` over objective.json and the tree at origin/main 030a4d377f gives 201 objects; the record rows 201; none unrowed, none extra. Tally 176 keep, 23 change, 2 remove; 48 cards, 43 accepted and 5 deferred. A key-by-key comparison of the two records finds no verdict, evidence, `decision`, `ruling` or `gates_finders` moved outside the changes `revision_4` lists."}, {'id': 'R4-5', 'state': 'confirmed', 'measured': "both `remove's re-read at origin/main: `git grep -n -o claude/audit-fix-` -> one pattern in each script; `gh pr list --state all --search head:claude/audit-fix-` -> 9 pull requests, 2026-09-02T01:01:32Z to 2026-09-03T06:47:47Z, before v6.6.12 (2026-09-25); `git log -S RETIRED` -> 785963eba4 2026-09-08 for each; 37 and 109 lines at a39627da59 and at v7.0.0; 0 first-parent merges touched either in v7.0.0..v10.0.0 or since."}, {'id': 'R4-6', 'state': 'no false move found', 'measured': "E11-N-P744-SCOPE's new path, attacked for recording the card merged on a commit that builds neither read (0018 section 5: `defer scope`; a verdict moved with no read behind it). The one merge on main after the review sha that touches a path of the card is d4968fe08b (pull request 3644), and it changes scorecard.py, already a path, as well as round_metrics.py: the added path makes no commit eligible that was not. `merged` stays unset. `git grep -c -i -E closure_slip|unexamined origin/main -- tools/audit/seat/round_metrics.py` -> no match; at pull request 3658's head e91759e2fc -> 17, so the file is where the two reads are built."}, {'id': 'R4-7', 'state': 'as expected', 'measured': "`python3 -I tools/audit/check_scopes.py --repo . --ref <a scratch merge of origin/main 030a4d377f and this review commit> --round 11`: the result is in this commit's message, since the commit cannot name its own run."}], 'notes': [{'id': 'Q1', 'touches': "record only, no card's ruling", 'note': "check_scopes.py reads only that `merged` touches a path. d4968fe08b would pass that rule for E11-N-P744-SCOPE today, before and after this revision, and builds neither `closure_slip` nor `unexamined`. Whoever records the card's `merged` records the later of pull requests 3657 and 3658 once both are on main, and never 3644."}, {'id': 'Q2', 'touches': "record only, no card's ruling", 'note': "The card's `paths_note` says round_metrics.py `is the enumerator that reads` the two terms and that pull request 3658 `changes only it among the tools`. On main it does not read them yet, and 3658 also changes tools/audit/seat/round_metrics_selftest.py and the guide. Neither moves a path or a ruling."}, {'id': 'Q3', 'touches': "record only, no card's ruling", 'note': "The 17 `merged` reads were checked to check_scopes.py's rule and by each merge's file list, not by re-reading each brief against its card's proposal: that is each pull request's own review."}, {'id': 'Q4', 'touches': "record only, no card's ruling", 'note': 'P1 and P2 of the round-3 review stand: E11-N-INSTRUMENT-YIELD still has an empty `paths`, and D16.md and D17.md are not on main.'}]}
+objects: 201 -> 202 cards: 48 -> 48
+verdicts: Counter({'keep': 177, 'change': 23, 'remove': 2})
+instrument-page rows: 115 Counter({'keep': 114, 'change': 1}) NO-READ: 114
+card E11-N-INSTRUMENT-YIELD: {"paths": [], "paths_note": "no exact file can be named: the queued builder group R11-PRE-NO-READ-BUILDERS lists no file for a refusal log, and `check_scopes.py` compares exact file names, so a directory can never match; the card needs the file its build adds written here before it is recorded merged", "proposal": "0018 section 3: an instrument's yield is NO-READ `until a refusal is logged with its outcome`. No roster group builds that log. Rule one: name the group that makes an instrument's refusal a logged line with what followed (a fix, an override, nothing), or accept that all 124 instrument objects stay unscored on yield while their cost is read.", "term": "The unscored share of instrum
+revision_4 keys: ['of', 'by', 'why', 'changes', 'unset', 'review_owed']
+revision_5 keys: ['of', 'by', 'why', 'changes', 'review_owed']
+## objective.json instrument globs
+297-   "AGENTS.md"
+298-  ],
+299:  "instrument": [
+300-   "tools/audit/seat/instruments/*.md",
+301-   "tools/policy/policy_lint.mjs",
+302-   "tools/policy/brief_lint.mjs",
+303-   "tools/release/stamp.py",
+304-   "tests/closure.py",
+305-   "tests/structure.py",
+306-   "tests/mutation_table.py",
+307-   "tools/policy/budget_raise_gate.py",
