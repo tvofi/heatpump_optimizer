@@ -1,0 +1,22 @@
+mb=e352724335c136b65562cd3e71f728549ad04a82
+== head lint
+TOTAL: 0 error(s) across 55 policy file(s)
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== mutant files_tokens dropped
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+TOTAL: 0 error(s) across 55 policy file(s)
+FIXTURE VACUOUS: checkOrphanCaps did not report docs/a-file-no-glob-matches.md's files_tokens cap exactly once (got []); a token cap on a deleted file would read exactly like one that holds.
+rc=1
+== null: head grader on base data
+  ERROR   [budgets] tools/audit/briefs/nudge.md: has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.
+  ERROR   [budgets] tools/audit/harnesses/README.md: has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.
+TOTAL: 2 error(s) across 55 policy file(s)
+rc=1
+== base grader on head data
+TOTAL: 0 error(s) across 55 policy file(s)
+FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+
+[exited with code 0]
