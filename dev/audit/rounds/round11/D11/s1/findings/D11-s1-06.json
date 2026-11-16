@@ -1,0 +1,48 @@
+{
+ "id": "D11-s1-06",
+ "scope": "D11-s1",
+ "step": "D11.M1",
+ "title": "wt_sync.sh asked for its --self-test force-pushes every dirty worktree of the box to origin",
+ "severity": "medium",
+ "claim": "Of the 113 tools/audit/seat scripts driven as `<interp> <script> --self-test` under shims, 18 print no self-test verdict, and 1 (wt_sync.sh) attempts a `git push -f origin <snapshot>:refs/heads/wip-sync/<slug>` from the real shared repository, because it ignores every argument but --scratch and runs its production snapshot-and-push path.",
+ "mechanism": "dev/audit/README.md states tools/audit/seat/ holds instruments that 'each carries --self-test', and D11.M1 and decision 0018 name `--self-test` as the positive control a seat runs. wt_sync.sh has no argument check: any first argument other than --scratch is ignored, so the control call fetches, snapshots every worktree of the shared git dir that is dirty or unpushed (other seats' included) and force-pushes each to origin/wip-sync/<slug>. selftest_wiring.py --check counts only files that match --self-test, so a script lacking one is outside its rule; codeql-triage-poll.sh is the same shape (its production poll runs, with PATCH dismissals when alerts exist). The sweep's shims rewrote every github.com URL to a dead path, so no push left the box.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py --jobs 3",
+  "harness_path": "dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py",
+  "value": 1,
+  "unit": "seat scripts whose --self-test pushes from the real repository (real_repo_writes_on_selftest); no_selftest=18 alongside",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (linux 6.18, 4 cpu)",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared; counts from the shim log the production processes write, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/wt_sync.sh (its argument handling and snap()), driven as a process with git/gh/curl/sleep shimmed",
+ "perturbation": {
+  "change": "insert as line 2 of wt_sync.sh: `[ \"${1:-}\" = --self-test ] && { echo \"self-test ok\"; exit 0; }` (seat_selftest_sweep.py --perturb, in the temp copy)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "tools/audit/seat scripts that, run with --self-test, attempt a git push to a github.com remote from a repository outside every temp root.",
+ "phenomenon_property": "Every instrument a seat may be told to self-test either runs a self-test that touches only temp state, or refuses an argument it does not know; no instrument's production write path is reachable through `--self-test`.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py | grep -E '^(REAL-REPO-WRITE|NO-SELFTEST)'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py --only pr_cap.py heartbeat.sh",
+  "value": "pr_cap.py logs no shim write; heartbeat.sh's self-test pushes only from its own temp repo (counted in github_writes_on_selftest, not real_repo)",
+  "note": "the shim detector sees a real self-test's fixture pushes and keeps them apart from the real repository's"
+ },
+ "reproduction_steps": [
+  "seat_selftest_sweep.py -> REAL-REPO-WRITE wt_sync.sh; RESULT real_repo_writes_on_selftest=1; RESULT no_selftest=18",
+  "seat_selftest_sweep.py --perturb --only wt_sync.sh -> RESULT real_repo_writes_on_selftest=0"
+ ],
+ "proposed_fix_scope": "Make wt_sync.sh (and codeql-triage-poll.sh, remerge_main.sh, a1_dispatch_arms.sh, the other NO-SELFTEST shell scripts) refuse unknown arguments and carry a --self-test over a temp repo; extend selftest_wiring.py --check to refuse a tools/audit/seat script with neither a --self-test nor an argument guard, matching the README's 'each carries --self-test'.",
+ "files": [
+  "tools/audit/seat/wt_sync.sh",
+  "tools/audit/seat/codeql-triage-poll.sh",
+  "tools/audit/seat/selftest_wiring.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

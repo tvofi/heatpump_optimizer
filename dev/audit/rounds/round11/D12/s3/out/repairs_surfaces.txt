@@ -1,0 +1,33 @@
+  issue data {'entity_id': 'number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL number:holds	issue=raised	writes=[('number', 'set_value', 60)]
+  issue data {'entity_id': 'number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL number:capped	issue=raised	writes=[('number', 'set_value', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL number:capped_immersion	issue=raised	writes=[('number', 'set_value', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'input_number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL input_number:holds	issue=raised	writes=[('input_number', 'set_value', 60)]
+  issue data {'entity_id': 'input_number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL input_number:capped	issue=raised	writes=[('input_number', 'set_value', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'input_number.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL input_number:capped_immersion	issue=raised	writes=[('input_number', 'set_value', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'climate.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL climate:holds	issue=raised	writes=[('climate', 'set_temperature', 60)]
+  issue data {'entity_id': 'climate.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL climate:capped	issue=raised	writes=[('climate', 'set_temperature', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'climate.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL climate:capped_immersion	issue=raised	writes=[('climate', 'set_temperature', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'water_heater.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL water_heater:holds	issue=raised	writes=[('water_heater', 'set_temperature', 60)]
+  issue data {'entity_id': 'water_heater.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL water_heater:capped	issue=raised	writes=[('water_heater', 'set_temperature', 60)]	BAD value 60 outside [30,55]
+  issue data {'entity_id': 'water_heater.dhw_sp', 'target': 60.0, 'value': 60.0} legionella_active=True
+CELL water_heater:capped_immersion	issue=raised	writes=[('water_heater', 'set_temperature', 60)]	BAD value 60 outside [30,55]
+RESULT arm=baseline
+RESULT cells=12 count
+RESULT issues_raised=12 count
+RESULT fix_writes=12 count
+RESULT bad_fix_writes=8 count
+RESULT wall_s=38.4 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.25
+RESULT swapins=0

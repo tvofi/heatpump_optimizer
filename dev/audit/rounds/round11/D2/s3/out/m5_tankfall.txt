@@ -1,0 +1,8 @@
+CELL tank-fall-after-charge combi_tank=external_station cap=0.7540kWh/K short:booked=0.0389kWh dip_equiv=3.0160kWh long_a:booked=3.0160kWh dip_equiv=3.0160kWh long_b:booked=3.0160kWh dip_equiv=3.0160kWh
+CELL tank-fall-after-charge combi_tank=internal_coil cap=0.6148kWh/K short:booked=0.0317kWh dip_equiv=2.4592kWh long_a:booked=2.4592kWh dip_equiv=2.4592kWh long_b:booked=2.4592kWh dip_equiv=2.4592kWh
+CELL tank-fall-after-charge combi_tank=tank_in_tank cap=0.7540kWh/K short:booked=0.0389kWh dip_equiv=3.0160kWh long_a:booked=3.0160kWh dip_equiv=3.0160kWh long_b:booked=3.0160kWh dip_equiv=3.0160kWh
+RESULT booked_kwh_long_max=3.0160 kWh
+RESULT booked_kwh_short_max=0.0389 kWh
+RESULT thread_factor=1.0000
+RESULT load1=2.93
+RESULT swapins=0

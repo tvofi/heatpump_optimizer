@@ -1,0 +1,53 @@
+{
+ "id": "D2-s3-10",
+ "scope": "D2-s3",
+ "step": "D2.M5",
+ "title": "The sysid adoption interval under-covers under 0.1 C quantisation and 0.02-0.05 C noise: 19 of 43 admitted fits miss it",
+ "severity": "medium",
+ "claim": "Under reading noise the fit is documented to tolerate (0.05 C white) and the 0.1 C quantisation of common room sensors, sysid.adoption_decision admits slab fits whose UA error exceeds the half-width it admitted them on in 9 of 11 (quantised) and 4 of 4 (white 0.05 C) cases, 19 of 43 over the three noisy arms against a nominal 0.05, all biased high (+7 % to +35 %), and the blend carries up to 11.7 % of UA error into house_heat_loss_scale from a learner sitting at the truth; noise-free windows recover UA to 5e-14.",
+ "mechanism": "slab_ua_adoption_halfwidth combines the profile-likelihood and prior widths in quadrature, both conditional on the reading noise being white with the fitted residual scale; a quantised or larger-noise room series leaves the room temperature (a regressor in the slab fit) noisy, which biases UA upward (errors-in-variables) while the profile width shrinks with the residual fit, so the narrowest (admitted) intervals are the biased ones.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+  "value": 9,
+  "unit": "count (quantised_0.1C admitted fits missing their interval, of 11 admitted)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out, up to three seats on the box; seeded counts, contention-immune",
+  "tolerance": "exact (seeded rng 2611, 40 seeds per cell)",
+  "load1": 9.79,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.sysid:adoption_decision (on SystemIdentification.identify_slab results, slab_ua_adoption_halfwidth)",
+ "perturbation": {
+  "change": "--perturb-bar5: sysid.UA_ADOPTION_HALFWIDTH_BAR = log(1.05)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "misses = admitted fits with |log(UA_fit/UA_true)| > the adoption half-width they were admitted on (95 % interval non-coverage; nominal share 0.05)",
+ "phenomenon_property": "An admitted sysid fit's adoption interval covers the true UA at its nominal rate under every reading-noise model the fit is built for (white to 0.05 C, 0.1 C quantisation, slow drift), and the blend weight never carries a bias larger than the interval states.",
+ "seam_rule": "grep -n 'def adoption_decision\\|def slab_ua_adoption_halfwidth\\|def _slab_ua_profile_halfwidth\\|UA_ADOPTION_HALFWIDTH_BAR' custom_components/heatpump_optimizer/sysid.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+  "value": "null_abs_bias_max=4.88e-14; white_0.005 miss_rate 0.006 (1/166)",
+  "note": "noise-free and 0.005 C white: the interval covers at (better than) nominal; the defect appears only as noise grows"
+ },
+ "leave_one_out": {
+  "cells": 10,
+  "min": 0.0,
+  "max": 1.0,
+  "drop_most_favourable": 0.368
+ },
+ "reproduction_steps": [
+  "Run the harness (about 10 min on a loaded box); read RESULT *_misses and *_admitted per noise kind and the per-cell CELL lines",
+  "Leave-one-out over the 10 plant x noise cells with admissions (white_0.02, white_0.05, quantised_0.1C): miss share 19/43 = 0.44; dropping the most favourable cell (white_0.02 s_true 1.25 cr 1.4, 5/5) leaves 14/38 = 0.368",
+  "Re-run with --perturb-bar5: every admitted and missed count goes to 0"
+ ],
+ "proposed_fix_scope": "sysid: widen the adoption interval for regressor noise (quantisation variance d^2/12, residual autocorrelation) or test the fit's residual whiteness before admitting; a bias check against the declared plant before blending",
+ "files": [
+  "custom_components/heatpump_optimizer/sysid.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

@@ -1,0 +1,42 @@
+{
+ "id": "D2-s3-04",
+ "step": "D2.M4",
+ "title": "Grid-fee weekday rules are shifted a day: Mon-Fri skips Friday, Sat-Sun bills Friday and Saturday, Sunday never matches",
+ "severity": "high",
+ "claim": "grid_fee.FeeRule.applies tests when.isoweekday() (Mon=1..Sun=7) against day sets parse_day_range builds in datetime.weekday() numbering (Mon=0..Sun=6), so over one week 192 of 672 quarter steps carry the wrong fee for the spec '= 0.05, Mon-Fri 06:00-22:00 = 0.25, Sat-Sun = 0.10, Nov-Mar 22:00-06:00 = 0.02' (all of Friday and all of Sunday).",
+ "mechanism": "grid_fee.py:104 _DAYS maps mon->0; :162 applies() uses isoweekday(). Every weekday rule is evaluated one day late; the fee vector (coordinator._fee_series -> the plan's prices), current_fee (the ledger's grid_fee line and the savings' spot+fee) all read it.",
+ "evidence": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": 192,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.76,
+  "thread_factor": 1.0001
+ },
+ "instrumented_symbol": "heatpump_optimizer.grid_fee:GridFeeSchedule.fee_vector (FeeRule.applies)",
+ "perturbation": {
+  "change": "--perturb weekday: FeeRule.applies tests datetime.weekday()",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "fee_mismatch_steps = quarter steps of the week 2026-01-12..18 (Europe/Stockholm) where fee_vector differs from the rule text's calendar meaning",
+ "phenomenon_property": "A weekday token in a fee rule applies on the calendar day it names, in the same numbering the parser and the evaluator share.",
+ "seam_rule": "grep -n 'isoweekday\\|weekday()' custom_components/heatpump_optimizer/grid_fee.py custom_components/heatpump_optimizer/tariff.py custom_components/heatpump_optimizer/dhw_schedule.py",
+ "null_control": {
+  "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "value": "grid_fee_mode=entity 0/672, none 0/672; rules mode mismatches only on Fri (96) and Sun (96)",
+  "note": "month and hour windows of the same rules agree on every step"
+ },
+ "proposed_fix_scope": "grid_fee.FeeRule.applies: when.weekday()",
+ "files": [
+  "custom_components/heatpump_optimizer/grid_fee.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "scope": "D2-s3"
+}
