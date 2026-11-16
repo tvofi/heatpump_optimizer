@@ -4,3 +4,4 @@
 1794851423 CKPT verdict drafted, carry_audit rc 0; CI WAIT snapshot 844a85ef396b
 1794851668 HB alive
 1794852273 HB alive
+1794853010 DONE verdict merge 5df5e26c pending-ci: gate pushed to probe/rev-3680-3239048c (aff1de2e)
