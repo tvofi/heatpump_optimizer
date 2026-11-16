@@ -1,0 +1,19 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from scratch
+  key       e83d7d2c835f4079ef138eebabb9ab6f1be4b08c1c4bd26cff0340af22d80af4
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/e83d7d2c835f4079ef138eebabb9ab6f1be4b08c1c4bd26cff0340af22d80af4.json
+    baseline_commit  94958b87a31e
+    baseline_tree    d858254cdaf1
+    cache_format     391552c099c1
+    driver_sha256    b1cf91aa5f06
+    environment      6c0b911d7e89
+    interpreter      2c0d5a52c59a
+    mode             5cf7504d9781
+    numeric_probe    554d2f4cd907
+    numpy_build      7d455919a5ef
+    packages         8ed25f7e2f3a
+    platform         902687261aa0
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 56 scenarios from branch
+rc=124

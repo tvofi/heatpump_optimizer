@@ -1,0 +1,6 @@
+baseline (root outside a tree, git on PATH, identity path ABSENT): 0 ['owner_only: probe OK']
+control (identity directory readable): 1 ['owner_only: REFUSED this account can read the owner identity directory /tmp/tmp3wjzpcwi/owner-id']
+root inside a git work tree, git on PATH: 1 ['owner_only: REFUSED the private root /tmp/tmp3wjzpcwi/ingit/root is inside a git work tree']
+same root, PATH = the root's bin only (no git resolves): 0 ['owner_only: probe OK']
+PUSH_AUTH set (tools/pr/merge_main_bot.py:293 pushes with it): 0 ['owner_only: probe OK']
+control GH_TOKEN set: 1 ['owner_only: REFUSED the token variable GH_TOKEN is set']

@@ -1,0 +1,127 @@
+## step 5: version/claims/golden/budgets untouched (three-dot)
+(end; empty = untouched)
+## sibling: credential holders
+tools/audit/seat/body_patch.sh
+tools/audit/seat/bus.sh
+tools/audit/seat/remerge_main.sh
+tools/audit/seat/remerge_main_selftest.py
+tools/pr/app_approve.sh
+tools/pr/app_comment.sh
+tools/pr/app_mint.sh
+tools/pr/app_push.sh
+tools/release/stamp.py
+## sibling: regex dimension lists
+.claude/workflows/audit-find.js
+dev/audit/config/finding.schema.json
+tools/audit/seat/finder_overlap.py
+## sibling: returns
+.claude/workflows/audit-find.js:283:  return ownerOnlyStatus(round, baseline, privateRoot)
+.claude/workflows/audit-find.js:559:return { missing, intake, rejected, leads: { raised: leads.length, converted: converted.length }, rotation_round: ledgerRound }
+.claude/workflows/audit-verify.js:148:  return ownerOnlyStatus(round, privateRoot)
+.claude/workflows/audit-verify.js:367:return { panel: { killed, tally }, dedup, verdicts, classes, fold, writer, record, rotation_yield: sortedYield }
+## sibling: readers of scopes.json
+.claude/workflows/audit-find.js
+.claude/workflows/audit-verify.js
+tests/layout.json
+tools/audit/check_scopes.py
+tools/audit/fold_ledger.py
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/finder_overlap.py
+tools/audit/seat/instruments/check_scopes.py.md
+tools/audit/seat/instruments/finder_overlap.py.md
+tools/audit/seat/instruments/owner_only.py.md
+tools/audit/seat/owner_only.py
+tools/audit/seat/ref_privacy.py
+tools/ci/selftest_closures.json
+tools/policy/check-wave-script.mjs
+## sibling: gh writers (design s5)
+.claude/rules/comment-readback.md
+.claude/workflows/audit-fix.js
+.claude/workflows/audit-verify.js
+.claude/workflows/audit-wave.js
+.claude/workflows/web-fragments.md
+.github/CODEOWNERS
+.github/workflows/dependabot-automerge.yml
+.github/workflows/governance.yml
+.github/workflows/pr-contract.yml
+.github/workflows/release.yml
+tools/audit/carry_audit.py
+tools/audit/seat/beat_jobs.py
+tools/audit/seat/beat_jobs_selftest.py
+tools/audit/seat/bus.sh
+tools/audit/seat/ci-watch.sh
+tools/audit/seat/cloud_relay.sh
+tools/audit/seat/failure_logs.sh
+tools/audit/seat/gh_calls.py
+tools/audit/seat/gh_read.py
+tools/audit/seat/handoff_push.sh
+tools/audit/seat/instruments/merge_pr.sh.md
+tools/audit/seat/instruments/merge_train.py.md
+tools/audit/seat/instruments/open_pr.sh.md
+tools/audit/seat/instruments/orchestrator_tick.py.md
+tools/audit/seat/instruments/outside_intake.py.md
+tools/audit/seat/instruments/record_beat.py.md
+tools/audit/seat/instruments/shims_seat-gh.md
+tools/audit/seat/instruments/verdict_audit.py.md
+tools/audit/seat/merge_pr.sh
+tools/audit/seat/merge_train.py
+tools/audit/seat/open_pr.sh
+tools/audit/seat/orchestrator_tick.py
+tools/audit/seat/outside_intake.py
+tools/audit/seat/outside_intake_selftest.py
+tools/audit/seat/postmerge.py
+tools/audit/seat/pr_args.sh
+tools/audit/seat/proof_watch.py
+tools/audit/seat/prune_refs.py
+tools/audit/seat/r10_mandate_guard_mutants.py
+tools/audit/seat/record_beat.py
+tools/audit/seat/ref_privacy.py
+tools/audit/seat/remerge_main.sh
+tools/audit/seat/resume_doc.py
+tools/audit/seat/roster_queue.py
+tools/audit/seat/roster_sync.py
+tools/audit/seat/seat_venv.sh
+tools/audit/seat/shims/seat-gh
+tools/audit/seat/sweep_template.md
+tools/audit/seat/tmp_paths.py
+tools/audit/seat/update_pr.sh
+tools/audit/seat/verdict_audit.py
+tools/audit/worktree_gc.sh
+tools/ci/selftest_closures.json
+tools/policy/agreement.mjs
+tools/policy/brief_lint.mjs
+tools/policy/budget_raise_gate.py
+tools/policy/check-wave-script.mjs
+tools/policy/figure_census.mjs
+tools/policy/fixtures/figures/good.md
+tools/policy/fixtures/policy-rot/no-gh.md
+tools/policy/friction_issues.mjs
+tools/policy/policy_lint.mjs
+tools/pr/app_comment.sh
+tools/pr/gh_comment.py
+tools/pr/outside.py
+tools/pr/push.sh
+## design s5 per-dimension lists
+1535
+## owed reds
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+## role contract drift

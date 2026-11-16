@@ -1,0 +1,43 @@
+Fix review: blocked e99d63a6731b38d991bb372490a01b8b2f2c89d6 probe-fail-open: owner_only.py probe exits 0 where it cannot run git, where the owner path it is told to prove unreadable is absent, and with a push credential variable set; corpus_mirror.py dies on two archive shapes
+
+bus-nonce: 6f832fbba1cf92cf6be432f17b0c5903
+
+Round 1. Reviewed from a detached worktree at e99d63a6731b38d991bb372490a01b8b2f2c89d6; merge base 030a4d377f9f26f5b8befe5721d86aea454f29e0; origin/main 6f422812d5d8b918beace0283419c153f6df66ce.
+
+## Block
+
+Each item is code or harness (C5), reproduced by this seat at the head; the reproductions are the reviewer's instruments, not a finder's (no finder harness exists: owner report).
+
+1. `tools/audit/seat/owner_only.py` `Host.run` returns 127 on `OSError` or a timeout, and `probe` reads only `== 0` as the refusing answer. A private root inside a git work tree is refused with git on PATH and passes (`probe OK`, rc 0) when no `git` resolves; the `git credential fill` line reads the same value, so a helper that blocks past 30 s also passes. The design makes the probe "a refusal and not an instruction"; an unanswered question must refuse. `ev/repro_probe.txt` lines 3 and 4 (control and failure).
+2. Same probe: `identity_reach` and `view.readable` cannot tell an absent path from an unreadable one, and `launch` never checks that `--owner-identity` and `--deploy-key` exist. A `probe.json` naming a path that does not exist gives `probe OK`; a mistyped owner path therefore proves nothing about the real key. `ev/repro_probe.txt` line 1; control line 2.
+3. class-open, credential holders. The body's rule (`git grep -l -E "mint_token|openssl dgst -sha256 -sign|GIT_SSH_COMMAND" -- tools`) returns the nine files the body lists and I confirm that count, but the rule is not the class: `tools/pr/merge_main_bot.py:293` pushes to origin with the variable `PUSH_AUTH` as an extraheader, matches none of the three patterns, has no harness arm, and `TOKEN_VAR` does not match its variable: the probe prints `probe OK` with `PUSH_AUTH` set (`ev/repro_probe.txt` line 5; control `GH_TOKEN` line 6). `tools/audit/seat/merge_train.py` (`gh auth token`) was reported by a delegated reader and not re-read by me. The launcher's allow-list drops the variable; the standalone `probe` both drivers' Prepare steps run does not.
+4. `tools/audit/seat/corpus_mirror.py` `safe_extract`: an archive whose member is named `.`, or that holds `a` and `a/b`, passes `archive_refusal` and then raises `IsADirectoryError` / `FileExistsError`. `scan` catches only `Paused`, so the run ends in a traceback with the cursor not saved and the item not marked, and every resume downloads the same archive and dies again. The design's rule for the untrusted corpus is "refused and recorded". `ev/repro_archive.txt`; null control on its first line.
+5. Same file, `each()` (line 323): `done[i] = state` is written for every state and line 320 skips every id in `done`, while `scan` clears `not_reached` at each new pass. A unit whose read answered a transient error is never read again and leaves the report after one pass; only universe against examined still shows it. Read from the code by me; the stub reproduction (a 502 on the check-suite read, healthy second pass, `not_reached == []`) is a delegated reader's and was not re-run by me. Contradicts the body's "without losing or repeating an item" outside the pause path.
+
+## Findings
+
+- `tools/policy/check-wave-script.mjs` does not grade that `audit-verify.js`'s Prepare prompt runs the probe: replacing its step 1 with "Set probe_rc to 0." leaves the grader at rc 0, while the same edit in `audit-find.js` is killed. Design 3.3 requires both drivers. Delegated reader's mutant, not re-run by me. Carry: R11-PRE-SECURITY-PRIVACY
+- Grader survivors in the drivers, delegated reader's, not re-run by me: `r?.done === true` read as `!!r` in `audit-find.js` `ownerSeat` and as `!= null` in `audit-verify.js` `quiet` (no arm replies `done: false`); the public log line of an owner-only dimension is checked by prefix only, so text appended to it (a seat count) passes; the seat and judge prompts' no-write sentences are unpinned. Carry: R11-PRE-SECURITY-PRIVACY
+- `owner_only.py`'s real `Host` class is exercised by no case (every case uses `Fixture`): `Host.run` returning 0, `Host.readable` always false, `Host.mode` always 700 and `gh_on_path` without `os.X_OK` all survive `--self-test --no-mutants`, as do `under()` without `os.sep`, `.*\.pem` dropped from `PRIVATE_KEY_NAMES` and `GITHUB_PAT` dropped from `TOKEN_VAR`. Delegated reader's mutants; block item 1 is the defect this gap let through. Carry: R11-PRE-SECURITY-PRIVACY
+- The standalone probe does not refuse git configuration in the environment or home (`GIT_CONFIG_COUNT` extraheader, `GIT_SSH_COMMAND`, a `.gitconfig` `insteadOf` or extraheader, `.netrc`), nor key files under `.ssh` not named `id_*`, `*.pem` or `*_key`. Delegated reader's runs, not re-run by me. Carry: R11-PRE-SECURITY-PRIVACY
+- `corpus_mirror.py` survivors, delegated reader's: the member and archive size caps (`if False` at lines 132 and 137; I confirmed both rules fire, `ev/repro_archive.txt`, and that the self-test plants only a traversal, a link and a ratio bomb), `(404, 410)` read as `(404,)`, the `hasNextPage` check, the two `since_budget` lines. Carry: R11-PRE-SECURITY-PRIVACY
+- `corpus_mirror.py` reads check-runs and annotations at one page of 100 with no walk, and the GraphQL connections `userContentEdits`, `timelineItems` and `contexts` carry no overflow flag: a unit past the page is dropped with no `not_reached` line. Delegated reader's reading, not verified by me. Carry: R11-PRE-SECURITY-PRIVACY
+- `fold_ledger.py check` passes a public-dimension record whose `verdict` or `note` text names an owner-only id, and three of its predicates survive (`into` dropped from the key tuple, `.` dropped from `DIM_OF`, `is True` read as truthy). Delegated reader's. Carry: R11-PRE-SECURITY-PRIVACY
+- `ref_privacy.py`'s `owner-only-id` shape requires exactly two digits; a one-digit or three-digit number passes. The design calls the class a tripwire; the docstring does not state this blind spot. Carry: R11-PRE-SECURITY-PRIVACY
+- `owner_only_channel.py` P5b null (lines 360-361) asserts only that the fail-closed line is absent, so a writer that stops earlier for another reason passes it; the body discloses the null as weaker than the design's. Carry: R11-PRE-SECURITY-PRIVACY
+- Note: figure: the body says `finder_overlap.py` is "no longer among" the files its regex-list command returns; the command returns it at this head (line 352, the old regex inside its own mutant table). Carry: R11-PRE-SECURITY-PRIVACY
+
+## Evidence
+
+- No review packet and no CI exist before the pull request opens; no check run was read, and `## Red checks` owes nothing (the owed set is in `ev/cheap-checks.txt`).
+- Merge: `git merge-tree --write-tree origin/main e99d63a6731b38d991bb372490a01b8b2f2c89d6` rc 0, `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge-tree.txt`).
+- Step 1, the body's proofs re-run at the head: `owner_only_mutants.py` `RESULT mutants=54 survived=0`; self-tests with mutants: owner_only 28 killed, corpus_mirror 21, leak_detectors 15, finder_overlap 18, gh_calls 37, all rc 0; `gh_read.self_test()` 162 checks 0 failed; `fold_ledger.py --self-test` and `ref_privacy.py --self-test` (132 checks) rc 0.
+- `owner_only_channel.py`: `RESULT arms=49 failed=0`, `OWNER-ONLY CHANNEL HELD`. `check-wave-script.mjs`: 287 passed, 0 failed. The base's grader over this head's tree: 249 passed, 0 failed (delegated reader's run).
+- Step 5: `VERSION`, the notes, `custom_components/`, `tests/golden`, every `*_budgets.json`, `dev/governance` and `CLAUDE.md` are untouched three-dot (`ev/cheap-checks.txt`). Step 4: `env_drift.py --all` did not finish inside this seat's 220 s bound (`ev/env_drift.txt`, rc 124); not verified beyond no golden or claim file being in the diff.
+- `ref_privacy.py --check`: 31 files with a push site, 0 refused. Architecture score: `dS +0.0000 NULL`.
+- Seat-gh owner-only mode: about forty argument vectors driven by a delegated reader against a stub `gh`; no write admitted.
+- Own-group carries in the body name the split part and owner acts, both `fixer.md` exceptions.
+- This verdict names defects of instruments no dimension uses yet (the owner-only set is empty at this head) and quotes no audit finding.
+- Role contract: `git diff <merge base>...origin/main -- dev/governance/roles/` is empty.
+- `seat_comms.sh`: init, heartbeat and ckpt ran without a printed failure.
+- `carry_audit.py check` over this verdict, as a body and as a comment: rc 0, `0 finding item(s)` both ways.

@@ -1,0 +1,66 @@
+ok   probe null: the account the launcher builds is refused nothing
+ok   env: the session inherits nothing but the named model credential
+ok   env: a token variable, an allow-list name, an unset name or a malformed one is no model credential
+ok   prepare: the root's files are owner-only, the shim is installed as gh, and probe.json holds the owner's paths
+ok   probe: a readable identity directory is refused by its path
+ok   probe: an unlistable identity directory whose key file is readable by name is refused
+ok   probe: a readable deploy key is refused by its path
+ok   probe: a git credential for the origin host is refused, and its value is not printed
+ok   probe null: a credential helper that answers no password is not one
+ok   probe: an agent socket is refused
+ok   probe: a private key, or a gh login file, under the home is refused by its path
+ok   probe null: a known_hosts and a public key under the home are not credentials
+ok   probe: the token variable GH_TOKEN is refused by name, never by value
+ok   probe: the token variable GITHUB_TOKEN is refused by name, never by value
+ok   probe: the token variable GH_ENTERPRISE_TOKEN is refused by name, never by value
+ok   probe: the token variable GITHUB_APP_INSTALL_TOKEN is refused by name, never by value
+ok   probe: the token variable HPO_PUSH_URL is refused by name, never by value
+ok   probe null: an empty token variable and the model credential are not refused
+ok   probe: a cloud session is refused (CLAUDE_CODE_REMOTE)
+ok   probe: a cloud session is refused (CCR_SESSION_PROFILE)
+ok   probe: a gh that is not the shim first on PATH is refused
+ok   probe: a real gh behind the shim that reports a login is refused by its path
+ok   probe null: a real gh behind the shim with no login passes, and the shim itself is never asked
+ok   probe: HPO_OWNER_ONLY unset is refused
+ok   probe: a private root that is not mode 700, absent, or inside a work tree is refused
+ok   probe: a relative private root is refused before anything is read
+ok   probe: an identity directory that is unset, outside the root, absent or not empty is refused
+ok   probe: a home outside the private root is refused
+ok   probe: a root the launcher did not prepare (no probe.json) is refused
+ok   probe: a probe.json naming no identity directory proves nothing and is refused
+ok   launch: probe, mirror with the descriptor, probe again, then the session under the allow-listed environment
+ok   launch: a red probe starts neither the mirror nor the session
+ok   launch: a mirror that fails starts no session
+ok   launch: --skip-mirror with no corpus manifest starts no session
+ok   launch null: --skip-mirror over an existing manifest runs no mirror and starts the session
+ok   launch: both or neither of --token-fd and --skip-mirror, no session command, or a root that does not exist is refused before any probe
+ok   mutant killed: root mode (by 'not mode 700')
+ok   mutant killed: work tree (by 'inside a work tree')
+ok   mutant killed: probe file (by 'no probe.json')
+ok   mutant killed: no identity named (by 'naming no identity directory')
+ok   mutant killed: identity dir (by 'readable identity directory')
+ok   mutant killed: identity by name (by 'readable by name')
+ok   mutant killed: deploy key (by 'readable deploy key')
+ok   mutant killed: identity env (by 'outside the root, absent or not empty')
+ok   mutant killed: home (by 'home outside the private root')
+ok   mutant killed: credential (by 'git credential for the origin host')
+ok   mutant killed: agent (by 'agent socket')
+ok   mutant killed: home keys (by 'under the home is refused')
+ok   mutant killed: public key (by 'public key under the home')
+ok   mutant killed: token var (by 'token variable GH_TOKEN')
+ok   mutant killed: push url (by 'HPO_PUSH_URL')
+ok   mutant killed: cloud (by 'cloud session is refused (CCR_')
+ok   mutant killed: shim first (by 'not the shim first on PATH')
+ok   mutant killed: mode var (by 'HPO_OWNER_ONLY unset')
+ok   mutant killed: gh login (by 'reports a login')
+ok   mutant killed: shim not asked (by 'shim itself is never asked')
+ok   mutant killed: inherit (by 'inherits nothing')
+ok   mutant killed: model name (by 'is no model credential')
+ok   mutant killed: first probe (by 'red probe starts neither')
+ok   mutant killed: second probe (by 'probe, mirror with the descriptor, probe again')
+ok   mutant killed: mirror rc (by 'mirror that fails')
+ok   mutant killed: manifest (by 'no corpus manifest')
+ok   mutant killed: one of (by 'both or neither')
+ok   mutant killed: umask (by 'owner-only, the shim is installed')
+owner_only self-test: ok (with mutants)
+rc=0
