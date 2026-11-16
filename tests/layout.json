@@ -61,6 +61,7 @@
     "dev/governance/rules/*.md",
     "dev/governance/roles/*.md",
     "dev/governance/dimensions/*.md",
+    "dev/governance/dimensions/criteria/*.md",
     "dev/governance/decisions/*.md",
     "dev/governance/config/*.json"
    ]
