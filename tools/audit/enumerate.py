@@ -311,7 +311,7 @@ def wiring_slots(repo):
     reason, (nv, kv) = c.value.value, [e.id for e in c.generators[0].target.elts]
     tests = []
     for e in [x for i in c.generators[0].ifs for x in (i.values if isinstance(i, ast.BoolOp) else [i])]:
-        if isinstance(e, ast.Call) and fname(e) == "isinstance" and isinstance(e.args[0], ast.Name) and e.args[0].id == kv:
+        if isinstance(e, ast.Call) and fname(e) == "isinstance" and getattr(e.args[0], "id", None) == kv:
             continue
         if not (isinstance(e, ast.Call) and fname(e) in ("startswith", "endswith") and isinstance(e.func.value, ast.Name)
                 and e.func.value.id in (nv, kv) and len(e.args) == 1 and isinstance(e.args[0], ast.Constant)):
