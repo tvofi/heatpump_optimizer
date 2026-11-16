@@ -38,11 +38,11 @@ Carry 0: superseded by carry 1 and carry 2, which replace the file with the appr
 - No tracked code routes on issue label names. The only label code is `tools/audit/seat/ci_probe.py`, which writes labels, and `tools/ci/prelude.py`, which reads pull-request labels.
 - No workflow is triggered by `issues:`. The matches in `.github/workflows/*.yml` are permission blocks.
 
-**Classification.** `CODE_OF_CONDUCT.md` and the `.github/ISSUE_TEMPLATE/` prefix are on `tests/closure.py`'s `INERT` list, next to `SECURITY.md`. GitHub renders these files and no gate script reads them. `CODE_OF_CONDUCT.md` is also placed in `tests/layout.json`'s `root` category; `.github/**` already covers the forms. Editing `closure.py` is what makes the scope `MODE: FULL`.
+**Classification.** `CODE_OF_CONDUCT.md` and the `.github/ISSUE_TEMPLATE/` prefix are on `tests/closure.py`'s `INERT` list, next to `SECURITY.md`. GitHub renders these files and no gate script reads them. `CODE_OF_CONDUCT.md` is also placed in `tests/layout.json`'s `root` category; `.github/**` already covers the forms. Editing `closure.py` is what makes the scope `MODE: FULL`. `CODE_OF_CONDUCT.md` is also in `dev/audit/config/scopes.json`'s D6 `universe` and seat `s5`, directly after `SECURITY.md`, so the D6 finder that reads the other top-level contributor documents reads it; `.github/ISSUE_TEMPLATE/*.yml` is no `classify` glob of any dimension and needs no entry.
 
 ## Head
 
-65a0bd43d7530ec1401e0ad4b494e475768d1009 (one commit, tree identical to d4f988fa7ea8, which was), measured on origin/main e0ad8b2bd32b60a67975039f8573dbba2207757f at 2026-11-15T17:55Z. `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` at this head exits 0 (`PRE-PR: d4f988fa... rc=0`).
+3f464acc3daf31e66d9b1a001e01a70429ec923d, measured on origin/main e352724335c136b65562cd3e71f728549ad04a82 (merge base e75ad291ff5c58f7c8362b0a20fbe6b230adf717) at 2026-11-16T14:31Z. One commit on bba6698d438e: the D6 classification of `CODE_OF_CONDUCT.md` in `dev/audit/config/scopes.json`. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged. `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh BODY.md` at this head exits 0 (`PRE-PR: 3f464acc3daf... rc=0`).
 
 ## Mutation proof
 
@@ -53,6 +53,8 @@ The fix's production lines are the two `INERT` entries in `tests/closure.py`: `"
 The other `  FAIL` lines appear at both ends: they are the script's own negative controls, which print FAIL and pass. Comparing the two is `diff` of `grep "  FAIL"` over the head and mutant outputs, cut to 80 columns.
 
 The `tests/layout.json` root entry has its own mutation. Without it, `tests/layout.py` exits 1 with `placement: CODE_OF_CONDUCT.md is in 0 categories of tests/layout.json`, which is the first run on this branch. With it, the script exits 0.
+
+The `scopes.json` entry has its own mutation: at bba6698d438e, the head without it, `python3 -I tools/audit/check_scopes.py --repo .` exits 1 with `FAIL D6 ... classified in neither universe nor static: CODE_OF_CONDUCT.md` and `FAIL coverage ... in no universe and not excluded: CODE_OF_CONDUCT.md`; at this head it exits 0 (`ok D6 ... universe=354`, `ok coverage ... unclassified=0`).
 
 ## Null control
 
@@ -65,8 +67,9 @@ On the base `INERT` list with the new files present, `closure.orphan_files()` re
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL`, reason "tests/closure.py changes the gate itself".
 - Run at the head with `PYTHONPATH=tests/hastub`, each exiting 0: `tests/env_drift.py --claims-only origin/main`, `tests/closure.py selftest`, `tests/layout.py`, `tests/harness_headers.py` and `tests/entities.py`. These are `tests/run.sh`'s `run_always` scripts plus the classification check. The rest of the `MODE: FULL` suite is left to CI.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- `python3 -I tools/audit/check_scopes.py --self-test --repo .`, the command `governance.yml`'s `instrument-self-tests` step runs: `SELF-TEST FAILED` at bba6698d438e, `SELF-TEST passed (every perturbed scope refused)` at this head. D6 seat `s5` reads 3245 units against `ledger.max_units` 4500 (check_scopes.py's own `s5:` field).
 
-<!-- figure-block: scope-line mb=e0ad8b2bd32b60a67975039f8573dbba2207757f head=65a0bd43d7530ec1401e0ad4b494e475768d1009 -->
+<!-- figure-block: scope-line mb=e75ad291ff5c58f7c8362b0a20fbe6b230adf717 head=3f464acc3daf31e66d9b1a001e01a70429ec923d -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -74,7 +77,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-none
+- `instrument-self-tests` (step `python3 -I tools/audit/check_scopes.py --self-test --repo .`), red at bba6698d438e and not at its merge base. Cause: the PR added the tracked top-level `CODE_OF_CONDUCT.md`, which D6's `classify` glob `**.md` claims, without placing it in D6's `universe` or `static`; the live-scopes arms of the self-test refused it. Repaired in 3f464acc3daf. Cheaper detector: the live check `python3 -I tools/audit/check_scopes.py --repo .` names the file by itself (shown failing at bba6698d438e and passing at this head above); it is in no `tools/pr/prepr.sh` step, so it first ran in CI. Run by prepr only on a diff that adds a tracked file, its standing cost is 23-24 s wall-clock per such run (two timed runs, at bba6698d438e and this head) and 0 s otherwise. Not built in this PR: the detector is a `prepr.sh` change, outside this group's seam.
 
 ## Forward-carry
 
