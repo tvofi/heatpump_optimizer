@@ -258,7 +258,7 @@ for (const [from, to] of Object.entries(MOVED)) {
   fs.writeFileSync(path.join(OUT, old), `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Moved</title>
 <meta http-equiv="refresh" content="0; url=${esc(target)}"><link rel="canonical" href="${esc(target)}">
-<script>location.replace(${JSON.stringify(target)} + location.hash)</script></head>
+</head>
 <body><p>This page moved to <a href="${esc(target)}">${esc(target)}</a>.</p></body></html>
 `)
   redirects.push({ src: from, out: old, to: target })
