@@ -1,34 +1,40 @@
-Design review: revise ef9b12e7dd92d347b17d3f2d51a089630540861f golden-unclaimed
+Design review: approve 080231bbfd580815e13811e5a2abcaf3e71952d2
 
-Round 2. I read design.md at ef9b12e7dd in a detached worktree and the code at d4968fe08b. The note's base, 5825e1346c, is an ancestor of d4968fe08b, 124 commits back. Group credited: outside pull request 3529 by Bankaifan.
+Round 3. I read design.md at 080231bbfd in a detached worktree. I checked the code at 030a4d377f, the payload base. The note's base 824a016f75 is an ancestor of 030a4d377f, 112 commits back. Between the two, draw_range.py, sensor.py, store.py, pump_arbiter.py, coordinator.py and tests/golden/ have no diff. Group credited: outside pull request 3529 by Bankaifan.
 
-## Round-1 revise point 1 (class-open, user surface): answered
+## Round-2 revise point 1 (golden-unclaimed): answered
 
-The note now designs the parts round 1 asked for: three new floor attributes, two translated enums in strings.json and the en, de and sv files, the pin at tests/entities.py:13064, and the paragraph for docs/how-it-works.md:1220. The max row stays byte for byte, and the limit sentence now names the entity and the docs as the way down. At d4968fe08b, `_pump_max_power` is at sensor.py:2095-2106 and the pin set is at tests/entities.py:13063-13066.
+- The set is right. At 030a4d377f, `git grep -l '"pump_max_power_source"' -- tests/golden/` returns exactly coord_all_features, coord_dhw, coord_grid_fee, coord_minimal and coord_two_zone.
+- The mechanism is right. `_pump_max_power` (sensor.py:2093-2105) writes its source and reason as `b.get(...)` even when there is no band, so three new keys land as null in every coord capture. Today's three sit at tests/golden/coord_minimal.json:1903-1905. tests/golden.py:1488 reports a key missing from the fixture as "new field". `data.pump_max_power` (coord_minimal.json:465) carries no floor key, so it stays null.
+- The write follows R10-COP-GATE-D (claimed_drift.txt:744-753): the five committed files are spliced in those paths alone and claimed ADDED under the live `claims-for:`, with no `--record` run. claims-for is 10.0.2 at the base, equal to VERSION; the note leaves both untouched. card_claimed_drift.txt stays byte-identical.
+- Null control (a) is restated: each fixture's diff is only the three added null keys.
+- The note supersedes the parent note's "moves no golden" sentence for group C.
+- Correction to my round-2 verdict: the parent branch does not claim coord_all_features. fix/r11-outside-honest-starts-runs, re-read at 1c3417a151, claims only cycling_cost and everything_on, as the note says. The claimnotes-driver sentence stays as the merge order.
 
-## Revise point
+## Notes v2a, v2b, v2c: folded
 
-1. golden-unclaimed (evidence plan, design-review.md step 4). design.md, "Evidence, by file", says "`python3 tests/env_drift.py --all`: no golden carries a draw window; both claim files byte-identical". Null control (a) asserts the "max attributes identical to the base". Both statements are true of the max row, but the design adds three new keys to the Learning Model Status entity. `_pump_max_power` (sensor.py:2095) writes its keys even when there is no band: the row is None and the codes are `b.get(...)`, also None. So every coord capture gains three null leaves under `sensors.model_status.extra_state_attributes`: tests/golden/coord_minimal.json:1903-1905, and likewise coord_all_features, coord_dhw, coord_grid_fee and coord_two_zone. tests/golden.py:1488-1489 reports each one as a "new field" DIFF. R10-COP-GATE-D set the precedent at tests/golden/claimed_drift.txt:744-753 (commit ee92b1b2f6). It claimed those five fixtures' added keys, recording the direction as ADDED and stating that no other leaf moves. It did not re-record them. Fix wanted: name the five coord fixtures as goldens that move. Name the claim line each takes in tests/golden/claimed_drift.txt, under the `claims-for:` live at build time, with ADDED as the direction, written the way R10-COP-GATE-D's was. Keep tests/golden/card_claimed_drift.txt byte-identical. Restate null control (a): the band, the plan and the existing max attributes stay identical, and each fixture's diff is only those three added null keys, measured with env_drift --all. The parent note's sentence "C moves no golden" (a63a2ca6cd) no longer holds once C publishes on the entity, so say so. The parent group R11-OUTSIDE-HONEST-STARTS-RUNS also claims coord_all_features, so whichever of the two lands second merges its claim line through the claimnotes driver.
+- v2a: the "unexceeded" code reads "does not clearly exceed it", which is true on both sides of configured. Test 7 reaches it from a statistic within tol and from one below (1 - tol) x configured. The "measured" text holds because the update rule gives F set only when F > (1 + tol) x configured.
+- v2b: the two min codes join `_cpd_codes` (tests/features.py:87854). Its loop runs over strings.json plus SHIPPED_CATALOGUES, so de is covered.
+- v2c: the D6 register is rerun at the head.
+
+## Convergence claim (carry 1): attacked a third time, held
+
+The shape is unchanged since round 2: E taken at the floor in force, n reset on every move, no age lapse, moves only by more than a factor 1 +- tol, applied as min(F, top). The argument from rounds 1 and 2 stands: a monotone sequence, bounded, moving by fixed ratios, and g_f(f) = m through `_band_kw` mapping on `planned_min_kw` (pump_arbiter.py:702). The alignment paths are tested in test 6. The golden splice touches neither E nor its statistic.
 
 ## Decision still routed (not a revise point)
 
-- decision: orchestrator. Round 1 routed whether C also raises a notice through issues.py (brief bindings 1 and 4). The note now gives its own answer, no notice, and a fallback shape. The scope is still the orchestrator's to settle.
-
-## Convergence claim (carry 1): attacked again, held
-
-The note has the same shape as in round 1: evidence E at the floor in force, n reset on every move, no age lapse, and moves only by more than a factor of 1 ± tol between the configured floor and the top. Round 1's argument holds unchanged, and the note now states the premise g_f(f) = m (`_band_kw` maps on `planned_min_kw`, pump_arbiter.py:702). The r2 alignment paths (WINDOW eviction, the clamp in `from_dict`, both clears in `observe`) are designed and tested in test 6. The new attributes do not touch E or its statistic.
+- decision: orchestrator. Whether C also raises a notice through issues.py (brief bindings 1 and 4). The note designs none and gives a fallback shape; ruling c2 moved the plan-moving arm into scope and leaves the notice to the orchestrator.
 
 ## Notes for the fixer (carried observations)
 
-- Reason code "agrees" is designed as "F unset, E full", with the text "Configured: the metered minimum agrees with it". The shape never lowers F under configured, so an install whose statistic over E is below (1 - tol) x configured also returns "agrees", and that text is false for it (brief binding 4). Either give that branch a code whose text holds, as the max side's `not_below_configured` does, or word the text one-sided, for example "does not exceed it". Test 7 then reaches that branch. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (item v2a)
-- tests/features.py:87852-87873 (carry 6) pins the max codes against strings.json and SHIPPED_CATALOGUES. Test 7 should extend that same check to the two min attributes rather than add a second loop. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (item v2b)
-- A new attribute or docs line can shift dev/audit/rounds/round4/D6/claims.{json,md}. ee92b1b2f6 regenerated that register for the same kind of change. Rerun its generator at the head. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (item v2c)
+- The carry-6 check's label text (tests/features.py:87868, "in strings.json, en and sv") under-describes a loop that also covers de. When test 7 extends it to the min codes, make the label name the four files it checks. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (item v3a)
+- Group C claims the five coord fixtures, and any other group that adds a key to the model status entity before C lands moves the same five. Before the handoff, re-run `git grep -l '"pump_max_power_source"' -- tests/golden/` and env_drift --all at the fixer's own merge base. Splice and claim whatever set that returns, not the note's list. Carry: R11-OUTSIDE-HONEST-METERED-FLOOR (item v3b)
 
 ## Checked and clean
 
-- Seam: draw_range.py stays the only owner. The update and the store reader are module-level, `_run_asked` has keyword defaults, and there is no second sample store.
-- Siblings in flight: I re-read the design/* refs. R11-OUTSIDE-SELF-SETTING-PUMP reads draw_range.py and leaves it unchanged. No other open design touches `_pump_max_power`, the learning_model_status strings or how-it-works.md:1205-1221. archive/design/R10-DRAW-MAP-EVIDENCE is still not on main.
-- Sibling sites: the readers of `pump_max_power` at d4968fe08b match the note's list (coordinator, payload, sensor, the four string files, entities, docs). The goldens above are the exception. tests/golden/config_flow.json's hits are `heat_pump_max_power`, the configuration field, which is unaffected.
-- Size: an M group with new files only in user text. The churn fits.
+- Seam: draw_range.py is still the one owner. The update and the store reader are module-level, `_run_asked` gains keyword bounds whose defaults are today's, and there is no second sample store.
+- Siblings: archive/design/R10-DRAW-MAP-EVIDENCE is not on main; the seam is textual only.
+- Cited lines re-measured at 030a4d377f: sensor.py:2093-2105, the four `learning_model_status` blocks at line 2154, and tests/entities.py:13063-13066.
+- Size: still M. The design adds the five golden splices and one claim block, with no new code file.
 
 Token count: not reported by this harness.
