@@ -1,2 +1,3 @@
 ok D6-s4
 ok D6-s6
+ok D6-s7
