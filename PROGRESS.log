@@ -3,3 +3,4 @@
 1794869699 HB alive
 1794869762 CKPT setup done, parent note read, three scouts dispatched snapshot 18f93d19a8f2
 1794869933 CKPT scouts returned; reading planner tail, measuring snapshot 44a0375ff607
+1794870091 CKPT spike measured: leaf energy commit holds floors on 0 of 14 masks; lift holds 2 of 2 snapshot cc819214cf9a
