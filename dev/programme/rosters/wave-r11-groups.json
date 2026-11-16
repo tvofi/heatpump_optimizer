@@ -3346,6 +3346,45 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-ADVISOR-MEASURES): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares custom_components/heatpump_optimizer/thermal_model.py, tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-ADVISOR-MEASURES shares tests/features.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-POLICY-TOKEN-CAP",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/policy/policy_lint.mjs",
+    "dev/governance/config/policy_budgets.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Drop the files_tokens cap kept for the retired orchestrator turn and extend policy_lint.mjs's orphan-cap check to files_tokens, as the carry below states verbatim (triage: dev/programme/triage/r10-round-end.md#P764). A budget-file change: it merges on the owner's approval, or under the mandate in force, per budget-raise-gate.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-policy-token-cap",
+    "last_step": null,
+    "next_step": "mandate approval, then dispatch fixer",
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
+   },
+   "source": "programme"
   }
  ]
 }
