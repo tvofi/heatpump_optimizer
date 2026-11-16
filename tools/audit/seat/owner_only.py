@@ -406,7 +406,7 @@ def cases(m) -> dict[str, bool]:
         r["probe: a git credential for the origin host is refused, and its value is not printed"] = \
             one(lines(credential="username=x\npassword=" + secret), "git credential fill")
         r["probe null: a credential helper that answers no password is not one"] = lines(credential="username=x") == []
-        r["probe: an agent socket is refused"] = one(m.probe(Fixture(root, {**env, "SSH_AUTH_SOCK": "/tmp/s"}), root), "SSH_AUTH_SOCK")
+        r["probe: an agent socket is refused"] = one(m.probe(Fixture(root, {**env, "SSH_AUTH_SOCK": "/run/agent.sock"}), root), "SSH_AUTH_SOCK")
         home = env["HOME"]
         r["probe: a private key, or a gh login file, under the home is refused by its path"] = \
             one(lines(dirs={os.path.join(root, "identity"): [], os.path.join(home, ".ssh"): ["id_ed25519", "known_hosts", "id_ed25519.pub"]}), "id_ed25519") \
