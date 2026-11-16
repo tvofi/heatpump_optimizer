@@ -533,7 +533,13 @@ with how warm the tank is when you ask and with the hour you ask at, because
 both plans start from the tank as measured and a day's plan ends at a
 different point of the tank's cycle: a few degrees on the hot water setpoint
 can read as a saving at one hour and a cost at another, so read it as an
-indication for the coming day. On a two-zone house the schedule estimate
+indication for the coming day. The two-plan figure for the comfort weight or
+the lowest allowed temperature moves with the hour you ask at too, with or
+without a tank: each plan is one day's, so the figure carries how that day's
+prices fall from that hour, and a lighter weight or a lower floor can read as
+a saving at one hour, a cost at another, and at some hour as many times what
+it reads at the rest. Ask at a few hours before acting on its sign.
+On a two-zone house the schedule estimate
 keeps a few tenths a month of the buffer tank's temperature. The Advisor's price tile for a degree
 prices the same thermostat at each hour's own price, so the two differ by
 how the day's prices fall on its heating hours. On an install with a wood
