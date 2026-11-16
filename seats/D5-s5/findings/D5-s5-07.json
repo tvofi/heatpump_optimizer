@@ -1,0 +1,54 @@
+{
+ "id": "D5-s5-07",
+ "scope": "D5-s5",
+ "step": "D5.M4",
+ "title": "483 comment sentences over 40 words across 60 of 74 tooling files",
+ "severity": "low",
+ "claim": "Counting prose paragraphs only (usage, code, list and table lines excluded), the D5 units of the D5-s5 cells hold 483 sentences over 40 words, in 60 of the 74 files.",
+ "mechanism": "Fails D5-criteria.md C5 (easy to understand: no sentence over 40 words). The instruments' WHY blocks chain clauses with dashes, parentheses and semicolons into one sentence. A hand sample of 10 strict hits (taken before the table-row and `$`-split refinement, which only removed hits) read 9 as genuine prose sentences over 40 words, the tenth a threshold table; the raw splitter count is 743. Worst files: prepr.sh 111, merge_train.py 64, bus.sh 42, app_approve.sh 41, cloud_relay.sh 27.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # RESULT long_sentences_strict",
+  "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "value": 483,
+  "unit": "sentences",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.55,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "the comment and docstring units of tools/audit/seat/{a..o}*, tools/audit/seat/hooks/** and tools/pr/** via text_ledger.units_of",
+ "perturbation": {
+  "change": "--edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)",
+  "expected_direction": "down",
+  "observed_value": "14 (the --file tools/pr/push.sh arm, from 15)"
+ },
+ "metric_definition": "count of comment/docstring sentences over 40 words in the cells' D5 units, prose paragraphs only (RESULT long_sentences_strict)",
+ "phenomenon_property": "No comment or docstring sentence in the cells exceeds 40 words.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # long_sentences.tsv rows",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "tools/audit/seat/",
+  "tools/pr/"
+ ],
+ "proposed_fix_scope": "Split long sentences in the WHY blocks, worst files first (prepr.sh, merge_train.py, bus.sh, app_approve.sh); no code change.",
+ "reproduction_steps": [
+  "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "read the `false` line(s) it prints",
+  "perturb: --edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)"
+ ],
+ "leave_one_out": {
+  "cells": 74,
+  "min": 0,
+  "max": 111,
+  "drop_most_favourable": 372
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/hooks/git_identity.py",
+  "value": 0,
+  "note": "a docstring whose 54-word raw hit is two sentences joined at `$HPO_STATE_DIR` counts 0 strict: the splitter artefact is not counted"
+ }
+}
