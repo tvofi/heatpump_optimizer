@@ -37,7 +37,8 @@ MANIFEST.json holds each source's denominator -- enumerator, universe,
 examined, not_reached with a reason per unit -- and the scan's state. A unit
 GitHub no longer serves (404, 410) is `gone`, read once. A per-item read that
 answers an error is a not_reached line of its pass, and the next pass reads
-the unit again; only an answer (`answered`) is kept. What no endpoint
+the unit again; only an answer (`answered`) is kept, and a kept answer that
+is not `ok` is a not_reached line of every later pass. What no endpoint
 serves is stated there too (a job's step summary; status contexts of commits
 heading no pull request).
 
@@ -59,7 +60,10 @@ call it issues passes gh_read.is_read or gh_read.is_query, or it stops.
 ARCHIVES. A logs or artifact archive is extracted only under the corpus. An
 archive with a member whose path leaves its directory, a link, or a size or
 ratio past the cap is refused whole and recorded in refused.json by the rule
-it broke; nothing of it is extracted.
+it broke; nothing of it is extracted. WHOSE FAILURE: an archive is read from
+memory, so whatever reading it raises is the archive's and is a refusal, an
+answer; whatever a call on this host's file system raises is this host's and
+is no answer (`each`): the unit is read again by the next pass.
 
 NOT EXERCISED HERE: the self-test drives every path over a stub of `gh`, `git`
 and HTTPS. A first real scan confirms each endpoint's shape; one that does not
@@ -92,6 +96,7 @@ RUN_WINDOW = 1000          # the run list serves at most this many rows per filt
 MAX_MEMBER = 64 * 2**20    # one extracted member
 MAX_ARCHIVE = 512 * 2**20  # one archive, extracted
 MAX_RATIO = 200            # extracted over compressed, per member
+MAX_NAME = 255             # bytes of one component of a member's path: past it no common file system stores the name
 MAX_DOWNLOAD = 256 * 2**20  # an asset or artifact above this is not_reached: size
 MAX_SITE_PAGES = 2000
 NOT_REACHED_CAP = 200
@@ -108,9 +113,11 @@ ITEM_FIELDS = """i%d: issueOrPullRequest(number:%d){__typename
   commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{__typename ... on StatusContext{context description}}}}}}}}}"""
 
 
-#: What a per-item read answers for good. Any other state (an HTTP error, a transport failure) is no answer:
-#: it is a not_reached line of its pass, and the next pass reads the unit again.
-ANSWERED = ("ok", "gone", "size", "not a sha", "no check suite")
+#: What the remote answers for good. Any other state is no answer -- an HTTP error, a transport failure, a
+#: failure of this host (HOST_FAILED), or one computed from a row with no call (`size`, `not a sha`, `no check
+#: suite`) -- and is a not_reached line of its pass; the next pass reads the unit again.
+ANSWERED = ("ok", "gone")
+HOST_FAILED = "error: this host failed"
 
 
 def answered(state: str) -> bool:
@@ -143,6 +150,8 @@ def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
             return "a member's path leaves the archive's directory"
         if target == base and not info.is_dir():
             return "a member's path is the archive's directory"
+        if any(len(part.encode("utf-8", "replace")) > MAX_NAME for part in name.split("/")):
+            return "a member's name is past the length cap"
         (parents if info.is_dir() else files).add(target)
         parent = os.path.dirname(target)
         while len(parent) > len(base):  # every directory between the member and the archive's own
@@ -160,34 +169,68 @@ def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
     return ""
 
 
-def safe_extract(data: bytes, dest: Path) -> str:
-    """Extract a zip under `dest` -> "" when whole, else the rule it broke (and nothing extracted).
+def read_archive(read):
+    """One read of an archive's bytes -> (its value, "") or (None, the class of what it raised).
 
-    It answers for every archive: one whose member the file system will not write (a name too long, a
-    collision the rules above do not name) is refused like any other, and what was written is removed.
+    The boundary of the archive's own failures. `read` touches only bytes held in memory, so an Exception out
+    of it is a function of those bytes, whatever its class (zipfile raises RuntimeError for an encrypted member,
+    NotImplementedError for a method it lacks, zlib.error for a corrupt stream, and names no complete set).
+    MemoryError alone is this host's, and is raised.
     """
     try:
-        zf = zipfile.ZipFile(io.BytesIO(data))
-    except (zipfile.BadZipFile, ValueError):
+        return read(), ""
+    except MemoryError:
+        raise
+    except Exception as e:  # noqa: BLE001 -- the boundary is the rule: see the docstring
+        return None, type(e).__name__
+
+
+def safe_extract(data: bytes, dest: Path) -> str:
+    """Extract a zip under `dest` -> "" when whole, else the rule the archive broke (and nothing is left under `dest`).
+
+    Whose failure, by what a call reads: opening the archive and decoding a member go through `read_archive`
+    and return a rule. Every call on the file system is this host's: its failure is raised as OSError, never
+    returned, so no caller can record it as the archive's rule (`Mirror.each` reads it as no answer).
+    """
+    def member(info):
+        with zf.open(info) as src:
+            return src.read(MAX_MEMBER + 1)[:MAX_MEMBER]
+
+    zf, bad = read_archive(lambda: zipfile.ZipFile(io.BytesIO(data)))
+    if bad:
         return "not a zip archive"
+    whole = False
     with zf:
         why = archive_refusal(zf, dest)
         if why:
             return why
         try:
-            os.makedirs(dest, mode=0o700, exist_ok=True)
             for info in zf.infolist():
                 if info.is_dir():
                     continue
-                target = Path(os.path.join(dest, info.filename))
-                os.makedirs(target.parent, mode=0o700, exist_ok=True)
-                with zf.open(info) as src:
-                    target.write_bytes(src.read(MAX_MEMBER + 1)[:MAX_MEMBER])
-                os.chmod(target, 0o600)
-        except (OSError, ValueError, zipfile.BadZipFile) as e:
-            shutil.rmtree(dest, ignore_errors=True)
-            return f"a member cannot be written ({type(e).__name__})"
+                body, bad = read_archive(lambda: member(info))
+                if bad:
+                    return f"a member cannot be read ({bad})"
+                try:
+                    target = Path(os.path.join(dest, info.filename))
+                    os.makedirs(target.parent, mode=0o700, exist_ok=True)
+                    target.write_bytes(body)
+                    os.chmod(target, 0o600)
+                except OSError:
+                    raise
+                except Exception as e:  # noqa: BLE001 -- the names passed archive_refusal: what is left is this host's
+                    raise OSError(f"a member could not be written ({type(e).__name__})") from e
+            whole = True
+        finally:
+            if not whole:
+                shutil.rmtree(dest, ignore_errors=True)
     return ""
+
+
+def host_failure(e: BaseException) -> str:
+    """The state of a unit this host failed on, naming the errno or the class and nothing of the path."""
+    import errno
+    return f"{HOST_FAILED} ({errno.errorcode.get(getattr(e, 'errno', None)) or type(e).__name__})"
 
 
 def links(base: str, html: str) -> list[str]:
@@ -339,7 +382,10 @@ class Mirror:
         return page if isinstance(page, list) else []
 
     def each(self, s: str, name: str, ids, fetch, enumerator: str):
-        """Run `fetch(id) -> state` once per id and pass; a unit that answered (`answered`) is never read again."""
+        """Run `fetch(id) -> state` once per id and pass; a unit that answered (`answered`) is never read again.
+
+        The boundary of this host's own failures: an OSError (a full or failing file system, a program that is
+        not there) or MemoryError out of a fetch says nothing of the unit, so it is no answer."""
         done = self.cur["items"].setdefault(name, {})
         u = self.unit(s, name, enumerator)
         ids = [str(i) for i in ids]
@@ -347,8 +393,13 @@ class Mirror:
         try:
             for i in ids:
                 if i in done:
+                    if done[i] != "ok":  # an answer kept from an earlier pass is still not reached in this one
+                        self.missed(s, f"{name} {i}: {done[i]}")
                     continue
-                state = fetch(i)
+                try:
+                    state = fetch(i)
+                except (OSError, MemoryError) as e:
+                    state = host_failure(e)
                 done[i] = state
                 if state != "ok":
                     self.missed(s, f"{name} {i}: {state}")
@@ -485,11 +536,7 @@ class Mirror:
             data, why = self.download(f"repos/{self.repo}/actions/runs/{i}/logs")
             if data is None:
                 return why
-            why = safe_extract(data, self.dir / "logs" / i)
-            if why:
-                self.refuse(f"logs/{i}", why)
-                return "refused: " + why
-            return "ok"
+            return self.extract(f"logs/{i}", data)
 
         def checks(i):
             suite = runs[i].get("check_suite_id")
@@ -523,17 +570,18 @@ class Mirror:
             data, why = self.download(f"repos/{self.repo}/actions/artifacts/{i}/zip")
             if data is None:
                 return why
-            why = safe_extract(data, self.dir / "artifacts" / i)
-            if why:
-                self.refuse(f"artifacts/{i}", why)
-                return "refused: " + why
-            return "ok"
+            return self.extract(f"artifacts/{i}", data)
         self.each("S5", "artifacts", list(arts), artifact, "the artifact list; one download per unexpired artifact under the size cap")
 
-    def refuse(self, where: str, why: str):
+    def extract(self, where: str, data: bytes) -> str:
+        """An archive's state: `ok`, or refused by the rule it broke, recorded in refused.json."""
+        why = safe_extract(data, self.dir / where)
+        if not why:
+            return "ok"
         rows = self._load("refused.json", [])
         rows.append({"archive": where, "rule": why})
         self._write("refused.json", json.dumps(rows, indent=1) + "\n")
+        return "refused: " + why
 
     # ---- one scan --------------------------------------------------------------------
     def scan(self, only, origin: str, auth_env: dict) -> int:
@@ -764,7 +812,62 @@ def zip_of(members, link=None):
     return buf.getvalue()
 
 
+def unreadable_zips() -> dict[str, bytes]:
+    """Archives that pass every rule on their names and sizes and whose one member cannot be decoded, by shape."""
+    import struct
+    plain = zip_of([("m.txt", "hello " * 40)])
+    local, central = plain.find(b"PK\x03\x04"), plain.find(b"PK\x01\x02")
+    name_len, extra_len = struct.unpack_from("<HH", plain, local + 26)
+    start, size = local + 30 + name_len + extra_len, struct.unpack_from("<I", plain, local + 18)[0]
+
+    def patched(fmt, local_off, central_off, value):
+        b = bytearray(plain)
+        struct.pack_into(fmt, b, local + local_off, value)
+        struct.pack_into(fmt, b, central + central_off, value)
+        return bytes(b)
+    corrupt, short = bytearray(plain), bytearray(plain)
+    corrupt[start:start + size] = b"\xff" * size
+    short[start + 2:start + size] = b"\x00" * (size - 2)
+    two = bytearray(zip_of([("first.txt", "x"), ("m.txt", "hello " * 40)]))
+    second = two.find(b"PK\x03\x04", 4)
+    name_len, extra_len = struct.unpack_from("<HH", two, second + 26)
+    at, n = second + 30 + name_len + extra_len, struct.unpack_from("<I", two, second + 18)[0]
+    two[at:at + n] = b"\xff" * n
+    return {"its encrypted flag is set": patched("<H", 6, 8, 1), "its compression method is not implemented": patched("<H", 8, 10, 99),
+            "its deflate stream is corrupt": bytes(corrupt), "its stream does not hold what its header says": bytes(short),
+            "a later member's stream is corrupt, after one that was written": bytes(two)}
+
+
+def byte_changes(data: bytes):
+    """Every archive one byte away from `data`: each offset set to 0x00 and 0xff and with its low and high bit flipped."""
+    for k in range(len(data)):
+        for v in {0, 0xff, data[k] ^ 1, data[k] ^ 0x80} - {data[k]}:
+            yield data[:k] + bytes([v]) + data[k + 1:]
+
+
+class LocalFailure:
+    """While held, the first `count` writes of a file whose path holds `part` fail as this host's file system would."""
+
+    def __init__(self, part: str, error: BaseException, count: int = 1):
+        self.part, self.error, self.left, self.real = part, error, count, Path.write_bytes
+
+    def __enter__(self):
+        outer = self
+
+        def write_bytes(path, data):
+            if outer.left and outer.part in str(path):
+                outer.left -= 1
+                raise outer.error
+            return outer.real(path, data)
+        Path.write_bytes = write_bytes
+        return self
+
+    def __exit__(self, *exc):
+        Path.write_bytes = self.real
+
+
 def cases(m) -> dict[str, bool]:
+    import errno
     import tempfile
     r: dict[str, bool] = {}
     site = "https://example.invalid/site/"
@@ -884,8 +987,16 @@ def cases(m) -> dict[str, bool]:
             long_name = m.safe_extract(zip_of([("ok.txt", "x"), ("n" * 300, "x")]), Path(td) / "shape" / "long"), (Path(td) / "shape" / "long").exists()
         except Exception as e_:
             long_name = type(e_).__name__, None
-        r["archives: a member the file system will not write is refused, and what was written before it is removed"] = \
-            long_name == ("a member cannot be written (OSError)", False)
+        r["archives: a member whose name is past the length cap is refused whole by rule, and one at the cap extracts"] = \
+            long_name == ("a member's name is past the length cap", False) \
+            and m.safe_extract(zip_of([("d/" + "n" * m.MAX_NAME, "x")]), Path(td) / "shape" / "cap") == ""
+        with LocalFailure("/second.txt", OSError(errno.EIO, "Input/output error")):
+            try:
+                partial = m.safe_extract(zip_of([("first.txt", "x"), ("second.txt", "y")]), Path(td) / "shape" / "partial")
+            except OSError as e_:
+                partial = e_
+        r["archives: a write this host fails is raised, never returned as the archive's rule, and what was written before it is removed"] = \
+            isinstance(partial, OSError) and partial.errno == errno.EIO and not (Path(td) / "shape" / "partial").exists()
         r["archives null: nested files, a directory entry and a repeated ancestor extract whole"] = \
             m.safe_extract(zip_of([("./", ""), ("a", "x"), ("b/", ""), ("b/c", "y"), ("b/d/e", "z")]), Path(td) / "shape" / "ok") == "" \
             and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"]
@@ -897,6 +1008,92 @@ def cases(m) -> dict[str, bool]:
         r["archives: an archive of such a shape is recorded as refused, the scan completes, and the other runs are read"] = \
             rc == 0 and ms.cur["state"] == "complete" and ms.cur["items"].get("run logs") == {"900": "ok", "901": "refused: a member's path is both a file and a directory", "902": "ok"} \
             and ms._load("refused.json", []) == [{"archive": "logs/901", "rule": "a member's path is both a file and a directory"}]
+        logs_of = lambda stub, n_: sum(1 for d_ in stub.downloads if d_.endswith(f"runs/{n_}/logs"))  # noqa: E731
+        unreadable = unreadable_zips()
+        got = {}
+        for n_, (label, data) in enumerate(unreadable.items()):
+            try:
+                got[label] = m.safe_extract(data, Path(td) / "unread" / str(n_)), (Path(td) / "unread" / str(n_)).exists()
+            except Exception as e_:  # the defect: what the reader raises reaches the caller
+                got[label] = "RAISED " + type(e_).__name__, None
+        r["archives: a member that cannot be read (encrypted, an unimplemented method, a corrupt or short stream) is refused whole and never raises"
+          + ("" if all(v[1] is False for v in got.values()) else f"; got {got}")] = \
+            all(why.startswith("a member cannot be read (") and there is False for why, there in got.values()) and len(got) == 5
+        try:
+            no_zip = m.safe_extract(b"no archive at all", Path(td) / "unread" / "none"), m.safe_extract(b"", Path(td) / "unread" / "none")
+        except Exception as e_:
+            no_zip = type(e_).__name__
+        r["archives: bytes that open as no archive are refused by that rule"] = no_zip == ("not a zip archive", "not a zip archive")
+        for label, data in unreadable.items():
+            u_ = Stub(hostile={"repos/o/r/actions/runs/901/logs": data})
+            try:
+                mu, rc = mirror(Path(td) / ("s5u" + str(len(label))), u_, only=("S5",))
+                state, items, rows = mu.cur["state"], mu.cur["items"].get("run logs", {}), mu._load("refused.json", [])
+            except Exception as e_:  # the defect: the scan dies with its cursor unsaved
+                rc, state, items, rows = None, "RAISED " + type(e_).__name__, {}, []
+            r[f"archives: through a scan, a logs archive where {label} is recorded as refused, the scan completes and the other runs are read"] = \
+                rc == 0 and state == "complete" and {k_: v_ for k_, v_ in items.items() if k_ != "901"} == {"900": "ok", "902": "ok"} \
+                and items.get("901", "").startswith("refused: a member cannot be read (") and [x["archive"] for x in rows] == ["logs/901"]
+        raised, n_changed = [], 0
+        for seed in (zip_of([("m.txt", "hello " * 8)]), zip_of([("a", "x"), ("b/c", "y")]), (lambda b_: (zipfile.ZipFile(b_, "w").writestr("s", "stored"), b_.getvalue())[1])(io.BytesIO())):
+            for n_changed, data in enumerate(byte_changes(seed), n_changed + 1):
+                try:
+                    if not isinstance(m.safe_extract(data, Path(td) / "fuzz"), str):
+                        raised.append("no rule")
+                except Exception as e_:
+                    raised.append(type(e_).__name__)
+                shutil.rmtree(Path(td) / "fuzz", ignore_errors=True)
+        r[f"archives: each of {n_changed} archives one byte away from a well-formed one extracts or is refused by a rule, and none raises"
+          + (f"; raised {sorted(set(raised))}" if raised else "")] = not raised and n_changed > 1000
+        for label, error in (("its file system is full (ENOSPC)", OSError(errno.ENOSPC, "No space left on device")),
+                             ("a write fails with no OSError", ValueError("synthetic"))):
+            w = Stub()
+            with LocalFailure("/logs/901/", error):
+                try:
+                    mw, rc1 = mirror(Path(td) / ("s5w" + label[:5].strip()), w, only=("S5",))
+                    st1, nr1 = mw.cur["items"]["run logs"].get("901", ""), [x for x in mw.man["sources"]["S5"]["not_reached"] if x.startswith("run logs 901")]
+                except Exception as e_:
+                    rc1, st1, nr1 = None, "RAISED " + type(e_).__name__, []
+            first = logs_of(w, 901)
+            mw2, rc2 = mirror(Path(td) / ("s5w" + label[:5].strip()), w, only=("S5",))
+            r[f"local failure: a healthy archive this host could not write because {label} is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined"] = \
+                rc1 == 0 and st1.startswith("error: this host") and len(nr1) == 1 and (first, logs_of(w, 901)) == (1, 2) and rc2 == 0 \
+                and mw2.cur["items"]["run logs"] == {"900": "ok", "901": "ok", "902": "ok"} and mw2._load("refused.json", []) == [] \
+                and mw2.man["sources"]["S5"]["units"]["run logs"]["examined"] == 3 \
+                and not [x for x in mw2.man["sources"]["S5"]["not_reached"] if x.startswith("run logs")]
+        y = Stub()
+        real_read = m.zipfile.ZipExtFile.read
+        m.zipfile.ZipExtFile.read = lambda *a_, **k_: (_ for _ in ()).throw(MemoryError())
+        try:
+            my, rc1 = mirror(Path(td) / "s5mem", y, only=("S5",))
+            states = set(my.cur["items"]["run logs"].values())
+        except BaseException as e_:  # noqa: BLE001 -- MemoryError is no Exception's child
+            rc1, states = None, {"RAISED " + type(e_).__name__}
+        finally:
+            m.zipfile.ZipExtFile.read = real_read
+        r["local failure: memory running out while a member is read is this host's failure, never the archive's rule"] = \
+            rc1 == 0 and len(states) == 1 and all(st.startswith("error: this host") for st in states) and my._load("refused.json", []) == []
+        o_ = Stub()
+        with LocalFailure("/assets/3", OSError(errno.EIO, "Input/output error")):
+            try:
+                mo, rc1 = mirror(Path(td) / "s4w", o_, only=("S4",))
+                st1 = mo.cur["items"]["release assets"].get("3", "")
+            except Exception as e_:
+                rc1, st1 = None, "RAISED " + type(e_).__name__
+        mo2, rc2 = mirror(Path(td) / "s4w", o_, only=("S4",))
+        r["local failure: every per-item read holds the rule: an asset this host could not store is no answer and is read again"] = \
+            rc1 == 0 and st1.startswith("error: this host") and rc2 == 0 and mo2.cur["items"]["release assets"] == {"3": "ok"} \
+            and sum(1 for d_ in o_.downloads if d_.endswith("/assets/3")) == 2
+        bad = Stub(hostile={"repos/o/r/actions/runs/901/logs": unreadable["its deflate stream is corrupt"]})
+        try:
+            mirror(Path(td) / "s5bad", bad, only=("S5",))
+            mb2, rc2 = mirror(Path(td) / "s5bad", bad, only=("S5",))
+        except Exception:
+            mb2, rc2 = mirror(Path(td) / "s5none", Stub(), only=("S5",))[0], None
+        r["local failure null: an archive that is itself bad stays refused: the next pass downloads it no second time and still lists it not_reached"] = \
+            rc2 == 0 and logs_of(bad, 901) == 1 and mb2.cur["items"]["run logs"]["901"].startswith("refused: ") \
+            and len([x for x in mb2.man["sources"]["S5"]["not_reached"] if x.startswith("run logs 901: refused: ")]) == 1 \
+            and (mb2.man["sources"]["S5"]["units"]["run logs"]["universe"], mb2.man["sources"]["S5"]["units"]["run logs"]["examined"]) == (3, 2)
         t = Stub()
         t.down = {"/check-suites/71/"}
         mt, rc1 = mirror(Path(td) / "s5t", t, only=("S5",))
@@ -907,7 +1104,8 @@ def cases(m) -> dict[str, bool]:
         later = [" ".join(c_) for c_ in t.calls[n_before:]]
         r["transient: a read that answers an error is not_reached in its pass and is read again by the next, where it is examined"] = \
             rc1 == 0 and (unit1["universe"], unit1["examined"]) == (3, 2) and [x for x in nr1 if x.startswith("run check runs 901: error")] != [] and asked1 >= 1 \
-            and mt2.man["sources"]["S5"]["units"]["run check runs"]["examined"] == 3 and mt2.man["sources"]["S5"]["not_reached"] == [] \
+            and mt2.man["sources"]["S5"]["units"]["run check runs"]["examined"] == 3 \
+            and mt2.man["sources"]["S5"]["not_reached"] == ["artifacts 6: gone"] \
             and mt2.cur["items"]["run check runs"] == {"900": "ok", "901": "ok", "902": "ok"}
         r["transient null: the pass that re-reads it reads no answered unit again"] = \
             sum(1 for c_ in later if "/check-suites/71/" in c_) == 1 and not any("/check-suites/70/" in c_ or "/check-suites/72/" in c_ or c_.endswith("/logs") for c_ in later)
@@ -979,15 +1177,29 @@ MUTANTS = {
     "directory itself": ("        if target == base and not info.is_dir():\n", "        if False:\n", "a member that is the directory itself"),
     "file and directory": ("    if files & parents:\n", "    if False:\n", "a member that is the directory itself"),
     "ancestors": ("        while len(parent) > len(base):  #", "        while False:  #", "a member that is the directory itself"),
-    "never raises": ("        except (OSError, ValueError, zipfile.BadZipFile) as e:\n", "        except zipfile.BadZipFile as e:\n", "the file system will not write"),
-    "partial removed": ("            shutil.rmtree(dest, ignore_errors=True)\n", "", "the file system will not write"),
+    "archive boundary": ("    except Exception as e:  # noqa: BLE001 -- the boundary is the rule", "    except (OSError, ValueError, zipfile.BadZipFile) as e:  #", "a member that cannot be read"),
+    "archive boundary, zipfile's own": ("    except Exception as e:  # noqa: BLE001 -- the boundary is the rule", "    except (OSError, ValueError, zipfile.BadZipFile, RuntimeError, NotImplementedError) as e:  #", "its deflate stream is corrupt is recorded as refused"),
+    "memory is the host's": ("    except MemoryError:\n        raise\n    except Exception as e:  # noqa: BLE001 -- the boundary is the rule", "    except Exception as e:  # noqa: BLE001 -- the boundary is the rule", "memory running out"),
+    "unreadable member": ('                if bad:\n                    return f"a member cannot be read ({bad})"\n', "", "a member that cannot be read"),
+    "unreadable archive": ('    if bad:\n        return "not a zip archive"\n', '    if bad:\n        raise zipfile.BadZipFile(bad)\n', "open as no archive"),
+    "host write raised": ('                    raise OSError(f"a member could not be written ({type(e).__name__})") from e\n', "                    raise\n", "a write fails with no OSError"),
+    "host write not a rule": ("                except OSError:\n                    raise\n", '                except OSError as e:\n                    return f"a member cannot be written ({type(e).__name__})"\n', "its file system is full"),
+    "partial removed": ("            if not whole:\n                shutil.rmtree(dest, ignore_errors=True)\n", "            pass\n", "what was written before it is removed"),
+    "partial of a refused removed": ("            if not whole:\n", "            if False:\n", "a member that cannot be read"),
+    "read once": ('                        self.missed(s, f"{name} {i}: {done[i]}")\n                    continue\n', '                        self.missed(s, f"{name} {i}: {done[i]}")\n', "a later pass reads none of them again"),
+    "host failure caught": ("                except (OSError, MemoryError) as e:\n", "                except MemoryError as e:\n", "its file system is full"),
+    "memory failure caught": ("                except (OSError, MemoryError) as e:\n", "                except OSError as e:\n", "memory running out"),
+    "host failure is no answer": ('HOST_FAILED = "error: this host failed"', 'HOST_FAILED = "refused: this host failed"', "its file system is full"),
+    "kept answer listed": ('                    if done[i] != "ok":  # an answer kept from an earlier pass is still not reached in this one\n                        self.missed(s, f"{name} {i}: {done[i]}")\n', "", "still lists it not_reached"),
+    "name cap": ("        if any(len(part.encode(", "        if False and any(len(part.encode(", "past the length cap"),
+    "name at the cap": ("> MAX_NAME for part in", ">= MAX_NAME for part in", "one at the cap extracts"),
+    "refusal recorded": ('        rows.append({"archive": where, "rule": why})\n', "", "is recorded as refused"),
     "no answer is asked again": ("if not answered(state)]:", "if False]:", "is read again by the next"),
     "an answer is kept": ("if not answered(state)]:", "if True]:", "reads no answered unit again"),
     "refused is an answer": (' or state.startswith("refused: ")', "", "a refused archive is an answer"),
-    "gone is an answer": ('ANSWERED = ("ok", "gone", ', 'ANSWERED = ("ok", ', "a commit found gone is an answer"),
+    "gone is an answer": ('ANSWERED = ("ok", "gone")', 'ANSWERED = ("ok",)', "a commit found gone is an answer"),
     "an error is no answer": ("    return state in ANSWERED or", "    return True or", "is read again by the next"),
     "judged whole": ("        why = archive_refusal(zf, dest)\n        if why:\n            return why\n", "", "nothing of them is extracted"),
-    "read once": ("                if i in done:\n                    continue\n", "", "a later pass reads none of them again"),
     "expired": ('            if arts[i].get("expired"):\n                return "gone"\n', "", "an expired artifact is gone"),
     "site prefix": ("                    if nxt.startswith(self.site) and nxt not in seen:\n", "                    if nxt not in seen:\n", "stays on the site's own prefix"),
     "owner-only files": ("        os.chmod(tmp, 0o600)\n", "        os.chmod(tmp, 0o644)\n", "the files are owner-only"),
