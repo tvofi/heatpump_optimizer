@@ -1003,6 +1003,9 @@ class Tick:
         v = queue.get(n)
         if v and (v == head or self.git(["merge-base", "--is-ancestor", v, head])[0] == 0):
             return "train", "", ""
+        m = owatch.FIX_VERDICT.match(last)
+        if m and m.group(1) == "merge" and m.group(2) != head and self._carries(m.group(2), head):  # mut:carriedverdict
+            return "verdicted", "", ""  # P657: the head only main-remerges a merge-verdicted head
         blocked = sum(1 for l in lines if l.startswith("Fix review: blocked "))
         if blocked >= RECUT_BLOCKED and "## Re-cut" not in (pr.get("body") or ""):
             return "owed", f"{blocked} blocked verdicts, head is not a re-cut or a split", "recut"
@@ -4413,7 +4416,7 @@ def self_test() -> int:
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
                     extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
-                    show=None, dref=None, disposed=()):
+                    show=None, dref=None, disposed=(), carries=None):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -4462,6 +4465,8 @@ def self_test() -> int:
                 t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
+            if carries is not None:  # the train's carry predicate, stubbed: (verdict sha, head) -> bool
+                t._carries = carries
             t._readback = {str(n): ls for n, _, ls, _ in specs}
             t._readback.update({str(n): [] for n in extra_read})
             t._verdict_at = {n: iso(NOW - timedelta(minutes=a)) for n, _, ls, a in specs if ls}
@@ -4529,6 +4534,12 @@ def self_test() -> int:
         t_tr, o_tr = oboard2([(87, "DIRTY", [], 0)], red=gate_red(87), queue_v={87: h(87)},
                              train="STARTED train.sh pid 1 over #87\n")
         t_vd, o_vd = oboard2([(88, "DIRTY", [f"Fix review: merge {h(88)}"], 5)], red=gate_red(88))
+        # P657: a head that only main-remerges a merge-verdicted head is verdicted when the train's carry predicate holds
+        cv_asked = []
+        cv_line = lambda n: f"Fix review: merge {h(n + 1000)}"
+        t_cv, o_cv = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95),
+                             carries=lambda v, hd: cv_asked.append((v, hd)) or True)
+        t_cv0, o_cv0 = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95), carries=lambda v, hd: False)
         t_vp, o_vp = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89), disp=(89,))
         t_vp0, o_vp0 = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89))
         t_wf, o_wf = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
@@ -4630,6 +4641,10 @@ def self_test() -> int:
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
              o_tr == [] and "train 1" in bk_of(t_tr)),
+            ("P657: a red PR whose head carries an older merge verdict is verdicted, no RED-UNOWNED line",
+             o_cv == [] and "verdicted 1" in bk_of(t_cv) and cv_asked == [(h(1095), h(95))]),
+            ("P657 null control: the same PR with the carry predicate refusing is still RED-UNOWNED",
+             len(o_cv0) == 1 and o_cv0[0].startswith("OWED red-unowned #95")),
             ("null: a DIRTY, red PR with a merge verdict at its head is verdicted, owed nothing",
              o_vd == [] and "verdicted 1" in bk_of(t_vd)),
             ("null: a DIRTY, red PR on the dispatch record is verdict-pending; off it, it is owed",
