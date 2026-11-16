@@ -1,0 +1,7 @@
+  FAIL the booked reference reproduces its recorded digest on every pinned install (a change re-records it and bumps REFERENCE_BASIS)  [{'install +5': '2f088060f8fe63dd', 'install -15': '35cc1d0d71a4414b', 'one-tank +5': '4d21ffac819044c7', 'one-tank -15': '20aaed45bf8568ca', 'no valve +5': '514d1532f1b30760', 'no valve -15': '0
+  FAIL single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K  [target 23.0: +5 C 20.662, -5 C 19.115, -15 C 17.568]
+  FAIL single-zone valve: a thermostat set to 21 C holds 21 C behind it  [+5 C 20.6616, -5 C 19.1146, -15 C 17.5677]
+  FAIL single-zone valve: the curve the model reports is the plant's own, at zero wind and rain  [{('one-tank', 5.0): (22.714285714285715, 22.714285714285715), ('one-tank', -5.0): (23.785714285714285, 23.785714285714285), ('one-tank', -15.0): (24.857142857142858, 24.857142857142858), ('defaults', 5.0): (23.057142857142857, 23.05
+  FAIL single-zone valve: where the house's gains cover its loss the curve sits at its target, never below  [gains 0.300 kW, loss 0.0750 kW, curve 21.053571428571427 C]
+  ok   no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit
+5 of 6 FEATURES BLOCK FAILED

@@ -1,0 +1,11 @@
+== unmutated
+ALL 10 FEATURES BLOCK PASSED
+== CONST 4->5
+  FAIL a month's first savings booking stamps the reference in force, once  [({'sum': 5.0, 'count': 1}, {'month': '2026-02', 'baseline_sek': 2.0, 'actual_sek': 2.0, 'savings_sek': 0.0, 'savings_pct': 
+  FAIL a month stamped 4, the reference in force, keeps stating its saving as it books on  [({'month': '2026-02', 'baseline_sek': 3.0, 'actual_sek': 3.0, 'savings_sek': None, 'savings_pct': None, 'old
+2 of 10 FEATURES BLOCK FAILED
+== CONST 4->3 (revert bump)
+  FAIL a month's first savings booking stamps the reference in force, once  [({'sum': 3.0, 'count': 1}, {'month': '2026-02', 'baseline_sek': 2.0, 'actual_sek': 2.0, 'savings_sek': 0.0, 'savings_pct': 
+  FAIL a month stamped 3, booked before the single-zone valve reached its setpoint, states no saving after the change  [({'month': '2026-02', 'baseline_sek': 3.0, 'actual_sek': 3.0, 'savings_sek': 0.0
+  FAIL a month stamped 4, the reference in force, keeps stating its saving as it books on  [({'month': '2026-02', 'baseline_sek': 3.0, 'actual_sek': 3.0, 'savings_sek': None, 'savings_pct': None, 'old
+3 of 10 FEATURES BLOCK FAILED
