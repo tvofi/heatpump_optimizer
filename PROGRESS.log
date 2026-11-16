@@ -1,3 +1,4 @@
 1794852778 INIT r11-pre-machinery-limiter-p2
 1794852795 HB alive
 1794852800 CKPT worktree cut at 30f9caac; reading role pack snapshot ea698ad0a3e7
+1794853106 CKPT carry 6 done (CENSUS.md cited + excluded, null control refuses); carry 5 test running snapshot efa8743ad59f
