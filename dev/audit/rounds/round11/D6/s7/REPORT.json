@@ -1,0 +1,267 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s7/REPORT.json",
+ "exposure": "Read docs/CONTRIBUTING.md and dev/programme/plan-2026-09-open-issues.md in full (the plan carries earlier rounds' dispositions and finding ids as its own content); grepped README.md, docs/configuration.md, docs/dashboard-card.md and docs/index.html only to locate the carried items' sentences for their owner seat; read local git history of the repository (commit existence, VERSION at 4b6e076, the commit introducing one sentence). No GitHub, no network.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 2668,
+   "examined": 2668,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "dev/audit/rounds/round11/D6/s7/LEDGER.tsv rows every unit (40 CONTRIBUTING + 2628 plan); enumerator id set == ledger id set (comm diff 0). C1-C4 name README.md, docs/{how-it-works,architecture,dashboard-card,ecl110,setup,automations}.md, docs/index.html, const.py and config_flow.py: D6-s1's and D6-s3's cells at this baseline (check_scopes.py --seat), none of D6-s7's two files; each is handed on as a lead, none was overdue."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 2668,
+   "examined": 2668,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "contributing.py and plan_claims.py run an executed check per claim (2067 claims, 601 no-claim): false 5, stale 37 (29 [D2 path]), true 46, unverifiable 1979; ev/contributing.out, ev/plan_claims.out, ev/wave_red.out, ev/bus_selftest.txt. Unverifiable rows are listed under unfinished. C1-C4 name README.md, docs/{how-it-works,architecture,dashboard-card,ecl110,setup,automations}.md, docs/index.html, const.py and config_flow.py: D6-s1's and D6-s3's cells at this baseline (check_scopes.py --seat), none of D6-s7's two files; each is handed on as a lead, none was overdue."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 2668,
+   "examined": 2668,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s7/ledger.py: text_ledger.py check units=2668 rows=2668 unrowed=0 orphan=0 malformed=0 exit 0; --plant refused the planted unit; --drop 3 gives unrowed=3 exit 1 (ev/ledger.out)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M2",
+   "what": "1979 claim rows end unverifiable: 1976 in the plan (dated issue/PR/review/session history that only GitHub holds, which D6 does not read; 44 commit SHAs absent from the clone's object store, indistinguishable from unfetched PR heads; 13 path tokens that are globs or bare basenames not in the tree) and 3 in CONTRIBUTING.md (449bddf757 needs tests/entities.py's new-file classification check run on a planted file; 9f218033b0 a GitHub operation; 6c51756d8a a habit)."
+  },
+  {
+   "step": "D6.M2",
+   "what": "569 link occurrences in the plan (447 distinct github.com pull-request URLs) were not HEAD-requested: COMMON.md forbids D6 reading GitHub and no network was used."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s7-01",
+   "scope": "D6-s7",
+   "step": "D6.M2",
+   "title": "docs/CONTRIBUTING.md: four sentences contradict the fork contract's code (CI scope, path classes, ## Head)",
+   "severity": "low",
+   "claim": "Four units of docs/CONTRIBUTING.md are false against the code that decides them: a fork pull request's CI run skips lanes, three path classes differ from the table, and `## Head` cannot be `n/a: <reason>`.",
+   "mechanism": "The page summarises tools/ci/prelude.py, tools/pr/outside.py and policy_lint.mjs's checkPrBody in prose that no check reads. (1) 'CI runs every lane on every push from a fork; nothing is skipped': prelude.outputs gives every pull_request run scope=auto, stands the four LANE_GATE machinery lanes down on a product-only diff, and codeql_scope.decide skips a leg when no custom_components/ or .github/ path changed; only a push runs full (21 switches off over three fork arms, 0 on the push null). (2) The 'What you may change' table: Rules.free admits the pull request's own dev/programme/delivery/<N>.md (table says refused), Rules.classify gives four CODEOWNERS-owned dev/audit/ paths class O (table says refused), and tests/README.md is in POLICY_GLOBS so class R (table says owner-read). (3) 'Each is content or n/a: <reason>': checkPrBody refuses `## Head` as n/a (rc 1) because it must name the head commit.",
+   "evidence": {
+    "command": "D6S7_BUS_SELFTEST=dev/audit/rounds/round11/D6/s7/ev/bus_selftest.txt PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s7/contributing.py --repo $HPO_REPO",
+    "harness_path": "dev/audit/rounds/round11/D6/s7/contributing.py",
+    "value": 4,
+    "unit": "false ledger rows (of 40 units; 29 claims)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (light seat), linux x86_64",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/ci/prelude.py:outputs (also tools/pr/outside.py:Rules.classify, tools/policy/policy_lint.mjs:checkPrBody)",
+   "perturbation": {
+    "change": "--perturb fork-full: prelude.py's line `\"scope\": \"full\" if ev == \"push\" else \"auto\",` edited in memory to `\"scope\": \"full\",`, prelude.machinery forced True and codeql_scope.decide forced to analyze (the CI sentence made true)",
+    "expected_direction": "down",
+    "observed_value": "false_rows 4 -> 3; ci_skipped_switches 21 -> 0. Second arm: --perturb delivery-row-refused moves class_mismatch_delivery 1788 -> 0 and class_mismatch_paths 3 -> 2; --perturb machinery-true moves ci_skipped_switches 21 -> 9"
+   },
+   "metric_definition": "Units of docs/CONTRIBUTING.md (text_ledger.py D6 units) whose executed check against the deciding production symbol contradicts the sentence.",
+   "phenomenon_property": "Every claim docs/CONTRIBUTING.md makes about the fork contract (CI coverage, path classes, body headings, review words, adoption) agrees with tools/ci/prelude.py, tools/pr/outside.py, policy_lint.mjs --pr-body and bus.sh adopt at the same tree.",
+   "seam_rule": "dev/audit/rounds/round11/D6/s7/contributing.py",
+   "null_control": {
+    "command": "same harness, its push arm (prelude.outputs for event push)",
+    "value": "ci_null_push=0",
+    "note": "a push to main runs every lane, so the skip count vanishes where the code intends full runs"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s7/contributing.py --repo <git dir holding 92d38ecb> ; read RESULT false_rows and the per-arm RESULT lines",
+    "awk -F'\\t' '$6==\"false\"' dev/audit/rounds/round11/D6/s7/ledger_contributing.tsv lists the four rows with their truth"
+   ],
+   "proposed_fix_scope": "Rewrite the four sentences in docs/CONTRIBUTING.md to the code: a fork run is scoped like any pull request (only a push to main runs full); the table adds the PR's own delivery row (free), the CODEOWNERS-owned paths outside tests/ and docs/ (owner-read) and the policy set (refused, tests/README.md included); `## Head` names the head commit. Optionally register the page's claims in tests/doc_claims.py so a drift fails the gate.",
+   "files": [
+    "docs/CONTRIBUTING.md"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D6-s7-02",
+   "scope": "D6-s7",
+   "step": "D6.M2",
+   "title": "plan-2026-09-open-issues.md: 9 present-tense claims in its standing sections are false or stale at the baseline",
+   "severity": "low",
+   "claim": "Nine units of dev/programme/plan-2026-09-open-issues.md, in sections the file says a fresh session reads first, contradict the baseline's code: one false since written (web-fix-wave.js 'stops merging' after a red main) and eight stale.",
+   "mechanism": "The file restates the protocol 'because a fresh session reads this file first', but its standing sections were not re-truthed as the code moved. False: 'web-fix-wave.js logs MAIN IS RED after <group> and stops merging' -- the merge chain never reads the previous gate, so the next group merges after a red main (merges_after_red=1; the same chain at 81216e67c6, where the sentence was written). Stale: the verdict grammar (`Fix review: merge` / `Fix review: blocked — <why>`, both refused by bus.sh verdict_sha); cross_seam_fraction's tolerance band (retired, budgeted nowhere); '.cursor/rules/*.mdc still hold three alwaysApply policies' (10 of 10) and 'Claude Code loads CLAUDE.md and nothing else' (10 .claude/rules files load on paths: globs), 'all three' at seat start; 'fixer.md step 5 mandates [the gate lock]' (0 mentions); the License badge 'still unfixed' (its target is absolute now); docs/architecture.md 'still reads 65 entities / ...' (0 occurrences) and 'tests/entities.py's census covers README.md only' (it reads architecture.md now). Path spellings that left the tree are not counted: tests/layout.json lists the file `historical` (tvofi's D2), and those 29 rows are kept apart as [D2 path].",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s7/plan_claims.py --repo $HPO_REPO",
+    "harness_path": "dev/audit/rounds/round11/D6/s7/plan_claims.py",
+    "value": 9,
+    "unit": "ledger rows false or stale, D2 path rows excluded (of 2628 units)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (light seat), linux x86_64",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/web-fix-wave.js:mergeGroup (driven by wave_red.mjs; also tools/audit/seat/bus.sh:verdict_sha, tests/structure.py, tests/closure.py:select, tools/release/stamp.py:gate_source, tests/env_drift.py:may_drift_error, tests/layout.py:locate)",
+   "perturbation": {
+    "change": "--perturb wave-red-guard: web-fix-wave.js's merge chain gets an in-memory red latch (a guard at the head of mergeChain.then, a latch after the gate); second arm --perturb mdc-three reads .cursor/rules over three files",
+    "expected_direction": "down",
+    "observed_value": "wrong_rows 9 -> 8 under each arm; wave_red.mjs merges_after_red 1 -> 0"
+   },
+   "metric_definition": "Units of the plan whose executed check contradicts a present-tense claim about the baseline tree (verdict false or stale), excluding rows whose only contradiction is a D2-kept historical path.",
+   "phenomenon_property": "Every present-tense statement the plan file makes about code, data or files (its Standing rules, Model routing, What the runner changes, When a merge turns main red, and the UX notes) is true at the tree it ships in, or is marked as history.",
+   "seam_rule": "dev/audit/rounds/round11/D6/s7/plan_claims.py",
+   "null_control": {
+    "command": "node dev/audit/rounds/round11/D6/s7/wave_red.mjs (its all-green arm)",
+    "value": "null_merges_after_red=0, null_merges=2",
+    "note": "with every gate green no merge follows a red, so the false row's count is the red main's doing"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s7/plan_claims.py --repo <git dir holding 92d38ecb>; the WRONG lines name each row",
+    "node dev/audit/rounds/round11/D6/s7/wave_red.mjs prints the call order: reconcile, merge A, main after A (red), merge B, main after B"
+   ],
+   "proposed_fix_scope": "Re-truth the nine sentences in dev/programme/plan-2026-09-open-issues.md (or mark each section as history at its date); the web-fix-wave.js sentence either describes the log only, or the script gains the stop it promises (a lead to D11-s2, not this finding).",
+   "files": [
+    "dev/programme/plan-2026-09-open-issues.md"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "CONTRIBUTING: branch name rule (letters, digits . _ - /, <=100, first alnum, not main)",
+   "command": "contributing.py (arm shape)",
+   "value": "branch_name_disagree=0 of 12 names"
+  },
+  {
+   "claim": "CONTRIBUTING: base must be main; one pull request per head",
+   "command": "contributing.py (arms shape, check)",
+   "value": "base_not_main_refused=1; second_pull_refused_rc=1 (null rc 0)"
+  },
+  {
+   "claim": "CONTRIBUTING: VERSION, manifest version, RELEASE_NOTES.md never edited",
+   "command": "contributing.py (arm check)",
+   "value": "manifest_version_refused_rc=1 VERSION_rc=1 RELEASE_NOTES_rc=1"
+  },
+  {
+   "claim": "CONTRIBUTING: a non-allowlisted author is refused by pr-contract",
+   "command": "contributing.py --repo (arm body: policy_lint.mjs --pr-body)",
+   "value": "stranger_author_refused=1; not_allowlisted_rc=3 (outside.check: ordinary contract judges)"
+  },
+  {
+   "claim": "CONTRIBUTING: 'Outside read: <sha40>' admits; seat/mandate/orchestrator refuse; later request-changes or dismissal withdraws",
+   "command": "contributing.py (arm review: outside.owner_read)",
+   "value": "owner_plain_admitted=1; agent_words_refused=3 of 3; later_changes_or_dismissal_refused=2 of 2"
+  },
+  {
+   "claim": "CONTRIBUTING: adoption reads VERDICT.md + ev/ only, ev/ path characters, first line byte for byte, the live head, the allowlisted commenter",
+   "command": "bash tools/audit/seat/bus.sh --self-test (shared clone at the baseline; ev/bus_selftest.txt)",
+   "value": "240 checks, 0 failed; every adopt case ok"
+  },
+  {
+   "claim": "CONTRIBUTING: path-class probes (new top-level dir, .cursor/, VERSION, manifest, docs/site, docs/img scripts, index.html)",
+   "command": "contributing.py (arm classes)",
+   "value": "class_probe_mismatch=0 probes"
+  },
+  {
+   "claim": "Plan: web-fix-wave.js ranks haiku<sonnet<opus and throws on a reviewer below its fixer; tierOk applies",
+   "command": "node dev/audit/rounds/round11/D6/s7/wave_red.mjs (tier arm)",
+   "value": "tier_pairs_throwing=3 of 9, tier_pairs_wrong=0"
+  },
+  {
+   "claim": "Plan: stamp.py --push --push-key --known-hosts and --allow-red exist; rule 2 has a REST fallback",
+   "command": "plan_claims.py (python3 tools/release/stamp.py --help; stamp.gate_source)",
+   "value": "all four flags listed; gate_source: no gh -> rest, gh -> gh"
+  },
+  {
+   "claim": "Plan: env_drift.may_drift_error refuses a name both claimed and may-drift",
+   "command": "plan_claims.py (tests/env_drift.py:may_drift_error)",
+   "value": "refused; null (neither) None"
+  },
+  {
+   "claim": "Plan: docs/ INERT, closure.py a GATE_FILE, a gate file means run everything",
+   "command": "plan_claims.py (tests/closure.py:INERT, GATE_FILES, select(['tests/run.sh']))",
+   "value": "True; True; mode=full run=33"
+  },
+  {
+   "claim": "Plan: HPO_PLAN_TWO_ZONE=1 turns plan_view's two-zone payload on, default off",
+   "command": "plan_claims.py (tests/plan_view.py _two_zone expression)",
+   "value": "unset -> False, '1' -> True"
+  },
+  {
+   "claim": "Plan: 4b6e076 is v6.3.9; d5d8c4a holds wave-1b-groups.json; decision 0015 and 30c57744a; wave-3l-groups.json; score.py --diff; golden.py --record/--only",
+   "command": "plan_claims.py (git show/cat-file; tree; --help)",
+   "value": "all resolve"
+  },
+  {
+   "claim": "Plan: repository references",
+   "command": "plan_claims.py (reference pass)",
+   "value": "908 path refs: 680 present, 176 moved and resolved by tests/layout.py:locate, 31 gone (D2-kept), 8 never (hypothetical examples, rowed so), 13 unresolvable; 717 SHAs: 673 resolve, 44 absent from the clone"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s7/contributing.py",
+  "dev/audit/rounds/round11/D6/s7/plan_claims.py",
+  "dev/audit/rounds/round11/D6/s7/wave_red.mjs",
+  "dev/audit/rounds/round11/D6/s7/ledger.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s2",
+   "file": ".claude/workflows/web-fix-wave.js",
+   "symbol": "mergeGroup / mergeChain",
+   "what": "The log line says 'MAIN IS RED after <group> -- stop and repair before the next merge' but the serialized merge chain never reads the previous gate, so the next group's merge agent runs after a red main (wave_red.mjs: merges_after_red=1, null 0). The mechanism, not the plan's sentence, is D11's."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "README.md",
+   "symbol": "lines 102, 800 ('up to 20 hours'), 922 ('within ±12 %')",
+   "what": "Carried C1: needs a manual-plan (tests/manual_plan.py) and an engine harness; also locate the '23 options pages' and '8 weekly snapshots' sentences (not found by grep in README.md/docs/*.md at this baseline: possibly reworded)."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "docs/how-it-works.md, docs/architecture.md, docs/dashboard-card.md, docs/ecl110.md, docs/setup.md, docs/automations.md",
+   "symbol": "behavioural prose ('the optimizer will ...')",
+   "what": "Carried C2/C3: behavioural, unit, performance and version prose claims not extracted or numbered in the round before."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "README.md, docs/index.html",
+   "symbol": "external links; behavioural claims",
+   "what": "Carried C4: external links got no HEAD requests and behavioural claims were not checked against golden scenarios (tests/golden.py SCENARIOS)."
+  },
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/config_flow.py, const.py",
+   "symbol": "options flow step count; manual-plan expiry constant",
+   "what": "Carried C1's code side: '23 options pages' needs a flow harness (tests/config_flow_steps.py) and 'up to 20 hours' the constant config_flow/const sets."
+  }
+ ]
+}

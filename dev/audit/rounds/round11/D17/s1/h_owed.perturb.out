@@ -1,0 +1,32 @@
+ROW null: saturday 12h follows weekday day 21.0 FAIL got=None doc=21.0
+ROW comfort_temp_day_weekend=22.5: saturday 12h FAIL got=None doc=22.5
+ROW comfort_temp_day_weekend=22.5: thursday 12h unchanged PASS got=21.0 doc=21.0
+ROW comfort_temp_night_weekend=20.5: saturday 23h FAIL got=None doc=20.5
+ROW comfort_temp_night_weekend=20.5: thursday 23h unchanged PASS got=19.5 doc=19.5
+ROW day_start_hour_weekend=10: saturday 8h is night FAIL got=None doc=19.5
+ROW day_start_hour_weekend=10: saturday 10h is day FAIL got=None doc=21.0
+ROW day_start_hour_weekend=10: thursday 8h stays day PASS got=21.0 doc=21.0
+ROW day_end_hour_weekend=20: saturday 21h is night FAIL got=None doc=19.5
+ROW weekday day=22.5, weekend untouched: saturday 12h follows FAIL got=None doc=22.5
+ROW weekend kept at its shown 22.5 while weekday set to 21.0: saturday 12h FAIL got=None doc=22.5
+stored after that save: {'comfort_temp_day': 21.0}
+ROW holiday_comfort_temp_day=22.5, calendar on: thursday 12h PASS got=22.5 doc=22.5
+ROW holiday_comfort_temp_night=20.5, calendar on: thursday 20h PASS got=20.5 doc=20.5
+ROW holiday_day_start_hour=9, calendar on: thursday 8h is night PASS got=20.5 doc=20.5
+ROW holiday_day_end_hour=18, calendar on: thursday 18h is night PASS got=20.5 doc=20.5
+ROW holiday fields, calendar off: thursday 12h weekday PASS got=21.0 doc=21.0
+ROW holiday on + away active: away target wins PASS got=12.0 doc=12.0
+ROW holiday on + away active: the setpoint written is the away temperature PASS got=12.0 doc=12.0
+RESULT owed_checks=18
+RESULT owed_fail=8
+FAIL null: saturday 12h follows weekday day 21.0
+FAIL comfort_temp_day_weekend=22.5: saturday 12h
+FAIL comfort_temp_night_weekend=20.5: saturday 23h
+FAIL day_start_hour_weekend=10: saturday 8h is night
+FAIL day_start_hour_weekend=10: saturday 10h is day
+FAIL day_end_hour_weekend=20: saturday 21h is night
+FAIL weekday day=22.5, weekend untouched: saturday 12h follows
+FAIL weekend kept at its shown 22.5 while weekday set to 21.0: saturday 12h
+RESULT thread_factor=1.0
+RESULT load1=5.1845703125
+RESULT swapins=0

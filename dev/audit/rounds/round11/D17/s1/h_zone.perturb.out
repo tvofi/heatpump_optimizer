@@ -1,0 +1,24 @@
+ROW two_zone_mode=on (two_zone_enabled=True) slab_thermal_mass=40.0 EFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) slab_heat_transfer=0.05 EFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) heat_pump_cop_nominal=5.5 EFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) heat_pump_max_power=1.5 EFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) heat_pump_min_power=1.2 EFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) compressor_modulation='on_off' NOEFFECT
+ROW two_zone_mode=on (two_zone_enabled=True) heat_pump_cop_partload_derate=0.15 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) house_thermal_mass=40.0 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) house_heat_loss_coefficient=0.6 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) slab_thermal_mass=40.0 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) slab_heat_transfer=0.05 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) heat_pump_cop_nominal=5.5 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) heat_pump_max_power=1.5 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) heat_pump_min_power=1.2 EFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) compressor_modulation='on_off' NOEFFECT
+ROW two_zone_mode=off (two_zone_enabled=False) heat_pump_cop_partload_derate=0.15 EFFECT
+RESULT two_zone_rendered=7
+RESULT two_zone_rendered_no_effect=1 ['compressor_modulation']
+RESULT single_zone_rendered=9
+RESULT single_zone_rendered_no_effect=1 ['compressor_modulation']
+RESULT two_zone_only_no_effect=0 []
+RESULT thread_factor=1.0
+RESULT load1=1.8857421875
+RESULT swapins=0

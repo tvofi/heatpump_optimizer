@@ -1,0 +1,373 @@
+{
+ "dimension": "D17",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D17/s1/REPORT.json",
+ "exposure": "strings.json options descriptions (the oracle) and dev/governance/dimensions/D17.md only; no docs/ page needed for these cells; no earlier finding read. REPORT.md was not written: this seat's environment refuses report .md files, so the report is this JSON (and the handback).",
+ "coverage": [
+  {
+   "step": "D17.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option",
+   "universe": 156,
+   "examined": 156,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "python3 dev/audit/rounds/round11/D17/s1/h_docs.py -> RESULT items=156 undocumented=0 (h_docs.out: one DOC line per item with its strings.json key and first sentence); no D5 lead"
+  },
+  {
+   "step": "D17.M2",
+   "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option",
+   "universe": 156,
+   "examined": 156,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "oracle per item from its description before the code: h_flow.py (26 options-steps: documented menus / write-through + section-menu return; 22 after_save: menu vs close; 18 modbus_prefill: documented register formulas; 2 factory_reset: unticked->menu, scope settings/learners/both), h_sweep.py + h_states.py (88 option fields: observable plan/writes/publish channel present with the option, absent at its default, in the state its description names). Owed cell (8 weekend/holiday fields, outside this universe, D17-s1-01): h_owed.py per (date,hour) comfort targets."
+  },
+  {
+   "step": "D17.M3",
+   "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option",
+   "universe": 156,
+   "examined": 155,
+   "not_reached": [
+    "option learning.system_identification_enabled"
+   ],
+   "redispatched": [],
+   "evidence": "end to end through the real options page, restart (fresh coordinator from the saved entry) and full _async_update_data cycles, solve inline: h_flow.out flow_fail=0 (68 items); h_sweep.out 88 examined, 21 no-effect in weekday/weekend/noon/peaks; h_states.out re-runs all 21 (+space_hysteresis, weekdays_only on a Saturday with peaks) in their documented states: 30 examined, 3 no-effect = sysid (state not built, not_reached), wood_buffer_tank (no probe: no physics, as documented), compressor_modulation (D17-s1-04). Owed cell examined in addition: h_owed.out 18 checks, 1 fail (D17-s1-02)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D17.M3",
+   "what": "learning.system_identification_enabled: the experiment never armed in the rig (8 cycles from 00:00 at 6 C, sawtooth prices; published phase 'idle' with the option on and off). Left: build the armed state its gates need (night window 23-05, outdoor band, price under the max_price_percentile of the horizon, learner unconverged) and check that a step is planned and published with the option on and absent off."
+  },
+  {
+   "step": "D17.M3",
+   "what": "entities_pump.heat_pump_backup_heater_entity, heat_pump_capacity_limited_entity, heat_pump_dhw_booster_entity: measured only as the published heat_pump_signals moving in one cycle; their described effect (efficiency/capacity learning paused while on) needs a metered multi-cycle learning arm. heat_pump_defrost_entity and heat_pump_fault/online moved learner_freeze_reason/learners_frozen, so they are covered."
+  },
+  {
+   "step": "D17.M3",
+   "what": "the 148 other section-nested option fields (D17-s1-01, h_enum.out MISSING lines) are outside the enumerator's universe and were not examined; only the 8 owed weekend/holiday fields were."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D17-s1-01",
+   "scope": "D17-s1",
+   "step": "D17.M1",
+   "title": "d17-features --kind option omits all 156 section-nested option fields, including the brief's owed weekend/holiday cell",
+   "severity": "medium",
+   "claim": "tools/audit/enumerate.py:d17 prints an option line only for keys in options.step.<step>.data, so the 156 of 286 options fields strings.json declares under sections.<section>.data (comfort, tuning, hot_water, building, entities and six more pages) are absent from D17's option universe, including all 8 weekend/holiday comfort fields D17.md step 3 names as an owed option line.",
+   "mechanism": "d17() iterates body.get('data') per step and never descends into body['sections'][*]['data']; the options flow renders most fields inside section() groups since the page grouping, so every grouped field left the universe and no seat's coverage row can name it as not_reached.",
+   "evidence": {
+    "command": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s1/h_enum.py",
+    "value": 156,
+    "unit": "options fields declared in strings.json but not printed",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (vm, 4 cpu, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; immune to load",
+    "tolerance": "exact",
+    "load1": 5.79,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/enumerate.py:d17",
+   "perturbation": {
+    "change": "--perturb-sections: wrap enumerate.d17 to also emit each section's data keys",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of options.step.*.(data|sections.*.data) keys in strings.json with no 'option <step>.<key>' line from d17-features --kind option",
+   "phenomenon_property": "Every field a user can set in the options (and config) flow is one line of the d17-features universe, whatever section it renders in.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py (MISSING lines list every omitted field by page)",
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D17/s1/h_enum.py --perturb-sections",
+    "value": 0,
+    "note": "with sections walked the universe is 286 = declared, owed cell 8 of 8"
+   },
+   "reproduction_steps": [
+    "python3 tools/audit/enumerate.py d17-features --kind option | grep -c weekend  # 0",
+    "python3 dev/audit/rounds/round11/D17/s1/h_enum.py"
+   ],
+   "proposed_fix_scope": "tools/audit/enumerate.py d17(): also walk sections.*.data for config and options steps; its --self-test gains a planted sectioned field arm. Rotation/coverage of the next D17 round then includes the 156 fields.",
+   "files": [
+    "tools/audit/enumerate.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I4"
+  },
+  {
+   "id": "D17-s1-02",
+   "scope": "D17-s1",
+   "step": "D17.M3",
+   "title": "Weekend/holiday comfort value kept as shown is dropped when the same save changes the weekday value",
+   "severity": "high",
+   "claim": "On the comfort options page, a weekend or holiday field left at the value the form shows is silently discarded whenever the same submit changes the weekday field its default is computed from, so the solve then plans that day with the new weekday value instead of the value on screen: 8 of 8 such fields lose the kept value, 0 of 8 in the null control.",
+   "mechanism": "config_flow._omit_unstored_computed drops an unstored _Computed field whose posted value equals row.default.of(current), with current the PRE-save entry; the reader (EntryConfig None -> OptimizationConfig._comfort_pair falls back to the weekday value) evaluates the fallback against the POST-save entry. Saving comfort_temp_day 22.5->21.0 with weekend shown 22.5 stores only comfort_temp_day=21.0, so Saturday plans 21.0.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_computed.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s1/h_computed.py",
+    "value": 8,
+    "unit": "computed-default fields whose kept value is lost (of 8 same-page numeric)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (vm, 4 cpu, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; immune to load",
+    "tolerance": "exact",
+    "load1": 6.16,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_omit_unstored_computed",
+   "perturbation": {
+    "change": "--perturb-merged: compute the _Computed default over {**current, **user_input} (the configuration the save produces)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of _Computed option rows with a same-page numeric source where entry src=A, submit src=B keeping field=A shown, gives effective field (EntryConfig, None->source) != A",
+   "phenomenon_property": "A value an options page posts for a field whose default is computed from other settings is stored whenever it differs from that default computed over the configuration the save produces (not the one it replaces).",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_computed.py (enumerates every config_flow._OPTION_FIELDS row with a _Computed default and its recorded sources)",
+   "null_control": {
+    "command": "same harness, B=A arm (RESULT null_kept_value_lost)",
+    "value": 0,
+    "note": "source unchanged: no kept value is lost; end to end the owed-cell harness dev/audit/rounds/round11/D17/s1/h_owed.py shows the solve's Saturday 12h comfort target 21.0 where 22.5 was on screen (the hooked heatpump_optimizer.optimizer:OptimizationConfig.get_comfort_temp)"
+   },
+   "reproduction_steps": [
+    "entry options {comfort_temp_day: 22.5}; open Comfort; weekend daytime shows 22.5",
+    "set Daytime comfort to 21.0, leave Weekend daytime at 22.5, save",
+    "entry options == {comfort_temp_day: 21.0}; Saturday daytime comfort target = 21.0"
+   ],
+   "proposed_fix_scope": "config_flow._omit_unstored_computed: compare against row.default.of over the merged post-save configuration (current overlaid with the submitted non-computed answers); pin with a failing test on the comfort page (weekday changed, weekend kept) and the null control.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D17-s1-03",
+   "scope": "D17-s1",
+   "step": "D17.M3",
+   "title": "Thermal-model page offers house thermal mass on a two-zone house, where no model reads it",
+   "severity": "medium",
+   "claim": "On a two-zone entry (the default install: two_zone_mode auto resolves on), the thermal_model options page renders and saves house_thermal_mass, but changing it to 40 kWh/K moves no planned step, while the same change on a single-zone entry moves the plan: 1 of the 8 fields the two-zone page renders is inert there and effective on one zone.",
+   "mechanism": "house_thermal_mass maps to ThermalParameters.room_thermal_mass, read only by the single-zone dynamics (thermal_model.py simulate single-zone branch and envelope_thermal_mass's else-branch); two zones read upper/lower_floor_thermal_mass. Its sibling house_heat_loss_coefficient is gated when=_single_zone (R10-TWO-ZONE-HHL); this row has no gate, and its description ('In a floor-heated house the heavy floor and heated slab are counted separately ...') tells a floor-heated two-zone user it applies.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s1/h_zone.py",
+    "value": 1,
+    "unit": "thermal_model page fields rendered on a two-zone entry that move no plan there while moving it on a single-zone entry",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (vm, 4 cpu, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; immune to load",
+    "tolerance": "exact",
+    "load1": 1.69,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:async_step_thermal_model; heatpump_optimizer.thermal_model:ThermalParameters.room_thermal_mass",
+   "perturbation": {
+    "change": "--perturb-gate: give the house_thermal_mass _F row when=_single_zone in config_flow._OPTION_FIELDS",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of thermal_model fields rendered for two_zone_mode=on whose change leaves the plan byte-identical there but moves it for two_zone_mode=off (RESULT two_zone_only_no_effect)",
+   "phenomenon_property": "An options-page field is rendered only in the topologies whose model reads it; on any other it is hidden (or made to take effect).",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py (every field the thermal_model page renders, per zone mode)",
+   "null_control": {
+    "command": "same harness, single-zone arm (RESULT single_zone_rendered_no_effect)",
+    "value": "1 (compressor_modulation only; house_thermal_mass moves the plan)",
+    "note": "the field works where the single-zone model reads it"
+   },
+   "reproduction_steps": [
+    "fresh entry (two-zone by default); Options > Advanced > Thermal model; set House thermal mass 40; save",
+    "plan identical to before"
+   ],
+   "proposed_fix_scope": "config_flow._OPTION_FIELDS: gate CONF_HOUSE_THERMAL_MASS when=_single_zone like the heat-loss row, and say in its strings.json description that a two-zone house sets the zone masses on the Two-zone model page (or make the two-zone model read it).",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P6"
+  },
+  {
+   "id": "D17-s1-04",
+   "scope": "D17-s1",
+   "step": "D17.M3",
+   "title": "Compressor modulation 'On/off' is read as 'Modulating': the plan keeps sub-minimum steps",
+   "severity": "high",
+   "claim": "With compressor_modulation=on_off and a 1.5 kW minimum saved through the thermal model page, 60 of 96 planned steps lie strictly between 0 and the minimum power, exactly as with 'modulating', although the option's description says on/off plans every step as off or between min and max power.",
+   "mechanism": "thermal_model.declared_modulation returns True (modulating) for COMPRESSOR_MODULATION_ON_OFF ('True if mode == ON_OFF else True if mode == MODULATING'), contradicting its own docstring ('on_off -> False'); ThermalParameters.on_off = declared_modulation(cfg) is False is therefore never set by the user's choice.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_modulation.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s1/h_modulation.py",
+    "value": 60,
+    "unit": "planned steps (of 96) with 0.01 kW < power < min power under on_off",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (vm, 4 cpu, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; immune to load",
+    "tolerance": "exact",
+    "load1": 1.83,
+    "thread_factor": 1.001
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation",
+   "perturbation": {
+    "change": "--perturb-docstring: declared_modulation returns False for on_off, as its docstring states",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of data['schedule'][i]['power'] with 0.01 < p < heat_pump_min_power after saving on_off + min 1.5 kW, restart, one cycle",
+   "phenomenon_property": "Each value of the compressor_modulation option maps to the model's on/off flag as its description says: on_off -> on/off planning, modulating -> modulating, auto -> the probe.",
+   "seam_rule": "grep -n 'declared_modulation(' custom_components/heatpump_optimizer/*.py (its three readers: ThermalParameters on_off and the two probe sites at thermal_model.py:1570 and :1633)",
+   "null_control": {
+    "command": "same harness, modulating arm (RESULT modulating_sub_min_steps)",
+    "value": 60,
+    "note": "sub-minimum averaged steps are documented for modulating; on_off is identical to it"
+   },
+   "reproduction_steps": [
+    "Options > Advanced > Thermal model: Min power 1.5, Compressor modulation On/off; save",
+    "data['schedule'] holds 60 steps between 0 and 1.5 kW"
+   ],
+   "proposed_fix_scope": "thermal_model.declared_modulation: on_off -> False; failing test through the options page on the planned levels, null control modulating; the two probe sites re-checked.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "any golden scenario storing compressor_modulation=on_off"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D17-s1-05",
+   "scope": "D17-s1",
+   "step": "D17.M3",
+   "title": "Peak guard projects the window from current x elapsed, so it acts late on real peaks and holds back on non-peaks",
+   "severity": "high",
+   "claim": "With the peak guard saved on (threshold 2.0 kW from three recorded peaks, margin 0.5 kW) and a steady meter draw read once a minute through a 60-minute window, the guard's suppressing state disagrees with its description in 69 of 300 minute-samples over 5 draws: 0.8 and 1.2 kW (windows that cannot set a peak) are held back for 3 and 21 minutes, and 1.8, 3.0 and 9.0 kW (windows that will) are first held back at minutes 26, 16 and 6 instead of minute 1.",
+   "mechanism": "power_guard.project_window_mean returns (mean*elapsed + current_kw*elapsed)/window; its docstring (and the computed but unused `remaining`) says the remainder of the window continues at current_kw, i.e. (mean*elapsed + current_kw*remaining)/window. The projection is 0 at the window start, about half the draw early and about twice it near the end, so GuardState.update crosses threshold - margin at the wrong times.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_guard.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s1/h_guard.py",
+    "value": 69,
+    "unit": "minute-samples whose suppressing state contradicts the documented rule, over 5 steady draws x 60 min",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (vm, 4 cpu, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; immune to load (frozen clock)",
+    "tolerance": "exact",
+    "load1": 2.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.power_guard:project_window_mean (via heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event)",
+   "perturbation": {
+    "change": "--perturb-docstring: project_window_mean = (mean*elapsed + current*remaining)/window, its docstring's rule",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "sum over draws P in {0.8,1.2,1.8,3.0,9.0} kW of minutes m in 0..59 where suppressing != (P > 1.5 and m >= 1)",
+   "phenomenon_property": "The guard's projection of the open window's billed mean equals what the window averages if the current draw continues for the rest of it; with a steady draw it equals that draw from the first reading.",
+   "seam_rule": "grep -n 'project_window_mean' custom_components/heatpump_optimizer/*.py (its definition and its one caller, coordinator._on_power_event)",
+   "null_control": {
+    "command": "same harness, peak_guard_enabled off (RESULT null_suppressed_minutes)",
+    "value": 0,
+    "note": "no listener, never suppresses"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 3,
+    "max": 25,
+    "drop_most_favourable": 44
+   },
+   "reproduction_steps": [
+    "Options: Grid peak tariff on; Advanced > Fuse and peak guards: Peak guard on; a house power meter",
+    "month with three 2.0 kW peaks; meter steady at 1.2 kW",
+    "from minute ~39 of every hour the guard holds back hot water and nudges the curve down though the hour averages 1.2 kW"
+   ],
+   "proposed_fix_scope": "power_guard.project_window_mean: weight current_kw by the remaining minutes; failing test on a steady draw below and above the line, null control guard off.",
+   "files": [
+    "custom_components/heatpump_optimizer/power_guard.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Both options menus offer exactly the pages strings.json lists, in order, and every listed page opens",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_flow.py",
+   "value": "init 9/9, advanced 16/16 PASS"
+  },
+  {
+   "claim": "Every form options page (22) saves a changed field through immediately (async_update_entry recorded, value in entry.options) and returns to the section menu that lists it",
+   "command": "same h_flow.py",
+   "value": "steps_examined=26 of 26, flow_fail=0; --perturb-close: flow_fail=61"
+  },
+  {
+   "claim": "after_save 'menu' returns to the section menu and 'close' closes the dialog with the value kept, on all 22 pages",
+   "command": "same h_flow.py",
+   "value": "after_save_fail=0 of 22; --perturb-close: 22"
+  },
+  {
+   "claim": "Every modbus_prefill field is suggested at the value its description derives from the package registers (x0.1, 7//days, h*256+m, capacity/COP, 100DH water control, empty-slot sensors), saved, and read by the restarted coordinator; the prefix is saved only when the package was found under it; the device route offers its roles; prefill_offer is stored",
+   "command": "same h_flow.py",
+   "value": "modbus_examined=18, 18 PASS"
+  },
+  {
+   "claim": "factory_reset: unticked returns to the advanced menu with nothing changed; scope settings drops settings and keeps learned values, learners keeps settings and resets learned values, both does both",
+   "command": "same h_flow.py",
+   "value": "factory_examined=2, 2 PASS (learned resets 0/1/1)"
+  },
+  {
+   "claim": "85 of 88 option fields move the plan, the writes or their published value in the state their description names (after a restart)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_states.py (second pass over h_sweep.py's 21 no-effect rows)",
+   "value": "h_sweep options_noeffect=21 of 88; h_states states_noeffect=3 of 30"
+  },
+  {
+   "claim": "The capacity-tariff options move the plan only once the month has a recorded peak, by design (tariff.py threshold_kw returns inf with no peak); with three 2.0 kW peaks recorded every grid.* option moves the plan",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_sweep.py (state 'peaks')",
+   "value": "grid.* 9/9 EFFECT on plan in 'peaks' (weekdays_only on a Saturday with peaks, h_states.out)"
+  },
+  {
+   "claim": "Weekend and holiday comfort fields set the solve's comfort target on their days and hours, leave weekdays alone, fall back to the weekday value when untouched, and away setback wins over the holiday calendar",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_owed.py",
+   "value": "17 of 18 checks PASS (the failing one is D17-s1-02); --perturb-weekend: 8 fail"
+  },
+  {
+   "claim": "quick_setup.wood_buffer_tank without a probe changes no plan, as its description says (two-tank physics activates only once a probe is assigned)",
+   "command": "same h_states.py",
+   "value": "NOEFFECT in 'furnace on, no probe'"
+  },
+  {
+   "claim": "house_heat_loss_coefficient is hidden on two zones by design (when=_single_zone) and moves the plan on a single-zone entry",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py",
+   "value": "single zone EFFECT; not rendered on two zones"
+  },
+  {
+   "claim": "Setup-wired options take effect at entry setup: ecl110_state_topic subscribes to its topic, debug_collect_enabled starts a collector that records one row per cycle, peak_guard_enabled registers the meter listener",
+   "command": "same h_states.py",
+   "value": "mqtt_subscriptions ['ecl/state'] vs []; debug_rows 2 after 2 cycles vs no collector; guard_listeners 1 vs 0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D17/s1/h_computed.py",
+  "dev/audit/rounds/round11/D17/s1/h_docs.py",
+  "dev/audit/rounds/round11/D17/s1/h_enum.py",
+  "dev/audit/rounds/round11/D17/s1/h_flow.py",
+  "dev/audit/rounds/round11/D17/s1/h_guard.py",
+  "dev/audit/rounds/round11/D17/s1/h_modulation.py",
+  "dev/audit/rounds/round11/D17/s1/h_owed.py",
+  "dev/audit/rounds/round11/D17/s1/h_states.py",
+  "dev/audit/rounds/round11/D17/s1/h_sweep.py",
+  "dev/audit/rounds/round11/D17/s1/h_zone.py",
+  "dev/audit/rounds/round11/D17/s1/rig.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tools/audit/enumerate.py",
+   "symbol": "d17",
+   "what": "148 section-nested options fields besides the owed 8 (comfort band/mold, tuning, hot_water, hot_water_tank, building, building_preset, entities, entities_metering, learning_features, thermal_model_zones; list in dev/audit/rounds/round11/D17/s1/h_enum.out) are in no D17 option line, so no seat's coverage names them this round; D17-s1-01's fix brings them into the next round's universe."
+  }
+ ]
+}
