@@ -57,6 +57,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script's directory
 import roster_lib  # noqa: E402
+from scorecard import escape_sets  # noqa: E402  line E's two sets are the escapes
 
 ESCAPE_FIELDS = ("found_by", "owned_by", "caused_by")
 HOTFIX_FIELDS = ("found_by", "caused_by")
@@ -65,15 +66,8 @@ SHOWN = 5  # unrecorded names printed per read
 _GROUP_LINE = re.compile(r'^\s*"group":\s*"([^"]+)"')
 
 
-def escape_sets(groups: list) -> tuple[list, list]:
-    """Scorecard line E's two sets: outside groups, and hotfix or bug groups touching the product."""
-    out = [g for g in groups if g.get("source") == roster_lib.OUTSIDE]
-    ph = [g for g in groups if ("HOTFIX" in str(g.get("group") or "") or g.get("kind") in ("bug", "hotfix"))
-          and any(str(f).startswith("custom_components/") for f in g.get("files") or [])]
-    return out, ph
-
-
 def is_escape(g: dict) -> bool:
+    """Scorecard line E's two sets: an outside group, or a hotfix or bug group touching the product."""
     return any(escape_sets([g]))
 
 
