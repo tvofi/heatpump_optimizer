@@ -1,5 +1,0 @@
-tools/audit/briefs/D11.md                        126  126     1939  1939 
-corpus:        ~70040 tokens, cap 69625 +band 500 = 70125
-TOTAL: 0 error(s) across 52 policy file(s)
-189
-9:  "corpus_tokens": 69625,

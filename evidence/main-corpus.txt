@@ -1,0 +1,1 @@
+corpus:        ~65934 tokens, cap 65926 +band 500 = 66426
