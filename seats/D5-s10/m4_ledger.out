@@ -1,0 +1,627 @@
+   .claude/hooks/pre-bash.sh#bc59b6cb0a L35 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): RESERVED = {"if", "then", "else", "elif", "do", "while", "until", "{"} # compound-command words: the next word is still a command SHELLS = {"bash", "sh", "zsh",
+   .claude/hooks/pre-bash.sh#962a6ac49d L186 paths_ok=0 unresolved=0 badsym=0 long=2
+      long(46): HPO_PRE_BASH_GUARD_PY import os, subprocess # Second arm: the orchestrator's checkout is what beatd, tick_loop.sh and # cloud_relay.sh run their scripts from, a
+      long(48): It reads the parse # block's `cmds` -- so `bash -c`, `eval`, `( )` and `$( )` bodies are seen -- # following `cd` and `pushd` in the order the commands appear (
+   .claude/hooks/pre-edit.sh#dc063efddd L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(41): Every one of these is a rule the corpus already states and nothing enforced at the moment it is broken -- the cheapest detector for "a branch moved VERSION" was
+   .claude/hooks/pre-edit.sh#1ead0dad93 L30 paths_ok=5 unresolved=0 badsym=0 long=1
+      long(47): THE PAYLOAD ARRIVES AS AN ARGUMENT, NOT ON STDIN, and the first draft of this file got that wrong in a way worth keeping the note for: `python3 - <<'PY'` makes 
+   .claude/hooks/pre-edit.sh#4ace144b04 L152 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(43): Every case above drives `decide`; none of them touches the wrapper that reads the payload, asks git for the branch and turns a message into an exit status -- wh
+   .claude/hooks/pre-edit.sh#d9187decb6 L195 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): Those are different facts, and collapsing them made this hook fail CLOSED on the three stamped paths whenever git was absent, refusing an edit on the exact reas
+   .claude/hooks/pre-edit.sh#a57d841a30 L211 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(53): `decide` exits 1 when it has decided to refuse, so `MSG=$(decide ...) || exit 0` swallowed every refusal and this hook was inert in production while its self-te
+   .claude/hooks/session-start.sh#4c9e50e420 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(54): They were all present and all green while an orchestrator checkout sat **409 commits behind origin/main for 51 hours** (reflog: cb30d98, 2026-09-16 14:06 -> 202
+      long(59): `origin/main at:` is not decoration and closes the obvious hole: the count is measured against the LOCAL remote-tracking ref, which in a checkout nobody has fet
+   .claude/hooks/session-start.sh#9d408a7b98 L145 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(48): `origin/main at:` is git's relative `%cr`, which moves with the wall clock; the byte comparisons below call the report in sequence, and one that straddles a tic
+   .claude/hooks/session-start.sh#21036bf60f L187 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(45): The precise defect #1148 records is that the hook printed `merge-base`, which on an ancestor checkout IS that checkout's own SHA: a substitute -- or a constant,
+   .claude/hooks/stop-selfcheck.sh#dfbf442a4c L70 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): Every case above drives a helper; none touches the wrapper that reads the payload, asks git what changed and turns a red linter into an exit status -- and that 
+   .claude/hooks/stop-selfcheck.sh#cfb27f6552 L138 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): With the red stub from the case above still in place, both arm cases FAIL outright -- rc 2 where 0 is wanted, hit counts still right -- which #671's round 1 mea
+   .claude/hooks/stop-selfcheck.sh#d47c9b5e35 L157 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): A session whose project dir is not this repository (an orchestrator in a scratch workspace) has no hook at "$CLAUDE_PROJECT_DIR"; the command finds the reposito
+   .claude/workflows/audit-find.js#43cab043ca L66 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(45): WHICH FINDERS MAY READ GITHUB, narrower than ISOLATED on purpose: D0, D3 and D9 are isolated to MUTATE production, not to read the API, and the wall COMMON.md d
+   .claude/workflows/audit-find.js#a48f627fc2 L83 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(63): Every dimension runs every round, so a round has no cadence: D5 and D6 (tvofi 2026-11-13, "the scope of d5 and d6 to always cover that full scope") and D11 and 
+      long(42): A seat's steps are every step its blocks name, in the dimension's step order, and every one is its deep focus: the scopes are disjoint within a dimension (tools
+   .claude/workflows/audit-find.js#46743598ea L220 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(71): CLASS_GUESS is intake's class check, the third reader of that enum; FINDING_REPORT is the whole schema with its $refs inlined, handed to every finder as its ret
+   .claude/workflows/audit-find.js#d7daf3959e L237 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): Each collection read off a reply passes here: JSON text (a reply the agent serialised, round 10's register read) is parsed, and anything that is not the collect
+   .claude/workflows/audit-verify.js#78161ec341 L104 paths_ok=0 unresolved=0 badsym=0 long=0 num_check=VERIFIERS_PER_DIMENSION=1 cites 2026,10,14
+   .claude/workflows/audit-verify.js#fb053ba420 L119 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(63): R10-TICK (e, h), one class: a script that trusts a large agent reply. audit-find.js holds the same guard (a workflow script imports nothing): a collection read 
+   .claude/workflows/audit-verify.js#161f3019c3 L223 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(57): The rotation ledger's yield: judge-surviving findings per method step, per dimension, counted here rather than by an agent; a merged finding counts once, under 
+   .claude/workflows/audit-wave.js#18fd1176a7 L1 paths_ok=2 unresolved=1 .claude/workflows/lib/audit-prompts.js badsym=0 long=2
+      long(47): Runs the same two phases as audit-fix.js (fixer, then adversarial fix reviewer) for many PR groups at once, honoring each group's `after` dependencies and sched
+      long(76): The fixer and reviewer prompts below are hand-mirrored from audit-fix.js, not imported from a shared module: the four scripts this repo already shipped (audit-f
+   .claude/workflows/web-decomp-stage.js#c3f741d9d6 L128 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(52): The reviewer's job is the one CI cannot do -- diff the moved block against origin/main rather than against the text it was cut from, because a fix that landed i
+   .claude/workflows/web-fix-wave.js#ca30b25ab2 L127 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(52): A group with `after` waits for its dependencies to be MERGED (not merely to have a PR) and then starts by merging origin/main, so its claim file and its budget 
+   .claude/workflows/web-fix-wave.js#ed60077548 L145 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(66): The briefs are the most expensive artefact in a programme and the container they were written in is the least durable thing about it, so a wave runs from a rost
+   .claude/workflows/web-fix-wave.js#25f4860bdf L151 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(48): The committed rosters and this script had drifted into two vocabularies sharing ONE word: the script branched on fix/merge/review/done, the rosters carried pend
+   .claude/workflows/web-fix-wave.js#52d9ffec45 L167 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(58): `fix-review.md` told a reviewer to return "Fix review: blocked - <why>", and no script read the reason: every non-merge verdict was one undifferentiated "not me
+   .claude/workflows/web-fix-wave.js#b2e52dfa70 L178 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(75): A class a REVIEWER wrote and this vocabulary never taught: round 7's window carries `Fix review: blocked <sha> product-tradeoff-regression: <why>` at #1429 -- t
+   .claude/workflows/web-fix-wave.js#ef6d28a030 L211 paths_ok=1 unresolved=0 badsym=0 long=3
+      long(61): The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an abbreviated form parses here but tools/pr/app_approve.sh requires exact equality against 
+      long(53): Measured at the round-5 baseline, 16 of 30 blocked verdicts fell outside this grammar -- 7 bare (`blocked <sha>`, no class), 9 with a class word the vocabulary 
+      long(71): So the class word, when one is written, may be ANY word: a taught word routes as itself, an untaught word routes to `other` with the word kept at the front of t
+   .claude/workflows/web-fix-wave.js#6b5aa76ab5 L244 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): Called from inside the per-group fan-out, where a throw is swallowed, so runGroup catches it and records the raw text -- the failure mode to avoid is a verdict 
+   .claude/workflows/web-fix-wave.js#fd6bd070af L289 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): Checked HERE, before Reconcile and before a single agent is spent, not inside the per-group function: parallel() settles its thunks, so a throw down there is sw
+   .claude/workflows/web-stamp.js#4b9dfd5d48 L127 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): Invoked once per wave (once per stage in the decomposition program), never concurrently with itself: stamp.py refuses a tag that exists, a red gate, and notes t
+   dev/audit/harnesses/agreement_two_pr.mjs#242637dae0 L1 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(54): Every self-test probe passes one registry to one tree; this harness instead makes real commits in a throwaway clone of this repository's HEAD, with <grader.mjs>
+      long(80): main1 push one reader, no entry clean PR A by main1 adds the entry clean main2 push the entry spans one file clean PR B by main2 adds the second reader at {P} c
+   dev/audit/harnesses/archscore_layering_seam_census.py#17177fa948 L190 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): The key carries the direction the binding its root name holds roots in (anc/self/desc) and whether the name read off it is public or private -- the layer edge i
+   dev/audit/harnesses/archscore_shape_family_coverage.py#e1829b2fc3 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(51): Part 5's `shape_copies` (`tools/audit/archscore/metrics/shapes.py`, counter C23) is that census, and this is its companion: it applies the finder's own rule -- 
+   dev/audit/harnesses/boost_replay_fork_parity.py#adadc042d7 L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(61): This harness replays a shortened schedule both ways -- ``fork=0``, every arm from its own fresh start, against the default fork -- and requires each arm's summa
+   dev/audit/harnesses/ceiling_probe.py#eeda45df00 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(50): The other two are their companions, applying the tree's own rule to the same inputs: the finder's duty arm reads ``_planned_duty`` and a code-object name, and i
+   dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py#2a2a464667 L2 paths_ok=2 unresolved=1 tools/audit/prepr.sh badsym=0 long=1
+      long(49): Builds a standalone scratch repository whose main is the measured commit, then constructs one pull-request head per shape and runs, in a checkout of that head, 
+   dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py#a87121d6af L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(41): Builds a scratch clone whose base carries one claim (`config_flow`), then a branch commit forging a stamp: VERSION and manifest bumped, a notes heading, both cl
+   dev/audit/harnesses/ci_script_seconds.py#97aa8f801a L1 paths_ok=4 unresolved=1 tests/x.py badsym=0 long=1
+      long(43): `push` on `main` created at or after SINCE: created time, head SHA, and each script's seconds from run.sh's closing timing table (` 1152s python3 tests/x.py`), 
+   dev/audit/harnesses/claim_merge_census.py#6f613bdd5a L2 paths_ok=5 unresolved=0 badsym=0 long=1
+      long(43): Runs ``merge_claim_file`` from ``tests/env_drift.py`` AT A GIVEN REF over each merge's three texts of ``tests/golden/claimed_drift.txt`` (merge base of the two 
+   dev/audit/harnesses/climate_native_alias_realcore.py#f859e6c0ac L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(42): It prints one JSON line: the core version, the temperature attributes the entity publishes (``capability_attributes`` and ``state_attributes``) under the metric
+      long(43): uv venv -p 3.13 v2502 && VIRTUAL_ENV=v2502 uv pip install homeassistant==2025.2.0 numpy scipy uv venv -p 3.14 v2611 && VIRTUAL_ENV=v2611 uv pip install homeassi
+   dev/audit/harnesses/closing_keyword_ownership.py#5c1ffad57d L2 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(48): `tools/pr/preflight.sh` arm 1b refuses a body where ONE closing keyword names SEVERAL references: GitHub's rule is KEYWORD #N -- the number follows the keyword 
+      long(67): The same test over the WHOLE BODY returns 25 seams on the 200-merged-PR corpus, and every one carries its second reference in a LATER clause: a `Part of #N.` / 
+      long(52): The script runs from a directory that is not a checkout -- arm 1b is a property of the body text alone, and the policy-corpus arm it skips there is a `check`, n
+      long(41): `--script <path>` runs the same matrix against another copy: against the round-1 head (`git show 5c35cd9ba:tools/pr/preflight.sh`) the six separator seams each 
+   dev/audit/harnesses/closing_keyword_ownership.py#24b40ce750 L83 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): The arm's own line, in either spelling: the SEPARATOR TEST is the exit code below (the intended list declares both numbers, so with arm 1b gone these bodies exi
+   dev/audit/harnesses/closing_keyword_ownership.py#5281f0202c L89 paths_ok=0 unresolved=1 evidence/class-probe.txt badsym=0 long=0
+   dev/audit/harnesses/closing_keyword_ownership.py#560f581a61 L127 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): The casing rows that matter: these separators are the ones the round-1 separator list already refused, so a case-sensitive keyword class would leave them lookin
+   dev/audit/harnesses/cop_duty_floor.py#9cf06f007c L2 paths_ok=1 unresolved=2 dev/programme/carries/carry-2065.json;hpo-seats/review-2066/ev/reviewer_probe3.py badsym=0 long=2
+      long(41): ``run_led``: 60 intervals asked 3.0-5.0 kW drawing 0.6 x the ask (an overstated 3.0 kW minimum: the pump runs at 1.8 kW); ``run_low``: the same drawing 0.3 x (l
+      long(44): on a 3.0 kW minimum and 4 kW nameplate, behind a full window of such asks, and behind one that fills at interval 48: no evidence ever arrives, so the folded cou
+   dev/audit/harnesses/d907_kernel_band.py#e0dbcd6f5b L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(46): BAND trials force the re-solve on a real 2x: this tree doubled, its single reading replaced by 1.6x of the baseline's (inside the band), so every trial measures
+   dev/audit/harnesses/dependabot_stale_hash.py#ed462df5b4 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(43): A pin is STALE when its `name==version` line moved from the parent commit but its set of `--hash=sha256:` values did not: distinct releases never share a distri
+   dev/audit/harnesses/drain_admission_probe.py#848695c9e0 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(72): TREE is a checkout whose `tests/mutation_table.py` runs unmodified: the probe replaces `drive_pool` in the imported module, never in the tree, because tests/ent
+   dev/audit/harnesses/draw_map_linearity.py#917dce5301 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(42): The measurement a local seat ran on one owner diagnostics download, ported to run on a synthetic fixture this script generates (no row of that download is in th
+   dev/audit/harnesses/draw_range_evidence.py#b6c7854aff L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(60): over configured 1-10 kW; plan asks U(3, 10), pump draws U(1.2, 1.8): an overstated nameplate null the pump draws exactly what it is asked, asks U(min, max) mild
+   dev/audit/harnesses/dual_path.py#dcdc4a78d8 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(51): Metric, one line: for each grading command a base-restoring CI job runs, the rc and normalised output on a planted tree whose data sits at the reorganised locat
+   dev/audit/harnesses/dual_path.py#6423b2811f L236 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(43): codeowners_gap's verdict is about the base's .github read by HEAD's graders, which load tests/layout.py the base's CODEOWNERS does not own; its one data read, r
+   dev/audit/harnesses/follower_debounce.py#a98f1b538f L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(44): Extracts the workflow's first step (`id: last`) and runs it under bash with a stub `gh` that prints a fixture runs list, so the decision -- DEFER, NONE, or LAST
+   dev/audit/harnesses/git_auto_maintenance_race.sh#f8394e49c2 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(70): The seat's git (2.38) never reaches that condition on a small repository, so this harness MODELS it: a `git` shim on PATH runs the real git, then -- after commi
+   dev/audit/harnesses/h8_single_scenario.py#4036218354 L1 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(43): Since #387 that last rule has no recorded numbers to read: the baseline is captured in the same environment, so here the PLAIN sweep -- this tree, this process,
+      long(73): The four runs are: PLAIN; INJECTED, with HeatPumpOptimizer.optimize made to do its work twice for ONE scenario (the h7 injection, scoped -- an exact 2x on that 
+   dev/audit/harnesses/h8_single_scenario.py#705c366dd4 L106 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(53): Three shapes have existed. #346 recorded one basin per scenario (recorded_evals/recorded_objective), PR #378 recorded several (matching_basin), and #387 records
+   dev/audit/harnesses/h9_basin_coverage.py#00d3dcc2e4 L1 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(45): Metric: the number of the fifty-one sweep scenarios the tree's own solver-work rule JUDGES (as opposed to exempts), when the multi-start cohort lands in a basin
+      long(50): The perturbation is applied to the OBJECTIVE, which is exactly what a different CPU model and BLAS kernel do to a multi-start solve; the size, 1e-3 relative, si
+   dev/audit/harnesses/h9_basin_coverage.py#ddcaa50e93 L148 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): The captured-baseline shape is handed the baseline the same runner would have produced from the unchanged merge base -- the same objectives, because one environ
+   dev/audit/harnesses/host_zone_features.py#fe29ca470c L2 paths_ok=5 unresolved=0 badsym=0 long=1
+      long(50): ``--golden-zones`` captures every golden payload (``env_drift.py --all``'s set) under each zone and compares it with the gate row's capture, printing one ``RESU
+   dev/audit/harnesses/host_zone_features.py#d19141bc91 L74 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): The suite sweep: the gate's own environment, four whole-hour zones, a half-hour one, and Europe/London, a DST zone whose 2026 transitions fall on the EU dates t
+   dev/audit/harnesses/host_zone_features.py#787d849dfd L148 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(48): : ``both`` sets the host zone (``TZ``) and Home Assistant's configured zone : (``HASTUB_TZ``) together; ``tz`` sets the host zone alone, leaving the : configure
+   dev/audit/harnesses/hpo_ci_container_setup.sh#ce1a38dba4 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(49): CI's exact wheels on an amd64 Linux the Mac can reach (colima vz+rosetta; also runs on any amd64 Docker host), kernel-switchable at run time with OPENBLAS_CORET
+   dev/audit/harnesses/k1725_blas_kernel_gap.py#1b71b772a0 L1 paths_ok=3 unresolved=1 tools/audit/README.md badsym=0 long=1
+      long(46): refinement and restart polish). both_1e3 is the arm the check keys on, its bound half the smallest healthy gap across kernels; both_1e2 is the arm it keyed on u
+   dev/audit/harnesses/livehead_cancels.py#a2cf3656bd L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(71): The runs listing shows only a run's LATEST attempt, so a cancelled attempt that a rerun replaced is invisible to `gh run list`; --fetch reads every earlier atte
+   dev/audit/harnesses/mutant_guard.py#c8def5c242 L2 paths_ok=1 unresolved=1 tools/x.py badsym=0 long=0
+   dev/audit/harnesses/nightly_drain_breakdown.py#77b84bb276 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(127): drawn -- the header's `N of M unpinned site(s)`; killed -- `pinned <site> -- killed by <script>` rows; lives -- `UNPINNED <site> -- lives` rows (owed a human ve
+   dev/audit/harnesses/pulse_replay.py#04d97503f5 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(42): --opener-h old at the sample, with no pull request headed fix/<t>, fix/<t>-pr or handoff/<t> created by then, and whose handoff/<t> tip is not an ancestor of ma
+   dev/audit/harnesses/r10_advisor_degree.py#e25140250e L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(45): ``CADENCES_MIN`` (``optimization_interval`` is the user's, 10-120 min, default 30), each answer folded by ``price_tiles.record`` and published by ``price_tiles.
+   dev/audit/harnesses/r10_advisor_residue.py#b69be2fe7a L2 paths_ok=1 unresolved=0 badsym=0 long=3
+      long(46): WHY IT EXISTS. #2572 recorded three monthly figures it did not fix, each with a cause it named but never moved: (a) the what-if's ``monthly_cost_delta``, (b) th
+      long(58): Per start, the scratch solve ``async_simulate`` builds (``_shadow``) against the live one, for the two degree tiles (``price_tiles.specs``), the cap tile (75 %)
+      long(54): The hot-water row is the card's (cost_per_day(from) - cost_per_day(to)) x 30 on the coordinator's own ``_dhw_setpoint_sweep``, run on that day's price window an
+   dev/audit/harnesses/r10_advisor_residue.py#67205cd708 L205 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(47): Priced as two plans from held starts, a degree turned sign at an instant ``whatif`` does not read (1 of these 48 rows, and 6 of 24 on the coordinator fixture): 
+   dev/audit/harnesses/r10_advisor_steady_bracket.py#786191e984 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(52): PRICES: sawtooth (default; the fixture's 12 h sawtooth 0.60 to 1.06), flat (the null: every hour at the sawtooth's mean), spread2 (the perturbation: each price 
+   dev/audit/harnesses/r10_advisor_steady_carrier.py#dacc24557f L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(42): This probe records the periodic thermostat energy (two passes) of the what-if solve, of the scheduled plan and of the zero ask at the what-if's instant, on the 
+      long(47): Keys: ``off`` and ``at`` are the live side read off the scheduled plan and at the what-if's instant, on the horizon's own weather; ``offm`` and ``atm`` the same
+   dev/audit/harnesses/r10_advisor_steady_seams.py#89322b1408 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(44): The one-tank valve fixture's thermostat never reaches its setpoint (the ``holds`` line prints the room it settles at), so its day setpoints tie and two passes d
+   dev/audit/harnesses/r10_anchor_vacuous.py#bf2420a070 L1 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(54): The controls: `--equivalent` replaces each site's mutant with its own line plus a trailing comment, and `--new TEXT` with TEXT (one anchor) -- rewrites no check
+      long(44): `killed_by` row becomes a `survivor_triage` row with verdict `gap` and the reason, under the same anchor and `old` pin (`mutation_table.write_budgets`), so the 
+   dev/audit/harnesses/r10_arbiter_off_restore_mutants.py#1a512d4875 L2 paths_ok=4 unresolved=0 badsym=0 long=2
+      long(47): It prints mutant_run's lines, ``SURVIVED NULL`` then ``KILLED <name>`` per mutant at the fix head, once for M01-M20 and M35 on the arbiter block and once for th
+      long(59): R10-HOTFIX-FLOW-SETPOINT-STUCK re-anchored M02, M03, M11, M13, M23, M35 and M37 on the lines it rewrote: the own-write check no longer holds the write but subst
+   dev/audit/harnesses/r10_arbiter_off_restore_mutants.py#a8fb65df03 L169 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(57): : The seam with R10-WATER-SETPOINT-FEEDBACK (the merge of #3405): the off : restore's edit adoption reads the space slot before ``hold``, so a loop : write's co
+   dev/audit/harnesses/r10_arch_docs_enumerate.py#c5913f544a L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(81): Each `## N<k>` block below is the command that lists the set such a sentence is about, over the whole tree: the modules that name the state machine, the jobs an
+   dev/audit/harnesses/r10_arch_docs_mutants.py#0b2ad35f66 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(48): Dropping one cannot fail on a clean page, so each is shown three ways instead: alone it reads as the baseline; with a defect planted in the text the check reads
+   dev/audit/harnesses/r10_archscore_any_spellings.py#0f826a6d87 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(58): The finder's ``payload_any_spellings.py`` (round 10, ARCH-s3) drives four of the eight spellings the catch-up judge listed; this drives all eight, plus the cont
+      long(48): The second half reads the same spelling rule from the other side (C14, #2293's round-1 review): for each spelling of ``_fold_away``'s parameter type (``away_mod
+   dev/audit/harnesses/r10_buffer_store.py#1fd1d68323 L1 paths_ok=1 unresolved=0 badsym=0 long=4
+      long(41): ``plans`` (default; optional outdoor temperature after it, default 0 degC): a 750 L manual-valve buffer against no buffer, each at a spread price day and at its
+      long(42): ``cost_error_percent`` on three synthetic sample sets -- calibrated (realised == predicted, the null), realised 1.4x predicted, and realised predicted/1.4 (a pl
+      long(44): ``reference``: the savings reference (``_compute_baseline_power``) on the finder's cell -- 0.6 loss scale, 5 degC, a 24 degC tank, no hot water -- at the flat p
+      long(54): ``bench N``: wall time and peak RSS of ``optimize`` over N solves per arm, each arm in its own process, on the owner's shape (750 L buffer behind a manual valve
+   dev/audit/harnesses/r10_card_evidence_kinds.py#b316fac881 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(44): R10-USER-TEXT-VERIFY-CARD: classifies every file:line a round-10 user-text record cites, at the record's merge base, as code, comment, docstring or blank, and p
+      long(42): A row is a table line opening with a backticked key, read up to the record's own sweep section (whose table quotes the citations it replaced); a citation is `pa
+   dev/audit/harnesses/r10_card_harmony.mjs#4a5bc34ad1 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(43): R10-CARD-VOICE (#2506): the harmony study's own harness (probe/card-harmony-design 6aea0d10, docs/design/harmony/harness) driven in Chromium at 375 / 768 / 1280
+      long(71): Per page and width it prints the dialog's base px, the HTML text nodes under the ramp's 12 px step, each named caption role's px, the setup drawing's disc px an
+   dev/audit/harnesses/r10_card_user_text.mjs#d80fb3ef1b L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(43): Run from a worktree root; the card path defaults to that tree's card, so the same file measures a base, a head or a scratch copy (the null control plants a key 
+   dev/audit/harnesses/r10_carry_sink_barrier.py#ffe645175a L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(46): The issue arm (verdict/3417) drives `Carry: #N` for every issue an open group lists, keyed by the stage of its owner (`Dests.owned`), with no carry file or O-br
+   dev/audit/harnesses/r10_ci_gate_core.py#39865faa6d L2 paths_ok=4 unresolved=2 measure/rev/gate_replay2.py;measure/rev/gate_sim.py badsym=0 long=1
+      long(45): `b3` enumerates, from this tree's `.github/workflows/tests.yml` (the file the port's REQUIRED is paired with; origin/main's until P2b), every job whose failure 
+   dev/audit/harnesses/r10_ci_layout_p0_mutants.py#56179a4fb9 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(77): M1 ci.yml gains a `push:` trigger -> the stub-inert check M2 ci.yml leaves closure.py's GATE_FILES -> the stub-inert check M3 arch_score_head.py back in lane_un
+   dev/audit/harnesses/r10_ci_layout_p1/critpath.py#9fdda2adca L1 paths_ok=1 unresolved=1 measure/p2/critpath.py badsym=0 long=1
+      long(50): The method is DESIGN-P1/P2's `measure/p2/critpath.py` at archive/probe/design-ci-rev4, unchanged in its model: holding every job's duration fixed, `closures` st
+   dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh#d05dee14f1 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(52): Read-only GETs for critpath.py: RAW gets the two newest pages of completed pull_request runs of tests.yml, each run's latest jobs, and CASES one line per run wh
+   dev/audit/harnesses/r10_ci_layout_u0c/mutants.py#0bb5e63fb2 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(112): M1 gate's if: skips merge_group -> the umbrella pin M2 the merge_group trigger dropped -> the umbrella pin M3 run-name loses its sha= token -> the umbrella pin 
+   dev/audit/harnesses/r10_ci_layout_u0c/unitcheck.sh#37585d5280 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(45): A file mapped as new has every row `gained`, so the instrument refuses only an UNMAPPED gain: a job added reads rc 1, while a gained row deleted (gate's checkou
+   dev/audit/harnesses/r10_ci_layout_u4/unitcheck.sh#d3715a13e4 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(44): R10-CI-LAYOUT P2b, unit U4: the design's static null control (DESIGN-P2 section 10) over the called governance.yml, with its closed map, and the input control: 
+      long(56): Prints the STATIC line (want rc 0), a plant where the map is withheld (want rc 1), a plant that edits the `instrument-self-tests` step (want rc 1: plan section 
+   dev/audit/harnesses/r10_ci_layout_u5/script_runs.py#630fc56668 L2 paths_ok=5 unresolved=0 badsym=0 long=2
+      long(41): The every-script-measured-once count tests/ci_budgets.json records script_runs_per_push at, from the two instruments' own enumerations, as tests/entities.py's `
+      long(50): Moving the architecture-score pair out of `fast` must leave it at the budget: the pair's closures rows are still recorded, and the coverage stage never ran it. 
+   dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py#c6fca0ab45 L2 paths_ok=2 unresolved=1 measure/rev/unitcheck2.py badsym=0 long=0
+   dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh#58aaf55fdc L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(53): The two blind lines are the instrument's limit, measured: a row the map admits as `changed` or `gained` is not compared past its being admitted, so a step gutte
+   dev/audit/harnesses/r10_ci_slim/c7_replay.py#cf0eb74ade L2 paths_ok=3 unresolved=0 badsym=0 long=3
+      long(42): --tree is the checkout whose tools/ci/prelude.py and tools/pr/codeql_scope.py decide (default: this tree; give a merge-base worktree for the control: it has no 
+      long(61): Each pull_request run of kind `code` in SAMPLE.json (edit_runs.py --fetch) is judged on its own diff: `git diff --name-only --no-renames B...H`, H its head, B t
+      long(65): the same PR's previous code run in the sample (none: due), counted only where a code run of that PR at P concluded the pins measurement (prelude.pins_measured) 
+   dev/audit/harnesses/r10_ci_slim/edit_runs.py#24e8e4bcf0 L2 paths_ok=2 unresolved=0 badsym=0 long=3
+      long(44): For each, the replay rebuilds the Actions state its prelude read, at the prelude job's started_at: every run at the same head created by then, `completed` if it
+      long(46): A run it defers costs, after: its jobs less `pr-contract` (skipped), with its prelude priced at the median prelude of the sample's CODE runs (a prelude that nev
+      long(60): NULL CONTROLS, printed beside the result: (1) the same predicate over the sample's code runs, as if each were an edit run: a code run is never deferred by anoth
+   dev/audit/harnesses/r10_ci_slim/gate_satisfiable.py#87fca46c7c L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(43): For every name gate.REQUIRED can hold, the job that reports it (its unit's workflow file: the job whose key, or whose `name:` up to " (", is the name up to " ("
+   dev/audit/harnesses/r10_codescan_wait_race.py#99ed6733d4 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(107): edit runs at a head that also has a code run, split INVERTED (the edit run's id is below the lowest code run id, so prelude.wait_earlier waits for nothing) and 
+   dev/audit/harnesses/r10_combi_tank.py#9719f10f24 L1 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(58): ``balance`` / ``ua_zero`` / ``eps_null``: ``store_step`` over a 48-step day; the kWh residual of ``C * dT`` against its booked terms, the same with UA 0, and th
+      long(47): ``exchange``: a joint solve at a two-tier price day: the rounds the flux exchange took, the worst shortfall below the hot-water requirement, and the same solve 
+      long(54): ``split_attrs``: the four hot-water readers a user sees (DHW Heating Cost, DHW Energy and DHW Cost sensors, the climate's ``dhw_heating_cost``) and one space re
+      long(48): ``>=`` and ``new_temp <`` to ``<=``), against the head over a grid holding each comparison's tie; the cases that differ, the ties the grid reaches, and a tie-on
+   dev/audit/harnesses/r10_configflow_pages.py#b3b567394c L2 paths_ok=1 unresolved=1 dev/programme/designs/R10-CONFIGFLOW-PAGES-probes/ badsym=0 long=0
+   dev/audit/harnesses/r10_cop_conversions.py#1e15520ad4 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(43): COP-shaped: a name, attribute, call or subscript whose identifier contains ``cop`` (any case), but not ``copy`` or ``scope`` and not one of the conversion helpe
+      long(52): The rule is lexical by design: it over-fires on COP-named constants that are not a coefficient of performance (``COP_HEALTH_THRESHOLD``), which a disposition an
+   dev/audit/harnesses/r10_cop_gate_band.py#a6d69f6d38 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(42): Null control: ``--synthetic`` adds a fixture made here, four in-band steps drawing exactly ``0.1 kW/K`` above the gate, through the same pairing; it must read `
+   dev/audit/harnesses/r10_cop_gate_top.py#07e4e12b5b L1 paths_ok=1 unresolved=1 evidence/r3_probe_reader.py badsym=0 long=1
+      long(48): hourly prices, -5 degC, the clock frozen): the plan's top step, a sha1 of its power_schedule and the stamp, for a fresh install, a store within 15 %, eleven sam
+   dev/audit/harnesses/r10_cop_gate_vent.py#8a434e6d84 L207 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(43): flow temperature: a first-order room (default UA, C) whose emitter UA is backed out of the steady load at ``emitter_design_delta_t``; an open window adds ``k_ve
+   dev/audit/harnesses/r10_cop_partload.py#187181a45f L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(49): The plant here is therefore independent of that law: one vapour-compression cycle at a fixed fraction of Carnot, whose condensing temperature sits above the sup
+   dev/audit/harnesses/r10_cop_partload.py#07457d2d52 L48 paths_ok=0 unresolved=0 badsym=0 long=0 num_check=MCP_KW_K=1.68 cites 0.4,4.19,5,8
+   dev/audit/harnesses/r10_cop_partload_equiv.py#c2569deecb L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(57): Perturbation: --identity applies each mutant's *old* line as the "mutant"; every RESULT count above must read 0, so a difference the normal run reports is the o
+   dev/audit/harnesses/r10_critpath_archive_parity.py#17e75da197 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(57): This holds it to that: the archive's c1_counterfactual.py and ci_critpath.py run over the archive's recorded jobs (measure/p2/raw), and every run's V1 "drop C1"
+      long(47): The same comparison with V1's 239.1 s charge left out must disagree on at least one run (on every run where closures stays on the counterfactual's path; the oth
+   dev/audit/harnesses/r10_dead_rate_limit.py#5918f7f2e8 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(81): This drives the production step over a grid of every input the two call sites can reach -- ``current`` across the ``_apply_*`` clamps (the same [0.3, 3.0] for t
+   dev/audit/harnesses/r10_demand_overbook.py#4c7fc12c80 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(70): ``--dp`` adds the DP reference: after the ``owner_i01`` arm it solves the same 12-hour window by dynamic programming over a (room, slab) grid on the coordinator
+   dev/audit/harnesses/r10_demand_overbook.py#29994d56a0 L186 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(50): The DP's objective is a reconstruction; this is the cross-check that it prices what the solve prices: ``plan_cost`` must equal ``prod_cost`` up to the grid's ro
+   dev/audit/harnesses/r10_demand_overbook.py#72e8f47fb8 L214 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(46): Read from ``_build_comfort_bounds``, the one site that builds them, with no margins and no mold floor; its fourth element (the pre-mold comfort floor and the pa
+   dev/audit/harnesses/r10_demand_overbook.py#589b4c4e30 L229 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(46): The objective is the optimizer's own, on ``opt.model``, less the terms that couple steps: energy cost, the comfort-floor and ceiling penalties and the pull to t
+   dev/audit/harnesses/r10_dhw_charge_settle_p90.py#4d89a9c1e5 L45 paths_ok=0 unresolved=0 badsym=0 long=0 num_check=SETPOINT_C=55.0 cites 3,5,5,10
+   dev/audit/harnesses/r10_dhw_charge_settle_p90.py#96b2154ba9 L136 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(46): the draw ends before the charge the draw starts 10 min before the charge the draw starts during the charge 5 min after the last heated sample past the settle wi
+   dev/audit/harnesses/r10_dhw_lift_law_grid.py#b94ad171c6 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(43): Until this finding it chose between two laws on `cop_flow_carnot`, a SPACE-circuit flag: behind a valve, `_cop_law` at the tank's own water temperature (the buf
+   dev/audit/harnesses/r10_dhw_start_hysteresis.py#fc776c35c2 L1 paths_ok=2 unresolved=0 badsym=0 long=3
+      long(63): Drives the optimizer as ``tests/validate.py`` drives it, over 18 solves (price profiles winter_typical and flat; weather winter_cold, winter_mild and summer_war
+      long(85): ``--step S`` is the step of the set-point entity the target is written to: the written target is then the set-point rounded down onto it (the charge limit is th
+      long(44): runs_not_at_step0 planned runs beginning after step 0 runs_at_or_above_minus_{2,4,6}k of those, begun on a tank at or above the written target - K kwh_planned /
+   dev/audit/harnesses/r10_diag_ages_export.py#b544dd8450 L2 paths_ok=0 unresolved=1 evidence/harness.py badsym=0 long=1
+      long(50): Read past its own limit, an implausible temperature and a negative polling flow meter must both read `implausible` from `InputReader` (the base read the flow me
+   dev/audit/harnesses/r10_disinfection_setpoint.py#04552a02c6 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(55): ``setpoint_check._dhw`` with the production ``ThermalParameters`` over every row of ``desired`` (baseline, idle, space, dhw, both) and every way a step books a 
+      long(45): One line per install, booking and row: ``write=<degC>`` the hot-water write, then ``repair_own=`` / ``repair_none=`` the repair's Fix value (``-`` when it stand
+   dev/audit/harnesses/r10_duty_switch_price_section.py#2e87b07384 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(42): ``tests/features.py`` has no section filter, and the mutation proof of the group (the leg rule's leaf, the switch term, the lost running time, the banned candid
+   dev/audit/harnesses/r10_envmatrix_noremote.sh#9c98f0a808 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(64): CI's shape: a full clone detached at <head>, origin/main at <base>, the job's own "Restore the check source" step (read from governance.yml at <head>) run with 
+   dev/audit/harnesses/r10_errexit_capture.py#029307186e L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(41): In such a block a `$?` read (`rc=$?`, `case $?`, `[ $? ...`, `if [ $? ...`) whose producer is a bare simple command is dead code for every nonzero exit: errexit
+   dev/audit/harnesses/r10_fahrenheit_setpoints.py#8e6a163c87 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(41): The finders' harnesses each read one seam through a private symbol the fix moves (``setpoint_check._read_setpoint``, ``pump_arbiter._bounded``'s old signature, 
+      long(41): It moves what the domain rule alone decides (``no_target`` and ``range_climate_degF`` back to 2 of 2 and 2 of 4); a climate whose target is present is still rea
+   dev/audit/harnesses/r10_family_replay.mjs#009c1c888d L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(41): `Fix review:` first line of every merged pull request in v7.0.0..df6ca4bc, fetched for #2561 -- through the `statsFindings` of the policy_lint.mjs under <repo r
+   dev/audit/harnesses/r10_flow_autotrain_live.py#b171b87702 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(57): git runs for real -- `ls-remote` of verdict/*, the fetches and `app_approve.sh --carry` -- and the two gh reads are answered from files the seat saved from anot
+   dev/audit/harnesses/r10_flow_dispatch_mutants.py#c2f18ca07b L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(92): Written by the R10-FLOW-DISPATCH fixer, round 2, after the round-1 review found two survivors (head-ignored, privacy-off) that 42 green checks hid; round 3 adde
+   dev/audit/harnesses/r10_fly_nightly_hb.py#e72422ab92 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(43): ``--mode side`` (a tree whose sampler is the unwinder, the fix): every sample also starts the staged py-spy beside it with a 4.5 s cut, so a run on a process py
+      long(51): ``--inproc real|hung`` runs the tree's own ``_async_hb_control`` in this interpreter instead, no Docker, with a py-spy staged where the lane looks: the real one
+   dev/audit/harnesses/r10_fly_orphans_landed.sh#c3ec34b861 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(46): Builds a throwaway bare remote borrowing this repository's objects, sets its main to <main sha> (default origin/main), pushes one handoff/<t> and handoff-body/<
+   dev/audit/harnesses/r10_fly_raise_reviewable.py#86af07a460 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(42): `gh api --paginate`'s numeric-id follow-up links (a cloud seat's) is answered by reading `gh api --paginate --slurp P` as the single page `gh api P`, wrapped in
+   dev/audit/harnesses/r10_fly_raise_reviewable_carry.sh#5cc8438f81 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(54): Only the classifier and the packet renderer are stubbed (GREEN, a packet naming the head); state, ledger and the past-three log go to a temporary directory, so 
+   dev/audit/harnesses/r10_fly_raise_reviewable_overfire.py#7aa8ebfb25 L2 paths_ok=2 unresolved=1 evidence/overfire.py badsym=0 long=1
+      long(53): The fix reviewer's probe (verdict/3073 evidence/overfire.py) planted the same runs; this companion also answers the gate job's log with the reasons gate.py prin
+   dev/audit/harnesses/r10_ftol_cell_search.py#a134ba688f L1 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(43): A gap is 100 * (arm - prod) / arm, the check's own expression; a cell can carry the check only if every loosened arm's gap is positive on every kernel, and the 
+      long(43): Null control: `--perturb` loosens PRODUCTION itself to the both-sites 1e-2 stop rule (the failure the check exists to catch); every gap of the cell the check is
+   dev/audit/harnesses/r10_gate_busy_defer_3.py#741d8782d2 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(76): The edit run 42367457809's gate is judged from its recorded `Judge this head` start, re-reading the recorded listing one POLL_S per nap; then, at the code run 4
+      long(41): Prints one row per gate, then `RESULT census deferral_fails=<n> heads=<h> per_head_max=<m> held_runner_s=<s> held_ge_600=<k> resolved=<r> by_bot=<b> by_human=<u
+   dev/audit/harnesses/r10_gate_defer_barrier_mutants.py#283f5ab8b4 L2 paths_ok=4 unresolved=1 custom_components/elsewhere.py badsym=0 long=2
+      long(54): PLANT: one deferral-blind reader per shape the fourth blocked verdict named (import alias, rebinding, getattr, functools.partial, a function named *self_test*, 
+      long(48): SOURCE (skipped by --plants-only): each row of SOURCE_MUTANTS replaces one fragment of merge_train.py that must occur exactly once (else STALE, a failure), and 
+   dev/audit/harnesses/r10_gate_defer_race.py#6f6bab665c L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(82): Per scenario it prints every published `gate` verdict with its simulated time, then: UNDECIDED-RED (a FAIL whose reason is the deferral), MASKED (a PASS publish
+   dev/audit/harnesses/r10_gate_defer_read_final.py#75c7a4f7d6 L2 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(45): This census scores the recorded gate jobs of the named pull requests: one row per deferral red, the gate program that published it (the `programs restored from 
+      long(46): attempt ending at or after the red's gate started (an attempt ends at the later of its last non-gate job and its gate job), the latest of those, with that attem
+      long(72): For each actual re-run (attempt k >= 2 of run Y, starting at S), the sweep that fired it read Y's previous gate beside the other runs' attempts that had ended b
+      long(59): The fixture (default: this file's .json) was recorded through the GitHub REST API's actions/workflows/ci.yml/runs?branch=, actions/runs/<id>/jobs?filter=all and
+   dev/audit/harnesses/r10_gate_priority_base.py#e1ff665238 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(47): On a base that predates the two behaviours the ordering arms fail (the lease ignores priority) and the hold arms fail (an expired slot is stolen while its named
+   dev/audit/harnesses/r10_gate_stale_jobs/harness.py#4278a090a1 L2 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): Finder's harness for the stale jobs listing: gate.judge over a world whose listing catches up at a set time. python3 -I harness.py [tree with tools/ci, default 
+   dev/audit/harnesses/r10_gh_read_retry_mutants.py#75af3329cb L2 paths_ok=3 unresolved=0 badsym=0 long=5
+      long(63): alt every `|`-separated alternative of a case label or pattern is dropped glob every `?` of a case label -> `0` (narrows `5??` to `50?`), `?*` -> `*` anch every
+      long(46): The region is `gh_read.py` from `READ_TRIES =` to the line before `def _alternatives(` (the self-test's own derivation helpers, which only its source-text check
+      long(86): num every int literal -> n-1 (when > 0), n+1, 999; every float -> +1 cmp every `< <= > >= == !=` -> each of the other five bool every `and` -> `or`, every `or` 
+      long(44): The class is "one unretried GitHub read kills an instrument", and its seams are enumerated by rule, not listed: in the Python instruments (SEAM_PY), every call 
+      long(54): Each prints with its route: a `gh` read through the train's `run` (gh_read.is_read on the literal argv, a non-literal element read as `X`), a write, a git trans
+   dev/audit/harnesses/r10_gh_read_retry_mutants.py#3ae79752d9 L480 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(48): : No bytecode is written or read: a mutant written within the second of the : last one, at the same size, would run that one's stale `__pycache__` entry : (CPyt
+   dev/audit/harnesses/r10_heat_meter.py#50c7898e6e L2 paths_ok=1 unresolved=0 badsym=0 long=5
+      long(41): ``total_increasing`` heat counter per span, the span closing on elapsed time inside the interval learners' sample bounds; ``flow_meter.read_heat_output_kw`` yie
+      long(46): The defect it closes is the owner's report on #2261: a point thermal power reading, sampled once a refresh, reads a cycling pump as either its full output or no
+      long(53): The input, identical at both trees: the #2753 harness's direct plant (supply on a ``50 - 0.8 x outdoor`` degC weather curve, true COP ``TRUE_K`` times the model
+      long(44): The void path runs ``reanchor_heat_loss`` at zero confidence on both learners, so over a grid of stored values far outside their bounds it resets nothing and re
+      long(53): At the head only, ``EPS`` lines: an integer-kWh counter at 0.6, 1.5, 2.2 and 3.0 kW on the 30 min cadence, under the shipped resolution bound and under the desi
+   dev/audit/harnesses/r10_heat_meter_mutants.py#57e3b59ae0 L2 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(49): Each mutant is one exact string replacement in a production file, applied to its own copy of the committed tree (``git archive HEAD``), never the working tree; 
+      long(52): The null control row is a comment-only edit run the same way; a ``git archive`` copy fails #363's ``recorded_at`` check on every run, the null included (fixer.m
+      long(46): ``observed`` test in ``attribution``, L the ``last_changed`` split, E the earned-basis upgrade, A the ``span_clean`` AND, I the ``integrated`` branch in ``space
+      long(43): Round 4 adds the counter-only fold and the four operators ``ci_predict.py`` lists under it: S the no-power refusal's counter exemption (the round-3 defect, rest
+   dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py#926ecf8001 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(44): Every figure is tests/ci_ratchet.py's own window_work_minutes / critical_path_minutes over a window of PUSH_WINDOW runs; `retired` is the statistic it replaced 
+   dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py#99c5c731a4 L2 paths_ok=4 unresolved=0 badsym=0 long=2
+      long(64): slower (wall and probe) must not move the probed grade past the probe's 1 s rounding; one hung run at 3.2x wall must not; 300 s more work in the newest k runs m
+      long(60): whose four heavy jobs succeeded as its merge run (each probed) over the newest 15 push runs, under the tree's PROBE_REFERENCE_S and, as the control the constant
+   dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py#347c183d99 L289 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(61): The controls give EVERY job a probe -- fast (3.14) its own runner's; each other job, which has no history of its host's speed, a stand-in reading all of its spr
+   dev/audit/harnesses/r10_hotfix_delta_review_mutants.py#d8ba169494 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(43): Each mutant replaces exactly one span of one file in place (a span that does not occur exactly once is STALE, never silently skipped), runs that file's `--self-
+   dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py#299ba85620 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(67): Run from the branch's worktree, on a committed tree. queue_pre_flight.py imports merge_train.py as a module, so a `_mutant_*.py` copy beside it would never be i
+   dev/audit/harnesses/r10_house_grade.py#272b4cb099 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(45): The owner's house (about 100 years old, new windows and added insulation) graded near 0: ``envelope_score`` placed the time constant on one band spanning every 
+   dev/audit/harnesses/r10_i1_action_guards.py#97e3ed58f6 L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(42): Metric: each guard is flipped to `or`, in memory (the method re-compiled from its source, patched onto the class), and the R10 D3-s1-02 block of tests/features.
+   dev/audit/harnesses/r10_i1_solve_cpu_2x.py#170cf4f40a L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(55): Metric: the baseline half is captured exactly as the sweep captures it (stress.capture_baseline_work: a pristine worktree of ``ref``, the shared WORK_PROBE_DRIV
+   dev/audit/harnesses/r10_i1_sweep_guards.py#c940471f6b L1 paths_ok=4 unresolved=0 badsym=0 long=1
+      long(59): Metric: every BoolOp `and` in custom_components/heatpump_optimizer with an operand `<x> < len(<seq>)` (the sweep's LEN family, the rule of dev/audit/rounds/roun
+   dev/audit/harnesses/r10_leaf_solver_closure.py#97dcabff4f L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(46): Metric: over every module of custom_components/heatpump_optimizer at REF except ``__init__``, each imported alone in a fresh interpreter (tests/hastub first on 
+   dev/audit/harnesses/r10_ledger_class_reach.py#1792c90ecc L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(43): The companion of r10_relay_owed_class_reach.py, applying its rule to the tree after the obligations ledger: that harness enumerates the writers of OWED rows app
+   dev/audit/harnesses/r10_legionella_completion.py#b13ec7efb5 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(45): The loop: a 300 L tank on the golden house (``tests/golden.py``'s ``make``), the real ``HeatPumpOptimizer`` re-solved every 30 min from the real tank's reading 
+      long(44): Per arm it prints: commanded steps, completions, attempts and the gap between consecutive attempts, the largest ``hours_since`` the planner was handed, the age 
+   dev/audit/harnesses/r10_literal_respelled_replant.py#bc63346a7d L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(52): This re-plants the two spellings the #2373 round-3 review measured open, on a copy of the tree's package: every copy of `_number(1, 24, 1, slider=True)` in conf
+   dev/audit/harnesses/r10_live_away_heating.py#439853b59e L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(87): away away on, set point 18, indoor 22, two winter_typical days null_away_off away off, set point 18, indoor 22 (null control 1) away_off_setpoint21 away off at 
+   dev/audit/harnesses/r10_livestate_event_hub_writes.py#fa34880e04 L2 paths_ok=1 unresolved=1 dev/audit/rounds/round10/D7/arch2-s2/event_hub_writes.py badsym=0 long=1
+      long(48): hub_solve_writes roots the census at the scheduled cycle and the two solves, so a hub written in place from a Home Assistant event callback (the ECL110 MQTT sta
+   dev/audit/harnesses/r10_livestate_manual_plan_load.py#a40e88f026 L1 paths_ok=1 unresolved=1 evidence/probe_manual_restore_port.py badsym=0 long=0
+   dev/audit/harnesses/r10_merge_subject_argv_seam.mjs#62495bede3 L1 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(45): `pr` (wrapped after the program, exploded one element per line), under a .py, .mjs and .sh name, with the subject on a later line (refused) and with none and a 
+   dev/audit/harnesses/r10_merge_subject_argv_seam.mjs#5bda22c2e5 L137 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(44): Three spellings outside that class text, routed to the same group by #2697's body (the guard's next owner), each one main's line guard passes too: a blank line 
+   dev/audit/harnesses/r10_merge_subject_census.mjs#5139582ec5 L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(47): three tokens (runs of neither whitespace nor commas) between them and only whitespace, commas, `\` and `#` comments around those, whose `pr` no MERGE_CALL match
+   dev/audit/harnesses/r10_merge_subject_differential.mjs#f9c2d6a9aa L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(49): The corpus: the tree's scanned files (the finder's harness surface), the reviewer's plants of round 8 (verdict/2697 evidence: md_plant.sh, probe.mjs, probe2.mjs
+   dev/audit/harnesses/r10_merge_subject_mutants.py#21f557b263 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(152): M, X and Y rows mutate the call extent and the quote reader, T rows the triple quote, B the code-file test, R rows each named part and sub-part of MERGE_CALL an
+   dev/audit/harnesses/r10_mermaid_parse.mjs#7aa8fdcd77 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(47): usage: NODE_PATH=$(npm root -g) node dev/audit/harnesses/r10_mermaid_parse.mjs <tools/site dir> <file.md>... -- mermaid.parse in Chromium, with the pinned merma
+   dev/audit/harnesses/r10_min_power_floor.py#e6986767b7 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(56): `max_total` is the largest space+DHW step (above p_max 3.5 is a draw the pump cannot deliver); `space_only_below_min` counts space steps below 2.5 kW where DHW 
+   dev/audit/harnesses/r10_outside_intake_p2_mutants.py#8db7d06e21 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(53): The roster carry's MUTANTS OWED AT LANDING: roster_lib.discharged (each conjunct), replan's discharged arm in dependency_graph, flow_merge_wait (the verdict-bef
+   dev/audit/harnesses/r10_partload_residue.py#d5d4537028 L1 paths_ok=1 unresolved=0 badsym=0 long=3
+      long(42): ``r10_buffer_store.solve``'s owner shape (750 L behind a manual valve, slab, seeded hourly prices, outdoor -15..8 degC) at 750 L and at no buffer, each on the s
+      long(48): Both COP lists are fed to the production ``cheaper_hour_count`` and ``_scan_wood_night``; the wood prices are a stated grid: ``WOOD_GRID`` points evenly spannin
+      long(52): Printed per cell: the largest pump-heat price error on a running step (currency per kWh, and relative), the largest per-wood-price shortfall in ``cheaper_hour_c
+   dev/audit/harnesses/r10_policy_lint_family_mutants.py#2296f6b70d L1 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(48): M1 drops the family's exclusion of filed members, M2 the four synonyms, M3 the pr-body call to the gate, M4 the gate's own verdict in --check-body, M5 restores 
+      long(42): M6-M12 are round 2's (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md C2, C3): the gate's refusal of a raise with no section, the lint's budget-path trigger, its re
+   dev/audit/harnesses/r10_product_page.mjs#df88fa6572 L1 paths_ok=4 unresolved=0 badsym=0 long=2
+      long(46): The working tree's docs/ is served from a loopback port (so the page's own fonts and images load and every request is seen); the base page is read with `git sho
+      long(59): The 40 px floor is read on every displayed link, button, summary, tab stop and radio pill, both dimensions, EXCEPT a link in a line of text (computed display in
+   dev/audit/harnesses/r10_product_page.mjs#781088e1af L397 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): Every displayed control, whatever its tabindex says: only a radio that is not its group's checked one and a tab that is not its list's tabindex 0 tab are left o
+   dev/audit/harnesses/r10_raise_paths.sh#4f6aba2963 L2 paths_ok=6 unresolved=0 badsym=0 long=1
+      long(47): prepr `prepr.sh --body-check`, step 7's body_line (open_pr.sh's step 7) body_push `body_push.sh`, refused before its push (the push target is the bare repositor
+   dev/audit/harnesses/r10_ratio_anchor.py#faaed42e90 L1 paths_ok=1 unresolved=1 tools/audit/round10/study-reseed/reparam_sites.py badsym=0 long=2
+      long(48): The finder's harness (tools/audit/round10/study-reseed/reparam_sites.py on study/r10-reseed at 2c42ba4a0, sections 6 and 7) stopped running against main when le
+      long(54): whose joint solve puts the scale outside its bounds. lower_rel_err is the lower zone against the same edit over a store whose scale never learned and whose rati
+   dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py#b9c40c9a67 L2 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(49): Every grade runs the ratchet the red commit itself ran: tests/ci_ratchet.py as of that commit, read with `git show` and imported by spec, so a later change to t
+      long(48): tests/closures.json's recorded seconds, 3 lanes) at this tree; a determinism check (the same input twice: it controls nothing about hosts); a perturbation it mu
+   dev/audit/harnesses/r10_rca_gate_busy_defer_2.py#130bab42c7 L2 paths_ok=2 unresolved=0 badsym=0 long=5
+      long(46): This one feeds the gate the listings GitHub actually served, reconstructed from recorded job timestamps, and names the program copy each live gate ran (its `pro
+      long(44): and exit 1 on a defect class: a pair scene's gate defers to its partner (DEADLOCK: every one does; HALF-DEFERRED: some do; the live #3241/#3246/#3244 defect), o
+      long(48): A single edit gate that publishes its deferral to a code run at once, naps 0, is C3-AT-ONCE: #3263's defect under #3276, the design since #3287 (5c1fa41f: a def
+      long(43): A scene's snapshot at time T: a run is listed if created by T, under the attempt started latest by T; a job is listed if created by T, `completed` if it complet
+      long(47): The judging gates themselves are simulated, concurrently as they ran live (the harness refuses a pair whose gates did not overlap): each first reads beside its 
+   dev/audit/harnesses/r10_rca_gate_busy_defer_2.py#7e6ab35ca8 L61 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(45): three edit gates, attempt 2, started within 2 s after the code run's gate went green (r10-hotfix-gate-busy-defer-p5) the code run's re-run gate (attempt 2, 17:1
+   dev/audit/harnesses/r10_rca_gate_busy_defer_4.py#0158981533 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(45): Scenes: the three evidence heads at the moment their edit gate concluded (the code run unfinished: the recorded listings, cut at that instant), a SETTLE-GAP sce
+   dev/audit/harnesses/r10_rca_sav_estimate.py#d138e1be99 L55 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): : A steady day (one outdoor temperature, no sun, one comfort target, one price) : leaves a thermostat nothing to vary, so its booked step and its horizon mean :
+   dev/audit/harnesses/r10_rca_setpoint_latch.py#f0ad267a44 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(48): ``FLOW_GATE_C``, or the heating flow), the record a loop move dropped (none, or the gate; only where the tree has ``ArbiterState.dropped``), the entity's readin
+      long(45): Exit codes: 0 every state converges; 1 a state never gets the demanded write (the defect); 2 the reference install was never written, so the harness can see no 
+   dev/audit/harnesses/r10_rca_sweep_settle_loop.py#ff7effa4bb L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(71): The loop the single-pass replays and sweep_selftest.py never closed: every re-run the sweep posts becomes the run's next attempt, with GitHub's recorded re-run 
+   dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs#41607ee713 L1 paths_ok=1 unresolved=1 lib/default.js badsym=0 long=0
+   dev/audit/harnesses/r10_recarry_head.py#f8ad3f387f L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(45): Every python heredoc in the seat openers (open_pr.sh, update_pr.sh, handoff_push.sh) that writes a `## Head` note is extracted from <tree> and run, as the scrip
+   dev/audit/harnesses/r10_red_list_lag.py#ef044fe2b0 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(68): LISTS: the jobs whose list step completed; REDS: the check runs at those heads concluded `failure` (pr-contract and gate excluded, as the step excludes them) --
+   dev/audit/harnesses/r10_relay_owed_class_reach.py#b7653e1b69 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(47): Classification is by what the tick under test does, never by the row's own tokens: an event the first read prints and the second does not is cleared by its PR's
+   dev/audit/harnesses/r10_replay_loopnorm.py#5ef4cb985c L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(59): scheduled runs, and dispatches on main -- a feature branch's dispatch is not the series a cap gates) and print, split by ruler era: the BLAS-ruler figure's spre
+   dev/audit/harnesses/r10_replay_real_day_mutants.py#9f637a861d L2 paths_ok=5 unresolved=0 badsym=0 long=1
+      long(53): ``mutation-autofix`` mutates ``custom_components/`` only, so the export's recorder and masking guards (``tools/replay/export.py``), the fixture cutter (``tools/
+   dev/audit/harnesses/r10_review_strength_mutants.py#4bae2e1f4d L2 paths_ok=2 unresolved=0 badsym=0 long=5
+      long(76): prefix, ref pattern, regex and class word) -> '', its first or last character dropped, cut before and after each separator (`/-_:. =`) keeping either side, and 
+      long(55): statements before an `if`/`for`/`while`/`with`/`try` moved into the head of its body; a block's first or last one or two statements moved out before or after it
+      long(55): It does not rename variables, swap two different names, insert statements, move a statement more than one block or two positions, or replace a literal with an u
+      long(51): DISPOSED below names every survivor this harness accepts, keyed on the function, the statement and the mutant, each an equivalent mutant with the reason it chan
+      long(42): `RESULT mutants=<n> killed=<k> survived=<s> disposed=<d> undisposed=<u> stale=<x>`; exit 1 when M0 fails, any survivor is undisposed, or a DISPOSED key matched 
+   dev/audit/harnesses/r10_row_head_carry.py#94e09f2d82 L2 paths_ok=1 unresolved=0 badsym=0 long=3
+      long(45): The carry arm proposed: when a PR's new head R differs from its first parent P by exactly `dev/programme/delivery/<N>.md` (open_pr.sh's second push), keep P's c
+      long(59): gain = P's job-seconds already spent in the four units (today wasted by the cancel, under the carry kept and reused); loss = R's code-run job-seconds outside th
+      long(45): `net` reads negative on a pair whose P was cancelled at once and POSITIVE on the same pair had P run to completion (P's spend equal to R's): had the premise "P 
+   dev/audit/harnesses/r10_run_owner_probes.py#00f04fdf78 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(55): This is round 10's D14 sweep-P2 ``probes_p2.py``, rebuilt where that probe no longer runs: the coordinator expressions are found by the local they are assigned 
+   dev/audit/harnesses/r10_sav_actuation_phase.py#7b24fb25df L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(49): This drives the REAL coordinator's ``_apply_action`` once per 30-minute cycle at each phase, fires every one-minute interval timer ``pump_arbiter`` arms, applie
+   dev/audit/harnesses/r10_sav_baseline.py#c05079d694 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(44): The owner's screenshot (2026-10-14) showed three defects in the Savings tab: September saved 81 % against a plain thermostat, October's estimate was negative wi
+      long(41): One flat-price plan per start state: a counterfactual that is a thermostat running all along does not depend on where the optimiser left the house, so the sprea
+   dev/audit/harnesses/r10_sav_null_terms.py#d5d1865af1 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(45): The PR #2411 reviewer wrote this probe (round 1, 2026-10-18) to show that residual is not one term: it replays the harness's null loop exactly and prices a stea
+   dev/audit/harnesses/r10_sav_residual_attribution.py#ff061f7711 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(70): ``cop * heat_per_cop_kw(P) * dt`` and its store change (``_stored_thermal_energy`` next less now), so its loss; and the booked reference stepped once from its h
+   dev/audit/harnesses/r10_sav_volume.py#afb3a51e68 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(44): The install: 96 one-hour intervals; the plan heats 2.0 kW on the even hours (the cheap ones of the varying profile) and idles on the odd; the thermostat draws 1
+   dev/audit/harnesses/r10_sav_wood_reference.py#d7c15d2bbb L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(46): The owner's November row read baseline/actual 0.14 because the settlement books the thermostat's FIRST step of a plan re-made every interval, and behind a valve
+      long(64): ``meter-floor`` (asserted) runs the valve and wood closed loops and the wood-plant rows and requires each to publish; zeroes the booked reference (withheld) and
+   dev/audit/harnesses/r10_scores_envelope.py#d8e8085e7b L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(71): structure at 140 m2: the room-mass time constant, the grade the 20-100 h band gives it, and the tree's own grade on the preset's own answers -- R10-HOUSE-GRADE'
+   dev/audit/harnesses/r10_seat_selftests_mutants.py#cbb720dba7 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(54): S01..S38, and each per-file id (<file>-<n>), plant one production-line mutant in one file -- outside that file's self-test function -- and run only the step tha
+   dev/audit/harnesses/r10_seat_selftests_mutants.py#e5a1848d8a L344 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(53): R10-FLOW-JIDOKA (p2): prepr.sh's ref_privacy step, wave-script trigger, D6 claims register (6g), body-push figure lint and --fill-red. prepr-9 and prepr-10 plan
+   dev/audit/harnesses/r10_seat_selftests_mutants.py#7fefbd1e42 L428 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(42): #2853's review: the class the copy enumeration missed is a link to an in-tree file it does not name. prepr-11 renames a LISTED entry (the pathspec arm); prepr-1
+   dev/audit/harnesses/r10_seat_selftests_mutants.py#5091f2cf88 L467 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(43): r10-ci-layout-p2b U6: the three added writes. -8/-9 the SARIF's commit and category shapes, -10 its ref, -11 the dismissal reason list, -12 the dismissal commen
+   dev/audit/harnesses/r10_seat_selftests_mutants.py#ea2eba6de0 L558 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(54): R10-FLOW-BODY-ONLY part (c), ids 50-57 (39-49 are #3065's): a contained head's new body is applied body-only, once per body move, never on the seeding pass; a f
+   dev/audit/harnesses/r10_selftest_timeout.py#ffeb3619d7 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(110): The default mode reads the bg_start/bg_wait library out of the launcher step of `.github/workflows/governance.yml`, exactly as the step writes it, and drives it
+      long(67): Each refusal arm must refuse and each control must pass, first on the library as committed (M0) and then on three mutants of bg_wait: M1 returns 0 in place of t
+   dev/audit/harnesses/r10_setpoint_boost.py#d09708fcc0 L1 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(45): scale 0.6/1.7 x 750 L buffer or none x hot water off/on x set-point-driven (levels ship rounded) or duty-cycling -- each solved at one spread price day starting
+      long(51): Printed per cell and price: the sha1 of the published plan (the byte-identity null across trees), the objective delta of the relaxed start, the share of space k
+   dev/audit/harnesses/r10_setpoint_power.py#d9b64a5ed4 L1 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(59): Every cell is a synthetic 750 L buffered install behind a manual mixing valve whose levels ship rounded (``clamp_planned_levels``), p_min 1.5 kW, p_max 5.5 kW: 
+   dev/audit/harnesses/r10_shape_grammar_mutants.py#87de6f232f L2 paths_ok=3 unresolved=1 evidence/mutate.py badsym=0 long=0
+   dev/audit/harnesses/r10_solver_seed_or_stop.py#919cde8d1a L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(51): ``dev/audit/rounds/round10/D0/s1/race.py``'s challenger c1 races production's candidates PLUS ten structured seeds PLUS the shipped x itself through the product
+   dev/audit/harnesses/r10_solver_winner_polish.py#e2cf9574f6 L2 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(57): Written by the R10-SOLVER fixer to price the one tolerance change the owner's #1293 refusal did not already measure. #1293 refused tightening every L-BFGS-B sto
+      long(52): Metrics per cell: the one-shot shipped objective of the first solve (the captured ``_multi_start_minimize`` objective at the shipped x; ``dJ_pct`` = (prod - win
+   dev/audit/harnesses/r10_store_load_leads.py#84436c3df0 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(63): async_wait_for_read, or move the load ahead of the writer, and the lost figure must move), and the in-harness gate opener: a lead that is closed by reading is a
+   dev/audit/harnesses/r10_store_races_census.py#c1891077ca L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(43): Runs the census block of a features.py (default: this tree's) against the production code of the tree at the cwd, so the census that landed can measure a tree f
+   dev/audit/harnesses/r10_structure_alias.py#ef1081399e L1 paths_ok=2 unresolved=1 ev/variants.py badsym=0 long=2
+      long(62): Round 3 (review/2711 at b43ea541) plants the same getter once per channel a callee can hand state on through (return, yield, raise, an argument it stores into, 
+      long(45): The census is the fixer.md step-8 rule: every coordinator unit whose return value may hold state, as ``seam_metrics`` reads it (``returned_state``; ``<state>`` 
+   dev/audit/harnesses/r10_structure_blind.py#cffc6e8c0f L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(48): The merge base's structure.py on the merge base's package (``--structure`` a base copy, no class_excess_loc row): move_class_excess_delta and merge_class_excess
+   dev/audit/harnesses/r10_sweep_driver_arm.py#ad1eb5a126 L2 paths_ok=2 unresolved=1 measure/rev/gate_sim.py badsym=0 long=0
+   dev/audit/harnesses/r10_thermal_power_option.py#b17720e2e7 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(52): The input, identical at both trees: a direct plant whose supply follows a weather curve (``50 - 0.8 x outdoor`` degC), whose true COP is ``TRUE_K`` times the mo
+   dev/audit/harnesses/r10_tick_owed_level.py#a65edcd717 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(80): It drives a TREE's own writer and reader end to end, offline: a throwaway bare origin holding --refs handoff refs with no open pull request and one non-rev prob
+   dev/audit/harnesses/r10_tick_selftest_checkout.sh#e2c909ad89 L2 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(59): branch a branch clone one commit behind origin/main on tick_loop.sh detached the same clone, detached gitdir a detached clone behind, named by GIT_DIR and GIT_W
+      long(137): whole no mutation: the control every mutant is read against nocheckout the HPO_TICK_CODE_DIR export back below the TICK-GH rows gitenv throwaway_git_env back be
+      long(50): Channel arm -- <rev>'s whole self-test from a scratch copy, once per channel a caller has into the process before line 1 and at the re-exec, every run beside a 
+      long(77): bashenv-all the same functions defined by a BASH_ENV file fn-exec an exported exec that skips the /usr/bin/env call (the round-4 attack) posix fn-exec under POS
+   dev/audit/harnesses/r10_tick_which_roster.py#48397181d9 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(41): A tool holding the round-9 path as a constant cannot edit or read round 10's: `roster_edit.py wire-issue` refuses every round-10 group, and `orchestrator_tick.p
+   dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py#64b1d3df50 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(53): Each mutant replaces exactly one source span of tools/audit/seat/merge_train.py (the span must occur exactly once, or the mutant is reported STALE, never silent
+   dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py#7e21ff2dee L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(53): Each mutant replaces exactly one source span of tools/audit/seat/merge_train.py (the span must occur exactly once, or the mutant is reported STALE, never silent
+   dev/audit/harnesses/r10_train_raise_hold_replay.py#4f986b3f11 L2 paths_ok=1 unresolved=0 badsym=0 long=2
+      long(52): A read that fails prints the train's own Stop and the exit status is 1: every read here (`gh pr view`, `git fetch`, `git merge-base`, `git diff`) is checked on 
+      long(49): The reading used to take `t.out`'s text for the value, so an unauthenticated gh (HTTP 403) became the "head", the diff became error words, `raise_hold` took its
+   dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py#b373d37f81 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(53): Each mutant replaces exactly one source span of tools/audit/seat/merge_train.py (the span must occur exactly once, or the mutant is reported STALE, never silent
+   dev/audit/harnesses/r10_train_upgrade_mutants.py#521e35bf97 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(53): Each mutant replaces exactly one source span of tools/audit/seat/merge_train.py (the span must occur exactly once, or the mutant is reported STALE, never silent
+   dev/audit/harnesses/r10_triage_p391.py#ed727e01e9 L2 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(49): `ci-fails` is REST-only (search/issues for the merged pull requests by merged_at, then pulls/<n> for each head ref), so a cloud seat re-derives it; "merged" the
+      long(45): "PRs" counts pull requests whose branch had the lane red, then a later green CI run or a merge, with a red within 12 h of the same lane red on main left out: an
+   dev/audit/harnesses/r10_triage_p391.py#8d46c61588 L52 paths_ok=0 unresolved=0 badsym=0 long=0 num_check=CHECK_EVERY=25 cites 2026,11,06,2026,11,06
+   dev/audit/harnesses/r10_triage_p393.py#37018faa5d L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(42): Each verdict's bus-nonce is read from VERDICT.md at the review SHA its `bus-confirmed:` trailer names, and the nonce's first dispatch time from the seat events 
+   dev/audit/harnesses/r10_trust_relative_bundle.py#903c204c94 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(41): STUDY R10-RESEED found the learner's trust region fixed in multiplier units: a saturated step is ``base_u * trust_region`` in UA, so it grows with learned/prior
+   dev/audit/harnesses/r10_u9a_ratchet_nulls.py#7f26e0a50e L2 paths_ok=4 unresolved=0 badsym=0 long=1
+      long(42): (1) script_runs_per_push on a replayed push run: the closures lane's full plan (`tests/closure.py lane-plan --all-scripts`), the coverage `fast` stage's scripts
+   dev/audit/harnesses/r10_vent_bias_window.py#5ca9566af0 L1 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(118): Scenarios: delivery g in {1.0, 0.6, 0.4} (the plant receives g x the commanded power the model replays: a meter or COP off by 1/g), UA truth 1.0 or 1.6 x the pr
+   dev/audit/harnesses/r10_vent_bias_window.py#d7f7ba4272 L72 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(52): The upper zone's own UA is : 100 W/K here, so 300 W/K is a window opened wide for airing and 150 W/K a : tilted one; 100 W/K moves the residual (~0.13 K per 15 
+   dev/audit/harnesses/r10_vent_probe_companion.py#4dbf6e7d4e L1 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(53): Part 1 (the probe's series, through the coordinator's OWN detector): a fresh real coordinator per arm, its ``_vent_cusum`` fed 96 x 15-min samples of a constant
+   dev/audit/harnesses/r10_vent_sun_transient.py#66a19218c0 L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(43): Expected (same at the baseline and at R10-NIGHT-FOLDS' head): check schedule bias 0.4 K ``[0, 0, 0, 0]``, bias 1.0 K ``[0, 20, 0, 0]``; census schedule bias 0.4
+   dev/audit/harnesses/r10_verdict_item_barrier.py#759a593e26 L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(49): At the head the evidence forms still refuse #2513 and #2547 (their own deferral: "noted for a later tightening", "advisory") and #2544 (a post-merge check that 
+   dev/audit/harnesses/r10_water_setpoint_feedback.py#418a73737f L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(78): One line per arm: the plan, the option, the mean measured draw over the last 30 minutes of a three-hour block, whether every one of those minutes is within 20 %
+   dev/audit/harnesses/r11_denominator_planted.py#f3ab26c853 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(50): Metric: of two planted coverage rows, one with no denominator and one carrying enumerator, universe and examined, how many the driver's `denominatorGaps` (.clau
+   dev/audit/harnesses/r11_honest_starts_runs.py#55535e7e9c L1 paths_ok=8 unresolved=0 badsym=0 long=6
+      long(43): Printed per scenario: the space plan's steps between the plan's running rule (0.1 kW) and the 1.0 kW floor, the same for the combined draw (hot-water levels are
+      long(42): Per solve: gradient calls, the share of their variables the bounds fix, the rows the batch objective was handed against the rows a batch of every variable holds
+      long(51): The sweep's scenarios that price a cycle (``sweep_combinations()``, ``cycling`` above zero; all hold hot water) are built by its ``build_case`` with a duty-swit
+      long(60): Arms: the contributor's pair as the tree solves it; the same with the second descent's guard reading no stop for the length of ``_relaxed_plans`` (one descent a
+      long(53): Beside them, on the same solves, the two clauses the round-4 repair replaced: the order of the two switch weights in starts on the modulating clamped install, a
+      long(43): Exits 1 when a block fails a check or does not complete under any kernel, so the mode with one kernel named is a command ``tools/audit/seat/mutant_run.py`` can 
+   dev/audit/harnesses/r11_relay_3358_skip.py#910dd56b8f L2 paths_ok=1 unresolved=0 badsym=0 long=1
+      long(55): 577c6974 is the head's first parent and stands for the older handoff the relay had applied (its last update of #3358 ended OK on 2026-11-09 at an older tip); d0
+   dev/audit/harnesses/r9_ci2b_closures_merge.py#452a3f5146 L1 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(47): Every ordered pair (j, k) is replayed as a branch that made edit j and a main that made edit k on one base (M_k^1), and merged twice: as written then, and as th
+   dev/audit/harnesses/r9_dbg2_selftest_price.py#a4a8d8bbed L2 paths_ok=1 unresolved=1 runs/week/bundle.json badsym=0 long=1
+      long(46): This drives the shipped path -- ``DebugCollector.finalize`` and the self-tests it starts -- over that study's week bundle (``runs/week/bundle.json.gz`` on ``han
+   dev/audit/harnesses/r9_fr3_family_consumer.mjs#ef02d7914e L49 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(54): The stripped copy is written inside a directory mkdtemp creates with a random suffix, never directly into the shared temp dir under a predictable name (CodeQL j
+   dev/audit/harnesses/r9_fr3_family_consumer.mjs#02ed64f6b1 L58 paths_ok=0 unresolved=0 badsym=0 long=1
+      long(41): The verdict counts are the measured since-v6.7.14 window's (4 distinct PRs / 5 entries); the id counts are the since-v6.7.13 window's shape (environment 4, seat
+   dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py#f0413fb04f L2 paths_ok=3 unresolved=0 badsym=0 long=2
+      long(48): The margin is a basin-choice quantity, so the verdict moved with the kernel -- +0.1000/+0.0905/+0.0904 on Sandybridge/Haswell/Nehalem, -0.2070 on Apple Accelera
+      long(46): SCOPE OF THE KERNEL AXIS, plainly: this box is an Apple M1 with an Accelerate-backed numpy (2.4.6, python 3.14.7), so `OPENBLAS_CORETYPE` is a NO-OP here -- the
+   dev/audit/harnesses/record_api_calls.sh#b1da962549 L2 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(64): Runs the three policy_lint.mjs modes the job runs (--record, --stats, --sunset; the last two not on an ordinary push, decision O-1, so TOTAL counts a push and R
+   dev/audit/harnesses/silent_peer_waits.py#9a28d8df38 L1 paths_ok=2 unresolved=0 badsym=0 long=1
+      long(51): ``communicate``/``acquire`` with no ``timeout``/``blocking``, ``select.select`` with no timeout, ``subprocess.run``/``call``/``check_call``/``check_output`` wit
+   dev/audit/harnesses/solve_inputs_parity.py#fc2edd7267 L1 paths_ok=2 unresolved=0 badsym=0 long=2
+      long(42): Metrics, one line each, all from one real HeatPumpOptimizerCoordinator on the tests/harness.py FakeHass with injected hourly prices and weather, the clock froze
+      long(42): Null controls: the setback-off parity arm compares two solves on identical inputs and must read 0, and the probe's own rows are differences against the same coo
+   dev/audit/harnesses/superseded_runs.py#7e3654cf2d L1 paths_ok=2 unresolved=0 badsym=0 long=4
+      long(48): `gh api repos/R/actions/workflows/<file>.yml/runs` returns (id, head_branch, head_sha, event, status, conclusion, created_at, run_started_at, updated_at, run_at
+      long(50): The rule (R10-CI-CONCURRENCY): a run on a branch other than main is SUPERSEDED when it is completed, its conclusion is not `cancelled`, and some run of the same
+      long(50): Two wall figures, never merged: WALL is updated_at - start of the superseded runs (what the runs cost); TAIL is updated_at - the newer run's start (the part of 
+      long(43): One `ci.yml` file carries code, edit and review runs, so a run is compared only with runs of its own KIND, read from its `display_title` (`run-name`, parsed by 
+   dev/audit/harnesses/thermal_parity.py#7b3bcacdbc L1 paths_ok=1 unresolved=1 tools/audit/README.md badsym=0 long=2
+      long(57): The grid: two_zone x wood tank x mixing valve (None, manual, smart_read) x weather (given, none) x three parameter draws, one of them a stiff slab, 96 steps at 
+      long(43): capture: RESULT arrays=2880, effective_configs=12 compare of two plain captures: base_head_differing=0, scalar_batch_unequal_pairs=0 of 1872 compare with --pert
+   dev/audit/harnesses/throwaway_git_sites.sh#d2a1d49ba9 L2 paths_ok=3 unresolved=0 badsym=0 long=1
+      long(49): Prints, per site: runs, runs whose output names "Directory not empty", runs that exited non-zero for any reason, and maintenance_spawns: how many times any git 
+   dev/audit/harnesses/ux10_flow_into_model.py#314ff40c2d L2 paths_ok=4 unresolved=0 badsym=0 long=4
+      long(77): Two of the planted figures are honestly flat and are printed so that stays visible: the single-zone step's room rate and the two-zone step's lower floor carry n
+      long(74): BLOCK head: rc=0 failing_checks=0 (ALL 8 UX-10 EXTRACT PASSED) BLOCK base: rc=0 failing_checks=6 BLOCK m_precedence: rc=0 failing_checks=1 BLOCK m_flow_ok: rc=0
+      long(43): head != base: True | and at head, planted != unset: True | its residual, planted != unset: True | the single-zone replay's slab, planted != unset: True | its ro
+      long(44): ``m_veto_return_del``, ``m_veto_tail_del``, ``m_bound_dhw``, ``m_bound_space`` and both ``m_guard_off_*``: the arm check "an outranked, stale, negative, unreada
+   dev/audit/harnesses/ux9_flow_unit_guard.py#2c473fea7a L2 paths_ok=4 unresolved=0 badsym=0 long=2
+      long(46): Metric: (A) the number of failing checks when ``tests/features.py``'s own flow-meter block (sliced verbatim from ``def _fm_reader`` to the first-reason check, m
+      long(43): BLOCK head: rc=0 failing_checks=0 BLOCK m278_guard_off: rc=0 failing_checks=0 BLOCK c278_control: rc=0 failing_checks=0 BLOCK m831_return_del: rc=0 failing_chec
+RESULT adjudicated=29 count
+RESULT verdict_false=8 count
+RESULT verdict_true=1781 count
+RESULT verdict_unverifiable=5 count
+RESULT units=1794 count
+RESULT files=329 count
+RESULT unresolved_paths=26 count
+RESULT unresolved_symbols=0 count
+RESULT long_sentences=339 count
+RESULT files_with_long_sentence=193 count
+RESULT number_vs_constant_candidates=4 count
+RESULT units_failing_mechanical=24 count
+RESULT files_with_failing_unit=24 count
+   file .claude/workflows/audit-wave.js failing_units=1
+   file dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py failing_units=1
+   file dev/audit/harnesses/ci_script_seconds.py failing_units=1
+   file dev/audit/harnesses/closing_keyword_ownership.py failing_units=1
+   file dev/audit/harnesses/cop_duty_floor.py failing_units=1
+   file dev/audit/harnesses/k1725_blas_kernel_gap.py failing_units=1
+   file dev/audit/harnesses/mutant_guard.py failing_units=1
+   file dev/audit/harnesses/r10_ci_gate_core.py failing_units=1
+   file dev/audit/harnesses/r10_ci_layout_p1/critpath.py failing_units=1
+   file dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py failing_units=1
+   file dev/audit/harnesses/r10_configflow_pages.py failing_units=1
+   file dev/audit/harnesses/r10_cop_gate_top.py failing_units=1
+   file dev/audit/harnesses/r10_diag_ages_export.py failing_units=1
+   file dev/audit/harnesses/r10_fly_raise_reviewable_overfire.py failing_units=1
+   file dev/audit/harnesses/r10_gate_defer_barrier_mutants.py failing_units=1
+   file dev/audit/harnesses/r10_livestate_event_hub_writes.py failing_units=1
+   file dev/audit/harnesses/r10_livestate_manual_plan_load.py failing_units=1
+   file dev/audit/harnesses/r10_ratio_anchor.py failing_units=1
+   file dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs failing_units=1
+   file dev/audit/harnesses/r10_shape_grammar_mutants.py failing_units=1
+   file dev/audit/harnesses/r10_structure_alias.py failing_units=1
+   file dev/audit/harnesses/r10_sweep_driver_arm.py failing_units=1
+   file dev/audit/harnesses/r9_dbg2_selftest_price.py failing_units=1
+   file dev/audit/harnesses/thermal_parity.py failing_units=1
+RESULT thread_factor=1.000
+RESULT load1=2.60
+RESULT swapins=0
