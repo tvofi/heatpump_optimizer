@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.0.0
+# claims-for: 10.0.1
 #
-# v10.0.0: Round 10 closeout. The stamp empties the list; the
+# v10.0.1: Compressor starts counted from running-signal edges; COP learner draw floor. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
