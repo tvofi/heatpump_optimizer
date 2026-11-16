@@ -205,6 +205,7 @@ def safe_extract(data: bytes, dest: Path) -> str:
         if why:
             return why
         try:
+            os.makedirs(dest, mode=0o700, exist_ok=True)  # an archive of no file is whole too, and has its directory
             for info in zf.infolist():
                 if info.is_dir():
                     continue
@@ -999,7 +1000,8 @@ def cases(m) -> dict[str, bool]:
             isinstance(partial, OSError) and partial.errno == errno.EIO and not (Path(td) / "shape" / "partial").exists()
         r["archives null: nested files, a directory entry and a repeated ancestor extract whole"] = \
             m.safe_extract(zip_of([("./", ""), ("a", "x"), ("b/", ""), ("b/c", "y"), ("b/d/e", "z")]), Path(td) / "shape" / "ok") == "" \
-            and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"]
+            and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"] \
+            and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
         s_ = Stub(hostile={"repos/o/r/actions/runs/901/logs": zip_of([("a", "x"), ("a/b", "y")])})
         try:
             ms, rc = mirror(Path(td) / "s5shape", s_, only=("S5",))
@@ -1191,6 +1193,7 @@ MUTANTS = {
     "memory failure caught": ("                except (OSError, MemoryError) as e:\n", "                except OSError as e:\n", "memory running out"),
     "host failure is no answer": ('HOST_FAILED = "error: this host failed"', 'HOST_FAILED = "refused: this host failed"', "its file system is full"),
     "kept answer listed": ('                    if done[i] != "ok":  # an answer kept from an earlier pass is still not reached in this one\n                        self.missed(s, f"{name} {i}: {done[i]}")\n', "", "still lists it not_reached"),
+    "an archive of no file": ("            os.makedirs(dest, mode=0o700, exist_ok=True)  # an archive of no file", "            pass  # an archive of no file", "archives null: nested files"),
     "name cap": ("        if any(len(part.encode(", "        if False and any(len(part.encode(", "past the length cap"),
     "name at the cap": ("> MAX_NAME for part in", ">= MAX_NAME for part in", "one at the cap extracts"),
     "refusal recorded": ('        rows.append({"archive": where, "rule": why})\n', "", "is recorded as refused"),
