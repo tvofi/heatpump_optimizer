@@ -3242,7 +3242,9 @@
     "reviewer": "opus",
     "rca": null
    },
-   "carry": [],
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 88 (0-based at 572d7d4c86) by the round-11 orchestrator's INTAKE re-scope (2026-11-16, an approved stop: split by seam, no re-cut). Text verbatim:\n\nFrom #3564 (r10-config-flow-text-verify), body item b30f48ba: custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE (items b30f48ba)"
+   ],
    "brief": "Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below verbatim. Fix the docstrings, decide the stray key with a test, and pin the corrected sentences so that reverting them fails tests/entities.py. config_flow.py is shared with R11-OUTSIDE-ROOMS-P1: land after it or rebase onto it.",
    "resume": {
     "stage": "not-started",
