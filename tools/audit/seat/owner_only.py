@@ -771,6 +771,7 @@ MUTANTS = {
     "work tree": ('        if rc == 0:\n            return [f"the private root {root} is inside a git work tree"]', '        if rc == 99:\n            return [f"the private root {root} is inside a git work tree"]', "inside a work tree"),
     "work tree unanswered": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if False:\n", "leaves the work-tree question unanswered"),
     "work tree any 128": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc != 128:\n", "leaves the work-tree question unanswered"),
+    "work tree either half": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc != 128 and NOT_A_REPOSITORY not in err:\n", "leaves the work-tree question unanswered"),
     "work tree any exit": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc is None:\n", "leaves the work-tree question unanswered"),
     "git variables out of the question": ('if not k.startswith("GIT_")}', "if True}", "no variable of git's in the environment hides the tree"),
     "git variables, two named": ('if not k.startswith("GIT_")}', 'if k not in ("GIT_DIR", "GIT_WORK_TREE")}', "no variable of git's in the environment hides the tree"),
