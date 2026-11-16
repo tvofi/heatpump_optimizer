@@ -7,7 +7,9 @@ edit a temp copy of round_metrics.py; a mutant that survives, or whose copy does
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -88,7 +90,8 @@ def git_cases(m, tests: Path, r: dict) -> None:
         ros = "dev/programme/rosters/wave-r1-groups.json"
         g = lambda *names: json.dumps({"groups": [{"group": n, "resume": {"pr": 7} if n == "G-PR" else {}} for n in names]},
                                       indent=1)
-        commit(T0, {ros: g("G-A"), "tools/ci/gate.py": "REQUIRED = {'push': ('a', 'b')}\n"}, "base")
+        commit(T0, {ros: g("G-A"), "tools/ci/gate.py": "REQUIRED = {'push': ('a', 'b')}\n",
+                   "dev/audit/rounds/round1/JUDGE.json": "[]"}, "base")
         subprocess.run(["git", "tag", "v0.0.0"], cwd=repo, env=env, check=True)
         commit(T0 + 2 * H, {ros: g("G-A", "G-B", "G-PR")}, "add G-B")
         subprocess.run(["git", "tag", "v1.0.0"], cwd=repo, env=env, check=True)
@@ -138,6 +141,14 @@ def git_cases(m, tests: Path, r: dict) -> None:
         judge.unlink()
         commit(T0 + 13 * H, {}, "the register leaves")
         commit(T0 + 14 * H, {str(judge.relative_to(repo)): "[]"}, "and comes back: the first add is the register")
+        commit(T0 + 15 * H, {"dev/programme/rosters/wave-r2-groups.json": json.dumps({"groups": [
+            {"group": "R2-A", "kind": "feature", "resume": {"stage": "deferred"}},
+            {"group": "R2-B", "kind": "fix", "resume": {"stage": "done"}}, {"note": "no group key"}]})}, "round 2's roster")
+        subprocess.run(["git", "checkout", "-q", "-b", "plan1", "v0.0.0"], cwd=repo, env=env, check=True)
+        for k, day in enumerate((20, 22, 21)):  # round 1's pages, each half an hour apart inside its closed window
+            commit(T0 + (k + 1) * H // 2, {"handoff/round1/state/PLAN.html": f"<p>merge batches, closure 2027-01-{day}T08:00Z.</p>"})
+        subprocess.run(["git", "update-ref", "refs/remotes/origin/handoff/audit-r1-plan", "plan1"], cwd=repo, env=env, check=True)
+        subprocess.run(["git", "checkout", "-q", "main"], cwd=repo, env=env, check=True)
         subprocess.run(["git", "checkout", "-q", "-b", "plan"], cwd=repo, env=env, check=True)
         page = "handoff/round2/state/PLAN.html"
         for k, text in enumerate(("merge batches, closure 2027-01-20T08:00:00Z.", "UNAVAILABLE",
@@ -171,6 +182,51 @@ def git_cases(m, tests: Path, r: dict) -> None:
             lambda: m.plan_history(repo, 2, {"tip": h["tip"], "history": [[1, 2]]})["history"] == [[1, 2]])
         r["plan history: a round with no state ref keeps its cached history"] = chk(
             lambda: m.plan_history(repo, 3, {"history": [[1, 2]]}) == {"history": [[1, 2]], "register": None})
+        producer_cases(m, tests, repo, Path(td), r)
+        # the checkout leaves origin/main: a branch drops round 2's baseline and first adds round 3's register
+        subprocess.run(["git", "checkout", "-q", "-b", "side"], cwd=repo, env=env, check=True)
+        (repo / rounds.format(2) / "LEADS.json").unlink()
+        commit(T0 + 30 * H, {rounds.format(3) + "JUDGE.json": "[]"}, "a branch the reads must not see")
+        side = lambda: m.git(repo, "ls-tree", "--name-only", "HEAD", rounds.format(2)).split() == [rounds.format(2) + "JUDGE.json"] and \
+            m.git(repo, "log", "--format=%ct", "HEAD", "--", rounds.format(3) + "JUDGE.json").strip() == str(T0 + 30 * H)
+        r["unexamined: the baselines are origin/main's, not the checkout's"] = chk(
+            lambda: side() and m.round_baselines(repo, 2) == ([rows[0]["sha"]], []))
+        r["plan history: a register first added on a branch is no register"] = chk(
+            lambda: side() and m.plan_history(repo, 3, {})["register"] is None)
+
+
+def producer_cases(m, tests: Path, repo: Path, td: Path, r: dict) -> None:
+    """produce over the fixture: groups.json and plans.json read from its output, then main's --round read of them."""
+    for p in (tests.parent / "tools/audit/seat", tests.parent / "tools/ci"):
+        sys.path.insert(0, str(p))
+    d = td / "produced"
+    notes = m.produce(d, repo, "o/r", "main", lambda path, params: [])
+    r["producer: groups.json carries each roster group's kind, resume.stage and round"] = chk(
+        lambda: notes == [] and json.loads((d / "groups.json").read_text()) == {
+            "G-A": {"kind": None, "stage": None, "round": 1}, "G-B": {"kind": None, "stage": None, "round": 1},
+            "G-PR": {"kind": None, "stage": None, "round": 1},
+            "R2-A": {"kind": "feature", "stage": "deferred", "round": 2}, "R2-B": {"kind": "fix", "stage": "done", "round": 2}})
+    half = lambda k: T0 + k * H // 2
+    r["producer: plans.json caches rounds N-1 and N from their state refs"] = chk(
+        lambda: json.loads((d / "plans.json").read_text()) == {
+            "1": {"tip": m.git(repo, "rev-parse", "plan1").strip(), "register": T0,
+                  "history": [[half(1), T0 + 5 * D], [half(2), T0 + 7 * D], [half(3), T0 + 6 * D]]},
+            "2": {"tip": m.git(repo, "rev-parse", "plan").strip(), "register": T0 + 12 * H,
+                  "history": [[T0 + 20 * H, T0 + 5 * D], [T0 + 21 * H, None], [T0 + 22 * H, T0 + 6 * D]]}})
+    obj = repo / "dev/audit/config/objective.json"
+    obj.parent.mkdir(parents=True, exist_ok=True)
+
+    def report(value) -> list[str]:
+        obj.write_text(json.dumps({"thresholds": {"closure_slip_ceiling": {"value": value, "proposed": 0.2}}}))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = m.main(["report", "--round", "1", "--dir", str(d), "--repo", str(repo)])
+        return [ln for ln in out.getvalue().splitlines() if rc == 0 and ln.startswith("closure_slip ")]
+    slip = ("closure_slip 48.00 days per day (2.00 days later over 0.04 days of plan history after the register; "
+            "net +1.00 days; 3 pages, 0 without a forecast; {}; round start to closure 0.1 days (closed); 0 groups deferred out)")
+    r["report --round: a set ceiling is read from objective.json's value"] = chk(
+        lambda: report(0.5) == [slip.format("over the ceiling 0.5")])
+    r["report --round: a null ceiling is undecided"] = chk(lambda: report(None) == [slip.format("ceiling unset, undecided")])
 
 
 def cases(m, tests: Path) -> dict[str, bool]:
