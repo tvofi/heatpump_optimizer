@@ -1,2 +1,3 @@
 1794852705 INIT r11-owner-generic-control-text
 1794852714 HB alive
+1794852774 CKPT part1: killing check added to MOVED_PAGES in tests/doc_claims.py; running head/m4/null snapshot 0238f1afd720
