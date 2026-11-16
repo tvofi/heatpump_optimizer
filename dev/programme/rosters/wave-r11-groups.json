@@ -2227,7 +2227,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "branch": "handoff/r11-pre-owner-criteria",
+    "branch": "fix/r11-pre-owner-criteria-p2",
     "commit": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c",
     "last_step": null,
     "next_step": "fire now; merge after the review commit",
