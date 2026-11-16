@@ -22,3 +22,10 @@ RESULT below_floor_elements=7 count
 RESULT below_floor_cells=54 count
 RESULT below_floor_elements=2 count
 == role base
+RESULT role_colour_split=5 count
+== role one_error_colour
+RESULT role_colour_split=3 count
+== type base
+RESULT offscale_font_sizes=14 count
+RESULT offscale_spacing=40 count
+== type type_tokens

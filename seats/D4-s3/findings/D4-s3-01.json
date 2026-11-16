@@ -19,7 +19,7 @@
   "load1": 2.77,
   "thread_factor": 1.0
  },
- "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:ManualSlots.slotResult / WhatIf.onSaveSchedule (the `(err && err.message) || err` failure lines, driven through hass.callService rejections)",
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:ManualPlan.slotResult (pin) / WhatIfPanel.onSaveSchedule (save) (the `(err && err.message) || err` failure lines, driven through hass.callService rejections)",
  "perturbation": {
   "change": "--perturb=err_localize: every `(err && err.message) || err` site first reads hass.localize(`component.${err.translation_domain}.exceptions.${err.translation_key}.message`, err.translation_placeholders)",
   "expected_direction": "to_zero",
