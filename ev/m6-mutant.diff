@@ -1,0 +1,3 @@
+# head b0c7114dd6ce636514983b1e685c38e46096f35d, custom_components/heatpump_optimizer/inputs.py, read_room's sensor branch
+-        value = temperature_c(getattr(state, "state", None), state_unit(state))
++        value = temperature_c(getattr(state, "state", None), None)

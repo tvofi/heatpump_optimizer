@@ -1,0 +1,19 @@
+custom_components/heatpump_optimizer/const.py:55:CONF_ROOM_TEMPERATURE_ENTITIES: Final = "room_temperature_entities"
+custom_components/heatpump_optimizer/coordinator.py:208:    read_rooms,
+custom_components/heatpump_optimizer/coordinator.py:6768:        rooms.record(self, read_rooms(reader, ctx._config.room_temperature_entities))
+custom_components/heatpump_optimizer/coordinator.py:8229:        data = {**data, **rooms.published(rooms.readings_of(self))}
+custom_components/heatpump_optimizer/entry_config.py:129:    room_temperature_entities: tuple[str, ...] = _key((), _entities)
+custom_components/heatpump_optimizer/inputs.py:1261:def read_room(reader: InputReader, entity_id: str) -> RoomReading:
+custom_components/heatpump_optimizer/inputs.py:1300:def read_rooms(reader: InputReader, entity_ids: Collection[str]) -> tuple[RoomReading, ...]:
+custom_components/heatpump_optimizer/inputs.py:1301:    """:func:`read_room` over the configured list, in its order."""
+custom_components/heatpump_optimizer/inputs.py:1302:    return tuple(read_room(reader, entity_id) for entity_id in entity_ids)
+custom_components/heatpump_optimizer/rooms.py:7:block the room sensors publish. The read itself is ``inputs.read_room``'s.
+custom_components/heatpump_optimizer/sensor.py:279:    if EntryConfig.from_mapping(coordinator.effective_config).room_temperature_entities:
+custom_components/heatpump_optimizer/strings.json:1261:          "room_temperature_entities": "Room thermometers",
+custom_components/heatpump_optimizer/strings.json:1265:          "room_temperature_entities": "Up to 32 climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
+custom_components/heatpump_optimizer/translations/de.json:1261:          "room_temperature_entities": "Raumthermometer",
+custom_components/heatpump_optimizer/translations/de.json:1265:          "room_temperature_entities": "Bis zu 32 Klima-Entitäten (Raumthermostate) oder Temperatursensoren. Ein Raum, der nicht verfügbar, veraltet oder außerhalb des Bereichs ist, fließt nicht in den Mittelwert ein und meldet nie ein Eingangsproblem.",
+custom_components/heatpump_optimizer/translations/en.json:1261:          "room_temperature_entities": "Room thermometers",
+custom_components/heatpump_optimizer/translations/en.json:1265:          "room_temperature_entities": "Up to 32 climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
+custom_components/heatpump_optimizer/translations/sv.json:1261:          "room_temperature_entities": "Rumstermometrar",
+custom_components/heatpump_optimizer/translations/sv.json:1265:          "room_temperature_entities": "Högst 32 klimatentiteter (rumstermostater) eller temperatursensorer. Ett rum som är otillgängligt, inaktuellt eller utanför intervallet lämnas utanför medelvärdet och ger aldrig ett indataproblem.",
