@@ -3,11 +3,11 @@ MUTATION TABLE -- scope full: every production module
   43 mutant(s) over 95 file(s); drivers in play: tests/arch_score_head.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/manual_plan.py, tests/open_meteo.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
   ref-driven drivers compare against 'HEAD^1' (run.sh's GOLDEN_REF resolution)
   null control: custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT, a comment-only edit every driver in play must let survive
-  baseline tests/arch_score_head.py: rc=0 failed=0 305s
-  baseline tests/block_duty.py: rc=0 failed=0 44s
-  baseline tests/env_drift.py: rc=0 failed=0 1141s
-  baseline tests/config_flow_steps.py: rc=0 failed=0 120s
+  baseline tests/env_drift.py: rc=0 failed=0 403s
+  baseline tests/arch_score_head.py: rc=0 failed=0 84s
+  baseline tests/block_duty.py: rc=0 failed=0 16s
+  baseline tests/boost_drift_replay.py: rc=0 failed=0 438s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 56s
   baseline tests/debug_collect.py: rc=0 failed=0 4s
-  baseline tests/deployment_shape.py: rc=0 failed=0 11s
-  baseline tests/doc_claims.py: rc=1 failed=1 61s
-  baseline tests/boost_drift_replay.py: rc=0 failed=0 907s
+  baseline tests/deployment_shape.py: rc=0 failed=0 9s
+  baseline tests/doc_claims.py: rc=1 failed=1 33s

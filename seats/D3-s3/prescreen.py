@@ -177,6 +177,50 @@ def main() -> int:
         return res
 
     mt.drive_pool = drive_pool
+
+    # The finder wall removed dev/archive/backlog.md from this export, so
+    # doc_claims.py's docs-build check is red at the unmutated baseline for
+    # the environment, not the code (one check: the how-it-works.md link).
+    # Tolerate exactly that red; killed() still needs MORE failing checks
+    # than this baseline names, so a mutant kill is read as before.
+    orig_refusal = mt.baseline_refusal
+
+    def refusal(baseline, scope, recorded=None):
+        keep = {}
+        for s_, run in baseline.items():
+            names = mt.failed_checks(run)
+            if (s_ == "tests/doc_claims.py" and run.failed == 1
+                    and len(names) == 1 and "dev/archive/backlog.md" in names[0]):
+                print(f"  {s_}: baseline red ONLY on the finder-wall artifact "
+                      f"(dev/archive/backlog.md absent); tolerated, kill = >1 FAIL")
+                continue
+            keep[s_] = run
+        return orig_refusal(keep, scope, recorded)
+    mt.baseline_refusal = refusal
+
+    # Persist every traced baseline's reach (#1930 fold (e)) so the census
+    # over the WHOLE D3.M1 universe (reach_census.py) reads which drivers
+    # execute each unpinned line.
+    reach_dir = Path(args.out).with_suffix("").parent / "reach"
+    reach_dir.mkdir(exist_ok=True)
+    orig_traced = mt.traced_baseline
+
+    def traced(run, script, tree, timeout, extra_args, extra_env):
+        got, reach = orig_traced(run, script, tree, timeout, extra_args,
+                                 extra_env)
+        rec = {"script": script, "rc": got.rc, "failed": got.failed,
+               "seconds": round(got.seconds, 1), "reach": None}
+        if reach is not None:
+            rec["reach"] = {
+                "hits": {k: v for k, v in reach["hits"].items()
+                         if k.startswith(mt.PKG)},
+                "reads": [r for r in reach["reads"] if r.startswith(mt.PKG)],
+                "problems": mt.reach_problems(reach),
+                "processes": reach["processes"]}
+        (reach_dir / (script.replace("/", "_") + ".json")).write_text(
+            json.dumps(rec, indent=0))
+        return got, reach
+    mt.traced_baseline = traced
     mt.sampled_pool = lambda *a, **k: (pool, 0)
     os.environ.setdefault("GOLDEN_REF", "HEAD^1")
     t0 = time.monotonic()

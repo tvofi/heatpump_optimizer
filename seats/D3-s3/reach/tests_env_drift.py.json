@@ -1,0 +1,18 @@
+{
+"script": "tests/env_drift.py",
+"rc": 0,
+"failed": 0,
+"seconds": 403.3,
+"reach": {
+"hits": {},
+"reads": [],
+"problems": [
+"starts a non-Python process: git diff --no-renames --name-only HEAD (+14)",
+"4 processes started, 2 recorded"
+],
+"processes": {
+"started": 4,
+"recorded": 2
+}
+}
+}
