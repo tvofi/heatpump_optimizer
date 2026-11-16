@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:immersion_level_kw RETURN_DEL 289d43e4",
+  "killed_by": "tests/features.py",
+  "old": "    return float(params.max_electrical_power) * const.IMMERSION_FACTOR",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
