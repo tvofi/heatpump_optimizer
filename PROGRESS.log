@@ -10,3 +10,4 @@
 1794854723 HB alive
 1794854729 INBOX acked through 2
 1794854796 CKPT RESULT.md pushed to handoff-wip snapshot ef97f16657fd
+1794854804 DONE measurement only per NOTE 2: owner replay cpu_ratio 350.6 at fbf6e980 (budget 332.8) vs 242.4 at merge base; RESULT.md at handoff-wip 43a82e81c3; no code, no handoff push
