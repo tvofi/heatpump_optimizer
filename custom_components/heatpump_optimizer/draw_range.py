@@ -498,64 +498,16 @@ def ask_evidence(draw: DrawRange | None) -> str:
     pairs = np.array(draw._run_asked(), dtype=float).reshape(-1, 2)
     if len(pairs) < MIN_SAMPLES:
         return ASK_UNOBTAINABLE if len(draw.samples) >= WINDOW else ASK_PENDING
-    return draw_response(pairs)
-
-
-def draw_response(pairs: Any) -> str:
-    """Whether the draw follows a regressor: (drawn, regressor) rows, kW.
-
-    ``ASK_UNOBTAINABLE`` where the regressor's ``LOW_PERCENTILE`` to
-    ``HIGH_PERCENTILE`` does not span ``FOLLOW_ASK_SPAN``, else the slope of
-    log drawn on log regressor and the level it leaves (``_verdict``). The caller
-    counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask; a
-    regressor the draw moves is :func:`step_response`'s.
-    """
-    pairs = np.asarray(pairs, dtype=float)
-    if (span := _span(pairs)) is None:
+    low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
+    if high < FOLLOW_ASK_SPAN * low:
         return ASK_UNOBTAINABLE
     asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
     asked = asked - asked.mean()
-    return _verdict(float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked)), span)
-
-
-def step_response(pairs: Any) -> str:
-    """Whether the draw follows a regressor it may itself have moved: (drawn,
-    regressor) rows, kW, one per interval, oldest first.
-
-    ``ASK_UNOBTAINABLE`` where the regressor does not span (as
-    :func:`draw_response`), else :func:`draw_response`'s rule on the slope of
-    the row-to-row change of log drawn on that of log regressor. Where the
-    regressor moves only as a learner folds the draw (the COP learner's heat
-    ask, ``accuracy.MeasuredCop``), its levels split the rows by time, and a
-    draw drifting on its own over the window (a weather front) reads as
-    following on levels. Differenced, that drift is left only its per-row
-    increment, while a draw that follows steps with the regressor in the
-    same row; each row's regressor is the one its draw was read under.
-    """
-    pairs = np.asarray(pairs, dtype=float)
-    if (span := _span(pairs)) is None:
-        return ASK_UNOBTAINABLE
-    asked, drawn = np.diff(np.log(pairs[:, 1])), np.diff(np.log(pairs[:, 0]))
-    return _verdict(float(np.dot(asked, drawn) / np.dot(asked, asked)), span)
-
-
-def _span(pairs: Any) -> float | None:
-    """The regressor's ``HIGH_PERCENTILE`` over its ``LOW_PERCENTILE``, or
-    None where that does not reach ``FOLLOW_ASK_SPAN``."""
-    low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
-    return None if high < FOLLOW_ASK_SPAN * low else float(high / low)
-
-
-def _verdict(slope: float, span: float) -> str:
-    """``ASK_FOLLOWS`` where ``slope`` reaches ``FOLLOW_SLOPE_MIN`` and the
-    level holds, else ``ASK_IGNORED``.
-
-    The level: drawn over the regressor on the fitted line moves by
-    ``span ** |1 - slope|`` from the span's low end to its top. One
-    efficiency shift is one level at every ask; a level that moves by more
-    than ``DISAGREE_FACTOR`` is the pump's own map, not efficiency.
-    """
-    level_moves = span ** abs(1.0 - slope)
+    slope = float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked))
+    # The level: drawn over asked on the fitted line moves by this factor
+    # from the span's low end to its top. One efficiency shift is one level
+    # at every ask; a level that moves is the pump's own map, not efficiency.
+    level_moves = float(high / low) ** abs(1.0 - slope)
     return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED
 
 

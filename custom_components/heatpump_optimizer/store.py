@@ -350,6 +350,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N, "measured_cop/at": _AT0,
         # R11-OUTSIDE-SELF-SETTING-PUMP: MeasuredCop.from_dict reads it apart from the measurement.
         "measured_cop/scale_response": Domain("choice", choices=(ASK_PENDING, ASK_FOLLOWS, ASK_IGNORED)),
+        "measured_cop/scale_base": Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX, null=True),
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
         "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
