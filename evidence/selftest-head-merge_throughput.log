@@ -1,0 +1,88 @@
+  ok   sequential gates are not overlaps
+  ok   ...and the gap count is one
+  ok   ...and the later merge is not an own-failure
+  ok   a merge inside the previous gate window is an overlap
+  ok   ...and a successful own gate is not an own-failure
+  ok   an overlapping merge whose own Tests failed is counted
+  ok   a sequential failure is not an overlap-own-failure
+  ok   ...and still not an overlap
+  ok   a gap under 400s is counted
+  ok   no runs means no overlaps
+  ok   ...and wait is not busy
+  ok   a single completed run has no gaps
+  ok   ...and wait is not busy
+  ok   duration min is the shortest completed run
+  ok   duration max is the longest completed run
+  ok   latest in_progress is busy
+  ok   latest completed is not busy
+  ok   latest queued is busy
+  ok   empty run list is not busy
+  ok   a completed cancelled run is not busy
+  ok   two listings (tests.yml's, then ci.yml's) are one series of two merges
+  ok   one listing is one merge (null)
+  ok   flow: no review refs reads UNAVAILABLE, not zero
+  ok   flow: ...and the reason names the bus
+  ok   flow: main moves split group/record/roster/fly-in
+  ok   flow: fly-ins closed is the fly-in merge count
+  ok   flow: roster groups closed
+  ok   flow: first-pass yield is the first verdict's kind
+  ok   flow: the blocked-class mix counts the class
+  ok   flow: lead time per size (h)
+  ok   flow: WIP by flow lane
+  ok   merge-wait: verdict to merge, at head; no verdict is unmatched
+  ok   merge-wait: a verdict after the merge is not read
+  ok   merge-wait: a verdict on another head is read, not at head
+  ok   carry 0: a merge whose newest verdict before it is the merge verdict is not a wrong merge, and the row carries that verdict's instant
+  ok   carry 0: a merge after a newer blocked verdict is a WRONG merge (its wait still reads the merge verdict)
+  ok   flow: --record-prefix fix/ reclassifies the group and roster merges
+  ok   flow: a window after the events counts nothing
+  ok   flow null control: an unchanged fixture reads identical
+  ok   flow null control is not vacuous: a moved until changes it
+  ok   flow board renders '# Flow board'
+  ok   flow board renders 'last 1 h'
+  ok   flow board renders 'last 24 h'
+  ok   flow board renders 'Takt 1.0'
+  ok   flow board renders '0 / 1.0'
+  ok   flow board renders '1 / 24.0'
+  ok   flow board renders 'harness:1'
+  ok   flow: an unreadable roster is UNAVAILABLE, never zero
+  ok   flow: an unreadable tree is UNAVAILABLE, never zero
+  ok   flow: an unparseable roster at --roster-ref exits 0 with UNAVAILABLE, never a traceback
+  ok   flow: ...and the reason names the JSON
+  ok   flow: a roster that parses but is not one reads UNAVAILABLE
+  ok   flow: no readable window end renders UNAVAILABLE, never a refusal
+  ok   flow: a malformed roster commit is UNAVAILABLE, never a zero with an empty reason
+  ok   flow: a ref publishing no critical path reads (set, '')
+  ok   flow: an unreadable critical path is UNAVAILABLE with its reason
+  ok   flow: critical_of reads a file source's computed chain
+  ok   flow: no published critical path puts every open group in B
+  ok   flow: WIP refuses to answer without a readable critical set, never guesses lane A 0
+  ok   flow: an unreadable critical path makes the WIP row UNAVAILABLE, never A 0
+  ok   flow: a record merge exactly at the window's end is counted
+  ok   flow: the default window counts the tip merge at exactly its end
+  ok   flow: a verdict at exactly the window's end is counted
+  ok   flow: a roster commit at exactly the window's end closes in it
+  ok   flow: fixture -- the in-window roster blob was loose and is dropped
+  ok   flow: a roster commit whose blob git cannot read is UNAVAILABLE, never a zero with an empty reason
+  ok   flow: fixture -- the critical-path blob was loose and is dropped
+  ok   flow: a critical-path blob git cannot read is UNAVAILABLE with git's reason
+  ok   flow: ...and the WIP row is UNAVAILABLE, never A 0
+  ok   flow: a path probe that cannot answer is UNAVAILABLE in the roster walk, never {}
+  ok   flow: null control -- the intact roster commit closes its group
+  ok   train: one row per BATCH banner, the tag UTC
+  ok   train: skips by batch, the reason classed without numbers or shas
+  ok   train: SKIP REPORT closes a batch; the running one is not done
+  ok   train null control: a log with no BATCH line is UNAVAILABLE, never zero
+  ok   train: the writer still prints 'f"BATCH {tag} pid={os.getpid()} base={se'...
+  ok   train: the writer still prints 'self.log(f"SKIP #{pr} {phase}: " + (f"[{'...
+  ok   train: the writer still prints 'self.log(f"SKIP REPORT: {len(self.skippe'...
+  ok   carry 0 bench: the wait starts at the later of verdict and GREEN; chains 50% below the train over 10 each, no wrong merge: a proposal
+  ok   carry 0 bench: GREEN before the verdict leaves the verdict as the start
+  ok   carry 0 bench null: chains only 15% below the train are retired
+  ok   carry 0 bench: chains 25% below the train clear the 20% margin; exactly 20% below does not (the rule is MORE than BENCH_MARGIN below)
+  ok   carry 0 bench null: nine pull requests each are retired, whatever the margin
+  ok   carry 0 bench: one wrong chain merge retires the chains and is counted
+  ok   carry 0 bench: a merge with no GREEN instant is unmatched, never a zero wait
+  ok   carry 0 bench: the train log's merged lines name the train's landings (an OPEN line, or one not at a line start, is none)
+  ok   carry 0 bench: TRAIN_MERGED_RE reads the line `land` writes (its log call and its state read are in merge_train.py)
+ok: merge_throughput.py self-test
