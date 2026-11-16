@@ -1,0 +1,67 @@
+== cls=OUTSIDE
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:2698:                           f"repository and branch for it ('{name[:60]}', '{ref[:60]}'): deleted, or unread", cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:2720:                           cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:2751:                       "(decision 0017)", cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:2765:                       "subcommand, from our own read of the class-O diff (decision 0017)", cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3157:                               f"(the fork head {fork[0]}:{br})", cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3183:                           "contributor's reviewer verdicts the new head (decision 0017)", cls=OUTSIDE)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3189:                           "personal token is tried without the owner (decision 0017)", cls=OUTSIDE)
+== refs/pull/
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:.github/workflows/tests.yml:1778:          # GITHUB_SHA, not HEAD: the run's pinned commit -- refs/pull/N/merge
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/body_patch.sh:200:  git cat-file -e "$expect^{commit}" 2>/dev/null || git fetch -q origin "refs/pull/$pr/head" 2>/dev/null
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/bus.sh:2456:    git -C "$A/src" push -q -f origin "$h:refs/pull/7/head"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:14:        sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:54:`refs/pull/<pr>/head` when the commit is not local, and refuses if it still is not.
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:121:    subprocess.run(["git", "fetch", "-q", remote, f"refs/pull/{pr}/head"], capture_output=True, text=True)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:249:            raise Refuse(f"--sha '{sha}' is not the full SHA of a commit at refs/pull/{self.num(pr)}/head or "
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:273:                          {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/ci_probe.py:482:           and sent[2]["ref"] == "refs/pull/9/merge" and sent[2]["commit_sha"] == m
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:1684:    and its APPROVED review at <head>; `refs/pull/<pr>/head` must still be
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:1695:            t.log(f"HEAD MOVED, not adding #{pr}: refs/pull/{pr}/head is {ref.strip()[:12]}, not {head[:12]}")
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3127:        worktree is DETACHED at refs/pull/<pr>/head -- so no local branch of
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3154:                self.run(["git", "fetch", "-q", "origin", f"+refs/pull/{pr}/head:{ref}"])
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:3156:                    raise Stop("recarry", f"could not make a detached worktree at {wt} from refs/pull/{pr}/head "
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:6570:    check("fork head recarry: the worktree is DETACHED at refs/pull/<pr>/head, nothing of origin/<branch> is fetched "
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:6572:          rc == 0 and ["git", "fetch", "-q", "origin", "+refs/pull/7/head:refs/remotes/pull/7/head"] in calls
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:6593:          and "--head-repo" not in rm_argv and not any("refs/pull/7/head" in " ".join(c) for c in calls))
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/merge_train.py:6611:          rc == 1 and "[OUTSIDE]" in lines[-1] and "refs/pull/7/head" in lines[-1]
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:18:# names its own branch, and ours of the same name is another head. The start is refs/pull/<pr>/head,
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:33:  FORK=${2:-}; TIP="refs/remotes/pull/$PR/head"; SRC="+refs/pull/$PR/head:$TIP"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:15:refs/pull/1/head of the origin, beside a branch of OURS with the fork's branch
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:89:    old=$(git -C "$o" rev-parse refs/pull/1/head); m=$(git -C "$o" rev-parse main)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:97:    git -C "$o" update-ref refs/pull/1/head "$c" ;;
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:98:  *pulls/1) printf '{"head": {"sha": "%s"}}' "$(git -C "$o" rev-parse refs/pull/1/head)" ;;
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:109:    """remerge_main.sh --head-repo on a head that is only refs/pull/1/head; <mode> is the fake
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:126:    sh("git", "update-ref", "refs/pull/1/head", "HEAD", cwd=o)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:129:    old = sh("git", "rev-parse", "refs/pull/1/head", cwd=o).stdout.strip()
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:147:    sh("git", "fetch", "-q", "origin", "+refs/pull/1/head:refs/remotes/pull/1/head", cwd=r)
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main_selftest.py:154:    return run, {"old": old, "new": sh("git", "rev-parse", "refs/pull/1/head", cwd=o).stdout.strip(),
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/ci/alert_list.py:131:    ap.add_argument("--ref", required=True, help="the merge ref, refs/pull/<N>/merge")
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/ci/alert_list.py:148:R, M, M2, BASE = "refs/pull/77/merge", "m1", "m2", "main"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/ci/codescan_wait.py:18:  3. M, S's `sha=` token; R, refs/pull/<N>/merge when S's event is pull_request,
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/ci/codescan_wait.py:156:    ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_approve.sh:602:      "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_approve.sh:1049:setpr() { g push -q -f origin "$1:refs/pull/7/head" "$1:refs/heads/pr7"; }
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_approve.sh:1050:forkpr() { g push -q -f origin "$1:refs/pull/7/head"; g push -q origin :refs/heads/pr7 :refs/heads/carried-head >/dev/null 2>&1; true; }
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_approve.sh:2063:mkcase carryrej open false "$H_MERGE" "$CARRYV"; printf '%s\n' "fatal: couldn't find remote ref refs/pull/7/head" > "$W/carryrej/gitfail"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_approve.sh:2131:run botfork o/r 7 "$H_CILED"; st $? 1 "REFUSE: the same head when it is only refs/pull/7/head (a fork's)"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_comment.sh:76:  git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-comment-carry/main" "+refs/pull/$2/head:refs/hpo-comment-carry/head" 2>/dev/null \
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_comment.sh:339:  gr push -q -f origin "$2:refs/pull/7/head" "${3:+:refs/heads/pr7}${3:-$2:refs/heads/pr7}" 2>/dev/null
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/app_comment.sh:351:crun forkpin "$CPIN" fork; st $? 1 "REFUSE: the same pin-only head when it is only refs/pull/7/head (a fork's)"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/codeql_scope.py:490:            an(6, "b" * 40, "2026-10-24T06:00:00Z", ref="refs/pull/7/merge")]
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/local_alerts.py:56:        ok, got = alert_list.reds(get, f"refs/pull/{pr['number']}/merge",
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/merge_main_bot.py:258:        git(repo, "fetch", "-q", "--no-tags", "origin", f"+refs/pull/{n}/head:refs/merge-main/{n}")
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/outside.py:410:            git("fetch", "-q", "--no-tags", "origin", f"+refs/pull/{pr}/head:refs/hpo-outside/{pr}")
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/outside.py:412:                return 1, [f"REFUSE: refs/pull/{pr}/head is not the head {head} the API names (it moved; run again)"]
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/outside.py:486:            git("fetch", "-q", "--no-tags", "origin", f"+refs/pull/{pr}/head:refs/hpo-outside/{pr}")
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/pr/outside.py:917:        FETCH = [("fetch", "-q", "--no-tags", "origin", f"+refs/pull/{PR}/head:refs/hpo-outside/{PR}")]
+== remerge --head-repo
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:2:# remerge_main.sh <pr> <worktree> <branch> <body> [--head-repo <owner/repo>]: merge origin/main into an open PR (claimnotes driver), drop inherited claims, push as the App
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:15:# --head-repo <owner/repo> is a pull request whose head is NOT a branch of ours (decision 0017;
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:22:# by GitHub's own update-branch at the expected head, asked as the hpo-author App through its
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:32:if [ "${1:-}" = --head-repo ]; then
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:35:  [ "$argok" = yes ] || { echo "REMERGE FAILED $PR at args (--head-repo '$FORK' is not another owner/repo)"; exit 1; }  # mut:remergeforkarg
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:67:  curl -fsS -X PUT -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$R/pulls/$PR/update-branch" \
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:69:    || die "GitHub refused update-branch at the expected head $old ($(tail -1 "$PL" | cut -c1-200)); the fork must allow maintainer edits, or its owner merges main"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:76:  [[ $new =~ ^[0-9a-f]{40}$ ]] && [ "$new" != "$old" ] || die "the head did not move off $old after update-branch"
+c155f81fa7eee55adc1de4d4211bba76f72bb20e:tools/audit/seat/remerge_main.sh:84:  echo "RECARRY: fork head $FORK:$BR merged with main by GitHub's update-branch as the App, at the expected head $old; no prepr (no commit of ours is pushed)"
