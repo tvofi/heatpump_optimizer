@@ -15,3 +15,4 @@
 1794856875 CKPT specs: all KILLED incl net-all-pages, NULL SURVIVED; self-test ok 50 mutants snapshot 2bb7bdd480ce
 1794857297 HB alive
 1794857902 HB alive
+1794858294 DONE returned: code a527be6f19 on handoff/, body 9eeaad9fc0 on handoff-body/; net-all-pages KILLED, NULL SURVIVED; prepr rc=0
