@@ -1,0 +1,44 @@
+{
+  "id": "D10-s1-06",
+  "scope": "D10-s1",
+  "step": "D10.M3",
+  "title": "test-coverage register row says done; on the round's tree 34 of 95 modules are below 95% (config_flow.py 99.21%)",
+  "severity": "low",
+  "claim": "Under every default-gate test script, each traced on its own and combined (fast + e2e + stress, 25 scripts), 34 of 95 modules are below the Silver rule's 95% statement coverage. The lowest are duty_legs.py 31.78, heat_curve.py 38.28, repairs.py 44.12, disinfection.py 47.66 and services.py 56.06; the package is at 91.38%. config_flow.py is at 99.21% (8 statements missed) against config-flow-test-coverage's 100%. quality_scale.yaml marks both rows done (D10-criteria Q2/Q3).",
+  "mechanism": "The register keys test-coverage to the recorded floors in tests/coverage_budgets.json (module_percent_floor 95.0, config_flow_percent_floor 100.0) rather than to a fresh measurement of the tree. On this tree 15 of the 25 measured scripts exit non-zero, tests/entities.py among them (it dies at import, see leads), and what a failing script leaves unexecuted is uncovered. Dropping entities alone moves only 34 -> 38 modules, so the shortfall is spread across the suite and not one crash.",
+  "evidence": {
+    "command": "PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/cov_modules.sh",
+    "value": 34,
+    "unit": "modules (of 95) below 95% statement coverage; package 91.38%; config_flow.py 99.21%",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7, coverage installed into a private --target dir",
+    "cpu_or_wall": "count",
+    "contention_note": "box saturated (load1 up to ~188 during the run). Line sets are contention-immune unless a script times out on load; the per-script exit codes are in the run's scripts.tsv",
+    "tolerance": "exact for this tree and interpreter",
+    "load1": 179.11,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "every module of custom_components/heatpump_optimizer as coverage.py traced it under tools/coverage/coverage_tree.sh's per-script runs",
+  "perturbation": {
+    "change": "cov_recombine.py <root> --drop features: the same union without tests/features.py's data (equivalent to COV_DROP=features in cov_modules.sh)",
+    "expected_direction": "up",
+    "observed_value": 64
+  },
+  "metric_definition": "Count of package modules whose statement coverage over the union of all default-gate scripts' traced lines is below 95.0%.",
+  "phenomenon_property": "Every integration module is above 95% statement coverage under the gate's own scripts on the tree being released, and config_flow.py at 100%. The register row is derived from that measurement, not from a recorded floor.",
+  "seam_rule": "PYTHONPATH=<root>/work/site python3 dev/audit/rounds/round11/D10/s1/cov_recombine.py <root> | grep '^MODULE'",
+  "null_control": {
+    "command": "cov_recombine.py <root> (no --drop)",
+    "value": "34 modules below 95, package 91.38 (reproduces cov_modules.sh exactly); --drop entities 38, --drop config_flow_steps 43 with config_flow.py 80.20",
+    "note": "the re-combination reproduces the direct run, and each dropped script moves only what it covers"
+  },
+  "proposed_fix_scope": "Restore the failing gate scripts on the tree. Then cover the listed modules (heat_curve, duty_legs, repairs, disinfection, services first) or change the two register rows to todo with the measured figures, and have tests/entities.py key the rows to a fresh coverage run instead of the recorded floors.",
+  "files": [
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "tests/coverage_budgets.json",
+    "tools/coverage/coverage_tree.sh"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "new"
+}

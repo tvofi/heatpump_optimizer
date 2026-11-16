@@ -1,0 +1,44 @@
+{
+ "id": "D10-s1-05",
+ "scope": "D10-s1",
+ "step": "D10.M1",
+ "title": "Flow tests never show recovery after 51 of 53 rendered errors (config, options, reconfigure)",
+ "severity": "low",
+ "claim": "Of the 53 distinct (flow, step, error) triples that tests/config_flow_steps.py makes the flows render, 51 never appear in a flow that later finishes, and 49 never appear in a flow that even moves past the erroring page. Reauthentication (2 of 2) is the only kind tested to recovery. config-flow-test-coverage (Bronze) requires that after each error 'the test fixes the cause and finishes the flow' for the user, reconfigure, reauthentication and options flows.",
+ "mechanism": "Each error branch is exercised on its own fresh flow (fresh_flow / fresh_options) that is dropped after the error assertion. Only the reauth test resubmits the same flow and finishes it (reauth_successful). So the row's done rests on statement coverage (config_flow_percent_floor 100.0) and does not show the recovery the rule asks for.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+  "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+  "value": 51,
+  "unit": "error triples (of 53) with no finishing flow; never_stepped_past=49 (config 15, options 32, reconfigure 2)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared; count is contention-immune. The suite itself printed '5 of 585 checks FAILED' in this tree (see D10-s1-04); the triples are counted from what the flows rendered either way",
+  "tolerance": "exact",
+  "load1": 23.06,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "config_flow:HeatPumpOptimizerConfigFlow and config_flow:HeatPumpOptimizerOptionsFlow (async_show_form / async_show_menu / async_create_entry / async_abort, wrapped per instance)",
+ "perturbation": {
+  "change": "--perturb: after the suite, one recovery walk per unrecovered config/user error (the same flow resubmitted with a valid answer and finished)",
+  "expected_direction": "down",
+  "observed_value": 47
+ },
+ "metric_definition": "Count of (flow kind, step, error) triples the flow suite renders with no flow instance that later finishes (entry created, or reauth/reconfigure success abort).",
+ "phenomenon_property": "For every error a flow can render, the suite drives at least one flow from that error to completion on the same flow instance.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py | grep '^TRIPLE'",
+ "null_control": {
+  "command": "same harness, reauth triples",
+  "value": "reauth/reauth_confirm/cannot_connect and invalid_tibber_token: finished_in_flows=1 each",
+  "note": "the tracker does count a recovery when the suite tests one, so the zeros are absent tests, not a blind instrument"
+ },
+ "proposed_fix_scope": "tests/config_flow_steps.py: for each error branch, continue the same flow with the corrected answer to create_entry (config), reconfigure_successful (reconfigure), or a saved page and closed dialog (options). No production change.",
+ "files": [
+  "tests/config_flow_steps.py",
+  "custom_components/heatpump_optimizer/config_flow.py",
+  "custom_components/heatpump_optimizer/quality_scale.yaml"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

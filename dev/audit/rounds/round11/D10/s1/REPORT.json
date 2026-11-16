@@ -1,0 +1,497 @@
+{
+ "dimension": "D10",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D10/s1/REPORT.md",
+ "exposure": "Read GitHub's public home-assistant/developers.home-assistant docs (quality-scale checklist tiers.json and 54 rule pages), which are the brief's step-1 source, not this repository's records. Once, at about 20:28 CET on 2026-11-16, to check whether the export was broken, this seat compared export files against the baseline SHA in /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt. It did that because tests/config_flow_steps.py failed 5 checks run bare. It told the orchestrator, which ruled: carry on with the export as is, make no further comparisons, and record nothing of what was seen. No finding was aimed by that comparison: D10-s1-01..03 were already written, and D10-s1-04/05 came from following the 5 config_flow_steps failures by this dimension's own checks, as the orchestrator directed.",
+ "coverage": [
+  {
+   "step": "D10.M1",
+   "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\"",
+   "universe": 30,
+   "examined": 30,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "qs_rules.py runs one check per rule (27 counted in it; action-exceptions -> svc_set_away.py and btn_actions.py; config-flow-test-coverage -> cfg_recovery.py; test-coverage -> cov_modules.sh), plus cfg_data_options.py and opt_two_zone.py for config-flow. C2: its Gold items are outside this seat's Bronze/Silver axis (lead to D10-s2); its 'rule pages not fetched' half is done, all 54 pages fetched 2026-11-16."
+  },
+  {
+   "step": "D10.M2",
+   "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\"",
+   "universe": 30,
+   "examined": 30,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Tier table in REPORT.md; draft register dev/audit/rounds/round11/D10/s1/quality_scale.draft.yaml; no todo needs an HA API newer than the hacs.json floor 2025.2.0"
+  },
+  {
+   "step": "D10.M3",
+   "enumerator": "ls custom_components/heatpump_optimizer/*.py",
+   "universe": 95,
+   "examined": 95,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "cov_modules.sh all (fast + e2e + stress, 25 scripts each traced alone, combined): per-module statement coverage for all 95 modules; mypy_strict.py: mypy --strict over the whole package, by code, ruler and hastub arms. C1: the e2e stage (validate, edge, backtest, optimality) and stress are now in the union; REPORT.md written."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D10-s1-01",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "set_away acknowledges an unparseable return_time and silently clears the stored return instant",
+   "severity": "high",
+   "claim": "A schema-valid heatpump_optimizer.set_away call whose return_time is a non-empty string that is not a datetime (6 of 6 cases) returns without raising, turns or keeps away on with no return instant, and in 3 of 3 cases wipes a previously stored return time; action-exceptions (Silver) requires a ServiceValidationError for incorrect input (D10-criteria Q2: the done row fails at this site).",
+   "mechanism": "SERVICE_SCHEMA_SET_AWAY admits return_time as cv.string; handle_set_away passes it to HeatPumpOptimizerCoordinator.async_set_away, which runs away._parse_return_time -> drift.stored_instant; datetime.fromisoformat raises ValueError, stored_instant returns None, and async_set_away stores iso=None (the clear value) instead of refusing. The sibling apply_manual_plan refuses the same shape (manual_plan_invalid_expires_at).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+    "value": 6,
+    "unit": "calls acknowledged of 6 unparseable return_time strings (cleared_existing_return=3 of 3; control_accepted=1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 10.67,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "services:handle_set_away (through the registered schema), coordinator:HeatPumpOptimizerCoordinator.async_set_away, away:_parse_return_time",
+   "perturbation": {
+    "change": "--perturb: away._parse_return_time wrapped to raise ServiceValidationError on a non-empty unparseable string (the fix shape)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 6 schema-valid set_away calls with a non-empty non-datetime return_time, the number that return without a HomeAssistantError.",
+   "phenomenon_property": "Every service field a handler parses beyond its schema is either parsed successfully or refused with ServiceValidationError; no unparseable value is acknowledged and stored as the absent value.",
+   "seam_rule": "grep -nE 'cv\\.string' custom_components/heatpump_optimizer/services.py",
+   "null_control": {
+    "command": "same harness, CONTROL arm",
+    "value": "control_accepted=1",
+    "note": "a parseable ISO return_time is accepted and stored, so the count is about unparseable input only"
+   },
+   "reproduction_steps": [
+    "Call heatpump_optimizer.set_away with {active: true, return_time: '18:00'}",
+    "The call succeeds; the away switch is on and the away_return datetime entity is unknown, so away has no end"
+   ],
+   "proposed_fix_scope": "services.py handle_set_away (or SERVICE_SCHEMA_SET_AWAY): parse return_time before the write and raise ServiceValidationError with a translation key when a non-empty value does not parse, as apply_manual_plan does for expires_at; strings.json and translations gain the key.",
+   "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/strings.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-silent-zero"
+  },
+  {
+   "id": "D10-s1-02",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Two button presses report success when their action is refused or fails (sysid disabled, diagnosis worker down)",
+   "severity": "medium",
+   "claim": "Pressing 'Run system identification' with the feature off (the default) arms nothing and returns without raising, and pressing 'Diagnose last interval' while the process worker is unavailable returns without raising while its background task raises ProcessWorkerUnavailable: 2 of 2 refused/failed presses are acknowledged, against action-exceptions (Silver), whose note extends the rule to platform actions; the compliant siblings (ForceOptimizationButton, the diagnose_interval service) raise under the same failure (2 of 2).",
+   "mechanism": "SystemIdentificationButton.async_press and DiagnoseIntervalButton.async_press hand their work to entity.off_the_action (an entry background task) and return at once, so no outcome can reach the caller. SysID.arm returns False with only an INFO log when system_identification_enabled is False (DEFAULT_SYSID_ENABLED=False) while the button stays available; the diagnosis failure surfaces only as an unretrieved task exception. button.py's PARALLEL_UPDATES is 0, so off_the_action's stated reason (a held parallel-updates slot, RC2) no longer applies on this platform, and ForceOptimizationButton already awaits and raises.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/btn_actions.py",
+    "value": 2,
+    "unit": "refused/failed presses acknowledged of 2 (controls_raised=2 of 2; sysid_enabled_armed=1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 23.49,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "button:SystemIdentificationButton.async_press, button:DiagnoseIntervalButton.async_press, entity:off_the_action, coordinator:HeatPumpOptimizerCoordinator.async_arm_system_identification, coordinator:HeatPumpOptimizerCoordinator.async_diagnose_interval",
+   "perturbation": {
+    "change": "--perturb: both presses await their work and raise HomeAssistantError when the arm did not change the sysid phase or the diagnosis raised (the fix shape)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 2 button presses whose action did not take effect (read after the background work completed), the number whose async_press returned without raising.",
+   "phenomenon_property": "A platform action (button press, switch, datetime set) whose effect is refused or fails raises HomeAssistantError/ServiceValidationError to the caller; no press is acknowledged when the coordinator refused or failed it.",
+   "seam_rule": "grep -nE 'off_the_action\\(|publish_then_refresh\\(' custom_components/heatpump_optimizer/button.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/datetime.py",
+   "null_control": {
+    "command": "same harness, CONTROL lines",
+    "value": "controls_raised=2; sysid_enabled_armed=1",
+    "note": "the same failures raise through the compliant siblings, and with the feature on the same press arms, so the count is the refusal path only"
+   },
+   "reproduction_steps": [
+    "Fresh install (system identification off by default); press button.heat_pump_optimizer_learning_run_system_identification",
+    "The press succeeds; nothing is armed; only an INFO line 'System identification is disabled in the configuration' is logged"
+   ],
+   "proposed_fix_scope": "button.py: await the arm and the diagnosis in the press (the platform holds no parallel slot) and raise a translated ServiceValidationError when arm_from_config returns False (or make the sysid button unavailable while the feature is off), and HomeAssistantError with diagnose_interval_failed when the worker is unavailable.",
+   "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s1-03",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Config flow stores 41 non-connection settings in ConfigEntry.data, all of them options-flow settings",
+   "severity": "low",
+   "claim": "Walking the setup wizard's 'Continue setup' path at the forms' own defaults creates an entry whose data holds 41 keys that are not asked on the two connection screens (comfort band, thermal model, hot water, weather sensitivity), every one of them also an options-flow field, and options={} -- against the config-flow (Bronze) subcheck 'Uses ConfigEntry.data and ConfigEntry.options correctly' (settings not needed for the connection belong in options); the null arm (Finish setup now) holds 0.",
+   "mechanism": "HeatPumpOptimizerConfigFlow._create_setup_entry passes the whole wizard dict self._data as async_create_entry(data=...), with no options=. Every reader then merges {**entry.data, **entry.options}, so a wizard value can be overridden by an option but never removed by one; const.py's two-zone comment records that consequence (zone keys the initial flow wrote into entry.data 'where options cannot erase them'), which needed CONF_TWO_ZONE_MODE as a workaround.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+    "value": 41,
+    "unit": "non-connection setting keys in the created entry's data (continue walk); finish_now walk 0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 40.84,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "config_flow:HeatPumpOptimizerConfigFlow._create_setup_entry (and every async_step_* the walk drives)",
+   "perturbation": {
+    "change": "--perturb: _create_setup_entry splits the connection-screen keys into data and the rest into options",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of keys in the data dict the config flow hands async_create_entry that are not fields of the user or user_sensors steps.",
+   "phenomenon_property": "An entry created by the config flow carries only connection/identity answers in data; every setting the options flow can edit lives in options, so the options flow can both change and clear it.",
+   "seam_rule": "grep -nE 'async_create_entry\\(' custom_components/heatpump_optimizer/config_flow.py",
+   "null_control": {
+    "command": "same harness, finish_now walk",
+    "value": 0,
+    "note": "the two-screen path stores only connection keys; the perturbed split leaves merged {**data, **options} equal to the baseline data (merged_equal=1), so no setting is lost by the fix shape"
+   },
+   "proposed_fix_scope": "config_flow.py _create_setup_entry writes the non-connection keys as options= (plus a migration moving existing entries' settings from data to options under a CONFIG_ENTRY_VERSION bump in __init__.async_migrate_entry); factory_settings/undo_point already read both.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/__init__.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s1-04",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "two_zone_mode 'auto' forces two zones, so a single-zone install's options flow hides its whole-house heat loss",
+   "severity": "high",
+   "claim": "For an entry with no zone key, with two_zone_mode absent or 'auto' (2 of 2 single-zone entries), ThermalParameters.from_config reports two_zone_enabled=True and the options flow's thermal_model page does not render house_heat_loss_coefficient. The questionnaire also derives zone masses for a single-storey answer set. So the UI cannot configure the parameter the single-zone model reads, a config-flow (Bronze) failure (D10-criteria Q2). Null controls: two_zone_mode 'off' renders the field (1), and zone keys present hide it by design (1).",
+   "mechanism": "ThermalParameters.from_config tests `two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE)`. DEFAULT_TWO_ZONE_MODE is 'auto', so 'auto' and every entry without the key take the forced-on branch, never the presence rule the function's own comment says 'auto' keeps. config_flow._single_zone, which gates the _OPTION_FIELDS row for house_heat_loss_coefficient (when=_single_zone), and presets.preset_from_config both read this predicate. The same predicate selects the model the solver runs; that consequence is outside this cell and is passed on as a lead.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+    "value": 2,
+    "unit": "single-zone entries (of 2) whose thermal_model options page hides house_heat_loss_coefficient",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 23.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "thermal_model:ThermalParameters.from_config, config_flow:_single_zone, config_flow:HeatPumpOptimizerOptionsFlow.async_step_thermal_model, presets:preset_from_config",
+   "perturbation": {
+    "change": "--perturb: from_config recompiled in memory with the mode test `two_zone_mode == const.TWO_ZONE_MODE_ON` (the one-line fix)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of entries with no zone key and mode absent/auto whose options-flow thermal_model data_schema lacks house_heat_loss_coefficient.",
+   "phenomenon_property": "Each options page offers every field the model in force reads. A single-zone install (no zone key, mode auto or absent) resolves single-zone and is offered its whole-house heat loss.",
+   "seam_rule": "grep -nE 'two_zone_enabled|_single_zone|TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "same harness, mode_off and zone_keys arms",
+    "value": "control_mode_off_renders=1; control_zone_keys_hides=1",
+    "note": "the page logic itself is correct when the predicate is. Under the perturbation the questionnaire arm derives no zone keys and joins the single-zone count (3 of 3 rendered)."
+   },
+   "reproduction_steps": [
+    "Create an entry with the Tibber token and weather entity only (Finish setup now)",
+    "Options > Thermal model: the 'House heat loss' field is absent, and the entry runs the two-zone model"
+   ],
+   "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: make 'auto' apply the presence rule (test == TWO_ZONE_MODE_ON only). Add a regression check that an entry without zone keys resolves single-zone and its thermal_model page renders the field. This is the same predicate tests/config_flow_steps.py's failing questionnaire and field-registry checks exercise.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/presets.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s1-05",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Flow tests never show recovery after 51 of 53 rendered errors (config, options, reconfigure)",
+   "severity": "low",
+   "claim": "Of the 53 distinct (flow, step, error) triples that tests/config_flow_steps.py makes the flows render, 51 never appear in a flow that later finishes, and 49 never appear in a flow that even moves past the erroring page. Reauthentication (2 of 2) is the only kind tested to recovery. config-flow-test-coverage (Bronze) requires that after each error 'the test fixes the cause and finishes the flow' for the user, reconfigure, reauthentication and options flows.",
+   "mechanism": "Each error branch is exercised on its own fresh flow (fresh_flow / fresh_options) that is dropped after the error assertion. Only the reauth test resubmits the same flow and finishes it (reauth_successful). So the row's done rests on statement coverage (config_flow_percent_floor 100.0) and does not show the recovery the rule asks for.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+    "value": 51,
+    "unit": "error triples (of 53) with no finishing flow; never_stepped_past=49 (config 15, options 32, reconfigure 2)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared; count is contention-immune. The suite itself printed '5 of 585 checks FAILED' in this tree (see D10-s1-04); the triples are counted from what the flows rendered either way",
+    "tolerance": "exact",
+    "load1": 23.06,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "config_flow:HeatPumpOptimizerConfigFlow and config_flow:HeatPumpOptimizerOptionsFlow (async_show_form / async_show_menu / async_create_entry / async_abort, wrapped per instance)",
+   "perturbation": {
+    "change": "--perturb: after the suite, one recovery walk per unrecovered config/user error (the same flow resubmitted with a valid answer and finished)",
+    "expected_direction": "down",
+    "observed_value": 47
+   },
+   "metric_definition": "Count of (flow kind, step, error) triples the flow suite renders with no flow instance that later finishes (entry created, or reauth/reconfigure success abort).",
+   "phenomenon_property": "For every error a flow can render, the suite drives at least one flow from that error to completion on the same flow instance.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/cfg_recovery.py | grep '^TRIPLE'",
+   "null_control": {
+    "command": "same harness, reauth triples",
+    "value": "reauth/reauth_confirm/cannot_connect and invalid_tibber_token: finished_in_flows=1 each",
+    "note": "the tracker does count a recovery when the suite tests one, so the zeros are absent tests, not a blind instrument"
+   },
+   "proposed_fix_scope": "tests/config_flow_steps.py: for each error branch, continue the same flow with the corrected answer to create_entry (config), reconfigure_successful (reconfigure), or a saved page and closed dialog (options). No production change.",
+   "files": [
+    "tests/config_flow_steps.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/quality_scale.yaml"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  },
+  {
+   "id": "D10-s1-06",
+   "scope": "D10-s1",
+   "step": "D10.M3",
+   "title": "test-coverage register row says done; on the round's tree 34 of 95 modules are below 95% (config_flow.py 99.21%)",
+   "severity": "low",
+   "claim": "Under every default-gate test script, each traced on its own and combined (fast + e2e + stress, 25 scripts), 34 of 95 modules are below the Silver rule's 95% statement coverage. The lowest are duty_legs.py 31.78, heat_curve.py 38.28, repairs.py 44.12, disinfection.py 47.66 and services.py 56.06; the package is at 91.38%. config_flow.py is at 99.21% (8 statements missed) against config-flow-test-coverage's 100%. quality_scale.yaml marks both rows done (D10-criteria Q2/Q3).",
+   "mechanism": "The register keys test-coverage to the recorded floors in tests/coverage_budgets.json (module_percent_floor 95.0, config_flow_percent_floor 100.0) rather than to a fresh measurement of the tree. On this tree 15 of the 25 measured scripts exit non-zero, tests/entities.py among them (it dies at import, see leads), and what a failing script leaves unexecuted is uncovered. Dropping entities alone moves only 34 -> 38 modules, so the shortfall is spread across the suite and not one crash.",
+   "evidence": {
+    "command": "PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 bash dev/audit/rounds/round11/D10/s1/cov_modules.sh all",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/cov_modules.sh",
+    "value": 34,
+    "unit": "modules (of 95) below 95% statement coverage; package 91.38%; config_flow.py 99.21%",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7, coverage installed into a private --target dir",
+    "cpu_or_wall": "count",
+    "contention_note": "box saturated (load1 up to ~188 during the run). Line sets are contention-immune unless a script times out on load; the per-script exit codes are in the run's scripts.tsv",
+    "tolerance": "exact for this tree and interpreter",
+    "load1": 179.11,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "every module of custom_components/heatpump_optimizer as coverage.py traced it under tools/coverage/coverage_tree.sh's per-script runs",
+   "perturbation": {
+    "change": "cov_recombine.py <root> --drop features: the same union without tests/features.py's data (equivalent to COV_DROP=features in cov_modules.sh)",
+    "expected_direction": "up",
+    "observed_value": 64
+   },
+   "metric_definition": "Count of package modules whose statement coverage over the union of all default-gate scripts' traced lines is below 95.0%.",
+   "phenomenon_property": "Every integration module is above 95% statement coverage under the gate's own scripts on the tree being released, and config_flow.py at 100%. The register row is derived from that measurement, not from a recorded floor.",
+   "seam_rule": "PYTHONPATH=<root>/work/site python3 dev/audit/rounds/round11/D10/s1/cov_recombine.py <root> | grep '^MODULE'",
+   "null_control": {
+    "command": "cov_recombine.py <root> (no --drop)",
+    "value": "34 modules below 95, package 91.38 (reproduces cov_modules.sh exactly); --drop entities 38, --drop config_flow_steps 43 with config_flow.py 80.20",
+    "note": "the re-combination reproduces the direct run, and each dropped script moves only what it covers"
+   },
+   "proposed_fix_scope": "Restore the failing gate scripts on the tree. Then cover the listed modules (heat_curve, duty_legs, repairs, disinfection, services first) or change the two register rows to todo with the measured figures, and have tests/entities.py key the rows to a fresh coverage run instead of the recorded floors.",
+   "files": [
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "tests/coverage_budgets.json",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Q1: every Bronze/Silver checklist rule (30, HA tiers.json fetched 2026-11-16) has a row in quality_scale.yaml, each done or exempt",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "register-rows-missing_violations=0; register-not-done-or-exempt_violations=0"
+  },
+  {
+   "claim": "action-setup: async_setup registers all 15 documented services before any entry; an entry's setup adds 0, its unload removes 0",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "action-setup_violations=0 (perturb async_setup -> 15)"
+  },
+  {
+   "claim": "appropriate-polling: coordinator update_interval is 30 min by default",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "appropriate-polling_violations=0; update_interval_min=30.0"
+  },
+  {
+   "claim": "brands: brand/ icon 256x256, icon@2x 512x512, dark variants alike; logos' shortest side within 128-256 / 256-512",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "brands_violations=0"
+  },
+  {
+   "claim": "common-modules: coordinator in coordinator.py, base entity in entity.py, all 82 default entities derive from it",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "common-modules_violations=0"
+  },
+  {
+   "claim": "config-flow data_description half: every config/options field labelled in strings.json and every _OPTION_FIELDS row has a data_description",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "config-flow_violations=0 (data_description half only; data/options half is D10-s1-03)"
+  },
+  {
+   "claim": "dependency-transparency: requirements numpy, scipy, threadpoolctl are PyPI projects under BSD-3-Clause",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "dependency-transparency_violations=0"
+  },
+  {
+   "claim": "docs-actions: all 15 services and every services.yaml field named in README/docs",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "docs-actions_violations=0"
+  },
+  {
+   "claim": "docs-triggers / docs-conditions: 0 trigger and 0 condition platforms (vacuous)",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 / 0"
+  },
+  {
+   "claim": "docs-high-level-description, docs-installation-instructions, docs-removal-instructions: README sections What it does (+tibber.com link), Requirements/Installation, Removal present",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 / 0 / 0"
+  },
+  {
+   "claim": "docs-installation-parameters: every user and user_sensors field named in the docs; docs-configuration-parameters: all 227 options-registry rows named",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 missing / 0 missing"
+  },
+  {
+   "claim": "entity-event-setup: 0 subscription calls in entity classes outside async_added_to_hass",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "entity-event-setup_violations=0"
+  },
+  {
+   "claim": "entity-unique-id and has-entity-name: 410 entities over the 5 golden coordinator scenarios, all with a unique id (no duplicates) and has_entity_name True",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 / 0 (perturbations -> 815 / 410)"
+  },
+  {
+   "claim": "runtime-data: coordinator lives on entry.runtime_data; the only hass.data writes are the documented reload handover and frontend's process-wide once-flag",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "runtime-data_violations=0"
+  },
+  {
+   "claim": "test-before-configure: a 401 shows invalid_tibber_token and an unreachable API cannot_connect on the first screen",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "test-before-configure_violations=0"
+  },
+  {
+   "claim": "unique-config-entry: the same first-screen answers twice abort already_configured, unique id set",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "unique-config-entry_violations=0"
+  },
+  {
+   "claim": "test-before-setup: a failed price fetch at setup raises ConfigEntryNotReady; reauthentication-flow: a refused token raises ConfigEntryAuthFailed and starts reauth once",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 / 0 (perturb -> 2)"
+  },
+  {
+   "claim": "config-entry-unloading: setup with indoor, switch and presence entities registers 2 state listeners + 1 bus listener; unload leaves 0",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "config-entry-unloading_violations=0"
+  },
+  {
+   "claim": "entity-unavailable: with last_update_success False every one of 82 coord_all_features entities is unavailable",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 (perturb -> 45)"
+  },
+  {
+   "claim": "integration-owner: manifest codeowners present",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0"
+  },
+  {
+   "claim": "log-when-unavailable: a 6-cycle price outage then recovery logs one line down and one up on the integration logger (down at ERROR, as HA's own coordinator does; the rule page names info)",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 (perturb -> 5)"
+  },
+  {
+   "claim": "parallel-updates: all 6 entity platforms declare PARALLEL_UPDATES",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/qs_rules.py",
+   "value": "0 (perturb -> 1)"
+  },
+  {
+   "claim": "strict-typing (M3): mypy --strict over the package, ruler arm (homeassistant-stubs 2026.9.3, mypy 2.3.1, no stub on path), 0 errors; hastub arm 471 package errors are the stub's untyped surface (no-untyped-call 244, attr-defined 133, misc 50, ...), not production defects",
+   "command": "/Users/timmalmstrom/.local/state/hpo/venv-ha/bin/python3 dev/audit/rounds/round11/D10/s1/mypy_strict.py",
+   "value": "ruler_package_errors=0 (perturb -> 1 no-untyped-def); hastub_package_errors=471"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D10/s1/btn_actions.py",
+  "dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+  "dev/audit/rounds/round11/D10/s1/cfg_recovery.py",
+  "dev/audit/rounds/round11/D10/s1/cfs_under_fix.py",
+  "dev/audit/rounds/round11/D10/s1/cov_modules.sh",
+  "dev/audit/rounds/round11/D10/s1/cov_recombine.py",
+  "dev/audit/rounds/round11/D10/s1/mypy_strict.py",
+  "dev/audit/rounds/round11/D10/s1/opt_two_zone.py",
+  "dev/audit/rounds/round11/D10/s1/qs_rules.py",
+  "dev/audit/rounds/round11/D10/s1/svc_set_away.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/quality_scale.yaml",
+   "symbol": "Gold rows docs-data-update, docs-examples, docs-known-limitations, docs-supported-devices, docs-supported-functions, docs-troubleshooting, docs-use-cases, entity-category, entity-device-class, entity-disabled-by-default",
+   "what": "Redispatched C2 names these Gold rules (outside this seat's Bronze/Silver axis). The 54 rule pages were fetched 2026-11-16 (tiers snapshot dev/audit/rounds/round11/D10/s1/ha_tiers.json)."
+  },
+  {
+   "owner_seat": "D10-s2",
+   "file": "custom_components/heatpump_optimizer/button.py",
+   "symbol": "SystemIdentificationButton",
+   "what": "entity-disabled-by-default: the button is enabled and primary (entity_category None) while system identification is off by default (DEFAULT_SYSID_ENABLED False); pressing it does nothing (see D10-s1-02)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters.from_config (two_zone_enabled)",
+   "what": "The 'auto' branch forces two_zone_enabled=True for every entry without zone keys (D10-s1-04 measures only the options-flow consequence). The model consequence (every default install solved as two zones, questionnaire writing zone masses) belongs to the physics/optimality dimensions."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "COMBI_TANK_PRESETS['external_station']",
+   "what": "potable_volume_l is 150.0 while its own comment says a plate exchanger stores 0 l; tests/config_flow_steps.py's '#3225 combi tank over the buffer store' check fails on it (the one failure the two-zone fix shape does not clear)."
+  },
+  {
+   "owner_seat": "D3-s3",
+   "file": "tests/entities.py",
+   "symbol": "module level, line ~9634 (_NOMINAL[_key])",
+   "what": "In this tree tests/entities.py dies at import with KeyError 'house_heat_loss_coefficient' (presets.derive output key without a _NOMINAL range), so the whole script reports nothing; reproduced by running it bare."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "note_supply / _listen",
+   "what": "Neither re-arm checks the coordinator's entry_released latch. A cycle that is still running after release()/release_supply() during async_shutdown could re-register async_track_time_interval / state listeners after unload. Not measured (lifecycle dimension)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tools/coverage/coverage_tree.sh",
+   "symbol": "DERIVED (header comment on run_always scripts)",
+   "what": "The comment says the run_always re-derivation returns only env_drift and closure, but tests/run.sh also run_always's tests/layout.py and tests/harness_headers.py. Both are silently outside the coverage instrument. harness_headers.py executes harnesses that import the package, so the instrument may under-count. Not measured."
+  }
+ ]
+}

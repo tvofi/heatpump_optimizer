@@ -1,0 +1,34 @@
+{
+ "id": "D5-s1-04",
+ "scope": "D5-s1",
+ "step": "D5.M1",
+ "title": "how-it-works.md says an over-bound transfer fee is 'flagged, not refused'; configuration.md and the options page refuse it",
+ "severity": "low",
+ "claim": "docs/how-it-works.md says a fee component above the plausibility bound (10 SEK/kWh) 'is flagged, not refused' and the plan runs on what you configured. docs/configuration.md's Time-of-use fee rules row says such a rate 'is refused when the page is saved', and the validator grid_fee.spec_problem returns grid_fee_rules_implausible for all three probes, the doc's own 100x-slip example (= 25) included. A capacity/fee reader gets opposite answers; the 'flagged' path holds only for values that bypass the page (a live sensor, a stored entry).",
+ "evidence": [
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/fee_refusal.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/fee_refusal.py",
+   "value": 3,
+   "unit": "rules refused of 3",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 276.54,
+   "thread_factor": 1.0
+  }
+ ],
+ "instrumented_symbol": "custom_components/heatpump_optimizer/grid_fee.py:spec_problem",
+ "perturbation": "--perturb patches grid_fee.fee_bound to inf: refused_rules 3 -> 0 (executed).",
+ "metric_definition": "Over-bound rule texts for which the options-page validator refuses the save.",
+ "phenomenon_property": "Each doc that says what happens to an over-bound fee distinguishes the page's refusal (rules) from the runtime flag (live sensor, stored values), as grid_fee does.",
+ "seam_rule": "grep -n -i 'refused\\|not refused\\|plausibility bound' README.md docs/*.md",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "docs/how-it-works.md"
+ ],
+ "proposed_fix_scope": "Docs only: say rules above the bound are refused on save; the repair-issue flag applies to a live fee sensor or a value stored before the check."
+}

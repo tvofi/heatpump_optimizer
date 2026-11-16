@@ -1,0 +1,48 @@
+{
+  "id": "D10-s1-02",
+  "scope": "D10-s1",
+  "step": "D10.M1",
+  "title": "Two button presses report success when their action is refused or fails (sysid disabled, diagnosis worker down)",
+  "severity": "medium",
+  "claim": "Pressing 'Run system identification' with the feature off (the default) arms nothing and returns without raising, and pressing 'Diagnose last interval' while the process worker is unavailable returns without raising while its background task raises ProcessWorkerUnavailable: 2 of 2 refused/failed presses are acknowledged, against action-exceptions (Silver), whose note extends the rule to platform actions; the compliant siblings (ForceOptimizationButton, the diagnose_interval service) raise under the same failure (2 of 2).",
+  "mechanism": "SystemIdentificationButton.async_press and DiagnoseIntervalButton.async_press hand their work to entity.off_the_action (an entry background task) and return at once, so no outcome can reach the caller. SysID.arm returns False with only an INFO log when system_identification_enabled is False (DEFAULT_SYSID_ENABLED=False) while the button stays available; the diagnosis failure surfaces only as an unretrieved task exception. button.py's PARALLEL_UPDATES is 0, so off_the_action's stated reason (a held parallel-updates slot, RC2) no longer applies on this platform, and ForceOptimizationButton already awaits and raises.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/btn_actions.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/btn_actions.py",
+    "value": 2,
+    "unit": "refused/failed presses acknowledged of 2 (controls_raised=2 of 2; sysid_enabled_armed=1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 23.49,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "button:SystemIdentificationButton.async_press, button:DiagnoseIntervalButton.async_press, entity:off_the_action, coordinator:HeatPumpOptimizerCoordinator.async_arm_system_identification, coordinator:HeatPumpOptimizerCoordinator.async_diagnose_interval",
+  "perturbation": {
+    "change": "--perturb: both presses await their work and raise HomeAssistantError when the arm did not change the sysid phase or the diagnosis raised (the fix shape)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Of 2 button presses whose action did not take effect (read after the background work completed), the number whose async_press returned without raising.",
+  "phenomenon_property": "A platform action (button press, switch, datetime set) whose effect is refused or fails raises HomeAssistantError/ServiceValidationError to the caller; no press is acknowledged when the coordinator refused or failed it.",
+  "seam_rule": "grep -nE 'off_the_action\\(|publish_then_refresh\\(' custom_components/heatpump_optimizer/button.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/datetime.py",
+  "null_control": {
+    "command": "same harness, CONTROL lines",
+    "value": "controls_raised=2; sysid_enabled_armed=1",
+    "note": "the same failures raise through the compliant siblings, and with the feature on the same press arms, so the count is the refusal path only"
+  },
+  "reproduction_steps": [
+    "Fresh install (system identification off by default); press button.heat_pump_optimizer_learning_run_system_identification",
+    "The press succeeds; nothing is armed; only an INFO line 'System identification is disabled in the configuration' is logged"
+  ],
+  "proposed_fix_scope": "button.py: await the arm and the diagnosis in the press (the platform holds no parallel slot) and raise a translated ServiceValidationError when arm_from_config returns False (or make the sysid button unavailable while the feature is off), and HomeAssistantError with diagnose_interval_failed when the worker is unavailable.",
+  "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

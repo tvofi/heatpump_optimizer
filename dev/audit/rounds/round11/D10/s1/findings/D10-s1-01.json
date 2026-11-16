@@ -1,0 +1,49 @@
+{
+  "id": "D10-s1-01",
+  "scope": "D10-s1",
+  "step": "D10.M1",
+  "title": "set_away acknowledges an unparseable return_time and silently clears the stored return instant",
+  "severity": "high",
+  "claim": "A schema-valid heatpump_optimizer.set_away call whose return_time is a non-empty string that is not a datetime (6 of 6 cases) returns without raising, turns or keeps away on with no return instant, and in 3 of 3 cases wipes a previously stored return time; action-exceptions (Silver) requires a ServiceValidationError for incorrect input (D10-criteria Q2: the done row fails at this site).",
+  "mechanism": "SERVICE_SCHEMA_SET_AWAY admits return_time as cv.string; handle_set_away passes it to HeatPumpOptimizerCoordinator.async_set_away, which runs away._parse_return_time -> drift.stored_instant; datetime.fromisoformat raises ValueError, stored_instant returns None, and async_set_away stores iso=None (the clear value) instead of refusing. The sibling apply_manual_plan refuses the same shape (manual_plan_invalid_expires_at).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/svc_set_away.py",
+    "value": 6,
+    "unit": "calls acknowledged of 6 unparseable return_time strings (cleared_existing_return=3 of 3; control_accepted=1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 10.67,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "services:handle_set_away (through the registered schema), coordinator:HeatPumpOptimizerCoordinator.async_set_away, away:_parse_return_time",
+  "perturbation": {
+    "change": "--perturb: away._parse_return_time wrapped to raise ServiceValidationError on a non-empty unparseable string (the fix shape)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Of 6 schema-valid set_away calls with a non-empty non-datetime return_time, the number that return without a HomeAssistantError.",
+  "phenomenon_property": "Every service field a handler parses beyond its schema is either parsed successfully or refused with ServiceValidationError; no unparseable value is acknowledged and stored as the absent value.",
+  "seam_rule": "grep -nE 'cv\\.string' custom_components/heatpump_optimizer/services.py",
+  "null_control": {
+    "command": "same harness, CONTROL arm",
+    "value": "control_accepted=1",
+    "note": "a parseable ISO return_time is accepted and stored, so the count is about unparseable input only"
+  },
+  "reproduction_steps": [
+    "Call heatpump_optimizer.set_away with {active: true, return_time: '18:00'}",
+    "The call succeeds; the away switch is on and the away_return datetime entity is unknown, so away has no end"
+  ],
+  "proposed_fix_scope": "services.py handle_set_away (or SERVICE_SCHEMA_SET_AWAY): parse return_time before the write and raise ServiceValidationError with a translation key when a non-empty value does not parse, as apply_manual_plan does for expires_at; strings.json and translations gain the key.",
+  "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/strings.json"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-silent-zero"
+}
