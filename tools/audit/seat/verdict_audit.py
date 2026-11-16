@@ -23,11 +23,11 @@ import argparse, glob, json, os, re, subprocess, sys, time
 
 HELD_H = 12
 TRAIN_H = 3
-STAMP = re.compile(r"(\d{4}-\d\d-\d\dT\d\d:\d\d)(?::\d\d)?Z")
+STAMP = re.compile(r"(?:- )?(?:FIRED )?(\d{4}-\d\d-\d\dT\d\d:\d\d)(?::\d\d)?Z")
 
 
 def recent_lines(lines, now):
-    """Fire-ledger lines whose leading UTC stamp is at most HELD_H old."""
+    """Fire-ledger lines whose UTC stamp, led by nothing, `FIRED ` or `- FIRED `, is at most HELD_H old."""
     cut = now - HELD_H * 3600
     out = []
     for l in lines:
@@ -149,6 +149,15 @@ def self_test():
     check("fire older than 12 h is dropped", "#1" not in r and "#2" in r and "#3" not in r)
     check("null control: 20 h later nothing is recent", recent_lines(led, now + 20 * 3600) == "")
     check("a stale fire leaves the PR unheld", len(audit([pr(1, A, "fix/r10-x")], {}, {}, recent_lines(led[:1], now), "", set(), never)) == 1)
+    # FIRED-prefixed ledger lines age by their stamp (P634): driven through recent_lines into audit
+    fl = ["FIRED 2026-11-06T10:00:00Z reviewer #5\n", "- FIRED 2026-11-06T10:00Z reviewer #6\n",
+          "FIRED 2026-11-05T22:00:00Z reviewer #7\n", "FIRED no stamp reviewer #8\n"]
+    r = recent_lines(fl, now)
+    check("FIRED-prefixed fire inside 12 h is kept and holds the PR",
+          audit([pr(5, A, "fix/r10-x")], {}, {}, r, "", set(), never) == [])
+    check("'- FIRED' prefix is kept and holds the PR", audit([pr(6, A, "fix/r10-x")], {}, {}, r, "", set(), never) == [])
+    check("null control: FIRED line aged 13 h is not held", len(audit([pr(7, A, "fix/r10-x")], {}, {}, r, "", set(), never)) == 1)
+    check("null control: a stampless FIRED line is ignored", len(audit([pr(8, A, "fix/r10-x")], {}, {}, r, "", set(), never)) == 1)
     print(f"verdict_audit self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
