@@ -8,3 +8,4 @@
 1794851522 CKPT mutants M1-M4 killed; CI re-run pending snapshot 2413475aea87
 1794852129 HB alive
 1794852366 INBOX acked through 1
+1794852423 DONE verdict merge 264162c0 pending-ci: gate pushed to probe/rev-3677-1a761d36 (ca55d733)
