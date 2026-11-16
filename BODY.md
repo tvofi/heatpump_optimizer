@@ -142,7 +142,7 @@ A survivor in the rule itself (an early return on an empty set, equivalent to th
 - Architecture score: `python3 tools/audit/archscore/score.py --diff origin/main` (no product module changes).
 - Not measured, and why (design figures F3 to F7): the first scan's and an incremental round's calls per bucket. This seat may call GitHub for search only and holds no read credential, so `corpus_mirror.py` has run against a stub alone. The enumerators stand: `python3 -I tools/audit/seat/corpus_mirror.py cost --private-root <dir>` and `python3 -I tools/audit/seat/gh_calls.py --top --since <scan start>`. The brief (part 2) names the floor and the batch as `gh_read.py`'s constants, never a literal.
 
-<!-- figure-block: scope-line mb=30f9caac90735c402c8e3ae60fbaa80c45dc6d26 head=ccf1c590e7b34f439fedb331570bb6d91dd25bf2 -->
+<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=ccf1c590e7b34f439fedb331570bb6d91dd25bf2 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
