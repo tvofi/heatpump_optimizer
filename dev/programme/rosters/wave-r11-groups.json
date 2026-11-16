@@ -3066,6 +3066,53 @@
     "pr": 3661
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-OUTSIDE-DEARER-WORDING",
+   "lane": "DOCS",
+   "kind": "fix",
+   "class": "docs",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [
+    3643
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/narrative.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "docs/dashboard-card.md",
+    "docs/how-it-works.md",
+    "blueprints/automation/notifications.yaml",
+    "tests/card.mjs"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Outside issue 3643, size S, text only. In the 11 user-facing English strings at origin/main (strings.json and translations/en.json line 2077, narrative.py, the card js at its four sites, docs/dashboard-card.md, docs/how-it-works.md, blueprints/automation/notifications.yaml) replace dearer with more expensive and dearest with most expensive. Do not rename reason codes, i18n keys or CSS classes; leave de and sv untouched. The stats.dearer label becomes more expensive: check the stats row still fits at phone width. Update the tests/card.mjs assertions on dearest in the same pull request. Keep strings.json and en.json byte-identical. Thank the reporter in the body.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-outside-dearer-wording",
+    "last_step": null,
+    "next_step": "dispatch fixer after R11-OWNER-GENERIC-CONTROL-TEXT",
+    "note": "triage 2026-11-16 fable seat: accept in full"
+   },
+   "source": "outside"
   }
  ]
 }
