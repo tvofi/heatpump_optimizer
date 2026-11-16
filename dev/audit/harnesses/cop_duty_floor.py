@@ -74,7 +74,7 @@ Rows, each "folded/intervals scale":
     ``_reload70_400`` round-trips the COP record at ticks 70 and 400,
     ``_lost`` without its scale-response key. ``selfset_2.2_swing*`` and
     ``selfset_2.2_mix*`` (fix review 1 of #3662): the 2.2 kW pump whose draw
-    swings on its own (``swing``), ``swing0_control`` its null control;
+    swings on its own (``swing``, seeds 1 to 5 as ``_s<seed>``), ``swing0_control`` its null control;
     ``_p2``/``_p3``/``_p4`` swing over 2 to 4 cycles, the length of the
     probe's own pairs.
     Each line adds the lowest and
@@ -373,15 +373,16 @@ def main() -> None:
         flat_row(f"heatled_true_{true:g}_flat_from0.5", flat(672), true=true, scale0=0.5)
     flat_row("selfset_2.2_flat_reload70_400", flat(672, 2.2), reload_cop=(70, 400))
     flat_row("selfset_2.2_flat_reload70_400_lost", flat(672, 2.2), reload_cop=(70, 400), lose_verdict=True)
-    # Fix review 1 of #3662 (the reviewer's rows): the same pump's draw swinging on
-    # its own, whatever is asked; amplitude 0 is the null control.
-    for name, parts, phase in (
-        ("swing0_control", [], 0.0), ("swing0.15_p64", [(0.15, 64)], 0.0), ("swing0.15_p80", [(0.15, 80)], 0.0),
-        ("swing0.3_p96", [(0.3, 96)], 0.0), ("swing0.15_p120", [(0.15, 120)], 0.0),
-        ("mix_daily0.1_5day0.2_phasepi", [(0.1, 48), (0.2, 240)], math.pi),
-        ("mix_daily0.1_5day0.2_phase0", [(0.1, 48), (0.2, 240)], 0.0),
-    ):
-        flat_row(f"selfset_2.2_{name}_s1", swing(672, 2.2, parts, 1, phase))
+    # Fix review 1 of #3662 (the reviewer's seven rows, over seeds 1 to 5): the same
+    # pump's draw swinging on its own, whatever is asked; amplitude 0 is the null control.
+    for seed in (1, 2, 3, 4, 5):
+        for name, parts, phase in (
+            ("swing0_control", [], 0.0), ("swing0.15_p64", [(0.15, 64)], 0.0), ("swing0.15_p80", [(0.15, 80)], 0.0),
+            ("swing0.3_p96", [(0.3, 96)], 0.0), ("swing0.15_p120", [(0.15, 120)], 0.0),
+            ("mix_daily0.1_5day0.2_phasepi", [(0.1, 48), (0.2, 240)], math.pi),
+            ("mix_daily0.1_5day0.2_phase0", [(0.1, 48), (0.2, 240)], 0.0),
+        ):
+            flat_row(f"selfset_2.2_{name}_s{seed}", swing(672, 2.2, parts, seed, phase))
     # The round-3 design's rows: swings as short as the probe's own pairs, a
     # plan that re-prices its ask against the scale, and null control 1.
     for amp, period in ((0.3, 2), (0.4, 3), (0.3, 4)):

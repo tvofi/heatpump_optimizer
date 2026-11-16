@@ -76421,14 +76421,29 @@ R.check(
 # FOLLOW_ASK_SPAN 1.15, so the levels of base 1.0 are 0.9325 and 1.0724;
 # 24 pairs (MIN_SAMPLES 48 rows); the cap WINDOW 336; the horizon 7 days.
 _ss_SD = _df_acc.ScaleDither
-_ss_lv_at = (1.0, 0.54, 0.53, 0.5, 1.49, 1.5, 1.6)
+# 0.5361902647381804 and 1.492007693184502 are the bases whose centred level lands on a clamp to the bit.
+_ss_lv_at = (1.0, 0.54, 0.53, 0.5, 1.49, 1.5, 1.6, 0.5361902647381804, 1.492007693184502)
 R.check(
     "the dither's two levels are one FOLLOW_ASK_SPAN apart, centred on the "
     "base; where a centred level would pass a clamp (0.5, 1.6) they are the "
-    "base and one full step to the open side, the clamps themselves included",
+    "base and one full step to the open side, the clamps themselves included; "
+    "a centred level exactly on a clamp is still centred",
     [tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]
-    == [(0.9325, 1.0724), (0.5036, 0.5791), (0.53, 0.6095), (0.5, 0.575), (1.3894, 1.5978), (1.3043, 1.5), (1.3913, 1.6)],
+    == [(0.9325, 1.0724), (0.5036, 0.5791), (0.53, 0.6095), (0.5, 0.575), (1.3894, 1.5978), (1.3043, 1.5), (1.3913, 1.6),
+        (0.5, 0.575), (1.3913, 1.6)],
     f"{[tuple(round(x, 4) for x in _ss_SD.levels(b)) for b in _ss_lv_at]}",
+)
+
+
+# The coin is seeded (``DITHER_SEED``), so a probe re-measures alike: the
+# order of the first twelve pairs of a fresh dither, H for the high level first.
+_ss_coin = _ss_SD()
+_ss_coin_seq = "".join("H" if _ss_coin.step(1.0, True) > 1.0 else "L" for _ in range(24))
+R.check(
+    "a fresh dither hands out the same levels on every run: its first twelve "
+    "pairs lead high six times, then low, high, high, high, high, low",
+    _ss_coin_seq == "HLHLHLHLHLHLLHLHLHLHLHHL",
+    f"{_ss_coin_seq}",
 )
 
 
