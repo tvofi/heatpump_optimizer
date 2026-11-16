@@ -663,6 +663,8 @@ e = FakeEntry({"a_entity": "sensor.a", "mode": "m1"}, {"b_entity": "sensor.b"})
 r.check("has-a", "a_entity" in e.data)
 r.check("has-b", "b_entity" in e.options)
 r.check("mode-is-m1", e.data.get("mode") == "m1")
+r.check("mode-detail", True, str(e.data.get("mode")))
+r.check("mode-steady", True, str(e.data.get("a_entity")))
 r.check("const-after-config", True)
 r.check("counter", True, str(os.getpid()))
 e2 = FakeEntry({"mode": "m2"})
@@ -672,6 +674,8 @@ two = coord(extra=True); asyncio.run(pump_arbiter.apply(two, T0))
 r.check("other-payload", sent(two, "value") == [3.0], str(sent(two, "value")))
 off = coord(offset=1.0); asyncio.run(pump_arbiter.apply(off, T0))
 r.check("differs-payload", sent(off) == [22.0], str(sent(off)))
+r.check("differs-detail", True, str(sent(off)))
+r.check("steady-detail", True, str(sent(held)))
 late = coord(); asyncio.run(pump_arbiter.apply(late))
 r.check("now-none-payload", sent(late) == [21.0], str(sent(late)))
 ent = NS()
@@ -691,6 +695,9 @@ r.check("no-c", "c_entity" not in e3.data)
 e4 = FakeEntry({"mode": "m1", "mode2": "m2"})
 r.check("e4-m1", e4.data.get("mode") == "m1")
 r.check("e4-m2", e4.data.get("mode2") == "m2")
+pp, ww = profiles.prices("p1", 0), profiles.weather("p1", 0)
+r.check("price-late", pp == "p1")
+r.check("weather-late", ww == "p1")
 raise RuntimeError("planted")
 '''
 
@@ -712,7 +719,8 @@ def plant(root):
     w("tests/dies.py", "import os\nos._exit(3)\n")
     w(f"{PKG}/www/card.js", "")
     w("tests/harness.py", FAKE_HARNESS)
-    w("tests/profiles.py", "def prices(profile, s):\n    if profile == 'p1':\n        pass\n    elif profile == 'p2':\n        pass\n    return profile\n")
+    w("tests/profiles.py", "def prices(profile, s):\n    if profile == 'p1':\n        pass\n    elif profile == 'p2':\n        pass\n    return profile\n"
+      "def weather(profile, s):\n    if profile == 'p1':\n        pass\n    elif profile == 'w2':\n        pass\n    return profile\n")
     w("tests/fake_script.py", FAKE_SCRIPT)
     for p in ("tests/hastub/homeassistant/__init__.py", "tests/hastub/homeassistant/util/__init__.py"):
         w(p, "")
@@ -721,7 +729,8 @@ def plant(root):
         {"axis": "mode", "kind": "tuple", "file": f"{PKG}/const.py", "symbol": "MODES"},
         {"axis": "grid", "kind": "tuple", "file": f"{PKG}/const.py", "symbol": "GRID"},
         {"axis": "optional_entity", "kind": "name", "file": f"{PKG}/config_flow.py", "pattern": "CONF_[A-Z0-9_]+_ENTITY", "binary": True},
-        {"axis": "price_shape", "kind": "compare", "file": "tests/profiles.py", "function": "prices", "argument": "profile"}]}))
+        {"axis": "price_shape", "kind": "compare", "file": "tests/profiles.py", "function": "prices", "argument": "profile"},
+        {"axis": "climate", "kind": "compare", "file": "tests/profiles.py", "function": "weather", "argument": "profile"}]}))
 
 
 def self_test():
@@ -759,7 +768,8 @@ def self_test():
                    (f"{W2} | duty=control | running", "other-payload"), (f"{H} | duty=off | running", "held"),
                    (f"{W} | duty=control | running", "differs-payload"), (f"{W} | duty=control | running", "now-none-payload"),
                    (f"{W} | duty=control | restart", "built-second-payload"), (f"{HC} | duty=control | running", "coordinator-held"),
-                   (f"{WD} | duty=control | running", "direct-hold"), (f"{W} | duty=control | running", "always-fails")]
+                   (f"{WD} | duty=control | running", "direct-hold"), (f"{W} | duty=control | running", "always-fails"),
+                   (f"{W} | duty=control | running", "differs-detail"), (f"{W} | duty=control | running", "steady-detail")]
             led.write_text("# a comment and a blank line are skipped\n\n" + "".join(f"{c}\t{S}{k}\n" for c, k in ops)
                            + f"{W} | duty=control | running\ttests/dies.py::x\n")
             out = read_operation(root, led, 4)
@@ -794,6 +804,10 @@ def self_test():
             arm("null: a hold in the coordinator module is reached", v(19), "reached")
             arm("planted: a write outside every pass", v(20), "not witnessed: state differs (recorded outside every pass)")
             arm("planted: a FAIL at the head", v(21), "not witnessed: FAIL at the head")
+            arm("null: a check that stays ok while only its detail moves under the perturbed payload: moved", full[(ops[22][0], S + ops[22][1])],
+                "moved\ttarget=differs plan=21.0 sent=22.0")
+            arm("planted: a check that stays ok with a detail the perturbed site does not reach does not move", v(23),
+                "not witnessed: the check does not move")
             arm("planted: a launcher that dies before writing its record",
                 got[(f"{W} | duty=control | running", "tests/dies.py::x")].startswith("not witnessed: unknown check (launcher: "), True)
             n_checks = len(base["by_check"])
@@ -803,7 +817,7 @@ def self_test():
                  f"script tests/fake_script.py\tchecks={n_checks}\twrites outside every pass=1\terror=RuntimeError: planted",
                  f"outside every pass {R.split(' ')[1]}\t1 (never witnessable: no plan)",
                  f"outside every pass {A}:14\t1 (never witnessable: no plan)", f"unlisted writer {A}:12\t1"])
-            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=7 moved=7 reached=3")
+            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=7 moved=8 reached=3")
             arm("planted (ii): a site never reached", _never_reached(root, S), "not witnessed: site never reached before the check")
             arm("null: no site perturbed turns no check but the planted FAIL (the recorders keep each return value and argv)",
                 sorted(k for k, c in base["by_check"].items() if not c["ok"]), ["always-fails"])
@@ -823,7 +837,9 @@ def self_test():
                    ("level mode=m1", "const-after-config"), ("level mode=m1", "mode-is-m1"), ("level grid=g1", "has-a"),
                    ("level mode=m2", "mode-is-m2"), ("level CONF_C_ENTITY=absent", "counter"), ("level price_shape=p1", "price"),
                    ("level mode=m1", "has-a", "bundle"), ("level mode=m2", "mode-is-m1"), ("level CONF_C_ENTITY=absent", "no-c"),
-                   ("level mode=m1", "e4-m1"), ("level mode=m2", "e4-m2"), ("level mode=m1", "nosuch"), ("level mode=m1", "always-fails")]
+                   ("level mode=m1", "e4-m1"), ("level mode=m2", "e4-m2"), ("level mode=m1", "nosuch"), ("level mode=m1", "always-fails"),
+                   ("level mode=m1", "mode-detail"), ("level mode=m1", "mode-steady"), ("level price_shape=p1", "price-late"),
+                   ("level climate=p1", "weather-late")]
             gl.write_text("# a comment\n\n" + "".join(f"{g[0]}\t{g[2] if len(g) > 2 else 'simulation'}\t{S}{g[1]}\n" for g in gen))
             po = root / "pairs.tsv"
             gout = read_generality(root, gl, 4, pairs_out=po)
@@ -848,12 +864,18 @@ def self_test():
             arm("null: two keys of one axis carry two levels in one configuration", (g(11), g(12)), ("witnessed (configuration 5)",) * 2)
             arm("planted: an unknown check", g(13), "not witnessed: unknown check (RuntimeError: planted)")
             arm("planted: a FAIL at the head", g(14), "not witnessed: FAIL at the head")
+            arm("null: a check that stays ok while only its detail moves with the level switched: witnessed", g(15), "witnessed (configuration 0)")
+            arm("planted: a check that stays ok with a detail the switched level does not reach: reached", g(16),
+                "reached (configuration 0): the check does not move with the level switched")
+            arm("null: a price level whose prices() configuration precedes a weather() one sharing the level name: carried by its own kind",
+                g(17), "witnessed (configuration 6)")
+            arm("null: the weather() configuration carries the climate level of that name", g(18), "witnessed (configuration 7)")
             arm("a witnessed pair prints its pair row in the universe listing", sorted(l for l in gout if l.startswith("pair ") and l.endswith("one configuration)")),
                 [f"pair CONF_A_ENTITY=present & CONF_B_ENTITY=present\tsimulation\t{S}has-a\twitnessed (both levels, one configuration)",
                  f"pair CONF_A_ENTITY=present & mode=m1\tsimulation\t{S}has-a\twitnessed (both levels, one configuration)",
                  f"pair CONF_B_ENTITY=present & mode=m1\tsimulation\t{S}has-b\twitnessed (both levels, one configuration)"])
             arm("generality per-script line", [l for l in gout if l.startswith("script ")],
-                [f"script tests/fake_script.py\tchecks={n_checks}\tconfigurations=6\tchecks with no recorded configuration=6\terror=RuntimeError: planted"])
+                [f"script tests/fake_script.py\tchecks={n_checks}\tconfigurations=8\tchecks with no recorded configuration=6\terror=RuntimeError: planted"])
             pairs = po.read_text().splitlines()
             arm("null: two levels witnessed in one configuration make their pairs; planted (iii): m2 in ordinal 1 pairs with nothing;"
                 " planted: two levels of one axis in one configuration are no pair",
@@ -866,7 +888,7 @@ def self_test():
             arm("an axis with no table entry prints no witness",
                 next(l for l in read_generality(root, gl, 4) if l.startswith("level grid=g1\t")).endswith("no witness: no observable in the stub"), True)
             OPTION_KEYS = {"mode": ("CONF_MODE", "CONF_MODE2"), "grid": ("CONF_GRID",)}
-            arm("generality RESULT", gout[-1], f"RESULT read=generality universe={len(universe(root, 'd12-cells', pairs=True))} examined=9 levels=6 pairs=3 reached-only=0")
+            arm("generality RESULT", gout[-1], f"RESULT read=generality universe={len(universe(root, 'd12-cells', pairs=True))} examined=10 levels=7 pairs=3 reached-only=0")
             # refusals
             for name, fn in (("operation", lambda: read_operation(root, led, 1)), ("generality", lambda: read_generality(root, gl, 1))):
                 arm(f"{name}: a ledger row naming no item exits 2, citing its line",
