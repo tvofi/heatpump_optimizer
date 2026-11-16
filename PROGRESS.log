@@ -42,3 +42,4 @@
 1794861467 CKPT D9-s1 34 file(s)
 1794861474 SEAT D9-s1 reported
 1794861489 HB D3-s1 killed by a container restart before any checkpoint; re-running it once
+1794861493 SEAT D3-s1 running
