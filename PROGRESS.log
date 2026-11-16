@@ -1,3 +1,4 @@
 1794849199 INIT r11-rev-3675
 1794849210 HB alive
 1794849297 CKPT setup ok, role pack and packet rendered snapshot 69f2e34ba57e
+1794849496 CKPT self-tests re-run base/head, figures match snapshot ac8b46c424a9
