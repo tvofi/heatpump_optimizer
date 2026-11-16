@@ -3,3 +3,4 @@
 1794870564 HB alive
 1794870785 CKPT tests written: prepr zero-run row, tick check-runs pagination row, gh_read etag scope rows; guard fixed; scope wording corrected snapshot 1220a1509b3f
 1794870851 HB alive
+1794871416 CKPT prepr self-test: head 562/0, before and mutant 561/1 on the zero-run row; tick 375/0, gh_read 160/0, gh_calls 226/0, seat_venv 29/0 snapshot 328c603299fb
