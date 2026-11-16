@@ -741,6 +741,8 @@ def self_test():
             arm("token: baseline is a plan held and no step covering now", (token_holds("baseline", ps, None), token_holds("baseline", {**ps, "k": 0}, None)), (True, False))
             arm("token: an unknown token is not recorded", token_holds("boost-partial", ps, None), None)
             arm("token: a write outside every pass holds no token", token_holds("duty=control", None, None), False)
+            arm("token: a plan-state token reads the recorded plan state", (token_holds("idle", {**ps, "plan_state": "idle"}, None),
+                token_holds("both", {**ps, "plan_state": "idle"}, None)), (True, False))
             # generality
             gl = root / "gen.tsv"
             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),
