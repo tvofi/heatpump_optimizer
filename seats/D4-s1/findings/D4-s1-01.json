@@ -33,7 +33,7 @@
     "value": "30.5 px",
     "note": "The same elementFromPoint scan on the editor's .layout-port-hit targets, which the card sizes with a transparent hit circle, reads 30.5 px median in the same renders: the scan measures a sized target as sized."
   },
-  "leave_one_out": {"cells": 6, "min": 2.75, "max": 5.75, "drop_most_favourable": 3.25},
+  "leave_one_out": {"cells": 6, "min": 2.75, "max": 5.75, "drop_most_favourable": 5.75},
   "reproduction_steps": [
     "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
     "run the command above; read RESULT pipe_hit_under_floor and the per viewport/pointer band lines",
