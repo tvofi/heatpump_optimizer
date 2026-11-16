@@ -8251,6 +8251,7 @@
    "files": [
     ".claude/workflows/web-fix-wave.js",
     "dev/audit/rounds/round10/D13/yield-probe.md",
+    "dev/governance/roles/fix-review.md",
     "tests/throwaway_git.py",
     "tools/audit/seat/review_strength.py"
    ],
