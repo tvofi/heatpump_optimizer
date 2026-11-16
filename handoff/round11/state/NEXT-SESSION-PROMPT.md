@@ -15,7 +15,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r11-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-GH-READ-RESIDUE-P3 (stage in-progress, branch `handoff/r10-gh-read-residue-p3`): `git fetch origin handoff/r10-gh-read-residue-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-DARWIN-SELFTEST-LANE (stage in-progress, branch `handoff/r10-prepr-darwin-selftest-lane`): `git fetch origin handoff/r10-prepr-darwin-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-PRE-TOOLCHAIN-PIN (stage in-progress, branch `handoff/r11-pre-toolchain-pin`): `git fetch origin handoff/r11-pre-toolchain-pin && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-MACHINERY-LIMITER (stage in-progress, branch `handoff/r11-pre-machinery-limiter`): `git fetch origin handoff/r11-pre-machinery-limiter && git worktree add --detach $SEAT/wt FETCH_HEAD`
