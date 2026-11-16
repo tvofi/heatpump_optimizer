@@ -1,3 +1,4 @@
 1794844139 INIT r11-rev-3630
 1794844149 HB alive
 1794844213 CKPT setup, packet, merge-tree clean snapshot 2c566352f281
+1794844255 CKPT claims 93 links confirmed, closure FULL, null control running snapshot e7d2e6ddf89e
