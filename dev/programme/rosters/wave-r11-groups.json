@@ -1044,7 +1044,9 @@
    "severity": "medium",
    "size": "M",
    "wave": 1,
-   "issues": [],
+   "issues": [
+    3313
+   ],
    "fixes": [],
    "after": [
     "R11-PRE-RELAY-REBUILD"
