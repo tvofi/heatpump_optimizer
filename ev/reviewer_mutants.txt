@@ -1,0 +1,24 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M1_floor_kw_whole_readded: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 1
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2_floor_since_whole_readded: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 1
+ 1 file changed, 1 insertion(+)
+M3_bad_floor_kw_drops_record: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 1
+ 1 file changed, 1 insertion(+)
+M4_bad_floor_since_drops_record: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 1
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M5_since_never_restored: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 2
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M6_bool_floor_accepted: KILLED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads ba
+    FAILED-ATTR failures 1

@@ -1,0 +1,3 @@
+  FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; nu
+FAILED-ATTR failures 1
+declared {'floor_kw': 'record', 'floor_since': 'record'} measured {('floor_kw', "'x'"): 'cell', ('floor_kw', '-1.0'): 'cell', ('floor_kw', 'True'): 'cell', ('floor_kw', '[1]'): 'cell', ('floor_since', "'x'"): 'cell', ('floor_since', '-3'): 'cell', ('floor_since', '1.5'): 'cell'}]
