@@ -1,14 +1,9 @@
-tools/audit/briefs/fixer.md                      313  315     5197  5216 
+TOTAL: 0 error(s) across 51 policy file(s)
+tools/audit/briefs/fixer.md                      313  315     5203  5216 
 tools/audit/briefs/fix-review.md                 138  140     2775  2775 
-corpus:        ~69731 tokens, cap 69333 +band 500 = 69833
-rc=0
-
-FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-
+corpus:        ~65925 tokens, cap 65926 +band 500 = 66426
 223 passed, 0 failed
-  ok   gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)
-review_packet self-test: 133 checks, 0 failed
 RULES-SYNC ok: every generated rule is the generated form of its source
-BASE tools/audit/briefs/fixer.md                      315  315     5206  5216 
-BASE tools/audit/briefs/fix-review.md                 136  140     2775  2775 
-BASE corpus:        ~69740 tokens, cap 69333 +band 500 = 69833
+review_packet self-test: 133 checks, 0 failed
+roles drift vs main: 0 lines
+VERSION/custom_components/tests/tools/RELEASE_NOTES three-dot: 0 files
