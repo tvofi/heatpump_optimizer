@@ -4,6 +4,7 @@
 Usage:
   text_ledger.py units --dim D6|D5 [--root DIR] FILE... | --seat D<k>-s<n> --repo R --ref X
   text_ledger.py check --dim D6|D5 LEDGER.tsv [--root DIR] [--plant] FILE... | --seat ...
+  text_ledger.py outline [--root DIR] FILE... | --seat D<k>-s<n> --repo R --ref X
   text_ledger.py --self-test
 
 A unit is what one ledger row judges (dev/governance/dimensions/D6.md step 1, D5.md step 4):
@@ -22,6 +23,10 @@ unverifiable), `truth` filled when the verdict is not true; a no-claim row carri
 exits 1 on any unrowed unit, orphan row or malformed row, naming each. `--plant` re-enumerates
 with one sentence planted in a copy of the first file and exits 1 unless that unit is refused as
 unrowed: the per-seat null control that an omission is visible.
+
+`outline` prints the structure D5.md steps 1 and 2 judge, one row per item: a `document` row for each
+Markdown or HTML file, a `heading` row (`h<n> <text>`) for each heading and a `link` row for each link or
+image target, fenced code skipped; any other file prints nothing.
 
 The splitter is textual: a JavaScript regex literal holding a quote can merge two strings, and a
 sentence ending in an abbreviation can split early. Either way the unit is still rowed, which is
@@ -80,6 +85,35 @@ def prose_units(text):
     flush()
     if fence is not None:
         out.append((fence_line, "code", "\n".join(fence)))
+    return out
+
+
+MD_HEADING = re.compile(r"^ {0,3}(#{1,6})\s+(.+?)(?:\s+#+)?\s*$")
+MD_LINK = re.compile(r"\]\(\s*<?([^)\s>]+)|^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)|<a\s[^>]*?href=[\"']([^\"']+)")
+HTML_HEADING = re.compile(r"(?is)<h([1-6])\b[^>]*>(.*?)</h\1>")
+HTML_LINK = re.compile(r"(?i)\s(?:href|src)=[\"']([^\"']+)")
+
+
+def outline(path, text):
+    """(line, kind, text) of one document's structure: itself, each heading, each link target."""
+    suf = Path(path).suffix.lower()
+    if suf not in (".md", ".mdc", ".html", ".htm"):
+        return []
+    out = [(0, "document", path)]
+    if suf in (".html", ".htm"):
+        at = lambda m: text.count("\n", 0, m.start()) + 1
+        out += [(at(m), "heading", f"h{m.group(1)} " + " ".join(re.sub(r"<[^>]*>", " ", m.group(2)).split()))
+                for m in HTML_HEADING.finditer(text)]
+        return sorted(out + [(at(m), "link", m.group(1)) for m in HTML_LINK.finditer(text)])
+    fence = False
+    for n, line in enumerate(text.splitlines(), 1):
+        if line.strip().startswith(("```", "~~~")):
+            fence = not fence
+        elif not fence:
+            h = MD_HEADING.match(line)
+            if h:
+                out.append((n, "heading", f"h{len(h.group(1))} {h.group(2)}"))
+            out += [(n, "link", next(g for g in m.groups() if g)) for m in MD_LINK.finditer(line)]
     return out
 
 
@@ -399,6 +433,14 @@ def self_test():
         sink = []
         arm("--plant fails a ledger that already rows the planted unit",
             run_check(root, files6, "D6", rowed_plant, True, sink.append) == 1 and "RESULT plant_refused=0" in "\n".join(sink))
+        md = "# Top\n\nSee [setup](setup.md#install) and ![fig](img/a.svg).\n\n```\n# not a heading [x](no.md)\n```\n## Next ##\n[ref]: https://example.org/x\n"
+        arm("outline of Markdown: document, headings, inline, image and reference links; a fence is skipped",
+            outline("d.md", md) == [(0, "document", "d.md"), (1, "heading", "h1 Top"), (3, "link", "setup.md#install"),
+                                    (3, "link", "img/a.svg"), (8, "heading", "h2 Next"), (9, "link", "https://example.org/x")])
+        arm("outline of HTML: a heading across lines and its links; a non-document prints nothing",
+            outline("i.html", '<h2 id="a">One\n<b>two</b></h2>\n<a class="c" href="#a">x</a><img src="i.svg">') ==
+            [(0, "document", "i.html"), (1, "heading", "h2 One two"), (3, "link", "#a"), (3, "link", "i.svg")]
+            and outline("c/mod.py", files["c/mod.py"]) == [])
         same = [u[0] for u in units_of("docs/a.md", "\n\n" + files["docs/a.md"], "D6") if u[2] != "code"]
         arm("ids survive a line move", same == [u[0] for u in u6 if u[0].startswith("docs/a.md") and u[2] != "code"])
     print("\n".join(results))
@@ -408,7 +450,7 @@ def self_test():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", nargs="?", choices=["units", "check"])
+    ap.add_argument("cmd", nargs="?", choices=["units", "check", "outline"])
     ap.add_argument("args", nargs="*")
     ap.add_argument("--dim", choices=["D5", "D6"])
     ap.add_argument("--root", default=".")
@@ -420,11 +462,16 @@ def main():
     a = ap.parse_args()
     if a.self_test:
         sys.exit(self_test())
-    if not a.cmd or not a.dim:
+    if not a.cmd or not a.dim and a.cmd != "outline":
         ap.error("units|check and --dim are required")
     args = list(a.args)
     ledger = args.pop(0) if a.cmd == "check" and args else None
     files = seat_files(a.seat, a.repo or a.root, a.ref) if a.seat else args
+    if a.cmd == "outline":
+        for f in files:
+            for line, kind, t in outline(f, read(a.root, f)):
+                print("\t".join([f, str(line), kind, " ".join(t.split())[:200]]))
+        sys.exit(0)
     if a.cmd == "units":
         for uid, line, kind, t in enumerate_units(a.root, files, a.dim):
             print("\t".join([uid, str(line), kind, " ".join(t.split())[:200]]))
