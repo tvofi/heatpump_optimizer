@@ -11,3 +11,4 @@
 1794857235 HB alive
 1794857840 HB alive
 1794857909 CKPT handoff pushed 2cb653f2dd; body_push refused figure-block base mismatch; BLOCKED.md pushed snapshot e7e531f2feaf
+1794857913 DONE blocked: body_push figure-block base mismatch (mb 6f422812 vs 30f9caac); code at handoff 2cb653f2dd, prepr rc=0
