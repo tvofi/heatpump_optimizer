@@ -4,7 +4,7 @@ Carries as dispositioned: Carry 0 and Carry 2 (duplicates) are the stub rule and
 
 ## Head
 
-fe7cb1beb33251fe76310de604e6e6f15087c79b (merge base 98847b99d7bb3238686efd6869f805c89c6d1ff1, origin/main at the time; measured 2026-11-15, `date -u`)
+f9f1537051f60d87f13f5e070575bfb85562d2ee (repair of 78e578010065c691fd66032154fe0ddcca6453f1: one re-record commit 53d750ded4, then a merge of origin/main e352724335c136b65562cd3e71f728549ad04a82, forced by a conflict `git merge-tree --write-tree origin/main HEAD` reported in `.claude/workflows/audit-find.js`; measured 2026-11-16, `date -u`). The conflict is the generated FINDING-SCHEMA block: main's side taken, then `python3 tools/audit/fold_ledger.py sync` rewrote it from the merged `finding.schema.json` (`fold_ledger.py check` printed `0 violation(s)`; `node tools/policy/check-wave-script.mjs` printed `249 passed, 0 failed`). The figures below the Red checks section were measured at fe7cb1beb3 and describe the unchanged diff; the merge touched none of its files but the generated block.
 
 ## Mutation proof
 
@@ -28,7 +28,7 @@ Brief item (a): the RCA body is landed verbatim as `dev/audit/rca/R10-RCA-PREPR-
 
 ## Red checks
 
-none (prepr's own refusals on the way, a register entry the ledger could not parse, the class enum in `finding.schema.json`, and the INERT READS line for the new file, were repaired before this head).
+- `governance / instrument-self-tests` (job 132987213402, at 78e5780100), red at the head and not at the merge base. Cause: `tools/ci/selftest_closures.json` was stale. The diff added `python3 -I tools/audit/seat/shell_hazard.py --self-test` to the run text of step `bare-array-expansion` in `.github/workflows/governance.yml`, so that step's recorded `run_sha` no longer matched and the table was refused. Repair: `python3 -I tools/ci/selftest_scope.py record --step bare-array-expansion` on Linux under strace (commit 53d750ded4). The three-dot diff of the table moves only that entry: its `run_sha`, plus `tools/audit/seat/shell_hazard.py` added to its `files`. Control: `python3 -I tools/ci/selftest_scope.py static` at 78e5780100 printed `STALE ... ['bare-array-expansion']` and `1 problem(s)` (rc 1). At the new head it prints `0 problem(s)` (rc 0). Cheaper detector: run `selftest_scope.py static` locally in prepr whenever a diff changes a `run:` text in `governance.yml`. It is a static read with no strace that names the step to re-record before CI runs. Standing cost: `time python3 -I tools/ci/selftest_scope.py static` printed 0.084 s real at this head, on this container. `git grep -n selftest_scope tools/pr/prepr.sh` prints nothing, so no local path runs it today. Re-recording stays Linux-only, which is why the detector is the static check and not the record. Process state (a): no local process re-read the table after a run-text edit.
 
 ## Forward-carry
 
