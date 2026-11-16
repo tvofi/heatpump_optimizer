@@ -887,8 +887,7 @@ def rca_lists(rca, group: dict, root=None) -> bool:
     except (OSError, UnicodeDecodeError):
         return False
     me, own = group.get("group"), group.get("rca")
-    return (isinstance(own, list) and rca in own) or (
-        isinstance(me, str) and bool(re.search(r"(?<![\w.-])" + re.escape(me) + r"(?![\w-]|\.\w)", text)))
+    return (isinstance(own, list) and rca in own) or me in {t.strip(".-") for t in re.findall(r"[\w.-]+", text)}
 
 
 def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
