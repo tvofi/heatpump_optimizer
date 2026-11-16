@@ -222,24 +222,20 @@ def largest_shortfall(readings: Sequence[RoomReading]) -> tuple[float, str] | No
     return max(short) if short else None
 
 
-def _comfort_steps(
-    config: OptimizationConfig, start_time: datetime, n_steps: int
-) -> list[tuple[bool, float, float]]:
-    """Per step of a solve starting at ``start_time``: whether it falls on a
-    holiday date, its comfort target and its comfort floor, degC.
+def _comfort_at(config: OptimizationConfig, when: datetime) -> tuple[bool, float, float]:
+    """For a step starting at ``when``: whether it falls on a holiday date,
+    its comfort target and its comfort floor, degC.
 
-    Read from ``config``'s own two methods at the horizon's step starts
-    (``drift.utc_step_starts``, the one horizon clock), the calls the solver's
-    bound build makes: the day and night rule is not restated here.
+    Read from ``config``'s own two methods at the step's hour of day, the
+    calls the solver's bound build makes: the day and night rule is not
+    restated here.
     """
-    return [
-        (
-            t.date() in config.holiday_dates,
-            config.get_comfort_temp(t.hour + t.minute / 60.0, when=t),
-            config.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0],
-        )
-        for t in utc_step_starts(start_time, n_steps, timedelta(hours=config.dt_hours))
-    ]
+    hour = when.hour + when.minute / 60.0
+    return (
+        when.date() in config.holiday_dates,
+        config.get_comfort_temp(hour, when=when),
+        config.get_temp_bounds(hour, when=when)[0],
+    )
 
 
 def _margins(base: np.ndarray | None, n_steps: int) -> np.ndarray:
@@ -263,7 +259,7 @@ def resolve(
     target of ``config``, clipped to the cap; ``previous``'s lift is kept
     while the two differ by less than the deadband.
     """
-    holiday, target_c, floor_c = _comfort_steps(config, start_time, 1)[0]
+    holiday, target_c, floor_c = _comfort_at(config, start_time)
     worst = largest_shortfall(readings)
     if gated is None:
         gated = (
@@ -302,9 +298,11 @@ def lifted(
     if held is None or not held.lift_c:
         return base
     margins = _margins(base, n_steps)
+    # ``drift.utc_step_starts`` is the one horizon clock: the solver's steps.
+    steps = utc_step_starts(start_time, n_steps, timedelta(hours=config.dt_hours))
     band = np.array([
         0.0 if holiday else target_c - floor_c
-        for holiday, target_c, floor_c in _comfort_steps(config, start_time, n_steps)
+        for holiday, target_c, floor_c in (_comfort_at(config, t) for t in steps)
     ]) - margins
     ramp = max(held.anchor_c - float(margins[0]), 0.0) \
         + ROOM_LIFT_RAMP_C_PER_H * config.dt_hours * np.arange(n_steps)

@@ -93520,13 +93520,14 @@ R.check(
     _rl_uneven_got is not None and np.allclose(_rl_uneven_got[:3], [0.3 + 0.1, 0.1625, 0.225]),
     f"{None if _rl_uneven_got is None else np.round(_rl_uneven_got[:3], 4).tolist()}",
 )
-_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5)
+_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5, comfort_temp_night=19.25)
 _rl_half_got, _ = _rl_solve(house=20.0, cfg=_rl_half_cfg)
 R.check(
-    "the band is read at each step's hour and minute, as the solver's bounds are: a day ending "
-    "21:30 gives the 0.5 K day band through 21:15 and the night band from 21:30",
+    "the band is read at each step's hour and minute, target and floor both, as the solver's "
+    "bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's "
+    "19.25 target over its 19.0 floor, 0.25 K, from 21:30",
     _rl_half_got is not None and np.allclose(_rl_half_got[:38], 0.5)
-    and np.allclose(_rl_half_got[38:], 1.0),
+    and np.allclose(_rl_half_got[38:], 0.25),
     f"{None if _rl_half_got is None else np.round(_rl_half_got[36:40], 4).tolist()}",
 )
 _, _rl_first_owner = _rl_solve(readings=_rl_e(19.125), house=20.0)
