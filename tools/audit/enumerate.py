@@ -7,7 +7,8 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
   d1-lifecycle           async_track_* / async_call_later / listener / task registrations and the entry points
   d1-stores              store.py DOMAINS keys, and one `upgrade` line per earlier *_STORE_VERSION /
                          CONFIG_ENTRY_VERSION step
-  d1-inputs              every configured entity slot (const.py CONF_*_ENTITY)
+  d1-inputs              every configured entity slot: a config_flow.py `_F` key behind an entity selector,
+                         and each key entry_config.py's FACTORY_KEPT keeps as an entity assignment
   d1-solve-state         every `self.<attr>` the solve-thread entries (SOLVE_FNS) touch
   d1-excepts             every except handler, broad or narrow
   d1-parsers             defs named *parse*, and json.loads / .json() / async_subscribe sites
@@ -266,11 +267,77 @@ def d3(repo, state=None, by_file=False, ast_only=False, **_):
 
 
 
+def flow_slots(repo):
+    """The keys config_flow.py's `_F` rows offer through an entity selector: a row whose widget is a
+    call of EntitySelector or of a def returning one, its key a name or a comprehension's loop name
+    over a tuple of names. An entity selector in no such row is refused: the census would be short."""
+    t = parse(repo / PKG / "config_flow.py")
+    defs = [d for d in ast.walk(t) if isinstance(d, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    fac = {d.name for d in defs if any(isinstance(r, ast.Return) and isinstance(r.value, ast.Call)
+                                       and fname(r.value) == "EntitySelector" for r in ast.walk(d))}
+    inside = {id(n) for d in defs if d.name in fac for n in ast.walk(d)}
+    loops = {}  # id(an _F call) -> {loop name: [the tuple's names]}
+    for c in ast.walk(t):
+        if isinstance(c, (ast.GeneratorExp, ast.ListComp, ast.SetComp)):
+            b = {g.target.id: [e.id for e in g.iter.elts] for g in c.generators if isinstance(g.target, ast.Name)
+                 and isinstance(g.iter, (ast.Tuple, ast.List)) and all(isinstance(e, ast.Name) for e in g.iter.elts)}
+            loops.update({id(n): b for n in ast.walk(c.elt)})
+    keys, rows = [], set()
+    for n in ast.walk(t):
+        if isinstance(n, ast.Call) and fname(n) == "_F":
+            a = {**dict(zip(("step", "key", "default", "widget"), n.args)), **{k.arg: k.value for k in n.keywords}}
+            w, k = a.get("widget"), a.get("key")
+            if isinstance(w, ast.Call) and (fname(w) in fac or fname(w) == "EntitySelector"):
+                rows.add(id(w))
+                if not isinstance(k, ast.Name):
+                    raise Refuse(f"config_flow.py:{n.lineno}: an entity selector row whose key is no name")
+                keys += loops.get(id(n), {}).get(k.id) or [k.id]
+    for n in ast.walk(t):
+        if isinstance(n, ast.Call) and id(n) not in inside and id(n) not in rows and (fname(n) in fac or fname(n) == "EntitySelector"):
+            raise Refuse(f"config_flow.py:{n.lineno}: an entity selector outside an `_F` row is in no census")
+    return keys
+
+
+def wiring_slots(repo):
+    """The keys entry_config.py's FACTORY_KEPT keeps for the reason its one comprehension gives (an
+    entity assignment): the const.py names that comprehension's startswith/endswith tests select,
+    and the dict entries FACTORY_KEPT spreads that give the same reason. Another test is refused."""
+    t = parse(repo / PKG / "entry_config.py")
+    fk = const_assign(t, "FACTORY_KEPT")
+    comps = [c for c in ast.walk(fk) if isinstance(c, ast.DictComp)] if fk else []
+    if len(comps) != 1 or not isinstance(comps[0].value, ast.Constant) or not isinstance(comps[0].generators[0].target, ast.Tuple):
+        raise Refuse("entry_config.py: no FACTORY_KEPT holding one comprehension over (name, key): re-read the entity rule")
+    c = comps[0]
+    reason, (nv, kv) = c.value.value, [e.id for e in c.generators[0].target.elts]
+    tests = []
+    for e in [x for i in c.generators[0].ifs for x in (i.values if isinstance(i, ast.BoolOp) else [i])]:
+        if isinstance(e, ast.Call) and fname(e) == "isinstance" and isinstance(e.args[0], ast.Name) and e.args[0].id == kv:
+            continue
+        if not (isinstance(e, ast.Call) and fname(e) in ("startswith", "endswith") and isinstance(e.func.value, ast.Name)
+                and e.func.value.id in (nv, kv) and len(e.args) == 1 and isinstance(e.args[0], ast.Constant)):
+            raise Refuse(f"entry_config.py:{e.lineno}: FACTORY_KEPT's entity rule holds a test this census cannot read")
+        tests.append((e.func.value.id == nv, fname(e), e.args[0].value))
+    keys = []
+    for n in parse(repo / PKG / "const.py").body:
+        tg = n.targets[0] if isinstance(n, ast.Assign) and len(n.targets) == 1 else getattr(n, "target", None)
+        v = getattr(n, "value", None)
+        if isinstance(tg, ast.Name) and isinstance(v, ast.Constant) and isinstance(v.value, str) \
+                and all(getattr(tg.id if on_name else v.value, how)(arg) for on_name, how, arg in tests):
+            keys.append(tg.id)
+    for d in [x for x in ast.walk(fk) if isinstance(x, ast.Dict)]:
+        for k, v in zip(d.keys, d.values):
+            src = const_assign(t, v.id) if k is None and isinstance(v, ast.Name) else None
+            pairs = zip(src.keys, src.values) if isinstance(src, ast.Dict) else [(k, v)] if k is not None else []
+            keys += [kk.attr if isinstance(kk, ast.Attribute) else kk.id for kk, vv in pairs
+                     if isinstance(kk, (ast.Attribute, ast.Name)) and isinstance(vv, ast.Constant) and vv.value == reason]
+    return keys
+
+
 def d1inputs(repo, **_):
-    """Step 3's inputs: every configured entity slot, a module-level CONF_*_ENTITY of const.py."""
-    return [f"input {t.id}" for n in parse(repo / PKG / "const.py").body
-            for t in (n.targets if isinstance(n, ast.Assign) else [n.target] if isinstance(n, ast.AnnAssign) else [])
-            if isinstance(t, ast.Name) and re.fullmatch(r"CONF_\w+_ENTITY", t.id)]
+    """Step 3's inputs: every configured entity slot, by what the code treats as one: a key the
+    options flow offers through an entity selector, or one a factory reset keeps as an entity
+    assignment. A key in both prints once."""
+    return [f"input {k}" for k in sorted(set(flow_slots(repo)) | set(wiring_slots(repo)))]
 
 
 def d1solve(repo, **_):
@@ -549,18 +616,29 @@ def plant(root):
     w = lambda p, t: (root / p).write_text(t)
     w(f"{PKG}/x.py", "def f(hass):\n" + "    hass.services.async_call('a', 'b')\n" * 2 + "    log_held('x')\n"
       "    try:\n        pass\n    except Exception:\n        pass\n    except ValueError:\n        pass\n"
-      "    async_track_time_interval(1)\n    y = min(1, 2) if hass else 0\n    if y:\n        pass\n")
-    w(f"{PKG}/p.py", "import json\ndef parse_a(x):\n    return json.loads(x)\nasync def g(r, m):\n    await r.json()\n    await m.async_subscribe('t')\n")
+      "    async_track_time_interval(1)\n    hass.async_create_task(1)\n    hass.helpers.async_call('c')\n"
+      "    y = min(1, 2) if hass else 0\n    if y:\n        pass\n")
+    w(f"{PKG}/p.py", "import json\ndef parse_a(x):\n    return json.loads(x)\nasync def g(r, m):\n    await r.json()\n    r.json('k')\n"
+      "    await m.async_subscribe('t')\n")
     w(f"{PKG}/e.py", "class E:\n    @property\n    def extra_state_attributes(self):\n        return {}\nclass F:\n    _attr_extra_state_attributes = {}\nclass G:\n    pass\ndef use(c):\n    return c.cycle()\n")
     w(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\nCONFIG_ENTRY_VERSION: Final = 3\n"
-      "CONF_A_ENTITY = 'a'\nCONF_B_ENTITY: Final = 'b'\nCONF_NAME = 'n'\nMODES = ('m1', 'm2')\n")
-    w(f"{PKG}/store.py", "K = 'b'\nDOMAINS = {'a': {}, K: {}}\n")
-    w(f"{PKG}/__init__.py", "async def async_setup_entry(h, e):\n    pass\ndef helper():\n    pass\n")
+      "CONF_A_ENTITY = 'a_entity'\nCONF_B_ENTITY: Final = 'b_entity'\nCONF_F_SENSOR = 'f_sensor'\nCONF_H1 = 'h1'\nCONF_H2 = 'h2'\n"
+      "CONF_W_SENSOR = 'w_sensor'\nCONF_NAME = 'n'\nX_ENTITY = 'x_entity'\nMODES = ('m1', 'm2')\n")
+    w(f"{PKG}/config_flow.py", "def _entity_of(d):\n    return selector.EntitySelector(d)\ndef _text():\n    return selector.TextSelector()\n"
+      "ROWS = (\n    _F('s', CONF_A_ENTITY, '', _entity_of('sensor')),\n    _F('s', CONF_F_SENSOR, '', widget=_entity_of('sensor')),\n"
+      "    *(_F('s', key, '', _entity_of('number')) for key in (CONF_H1, CONF_H2)),\n    _F('s', CONF_NAME, '', _text()),\n)\n")
+    w(f"{PKG}/entry_config.py", "_WIRING: dict = {const.CONF_W_SENSOR: 'an entity assignment', const.CONF_NAME: 'the name'}\n"
+      "FACTORY_KEPT = MappingProxyType({**{key: 'an entity assignment' for name, key in vars(const).items()\n"
+      "    if name.startswith('CONF_') and isinstance(key, str) and key.endswith('_entity')}, **_WIRING})\n")
+    w(f"{PKG}/store.py", "K = 'b'\nDOMAINS = {'a': {}, K: {}}\nLEDGER_STORE_VERSION = 2\nMAP_STORE_VERSION: Final = 1\n")
+    w(f"{PKG}/__init__.py", "".join(f"async def {f}(h, e):\n    pass\n" for f in ENTRY) + "def helper():\n    pass\n")
     w(f"{PKG}/optimizer.py", "from .y import z\nfrom . import w\ndef _multi_start_minimize():\n    pass\ndef go(c):\n    return _multi_start_minimize() or go(c)\n")
-    w(f"{PKG}/y.py", "from custom_components.heatpump_optimizer.v import q\nimport custom_components.heatpump_optimizer.u\n")
+    w(f"{PKG}/y.py", "from custom_components.heatpump_optimizer.v import q\nimport custom_components.heatpump_optimizer.u\n"
+      "from custom_components.heatpump_optimizer import t\n")
     w(f"{PKG}/coordinator.py", "class C:\n    def __init__(self):\n        self.a = {}\n        self.b = deque(maxlen=3)\n        self.c = 0\n        self.a = {}\n"
-      "    def _solve_record(self):\n        return self.a, self.c\n    def _solve_hubs(self):\n        return self.b\n    def cycle(self):\n        return go(self)\n    def held(self):\n        return submit(go)\n")
-    for n in ("w", "v", "u", "dhw_planner"):
+      "    def _solve_record(self):\n        return self.a, self.c\n    def _solve_hubs(self):\n        return self.b\n    def cycle(self):\n        return go(self)\n    def held(self):\n        return submit(go)\n"
+      "def helper(self):\n    self.z = {}\n")
+    for n in ("w", "v", "u", "t", "dhw_planner"):
         w(f"{PKG}/{n}.py", "")
     w(f"{PKG}/services.yaml", "set_a:\n  fields: {}\nset_b:\n")
     w(f"{PKG}/strings.json", json.dumps({"config": {"step": {"user": {"data": {"f1": "", "f2": ""}}}},
@@ -615,15 +693,18 @@ def edit_json(path, fn):
     return go
 
 
-X, CO = f"{PKG}/x.py", f"{PKG}/coordinator.py"
+X, CO, CF = f"{PKG}/x.py", f"{PKG}/coordinator.py", f"{PKG}/config_flow.py"
+# the entry points the planted __init__.py defines, typed apart from ENTRY_FNS so a dropped one shows
+ENTRY = ("async_setup", "async_setup_entry", "async_unload_entry", "async_remove_entry", "async_migrate_entry", "async_update_options")
 # universe, options, the planted count, the edit deleting one item, the count after it, the edit emptying the source
 PLANTED = [
     ("d0-grid", {}, 2 * 1 * 2 * 2 * 5 * 3, cut("tests/profiles.py", "    elif profile == 'p2':\n        pass\n"), 60,
      put("tests/profiles.py", "def prices(profile, s):\n    pass\ndef weather(profile, s):\n    pass\n")),
-    ("d0-modules", {}, 7, cut(f"{PKG}/y.py", "import custom_components.heatpump_optimizer.u\n"), 6, rm(f"{PKG}/optimizer.py")),
-    ("d1-lifecycle", {}, 2, cut(X, "    async_track_time_interval(1)\n"), 1, both(put(X, ""), put(f"{PKG}/__init__.py", ""))),
-    ("d1-stores", {}, 4, cut(f"{PKG}/store.py", ", K: {}"), 3, put(f"{PKG}/store.py", "")),
-    ("d1-inputs", {}, 2, cut(f"{PKG}/const.py", "CONF_A_ENTITY = 'a'\n"), 1, put(f"{PKG}/const.py", "CONF_NAME = 'n'\n")),
+    ("d0-modules", {}, 8, cut(f"{PKG}/y.py", "import custom_components.heatpump_optimizer.u\n"), 7, rm(f"{PKG}/optimizer.py")),
+    ("d1-lifecycle", {}, 2 + len(ENTRY), cut(X, "    async_track_time_interval(1)\n"), 1 + len(ENTRY), both(put(X, ""), put(f"{PKG}/__init__.py", ""))),
+    ("d1-stores", {}, 6, cut(f"{PKG}/store.py", ", K: {}"), 5, put(f"{PKG}/store.py", "")),
+    ("d1-inputs", {}, 6, cut(CF, "    _F('s', CONF_F_SENSOR, '', widget=_entity_of('sensor')),\n"), 5,
+     both(put(CF, ""), put(f"{PKG}/entry_config.py", "FACTORY_KEPT = {}\n"))),
     ("d1-solve-state", {}, 3, cut(CO, "return self.a, self.c", "return self.a"), 2, put(CO, "")),
     ("d1-excepts", {}, 2, cut(X, "    except ValueError:\n        pass\n"), 1, put(X, "")),
     ("d1-parsers", {}, 4, cut(f"{PKG}/p.py", "    await m.async_subscribe('t')\n"), 3, put(f"{PKG}/p.py", "")),
@@ -704,8 +785,31 @@ def self_test():
         plant(t)
         arm("d0-grid plane", run("d0-grid", t, plane="price-weather"), ["p1/w1", "p2/w1"])
         arm("d14 open", run("d14-classes", t, status="open"), ["open production A"])
-        arm("d1-stores lines", run("d1-stores", t), ["store a", "store b", f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v1->3",
-                                                     f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v2->3"])
+        arm("d1-stores lines: DOMAINS keys, each earlier step of CONFIG_ENTRY_VERSION and of a *_STORE_VERSION, a v1 store once",
+            run("d1-stores", t), ["store a", "store b", f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v1->3", f"upgrade {PKG}/const.py:CONFIG_ENTRY_VERSION v2->3",
+                                  f"upgrade {PKG}/store.py:LEDGER_STORE_VERSION v1->2", f"upgrade {PKG}/store.py:MAP_STORE_VERSION v1 (no earlier version)"])
+        arm("d1-inputs lines: a flow key behind an entity selector (one outside the CONF_*_ENTITY shape, two a loop binds), "
+            "and a key the reset keeps as an entity assignment by the wiring's rule or its literal entry",
+            run("d1-inputs", t), [f"input {k}" for k in ("CONF_A_ENTITY", "CONF_B_ENTITY", "CONF_F_SENSOR", "CONF_H1", "CONF_H2", "CONF_W_SENSOR")])
+        for label, edit in (("an entity selector outside an `_F` row", cut(CF, "ROWS = (", "LOOSE = _entity_of('x')\nROWS = (")),
+                            ("an entity selector row whose key is no name", cut(CF, "_F('s', CONF_A_ENTITY,", "_F('s', 'a_entity',")),
+                            ("a wiring rule holding a test the census cannot read", cut(f"{PKG}/entry_config.py", "key.endswith('_entity')", "key[-7:] == '_entity'"))):
+            g = Path(tempfile.mkdtemp())
+            try:
+                plant(g)
+                edit(g)
+                arm(f"d1-inputs {label} is refused", count("d1-inputs", g), "Refuse")
+            finally:
+                shutil.rmtree(g, ignore_errors=True)
+        arm("d1-excepts lines carry broad or narrow", [l.split()[1] for l in run("d1-excepts", t)], ["broad", "narrow"])
+        arm("d1-lifecycle lines: an async_track_* call, a LIFE_CALLS call and every entry point",
+            run("d1-lifecycle", t), sorted([f"async_create_task {X}:12 f", f"async_track_time_interval {X}:11 f", *[f"entry {f}" for f in ENTRY]]))
+        arm("d16-writes lines: the .services.async_call sites and log_held, not an async_call on another receiver",
+            run("d16-writes", t), [f"hold {X}:4 f", f"write {X}:2 f", f"write {X}:3 f"])
+        arm("d1-parsers lines: a parse def, json.loads, a bare .json() and async_subscribe, not a .json(x) with an argument",
+            run("d1-parsers", t), [f"def {PKG}/p.py:2 parse_a", f"json {PKG}/p.py:3 parse_a", f"response {PKG}/p.py:5 g", f"subscribe {PKG}/p.py:7 g"])
+        arm("d0-modules follows `from <package> import <module>`", f"{PKG}/t.py" in run("d0-modules", t), True)
+        arm("d9-collections a module-level function's self is no class's collection", [l for l in run("d9-collections", t) if l.startswith("helper.")], [])
         arm("d9-solves lines: the solver's call, the recursive call inside its module, the coordinator's call and its bare reference",
             [(l.split(" <- ")[0], l.rsplit(" ", 1)[-1]) for l in run("d9-solves", t)],
             [("path go", "C.cycle"), ("path go", "(ref)"), ("path go", "go"), ("solve _multi_start_minimize", "go")])
@@ -746,9 +850,9 @@ def self_test():
             msg = str(e)
         arm("a ledger refusal names the row's line", f"{led}:2:" in msg, True)
         arm("d12 a missing ledger is refused", count("d12-cells", t, ledger=str(t / "none.tsv")), "Refuse")
-        arm("with no ledger a census prints its items alone", run("d1-inputs", t), ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
+        arm("with no ledger a census prints its items alone", run("d1-inputs", t)[:2], ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
         for label, text, want in (("a census line is joined to its driving test, the rest not run", "# c\n\ninput CONF_A_ENTITY\ttests/x.py::t\n",
-                                   ["input CONF_A_ENTITY\ttests/x.py::t", "input CONF_B_ENTITY\tnot run"]),
+                                   ["input CONF_A_ENTITY\ttests/x.py::t"] + [f"input {k}\tnot run" for k in ("CONF_B_ENTITY", "CONF_F_SENSOR", "CONF_H1", "CONF_H2", "CONF_W_SENSOR")]),
                                   ("a census row naming no test is refused", "input CONF_A_ENTITY\t\n", "Refuse"),
                                   ("a census row with a source column is refused", "input CONF_A_ENTITY\tsimulation\ttests/x.py::t\n", "Refuse"),
                                   ("a census row naming no item is refused", "input CONF_Z_ENTITY\ttests/x.py::t\n", "Refuse")):
@@ -783,6 +887,8 @@ def self_test():
         arm("d2 a grid axis with no level is refused", count("d2-identities", t), "Refuse")
         edit_json(IDENTITIES, lambda d: d["identities"][0].update(grid=["mode"], id=""))(t)
         arm("d2 an identity with no id is refused", count("d2-identities", t), "Refuse")
+        edit_json(IDENTITIES, lambda d: d["identities"][0].update(id="i1", step="S1"))(t)
+        arm("d2 an identity whose step is not M<n> is refused", count("d2-identities", t), "Refuse")
         edit_json(BUNDLES, lambda d: d["bundles"][0].update(evidence="tests/profiles.py", date="yesterday"))(t)
         arm("d15 a bundle with no date is refused", count("d15-installs", t), "Refuse")
         for total in ("LEVELS", "PAIRS"):
