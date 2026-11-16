@@ -1,2 +1,3 @@
 {"cycle": 200, "traced": 528660, "cpu_s": 15.1, "top": [["coord.data", 270157], ["coord._accuracy", 136107], ["coord._optimization_result", 79383], ["module.heatpump_optimizer.debugger.DOMAINS", 47301], ["coord._dhw_accuracy", 47248]]}
 {"cycle": 250, "traced": 677143, "cpu_s": 43.3, "top": [["coord.data", 271915], ["coord._accuracy", 158407], ["coord._optimization_result", 79095], ["module.heatpump_optimizer.debugger.DOMAINS", 47296], ["coord._dhw_accuracy", 46528]]}
+{"cycle": 300, "traced": 721189, "cpu_s": 72.7, "top": [["coord.data", 272772], ["coord._accuracy", 178927], ["coord._optimization_result", 79447], ["coord._dhw_accuracy", 47332], ["module.heatpump_optimizer.debugger.DOMAINS", 47296]]}
