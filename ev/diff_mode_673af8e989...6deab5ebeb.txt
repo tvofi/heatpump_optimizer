@@ -1,0 +1,17 @@
+SURVIVED tools/audit/enumerate.py:314 CONST_SWAP  if isinstance(e, ast.Call) and fname(e) == "isinstance" and isinstance(e.args[1], ast.Name) and e.args[0].id == kv:
+SURVIVED tools/audit/enumerate.py:802 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:804 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:804 CONST_SWAP  shutil.rmtree(g, ignore_errors=False)
+SURVIVED tools/audit/enumerate.py:805 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:812 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:813 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:854 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:891 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:891 CONST_SWAP  edit_json(IDENTITIES, lambda d: d["identities"][1].update(id="i1", step="S1"))(t)
+SURVIVED tools/audit/enumerate.py:892 CALL_DEL  pass
+SURVIVED tools/audit/enumerate.py:788 STMT_DEL  pass
+SURVIVED tools/audit/enumerate.py:791 STMT_DEL  pass
+SURVIVED tools/audit/enumerate.py:806 STMT_DEL  pass
+SURVIVED tools/audit/enumerate.py:808 STMT_DEL  pass
+SURVIVED tools/audit/enumerate.py:810 STMT_DEL  pass
+rc=0
