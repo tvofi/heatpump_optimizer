@@ -1,0 +1,1 @@
+FAIL level layout=no_valve	[minimal+prereq] published dhw_enabled=False but the cell declares dhw=on; [minimal+prereq] published two_zone_enabled=True but the cell declares zone=off; [minimal+prereq] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] published dhw_enabled=False but the cell declares dhw=on
