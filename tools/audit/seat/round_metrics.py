@@ -50,7 +50,8 @@ input is absent, and a partial ledger is a NO-READ, never a partial value):
                   a forecast, days counted from the register; SLIP_SAMPLE_S), the days the
                   forecast closure moved later between consecutive samples (an earlier
                   move pays nothing back), over the days between the first and last
-                  sample; beside it the samples and pages read, the net move, pages
+                  sample; beside it the samples and pages read, the net move (the
+                  last daily sample's forecast less the first's), pages
                   with no forecast (an UNAVAILABLE page), the threshold
                   `closure_slip_ceiling` of dev/audit/config/objective.json (null is
                   undecided), round start to closure in days (the vN.0.0 tag, else the

@@ -21,7 +21,9 @@
     prints the samples and pages beside it: summing the later moves of every
     page makes it a function of how often the page is committed (round 10's
     history reads 2.57 days per day over all 563 forecast pages and 1.27 over
-    its 15 daily samples), and only a fixed cadence compares rounds;
+    its 15 daily samples), and only a fixed cadence compares rounds. Its
+    net move is over the same samples: the last sample's forecast less the
+    first's, so the first day's earlier pages do not enter it;
     `unexamined` reads the round's finder baselines (`"baseline_sha"` under
     `dev/audit/rounds/round<N>/` on `origin/main`) and the roster group kinds
     in `groups.json`.
