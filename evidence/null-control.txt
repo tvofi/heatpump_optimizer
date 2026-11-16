@@ -1,0 +1,15 @@
+null-base GATE rc=0 ok=21 FAIL=0
+null-base UTC rc=0 ok=21 FAIL=0
+null-base America/New_York rc=0 ok=21 FAIL=0
+null-base Asia/Kolkata rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+null-base Asia/Tokyo rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+null-base Europe/Stockholm rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+fixed-head GATE rc=0 ok=21 FAIL=0
+fixed-head UTC rc=0 ok=21 FAIL=0
+fixed-head America/New_York rc=0 ok=21 FAIL=0
+fixed-head Asia/Kolkata rc=0 ok=21 FAIL=0
+fixed-head Asia/Tokyo rc=0 ok=21 FAIL=0
+fixed-head Europe/Stockholm rc=0 ok=21 FAIL=0

@@ -1,0 +1,4 @@
+fixed-extra Pacific/Kiritimati rc=0 ok=21 FAIL=0
+fixed-extra Pacific/Pago_Pago rc=0 ok=21 FAIL=0
+fixed-extra America/Los_Angeles rc=0 ok=21 FAIL=0
+fixed-extra Australia/Adelaide rc=0 ok=21 FAIL=0
