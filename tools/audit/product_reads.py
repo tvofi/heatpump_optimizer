@@ -607,10 +607,11 @@ class FakeEntry:
         self.data, self.options, self.entry_id = dict(data or {}), dict(options or {}), entry_id
 '''
 FAKE_ARBITER = '''from .log_latch import log_held
+from . import off_restore
 async def apply(coord, now=None):
     p = coord._optimization_result
     if coord.hold:
-        log_held("held")
+        log_held("held") if coord.hold is True else off_restore.arm()
         return
     await coord.hass.services.async_call("climate", "set_temperature", {"entity_id": "climate.x", "temperature": p.optimal_setpoints[0]})
 '''
@@ -634,6 +635,8 @@ r.check("payload", sent(first) == [21.0], str(sent(first)))
 r.check("constant", True)
 held = coord(hold=True); asyncio.run(pump_arbiter.apply(held, T0))
 r.check("held", True)
+restored = coord(hold="restore"); asyncio.run(pump_arbiter.apply(restored, T0))
+r.check("restored", True)
 again = coord(entry=first.entry); asyncio.run(pump_arbiter.apply(again, T0))
 r.check("restart-payload", sent(again) == [21.0], str(sent(again)))
 gone = coord(device="unavailable"); asyncio.run(pump_arbiter.apply(gone, T0))
@@ -661,6 +664,7 @@ def plant(root):
       "CONF_GRID = 'grid'\n")
     w(f"{PKG}/config_flow.py", "X = (CONF_A_ENTITY, CONF_B_ENTITY, CONF_C_ENTITY)\n")
     w(f"{PKG}/log_latch.py", "def log_held(key):\n    return key\n")
+    w(f"{PKG}/off_restore.py", "from .log_latch import log_held\ndef arm():\n    return log_held('restore')\n")
     w(f"{PKG}/pump_arbiter.py", FAKE_ARBITER)
     w(f"{PKG}/www/card.js", "")
     w("tests/harness.py", FAKE_HARNESS)
@@ -696,15 +700,17 @@ def self_test():
         try:
             cells = universe(root, "d16-writes", cells=True)
             W = next(c.split(" |")[0] for c in cells if c.startswith("write "))
-            H = next(c.split(" |")[0] for c in cells if c.startswith("hold "))
-            arm("the fake write site is the arbiter's call line", W, f"write {A}:7 apply")
+            H = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {A}"))
+            arm("the fake write site is the arbiter's call line", W, f"write {A}:8 apply")
+            R = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {PKG}/off_restore.py"))
             led = root / "op.tsv"
             ops = [(f"{W} | duty=control | running", "payload"), (f"{W} | duty=control | running", "constant"),
                    (f"{W} | duty=control | running", "restart-payload"), (f"{W} | duty=control | restart", "payload"),
                    (f"{W} | duty=control | upgrade", "payload"), (f"{H} | duty=control | running", "held"),
                    (f"{W} | duty=off | running", "payload"), (f"{W} | duty=control | restart", "restart-payload"),
                    (f"{W} | duty=control | running", "nosuch"), (f"{W} | duty=control | unavailable", "unavailable-payload"),
-                   (f"{W} | duty=control | running", "unavailable-payload")]
+                   (f"{W} | duty=control | running", "unavailable-payload"), (f"{W} | duty=control | running", "counter"),
+                   (f"{R} | duty=control | running", "restored")]
             led.write_text("".join(f"{c}\t{S}{k}\n" for c, k in ops))
             out = read_operation(root, led, 4)
             got = {tuple(l.split("\t")[:2]): l.split("\t")[2] for l in out if "\t" in l and "::" in l}
@@ -723,7 +729,9 @@ def self_test():
             arm("null: a write to an unavailable entity, its unavailable cell: moved", v(9), "moved")
             arm("planted: the unavailable write's check cited for running: only running passes perturbed, it does not move",
                 v(10), "not witnessed: the check does not move")
-            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=4 moved=3 reached=1")
+            arm("planted: a check whose detail embeds a counter is never moved", v(11), "not witnessed: nondeterministic")
+            arm("null: a hold in a second importing module (off_restore) is reached", v(12), "reached")
+            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=5 moved=3 reached=2")
             arm("planted (ii): a site never reached", _never_reached(root, S), "not witnessed: site never reached before the check")
             base = run_script(root, "tests/fake_script.py", defaults_of(root))
             arm("null: no site perturbed turns no check", sorted(k for k, c in base["by_check"].items() if not c["ok"]), [])
@@ -739,7 +747,7 @@ def self_test():
             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),
                    ("level mode=m1", "const-after-config"), ("level mode=m1", "mode-is-m1"), ("level grid=g1", "has-a"),
                    ("level mode=m2", "mode-is-m2"), ("level CONF_C_ENTITY=absent", "counter"), ("level price_shape=p1", "price"),
-                   ("level mode=m1", "has-a", "bundle")]
+                   ("level mode=m1", "has-a", "bundle"), ("level mode=m2", "mode-is-m1")]
             gl.write_text("".join(f"{g[0]}\t{g[2] if len(g) > 2 else 'simulation'}\t{S}{g[1]}\n" for g in gen))
             po = root / "pairs.tsv"
             gout = read_generality(root, gl, 4, pairs_out=po)
@@ -757,6 +765,8 @@ def self_test():
             arm("planted (ii): a level no recorded configuration carried", g(4), "not witnessed: no recorded configuration carried the level before the check")
             arm("planted (iv): a check whose detail embeds a counter", g(6), "not witnessed: nondeterministic")
             arm("null: a profile argument switched: witnessed", g(7).startswith("witnessed"), True)
+            arm("planted: a configuration built after the check carries nothing for it", g(9),
+                "not witnessed: no recorded configuration carried the level before the check")
             arm("a bundle row is never counted", g(8), "not witnessed: source bundle is never re-run with a level switched")
             pairs = po.read_text().splitlines()
             arm("null: two levels witnessed in one configuration make their pairs; planted (iii): m2 in ordinal 1 pairs with nothing",
@@ -776,6 +786,7 @@ def self_test():
                 arm(f"{name}: an empty ledger exits 2", _exit(name, root, "# nothing\n"), 2)
             (root / PKG / "pump_arbiter.py").write_text("x = 1\n")
             (root / PKG / "log_latch.py").write_text("")
+            (root / PKG / "off_restore.py").write_text("")
             arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n"), 2)
             (root / census.OBJECTIVE).unlink()
             arm("generality: an emptied universe source exits 2", _exit("generality", root, f"level mode=m1\tsimulation\t{S}payload\n"), 2)
