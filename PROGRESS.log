@@ -7,3 +7,4 @@
 1794871219 DONE Design review: revise f7d50191e3 architecture-unsound, pushed design-verdict 9e83557135
 1794873129 HB INIT round 2 (init died after 'resumed': pipefail on the snapshot lookup); reviewing ce85b10049
 1794873133 HB alive
+1794873140 CKPT setup done, role read (round 2) snapshot 9b6f2ea59818
