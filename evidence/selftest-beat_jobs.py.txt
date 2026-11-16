@@ -91,6 +91,11 @@
   ok   verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on
   ok   verdict-audit: a failed run is UNREADABLE, never its partial lines
   ok   verdict-audit null: nothing unheld writes no byte
+  ok   cp-owed: a CP-OWED line reaches the digest, and the repo, ledger and checkout are handed on
+  ok   cp-owed: rc 2 is its UNREADABLE line, never its partial lines
+  ok   cp-owed: an overlay with no fire_ledger is UNREADABLE and runs nothing
+  ok   cp-owed null: nothing owed writes no byte
+  ok   cp-owed: the table row runs every 300 s, under the shortest grace, and takes no class lock
   ok   pulse null: nothing stopped writes no digest, but the pulse file
   ok   pulse: a STOPPED line reaches the digest
   ok   pulse: an rc outside 0-2 is UNREADABLE, whatever it printed
@@ -243,6 +248,9 @@
   ok   mutant gantt_rc_ignored killed by: gantt: a failed sweep_gantt is UNREADABLE, never its partial lines
   ok   mutant gantt_rows_unmapped killed by: gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger
   ok   mutant verdict_filter_dropped killed by: verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on
+  ok   mutant cp_owed_filter_dropped killed by: cp-owed: a CP-OWED line reaches the digest, and the repo, ledger and checkout are handed on
+  ok   mutant cp_owed_rc_ignored killed by: cp-owed: rc 2 is its UNREADABLE line, never its partial lines
+  ok   mutant cp_owed_ledger_optional killed by: cp-owed: an overlay with no fire_ledger is UNREADABLE and runs nothing
   ok   mutant verdict_rc_ignored killed by: verdict-audit: a failed run is UNREADABLE, never its partial lines
   ok   mutant gantt_gh_rc_ignored killed by: gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
   ok   mutant gantt_show_rc_ignored killed by: gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
@@ -271,4 +279,4 @@
   ok   mutant red_carried_to_next_cycle killed by: darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs
   ok   mutant no_per_run_remember killed by: darwin-selftest: a pass killed partway keeps the runs it finished
   ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
-beat_jobs self-test: 273 checks, 0 failed
+beat_jobs self-test: 281 checks, 0 failed

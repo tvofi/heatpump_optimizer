@@ -1,0 +1,19 @@
+188d187
+<     "dev/audit/harnesses/r10_water_setpoint_feedback.py",
+190a190
+>     "dev/audit/harnesses/r11_relay_3358_skip.py",
+223c223
+<          "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
+---
+>          "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
+251,253c251,254
+<         "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard, "ci-attempt": ci_attempt,
+< -       "darwin-selftest": darwin_selftest}
+< +       "toolchain-promote": toolchain_promote, "darwin-selftest": darwin_selftest}
+---
+>         "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
+> -       "ci-attempt": ci_attempt,
+> +       "ci-attempt": ci_attempt, "toolchain-promote": toolchain_promote,
+>         "darwin-selftest": darwin_selftest}
+256d256
+<  def main(argv: list[str]) -> int:
