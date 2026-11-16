@@ -1,1 +1,3 @@
 ok D5-s10
+ok D5-s9
+note D5-s9: REPORT.md absent (the subagent's Write of it was refused); report_path in REPORT.json names it
