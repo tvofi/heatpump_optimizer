@@ -2,3 +2,4 @@
 1794852800 HB alive
 1794852810 CKPT setup done, part1 merged at main; reading code for carries 5-9 snapshot ef71983dbfab
 1794852870 CKPT read cloud_relay/update_pr/pr_args; investigating tick_loop self-test HEAD move snapshot 56cb22561b83
+1794853174 CKPT carry 5 built, self-test 527/0, pushed wip snapshot ca540499ce29
