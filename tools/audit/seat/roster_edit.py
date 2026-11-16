@@ -1364,11 +1364,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                             "origin", refspec],
                            capture_output=True, text=True)
         if r.returncode == 0:
-            # our own push: the tracking ref must follow it, or the next op
-            # in this run finds HEAD on no origin ref
-            subprocess.run(["git", "-C", str(checkout), "update-ref",
-                            f"refs/remotes/origin/{branch}", head],
-                           capture_output=True)
+            # No tracking-ref write here: every caller (main, roster_queue's
+            # batch, roster_sync) runs fetch_origin before write_roster, which
+            # moves origin/<branch> to this push for the next op.
             print(f"pushed {branch} at {head}")
             return 0
         why = (r.stderr or r.stdout).strip()[:400]
