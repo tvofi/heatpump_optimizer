@@ -340,7 +340,7 @@ def rule_date(root, ref, path):
     to its source); (None, path) when ref never added it."""
     adds = _git(root, "log", "--follow", "--diff-filter=A", "--format=%ct", "--name-only", ref, "--", path).split("\n")
     adds = [x for x in adds if x]
-    return (int(adds[-2]), adds[-1]) if len(adds) > 1 else (None, path)
+    return (int(adds[-2]), adds[-1]) if adds else (None, path)
 
 
 def _iso(t):
@@ -823,12 +823,12 @@ def _self_test_yield(expect):
         # day 6: a second instance, two non-round rows (one by SHA, one with none) and a rule added with them.
         put(f"{R}/same.md", body("same"))
         links["rules"].append(f"{R}/same.md")
-        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2"], non_round_instances=[f"{side[:9]} a red", "#12 no sha"], **links),
+        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2"], non_round_instances=[f"{side[:9]} a red", "#12 no sha", "deadbeef0 gone"], **links),
                Q=_entry(["R9 Q-1"]))
         commit("X-2", day(6))
         # day 7: a rule linked to a class whose only instance is older than it.
         put(f"{R}/quiet.md", body("quiet"))
-        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2"], non_round_instances=[f"{side[:9]} a red", "#12 no sha"], **links),
+        ledger(LEDGER, C=_entry(["R9 X-1", "R9 X-2", "R5 X-3"], non_round_instances=[f"{side[:9]} a red", "#12 no sha", "deadbeef0 gone"], **links),
                Q=_entry(["R9 Q-1"], rules=[f"{R}/quiet.md"]))
         commit("quiet", day(7))
 
@@ -850,24 +850,28 @@ def _self_test_yield(expect):
         expect("yield: an instance is dated at the first-parent commit that first holds it: the merge (day 3), "
                "never the side commit (day 2), and through the ledger's own move",
                f"INSTANCE C R9 X-1 {day(3)}\n" in out and f"INSTANCE C R9 X-2 {day(6)}\n" in out
+               and f"INSTANCE C R5 X-3 {day(7)}\n" in out
                and f"INSTANCE Q R9 Q-1 {day(1)}\n" in out)
-        expect("yield: a non-round row is dated by its own SHA's commit; one naming no commit is undated, never dropped",
-               f"INSTANCE C {side[:9]} a red {day(2)}\n" in out and "INSTANCE C #12 no sha undated\n" in out)
+        expect("yield: a non-round row is dated by its own SHA's commit; one naming no commit, or a SHA the repository "
+               "lacks, is undated, never dropped and never a refusal",
+               f"INSTANCE C {side[:9]} a red {day(2)}\n" in out and "INSTANCE C #12 no sha undated\n" in out
+               and "INSTANCE C deadbeef0 gone undated\n" in out)
+        expect("yield: a path the history never added has no date", rule_date(t, "HEAD", "no/such.md") == (None, "no/such.md"))
         expect("yield: every instance at or before the rule's add is before, each later one after",
-               rows.get(f"{R}/rule.md") == f"{day(1)} as notes/rule.md classes C: before 0 after 3 undated 1"
-               and rows.get(f"{R}/late.md") == f"{day(5)} classes C: before 2 after 1 undated 1")
+               rows.get(f"{R}/rule.md") == f"{day(1)} as notes/rule.md classes C: before 0 after 4 undated 2"
+               and rows.get(f"{R}/late.md") == f"{day(5)} classes C: before 2 after 2 undated 2")
         expect("yield: a rule copied from a file that stays is dated at that file's add (a design choice: the rules "
                "directory was itself copied), and the row names the path the date came from",
-               rows.get(f"{R}/twin.md") == f"{day(1)} as old/twin-src.md classes C: before 0 after 3 undated 1")
+               rows.get(f"{R}/twin.md") == f"{day(1)} as old/twin-src.md classes C: before 0 after 4 undated 2")
         expect("yield: an instance recorded in the commit that adds the rule is before it",
-               rows.get(f"{R}/same.md") == f"{day(6)} classes C: before 3 after 0 undated 1")
+               rows.get(f"{R}/same.md") == f"{day(6)} classes C: before 3 after 1 undated 2")
         expect("yield, the null control: a linked rule with no later instance reads after 0",
                rows.get(f"{R}/quiet.md") == f"{day(7)} classes Q: before 1 after 0 undated 0")
         expect("yield: a rule no class names reads no-class, never 0; CLAUDE.md is a rule row, an absent AGENTS.md is none",
                rows.get(f"{R}/unlinked.md") == f"{day(5)} no-class" and rows.get("CLAUDE.md") == f"{day(1)} no-class"
                and "AGENTS.md" not in rows and len(rows) == 7)
         expect("yield: the closing line counts the rules, the linked ones and the instances it dated",
-               out.rstrip().endswith("7 rule(s), 5 linked; 5 instance(s), 4 dated, 1 undated"))
+               out.rstrip().endswith("7 rule(s), 5 linked; 7 instance(s), 5 dated, 2 undated"))
         rc, out = run(root=os.path.join(t, "nowhere"))
         expect("yield outside a repository refuses", rc not in (0, None) and "RULE" not in out)
         with tempfile.TemporaryDirectory() as c:
