@@ -1176,7 +1176,7 @@ class MeasuredCop:
     def _owed(self, configured: float, now: datetime, live: bool) -> float | None:
         """:meth:`owed_scale`'s rule: the scale the probe wants in force, or None."""
         if self.restore_due:
-            self.restore_due, self.level = False, None
+            self.restore_due, self.owed, self.level = False, None, None
             if self.scale_response == ASK_PENDING:
                 self.base = float(np.clip(configured, COP_SCALE_MIN, COP_SCALE_MAX))
             return configured
@@ -1230,7 +1230,8 @@ class MeasuredCop:
         while ``ASK_PENDING`` it folds nothing and is not held
         (``COP_REFUSED_NO_EVIDENCE``): the draw must not move the scale it is
         judged against. Nor does an interval fold on a cycle the probe moved
-        the scale (``moved``), whatever judges it: it ran under another one.
+        the scale (``moved``) or still owes its base (``owed``), whatever
+        judges it: it ran under another scale than the one a fold starts from.
         """
         ratio = row.ratio
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
@@ -1244,7 +1245,7 @@ class MeasuredCop:
         verdict = self._admit(row) if self._admits(state, draw, measured_heat) else None
         if verdict == ASK_IGNORED:
             return COP_REFUSED_OFF_ASK
-        if verdict == ASK_PENDING or self.moved:
+        if verdict == ASK_PENDING or self.moved or self.owed is not None:
             return COP_REFUSED_NO_EVIDENCE
         if verdict == ASK_FOLLOWS or abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
