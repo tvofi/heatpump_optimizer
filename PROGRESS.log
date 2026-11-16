@@ -2,3 +2,4 @@
 1794852304 INIT r11-outside-honest-starts-runs
 1794852313 HB alive
 1794852319 INBOX acked through 1
+1794852357 CKPT replay at head and merge base running snapshot 3a9e08e75c52
