@@ -16,7 +16,7 @@ Command (from the export root):
 Without --file it takes the seat's cells from tools/audit/check_scopes.py --seat D5-s8.
 --perturb rewrites FILE's text in memory (OLD replaced by NEW) before units are enumerated, so
 a fixed comment can be re-measured without touching the tree.
-Expected at 92d38ecb: RESULT units=3628, units_with_unresolved_ref=25, units_with_sentence_over_40_words=658,
+Expected at 92d38ecb: RESULT units=3628, units_with_unresolved_ref=25, units_with_sentence_over_40_words=657,
 exact (counts, contention-immune); per-file lines as REPORT.md quotes them.
 Ledger verdicts: stale = a C2-unresolved reference the seat did not adjudicate (ADJ below); true = every
 reference resolves; unverifiable = the unit names nothing resolvable. C5 rides in the result column. Machine: box B12, Linux x86_64, 4 vCPU.
@@ -344,7 +344,9 @@ def main():
             res = f"refs={len(refs)} unresolved={len(bad)} adjudicated={len(adjudicated)} max_sentence_words={msw}"
             if adjudicated:
                 res += " adjudicated: " + "; ".join(sorted(set(adjudicated)))[:300]
-            if msw > 40:
+            if msw > 40 and f.startswith(THIRD_PARTY):
+                res += " C5=n/a (third-party vendored file)"
+            elif msw > 40:
                 res += " C5=fail"
                 stat["long"] += 1
                 n_long += 1

@@ -41,12 +41,12 @@ RESULT file=tools/policy/record-predicate/sweep.mjs units=24 unresolved_units=0 
 RESULT file=tools/policy/render_md.mjs units=3 unresolved_units=0 long_sentence_units=0
 RESULT file=tools/policy/role_pack.py units=15 unresolved_units=0 long_sentence_units=0
 RESULT file=tools/policy/rules_sync.mjs units=4 unresolved_units=0 long_sentence_units=1
-RESULT file=tools/policy/vendor/markdown-it.min.js units=2 unresolved_units=0 long_sentence_units=1
+RESULT file=tools/policy/vendor/markdown-it.min.js units=2 unresolved_units=0 long_sentence_units=0
 RESULT units=3628 count
 RESULT references=2906 count
 RESULT units_with_unresolved_ref=25 count
-RESULT units_with_sentence_over_40_words=658 count
+RESULT units_with_sentence_over_40_words=657 count
 RESULT units_naming_no_reference=2489 count
 RESULT thread_factor=1.000
-RESULT load1=1.92
+RESULT load1=2.20
 RESULT swapins=0
