@@ -1593,22 +1593,21 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         settled: list[Path] = []
         real_settle = globals()["settle_index"]
         globals()["settle_index"] = lambda r, env=None: settled.append(Path(r)) or real_settle(r, env)
+        ubuf = io.StringIO()
         try:
             with contextlib.redirect_stdout(buf):
                 rc_e = main(["record", "--out", str(root / "e.json")], root)
+            # Under the same stub, so a host with no strace reaches the index
+            # check rather than `record`'s refusal to run untraced.
+            globals()["settle_index"] = lambda r, env=None: 1
+            with contextlib.redirect_stdout(ubuf):
+                rc_u = main(["record", "--out", str(root / "u2.json")], root)
         finally:
             globals()["settle_index"] = real_settle
             os.environ["PATH"] = path
             shutil.rmtree(hollow)
         ck("record: an empty trace fails the record, naming it",
            rc_e == 1 and "EMPTY trace step-a.trace (step a)" in buf.getvalue())
-        globals()["settle_index"] = lambda r, env=None: 1
-        ubuf = io.StringIO()
-        try:
-            with contextlib.redirect_stdout(ubuf):
-                rc_u = main(["record", "--out", str(root / "u2.json")], root)
-        finally:
-            globals()["settle_index"] = real_settle
         ck("record: a clone whose index cannot be settled is refused before any step runs",
            rc_u == 1 and "UNSETTLED index of the scratch clone" in ubuf.getvalue()
            and "OK  " not in ubuf.getvalue() and "recorded 0 step(s)" in ubuf.getvalue())
