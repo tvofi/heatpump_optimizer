@@ -1937,7 +1937,7 @@
     "Owner ruling c2 (tvofi, 2026-11-15T11:07:35Z, decision card, verbatim choice: \"Learned floor moves the plan\"; the other option offered, and recommended, was \"Notice only\"). The learned minimum-draw floor moves the plan directly; it is not a notice that waits for the user to set the figure. This overrides any sentence of this group's brief or of the design note that takes the notice-only form. Constraint the design owes before any build: the design note records that the plan-moving form, as the contributor built it in pull request 3529, learns and forgets the floor in a loop that never settles; the design must show, by a failing test on that loop first and its null control, how the learned floor converges (what evidence raises it, what lowers it, and why a plan moved by the floor does not erase the evidence the floor was learned from). Design and design review come first; the reviewer attacks the convergence claim."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-honest-metered-floor",
     "commit": null,
     "last_step": null,
