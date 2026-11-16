@@ -4,3 +4,4 @@
 1794845702 CKPT control reproduced: base 27 refusals, head 0; 67/67 mutants killed; waiting CI snapshot d9ec905ed316
 1794846176 HB alive
 1794846780 HB alive
+1794847419 DONE verdict merge 17c9dd06 pending-ci gate; probe/rev-3671-5f11d7cf at 80f6b744
