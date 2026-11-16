@@ -1,0 +1,4 @@
+296a0a30d4 corpus 288 misjudged 48
+e0238c1fe8 corpus 288 misjudged 0
+'[ "$a" = b ] && [ "$(wc -l <f)" = 3 ]' old ['wc-compare'] new ['wc-compare']
+'[ -n "$x" ] && [ "$(wc -l <f)" != 3 ]' old ['wc-compare'] new ['wc-compare']

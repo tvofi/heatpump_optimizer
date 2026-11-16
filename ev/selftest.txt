@@ -1,0 +1,2 @@
+shell_hazard self-test: ok
+rc=0
