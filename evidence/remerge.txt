@@ -1,0 +1,40 @@
+83d2d614047ee669cd3b80d40fb58c511fb1112a
+Merge remote-tracking branch 'origin/main' into fix/r11-pre-finder-contract-pr
+
+diff --git a/dev/governance/config/policy_budgets.json b/dev/governance/config/policy_budgets.json
+remerge CONFLICT (content): Merge conflict in dev/governance/config/policy_budgets.json
+index 28ce13e11a..a100e9d5b3 100644
+--- a/dev/governance/config/policy_budgets.json
++++ b/dev/governance/config/policy_budgets.json
+@@ -52,15 +52,9 @@
+     "CLAUDE.md": 221,
+     "tests/README.md": 800,
+     "tools/audit/README.md": 321,
+-<<<<<<< 5c753a73c3 (Merge remote-tracking branch 'origin/main' into fix/r11-pre-finder-contract-pr)
+     "tools/audit/briefs/COMMON.md": 114,
+-    "tools/audit/briefs/D0.md": 66,
+-    "tools/audit/briefs/D1.md": 60,
+-=======
+-    "tools/audit/briefs/COMMON.md": 108,
+     "tools/audit/briefs/D0.md": 76,
+     "tools/audit/briefs/D1.md": 72,
+->>>>>>> f1520e3539 (Merge pull request #3625 from tvofi/fix/r11-pre-briefs-census)
+     "tools/audit/briefs/D10.md": 46,
+     "tools/audit/briefs/D11.md": 126,
+     "tools/audit/briefs/D12.md": 74,
+@@ -112,15 +106,9 @@
+     "CLAUDE.md": 3605,
+     "tests/README.md": 6686,
+     "tools/audit/README.md": 6059,
+-<<<<<<< 5c753a73c3 (Merge remote-tracking branch 'origin/main' into fix/r11-pre-finder-contract-pr)
+     "tools/audit/briefs/COMMON.md": 1697,
+-    "tools/audit/briefs/D0.md": 926,
+-    "tools/audit/briefs/D1.md": 819,
+-=======
+-    "tools/audit/briefs/COMMON.md": 1598,
+     "tools/audit/briefs/D0.md": 1112,
+     "tools/audit/briefs/D1.md": 989,
+->>>>>>> f1520e3539 (Merge pull request #3625 from tvofi/fix/r11-pre-briefs-census)
+     "tools/audit/briefs/D10.md": 624,
+     "tools/audit/briefs/D11.md": 1939,
+     "tools/audit/briefs/D12.md": 997,
