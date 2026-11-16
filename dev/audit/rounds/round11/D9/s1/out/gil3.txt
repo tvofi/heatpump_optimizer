@@ -1,0 +1,35 @@
+RESULT switchinterval_s=0.005 s
+RESULT load1_start=5.5625 1
+RESULT idle.longest_gil_hold_ms_max=8.87092 ms
+RESULT idle.longest_gil_hold_ms_median=5.88123 ms
+RESULT idle.starvation_share_median=0.00379831 1
+RESULT idle.gap_p99_ms_median=1.21592 ms
+RESULT idle.wall_s_median=2.00063 s
+RESULT thread.two_zone_dhw.longest_gil_hold_ms_max=30.9011 ms
+RESULT thread.two_zone_dhw.longest_gil_hold_ms_median=19.7516 ms
+RESULT thread.two_zone_dhw.starvation_share_median=0.415241 1
+RESULT thread.two_zone_dhw.gap_p99_ms_median=10.998 ms
+RESULT thread.two_zone_dhw.wall_s_median=3.24332 s
+RESULT thread_noyield.two_zone_dhw.longest_gil_hold_ms_max=26.4485 ms
+RESULT thread_noyield.two_zone_dhw.longest_gil_hold_ms_median=21.3524 ms
+RESULT thread_noyield.two_zone_dhw.starvation_share_median=0.496466 1
+RESULT thread_noyield.two_zone_dhw.gap_p99_ms_median=12.8016 ms
+RESULT thread_noyield.two_zone_dhw.wall_s_median=2.8592 s
+RESULT thread.dhw_cap_zero_range.longest_gil_hold_ms_max=23.9084 ms
+RESULT thread.dhw_cap_zero_range.longest_gil_hold_ms_median=21.7982 ms
+RESULT thread.dhw_cap_zero_range.starvation_share_median=0.46008 1
+RESULT thread.dhw_cap_zero_range.gap_p99_ms_median=12.0372 ms
+RESULT thread.dhw_cap_zero_range.wall_s_median=3.97388 s
+RESULT thread_noyield.dhw_cap_zero_range.longest_gil_hold_ms_max=24.9263 ms
+RESULT thread_noyield.dhw_cap_zero_range.longest_gil_hold_ms_median=20.6051 ms
+RESULT thread_noyield.dhw_cap_zero_range.starvation_share_median=0.346703 1
+RESULT thread_noyield.dhw_cap_zero_range.gap_p99_ms_median=12.8925 ms
+RESULT thread_noyield.dhw_cap_zero_range.wall_s_median=3.10999 s
+RESULT whole_run_process_over_main_thread=18.1204 1
+
+=== Stress and economics ===
+RESULT reference_solve_cpu_ms=44.4458 ms
+RESULT thread_factor=0.999983 1
+RESULT load1=5.92725 1
+RESULT swapins=0 count
+RESULT ru_maxrss_self_mb=109.32 MB

@@ -1,0 +1,56 @@
+{
+ "id": "D9-s1-04",
+ "scope": "D9-s1",
+ "step": "D9.M1",
+ "title": "Every steady what-if runs reference_day's thermostat simulation on the event loop: 384-960 simulate_step per call",
+ "severity": "medium",
+ "claim": "async_simulate(steady=True) calls whatif.schedule_days -> HeatPumpOptimizer.reference_day for both sides synchronously on the event loop thread, so each steady what-if (the card's simulate_plan, the fuse advisor, the cap tile) makes 384-960 ThermalModel.simulate_step calls on the loop and blocks it for 6.1-26.9 ms of host CPU (30-134 ms on a Pi at F=5), over B2's 100 ms when the ask sets a weekend comfort level.",
+ "mechanism": "coordinator.py async_simulate: days = whatif.schedule_days(_scratch({})[:2], (scratch, inputs)) if steady; schedule_days evaluates o.reference_day(i) for the live and the what-if optimizer, which for each distinct day type of the week runs _build_comfort_bounds and two _compute_baseline_power passes (simulate_step per step) -- in the coroutine, between the two awaits, never through _await_off_loop. The same function's solves go to the process worker; this model work does not (bug class P10).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_whatif_loop_block.py",
+  "harness_path": "dev/audit/rounds/round11/D9/s1/h_whatif_loop_block.py",
+  "value": 960,
+  "unit": "ThermalModel.simulate_step calls on the loop thread per weekend-comfort what-if (384 in the other five steady cells); loop CPU inside schedule_days 26.9 ms host in the quiet window (median of 3), 0.98 reference solves against B2's 0.73 = 100 ms/(F x 27.5 ms)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B1 container (4 vCPU, shared by three seats), CPython 3.14, OpenBLAS pinned to 1 thread; solves on the shipped process-worker route",
+  "cpu_or_wall": "count",
+  "contention_note": "call counts exact. The CPU was re-taken in a quiet window (load1 1.0-1.1, out/wl3.txt): weekend 26.9 ms CPU = 26.9 ms wall, heartbeat gap 28.3 ms; the other cells 6.1-10.1 ms. Loaded runs (load1 5.4-6.0, out/wl2.txt) read 23.4-23.9 ms. Provisional until the judge's quiet re-run.",
+  "tolerance": "exact (count); CPU \u00b115 % (23.4 / 23.9 / 26.9 ms over three runs)",
+  "load1": 1.0,
+  "thread_factor": 1.0,
+  "provisional": false
+ },
+ "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_step (calls on the loop thread) and heatpump_optimizer.whatif:schedule_days (loop thread CPU), driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_simulate",
+ "perturbation": {
+  "change": "whatif.schedule_days replaced by a twin whose two reference_day evaluations run through coordinator._await_off_loop (the process worker) before the call, in memory",
+  "expected_direction": "to_zero",
+  "observed_value": "quiet: loop simulate_step 384 -> 0 (card_target) and 960 -> 0 (card_weekend); loop CPU in schedule_days -> 0; heartbeat gap 10.7 -> 2.1 ms and 28.3 -> 1.8 ms. Second lever: weekend comfort set (more distinct day types) moves the count UP 384 -> 960 and the CPU 9.0 -> 26.9 ms"
+ },
+ "metric_definition": "simulate_step calls and thread CPU on the asyncio loop's thread during one async_simulate(steady=True), solves on the process worker.",
+ "phenomenon_property": "No model kernel (simulate_step, simulate_trajectory*, a baseline-thermostat walk) runs on the event loop thread; a what-if's every model evaluation goes through the process worker as its solves do.",
+ "seam_rule": "grep -n 'reference_day\\|schedule_days\\|_compute_baseline_power' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/whatif.py custom_components/heatpump_optimizer/optimizer.py  # callers reached from a coroutine without _await_off_loop",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_whatif_loop_block.py",
+  "value": "async_simulate(steady=False) (the degree tiles' call): 0 loop simulate_step, 0 ms in schedule_days, heartbeat gap 1.9 ms (quiet)",
+  "note": "the loop calls vanish exactly when schedule_days is not reached"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 6.06,
+  "max": 26.9,
+  "drop_most_favourable": 10.05
+ },
+ "reproduction_steps": [
+  "Run the command; read <house>.<cell>.loop_simulate_step_calls, .schedule_days_loop_cpu_ms_median and .longest_loop_gap_ms_median, and the perturbed_offloop.* rows.",
+  "Leave-one-out over the six steady cells' loop CPU (ms host, quiet): dropping the weekend cell (26.9) leaves max 10.1 ms (holiday) = 50 ms Pi, under B2. The B2 overrun needs a schedule with more distinct day types, while the loop-side model work itself (384+ calls, 30-50 Pi-ms) is present in every steady cell."
+ ],
+ "proposed_fix_scope": "coordinator.py async_simulate: evaluate both reference_day calls through _await_off_loop (one job returning both) before schedule_days compares them; whatif.schedule_days takes the two (targets, kWh) pairs. A features.py check that a steady what-if makes 0 simulate_step calls on the loop thread.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/whatif.py",
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "P10"
+}
