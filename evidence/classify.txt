@@ -1,2 +1,0 @@
-RED 3beb89a81abf8ce618cc96e4458db37e9f186e98 pending: gate red: none introduced: 1
-INTRODUCED Show the self-test scope (tools/ci/selftest_scope.py) refusing its own fixtures

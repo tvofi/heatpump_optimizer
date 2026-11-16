@@ -1,0 +1,10 @@
+[
+ {"name": "moved-detail-always", "file": "tools/audit/product_reads.py",
+  "old": "(not b[\"ok\"] or b[\"detail\"] != a[\"detail\"])", "new": "(not b[\"ok\"] or True)"},
+ {"name": "carried-profile-kind-inverted", "file": "tools/audit/product_reads.py",
+  "old": "return cfg[\"kind\"] == what and v.get(\"profile\") == level", "new": "return cfg[\"kind\"] != what and v.get(\"profile\") == level"},
+ {"name": "carried-profile-level-off", "file": "tools/audit/product_reads.py",
+  "old": "return cfg[\"kind\"] == what and v.get(\"profile\") == level", "new": "return cfg[\"kind\"] == what"},
+ {"name": "moved-missing-other-counts", "file": "tools/audit/product_reads.py",
+  "old": "return a is not None and b is not None and (", "new": "return a is not None and ("}
+]

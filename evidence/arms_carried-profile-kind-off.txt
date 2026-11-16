@@ -1,0 +1,2 @@
+SELF-TEST FAILED
+  null: a price level whose prices() configuration precedes a weather() one sharing the level name: carried by its own kind: got 'reached (configuration 7): the check does not move with the level switched', want 'witnessed (configuration 6)'

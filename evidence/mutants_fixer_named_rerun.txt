@@ -1,6 +1,0 @@
-SURVIVED NULL
-KILLED fixer-state-equality-all-to-any
-KILLED fixer-perturb-any-pass
-KILLED fixer-nondet-guard-operation-off
-KILLED fixer-restart-ge-zero
-KILLED fixer-unknown-token-true
