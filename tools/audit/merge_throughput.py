@@ -206,6 +206,9 @@ def _bench_self_test(check) -> None:
           run(10, 20, green_after=-30)["median"], {"train": 25.0, "chain": 15.0})
     check("carry 0 bench null: chains only 15% below the train are retired", run(17, 20)["decision"],
           "retire the chains")
+    check("carry 0 bench: chains 25% below the train clear the 20% margin; exactly 20% below does not "
+          "(the rule is MORE than BENCH_MARGIN below)", (run(15, 20)["decision"], run(16, 20)["decision"]),
+          ("proposal into P750 and P754", "retire the chains"))
     check("carry 0 bench null: nine pull requests each are retired, whatever the margin",
           run(1, 20, n=9)["decision"], "retire the chains")
     check("carry 0 bench: one wrong chain merge retires the chains and is counted",
