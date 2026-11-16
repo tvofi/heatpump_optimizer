@@ -1131,6 +1131,7 @@ _CITATION_POLICY = (
     r"\.claude/rules/[a-z0-9-]+\.md",
     r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
     r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/criteria/[A-Za-z0-9_.-]+\.md",
 )
 
 
