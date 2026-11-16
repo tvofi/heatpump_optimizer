@@ -1,6 +1,7 @@
 {
   "_comment": "One-sided caps on the governance corpus. A policy file may shrink freely; growing past its cap is refused. Deliberately NOT the two-sided ratchet tests/structure.py applies to code: an 'improved and not yet recorded' refusal on prose would punish deletion, which is the behaviour this corpus most needs. Raising a cap is a deliberate edit to this file, visible in the diff a reviewer reads.",
   "_measured": "Caps recorded at the values measured when policy_lint landed. Governance prose had added 6.8 lines for every line deleted, with no governance document ever getting shorter.",
+  "_keys": "A moved file's caps are keyed at its OLD path (tests/layout.json's retired and lifted entries), the spelling policy_lint.mjs canonicalises every file to before the lookup, so grepping this file for the live path finds nothing: `node tools/policy/policy_lint.mjs --budgets` prints each row at the live path and names the key. The keys move with the move map's retirement (R9-RO-9).",
   "always_loaded_tokens": 3349,
   "_always_loaded_target": 6000,
   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
