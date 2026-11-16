@@ -183,8 +183,6 @@ def owner_only_dim(text, dims):
 def owner_only_records(root, led, judge_files=None):
     """One line per place the tree holds a record of an owner-only dimension: where and which dimension, never the id."""
     dims = owner_only(root)
-    if not dims:
-        return []
     out = set()
     files = judge_files if judge_files is not None else sorted(glob.glob(os.path.join(root, "dev/audit/rounds/round*/JUDGE.json")))
     for f in files:
