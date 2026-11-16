@@ -549,6 +549,26 @@ def names_changed(root: Path, run: str, changed: set[str]) -> bool:
     return False
 
 
+def recorded_readers(root: Path, changed: set[str]) -> set[str]:
+    """The instrument-self-tests steps whose recorded closure in `root`'s
+    tools/ci/selftest_closures.json holds a changed path in `files` -- the
+    readers a step's run text does not name: queue_pre_flight.py's step reads
+    merge_train.py, which 23b943c987 reddened unnamed. Parsed by
+    selftest_scope's own `job_steps` and `covers`; an unreadable table is none."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
+    try:
+        import selftest_scope as ss
+    finally:
+        sys.path.pop(0)
+    table = ss.load_table(root / ss.TABLE)
+    wf = root / INSTRUMENT_WF
+    if table is None or not wf.is_file():
+        return set()
+    return {st.name for st in ss.job_steps(wf.read_text(), INSTRUMENT_JOB)
+            if st.id in table["steps"]
+            and any(ss.covers(table["steps"][st.id].get("files", ()), c) for c in changed)}
+
+
 # A replay that ran out of time measured nothing about the tree: a loaded host
 # (load average 100+) timed out clean branches at 180 s while CI was green.
 STEP_REPLAY_TIMEOUT_ENV = "HPO_STEP_REPLAY_TIMEOUT_S"
@@ -582,14 +602,16 @@ def replay_step(tree: Path, run: str) -> int:
 
 def step_replay_preds(root: Path, base: str, changed: set[str],
                       notes: list | None = None) -> list[tuple[str, str]]:
-    """Each instrument-self-tests step whose run text names a changed file,
-    replayed at the head; one red there is replayed again, as the base's step of
+    """Each instrument-self-tests step whose run text names a changed file, or
+    whose recorded closure reads one (`recorded_readers`), replayed at the
+    head; one red there is replayed again, as the base's step of
     that name, in a detached worktree of the base, and predicted only where the
     base's is green -- so a step this container cannot run (a missing binary,
     an unset variable: red at both ends) is a note left to CI, never the branch's."""
     import tempfile
     head = instrument_steps(root)
-    hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}
+    readers = recorded_readers(root, changed)  # mut:readers
+    hit = {n: r for n, r in head.items() if n in readers or names_changed(root, r, changed)}
     ran = {n: replay_step(root, r) for n, r in hit.items()}
     for n, rc in ran.items():
         if rc == TIMED_OUT:
@@ -637,7 +659,15 @@ def step_replay_self_test(root: Path) -> int:
                 "          grep -Eq '^{n} self-test: [1-9][0-9]* checks, 0 failed$' \"$RUNNER_TEMP/{n}.txt\"\n")
         (t / INSTRUMENT_WF).write_text(f"jobs:\n  {INSTRUMENT_JOB}:\n    steps:\n"
                                        + step.format(n="a") + step.format(n="b")
-                                       + "      - name: c\n        run: bash tools/c.sh\n")
+                                       + "      - name: c\n        run: bash tools/c.sh\n"
+                                       + "      - name: d\n        id: d\n        run: bash tools/d.sh\n")
+        # d's run text and d.sh name no file of tools/lib/: only its recorded closure reads x.sh.
+        (t / "tools" / "lib").mkdir()
+        (t / "tools" / "lib" / "x.sh").write_text("true\n")
+        (t / "tools" / "d.sh").write_text("set -e; for f in tools/lib/*.sh; do . \"$f\"; done\n")
+        (t / "tools" / "ci").mkdir()
+        table = t / "tools" / "ci" / "selftest_closures.json"
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh", "tools/lib/x.sh"]}}}))
         # c's step names only c.sh, whose text drives a.sh (ref_privacy.py over body_push.sh).
         (t / "tools" / "c.sh").write_text("bash tools/a.sh --self-test | grep -q '^a self-test:'\n")
         ok = "echo '{n} self-test: 3 checks, 0 failed'\n"
@@ -683,6 +713,20 @@ def step_replay_self_test(root: Path) -> int:
                 os.environ.pop(STEP_REPLAY_TIMEOUT_ENV, None)
             else:
                 os.environ[STEP_REPLAY_TIMEOUT_ENV] = was
+        (t / "tools" / "lib" / "x.sh").write_text("exit 1\n")
+        got = [l for _, l in step_replay_preds(t, base, {"tools/lib/x.sh"})]
+        good = len(got) == 1 and got[0].startswith("STEP REPLAY d:")
+        print(f"  {'ok  ' if good else 'FAIL'} a step whose recorded closure reads the changed file, "
+              f"its run text naming none, is replayed and predicted red")
+        bad += not good
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} null control: a closure not holding the changed file is not replayed")
+        bad += got != 0
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/lib/**"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 1 else 'FAIL'} a closure's `tools/lib/**` entry covers the changed file")
+        bad += got != 1
     g = globals()
     real = g["step_replay_preds"]
     g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
