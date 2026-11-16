@@ -2971,7 +2971,7 @@
     "Moved from R10-COP-LEARNER-DRAW-FLOOR carry 8 (0-based) by owner ruling Q1 (tvofi 2026-11-15, verbatim choice: \"Fold into D4 design (Recommended)\"): an owner design question that the D4 design of the self-setting pump residual (this group's carry 195) answers, shown to tvofi at its design review with the harness rows the text names. Text verbatim:\n\nFrom r10-cop-learner-draw-floor, body item 28d8e538: Design decision, owner: the cap reads run-asked draws only, so an install with an overstated minimum that the plan never asks at or above keeps base's refusal and reads `duty_floor`; the remedy there is the configured figure. Lowering the floor for it lowers it for every duty-cycling install: harness rows `min3_running_warm_own`, `fixed3_duty50_warm_own`, `fixed3_duty70_warm_own` are the control. Carry: R10-COP-LEARNER-DRAW-FLOOR (items 28d8e538)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r11-outside-self-setting-pump",
     "commit": null,
     "last_step": null,
