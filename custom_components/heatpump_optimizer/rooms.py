@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Any
 from weakref import WeakKeyDictionary
 
-from .payload import Rooms, RoomsView
+from .payload import Room, Rooms, RoomsView
 
 #: The longest list the options page stores: a large house's thermostats, and
 #: a bound on one cycle's reads.
@@ -43,7 +43,6 @@ class RoomReading:
     target_c: float | None = None
     calling: bool | None = None
     hvac_mode: str | None = None
-    age_minutes: float | None = None
     problem: str | None = None
 
 
@@ -107,7 +106,17 @@ def view(owner: Any) -> RoomsView:
         "spread": None if summary is None else round(summary.spread_c, 2),
         "coldest_entity": None if summary is None else summary.coldest_entity,
         "warmest_entity": None if summary is None else summary.warmest_entity,
-        "temperatures": {r.entity_id: round(t, 2) for r in readings if (t := usable_c(r)) is not None},
+        "per_room": {r.entity_id: _room(r, t) for r in readings if (t := usable_c(r)) is not None},
         "dropped": {r.entity_id: str(r.problem) for r in readings if usable_c(r) is None},
     }
     return {"rooms": block}
+
+
+def _room(reading: RoomReading, temperature_c: float) -> Room:
+    """One readable room as published: a thermostat's target and state beside it."""
+    return {
+        "temperature": round(temperature_c, 2),
+        "target": None if reading.target_c is None else round(reading.target_c, 2),
+        "calling": reading.calling,
+        "hvac_mode": reading.hvac_mode,
+    }

@@ -734,7 +734,8 @@ class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """The mean over the room list's readable rooms (#3616).
 
     Unknown under the list's quorum (``rooms.summarize``). Each readable
-    room's temperature, and each dropped room's problem word, keyed by entity
+    room's temperature (and a thermostat's target, whether it calls for heat
+    and its HVAC mode), and each dropped room's problem word, keyed by entity
     id: a dead thermostat shows here, never as an input problem.
     """
 
@@ -751,7 +752,7 @@ class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         block = _mapping(self._data().get("rooms"))
-        return {key: block.get(key) for key in ("valid_count", "configured_count", "temperatures", "dropped")}
+        return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
 
 
 class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):

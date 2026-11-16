@@ -93270,12 +93270,15 @@ R.check(
 )
 _rm_pub = _rm_twenty.get("rooms") or {}
 R.check(
-    "the payload's rooms block carries the average, spread, valid count and the dropped room",
+    "the payload's rooms block carries the average, spread, valid count, the dropped room and each "
+    "readable thermostat's temperature, target, call for heat and HVAC mode",
     _rm_pub.get("valid_count") == 19 and _rm_pub.get("configured_count") == 20
     and round(_rm_pub.get("average"), 6) == round(sum(19.0 + 0.1 * i for i in range(19)) / 19, 6)
     and round(_rm_pub.get("spread"), 6) == 1.8
     and _rm_pub.get("dropped") == {"climate.dead": "unavailable"}
-    and _rm_pub.get("coldest_entity") == "climate.r0",
+    and _rm_pub.get("coldest_entity") == "climate.r0"
+    and _rm_pub.get("per_room", {}).get("climate.r1")
+    == {"temperature": 19.1, "target": 20.0, "calling": False, "hvac_mode": "heat"},
     f"{_rm_pub}",
 )
 R.check(

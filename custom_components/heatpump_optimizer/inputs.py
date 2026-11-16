@@ -1294,7 +1294,7 @@ def read_room(reader: InputReader, entity_id: str) -> RoomReading:
         if not ROOM_AIR_RANGE_C[0] <= value <= ROOM_AIR_RANGE_C[1]:
             value = None
             _set_problem(reading, "implausible")
-    return RoomReading(entity_id, value, target, calling, mode, reading.age_minutes, reading.problem)
+    return RoomReading(entity_id, value, target, calling, mode, reading.problem)
 
 
 def read_rooms(reader: InputReader, entity_ids: Collection[str]) -> tuple[RoomReading, ...]:

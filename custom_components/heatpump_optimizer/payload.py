@@ -944,10 +944,17 @@ class InputHealthView(TypedDict, total=False):
     learner_freeze_reason: str | None
 
 
+class Room(TypedDict):
+    temperature: float
+    target: float | None
+    calling: bool | None
+    hvac_mode: str | None
+
+
 class Rooms(TypedDict, total=False):
     """The room list's summary (#3616); None leaves under its quorum.
 
-    ``temperatures`` holds each readable room, ``dropped`` each other room's
+    ``per_room`` holds each readable room, ``dropped`` each other room's
     problem word, both keyed by entity id: no room name is stored.
     """
 
@@ -957,7 +964,7 @@ class Rooms(TypedDict, total=False):
     spread: float | None
     coldest_entity: str | None
     warmest_entity: str | None
-    temperatures: dict[str, float]
+    per_room: dict[str, Room]
     dropped: dict[str, str]
 
 

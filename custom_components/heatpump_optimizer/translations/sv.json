@@ -1258,11 +1258,11 @@
         "title": "Rumstermometrar",
         "description": "Rumstermostater eller temperatursensorer, en per rum. Optimeraren publicerar deras medelvärde och spridningen mellan det kallaste och det varmaste rummet; planen använder dem ännu inte. Lämna tomt om du inte har några.",
         "data": {
-          "room_temperature_entities": "Rumstermometrar (högst 32)",
+          "room_temperature_entities": "Rumstermometrar",
           "after_save": "Efter sparande"
         },
         "data_description": {
-          "room_temperature_entities": "Klimatentiteter (rumstermostater) eller temperatursensorer. Ett rum som är otillgängligt, inaktuellt eller utanför intervallet lämnas utanför medelvärdet och ger aldrig ett indataproblem.",
+          "room_temperature_entities": "Högst 32 klimatentiteter (rumstermostater) eller temperatursensorer. Ett rum som är otillgängligt, inaktuellt eller utanför intervallet lämnas utanför medelvärdet och ger aldrig ett indataproblem.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },

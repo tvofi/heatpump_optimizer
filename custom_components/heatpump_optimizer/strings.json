@@ -1258,11 +1258,11 @@
         "title": "Room thermometers",
         "description": "Room thermostats or temperature sensors, one per room. The optimizer publishes their average and the spread between the coldest and the warmest room; the plan does not use them yet. Leave empty if you have none.",
         "data": {
-          "room_temperature_entities": "Room thermometers (up to 32)",
+          "room_temperature_entities": "Room thermometers",
           "after_save": "After saving"
         },
         "data_description": {
-          "room_temperature_entities": "Climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
+          "room_temperature_entities": "Up to 32 climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -2026,10 +2026,10 @@
         }
       },
       "room_average_temperature": {
-        "name": "Room average temperature"
+        "name": "Room Average Temperature"
       },
       "room_temperature_spread": {
-        "name": "Room temperature spread"
+        "name": "Room Temperature Spread"
       },
       "indoor_temperature_optimizer": {
         "name": "Indoor Temperature (Optimizer)"

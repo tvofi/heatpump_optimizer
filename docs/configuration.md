@@ -350,6 +350,7 @@ control, described once here rather than twenty-three times below:
 | Sensors and entities | Price source, weather, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
+| Room thermometers | Optional room thermostats or temperature sensors: their average and spread |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | The questionnaire again, plus windows and weather sensitivity |
 | Thermal model (expert) | The raw single-zone masses, losses, COP and power limits |
@@ -964,6 +965,12 @@ tank rise. The counts and the steps are in the diagnostics download under
 whether *Control* is worth turning on: the share of *delivered* steps is how
 often the pump already does what the plan wanted. *Off* (the default) does
 neither.
+
+### Room thermometers
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Room thermometers | none | up to 32 `climate` entities or `temperature` sensors | Optional, one per room. A room thermostat's own room temperature (its `current_temperature`) is read, not its HVAC mode; a temperature sensor's state is read as it is. Two sensors appear once the list is saved: **Room Average Temperature**, the mean over the rooms that read, and **Room Temperature Spread**, the warmest room less the coldest, in K. A room that is unavailable, older than six hours (times the staleness scale) or outside -30 to 60 °C is left out and listed under the average's `dropped` attribute; it never raises an input problem. With fewer than half the rooms readable both sensors read unknown. The plan does not use the rooms yet; the indoor temperature sensor on **Sensors and entities** is still the one the model runs on. Clearing the list removes it; a factory reset keeps it, as it keeps every sensor. |
 
 ### Heating system and heat storage
 
