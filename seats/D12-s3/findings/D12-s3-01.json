@@ -2,7 +2,7 @@
  "id": "D12-s3-01",
  "scope": "D12-s3",
  "step": "D12.M3",
- "title": "A compressor declared on/off (compressor_modulation=on_off) is planned as modulating; on switch+setpoint it removes the clamp",
+ "title": "Declared on/off compressor (compressor_modulation=on_off) is planned as modulating; switch+setpoint loses its clamp",
  "severity": "high",
  "claim": "With compressor_modulation=on_off, thermal_model.declared_modulation returns True (modulating), so the plan one real cycle publishes is never projected onto {0} U [p_min, p_max]: 0 of 10 grid cells clamp (10 of 10 under the documented mapping), 8-9 of 10 publish steps in (0, p_min), and on an unmetered switch+setpoint plant the declaration switches the install probe's clamp off (10/10 -> 0/10).",
  "mechanism": "declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True, the value its docstring and the modulating branch reserve for 'modulating'; duty_cycle_realizable then short-circuits to True, levels_clamped to False, and OptimizationConfig.from_mapping solves with clamp_planned_levels=False; probe_install.on_off (declared_modulation(cfg) is False) is also never set.",

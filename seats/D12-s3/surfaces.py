@@ -25,9 +25,16 @@ Run (from the export root):
   ... surfaces.py --list           # the M3 universe (enumerator), one cell per line
   ... surfaces.py --perturb doc-modulation   # declared_modulation patched to its documented map (on_off->False): fail_count must go DOWN by 1
   ... surfaces.py --perturb range-keys       # C2: climate min_temp/max_temp unread (decoy min/max used): space_setpoint:climate and dhw_setpoint:climate/water_heater must FAIL (count up)
+  ... surfaces.py --entry --setup [-v] [--reference]   # each cell set up through heatpump_optimizer.async_setup_entry
+                                                    # (notifier, debugger, frontend, platforms), then run_optimization,
+                                                    # simulate_plan, diagnose_interval services; a raise fails the cell
   ... surfaces.py --reference --perturb drop-pv   # plant shrink (brief M6 style): PV/away/peak dropped from the reference arm; the count must not move (0)
-Expected at baseline 92d38ecb (export as handed over, box B6): 27 cells; fail_count=1 (modulation:on_off) exact on the
-generalization arm, 0 on --reference (its cycling cost 0.5 plans no sub-minimum step); --perturb doc-modulation -> 0.
+Expected at baseline 92d38ecb (export as handed over, box B6): 32 cells; fail_count=1 (modulation:on_off) exact on the
+generalization arm (also with --entry --setup); --reference fails modulation:on_off as well (1-3 sub-minimum steps);
+--entry --reference also reads heat_curve:number_offset / input_number_offset as "never actuated" -- a harness gap:
+the entity already reads the cycle's displace (-3) and heat_curve.write_displace owes no write (_decide).
+--perturb doc-modulation -> 0. The solve runs in the process worker (coordinator._run_in_process): only parent-side
+patches (declared_modulation, inputs._RANGE_KEYS) reach it.
 Machine: box B6, Linux x86_64, python 3.14, numpy 2.5.4 / scipy 1.18.1.
 """
 from __future__ import annotations

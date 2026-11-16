@@ -2,7 +2,7 @@
  "id": "D12-s3-02",
  "scope": "D12-s3",
  "step": "D12.M3",
- "title": "DHW set-point Fix writes the disinfection floor past the entity's own max on a pump whose DHW set-point tops out below it",
+ "title": "DHW set-point Fix writes the disinfection floor above the entity's own max on a pump capped below it",
  "severity": "medium",
  "claim": "On a plant whose DHW set-point entity's declared maximum (55 degC) is below the notice's floor (60 degC while a legionella cycle is active), the confirmed dhw_setpoint_below_disinfection Fix sends 60 to the entity on every one of the four DHW set-point domains, with or without an immersion disinfection switch: 8 of 12 Fix writes fall outside the entity's own range, 0 under an entity-capped quantisation.",
  "mechanism": "setpoint_check._dhw quantises the floor with quantise_setpoint_c(..., rounding='up', hi_c=params.dhw_hard_max_temp) and never with the entity's own max (inputs.setpoint_range_c); repairs.DhwSetpointRepairFlow writes that value through inputs.write_setpoint. The arbiter's own writes are bounded by the entity range (pump_arbiter._bounded, duties.py 0 bad of 120), so only the Fix path skips it; the notice can then never clear on that plant, and Home Assistant refuses an out-of-range number/climate/water_heater value.",
@@ -25,7 +25,7 @@
   "expected_direction": "to_zero",
   "observed_value": "bad_fix_writes 8 -> 0 (the capped cells write 55)"
  },
- "metric_definition": "Per (DHW set-point domain x entity range) cell, service calls the confirmed DHW Fix sends whose value lies outside the entity's declared min_temp/max_temp (climate, water_heater) or min/max (number, input_number).",
+ "metric_definition": "Per (DHW set-point domain x entity range) cell, confirmed-Fix service calls whose value is outside the entity's own declared range (min_temp/max_temp or min/max).",
  "phenomenon_property": "Every set-point write the integration sends -- arbiter, Fix flow, or any other writer -- lands inside the target entity's own declared range, on every set-point domain the tree accepts.",
  "seam_rule": "grep -n 'write_setpoint(\\|quantise_setpoint_c(\\|write_setpoint_c(' custom_components/heatpump_optimizer/*.py",
  "null_control": {
