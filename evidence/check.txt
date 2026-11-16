@@ -1,5 +1,4 @@
-machinery_ratchet: PR mode, #3627 as the candidate on origin/main; window 580 merge(s): 99 production, 327 machinery, 154 record; 21768 product line(s), 302691 nonproduct
+machinery_ratchet: PR mode, #3627 as the candidate on origin/main; window 580 merge(s): 99 production, 328 machinery, 153 record; 21768 product line(s), 303624 nonproduct
   ok   nonproduction_merges 481 <= 478 + band 5
-  ok   churn_per_kilo_product_lines 13905 <= 14797 + band 3636
-  ok   target nonproduction_merges 481 <= 478 + band 5 (15 merge(s) past anchor b3831ff64eca, 48 down per 290)
-{"churn_per_kilo_product_lines": 13803, "exempted": [], "head": "56fda94e8568b6ae57d1af8227386f8dc096f61c", "machinery": 323, "merges_past_anchor": 2, "nonproduct_lines": 306770, "nonproduction_merges": 478, "product_lines": 22225, "production": 102, "record": 155, "target": 478, "window": 580}
+  ok   churn_per_kilo_product_lines 13948 <= 14797 + band 3636
+  ok   target nonproduction_merges 481 <= 478 + band 5 (17 merge(s) past anchor b3831ff64eca, 48 down per 290)
