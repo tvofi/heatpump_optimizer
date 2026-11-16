@@ -57,9 +57,10 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 163 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+recording finds 164 of the 528 script pairs (33 choose 2) sharing 0.80 or more
 of their production-module closure (162 before #3616 re-recorded the closures
-that import the coordinator), all 163 among the 406 pairs whose two
+that import the coordinator; 163 before R11-OUTSIDE-HONEST-STARTS-RUNS's recordings joined
+config_flow_steps.py/debug_collect.py at 0.80), all 164 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
@@ -104,8 +105,8 @@ R10-OUTSIDE-DHW-START-HYSTERESIS's block_duty.py check that the coordinator's
 input read puts the pump's start hysteresis on the state builds a coordinator,
 which grew that script's closure from 74 to 91 production files (75 to 92
 beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
-count from 154 to 162; this tree's closures, R11-OUTSIDE-HONEST-STARTS-RUNS's
-recordings merged with R10-START-COUNTER-EDGES's, from 162 to 163).
+count from 154 to 162; #3616's re-record moved it to 163, and
+R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (98 shared production files each), doc_claims.py/harness_headers.py
