@@ -19,13 +19,35 @@ The block: nine mutants of the production half that feeds the two reads survived
 4. Each new predicate is in `MUTANTS`, and the reviewer's specs ran unchanged (see Mutation proof).
 5. Disclosure, as a fixed cadence. Summing the later moves of every page made `closure_slip` a function of how often the plan page is committed. On round 10's history (ev/cadence.txt) the reviewer read 2.57, 1.52 and 1.22 days per day at three cadences. Only printing the cadence beside the read would leave two rounds with different commit habits unable to be compared. So the read now takes one sample a day, each day's last page with a forecast, with days counted from the register so the buckets are fixed per round. It prints `<S> daily samples of <P> pages` beside the read. A day is the read's own unit (days per day). A coarser bucket stays fully filled for any round whose page is committed at least daily, and round 10's 564 pages over 13.89 sampled days are well above that. The instrument page and the module docstring state this. Fewer than two daily samples read `unread`.
 
+## Repair (review round 2, verdict 58207cfac200f8d6e0dec7b956bc8a5fc73eeefd)
+
+The block: mutant `net-all-pages` survived. It puts the all-pages net (`hist[-1][1] - hist[0][1]`) back in `slip_line` in place of the daily net, and the two differ whenever the first sampled day holds more than one page with different forecasts.
+
+Decision: the net is over the daily samples, the same samples as the slope (the last sample's forecast less the first's), so the first day's earlier pages do not enter it. That keeps every figure on the line at one cadence. The repair, in one commit:
+
+1. A case `closure_slip: the net move is over the daily samples, the first day's last page to the last sample`, on the verdict's own history `[reg: +10 d, reg+0.5 d: +12 d, reg+1 d+1 s: +13 d]`, asserts `2 daily samples of 3 pages; net +1.00 days;` (the all-pages form prints `net +3.00 days`).
+2. The in-file mutant `slip net daily` (`{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f}` to the `hist` form), killed by that case.
+3. The module docstring and `tools/audit/seat/instruments/round_metrics.py.md` now say what the net move is over: the last daily sample's forecast less the first's.
+
+No other change.
+
 ## Head
 
-`411d996cdd2879646543a448730f3a96e5b2ac73`, two commits on the reviewed head `321d7f9f34526984b5eca8d18870cd14cffbe6f6`, measured on origin/main `30f9caac90735c402c8e3ae60fbaa80c45dc6d26` at 2026-11-16T18:23Z. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so there was no merge.
+`a527be6f1950c241a2d1b44f6c7f2a0aeeafd8dd`, one commit on the reviewed head `1f6ea62fd0345ac0759997621fffe315ea11b139`, measured on origin/main `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so there was no merge.
 
-prepr: passed rc=0 at 411d996cdd2879646543a448730f3a96e5b2ac73
+prepr: passed rc=0 at a527be6f1950c241a2d1b44f6c7f2a0aeeafd8dd
 
 ## Mutation proof
+
+Round 2 (this repair). The reviewer's `evidence/spec-r2.json` ran unchanged from the verdict commit, and round 1's `evidence/spec1.json` and `evidence/spec2.json` (verdict commit's parent) ran again, each with `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'python3 -I tools/audit/seat/round_metrics.py --self-test --no-mutants'` (default `--copy-tree`) at `a527be6f1950c241a2d1b44f6c7f2a0aeeafd8dd`:
+- Before, at `1f6ea62fd0345ac0759997621fffe315ea11b139` (the verdict's `evidence/mutant_run-spec-r2.txt`): `SURVIVED net-all-pages`.
+- After, `spec-r2.json`: `SURVIVED NULL`; `KILLED` for every other row: ceiling-proposed-key, produce-same-round, groups-round-open, groups-stage-wrong, groups-kind-wrong, groups-write-elsewhere, plans-write-elsewhere, baselines-all, register-head, sample-half-day, sample-epoch-days, sample-first-of-day, span-all-pages, later-all-pages, **net-all-pages**, pages-count-hist.
+- After, `spec1.json`: `SURVIVED NULL`; `KILLED` ceiling-value-key, produce-prior-round, groups-json-round, groups-json-stage, baselines-ref, register-ref, newest-from-window, unexamined-window, closure-seconds, plan-sort.
+- After, `spec2.json`: `SURVIVED NULL`; `KILLED` groups-json-kind, plans-json-write, groups-json-write.
+
+Failing case first: the new case, run against a copy of this head's `round_metrics.py` with the `net-all-pages` edit applied, prints `FAIL closure_slip: the net move is over the daily samples, ...` and the self-test exits non-zero; at this head it prints `ok`. In-tree, `slip net daily` prints `mutant killed: slip net daily (by 'closure_slip: the net move is over the daily samples')`.
+
+Round 1 (earlier repair).
 
 The reviewer's specs ran unchanged from the verdict commit (`evidence/spec1.json`, `evidence/spec2.json`) with `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'python3 -I tools/audit/seat/round_metrics.py --self-test --no-mutants'` (default `--copy-tree`).
 - Before, at `321d7f9f34526984b5eca8d18870cd14cffbe6f6` (the verdict's `evidence/mutant_run-spec1.txt` and `-spec2.txt`): all nine listed SURVIVED.
@@ -45,9 +67,14 @@ The `slip two pages` needle moved with the read (`len(daily) < 2`), and that mut
 
 ## Unpinned sites
 
-none: every survivor the verdict lists prints KILLED under its own spec.
+prepr's diff-mutant step at `a527be6f1950c241a2d1b44f6c7f2a0aeeafd8dd` (first 40 mutants of the PR's added lines) prints 3 survivors. None is on this repair's lines. The brief for this round allows no other change, so they are listed here for the reviewer and are not pinned in this commit:
+- `round_metrics.py:302` CONST_SWAP `max(0.0, ...)` to `max(1.0, ...)` (from 411d996cdd): a move that is not later pays 1 second instead of 0. Divided by `DAY_S` and printed to 2 decimals, that cannot show until about 432 daily samples, so it is equivalent at print precision. The in-file `slip later only` mutant pins the later-only rule itself.
+- `round_metrics.py:338` CMP_BOUND `a <= r["ct"]` to `a < r["ct"]` (from 42059551fe): a production merge at exactly the window's opening second. No case has a merge at that second, so the half-open window's lower bound in `unexamined` is unpinned.
+- `round_metrics.py:350` GUARD_OFF `if groups is None:` to `if False:` (from 42059551fe): with no `groups.json`, `unexamined` would raise on `groups.get` instead of printing `by kind unread (groups.json)`. No case runs `unexamined` without `groups.json`, so this guard is unpinned.
 
 ## Null control
+
+- This repair: the spec's `NULL` row (no edit) SURVIVED under all three specs. The intra-day cadence case (first page and first day's last page both +10 d) prints `net +1.00 days` under both forms, so only the new case separates them.
 
 - An empty input directory under `--round` prints all 8 reads `unread (...)` (case `null: an empty input directory prints every read unread`).
 - The cadence change leaves a history of one page a day where it was. The original `closure_slip: later moves only` and `the window cuts the history` cases have one page per day, and their slip, net and ceiling figures are unchanged. Only the beside-text changed, to `4 daily samples of 5 pages` and `1 pages without a forecast`. On the intra-day history (five pages over two days) the read is 0.67 and not the all-pages 1.50, which is the case that separates the two.
@@ -56,14 +83,14 @@ none: every survivor the verdict lists prints KILLED under its own spec.
 
 ## Figures
 
-- self-test: `python3 -I tools/audit/seat/round_metrics.py --self-test` returns rc 0 and ends `round_metrics self-test: ok (with mutants)`, with 49 `mutant killed` lines (`grep -c "mutant killed"`): 39 before this repair plus 10 new.
+- self-test: `python3 -I tools/audit/seat/round_metrics.py --self-test` returns rc 0 and ends `round_metrics self-test: ok (with mutants)`, with 50 `mutant killed` lines (`grep -c "mutant killed"`) and 100 `ok` lines: 49 before this repair plus `slip net daily`.
 - structure ratchet: `python3 tests/structure.py` ends `STRUCTURE RATCHET PASSED`.
-- architecture score: `python3 tools/audit/archscore/score.py --diff 6f422812d5d8b918beace0283419c153f6df66ce` prints `Architecture score: dS +0.0000 NULL`.
-- scope: `python3 tests/closure.py select --diff 6f422812d5d8b918beace0283419c153f6df66ce --workdir <dir>` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` CI runs `instrument-self-tests`, which is the authority.
+- architecture score: `python3 tools/audit/archscore/score.py --diff ef6363d5f291e2eaa60620b5ea12d8d5fb902478` prints `Architecture score: dS +0.0000 NULL`.
+- scope: `python3 tests/closure.py select --diff ef6363d5f291e2eaa60620b5ea12d8d5fb902478 --workdir <dir>` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` CI runs `instrument-self-tests`, which is the authority.
 
-<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=411d996cdd2879646543a448730f3a96e5b2ac73 -->
+<!-- figure-block: scope-line mb=ef6363d5f291e2eaa60620b5ea12d8d5fb902478 head=a527be6f1950c241a2d1b44f6c7f2a0aeeafd8dd -->
 ~~~text
-MODE: FULL -- every test script runs, nothing is scoped out.
+MODE: SCOPED -- 0 script(s) run, 33 scoped out.
 ~~~
 <!-- /figure-block -->
 
