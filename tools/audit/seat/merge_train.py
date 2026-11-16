@@ -557,8 +557,7 @@ FINAL_READERS = {
 #: Busy ("nothing at this head is busy" is a reading; a non-empty Busy only
 #: ever turns a red into a wait, so it is minted anywhere).
 BUSY_MINTERS = frozenset({("tools/audit/seat/merge_train.py", "gate_busy"),
-                          ("tools/audit/seat/merge_train.py", "gate_rerunning"),
-                          ("tools/audit/seat/merge_train.py", "Train._gate_busy")})
+                          ("tools/audit/seat/merge_train.py", "gate_rerunning")})
 
 
 class BlindRead(TypeError):
@@ -573,6 +572,36 @@ def caller_frame(depth: int) -> "tuple[str, str]":
     path = Path(code.co_filename).resolve()
     rel = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
     return rel, code.co_qualname
+
+
+def blind_sites(sources: "dict[str, str]") -> "list[str]":
+    """The barrier's direct spellings found BEFORE run time (carry 2): in each
+    (repo path -> source) given, a `classify(..)` call passing FINAL from a
+    frame not in FINAL_READERS, or an empty `Busy()` from a frame not in
+    BUSY_MINTERS, as "path:line qualname what". Frames are named as
+    `caller_frame` names them (co_qualname). An alias, getattr or partial is
+    beyond a scan; the run-time barrier still refuses those."""
+    out = []
+
+    def walk(path: str, node, qual: str) -> None:
+        for ch in ast.iter_child_nodes(node):
+            q = qual
+            if isinstance(ch, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                q = (f"{qual}.<locals>.{ch.name}" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                     else f"{qual}.{ch.name}" if qual else ch.name)
+            if isinstance(ch, ast.Call):
+                f = ch.func
+                name = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
+                final = any(isinstance(a, ast.Name) and a.id == "FINAL" or isinstance(a, ast.Attribute)
+                            and a.attr == "FINAL" for a in [*ch.args, *(k.value for k in ch.keywords)])
+                if name == "classify" and final and (path, qual) not in FINAL_READERS:
+                    out.append(f"{path}:{ch.lineno} {qual or '<module>'} classify(.., FINAL)")
+                if name == "Busy" and not ch.args and not ch.keywords and (path, qual) not in BUSY_MINTERS:
+                    out.append(f"{path}:{ch.lineno} {qual or '<module>'} Busy()")
+            walk(path, ch, q)
+    for path, src in sources.items():
+        walk(path, ast.parse(src), "")
+    return out
 
 
 class Busy(list):
@@ -2334,14 +2363,15 @@ class Train:
                 return True
         return False
 
-    def _gate_busy(self, h: str, check_runs) -> Busy:
+    def _gate_busy(self, h: str, check_runs) -> "Busy | None":
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
-        unreadable listing reads no run busy, logged: the red stands as it did
-        before this read existed -- a refusal, never a wait on a guess."""
+        unreadable listing is None, logged: the red stands as it did before
+        this read existed -- a refusal, never a wait on a guess, and never an
+        empty Busy minted from runs it did not read (carry 2)."""
         code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
         if code:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
-            return Busy()
+            return None  # no reading: never an empty Busy, which states "nothing at this head is busy"
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
 
     def _sweep_busy(self, h: str, check_runs) -> "Busy | None":
@@ -2431,7 +2461,8 @@ class Train:
                         elif busy:
                             self.log(f"gate red at {h[:8]} is a deferral while ci.yml run(s) {busy} "
                                      "are unfinished: waiting (gate.py busy)")
-                    state = classify(last, only, busy)
+                    if busy:  # a deferral reading; none (or an unread listing) keeps the red above
+                        state = classify(last, only, busy)
                 _, pending, red = state
                 if not pending:
                     rows = self.gate_deferred_runs(h, red)
@@ -7880,6 +7911,32 @@ def _gate_reader_barrier_self_test(check) -> None:
         defs[(path, qual)] = qual in quals | {f.name for f in tree.body if isinstance(f, ast.FunctionDef)}
     check(f"P436 barrier: every FINAL_READERS key names a function in its file -- stale: {[k for k, v in defs.items() if not v]}",
           all(defs.values()))
+    # Carry 2 (c): the direct spellings are refused at self-test time, not first at a train's run.
+    tree_src = {f.relative_to(ROOT).as_posix(): f.read_text() for f in sorted(ROOT.glob("tools/**/*.py"))
+                if "merge_train" in f.read_text()}
+    found = blind_sites(tree_src)
+    check(f"carry 2 (c): no module under tools/ naming merge_train holds a direct classify(.., FINAL) outside "
+          f"FINAL_READERS or an empty Busy() outside BUSY_MINTERS ({len(tree_src)} modules scanned) -- {found[:3]}",
+          not found and "tools/audit/seat/orchestrator_tick.py" in tree_src and len(tree_src) > 2)
+    blind_src = ("import merge_train as mt\ndef reader(l, r):\n    return classify(l, r, FINAL)\n"
+                 "class T:\n    def read(self, l, r):\n        return mt.classify(l, r, busy=mt.FINAL)\n"
+                 "def mint():\n    return Busy()\n")
+    got = blind_sites({"tools/audit/seat/proof_watch.py": blind_src})
+    check(f"carry 2 (c): a planted direct FINAL read (bare and as mt.classify(busy=mt.FINAL), in a method) and an "
+          f"empty Busy() in unregistered frames are each found by the scan -- {got}",
+          [g.split()[1:] for g in got] == [["reader", "classify(..,", "FINAL)"], ["T.read", "classify(..,", "FINAL)"],
+                                           ["mint", "Busy()"]])
+    null_src = ("def approval_owed(l, r):\n    return classify(l, r, FINAL)\n"
+                "def gate_busy():\n    return Busy()\ndef other():\n    return classify(l, r, Busy([1])), Busy([7])\n")
+    check("carry 2 (c) null: the same spellings in registered frames, and a non-empty Busy anywhere, are not found",
+          blind_sites({"tools/audit/seat/merge_train.py": null_src}) == [])
+    with tempfile.TemporaryDirectory() as d:
+        tu = Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=None, stdin=None: (1, "HTTP 502"),
+                   sleep=lambda s: None, log=lambda s: None, polls=1)
+        check("carry 2 (b): an unreadable ci.yml listing is no reading (None), never an empty Busy, and the red "
+              "gate stays red in classify_at",
+              tu._gate_busy("f" * 40, []) is None and tu.classify_at("f" * 40, [
+                  {"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1"}], [GATE])[0] == "red")
     minted = plant("def gate_busy():\n    return Busy()\n", here)["gate_busy"]()
     check("P436 barrier: an empty Busy is minted by a BUSY_MINTERS frame and reads the red final; a non-empty "
           "Busy minted anywhere defers it; gate_busy over no runs is an empty Busy",
