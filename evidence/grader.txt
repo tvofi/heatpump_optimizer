@@ -1,0 +1,3 @@
+  ok   a throwing block is reported as a failure rather than ending the run
+
+249 passed, 0 failed
