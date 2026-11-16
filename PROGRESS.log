@@ -6,3 +6,4 @@
 1794872141 HB alive
 1794872746 HB alive
 1794872821 CKPT handoff code pushed; body_push exit 4 CARRY-LANDED; BLOCKED.md pushed snapshot 5e849fae6258
+1794872825 DONE code at handoff/r11-advisor-measures-p2 c03ab4b85f; body_push REFUSED CARRY-LANDED (exit 4), BLOCKED.md on handoff-wip for the relay to fold the R11-VALVE-REFERENCE carry
