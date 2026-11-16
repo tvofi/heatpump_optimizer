@@ -1,0 +1,3 @@
+  ERROR   [budgets] tools/audit/briefs/D11.md: 126 lines exceeds its cap of 109. Cut, or state the case for a higher cap in the pull request body.
+  ERROR   [budgets] tools/audit/briefs/D11.md: about 1939 tokens across its lines exceeds its cap of 1647 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 2 error(s) across 51 policy file(s)

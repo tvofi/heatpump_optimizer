@@ -1,0 +1,9 @@
+88
+26389
+rc=0
+3929
+80
+189
+STRUCTURE RATCHET PASSED
+RULES-SYNC ok: every generated rule is the generated form of its source
+brief_lint=0
