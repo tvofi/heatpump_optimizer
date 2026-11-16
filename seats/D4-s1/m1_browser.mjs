@@ -23,6 +23,9 @@
 //                appearing/vanishing excluded). hover_shift_sum = the PerformanceObserver
 //                'layout-shift' value over the same hovers (reported, not keyed).
 //   console_errors = console 'error' messages + uncaught page errors per render.
+//   tab_backward = consecutive Tab steps whose next stop lies wholly above the previous one,
+//                or on its row and wholly to its left, by scroll-independent layout positions
+//                taken before the sweep (TABONLY=1 runs the keyboard sweep alone).
 // Count keys: the value the production card delivers (computed style / geometry /
 // focus of the card's own rendered nodes), never a fixture attribute.
 //
@@ -321,6 +324,13 @@ function seatKit() {
     const ts = K.tabbables();
     ts.forEach((el, i) => el.setAttribute("data-s1tab", String(i)));
     K._rest = ts.map((el) => snap(el));
+    // Scroll-independent layout position of every tabbable, taken before any focus
+    // scrolls anything: its box plus the scroll offsets of every scrolling ancestor.
+    K._pos = ts.map((el) => {
+      const r = el.getBoundingClientRect(); let sx = scrollX, sy = scrollY;
+      for (let n = parentOf(el); n && n.tagName; n = parentOf(n)) { sx += n.scrollLeft || 0; sy += n.scrollTop || 0; }
+      return [+(r.left + sx).toFixed(1), +(r.top + sy).toFixed(1), +(r.right + sx).toFixed(1), +(r.bottom + sy).toFixed(1)];
+    });
     K._seq = [];
     // A modal dialog keeps the focus the card gave it on opening (that stop is
     // recorded as the first); otherwise the sweep starts on a button before the card.
@@ -529,7 +539,10 @@ async function renderOne(ctx, cell, st, lang) {
       return { client: b.clientHeight, scroll: b.scrollHeight, dlg: Math.round(db.height), head: Math.round(bb.top - db.top) };
     });
     if (process.env.LIGHT === "1") { rec.ms = Date.now() - tStart; await pg.close(); return rec; }
+    const TABONLY = process.env.TABONLY === "1";
     // 1. geometry, contrast, targets, pop-ups (the lane's measure) + ink on candidate pairs.
+    // TABONLY=1 (tab-order re-runs) skips 1 and 2 and runs the keyboard sweep alone.
+    if (!TABONLY) {
     const m = await pg.evaluate((co) => window.__p9.measure(co), coarse);
     rec.runs = m.runs; rec.contrast = m.contrast; rec.overflow = m.overflow; rec.small = m.small; rec.popups = m.popups; rec.options = m.options;
     rec.unknownColour = m.unknownColour; rec.overlap = []; rec.inkFail = [];
@@ -577,6 +590,7 @@ async function renderOne(ctx, cell, st, lang) {
       if (v > 0 || mv.n > 0) { hsum += v; rec.hoverShift.push({ target: pt.d, v: +v.toFixed(5), moved: mv.n, max: mv.max, src: [...new Set([...sh.flatMap((s) => s.src), ...mv.els])].slice(0, 5) }); }
     }
     rec.hoverShiftSum = +hsum.toFixed(5);
+    }
     await pg.mouse.move(0, 0);
     // 3. keyboard: Tab through every focusable.
     const nt = await pg.evaluate(() => window.__s1.tabPrep());
@@ -603,6 +617,20 @@ async function renderOne(ctx, cell, st, lang) {
     rec.tabSeq = seq.map((s) => s.d);
     // Document-space boxes of each stop (viewport box + the scroll that focusing caused).
     rec.tabBoxes = seq.map((s) => [s.left, s.top + s.sy + s.dlgTop, s.right, s.bottom + s.sy + s.dlgTop]);
+    // Visual order: each consecutive pair of stops, by the pre-focus layout positions.
+    // Backward = the next stop lies wholly above the previous one (its bottom above the
+    // previous top), or on the same row (vertical overlap) and wholly to its left.
+    // The last-to-first wrap of a modal dialog's focus cycle is not counted.
+    const pos = await pg.evaluate(() => window.__s1._pos);
+    rec.tabBackward = [];
+    for (let i = 1; i < seq.length; i++) {
+      if (seq[i].idx === null || seq[i - 1].idx === null) continue;
+      const p = pos[+seq[i - 1].idx], q = pos[+seq[i].idx];
+      const above = q[3] < p[1] - 0.5;
+      const sameRowLeft = !(q[3] < p[1] || q[1] > p[3]) && q[2] < p[0] - 0.5;
+      const wrap = i === seq.length - 1 && false;
+      if ((above || sameRowLeft) && !wrap) rec.tabBackward.push(`${seq[i - 1].d} -> ${seq[i].d} [${p.join(",")}] -> [${q.join(",")}]`);
+    }
   } catch (e) {
     rec.threw = String((e && e.message) || e).slice(0, 300);
   }
@@ -684,6 +712,7 @@ R("strict_small", sum((r) => (r.strictSmall || []).length), "targets under 24 px
 R("tab_unreached", sum((r) => (r.tabUnreached || []).length), "elements");
 R("focus_no_indicator", sum((r) => (r.noIndicator || []).length), "tab stops");
 R("focus_invisible", sum((r) => (r.invisibleFocus || []).length), "tab stops");
+R("tab_backward", sum((r) => (r.tabBackward || []).length), "consecutive Tab steps against visual order (pre-focus layout positions)");
 R("hover_shift_renders", sum((r) => ((r.hoverShift || []).length ? 1 : 0)), "renders");
 R("hover_shift_targets", sum((r) => (r.hoverShift || []).filter((h) => h.moved > 0).length), "hovered targets that moved other elements >0.5 px");
 R("hover_shift_sum", sum((r) => r.hoverShiftSum).toFixed(4), "CLS");

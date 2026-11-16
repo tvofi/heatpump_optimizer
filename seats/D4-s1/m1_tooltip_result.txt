@@ -1,0 +1,20 @@
+  shared_steps_hover: renders 72, spilling 12, max 20.6 px, per vp/pointer {"375/fine":20.6}
+  tooltip_hover: renders 72, spilling 0, max 0 px, per vp/pointer {}
+RESULT renders=144 renders
+RESULT no_tooltip=0 renders where no tooltip was shown
+RESULT tip_spill_renders=12 shared_steps_hover renders with the tooltip >0.5 px past its chart
+RESULT tip_spill_max_px=20.6 px
+RESULT tip_spill_renders_null=0 tooltip_hover renders (null control)
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=10.30
+RESULT swapins=0
+  shared_steps_hover: renders 72, spilling 0, max 0 px, per vp/pointer {}
+  tooltip_hover: renders 72, spilling 0, max 0 px, per vp/pointer {}
+RESULT renders=144 renders
+RESULT no_tooltip=0 renders where no tooltip was shown
+RESULT tip_spill_renders=0 shared_steps_hover renders with the tooltip >0.5 px past its chart
+RESULT tip_spill_max_px=0 px
+RESULT tip_spill_renders_null=0 tooltip_hover renders (null control)
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=8.48
+RESULT swapins=0

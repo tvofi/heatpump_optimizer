@@ -1,0 +1,61 @@
+chromium renders written to /root/scr/full/renders.jsonl
+RESULT renders=3240 renders
+RESULT items=135 state x language items
+RESULT threw=0 renders
+RESULT missed_steps=0 steps
+RESULT contrast=0 text runs
+RESULT overflow=0 text runs
+RESULT overlap=0 run pairs
+RESULT small=24 targets
+RESULT popups=24 pop-ups
+RESULT options=0 options
+RESULT console_errors=0 messages
+RESULT strict_small=1048 targets under 24 px (44 coarse), no spacing exception (D4-criteria F1)
+RESULT tab_unreached=0 elements
+RESULT focus_no_indicator=0 tab stops
+RESULT focus_invisible=0 tab stops
+RESULT hover_shift_renders=36 renders
+RESULT hover_shift_targets=668 hovered targets that moved other elements >0.5 px
+RESULT hover_shift_sum=0.0000 CLS
+RESULT wall=1549.9 s provisional
+RESULT thread_factor=n/a (node + chromium processes; no BLAS)
+RESULT load1=1.15
+RESULT host_cpu=327.5 s provisional
+RESULT swapins=0
+
+renders 3240  items 135  threw 0  missed 0
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.dlg-tab.active[plan] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.dlg-tab[setup] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.dlg-tab[savings] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.dlg-tab[advisor] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.dlg-tab[health] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[dhw_slots] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[space_slots] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip.nodata[actioned] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[outdoor] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[dhw_temp] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[house_temp] src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.vc-out src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.vc-in src g.lanes
+hoverShift     n=   36 renders=   36 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: svg src g.lanes
+hoverShift     n=   32 renders=   32 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[solar] src g.lanes
+hoverShift     n=   24 renders=   24 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[1280,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.close src g.lanes
+hoverShift     n=   20 renders=   20 states=1 [draft_mid_drag] lang=[de,en,sv] vp=[375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.chip[price] src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-pin src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-revert src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: input.wi-day-start src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: input.wi-day-end src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-add src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-add-quiet src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-apply src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-save src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.wi-reset src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: input.wi-temp src g.lanes
+hoverShift     n=    8 renders=    8 states=1 [draft_mid_drag] lang=[de,en] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: input.wi-dhw-min src g.lanes
+popups         n=   20 renders=   20 states=2 [shared_steps_hover,tooltip_hover] lang=[de,en,sv] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse,fine] :: div.tooltip # outside
+popups         n=    4 renders=    4 states=1 [draft_dirty_menu_open] lang=[de] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: div.slot-menu # outside
+small          n=   24 renders=   24 states=1 [history_unavailable] lang=[de,en,sv] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse,fine] :: rect.slot-hit #x#
+strictSmall    n=  564 renders=  348 states=15 [away_return,away_status,away_toggle,coarse_pointer,draft_dirty_menu_open,draft_mid_drag,expanded_plan,history_unavailable,override_active,shared_steps,shared_st] lang=[de,en,sv] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse,fine] :: rect.slot-hit[dhw] #x#
+strictSmall    n=  388 renders=  144 states=2 [layout_editing_dragged,layout_editing_tidy] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse,fine] :: path.setup-pipe.layout-match #x#
+strictSmall    n=   72 renders=   36 states=1 [score_open] lang=[de,en,sv] vp=[1280,375,768] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse] :: button.hl-fold-head #x#
+strictSmall    n=   24 renders=   24 states=1 [history_unavailable] lang=[de,en,sv] vp=[375] theme=[dark,light] motion=[no-preference,reduce] ptr=[coarse,fine] :: rect.slot-hit[space] #x#
