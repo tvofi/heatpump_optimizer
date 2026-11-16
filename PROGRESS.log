@@ -20,3 +20,4 @@
 1794856818 CKPT code 94503ed9 pushed to handoff ref; prepr rc=0; naming the 4 check_scopes survivors before body_push snapshot ccd2789d221a
 1794857100 HB alive
 1794857706 HB alive
+1794858376 DONE returned: code 94503ed9 on handoff/r11-pre-new-dimensions-p2, body 944832e3 on handoff-body; scoped prepr rc=0; step-ref deletes refused by the remote
