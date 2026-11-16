@@ -3131,12 +3131,13 @@
    "carry": [],
    "brief": "Outside issue 3643, size S, text only. In the 11 user-facing English strings at origin/main (strings.json and translations/en.json line 2077, narrative.py, the card js at its four sites, docs/dashboard-card.md, docs/how-it-works.md, blueprints/automation/notifications.yaml) replace dearer with more expensive and dearest with most expensive. Do not rename reason codes, i18n keys or CSS classes; leave de and sv untouched. The stats.dearer label becomes more expensive: check the stats row still fits at phone width. Update the tests/card.mjs assertions on dearest in the same pull request. Keep strings.json and en.json byte-identical. Thank the reporter in the body.",
    "resume": {
-    "stage": "not-started",
+    "stage": "absorbed",
     "commit": null,
     "branch": "fix/r11-outside-dearer-wording",
     "last_step": null,
     "next_step": "dispatch fixer after R11-OWNER-GENERIC-CONTROL-TEXT",
-    "note": "folded into R11-OWNER-GENERIC-CONTROL-TEXT by owner ruling 11-16"
+    "note": "folded into R11-OWNER-GENERIC-CONTROL-TEXT by owner ruling 11-16",
+    "absorbed_into": "R11-OWNER-GENERIC-CONTROL-TEXT"
    },
    "source": "outside"
   },
