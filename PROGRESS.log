@@ -6,3 +6,4 @@
 1794870012 DONE blocked: Q2 step 1 measured, BLOCKED.md at handoff-wip/r11-outside-honest-starts-runs-p3 88b8618ef6 awaits tvofi's pick
 1794870724 HB alive
 1794870729 CKPT resumed at 88b8618ef6, worktree ../hpo-p3; building step 2 at 0.1 snapshot 63f0e3ae6dd2
+1794870972 CKPT failing test red at base (3 checks): edges 5 vs 2 snapshot 057527779e59
