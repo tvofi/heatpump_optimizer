@@ -23,6 +23,7 @@ ok   closure_slip: later moves only, over the plan-history days after the regist
 ok   closure_slip: a closed round closes at its tag; a null ceiling is undecided
 ok   closure_slip: the window cuts the history
 ok   closure_slip: read at a fixed daily cadence, the last page of each day from the register
+ok   closure_slip: the net move is over the daily samples, the first day's last page to the last sample
 ok   closure_slip: one page, no register, no history and no round are unread
 ok   roster clock: a group's entry is the commit that first added it, not a later reorder
 ok   roster clock: an incremental scan from the cached tip keeps the cache
@@ -76,6 +77,7 @@ ok   mutant killed: slip window (by 'closure_slip: the window cuts')
 ok   mutant killed: slip blank page (by 'closure_slip: later moves only')
 ok   mutant killed: slip two pages (by 'closure_slip: one page')
 ok   mutant killed: slip daily cadence (by 'closure_slip: read at a fixed daily cadence')
+ok   mutant killed: slip net daily (by 'closure_slip: the net move is over the daily samples')
 ok   mutant killed: ceiling value key (by 'report --round: a null ceiling')
 ok   mutant killed: produce prior round (by 'producer: plans.json')
 ok   mutant killed: groups json round (by 'producer: groups.json')

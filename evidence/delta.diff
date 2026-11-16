@@ -1,0 +1,53 @@
+diff --git a/tools/audit/seat/instruments/round_metrics.py.md b/tools/audit/seat/instruments/round_metrics.py.md
+index 0bc7bb10c5..6e8d6857df 100644
+--- a/tools/audit/seat/instruments/round_metrics.py.md
++++ b/tools/audit/seat/instruments/round_metrics.py.md
+@@ -21,7 +21,9 @@
+     prints the samples and pages beside it: summing the later moves of every
+     page makes it a function of how often the page is committed (round 10's
+     history reads 2.57 days per day over all 563 forecast pages and 1.27 over
+-    its 15 daily samples), and only a fixed cadence compares rounds;
++    its 15 daily samples), and only a fixed cadence compares rounds. Its
++    net move is over the same samples: the last sample's forecast less the
++    first's, so the first day's earlier pages do not enter it;
+     `unexamined` reads the round's finder baselines (`"baseline_sha"` under
+     `dev/audit/rounds/round<N>/` on `origin/main`) and the roster group kinds
+     in `groups.json`.
+diff --git a/tools/audit/seat/round_metrics.py b/tools/audit/seat/round_metrics.py
+index 755f457651..a74f576655 100644
+--- a/tools/audit/seat/round_metrics.py
++++ b/tools/audit/seat/round_metrics.py
+@@ -50,7 +50,8 @@ input is absent, and a partial ledger is a NO-READ, never a partial value):
+                   a forecast, days counted from the register; SLIP_SAMPLE_S), the days the
+                   forecast closure moved later between consecutive samples (an earlier
+                   move pays nothing back), over the days between the first and last
+-                  sample; beside it the samples and pages read, the net move, pages
++                  sample; beside it the samples and pages read, the net move (the
++                  last daily sample's forecast less the first's), pages
+                   with no forecast (an UNAVAILABLE page), the threshold
+                   `closure_slip_ceiling` of dev/audit/config/objective.json (null is
+                   undecided), round start to closure in days (the vN.0.0 tag, else the
+diff --git a/tools/audit/seat/round_metrics_selftest.py b/tools/audit/seat/round_metrics_selftest.py
+index 260ebe20e7..446e31904a 100644
+--- a/tools/audit/seat/round_metrics_selftest.py
++++ b/tools/audit/seat/round_metrics_selftest.py
+@@ -357,6 +357,10 @@ def slip_cases(m, r: dict) -> None:
+             lambda: m.slip_line(d, rnd(), T0, T0 + 30 * D).startswith(
+                 "closure_slip 0.67 days per day (1.00 days later over 1.50 days of plan history after the register, "
+                 "3 daily samples of 5 pages; net +1.00 days; 0 pages without a forecast;"))
++        first = [[reg, T0 + 10 * D], [reg + D / 2, T0 + 12 * D], [reg + D + 1, T0 + 13 * D]]
++        (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": first}}))
++        r["closure_slip: the net move is over the daily samples, the first day's last page to the last sample"] = chk(
++            lambda: "2 daily samples of 3 pages; net +1.00 days;" in m.slip_line(d, rnd(), T0, T0 + 30 * D))
+         (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": hist}, "3": {"register": None, "history": hist}}))
+         r["closure_slip: one page, no register, no history and no round are unread"] = chk(
+             lambda: [m.slip_line(d, x, T0, b).split(" (")[0] for x, b in
+@@ -399,6 +403,8 @@ MUTANTS = {
+     "slip blank page": ("hist = [h for h in every if h[1] is not None]", "hist = every", "closure_slip: later moves only"),
+     "slip two pages": ("len(daily) < 2", "len(daily) < 1", "closure_slip: one page"),
+     "slip daily cadence": ('(h[0] - doc["register"]) // SLIP_SAMPLE_S', "h[0]", "closure_slip: read at a fixed daily cadence"),
++    "slip net daily": ("{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f}", "{(hist[-1][1] - hist[0][1]) / DAY_S:+.2f}",
++                       "closure_slip: the net move is over the daily samples"),
+     "ceiling value key": ('.get("closure_slip_ceiling") or {}).get("value")', '.get("closure_slip_ceiling") or {})',
+                           "report --round: a null ceiling"),
+     "produce prior round": ("for k in (n - 1, n):", "for k in (n,):", "producer: plans.json"),

@@ -1,30 +1,22 @@
-Fix review: blocked 1f6ea62fd0345ac0759997621fffe315ea11b139 mutation-vacuous: net-all-pages
+Fix review: merge 79c54d79eac81ae4ea74e065445dbb5ad11c7633
 
-bus-nonce: fc42609dfe13e7214fa00e623094f1d0
+bus-nonce: 94e40ef254bd5a144047eb6b75381f13
 
-Round 2 of review for #3658. This is a delta review over the reviewed head 321d7f9f34526984b5eca8d18870cd14cffbe6f6. The PR's own delta is ba18cacb13 and 411d996cdd. The rest is main merges, which change no file of this PR at the head: `git diff 411d996cdd 1f6ea62fd0` is empty for all three round_metrics files.
-
-## Block
-
-All nine survivors from round 1 are now killed (see Evidence). One new mutant survives, and it reverts a line this delta changed. `slip_line` now prints the net move from the daily samples: `(daily[-1][1] - daily[0][1]) / DAY_S`, where it used `hist` before. The mutant `net-all-pages` puts `hist` back, and the self-test still passes under `--no-mutants` (ev/spec-r2.json, ev/mutant_run-spec-r2.txt).
-
-The two forms are not equivalent. They differ whenever the first sampled day holds more than one page with a forecast. A history of `[reg: +10 d, reg+0.5 d: +12 d, reg+1 d+1 s: +13 d]` prints `net +1.00 days` at the head and `net +3.00 days` under the mutant (ev/net-survivor-demo.txt). The only intra-day case, `closure_slip: read at a fixed daily cadence`, has the same forecast (+10 d) on the first page and on the first day's last page, so it cannot tell the two forms apart.
-
-What the repair needs: a history whose first day has more than one page with different forecasts, asserted on the `net` figure, plus the matching in-file `MUTANTS` entry. If the net is meant to be over all pages instead, then state that and pin it. Either way, the instrument page should say which one it is. The current text says "net move" without saying over what.
+This is round 3 of review for #3658, a delta review over the reviewed head 1f6ea62fd0345ac0759997621fffe315ea11b139. The PR's own delta is a527be6f19. The head 79c54d79ea is a merge of a527be6f19 into 1f6ea62fd0, and its tree is identical to a527be6f19's (ev/merge-commit-tree-equal.txt). The delta changes only the instrument page, the module docstring and the self-test, so the scope stays the delta and is not widened (fix-review.md step 12).
 
 ## Evidence
 
-- Head: `git ls-remote origin refs/pull/3658/head` returns 1f6ea62fd0345ac0759997621fffe315ea11b139. The body's `## Head` names it. ev/HEAD.txt, ev/merge-roles-head.txt.
-- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Merge: `git merge-tree --write-tree origin/main 1f6ea62fd0` (origin/main ef6363d5f2) returns rc 0 (tree 630a6c5ba6). No conflict.
-- VERSION, the manifest, the notes heading, `custom_components/` and golden or claim files are untouched in the three-dot diff. The delta has no production code, so the scope stays the delta and is not widened.
-- Self-test at head: `python3 -I tools/audit/seat/round_metrics.py --self-test` returns rc 0. It prints 98 `ok` lines and 49 `mutant killed` (39 + 10, as the body states), and ends `round_metrics self-test: ok (with mutants)`. ev/selftest-head.txt.
-- Previous findings resolved: my own spec re-spells round 1's nine survivors in a different shape from the fixer's in-file needles. All are KILLED: ceiling-proposed-key, produce-same-round, groups-round-open, groups-stage-wrong, groups-kind-wrong, groups-write-elsewhere, plans-write-elsewhere, baselines-all, register-head. The cadence change is also KILLED under sample-half-day, sample-epoch-days, sample-first-of-day, span-all-pages, later-all-pages and pages-count-hist. NULL SURVIVED. The one survivor is net-all-pages. ev/mutant_run-spec-r2.txt.
-- Cadence disclosure (round 1's ask): the code reads at a fixed daily cadence, and the instrument page and the docstring both state it. I re-derived it on the live `origin/handoff/audit-r10-plan` (tip ef9c90680b): register 1792054747, 564 pages with 1 null, and `closure_slip 1.27 days per day (17.60 days later over 13.89 days ..., 15 daily samples of 564 pages; net +14.94 days; ...)`. This matches the body and the instrument page (563 forecast pages, 15 samples). ev/round10-cadence.txt.
-- Figures not re-derived by me: the structure ratchet, archscore `dS +0.0000 NULL` and `MODE: SCOPED -- 0 script(s) run`. These are CI's, and they were still pending at this head. The block does not turn on them.
-- CI: `merge_train.py classify 1f6ea62fd0 --pr 3658` printed `WAIT ... pending: gate red: none` at 18:56Z and 18:57Z (ev/classify.log). I stopped polling once the block was established. No red, so no `## Red checks` answer is owed.
-- Body carries: carry_audit at the head reports 2 routed items and 0 unrouted.
+- Head: `git ls-remote origin refs/pull/3658/head` returns 79c54d79eac81ae4ea74e065445dbb5ad11c7633, and the body's `## Head` names it (ev/HEAD.txt).
+- Previous finding resolved: the mutant `net-all-pages` (`daily[-1][1] - daily[0][1]` to `hist[-1][1] - hist[0][1]` in `slip_line`) is now KILLED by the new case `closure_slip: the net move is over the daily samples, ...`. NULL SURVIVED. I re-spelled the mutants myself, applying each to `tools/audit/seat/round_metrics.py` and running `--self-test --no-mutants` (ev/mutant_run-r3.txt). Also KILLED: net-first-hist, net-sign, net-second-sample, net-no-day. One SURVIVED: net-abs (see Findings).
+- The block's other ask is met. The instrument page and the docstring now both say the net is over the daily samples: the last sample's forecast less the first's (ev/delta.diff).
+- Self-test at head: `python3 -I tools/audit/seat/round_metrics.py --self-test` returns rc 0. It prints 100 `ok` lines and 50 `mutant killed` lines, including `slip net daily`, and ends `round_metrics self-test: ok (with mutants)`. That matches the body's figures (ev/selftest-head.txt).
+- CI: `merge_train.py classify 79c54d79ea --pr 3658` printed `GREEN 79c54d79eac81ae4ea74e065445dbb5ad11c7633 pending: none red: none`, rc 0, at 22:02Z (ev/classify.log). There is no red, so no `## Red checks` answer is owed. The packet's `tests / nightly-status` failure is outside the required set, and classify reads GREEN.
+- Merge: `git merge-tree --write-tree origin/main 79c54d79ea` returns rc 0. No conflict (ev/merge-tree.txt).
+- VERSION, the manifest, the notes heading, `custom_components/`, golden files and claim files are all untouched in the three-dot diff (ev/threedot-stat.txt).
+- Roles: main changed `dev/governance/roles/COMMON.md` (the finder's contract) since the merge base. `fix-review.md` is unchanged, and I followed main's copy through role_pack (ev/roles-current.txt).
+- Figures not re-derived by me: the structure ratchet, archscore `dS +0.0000 NULL` and `MODE: SCOPED -- 0 script(s) run`. These come from CI, which is GREEN at this head.
+- The body's three `## Unpinned sites` (lines 302, 338 and 350, from earlier reviewed commits) are disclosed there. They are outside this round's delta.
 
 ## Findings
 
-- No committed finder's harness for `closure_slip` on real data. The round 10 run is mine (ev/round10-cadence.txt), and so is the body's scratch `r10slip.py`. The producer and report cases now serve as the committed fixture harness. Carry: dismissed: the in-tree producer and report cases now pin the reads; the real-data run is evidence only
+- Residual: mutant `net-abs` survives. It changes `{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f}` to `{abs(daily[-1][1] - daily[0][1]) / DAY_S:+.2f}`. Under it, a round whose forecast closure ends earlier than its first sample prints a positive net. No case has a negative net, so the sign is pinned only for later moves. The line was reviewed in round 2, and this round's delta does not change it, so by step 12 it does not widen this review or block it. A case with a net-earlier history, plus an in-file `MUTANTS` entry, would pin it. Carry: dismissed: outside the round-3 delta scope (fix-review.md step 12); left for the orchestrator to route with the body's listed unpinned sites
