@@ -1,34 +1,18 @@
-MUTANT gaps-always-empty: rc=1 232 passed, 17 failed diff= 1 file changed, 2 insertions(+), 2 deletions(-)
-  FAIL the check fires: a fourth heavy seat on a box is refused (positive control: B2 -> B1) four heavy passed
-  FAIL the check fires: a seat beside the Chromium seat is refused (positive control) Chromium shared
-  FAIL the check fires: a seat on no box, or a box naming a seat the scopes lack, is refused (positive control: D15-s3, D15-s4) passed
-MUTANT intake-refusal-removed: rc=1 248 passed, 1 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL a seat whose report carries no denominator is dispatched twice, ends missing, and intake does not run {"n":2,"missing":[],"error":""}
-  FAIL (probe, expected) threw: deliberate
-MUTANT retry-refusal-removed: rc=1 248 passed, 1 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL a seat whose report carries no denominator is dispatched twice, ends missing, and intake does not run {"n":1,"missing":["D1-s1"],"error":""}
-  FAIL (probe, expected) threw: deliberate
-MUTANT overdue-removed: rc=1 248 passed, 1 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL denominatorGaps refuses an overdue carried item answered not_reached []
-  FAIL (probe, expected) threw: deliberate
-MUTANT examined-gt-universe: rc=1 248 passed, 1 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL denominatorGaps refuses examined above universe []
-  FAIL (probe, expected) threw: deliberate
-MUTANT carry-empty: rc=1 238 passed, 4 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL carryOf at round 11 reads round 10: the whole step for M1, "a" aged 2 for M3, the unfinished entry for M2; nothing for deep M2, "b" not carried []
-  FAIL ...at round 10 it reads round 9 only: a and b, each aged 1 []
-  FAIL seatCarry numbers C1.. in order and keeps only the seat's steps []
-MUTANT notreached-closure: rc=1 247 passed, 2 failed diff= 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL denominatorGaps refuses examined below universe with nothing listed not reached []
-  FAIL denominatorGaps refuses examined equal to universe with a not_reached list []
-  FAIL (probe, expected) threw: deliberate
-MUTANT pr-cadence-readded: rc=1 248 passed, 1 failed diff= 1 file changed, 1 insertion(+)
-  FAIL the driver declares no cadence: no CADENCE, EVERY_DIM_ROUNDS or activeIn, and no seat filtered by round audit-find.js still names one
-  FAIL (probe, expected) threw: deliberate
-MUTANT pr-denominatorGaps-renamed: rc=1 223 passed, 2 failed diff= 1 file changed, 3 insertions(+), 3 deletions(-)
+M1: denominatorGaps renamed (call sites unchanged)
+rc=1 200 passed, 25 failed
   FAIL ...and the driver enforces it (carryOf, seatCarry, denominatorGaps in the DISPATCH block) exported: carryOf,seatCarry
-  FAIL the denominator threw: D.denominatorGaps is not a function
-  FAIL (probe, expected) threw: deliberate
-MUTANT pr-schema-dual-edit: rc=1 248 passed, 1 failed diff= 2 files changed, 447 insertions(+), 60 deletions(-)
+  FAIL round 9 dispatches exactly the scopes.json seats, one agent each denominatorGaps is not defined
+  FAIL box B7 runs exactly its seats, collects, and does not run intake ["prepare","D14-s1","D14-s2","D14-s3","D11-s2","D11-s3"]
+M2: denominatorGaps returns no gaps
+  const gaps = []; return gaps
+rc=1 238 passed, 11 failed
+  FAIL denominatorGaps refuses a step with no row []
+  FAIL denominatorGaps refuses two rows for one step []
+  FAIL denominatorGaps refuses an empty enumerator []
+M3: enumerator dropped from coverage required
+ dev/audit/config/finding.schema.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc=1 247 passed, 2 failed
   FAIL the finder report schema's coverage rows require the denominator (enumerator, universe, examined, not_reached, redispatched) ["step","universe","examined","not_reached","redispatched","evidence"]
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"title":"Audit finder report","type":"object","required":["dimension","baseline_sha","coverage","unfinished","findings","non_findings","harnesses","leads","report_path"],"properties":{"dimension":{"t
   FAIL (probe, expected) threw: deliberate

@@ -1,8 +1,0 @@
-== merged with origin/main 6aa7ddc71216c4bc357db0097839ce40ff94e263 as f07fdd3f74099f52fb6e625ebe96a3bfc725e90b
-
-FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-tools/audit/briefs/COMMON.md                     114  114     1697  1697 
-corpus:        ~66293 tokens, cap 66226 +band 500 = 66726
-249 passed, 0 failed
-wt: TOTAL: 0 error(s) across 52 policy file(s)
-wtm: TOTAL: 0 error(s) across 51 policy file(s)

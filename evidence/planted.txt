@@ -1,6 +1,0 @@
-RESULT driver_refuses_bare=1 count
-RESULT driver_passes_full=1 count
-GAPS bare=["M1 names no enumerator", "M1 universe=undefined examined=undefined are not counts with examined <= universe"]
-RESULT reader_rows=2 count
-RESULT reader_counted=1 count
-RESULT reader_counts_bare=0 count

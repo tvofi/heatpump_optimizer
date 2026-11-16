@@ -1,4 +1,0 @@
-e1a6bedad8dfa5a2b29c51c40022456ca241da81 b2e0163b7ff23debe47e0dceb4874c3098a63a7f 2c54bbc78547d241f2a45b3fca381a929a77d655 Merge commit '2c54bbc78547d241f2a45b3fca381a929a77d655' into fix/r11-pre-finder-contract-pr
-2c54bbc78547d241f2a45b3fca381a929a77d655 b405d7d8db6ca3c9e529d2d8323fc50e0c262b8f policy: COMMON.md's provisional-number sentence drops its motivation clause; its cap re-recorded down to the measured 1697 (policy_lint's whole-corpus budget, red on the merge with main)
-b2e0163b7ff23debe47e0dceb4874c3098a63a7f 8c4b235d2d8deaf2d8a8d7dc6e31a72f7fef24f5 record: the delivery row for #3647
-2c54bbc is ancestor
