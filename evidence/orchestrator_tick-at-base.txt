@@ -1,0 +1,3 @@
+    window = datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+                                        ^^^^^^^^^^^^^^^
+NameError: name 'SEAT_WINDOW_MIN' is not defined
