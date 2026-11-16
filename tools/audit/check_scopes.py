@@ -448,10 +448,10 @@ def open_cards_cli():
     unmarked = copy.deepcopy(cards)
     del unmarked["C2"]["gates_finders"]
     unmarked["C3"]["gates_finders"] = "true"
+    from throwaway_git import throwaway_git_init  # the one way to build a scratch repo; main() put tests/ on the path
     with tempfile.TemporaryDirectory() as d:
-        git = lambda *a: subprocess.run(["git", "-C", d, "-c", "user.name=self-test", "-c", "user.email=self-test@invalid", *a],
-                                        capture_output=True, text=True, check=True).stdout.strip()
-        git("init", "-q")
+        env = throwaway_git_init(d, "-q")
+        git = lambda *a: subprocess.run(["git", "-C", d, *a], env=env, capture_output=True, text=True, check=True).stdout.strip()
         runs = []
         for cs in (cards, unmarked):
             for f, body in ((OBJECTIVE, {"terms": [], "objects": {}}), (prev, {"terms": {}}),
@@ -461,7 +461,7 @@ def open_cards_cli():
             git("add", "-A")
             git("commit", "-q", "-m", "record")
             runs.append(subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", d, "--ref", git("rev-parse", "HEAD"),
-                                        "--round", "8", "--open-cards"], capture_output=True, text=True))
+                                        "--round", "8", "--open-cards"], env=env, capture_output=True, text=True))
     return tuple(runs)
 
 
