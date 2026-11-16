@@ -1,0 +1,6 @@
+roster_lib self-test: 95 checks, 0 failed
+roster_edit self-test: 313 checks, 0 failed
+check_scopes rc=0
+   evaluation arms: 66/66 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']
+brief_lint rc=0
+249 passed, 0 failed
