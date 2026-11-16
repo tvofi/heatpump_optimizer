@@ -1,5 +1,0 @@
-write custom_components/heatpump_optimizer/x.py:13 fstring_domain domain=?
-write custom_components/heatpump_optimizer/x.py:15 const_domain domain=?
-write custom_components/heatpump_optimizer/x.py:17 module_ref domain=?
-write custom_components/heatpump_optimizer/x.py:2 direct domain=switch
-rc=0
