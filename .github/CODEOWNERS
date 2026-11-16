@@ -72,6 +72,10 @@
 # instruments R11-PRE-ROUND-METRICS builds.
 /tools/audit/seat/plant_recall.py         @tvofi
 /tools/audit/seat/finder_overlap.py       @tvofi
+# and its flow reads: lead_time, product_green (scorecard.py's A_gate and the
+# round lines), restore, runner seconds and tokens.
+/tools/audit/seat/round_metrics.py        @tvofi
+/tools/audit/seat/scorecard.py            @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended

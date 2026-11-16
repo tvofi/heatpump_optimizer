@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Convergence scorecard: ten report-only lines, one per signal, each with its null control.
+"""Convergence scorecard: report-only lines, one per signal, each with its null control.
 
     python3 -I scorecard.py report --dir D --train-log PATH [--repo DIR] [--sweep-record PATH]
     python3 -I scorecard.py --self-test [--no-mutants]
 
 Report-only (R10-MACH-SCORECARD): no line sets an exit code or holds a merge. It
 is the baseline from which thresholds can later be set. Read-only on every
-input and no GitHub call; the inputs are refreshed elsewhere and an input it
+input and no GitHub call; the inputs are refreshed by round_metrics.py and an input it
 cannot read prints `<line>  unread (<why>)`, never a guessed value.
 
-INPUTS, all under D (the beat's `<state>/scorecard/`) except the train log:
-  runs.json      [{id, t, c}] main `CI` push runs: id, UTC stamp, run conclusion
-  jobs/jobs_<id>.json   the run's job listing (`{"jobs": [{name, conclusion}]}`)
+INPUTS, all under D (the beat's `<state>/scorecard/`) except the train log,
+written by `round_metrics.py produce`:
+  runs.json      [{id, t, c, attempt}] main `CI` push runs: id, UTC stamp, run conclusion
+  jobs/jobs_<id>.json   the run's job listing, every attempt (`{"attempt", "jobs": [{name, conclusion, run_attempt, ...}]}`)
   verdicts.json  {"verdicts": [{pr, head, kind, cls, t}]} review verdicts
   merges.tsv     TSV with columns pr, ct, class, tokens (merge order by ct)
   roster.json    {"groups": [...]} the round's roster
@@ -20,7 +21,7 @@ INPUTS, all under D (the beat's `<state>/scorecard/`) except the train log:
 
 THE LINES (rule, then the null control the self-test holds it to):
   A_gate   share of the last 20 concluded (success or failure) main runs whose
-           job named `gate` concluded success; a run with no cached job listing
+           job named `gate` concluded success at its latest attempt; a run with no cached job listing
            is `unread`, reported and not guessed.
            NULL: a run whose only failed job is `governance / instrument-self-tests`
            counts green here and red in A_run.
@@ -60,6 +61,12 @@ THE LINES (rule, then the null control the self-test holds it to):
            in the day's sweep record.
            NULL: K is 0 with no recycle line.
 C and K are one row of the study's table and print on one line.
+  R        round_metrics.py's reads over the open round (R11-PRE-ROUND-METRICS):
+           merges by class, lead_time p50/p90 per class, product_green with the
+           gate's check count, restore (time to restore), runner_s and tokens.
+           Their rules and null controls are round_metrics.py's; its producer
+           (`round_metrics.py produce`) writes every input above but the train log.
+           NULL: an empty state dir prints every R line unread.
 """
 from __future__ import annotations
 
@@ -72,7 +79,11 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script's directory
+import round_metrics  # noqa: E402
 
 WINDOW_RUNS = 20
 WINDOW_PRS = 50
@@ -237,8 +248,9 @@ def rd(path: Path):
         return None
 
 
-def report(d: Path, train_log: Path, repo: Path | None, record: Path | None, run=sh_out) -> list[str]:
+def report(d: Path, train_log: Path, repo: Path | None, record: Path | None, run=sh_out, now: float | None = None) -> list[str]:
     out: list[str] = []
+    now = time.time() if now is None else now
 
     def load(name):
         t = rd(d / name)
@@ -248,14 +260,7 @@ def report(d: Path, train_log: Path, repo: Path | None, record: Path | None, run
             return None
 
     runs = load("runs.json")
-    gate: dict = {}
-    for f in sorted((d / "jobs").glob("jobs_*.json")) if (d / "jobs").is_dir() else []:
-        try:
-            for j in json.loads(f.read_text()).get("jobs", []):
-                if j["name"] == "gate":
-                    gate[int(f.stem.split("_")[1])] = j["conclusion"]
-        except (ValueError, KeyError, IndexError):
-            continue
+    gate = round_metrics.gate_conclusions(d)
     out += line_a(runs, gate) if runs else ["A_gate  unread (runs.json)", "A_run   unread (runs.json)"]
     v = load("verdicts.json")
     ytxt = rd(d.parent / "study" / "work" / "yield.py")
@@ -273,7 +278,17 @@ def report(d: Path, train_log: Path, repo: Path | None, record: Path | None, run
     ro = load("roster.json")
     out.append(line_escapes(ro["groups"]) if ro else "E       unread (roster.json)")
     out.append(line_ck(runs, rd(record) if record else None))
-    return out
+    return out + line_round(d, repo, now)
+
+
+def line_round(d: Path, repo: Path | None, now: float) -> list[str]:
+    """round_metrics' reads over the open round: lead time per class, product_green, restore, runner and tokens."""
+    n = round_metrics.open_round(repo) if repo else None
+    w = round_metrics.round_window(repo, n, now) if n else None
+    if w is None:
+        return ["R       unread (no checkout, or no v*.0.0 tag opens a round)"]
+    head = f"R       round {n} {round_metrics.iso(w[0])} .. {round_metrics.iso(w[1])} ({w[2]})"
+    return [head] + ["R       " + ln for ln in round_metrics.window_lines(d, w[0], w[1], round_metrics.gate_checks(repo, w[0], w[1]))]
 
 
 def main(argv: list[str]) -> int:
