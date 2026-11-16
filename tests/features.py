@@ -93145,8 +93145,9 @@ R.check(
 _rm_noattr = inputs_mod.read_room(_rm_r, "climate.noattr")
 _rm_sensor = inputs_mod.read_room(_rm_r, "sensor.c")
 R.check(
-    "a climate with no current_temperature is not_numeric; a sensor room reads its state, no target",
-    _rm_noattr.problem == "not_numeric" and _rm_noattr.temperature_c is None
+    "a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat "
+    "is unknown, not False; a sensor room reads its state, no target",
+    _rm_noattr.problem == "not_numeric" and _rm_noattr.temperature_c is None and _rm_noattr.calling is None
     and (_rm_sensor.temperature_c, _rm_sensor.target_c, _rm_sensor.calling, _rm_sensor.problem)
     == (19.5, None, None, None),
     f"{_rm_noattr} {_rm_sensor}",
@@ -93217,13 +93218,16 @@ R.check(
 )
 
 R.check(
-    "the room list parses absent, None and empty to the empty tuple, a list to a tuple, and survives "
-    "a factory reset as wiring",
+    "the room list parses absent, None, empty and a stored non-list to the empty tuple, a list to a "
+    "tuple without its empty items, and survives a factory reset as wiring",
     _rm_ec.EntryConfig.from_mapping({}).room_temperature_entities == ()
     and _rm_ec.EntryConfig.from_mapping({_RM_KEY: None}).room_temperature_entities == ()
     and _rm_ec.EntryConfig.from_mapping({_RM_KEY: []}).room_temperature_entities == ()
     and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", "sensor.c"]}).room_temperature_entities
     == ("climate.a", "sensor.c")
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: "climate.a"}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", None, ""]}).room_temperature_entities
+    == ("climate.a",)
     and _RM_KEY in _rm_ec.FACTORY_KEPT,
     f"{_rm_ec.EntryConfig.from_mapping({_RM_KEY: ['climate.a']}).room_temperature_entities}",
 )
