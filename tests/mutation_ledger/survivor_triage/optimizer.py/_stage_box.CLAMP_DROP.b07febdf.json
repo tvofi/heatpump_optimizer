@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stage_box CLAMP_DROP b07febdf",
+  "old": "        lo = np.minimum(lo, hi)",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The lower bound held under the tank room. It binds only where a forced-on space pin sits beside a charge that leaves less than the pin's level, and no fixture of the block pins space beside hot water at the stage. A check on `_stage_box` with such a pin would kill it; none is recorded.",
+  "verdict": "gap"
+}
