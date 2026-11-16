@@ -235,6 +235,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/fixtures/beat_jobs/**",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
@@ -247,6 +248,7 @@
     "tools/audit/seat/hooks/**",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -263,6 +265,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -4061,7 +4064,10 @@
     "tools/audit/seat/roster_lib.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
    "dirs": [],
    "index": false,
@@ -4181,6 +4187,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
@@ -4191,6 +4198,7 @@
     "tools/audit/seat/heartbeat.sh",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -4207,6 +4215,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -4755,6 +4764,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
@@ -4767,6 +4777,7 @@
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/instruments/**",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -4783,6 +4794,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -4908,6 +4920,29 @@
    ],
    "dirs": [
     "tools/ci"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
+  "loop-ledger": {
+   "run_sha": "95edb059af375232f0da09f23b7ab1bc4166923800970f72578cf90b3be9173a",
+   "files": [
+    "dev/audit/config/bugclasses.json",
+    "tools/audit/seat/loop_ledger.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/scorecard.py"
+   ],
+   "probes": [
+    ".",
+    "dev/audit/rca/R10-N-log-flood.md",
+    "dev/governance/dimensions/D8.md",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
    ],
    "index": false,
    "objects": false,
@@ -5263,6 +5298,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
@@ -5274,6 +5310,7 @@
     "tools/audit/seat/hooks/**",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -5290,6 +5327,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -5473,9 +5511,11 @@
     "tools/ci/gate.py",
     "tools/ci/ghapi.py",
     "tools/ci/prelude.py",
+    "tools/plan/replan.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/fixtures/required-contexts.json",
-    "tools/pr/app_approve.sh"
+    "tools/pr/app_approve.sh",
+    "tools/release/stamp.py"
    ],
    "probes": [
     ".",
@@ -5490,14 +5530,17 @@
     "tools/audit/carry_audit.py",
     "tools/audit/seat",
     "tools/ci",
+    "tools/plan",
     "tools/policy",
-    "tools/policy/policy_lint.mjs"
+    "tools/policy/policy_lint.mjs",
+    "tools/release"
    ],
    "dirs": [
     ".github/workflows",
     "tests",
     "tools/audit/seat",
-    "tools/ci"
+    "tools/ci",
+    "tools/release"
    ],
    "index": true,
    "objects": true,
@@ -5557,6 +5600,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/fixtures/**",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
@@ -5569,6 +5613,7 @@
     "tools/audit/seat/hooks/**",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -5585,6 +5630,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -6665,6 +6711,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
@@ -6676,6 +6723,7 @@
     "tools/audit/seat/hooks/**",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -6692,6 +6740,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -6934,6 +6983,7 @@
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/mutant_run.py",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
@@ -7570,6 +7620,7 @@
     "tests/mutation_ledger/killed_by/quiet_windows.py",
     "tests/mutation_ledger/killed_by/repairs.py",
     "tests/mutation_ledger/killed_by/replay_doc.py",
+    "tests/mutation_ledger/killed_by/running_signal.py",
     "tests/mutation_ledger/killed_by/sensor.py",
     "tests/mutation_ledger/killed_by/services.py",
     "tests/mutation_ledger/killed_by/setpoint_check.py",
@@ -7688,6 +7739,7 @@
     "fetch",
     "hash-object",
     "log",
+    "ls-remote",
     "ls-tree",
     "merge-base",
     "merge-tree",
@@ -8136,6 +8188,7 @@
   "roster-editor": {
    "run_sha": "69d134ca93555d9ce85205a52a5eb7ef397b6bf559866955924dc0fee3152065",
    "files": [
+    "dev/audit/config/bugclasses.json",
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
     "tools/audit/seat/ref_privacy.py",
@@ -8146,6 +8199,9 @@
    "probes": [
     ".",
     "config",
+    "dev/audit/rca/R10-N-log-flood.md",
+    "dev/governance/dimensions/D8.md",
+    "dev/governance/dimensions/D99.md",
     "objects",
     "refs",
     "tests",
@@ -8164,18 +8220,29 @@
   "roster-library": {
    "run_sha": "ef4cbcbdebfe734c9270dab5c152611820d5f1abdb65bb51f459535bf08e8287",
    "files": [
+    "dev/audit/config/bugclasses.json",
     "tests/throwaway_git.py",
-    "tools/audit/seat/roster_lib.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/plan/replan.py",
+    "tools/release/stamp.py"
    ],
    "probes": [
     ".",
+    "dev/audit/rca/R10-N-log-flood.md",
+    "dev/governance/dimensions/D12.md",
+    "dev/governance/dimensions/D3.md",
+    "dev/governance/dimensions/D99.md",
     "tests",
     "tools",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/plan",
+    "tools/release"
    ],
    "dirs": [
-    "tests"
+    "tests",
+    "tools/audit/seat",
+    "tools/release"
    ],
    "index": false,
    "objects": false,
@@ -8326,11 +8393,14 @@
   "scorecard": {
    "run_sha": "3215c0b1f85e68b18dde7d804fdeca68363603e0bf8bb708323038e2801941ac",
    "files": [
+    "tools/audit/seat/loop_ledger.py",
+    "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/scorecard.py",
     "tools/audit/seat/scorecard_selftest.py"
    ],
    "probes": [
     ".",
+    "dev/governance/dimensions/D8.md",
     "tools",
     "tools/audit",
     "tools/audit/seat"
@@ -8652,6 +8722,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/fixtures/beat_jobs/**",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
@@ -8665,6 +8736,7 @@
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/instruments/**",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -8681,6 +8753,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",
@@ -9399,6 +9472,7 @@
     "tools/audit/seat/delivery_row.sh",
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
+    "tools/audit/seat/finder_overlap.py",
     "tools/audit/seat/flow_metrics.py",
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
@@ -9410,6 +9484,7 @@
     "tools/audit/seat/hooks/**",
     "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
@@ -9426,6 +9501,7 @@
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/plant_recall.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/pr_args.sh",

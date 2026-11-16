@@ -49,6 +49,7 @@ import argparse
 import collections
 import datetime
 import json
+import os
 import re
 import subprocess
 import sys
@@ -310,25 +311,20 @@ def self_test() -> int:
                                                          "A": {"group": "A", "parent": "B"}}) is None
               and generation({"group": "A", "parent": "Z"}, {}) is None)
         # history: a two-commit repository, so the week split is driven, not assumed
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_environ, throwaway_git_init
         repo = Path(tmp, "repo")
         rdir = repo / roster_lib.ROSTERS_DIR
-        rdir.mkdir(parents=True)
-        run = lambda *a, env=None: subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True,  # noqa: E731
-                                                  env=env, check=True)
-        run("init", "-q")
         rf = rdir / "wave-r9-groups.json"
-
-        def commit(groups, stamp):
-            rf.write_text(json.dumps({"groups": groups}, indent=1))
-            run("add", "-A")
-            env = {"GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp, "PATH": "/usr/bin:/bin",
-                   "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
-                   "GIT_COMMITTER_EMAIL": "t@t", "HOME": tmp}
-            run("commit", "-q", "-m", "r", env=env)
-
-        commit(fx[:3], "2026-11-02T12:00:00Z")
-        commit(fx, "2026-11-10T12:00:00Z")
-        ros, when = load_ref(str(repo), "HEAD")
+        with throwaway_git_environ():
+            throwaway_git_init(repo, "-q")
+            rdir.mkdir(parents=True)
+            for groups, stamp in ((fx[:3], "2026-11-02T12:00:00Z"), (fx, "2026-11-10T12:00:00Z")):
+                rf.write_text(json.dumps({"groups": groups}, indent=1))
+                subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
+                subprocess.run(["git", "commit", "-q", "-m", "r"], cwd=repo, check=True, capture_output=True,
+                               env={**os.environ, "GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp})
+            ros, when = load_ref(str(repo), "HEAD")
         lines = report(ros, when)
         check("history: each group's week is its roster entry, and both weeks print",
               when is not None and week_of(when["R9-OUT"]) == "2026-W45" and week_of(when["R9-KID"]) == "2026-W46"
