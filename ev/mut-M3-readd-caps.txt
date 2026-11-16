@@ -1,0 +1,12 @@
+
+tools/audit/briefs/nudge.md
+  ERROR   [budgets] tools/audit/briefs/nudge.md: has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.
+
+tools/audit/harnesses/README.md
+  ERROR   [budgets] tools/audit/harnesses/README.md: has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 2 error(s) across 55 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
