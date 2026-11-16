@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_survival BOOLOP 2c71ff49",
+  "killed_by": "tests/features.py",
+  "old": "            if solar_gains is not None and len(solar_gains)",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if solar_gains is not None or len(solar_gains)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
