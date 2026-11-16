@@ -59,7 +59,7 @@ steps (#3644, #3625 and #3651 each touched the table); none re-measures the othe
 ## 3. Process state: (c)
 
 **The process existed and was followed:**
-- The drift check fired on every push that concluded (54 of 55).
+- The drift check ran on every push that reached it and refused 54 of its 55 conclusions.
 - A re-record hotfix was dispatched six times in 48 hours: #3589, #3595, #3606, #3629 and
   #3652 were reviewed and merged, and `142926ec66` is handed off.
 
