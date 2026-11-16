@@ -1,0 +1,32 @@
+[
+ {
+  "name": "fixer-state-equality-all-to-any",
+  "file": "tools/audit/product_reads.py",
+  "old": "match = [e for e, ps in states if all(token_holds(",
+  "new": "match = [e for e, ps in states if any(token_holds("
+ },
+ {
+  "name": "fixer-perturb-any-pass",
+  "file": "tools/audit/product_reads.py",
+  "old": "and all(token_holds(t, ps, w) for t in pert[\"tokens\"])):",
+  "new": "and True):"
+ },
+ {
+  "name": "fixer-nondet-guard-operation-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "        elif r[\"check\"] in nondet:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:",
+  "new": "        elif False:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:"
+ },
+ {
+  "name": "fixer-restart-ge-zero",
+  "file": "tools/audit/product_reads.py",
+  "old": "return ps[\"ordinal\"] > 0",
+  "new": "return ps[\"ordinal\"] >= 0"
+ },
+ {
+  "name": "fixer-unknown-token-true",
+  "file": "tools/audit/product_reads.py",
+  "old": "        return None if write is None else bool(write.get(\"unavailable\"))\n    return None",
+  "new": "        return None if write is None else bool(write.get(\"unavailable\"))\n    return True"
+ }
+]

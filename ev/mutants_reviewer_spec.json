@@ -1,0 +1,50 @@
+[
+ {
+  "name": "pair-same-axis-guard-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "            if a != b:\n",
+  "new": "            if True:\n"
+ },
+ {
+  "name": "moved-base-ok-dropped",
+  "file": "tools/audit/product_reads.py",
+  "old": "a is not None and b is not None and a[\"ok\"] and",
+  "new": "a is not None and b is not None and"
+ },
+ {
+  "name": "operation-fail-at-head-branch-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "        elif not c[\"ok\"]:\n            v = \"not witnessed: FAIL at the head\"\n        elif r[\"check\"] in nondet:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:",
+  "new": "        elif False:\n            v = \"not witnessed: FAIL at the head\"\n        elif r[\"check\"] in nondet:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:"
+ },
+ {
+  "name": "target-compare-always-plan",
+  "file": "tools/audit/product_reads.py",
+  "old": "return \"target=plan\" if float(sent) == ps[\"setpoint\"] else",
+  "new": "return \"target=plan\" if True else"
+ },
+ {
+  "name": "perturb-site-restriction-dropped",
+  "file": "tools/audit/product_reads.py",
+  "old": "if (pert and site == pert[\"site\"] and",
+  "new": "if (pert and"
+ },
+ {
+  "name": "unlisted-writer-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "e[\"site\"].startswith(PKG + \"/\") and e[\"site\"] not in sites",
+  "new": "False"
+ },
+ {
+  "name": "hold-reached-before-state-check",
+  "file": "tools/audit/product_reads.py",
+  "old": "        elif unrec:\n            v = f\"not witnessed: state not recorded",
+  "new": "        elif r[\"kind\"] == \"hold\":\n            v = \"reached\"\n        elif unrec:\n            v = f\"not witnessed: state not recorded"
+ },
+ {
+  "name": "presence-carried-ignores-level",
+  "file": "tools/audit/product_reads.py",
+  "old": "return (what in v) == (level == \"present\")",
+  "new": "return (what in v)"
+ }
+]
