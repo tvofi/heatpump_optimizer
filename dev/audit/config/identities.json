@@ -1,0 +1,323 @@
+{
+  "_doc": "The identities dev/governance/dimensions/D2.md executes, one entry per identity: the method step it belongs to, an id, the identity in a sentence, and its operating grid. A grid axis is a population axis by name (what `python3 tools/audit/check_scopes.py --repo . --population` prints), `golden` (the SCENARIOS of tests/golden.py), or an inline {axis, levels} where no tracked source holds the levels. `python3 tools/audit/enumerate.py d2-identities` prints the list and `--cells` each identity on each cell of its grid; an axis with no level is refused. An identity a finder executes that is not listed is added here by the round's register pull request.",
+  "identities": [
+    {
+      "step": "M1",
+      "id": "energy-conservation",
+      "identity": "enthalpy change equals delivered heat minus losses per step, to 1e-9 kWh",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "dt-invariance",
+      "identity": "four 15-minute steps against one hour, to the integrator's order",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "batch-parity",
+      "identity": "scalar simulate_step against simulate_trajectory_batch, bit for bit",
+      "grid": [
+        {
+          "axis": "input",
+          "levels": [
+            "space_only",
+            "dhw",
+            "valve",
+            "wood",
+            "coil",
+            "external_heat",
+            "pv"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "power-monotone",
+      "identity": "more power never cools a store",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "buffer-cap-rate",
+      "identity": "the buffer cap clamps a rate, never a state",
+      "grid": [
+        "layout"
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "store-bounds",
+      "identity": "no store crosses a physical bound",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M1",
+      "id": "switch-back-slab",
+      "identity": "over a switch-back interval after a hot-water run the unsensed slab advances by space heat only",
+      "grid": [
+        "layout",
+        "combi_tank"
+      ]
+    },
+    {
+      "step": "M2",
+      "id": "cop-monotone",
+      "identity": "COP monotone in outdoor and flow temperature",
+      "grid": [
+        "climate"
+      ]
+    },
+    {
+      "step": "M2",
+      "id": "carnot-band",
+      "identity": "Carnot fraction inside the stated band",
+      "grid": [
+        "climate"
+      ]
+    },
+    {
+      "step": "M2",
+      "id": "derate-unit-interval",
+      "identity": "every derate in [0, 1]; the defrost derate bounded and continuous at its band edges",
+      "grid": [
+        "climate"
+      ]
+    },
+    {
+      "step": "M2",
+      "id": "capacity-envelope",
+      "identity": "capacity never below demand-at-derate without a reason code",
+      "grid": [
+        "climate",
+        "compressor_modulation"
+      ]
+    },
+    {
+      "step": "M2",
+      "id": "priced-inputs-surface",
+      "identity": "each input of the priced formula derived from the device's own control surface",
+      "grid": [
+        "space_setpoint_unit",
+        "compressor_modulation"
+      ]
+    },
+    {
+      "step": "M3",
+      "id": "predicted-cost-sum",
+      "identity": "predicted_cost equals the sum of price times power times dt",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M3",
+      "id": "savings-identity",
+      "identity": "booked savings equal baseline cost minus realised cost over the booked month",
+      "grid": [
+        "layout",
+        "mixing_valve_mode",
+        {
+          "axis": "month",
+          "levels": [
+            "whole",
+            "upgraded_mid_month_from_previous_release",
+            "buffer_above_curve"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M3",
+      "id": "terminal-credit",
+      "identity": "the terminal credit's sign and magnitude against a re-simulated continuation",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M3",
+      "id": "penalty-scaling",
+      "identity": "every penalty term scales with price_weight",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M3",
+      "id": "gradient-fd",
+      "identity": "the solver's gradient against a central finite difference at random points",
+      "grid": [
+        "golden"
+      ]
+    },
+    {
+      "step": "M4",
+      "id": "price-folding",
+      "identity": "15-minute and hourly prices fold into steps without loss",
+      "grid": [
+        "price_shape",
+        {
+          "axis": "resolution",
+          "levels": [
+            "15min",
+            "hourly"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M4",
+      "id": "dst-and-month-days",
+      "identity": "23-hour, 25-hour and month-boundary days priced once per step",
+      "grid": [
+        {
+          "axis": "day",
+          "levels": [
+            "23h",
+            "25h",
+            "month_boundary"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M4",
+      "id": "capacity-peak-once",
+      "identity": "the capacity tariff charges the monthly peak exactly once",
+      "grid": [
+        "price_shape"
+      ]
+    },
+    {
+      "step": "M4",
+      "id": "grid-fee-windows",
+      "identity": "grid-fee day, night and weekday windows applied piecewise",
+      "grid": [
+        "grid_fee_mode"
+      ]
+    },
+    {
+      "step": "M4",
+      "id": "currency-pv-export",
+      "identity": "currency conversion and the PV export price applied piecewise",
+      "grid": [
+        "price_source"
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "sysid-bias",
+      "identity": "sysid.identify bias, and the confidence gate against the bias it admits",
+      "grid": [
+        {
+          "axis": "noise",
+          "levels": [
+            "white",
+            "quantised_0.1C",
+            "drifting"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "learner-clamps",
+      "identity": "each learner at zero evidence and on its clamp",
+      "grid": [
+        {
+          "axis": "evidence",
+          "levels": [
+            "zero",
+            "on_clamp"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "cross-covariate",
+      "identity": "every learner driven together under error in another's covariate",
+      "grid": [
+        {
+          "axis": "noise",
+          "levels": [
+            "white",
+            "quantised_0.1C",
+            "drifting"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "power-entity-own-estimate",
+      "identity": "a learner fed a power entity that is the pump's own estimate learns nothing from it",
+      "grid": [
+        {
+          "axis": "power_source",
+          "levels": [
+            "metered",
+            "pump_estimate"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "covariate-moved",
+      "identity": "a covariate moved to another sensor resets or re-bases what it fed",
+      "grid": [
+        {
+          "axis": "covariate",
+          "levels": [
+            "indoor",
+            "outdoor",
+            "flow",
+            "tank"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "tank-fall-after-charge",
+      "identity": "the tank reading's fall in the minutes after a charge starts is not booked as draw",
+      "grid": [
+        "combi_tank"
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "draw-range-censored",
+      "identity": "a draw range learned from censored samples does not narrow below the draw it could not observe",
+      "grid": [
+        {
+          "axis": "samples",
+          "levels": [
+            "uncensored",
+            "censored_at_minimum_power"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "M5",
+      "id": "booked-against-metered",
+      "identity": "the plan's booked space energy against a metered month's delivery",
+      "grid": [
+        "layout",
+        "emitter"
+      ]
+    }
+  ]
+}
