@@ -1,0 +1,2 @@
+D9 B1	unmet: 3.6 s host solver CPU per cycle, x F=5	18.0	PASSES
+plants: 9, wrong: 0
