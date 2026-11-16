@@ -2955,6 +2955,49 @@ class Train:
                   f"mandate re-read in force at merge: {self.mandate}.\n")
         return self._post_carry(pr, h, body)
 
+    def pre_approve(self, serial: "list[dict]", lead: bool, req: "list[str]") -> None:
+        """P628 (R10-TRAIN-REVIEW-PRESETTLE, carry 1): at batch start, after any
+        up-front recarry, step 6's approval for each serial entry that lands
+        after another entry (`lead`: a batch entry lands first; else the first
+        serial entry has none before it) and passes steps 1-5 now
+        (`pre_approval_refusal`), so its `CI review` run runs while the earlier
+        entries merge. `approve` is once per head: at the entry's turn it finds
+        this approval and posts nothing; a head that moved is approved afresh
+        there. An entry refused here is left to step 6 unchanged."""
+        for a in serial if lead else serial[1:]:
+            pr, h = a["pr"], a.get("rc_head") or a["head"]
+            why = self.pre_approval_refusal(a, h, req)
+            self.log(f"#{pr} not pre-approved at {h[:8]}: {why}" if why else
+                     f"#{pr} pre-approved at batch start ({self.approve(pr, h, a, a['files'])})")
+
+    def pre_approval_refusal(self, a: dict, h: str, req: "list[str]") -> "str | None":
+        """Why <a> at <h> takes no approval at batch start, or None: steps 1-5 read
+        once, nothing waited for -- verdicted, the live head, main inside (a
+        recarry still owed moves the head; under a ruleset requiring no up-to-date
+        branch, Card 5's `merges_as_is` lands it unmoved), classify_at GREEN, CARRY yes, no
+        policy path (its approval is `policy_approve`'s, at the merge) and no
+        budget raise (`raise_hold`)."""
+        pr = a["pr"]
+        if BOT_ROUTE in a["route"]:
+            return "a bot tip: its recarry at its turn is the App push"
+        if not is_sha(a.get("verdict") or ""):
+            return "unverdicted"
+        if self.head(pr) != h:
+            return "the head moved"
+        if not a.get("rc_head") and not self.contains_main(h) and self.strict_update() is not False:
+            return "main is not inside and the ruleset requires an up-to-date branch: its recarry moves the head"
+        runs = self._check_runs(h)
+        state = "unread" if runs is None else self.classify_at(h, runs, req)[0]
+        if state != "green":
+            return f"not GREEN ({state})"
+        if "CARRY: yes" not in self.run(["bash", tool("app_approve"), "--carry", a["verdict"], h])[1]:
+            return "CARRY no"
+        if self.policy_paths(a["files"]):
+            return "a policy head: its approval is posted under the mandate at its turn"
+        if self.raise_hold(pr, h, a["files"])[0]:
+            return "a budget raise: the owner's approval at its turn"
+        return None
+
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         """Step 6, ONCE per head (R10-TRAIN-UPGRADE, triage P86): every approval
         starts a `CI review` run of ci.yml that the merge then waits on, and
@@ -4937,6 +4980,10 @@ class Train:
                         if s.step == "main" or not self.skip_bad:
                             raise
                         self.skip(a["pr"], s.step, s.why, s.cls)
+            if self.real and serial:
+                skipped = {s["pr"] for s in self.skipped[mine:]}
+                self.pre_approve([a for a in serial if a["pr"] not in skipped],
+                                 len(entries) > len(serial), head_req)
             kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
             lone = kept[0]["pr"] if len(kept) == 1 else None  # the unproved merge, by number
             if lone:
@@ -6996,6 +7043,7 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _pre_approve_self_test(check)
     _rollup_draft_self_test(check)
     _gate_race_self_test(check)
     _gate_reader_barrier_self_test(check)
@@ -8168,6 +8216,63 @@ def _rollup_draft_self_test(check) -> None:
     check("stamp hold: the ref names agree between the train and the stamp",
           STAMP_HOLD_REF == "refs/heads/stamp-hold"
           and 'STAMP_HOLD_REF = "refs/heads/stamp-hold"' in (ROOT / "tools/release/stamp.py").read_text())
+
+
+def _pre_approve_self_test(check) -> None:
+    """P628 / carry 1's acceptance (i)-(v), at `pre_approve` with every step 1-5
+    read stubbed; (vi)'s ordering runs through the whole batch in `_self_test`."""
+    def world(heads, red=(), carry_no=(), no_main=()):
+        calls, lines = [], []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            calls.append(argv)
+            if "--carry" in argv:
+                return 0, "CARRY: no" if argv[-1] in carry_no else "CARRY: yes"
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append, polls=1)
+        t.head = lambda pr: heads[pr]
+        t.contains_main = lambda h: calls.append(["contains", h]) or h not in no_main
+        t.strict_update = lambda: True
+        t._check_runs = lambda h: calls.append(["check-runs", h]) or []
+        t.classify_at = lambda h, runs, req: ("red" if h in red else "green", [], [])
+        t.policy_paths = lambda files: [f for f in files if f.startswith("dev/governance/")]  # policy_lint's, read elsewhere
+        t.raise_hold = lambda pr, h, files: (["m: 3 -> 4"] if "tests/structure_budgets.json" in files else [], True, "")
+        t._reviews = lambda pr, why: []
+        t._approve = lambda pr, h, item, files: calls.append(["POST", pr, h]) or "APPROVED"
+        return t, calls, lines
+    ent = lambda pr, files=("tools/x.py",), v="c" * 40, route=("workflow",): {  # noqa: E731
+        "pr": pr, "head": f"{pr:040x}", "verdict": v, "files": list(files), "route": list(route)}
+    heads = {n: f"{n:040x}" for n in range(1, 10)}
+    t, calls, lines = world(heads)
+    t.pre_approve([ent(1), ent(2), ent(3)], True, ["gate"])
+    posts = [c for c in calls if c[0] == "POST"]
+    again = [t.approve(n, heads[n], ent(n), []) for n in (1, 2, 3)]
+    check("P628 (i): N eligible serial entries are each approved once at batch start, and approve() at the merge "
+          "returns `already, at this head` posting nothing",
+          [c[1] for c in posts] == [1, 2, 3] and all(a.startswith("already, at this head") for a in again)
+          and len([c for c in calls if c[0] == "POST"]) == 3
+          and sum("pre-approved at batch start (APPROVED)" in ln for ln in lines) == 3)
+    heads2 = {**heads, 2: "e" * 40}
+    t.head = lambda pr: heads2[pr]
+    got = t.approve(2, heads2[2], ent(2), [])
+    check("P628 (ii): a head that moved after the batch-start approval is approved afresh at its turn",
+          got == "APPROVED" and [c for c in calls if c[0] == "POST"][-1] == ["POST", 2, "e" * 40])
+    t, calls, lines = world(heads, red={heads[5]}, carry_no={heads[4]}, no_main={heads[9]})
+    t.pre_approve([ent(4), ent(5), ent(6, v="not-a-sha"), ent(7, files=("dev/governance/roles/fixer.md",)),
+                   ent(8, files=("tests/structure_budgets.json",)), ent(9)], True, ["gate"])
+    why = {int(m.group(1)): ln for ln in lines if (m := re.match(r"#(\d+) not pre-approved", ln))}
+    check("P628 (iii): a CARRY-no, red, unverdicted, policy (no mandate posted at batch start), budget-raise or "
+          "main-outside entry is not pre-approved, each naming why",
+          not [c for c in calls if c[0] == "POST"] and sorted(why) == [4, 5, 6, 7, 8, 9]
+          and "CARRY no" in why[4] and "not GREEN (red)" in why[5] and "unverdicted" in why[6]
+          and "a policy head" in why[7] and "a budget raise" in why[8] and "main is not inside" in why[9])
+    t, calls, lines = world(heads)
+    t.pre_approve([ent(1)], False, ["gate"])
+    t.pre_approve([ent(1), ent(2)], False, ["gate"])
+    check("P628 (iv) null: a one-entry batch reads and posts nothing at batch start (the call order is main's), "
+          "and with no batch entry first, the first serial entry is left to its turn",
+          [c for c in calls if c[0] == "POST"] == [["POST", 2, heads[2]]] and not any(
+              len(c) > 1 and c[1] == heads[1] for c in calls if c[0] in ("contains", "check-runs")))
 
 
 def _review_settle_self_test(check) -> None:
@@ -10486,11 +10591,22 @@ def _batch_self_test(check) -> None:
           and "red at the head: gate" in (w["skip_json"] or [{}])[0].get("reason", "")
           and any(ln == "SKIP REPORT: 1 skipped of 2" for ln in w["lines"]) and w["lines"][-1] == "TRAIN DONE")
     w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", skip_bad=True,
-           setup=lambda w: (gated(["red", "green"])(w), w.update(strict="false")), clock=ticking())
-    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges",
+           setup=lambda w: (gated(["red", "red", "green"])(w), w.update(strict="false")), clock=ticking())
+    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges "
+          "(its first read is P628's batch-start pre-approval read, red: not pre-approved)",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("#2 not pre-approved at ") and "not GREEN (red)" in ln for ln in w["lines"])
           and any(ln.startswith("SKIP #2 ci: #2 red at the head: gate") for ln in w["lines"])
           and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main",
+           setup=lambda w: w.update(strict="false"))
+    ln = w["lines"]
+    pre = next((i for i, x in enumerate(ln) if x.startswith("#2 pre-approved at batch start")), None)
+    m1 = next((i for i, x in enumerate(ln) if x.startswith("#1 MERGED")), None)
+    check("P628 (vi), the #3453/#3447 order: a serial entry behind a batch merge is approved at batch start, "
+          "before the batch entry's merge, and its turn posts nothing (`already, at this head`)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and pre is not None and m1 is not None and pre < m1
+          and any(x.startswith("#2 approved (already, at this head") for x in ln))
     w = go(two, base="main", skip_bad=True, clock=ticking(),
            setup=lambda w: (gated(["red", "green"])(w), w.update(on_log=lambda ln: ln.startswith("SKIP #2")
                                                                   and w["heads"].update({2: "f" * 40}))))
