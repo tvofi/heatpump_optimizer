@@ -11,6 +11,7 @@ the committed plan), never an input attribute.
 
 Command (from the export root):
   PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py [--workers 2] [--limit N] [--cells FILE] [--perturb seeds_in_prod]
+Enumerator: race.py --list (D0.M4); race.py --list | grep -E '^flat/|/flat$' (D0.M5).
 Universe: `python3 tools/audit/enumerate.py d0-grid` lines whose price is in
 summer_typical, summer_negative, shoulder, flat (1200), plus the five
 tests/golden.py coordinator captures on those four prices (20, named
@@ -193,7 +194,10 @@ def summarize(path, cells):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--summary":
+    if len(sys.argv) > 1 and sys.argv[1] == "--list":
+        # D0.M4's enumerator (1220 lines); D0.M5's is this piped through grep for flat
+        print("\n".join(universe()))
+    elif len(sys.argv) > 1 and sys.argv[1] == "--summary":
         summarize(os.path.join(HERE, "race_out", "cells.jsonl"), universe())
     else:
         main()
