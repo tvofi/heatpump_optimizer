@@ -1451,11 +1451,18 @@ def _self_test() -> int:
                      for x in (sec, swimlanes(plan, build_rows(roster, plan, snap))[0])]
             check("groups and phases: the phases are drawn on the swimlanes' own time axis",
                   ticks[0] and ticks[0] == ticks[1], ticks)
-            measured = render(roster, src, dict(plan, generated={**plan["generated"], "model": {
-                **plan["generated"]["model"], "phase_hours": {"finders": 7.5}}}), snap, None, fx)
-            check("a phase the model prices prints its figure; one it does not prints "
-                  "'duration unmeasured', never a zero or a typed constant; the rest a dash",
-                  "7.5 h (plan model)" in measured and "duration unmeasured" in measured
+            # durations.json, then build_plan, then render: the production path.
+            plan_m = replan.build_plan(r_, dict(durations, phase_hours={"finders": 7.5}),
+                                       dict(replan.DEFAULT_CAPS), start, "v1.0.0", ref_, blob_,
+                                       round_n=roster_lib.roster_round(str(rpath)))
+            measured = render(roster, src, plan_m, snap, None, fx)
+            check("a phase durations.json prices reaches the plan's model and the page prints "
+                  "its figure; one it does not prints 'duration unmeasured', never a zero or a "
+                  "typed constant; the rest a dash",
+                  plan_m["generated"]["model"].get("phase_hours") == {"finders": 7.5}
+                  and "phase_hours" not in plan["generated"]["model"]
+                  and replan.check_plan(plan_m) == []
+                  and "7.5 h (plan model)" in measured and "duration unmeasured" in measured
                   and "duration unmeasured" in both and "plan model)" not in both
                   and measured.count("duration unmeasured") == both.count("duration unmeasured") - 1,
                   (both.count("duration unmeasured"), measured.count("duration unmeasured")))
@@ -1546,6 +1553,36 @@ def _self_test() -> int:
                                               if k != "plan"}, "unavailable": "boom"}}
             check("a next round that cannot be planned is an UNAVAILABLE tab, never an absent one",
                   "UNAVAILABLE: boom" in render(later_roster(), src, broken, snap))
+            bad_nxt = json.loads(json.dumps(p2))
+            del bad_nxt["next_round"]["plan"]["generated"]["model"]
+            check("check_plan checks the next round's plan: a violation in it is the round "
+                  "plan's, named by the next round (null control: p2 reads [] above)",
+                  replan.check_plan(bad_nxt)
+                  == ["next round 10: model: the plan records no duration model (generated.model)"],
+                  replan.check_plan(bad_nxt))
+            unplannable = later_roster()
+            unplannable["groups"][-2] = dict(unplannable["groups"][-2], savings="lots")
+            try:
+                pu = planned(unplannable)
+                nu = pu["next_round"]
+                check("a later round the model refuses is next_round.unavailable, the round's "
+                      "own plan unchanged, drawn as an UNAVAILABLE tab",
+                      "plan" not in nu and "R10-NEXT-A: savings is not a number" in nu["unavailable"]
+                      and {k: v for k, v in pu.items() if k != "next_round"} == p0
+                      and "UNAVAILABLE: R10-NEXT-A: savings is not a number"
+                      in render(unplannable, src, pu, snap77), nu)
+            except replan.PlanError as exc:
+                check("a later round the model refuses is next_round.unavailable, the round's "
+                      "own plan unchanged, drawn as an UNAVAILABLE tab", False, str(exc))
+            far = later_roster("R11-FAR-A", "R12-FAR-B")
+            pf_ = planned(far)
+            check("groups of rounds past the nearest are counted in beyond, not scheduled, and "
+                  "the tab says so (null control: a roster with none counts 0 and says nothing)",
+                  pf_["next_round"]["round"] == 10 and pf_["next_round"]["beyond"] == 2
+                  and set(pf_["next_round"]["plan"]["groups"]) == {"R10-NEXT-A", "R10-NEXT-B"}
+                  and "2 more group(s) belong to rounds after 10" in render(far, src, pf_, snap77)
+                  and p2["next_round"]["beyond"] == 0 and "more group(s) belong" not in tabbed,
+                  pf_["next_round"].get("beyond"))
             # Carry 3: a figure on the page equals the rows it counts.
             part_snap = dict(snap, merged_prs=snap["merged_prs"] + [
                 {"number": 24, "title": "R9-HELD: part", "head_ref": "fix/held",
