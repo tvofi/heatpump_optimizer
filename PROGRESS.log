@@ -11,3 +11,4 @@
 1794854217 DONE blocked: body_push figure-block base mismatch; code 411d996 on handoff/, prepr rc=0; BLOCKED.md at handoff-wip 08154d5
 1794856693 HB alive
 1794856744 CKPT net case + mutant written; fails on mutant, ok at head snapshot ba292fc741ca
+1794856779 CKPT repair committed a527be6; wip pushed; mutant runs + self-test running snapshot 45075adb9cba
