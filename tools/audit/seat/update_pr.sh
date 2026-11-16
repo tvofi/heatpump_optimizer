@@ -61,9 +61,15 @@ if [ "$C" != - ]; then
 fi
 git fetch -q origin "$BR" main
 pr_tools_fresh  # the checkout holding these tools, against the main just fetched (pr_args.sh)
-OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
+# Another clean worktree on the branch, anywhere under the state dir, is detached; never one holding work origin lacks.
+# Outside $P (a retired seat's worktree under $PR_STATE/<session>/seat/..., R10-UPDATE-PR-SEAT-WORKTREE) a third guard:
+# no live process has its cwd inside it (pr_cwd_free; an unreadable lsof keeps it). Each kept one stays BUSY below.
+OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | awk -v p="$PR_STATE/" 'index($0, p) == 1' || true); for o in $OWN; do  # mut:seatwt
   [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
   git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_busy "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
+  case $o in "$P"/*) ;; *) pr_cwd_free "$o"; case $? in 0) ;;  # mut:seatcwd
+    1) pr_busy "worktree $o on $BR is outside $P and a live process stands in it: not detaching it";;
+    *) pr_busy "worktree $o on $BR is outside $P and lsof could not be read: not detaching it";; esac;; esac
   git -C $o checkout -q --detach
 done
 git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && pr_busy "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"  # mut:elsewhere

@@ -69,6 +69,11 @@ pr_state_root() { # sets PR_STATE: the state dir ($HPO_STATE_DIR, default ~/.loc
   mkdir -p "$PR_STATE/pr" || pr_refuse "cannot create the state dir $PR_STATE/pr"
   PR_STATE=$(CDPATH= cd -P -- "$PR_STATE" && pwd -P) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
 }
+pr_cwd_free() { # <dir>: rc 0 when no live process has its cwd at or under <dir>, 1 when one has, 2 when lsof is missing or unreadable
+  # (`lsof -a -d cwd`, worktree_gc.sh's cwd-inside read; an empty listing is unreadable, never "nobody")
+  local out; command -v lsof >/dev/null 2>&1 || return 2
+  out=$(lsof -a -d cwd -Fn 2>/dev/null) && [ -n "$out" ] || return 2
+  printf '%s\n' "$out" | awk -v p="$1" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 1 : 0 }'; }
 pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
 pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o
@@ -1979,6 +1984,46 @@ STUB
   ck "update_pr: through a symlinked state dir, that worktree is detached as before and the run reaches its push" $?
   unpushed stateroot 0 link; [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "checked out elsewhere" "$t/outu"
   ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the worktree stays on the branch and the run is BUSY (the defect)" $?
+  # R10-UPDATE-PR-SEAT-WORKTREE: a retired seat's clean worktree on the branch at origin's head, under the state dir but
+  # outside its pr/ root, held the relay at BUSY every pass. It is detached now, with a third guard for one outside pr/:
+  # no live process has its cwd inside it (lsof; an unreadable lsof keeps it BUSY).
+  seatwt() { # <mutant|perl expr on update_pr.sh> <case: clean|cwd|commit|nolsof>
+    local sd=$t/seat-$2 w hp=""
+    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr" "$sd/s14/seat/m7"; sd=$(cd "$sd" && pwd -P)
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do cp "$seat/$g" "$m/tools/audit/seat/$g"; done
+    case $1 in -) ;; mut:*) grep -v "# $1\$" "$seat/update_pr.sh" > "$m/tools/audit/seat/update_pr.sh";; *) perl -0pi -e "$1" "$m/tools/audit/seat/update_pr.sh";; esac
+    w=$sd/s14/seat/m7/wt3458
+    git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$w" origin/fix/u || return 1
+    [ "$2" != commit ] || { printf 'row\n' > "$w/row" && git -C "$w" add row && git -C "$w" commit -q -m row; }
+    [ "$2" != cwd ] || { ( cd "$w" && exec sleep 60 ) & hp=$!; }
+    mkdir -p "$t/nolsof"; printf '#!/bin/sh\nexit 1\n' > "$t/nolsof/lsof"; chmod +x "$t/nolsof/lsof"
+    cp "$t/body.md" "$t/bU.md"
+    if [ "$2" = nolsof ]; then PATH=$t/nolsof:$PATH HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md"
+    else HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md"; fi > "$t/outs" 2>&1; echo $? > "$t/rcs"
+    git -C "$w" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
+    [ -z "$hp" ] || { kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; }
+    reap; git -C "$m" worktree remove --force "$w" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
+  }
+  if command -v lsof >/dev/null 2>&1 && [ -n "$(lsof -a -d cwd -Fn 2>/dev/null)" ]; then
+    seatwt - clean
+    [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outs" && ! grep -qF "update_pr: BUSY" "$t/outs"
+    ck "update_pr: a retired seat's clean worktree on the branch at origin's head, under the state dir outside pr/, is detached and the run reaches its push" $?
+    seatwt 's/awk -v p="\$PR_STATE\/"/awk -v p="\$P\/"/' clean
+    [ "$(cat "$t/rcs")" = 75 ] && [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "checked out elsewhere" "$t/outs"
+    ck "  mutant mut:seatwt (the scan back at pr/ alone, the base): that worktree keeps the branch and the run is BUSY (the defect)" $?
+    seatwt - cwd
+    [ "$(cat "$t/rcs")" = 75 ] && [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "a live process stands in it" "$t/outs"
+    ck "null control: with a live process's cwd in that worktree the run is BUSY and the worktree keeps the branch" $?
+    seatwt 's/pr_cwd_free "\$o"; case/true; case/' cwd
+    [ "$(cat "$t/attached")" = detached ] && ! grep -qF "a live process stands in it" "$t/outs"
+    ck "  mutant mut:seatcwd (the cwd guard made true): the worktree is detached under the live process" $?
+    seatwt - commit
+    [ "$(cat "$t/rcs")" = 75 ] && [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "(unpushed work" "$t/outs"
+    ck "null control: with a commit origin lacks in that worktree the run is BUSY and the worktree keeps the branch" $?
+    seatwt - nolsof
+    [ "$(cat "$t/rcs")" = 75 ] && [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "lsof could not be read" "$t/outs"
+    ck "an unreadable lsof keeps that worktree: BUSY, on its branch" $?
+  else echo "  skip the seat-worktree rows: no readable lsof on this host"; fi
   # The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here code
   # sha `-` adding the row) asks app_push.sh for --row-only, whose own verdict decides whether a
   # full prepr is owed; a head merging new code asks for --reuse instead (P386), never --row-only.
