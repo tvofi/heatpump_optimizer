@@ -1,0 +1,12 @@
+RESULT mutant=beat-refusal-silent rc=1 verdict=killed :: ['beat_jobs self-test: 273 checks, 2 failed']
+RESULT mutant=beat-no-statefile rc=1 verdict=killed :: ['beat_jobs self-test: 273 checks, 2 failed']
+RESULT mutant=beat-held-prefix rc=1 verdict=killed :: ['beat_jobs self-test: 273 checks, 3 failed']
+RESULT mutant=scan-unbounded rc=0 verdict=SURVIVED :: ['toolchain self-test: 42 checks, 0 failed']
+RESULT mutant=walk-no-movable rc=1 verdict=killed :: ['toolchain self-test: 42 checks, 3 failed']
+RESULT mutant=init-twice rc=1 verdict=killed :: ['toolchain self-test: 42 checks, 1 failed']
+RESULT mutant=held-runs-2 rc=1 verdict=killed :: ['toolchain self-test: 42 checks, 2 failed']
+RESULT mutant=sha-nonsha-head rc=1 verdict=killed :: ['toolchain self-test: 42 checks, 3 failed']
+RESULT mutant=status-cancelled-green rc=1 verdict=killed :: ['gate self-test: 120 checks, 1 failed']
+RESULT mutant=prune-prefix-loose rc=1 verdict=killed :: ['SELF-TEST FAIL (78 checks)']
+
+[exited with code 0]
