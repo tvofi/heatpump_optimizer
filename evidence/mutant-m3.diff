@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index 972b4196d8..dbed342e4f 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -126,7 +126,7 @@ _DHW_MIN_TEMP_C = _float_range(35, 55)
+ # one the user is dragging, and anything absent keeps its configured value.
+ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
+     {
+-        vol.Optional("target_temp"): _COMFORT_TEMP_C,
++        vol.Optional("target_temp"): vol.Coerce(float),
+         vol.Optional("min_temp"): _float_range(*option_range(CONF_MIN_TEMP)),
+         vol.Optional("max_temp"): _float_range(*option_range(CONF_MAX_TEMP)),
+         vol.Optional("comfort_temp_day"): _COMFORT_TEMP_C,
