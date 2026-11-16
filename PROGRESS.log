@@ -13,3 +13,4 @@
 1794856018 DONE verdict merge f4e48cca12 returned on probe/rev-3670-47d6b406 (32619aa327), pending-ci
 1794858541 HB alive
 1794858616 CKPT packet rendered; scope full per packet; carry check snapshot 917f21904dee
+1794858771 CKPT delta read; features + mutants + classify running snapshot bec61f7ff652
