@@ -7,8 +7,12 @@ Part 1 lists the open non-gating evaluation cards for P3. This part adds the ros
 - **A roster group's `gates_finders`** (true or false) is the same field as on a card, read through `roster_lib.finder_gate`, which returns None unless the value is a boolean. It is written by `roster_edit.py set-field <group> gates_finders true|false`, an existing queue-lane op, so there is no new op. `brief_lint.mjs`'s shape check refuses a non-boolean value. Absent is allowed, so no existing roster goes red.
 - **`roster_lib.architect_groups(roster)`** returns `(listed, unmarked)`. `listed` is every open group (`is_open`, the module's one open rule) whose `gates_finders` is not true. `unmarked` is those of them with no boolean. An unmarked group is listed and never read as gating, so it cannot drop out of the architect's plan unseen.
 - **`check_scopes.py --round N --open-cards`** now prints `{round, open_cards, unmarked_cards, open_groups, unmarked_groups, ref, roster_ref}`. `p3_input` joins part 1's `open_cards_report` (the card half, repaired for fix review 3620) with `architect_groups_report` (the group half). The roster is read through `roster_lib.reader_ref`/`show_roster`, or `--roster-ref`, never a fixed path. Each unmarked card or group gets an `UNMARKED <id>: ...` line, and the listing exits 1 while either half has one.
-- **Bootstrap split**: in CI, `check-wave-script.mjs` runs the base's copy (`ci_predict.py` predicted this BOOTSTRAP red at 9fb327ecb3). Main's copy drives audit-plan.js with stubs that carry no `--open-cards` listing, so the refusal and its grader arms cannot land in one pull request. This part lands only the grader's stubs: the read reply carries `open`/`open_rc`, and the plan carries `open_items`/`dropped`. Today's audit-plan.js ignores them, and part 3's refusal (built and green at work/r11-pre-round-check-gate-p3-draft 9fb327ecb3) passes against them. Measured: this head's grader against part 3's audit-plan.js printed `223 passed, 0 failed`.
-- **Policy, minimal, for tvofi's review**: architect-planner.md Inputs now say "the cards and roster groups open at P3's start" and step 3 says "Every finding, open card and open group appears in the plan exactly once". Paid within its token cap by dropping "; none is dropped silently", which "exactly once" already says.
+- **Bootstrap split**: in CI, `check-wave-script.mjs` runs the base's copy (`ci_predict.py` predicted this BOOTSTRAP red at 9fb327ecb3). Main's copy drives audit-plan.js with stubs that carry no `--open-cards` listing, so the refusal and its grader arms cannot land in one pull request. This part lands only the grader's stubs: the read reply carries `open`/`open_rc`, and the plan carries `open_items`/`dropped`. Today's audit-plan.js ignores them, and part 3's refusal (built and green at refs/heads/handoff-wip/r11-pre-round-check-gate-p3, 9fb327ecb3) passes against them. Measured: this head's grader against part 3's audit-plan.js printed `223 passed, 0 failed`.
+- **Policy, minimal, for tvofi's review**: architect-planner.md Inputs now say "the cards and roster groups open at P3's start" and step 3 says "Every finding, open card and open group appears in the plan exactly once". Paid within its token cap by four trims, all in the three-dot diff from part 1's commit 0d46ea8bd9:
+  - "; none is dropped silently" is dropped; "exactly once" already says it.
+  - "(sensitivity, tradeoff points)" is dropped from **Method**; step 2 still names the sensitivity and tradeoff points.
+  - The holdout list "structure budgets, the tripwires, the behaviour inventory, mutation kill rate and change coupling" becomes "the first five fitness functions step 7 names", the same five.
+  - **"read-only on code" is deleted from the seat's description** ("One opus seat, read-only on code, writing only the plan" becomes "One opus seat, writing only the plan"). This one changes what the seat may do, and it awaits the owner's approving review with the rest of the edit.
 
 A design choice to say: `is_open` counts `refuted` as open and `deferred` as closed, so a refuted group is listed and a deferred one is not. The listing reads the module's one open rule rather than a second one of its own.
 
@@ -20,7 +24,7 @@ Not yet given. The architect-planner.md edit awaits tvofi's approving review at 
 
 ## Head
 
-b15449f38ac4ecd2787a70cb80f02050d2a4e0ba. It is part 1's repaired head fc369d59a8 merged in (merge 5519adfdce; the `--open-cards` block conflicted and is resolved into `p3_input`), plus one self-test arm. Merge base with main: b3831ff64e. The roster_lib and roster_edit self-tests ran at 9fb327ecb3; neither file changed since. Every check_scopes figure below was measured at this head.
+a59eafe204c5562ba348bffb4ff88796801e19a5. Fix review 3633 blocked 416280f5c2. This head is the handoff tip b15449f38a plus one commit that adds 1 and ["x"] to the self-test arm for the evaluator and reviewer (`check_scopes.py` self-test only, no production line). b15449f38a is part 1's repaired head fc369d59a8 merged in (merge 5519adfdce; the `--open-cards` block conflicted and is resolved into `p3_input`), plus one self-test arm. Merge base with main: b3831ff64e. The roster_lib and roster_edit self-tests ran at 9fb327ecb3; neither file changed since. Every check_scopes figure below was measured at this head.
 
 ## Mutation proof
 
@@ -43,6 +47,12 @@ Mutants (the joined listing, at b15449f38a): `--spec <scratch mutants4.json>`, s
 - M11: the reviewer's mutant of #3620.
 - G4: the group half's UNMARKED lines are dropped. This one first survived; the whole-listing arm now asserts the line.
 
+Fix review 3633's mutants C7 and C7b, run with the reviewer's driver (verdict/3633 `evidence/mut.py`, worktree path changed only), each applied alone and restored. The command is `python3 tools/audit/check_scopes.py --repo . --self-test`:
+- C7, `norm(str(ev.get(k) or ""))`, accepts a truthy non-string evaluator or reviewer. At b15449f38a it SURVIVED (rc 0). At a59eafe204 it is KILLED (rc 1). The only change between the two runs is the arm "a null, absent, blank or non-string reviewer or evaluator is refused", which now also tries `1` and `["x"]`.
+- C7b, `norm(ev.get(k, ""))`, restores the base's line. It is KILLED (rc 1) at both heads.
+
+prepr's diff-mutants step skipped because MUTANT_CMD was unset. This delta adds no production line, only two values in a self-test arm. The C7/C7b runs above are its mutation proof.
+
 brief_lint's rule is pinned by the red run above.
 
 ## Null control
@@ -58,23 +68,20 @@ brief_lint's rule is pinned by the red run above.
 - `python3 tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 313 checks, 0 failed`.
 - `node tools/policy/check-wave-script.mjs` at this head: `223 passed, 0 failed`. Against part 3's audit-plan.js it also printed `223 passed, 0 failed`.
 - `node tools/policy/brief_lint.mjs`: rc 0 at the head; rc 1 with the vacuous pin before the rule.
-- `check_scopes.evaluation_self_test` at the head: 66 of 66 held (part 1's repaired 62 plus 4).
-<!-- figure-block: scope-line mb=b880dc914f3ba2590b7ce655d7419678b1c4968e head=b15449f38ac4ecd2787a70cb80f02050d2a4e0ba -->
+- `python3 tools/audit/check_scopes.py --repo . --self-test` at a59eafe204: rc 0, `evaluation arms: 66/66 held` (part 1's repaired 62 plus 4; the C7 repair extends an arm and adds none).
+<!-- figure-block: scope-line mb=b880dc914f3ba2590b7ce655d7419678b1c4968e head=a59eafe204c5562ba348bffb4ff88796801e19a5 -->
 ~~~text
-MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
 ## Red checks
 
-none. `prepr.sh` at b15449f38a predicted 2 reds on governance / instrument-self-tests, and neither is caused by this diff: both are timeouts (rc 124) on a host running several prepr runs at once.
-- "Show the roster editor refusing its own fixtures": rc 124 at the head, 0 at the base. Run untimed, `python3 tools/audit/seat/roster_edit.py --self-test` printed `roster_edit self-test: 313 checks, 0 failed`. That was at 9fb327ecb3, and roster_edit.py has not changed since.
-- "Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal": rc 124 at the head, 0 at the base. Run untimed, `python3 -I tools/pr/ci_predict.py --self-test` printed `ci_predict self-test: 0 failed` at 25dabf079a.
-- CI's runner is the authority on both.
+none. Fix review 3633 read CI at the previous head 416280f5c2 as `GREEN ... red: none` (`merge_train.py classify`). At a59eafe204, `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` exited rc 0. Its ci predict step (`ci_predict.py --record-self-tests`) predicted no closures, fast, governance or instrument red. Run alone, the same predictor's step replay "Show the self-tests outside tools/audit/seat/ refusing their own fixtures" timed out (rc 124) at both the head and the base in this container. It is not caused by this diff, and CI's runner is the authority.
 
 ## Forward-carry
 
-- The audit-plan.js refusal is part 3 of this group (topic r11-pre-round-check-gate-p3), built at work/r11-pre-round-check-gate-p3-draft 9fb327ecb3 and green there (check-wave-script `230 passed, 0 failed`, with 6 arms red against today's audit-plan.js). It opens once this part is on main.
+- The audit-plan.js refusal that roster carry 4ffa4b06 assigns to part 2 is split out of this pull request, **pending the orchestrator's ruling** on the split; no plan names a part 3 yet, and the orchestrator may record it in the roster instead. The split's cause: governance.yml's wave-script job restores `tools/policy/check-wave-script.mjs` from `$PINNED` before "Drive the wave script's branching", so the refusal and its grader arms cannot land in one pull request (confirmed by fix review 3633). The refusal is built at refs/heads/handoff-wip/r11-pre-round-check-gate-p3, 9fb327ecb3, as topic r11-pre-round-check-gate-p3, and is green there (check-wave-script `230 passed, 0 failed`, with 6 arms red against today's audit-plan.js). It opens once this part is on main.
   - P3's read step runs `--open-cards` at origin/main and stops on a non-zero exit or a missing listing.
   - P3 refuses an open card or group that is not a plan group, an `open_items` entry or a drop with a reason, and one placed twice.
   Carry: R11-PRE-ROUND-CHECK-GATE
