@@ -18,3 +18,4 @@
 1794859443 HB alive
 1794860048 HB alive
 1794860318 CKPT handed off: code 794f78f5, body 160d54a6 snapshot e86717366e17
+1794860322 DONE returned: handoff/r11-pre-machinery-limiter-p2 at 794f78f5, prepr rc=0; carries 5-9 built
