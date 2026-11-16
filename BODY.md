@@ -37,9 +37,9 @@ Alternatives that lost: one enumerator per dimension (seven scripts, seven self-
 
 ## Head
 
-fb9b921b98d2434b83f01132051a20e7cb89789d
+6a32d9035ac0dd5add14305e9d3544172d635782
 
-`fb9b921b98` merges `origin/main` at `98847b99d7` into `1c4704b8f4` (which is `db626fb9dd`, an earlier merge of `66865be375`, and the delivery row `dev/programme/delivery/3625.md`): `git merge-tree --write-tree origin/main 1c4704b8f4` reported a conflict in `dev/governance/config/policy_budgets.json`, where main's #3618 and #3621 re-recorded the D10, D11, D13, D14, D4 and D5 rows. Each key takes the side that changed it (no key changed on both); `corpus_tokens` is re-recorded to the merged tree's `--budgets` measurement, the reason in the merge commit's message. Figures marked at `fb9b921b98` were re-taken there; the rest stand at `db626fb9dd`.
+`6a32d9035a` merges `origin/main` into `fb9b921b98` (itself the merge of `origin/main` at `98847b99d7` into `1c4704b8f4`). The only conflict was `dev/governance/config/policy_budgets.json`; main's file is taken and each cap this diff raises is set to what `node tools/policy/policy_lint.mjs --budgets` measures at the merged tree, so each is main's value plus this diff's growth only (the measurement per key is under the raise-justification heading below; the reason is in the merge commit's message). Figures marked at `fb9b921b98` stand: the merge adds no Python line and moves no brief.
 
 ## Mutation proof
 
@@ -76,7 +76,7 @@ By hand, predicates and not tails, each restored after:
 - `python3 -I tools/audit/enumerate.py --self-test` at fb9b921b98d2434b83f01132051a20e7cb89789d: `SELF-TEST passed (134 arms)`. The arm count is what the script prints; an arm is one comparison in `self_test()`.
 - `python3 -I tools/audit/enumerate.py --briefs` at fb9b921b98d2434b83f01132051a20e7cb89789d: exit 0, 15 `ok` lines, one per brief and distinct cited command (D0 2, D1 6, D2 1, D8 1, D9 3, D12 1, D15 1). Against a checkout of 26dbf7c43ec3742101398b098dbdcc61bbee8f19: exit 2, `REFUSE: no dimension brief cites a universe`.
 - `node tools/policy/check-wave-script.mjs` at fb9b921b98d2434b83f01132051a20e7cb89789d: 223 passed, 0 failed; the same file at 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 223 passed, 0 failed (this diff does not change it). At this head with `dev/audit/config/rotation.json` restored from 26dbf7c43ec3742101398b098dbdcc61bbee8f19: 221 passed, 2 failed, naming `rotation.json D0 lacks D0.M8` and `D15 lacks D15.M9`.
-- `node tools/policy/policy_lint.mjs` at fb9b921b98d2434b83f01132051a20e7cb89789d: `TOTAL: 0 error(s)`. With `policy_budgets.json` restored from 98847b99d7bb3238686efd6869f805c89c6d1ff1: `TOTAL: 14 error(s)`, all `[budgets]`: the line row and the token row of D0, D1, D2, D8, D12 and D15, D9's token row, and the corpus.
+- `node tools/policy/policy_lint.mjs` at 6a32d9035ac0dd5add14305e9d3544172d635782: `TOTAL: 0 error(s)`. With `policy_budgets.json` restored from origin/main: `TOTAL: 14 error(s)`, all `[budgets]`: the line row and the token row of D0, D1, D2, D8, D12 and D15, D9's token row, and the corpus.
 - `python3 -I tools/audit/check_scopes.py --repo .` at fb9b921b98d2434b83f01132051a20e7cb89789d: exit 0.
 - Gate scope, `python3 tests/closure.py select --diff 26dbf7c43ec3742101398b098dbdcc61bbee8f19`: `MODE: FULL`, reason `tools/ci/selftest_closures.json changes the gate itself`; before that file changed the same command read `MODE: SCOPED -- 3 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`). Those three, with `PYTHONPATH=tests/hastub`, at db626fb9dde5ca152ce45e7c216e3c7676553b4e: `ALL 2723 ENTITY CHECKS PASSED`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `layout self-test: ok`, each exit 0. The rest of the full suite is CI's.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (prepr's merged-structure step, HEAD merged with origin/main).
@@ -88,7 +88,18 @@ By hand, predicates and not tails, each restored after:
 
 ## Raise justification
 
-Rows of `node tools/policy/policy_lint.mjs --budgets` raised, each to the value it measures at this head (the literal values are in the diff of `dev/governance/config/policy_budgets.json`): the `lines` and `~tokens` rows of `tools/audit/briefs/D0.md`, `D1.md`, `D2.md`, `D8.md`, `D12.md` (the keys the lint keeps for the files now under `dev/governance/dimensions/`) and `dev/governance/dimensions/D15.md`, the `~tokens` row of `tools/audit/briefs/D9.md` (its `lines` row had room and is untouched), and `corpus:`. The other aggregates are inside their band and untouched. `INSTRUMENTS.md` has no row.
+Rows of `node tools/policy/policy_lint.mjs --budgets` raised, each to the value it measures at `6a32d9035a` and so main's value plus this diff's growth only (before, after; lines then tokens where both):
+
+- `corpus_tokens`: 66226 to 67155 (measured ~67155, +929; main's cap plus `_band` is 66726, so the measurement exceeds it by 429)
+- `tools/audit/briefs/D0.md`: lines 66 to 76, `~tokens` 926 to 1112
+- `tools/audit/briefs/D1.md`: lines 60 to 72, `~tokens` 819 to 989
+- `tools/audit/briefs/D2.md`: lines 53 to 65, `~tokens` 683 to 869
+- `tools/audit/briefs/D8.md`: lines 56 to 63, `~tokens` 808 to 915
+- `tools/audit/briefs/D12.md`: lines 71 to 74, `~tokens` 916 to 997
+- `dev/governance/dimensions/D15.md`: lines 37 to 40, `~tokens` 690 to 824
+- `tools/audit/briefs/D9.md`: `~tokens` 857 to 901 (its `lines` row, 65, had room and is untouched)
+
+The other aggregates (always-loaded 3571 against cap 3349, fixer 6246 against 5852, record 7203, policy 9979) are inside their band and untouched. `INSTRUMENTS.md` has no row.
 
 Payments tried: (1) taken: the typed lists the enumerator now prints are cut from the briefs (D0 step 4's axes and its typed profile count, D1 step 2's store list and step 4's read list, D12 step 1's scenario names, its `Derive the cell count` sentence and step 2's axis list, D15's no-bundle rule); they did not cover the growth. (2) not taken: cutting D2's identity prose now that `identities.json` lists the identities: the register already carries each identity's tolerance, so the prose would move to an uncapped file, the reclassification `ratchet-budgets.md` refuses. (3) not taken: cutting a brief's `Traps` or `Reuse` section: each line there is a live constraint (a refused technique with its issue, a stub artefact), none spent or duplicated. (4) not taken: stating the census commands once in `COMMON.md` and not per brief: the universe differs per step, and `COMMON.md` is R11-PRE-BRIEFS-TEXT's. (5) not taken: leaving out the escape inputs: they are the cards' substance. (6) not taken, re-priced at fb9b921b98: keeping `corpus:` inside its cap plus `_band` with no corpus raise, which needs the added brief prose cut by the excess `--budgets` prints over cap plus band; after (1), each added line left is a card input, a census command or the ledger instruction that (2) to (5) keep. No code payment exists: the diff adds no line under `custom_components/`.
 
@@ -107,7 +118,7 @@ Pending; none is claimed here. This is a policy pull request (seven dimension br
 ## Forward-carry
 
 - Carry 0 (intake carry 175, from #3575 body item 7ce997a6: decision 0018 section 1's brief edits): built in this pull request for the files it gives this group. D12 names `--population` plus the card and the blueprints as its universe, declares the two NO-READ axes' levels and keeps the cell ledger (`d12-cells --ledger`); D0 and D15 gain the same-information oracle step with the realised-cost record per install-day and the model gap beside both; D1, D2, D8 and D15 name their census. Its two other parts are already in their groups' briefs on the round-11 roster (the roster branch at 032023814b): the actuator-write half in R11-PRE-NEW-DIMENSIONS' and the D11 half in R11-PRE-BRIEFS-TEXT's. Carry: dismissed: built here, and its other two halves already sit in their owners' briefs
-- `d16-writes [--cells]` and `d17-features` are in `tools/audit/enumerate.py` under the prototype's names, which card E11-U10 also uses, for the two new dimension briefs to cite; `--briefs` will then run them as acceptance. `rotation.json` and `scopes.json` already carry D0.M8 and D15.M9 from this head, so that group's rows for the new dimensions land on distinct keys. Carry: R11-PRE-NEW-DIMENSIONS
+- `d16-writes [--cells]` and `d17-features` are in `tools/audit/enumerate.py` under the prototype's names, which card E11-U10 also uses, for the two new dimension briefs to cite; `--briefs` will then run them as acceptance. `rotation.json` and `scopes.json` already carry D0.M8 and D15.M9 from this head, so that group's rows for the new dimensions land on distinct keys. Carry: dismissed: R11-PRE-NEW-DIMENSIONS is carries-open on the roster at d6fc32d676, so no live group owns the seam; the two universes exist under those names for any later brief to cite
 - `tank_volume` and `house_size` print `NO-READ` from `--population` until `dev/audit/config/objective.json` `population` declares their levels; D12 states them as the flow row's minimum, default and maximum. Once declared, `d12-cells` prints them with no change here: it asserts its level and pair counts against the totals `--population` prints, and refuses on a disagreement. Carry: R11-PRE-OWNER-CRITERIA
 - `d9-collections` reads `coordinator.py` only, at each class attribute's first container binding; a collection a learner or a side table in another module retains is not a line. A D9 seat that measures one reports it beside the universe. Carry: dismissed: the rule is stated in the script's docstring and D9's text sends the seat to the command; widening it is a finding for round 11's D9 seat to raise with a measurement
 - `d1-parsers` reads names and three call shapes; a parser of pump-signal states that is neither is not a line, and D1 step 6 keeps its prose list for that reason. Carry: dismissed: the brief carries the list the census cannot, as written in this diff
