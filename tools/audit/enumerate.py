@@ -794,7 +794,8 @@ def self_test():
         for label, edit in (("an entity selector outside an `_F` row", cut(CF, "ROWS = (", "LOOSE = _entity_of('x')\nROWS = (")),
                             ("an entity selector row whose key is no name", cut(CF, "_F('s', CONF_A_ENTITY,", "_F('s', 'a_entity',")),
                             ("a wiring rule holding a test the census cannot read", cut(f"{PKG}/entry_config.py", "key.endswith('_entity')", "key[-7:] == '_entity'")),
-                            ("a FACTORY_KEPT holding a second comprehension", cut(f"{PKG}/entry_config.py", "**_WIRING})", "**_WIRING, **{k: 'other' for k in ()}})"))):
+                            ("a FACTORY_KEPT holding a second comprehension", cut(f"{PKG}/entry_config.py", "**_WIRING})", "**_WIRING, **{k: 'other' for k in ()}})")),
+                            ("an isinstance test on the loop's name, not its value", cut(f"{PKG}/entry_config.py", "isinstance(key, str)", "isinstance(name, str)"))):
             g = Path(tempfile.mkdtemp())
             try:
                 plant(g)
