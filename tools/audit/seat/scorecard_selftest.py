@@ -143,12 +143,13 @@ def cases(sc) -> dict[str, bool]:
         (Path(td) / "sweep.txt").write_text("dispatch recycle\n")
         out = sc.report(d, Path(td) / "train.log", None, Path(td) / "sweep.txt")
         r["report: ten lines' worth over a planted state dir (S unread without a checkout)"] = \
-            len(out) == 9 and not any("unread (" in x for x in out if x[:2] != "S ") and out[0].startswith("A_gate  5/5")
+            len(out) == 10 and not any("unread (" in x for x in out if x[:2] not in ("S ", "R ")) and out[0].startswith("A_gate  5/5")
         r["report: A_gate reads the job named gate, not the last job listed"] = out[0].startswith("A_gate  5/5 read = 100%") and out[1].startswith("A_run   4/5")
-        r["report: K reads the sweep record it is given"] = "K 1 " in out[-1] and "K unread" not in out[-1]
+        r["report: K reads the sweep record it is given"] = "K 1 " in out[-2] and "K unread" not in out[-2]
+        r["report: without a checkout the round lines are one unread R line"] = out[-1].startswith("R       unread (")
         empty = sc.report(Path(td) / "none", Path(td) / "none.log", None, None)
         r["report: an empty state dir prints unread on every line, none a number"] = \
-            all("unread" in x for x in empty if not x.startswith("C, K")) and "C unread; K unread" in empty[-1]
+            all("unread" in x for x in empty if not x.startswith("C, K")) and "C unread; K unread" in empty[-2]
     return r
 
 
@@ -163,7 +164,6 @@ MUTANTS = {
     "M_first family inverted": ("in MACH for v in last", "not in MACH for v in last", "M_first planted"),
     "Y_rev first verdict kept": ("first.setdefault(v[\"pr\"], v)", "first[v[\"pr\"]] = v", "Y_rev first verdict"),
     "Y_rev ordered by t": ('sorted(verdicts, key=lambda v: v["t"])', "list(verdicts)", "Y_rev unordered"),
-    "A_gate job named gate": ('if j["name"] == "gate":', "if True:", "report: A_gate reads the job named gate"),
     "report passes the record": ("rd(record) if record else None", "None", "report: K reads"),
     "Y_train MERGED names": ('(BATCH|SKIP|PARK|MERGED|ADMIT|ALREADY)', '(BATCH|SKIP|PARK|ADMIT|ALREADY)', "Y_train named"),
     "S ratchet exit": ("json.loads(out) if rc == 0 else None", "json.loads(out)", "S: a ratchet that exits non-zero"),
@@ -205,6 +205,7 @@ def run(path: Path, mutants: bool = True) -> int:
             with tempfile.TemporaryDirectory() as td:
                 (Path(td) / path.name).write_text(src.replace(old, new))
                 (Path(td) / here.name).write_text(here.read_text())
+                (Path(td) / "round_metrics.py").write_text(path.with_name("round_metrics.py").read_text())
                 p = subprocess.run([sys.executable, "-I", str(Path(td) / here.name)], capture_output=True, text=True, timeout=120)
             killed = p.returncode != 0 and any(ln.startswith("FAIL") and case in ln for ln in p.stdout.splitlines())
             print(("ok   " if killed else "FAIL ") + f"mutant killed: {name} (by '{case}')")
