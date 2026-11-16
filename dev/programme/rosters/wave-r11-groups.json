@@ -239,7 +239,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-gh-read-residue-p3",
-    "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']"
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']",
+    "pr": 3682
    }
   },
   {
@@ -421,9 +422,9 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "2c84a85c8cb3fdbcdffa581c337ed168ad848d5c",
     "last_step": null,
     "next_step": "designer round 2 in flight (fired 2026-11-14T00:10Z) answering design-verdict 46508318 revise class-open; fixer only on Design review: approve",
     "note": "owner 2026-11-14: non-gating, never delays the v10.0.0 stamp; unmerged at the stamp goes to round 11",
@@ -2276,13 +2277,13 @@
     "From r11-pre-no-read-builders, body item 4847b00a: Parts C and D of the approved design, with the design note's fixer notes [paths], [d-p2-head], [P1] and [c-deferred] and the verdict's notes runs-json-width, d-hotfile-enumerator and branch-reuse, are unbuilt: the orchestrator dispatches them once R11-PRE-TOKEN-LEDGER (C) and R11-PRE-ROUND-METRICS parts 2 and 3 (D) are on main; lands in the group's row of the round-11 roster on handoff/audit-r10-roster (c9d838fdfc at this writing; not in this tree), D's surface being `tools/audit/seat/round_metrics.py`. Carry: R11-PRE-NO-READ-BUILDERS (items 4847b00a)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-no-read-builders",
     "commit": null,
     "last_step": null,
     "next_step": "designer after R11-PRE-MACHINERY-LIMITER dispatches; not finder-critical",
     "note": "fix-gating (0018:274-278); not finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" \"Build all four reads\", an owner directive. Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.",
-    "pr": null
+    "pr": 3683
    }
   },
   {
@@ -3373,12 +3374,13 @@
    ],
    "brief": "Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, the thermostat reference misses its setpoint behind a throttling valve, and the booked reference has no digest pin. Designer first: the change moves the plant every plan runs on and valved golden fixtures, which are claimed, never re-recorded. The reference carry needs a reproduction on an install's own valve parameters from a diagnostics bundle before any change.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "commit": null,
     "branch": "fix/r11-valve-reference",
     "last_step": null,
     "next_step": "designer first (L); the reference carry needs a bundle reproduction",
-    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-ADVISOR-MEASURES): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares custom_components/heatpump_optimizer/thermal_model.py, tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-ADVISOR-MEASURES shares tests/features.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-ADVISOR-MEASURES): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares custom_components/heatpump_optimizer/thermal_model.py, tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-ADVISOR-MEASURES shares tests/features.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train",
+    "pr": 3685
    },
    "source": "programme"
   },
@@ -3550,7 +3552,8 @@
     "branch": "fix/r11-rca-selftest-table-drift",
     "last_step": "handoff pushed",
     "next_step": "open, review, merge",
-    "note": null
+    "note": null,
+    "pr": 3684
    },
    "source": "programme"
   }
