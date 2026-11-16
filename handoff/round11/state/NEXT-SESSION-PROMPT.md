@@ -36,11 +36,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-BRIEFS-CENSUS (stage carries-open, branch `handoff/r11-pre-briefs-census`): `git fetch origin handoff/r11-pre-briefs-census && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage carries-open, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-OWNER-CRITERIA (stage carries-open, branch `handoff/r11-pre-owner-criteria`): `git fetch origin handoff/r11-pre-owner-criteria && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-OWNER-CRITERIA (stage carries-open, branch `fix/r11-pre-owner-criteria-p2`): `git fetch origin fix/r11-pre-owner-criteria-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NO-READ-BUILDERS (stage carries-open, branch `handoff/r11-pre-no-read-builders`): `git fetch origin handoff/r11-pre-no-read-builders && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-GENERIC-CONTROL-TEXT (stage in-progress, branch `handoff/r11-owner-generic-control-text`): `git fetch origin handoff/r11-owner-generic-control-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-CHECK-GATE (stage in-progress, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-PRODUCT-READS (stage in-progress, branch `handoff/r11-pre-product-reads`): `git fetch origin handoff/r11-pre-product-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-PRODUCT-READS (stage carries-open, branch `handoff/r11-pre-product-reads`): `git fetch origin handoff/r11-pre-product-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COMMUNITY-STANDARDS (stage in-progress, branch `handoff/r11-owner-community-standards`): `git fetch origin handoff/r11-owner-community-standards && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage in-progress, branch `handoff/r11-pre-security-privacy`): `git fetch origin handoff/r11-pre-security-privacy && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P1 (stage in-progress, branch `handoff/r11-outside-rooms-p1`): `git fetch origin handoff/r11-outside-rooms-p1 && git worktree add --detach $SEAT/wt FETCH_HEAD`
