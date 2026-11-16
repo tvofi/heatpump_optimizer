@@ -1,0 +1,12 @@
+RESULT proportional n=48 range=0.5-4.0 sigma=0.1 {'follows': 200}
+RESULT proportional n=48 range=0.5-4.0 sigma=0.2 {'follows': 200}
+RESULT proportional n=48 range=0.5-4.0 sigma=0.3 {'does_not_follow': 12, 'follows': 188}
+RESULT proportional n=48 range=1.0-14.0 sigma=0.1 {'follows': 200}
+RESULT proportional n=48 range=1.0-14.0 sigma=0.2 {'follows': 200}
+RESULT proportional n=48 range=1.0-14.0 sigma=0.3 {'does_not_follow': 6, 'follows': 194}
+RESULT PERTURBATION_a^0.7 n=48 range=0.5-4.0 sigma=0.1 {'does_not_follow': 200}
+RESULT PERTURBATION_a^0.7 n=48 range=0.5-4.0 sigma=0.2 {'does_not_follow': 197, 'follows': 3}
+RESULT PERTURBATION_a^0.7 n=48 range=0.5-4.0 sigma=0.3 {'does_not_follow': 189, 'follows': 11}
+RESULT PERTURBATION_a^0.7 n=48 range=1.0-14.0 sigma=0.1 {'does_not_follow': 200}
+RESULT PERTURBATION_a^0.7 n=48 range=1.0-14.0 sigma=0.2 {'does_not_follow': 200}
+RESULT PERTURBATION_a^0.7 n=48 range=1.0-14.0 sigma=0.3 {'does_not_follow': 200}

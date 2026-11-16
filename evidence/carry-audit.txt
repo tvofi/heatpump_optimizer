@@ -1,0 +1,6 @@
+NOTE body item cc9cfe18: R10-DRAW-MAP-EVIDENCE
+NOTE body item 1644369d: R10-DRAW-MAP-EVIDENCE
+NOTE body item 153e64de: R10-DRAW-MAP-EVIDENCE
+NOTE body item 730c368c: R10-DRAW-MAP-EVIDENCE
+NOTE review 0 item fc9ee07f: dismissed:bounded to one hold, zero at the measured install's noise and at a full window
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

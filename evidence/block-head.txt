@@ -1,0 +1,3 @@
+  ok   a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level
+
+ALL 20 FEATURES BLOCK PASSED
