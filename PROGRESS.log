@@ -2,3 +2,4 @@
 1794870903 HB alive
 1794870908 CKPT setup done, role read snapshot 15c3f3904dd9
 1794870988 CKPT note read, cites resolve at head snapshot 4a747baf782d
+1794871109 CKPT seam, cites, order checked; sibling sweep snapshot ea6437c7c1ec
