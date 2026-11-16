@@ -1,0 +1,9 @@
+PREDICT briefs   GRADER UNMERGED: HEAD does not merge into 194a75594646, and CI runs nothing on a conflict; merge the base first
+PREDICT governance / env-matrix GRADER UNMERGED: HEAD does not merge into 194a75594646, and CI runs nothing on a conflict; merge the base first
+PREDICT governance / policy-docs GRADER UNMERGED: HEAD does not merge into 194a75594646, and CI runs nothing on a conflict; merge the base first
+PREDICT pr-contract GRADER UNMERGED: HEAD does not merge into 194a75594646, and CI runs nothing on a conflict; merge the base first
+PREDICT governance / wave-script GRADER UNMERGED: HEAD does not merge into 194a75594646, and CI runs nothing on a conflict; merge the base first
+CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
+CI PREDICT: a GRADER refusal is CI's verdict under the base's copy of every path the job restores, so an exclusion, registration or rule written into a restored grader, or into anything it loads, is graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks
+CI PREDICT: 5 predicted red(s) on briefs, governance / env-matrix, governance / policy-docs, governance / wave-script, pr-contract against 98847b99d7bb -- repair before the handoff; the lines above name each arm's repair
+rc=1
