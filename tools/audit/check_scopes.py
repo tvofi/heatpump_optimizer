@@ -435,6 +435,43 @@ def open_cards_report(rnd, tree, show, merged, anc, changed):
     return {"round": rnd, "open_cards": sorted(out), "unmarked_cards": unmarked}, 1 if unmarked else 0, lines
 
 
+def open_cards_cli():
+    """(marked, unmarked): `--open-cards --round 8` run whole, as a subprocess
+    of this file, on two commits of a scratch repository whose round-8 record
+    differs only in C2 and C3's `gates_finders`: booleans in the first, absent
+    and the string "true" in the second. C1 is accepted, non-gating, unmerged."""
+    prev, path = records(8)
+    cards = {"C1": {"decision": "accepted", "ruling": "R1", "gates_finders": False, "merged": "0" * 40},
+             "C2": {"decision": "accepted", "ruling": "R2", "gates_finders": True},
+             "C3": {"decision": "accepted", "ruling": "R3", "gates_finders": True},
+             "C4": {"decision": "rejected", "ruling": "R4"}}
+    unmarked = copy.deepcopy(cards)
+    del unmarked["C2"]["gates_finders"]
+    unmarked["C3"]["gates_finders"] = "true"
+    from throwaway_git import throwaway_git_init  # the one way to build a scratch repo; main() put tests/ on the path
+    with tempfile.TemporaryDirectory() as d:
+        env = throwaway_git_init(d, "-q")
+        git = lambda *a: subprocess.run(["git", "-C", d, *a], env=env, capture_output=True, text=True, check=True).stdout.strip()
+        runs = []
+        for cs in (cards, unmarked):
+            for f, body in ((OBJECTIVE, {"terms": [], "objects": {}}), (prev, {"terms": {}}),
+                            (path, {"round": 8, "reads": prev, "cards": cs})):
+                (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                (Path(d) / f).write_text(json.dumps(body))
+            git("add", "-A")
+            git("commit", "-q", "-m", "record")
+            runs.append(subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", d, "--ref", git("rev-parse", "HEAD"),
+                                        "--round", "8", "--open-cards"], env=env, capture_output=True, text=True))
+    return tuple(runs)
+
+
+def json_or_none(text):
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
 def population(axes, tree, show):
     """(lines, ok): the install population's levels per axis as read from the
     sources at the ref, then the totals. An axis that cannot be read prints
@@ -984,7 +1021,19 @@ def main():
         run_oc = default_run(scopes, "--round", "1", "--open-cards")
         cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
             and "round1/EVALUATION.json tracked" in run_oc.stderr and "open_cards" not in run_oc.stdout)
-        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}; --open-cards rc={run_oc.returncode}")
+        # --open-cards run whole on a record with and without a boolean
+        # gates_finders on C2 and C3 (fix review 3620): main()'s exit code and
+        # its UNMARKED stderr lines, which the function arms above cannot reach.
+        oc_marked, oc_unmarked = open_cards_cli()
+        unmarked_lines = [l.split(":")[0] for l in oc_unmarked.stderr.splitlines() if l.startswith("UNMARKED")]
+        cov["--open-cards exits 0 with no UNMARKED line when every accepted card carries a boolean (null control)"] = (
+            oc_marked.returncode == 0 and "UNMARKED" not in oc_marked.stderr
+            and (json_or_none(oc_marked.stdout) or {}).get("open_cards") == ["C1"])
+        cov["--open-cards exits 1 naming on stderr each accepted card with no boolean gates_finders"] = (
+            oc_unmarked.returncode == 1 and unmarked_lines == ["UNMARKED C2", "UNMARKED C3"]
+            and (json_or_none(oc_unmarked.stdout) or {}).get("unmarked_cards") == ["C2", "C3"])
+        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}; --open-cards rc={run_oc.returncode}, "
+              f"marked rc={oc_marked.returncode}, unmarked rc={oc_unmarked.returncode} {unmarked_lines}")
         pop = population_self_test()
         cov.update({"population: " + k: v for k, v in pop.items()})
         print(f"   population arms: {sum(pop.values())}/{len(pop)} held")
