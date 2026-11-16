@@ -1,6 +1,3 @@
-Question: body_push.sh r11-pre-ack-completion refused CARRY-LANDED (exit 4); the relay should fold the two carries and re-run it. Code is at refs/heads/handoff/r11-pre-ack-completion (441f741b9f7ecbac850c723973b7443fbd86f23f); body at handoff-wip/r11-pre-ack-completion-body.
+Question: body_push.sh r11-pre-ack-completion refuses at the handoff with `review_packet: REFUSE hot-file: #3627 holds an unboarded merge verdict and shares tools/audit/seat/orchestrator_tick.py`. The fixer cannot answer it: which of #3627 and #3635 merges first, or is the hot-file hold released?
 
-CARRY-MISSING R11-PRE-ACK-COMPLETION body item 8bd8b42f: not in its brief or carries: the 9 DEBT kinds of the repair-discharges census need their own arms (Carry: R11-PRE-ACK-COMPLETION)
-CARRY-MISSING R11-PRE-ACK-COMPLETION body item 8b860179: not in its brief or carries: UNDISPATCHED does not print for a not-started group (UNBLOCKED already does) (Carry: R11-PRE-ACK-COMPLETION)
-CARRY-LANDED: 2 missing
-body_push: REFUSED CARRY-LANDED
+State: the round-2 repair is complete. Code at refs/heads/handoff/r11-pre-ack-completion (b85164a43d5f9fa2c47df045257c73ca99df774c) kills all seven mutants of verdict/3635 (self-tests 365 and 108 checks, 0 failed); scoped prepr's only refusal, the UNDER-SCOPED closure, was re-recorded and ci_predict now predicts no red. The body, with brief-carries 5-17 named, is kept at handoff-wip/r11-pre-ack-completion-body.
