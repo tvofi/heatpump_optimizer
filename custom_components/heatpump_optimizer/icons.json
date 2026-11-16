@@ -135,6 +135,12 @@
           "unknown": "mdi:help-circle-outline"
         }
       },
+      "room_average_temperature": {
+        "default": "mdi:home-thermometer-outline"
+      },
+      "room_temperature_spread": {
+        "default": "mdi:thermometer-lines"
+      },
       "indoor_temperature_optimizer": {
         "default": "mdi:home-thermometer"
       },

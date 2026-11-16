@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 113
+records every read, so this lane's recorded closure is the package: all 114
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+alike (113 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
 R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
 ``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
@@ -57,9 +57,11 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 163 of the 528 script pairs (33 choose 2) sharing 0.80 or more
-of their production-module closure (162 before #3616 re-recorded the closures
-that import the coordinator), all 163 among the 406 pairs whose two
+recording finds 164 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure (163 before R11-OUTSIDE-ROOMS-P1's rooms.py,
+read by every closure that imports the coordinator, the input reader, the
+config flow or the sensor platform; 162 before #3616 re-recorded the closures
+that import the coordinator), all 164 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when

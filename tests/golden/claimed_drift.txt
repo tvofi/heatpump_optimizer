@@ -772,3 +772,4 @@
 # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
 # with one are suspended above for this release (the wood_coil precedent).
 # Direction per fixture, branch vs base:
+config_flow # R11-OUTSIDE-ROOMS-P1 (#3616): the advanced menu gains the rooms page (room_temperature_entities, a multiple entity selector), so the menu, the plain render, the seeded render and the seed each gain it; every leaf that moves is "present on one side only" or the advanced menu length 16 -> 17, ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads an unset room list: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
