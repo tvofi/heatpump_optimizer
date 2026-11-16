@@ -75699,11 +75699,11 @@ R.check(
     "evidence is pending: it folds on follows, is off-ask on does-not-follow, "
     "and takes base's rule with nothing held where there is no window; where "
     "the window's evidence is unobtainable the heat-ask probe takes it, and "
-    "while that is pending it neither folds nor is held",
+    "while that is pending the interval is held, as any other awaiting evidence",
     _df_judge(_df_pend1) == (_cf_NOEV, 1)
     and _df_judge(_cf_window(_cf_lit48)) == (None, 0)
     and _df_judge(_cf_window([(a, 2.2) for a, _ in _cf_lit48])) == ("draw_off_ask", 0)
-    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (_cf_NOEV, 0)
+    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (_cf_NOEV, 1)
     and _df_judge(None, drawn=4.0, ewma=0.8) == (_cf_NOEV, 0),
     f"{_df_judge(_df_pend1)} / {_df_judge(_cf_window(_cf_lit48))} / {_df_judge(None)} / "
     f"{_df_judge(_cf_window([(2.0, 2.6)] * 48))} / "
@@ -75785,10 +75785,10 @@ R.check(
 R.check(
     "release: with no window the hold empties by base's rule -- the row "
     "clearing the nameplate third folds, the other is dropped; where the "
-    "window's evidence is unobtainable and the heat-ask probe is pending, the "
-    "hold empties and nothing folds",
+    "window's evidence is unobtainable and the heat-ask probe is pending, "
+    "both rows wait and nothing folds",
     _df_release(None, _df_hour, *_df_two) == ([_DF_BIG], 0)
-    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([], 0),
+    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([], 2),
     f"{_df_release(None, _df_hour, *_df_two)} / {_df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two)}",
 )
 _df_week = _CF_T0 + _cf_td(days=7)
@@ -75799,6 +75799,16 @@ R.check(
     and _df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two) == ([_DF_BIG], 0),
     f"{_df_release(_cf_drm.DrawRange(), _df_week, *_df_two)} / "
     f"{_df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two)}",
+)
+_df_unob48 = _cf_window([(2.0, 2.6)] * 48)
+R.check(
+    "release: no fold lands on a pending heat-ask probe however long it "
+    "lasts -- under unobtainable evidence both rows wait at 7 days exactly, "
+    "and a second later both are dropped, the one base's rule folds included",
+    _df_release(_df_unob48, _df_week, *_df_two) == ([], 2)
+    and _df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two) == ([], 0)
+    and _df_release(_df_unob48, _CF_T0 - _cf_td(seconds=1), *_df_two) == ([], 0),
+    f"{_df_release(_df_unob48, _df_week, *_df_two)} / {_df_release(_df_unob48, _df_week + _cf_td(seconds=1), *_df_two)}",
 )
 R.check(
     "release: a row stamped ahead of the clock has no knowable age and does "
@@ -76030,8 +76040,9 @@ _df_h_part = _df_feed(_df_never[:40], p_max=4.0, p_min=3.0, warm=_df_never[:1] *
 # is a pump setting its own power, which the heat-ask probe now judges (base:
 # 96/96 at 0.582 and 0.650); the control is its heat-led twin of true 0.8.
 # The probe folds nothing while it is pending (owner decision 2 of the
-# round-3 design note): 2 rows before its first pair, 24 pairs, and the row
-# read under the last dither level, so 51 of the rows it takes fold nothing.
+# round-3 design note): every admitted interval is held, and folds once the
+# verdict reads follows. The probe takes 50 rows (2 before its first pair, 24
+# pairs), so the window filling at the 48th leaves the 96th two rows short.
 _df_h_led_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 336)
 _df_h_led_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
 _df_h_led_long = _df_feed(_df_never * 2, p_max=4.0, p_min=3.0, true=0.8, warm=_df_never[:1] * 288)
@@ -76043,15 +76054,17 @@ def _df_h_end(coord):
 
 
 R.check(
-    "(h) with a window that never reaches evidence the heat ask is probed and "
-    "nothing folds until it reads follows: a heat-led pump of true 0.8 folds "
-    "45 of 96 behind a full window (96 less the probe's 51); behind one that "
-    "fills at the 48th it is still pending at the 96th, inside the dither "
-    "band, and over 192 it folds 94 (192 less 47 held and dropped, less 51); "
-    "40 intervals into the filling one, all 40 are still held; the fixed "
-    "3.2 kW draw folds nothing and ends does_not_follow at the configured scale",
-    _df_h_end(_df_h_led_full)[::2] == (45, "follows") and _df_h_end(_df_h_led_long)[::2] == (94, "follows")
+    "(h) with a window that never reaches evidence the heat ask is probed, "
+    "nothing folds while that is pending, and no interval is lost once it "
+    "reads follows: a heat-led pump of true 0.8 folds 96 of 96 behind a full "
+    "window; behind one that fills at the 48th it is still pending at the "
+    "96th, all 96 held, inside the dither band, and over 192 it folds 192; 40 "
+    "intervals into the filling one, all 40 are still held; the fixed 3.2 kW "
+    "draw folds nothing and ends does_not_follow at the configured scale",
+    _df_h_end(_df_h_led_full)[::2] == (96, "follows") and abs(_df_h_led_full._cop_scale - 0.8) < 0.02
+    and _df_h_end(_df_h_led_long)[::2] == (192, "follows") and abs(_df_h_led_long._cop_scale - 0.8) < 0.005
     and _df_h_end(_df_h_led_fill)[0::2] == (0, "pending") and _df_h_end(_df_h_led_fill)[1] in (0.9325, 1.0, 1.0724)
+    and len(_df_h_led_fill._measured_cop.held) == 96
     and (_df_h_part._cop_samples, len(_df_h_part._measured_cop.held)) == (0, 40)
     and [_df_h_end(c) for c in (_df_h_full, _df_h_fill_long)] == [(0, 1.0, "does_not_follow", 0)] * 2
     and _df_h_end(_df_h_fill)[0::2] == (0, "pending"),
@@ -76175,9 +76188,8 @@ R.check(
 _ss_led = _ss_feed(_ss_coord(), _ss_flat(672), true=0.8)
 R.check(
     "(m) a heat-led pump of true scale 0.8 under the same flat asks latches "
-    "follows and then folds every interval: 574 of 672 (47 held while the "
-    "window fills and dropped, 51 in the probe), scale 0.800",
-    _ss_end(_ss_led)[:2] == (0.8, _df_acc.ASK_FOLLOWS) and _ss_led._cop_samples == 574,
+    "follows and loses no interval: 672 of 672 fold, scale 0.800",
+    _ss_end(_ss_led)[:2] == (0.8, _df_acc.ASK_FOLLOWS) and _ss_led._cop_samples == 672,
     f"{_ss_led._cop_samples}/672 {_ss_end(_ss_led)}",
 )
 
@@ -76385,9 +76397,9 @@ R.check(
     and all(x[2] in (0.8393, 0.9651) for x in _ss_s_seen[1::2]) and _ss_end(_ss_s)[:2] == (0.68, _df_acc.ASK_FOLLOWS),
     f"{_ss_s_seen}; {_ss_s._cop_samples}/672 {_ss_end(_ss_s)}",
 )
-# A release under unobtainable evidence empties the hold on the verdict: every
-# row folds under follows, none under ignored, and none while it is pending
-# (owner decision 2: a row held before the probe is dropped, not folded).
+# A release under unobtainable evidence is decided by the verdict: every row
+# folds under follows, none under ignored, and while it is pending each waits
+# (owner decision 2: nothing folds on a pending verdict).
 def _ss_release(response):
     rec = _cf_MC(probe=_df_acc.ScaleProbe(response=response))
     rec.held.extend([_cf_row(5.0, 6.0), _cf_row(2.0, 2.6)])
@@ -76396,9 +76408,9 @@ def _ss_release(response):
 
 R.check(
     "a release under unobtainable evidence folds every held row once the draw "
-    "follows the heat ask, and none where it ignores it or the verdict is "
-    "pending; the hold empties each way",
-    (_ss_release("does_not_follow"), _ss_release("follows"), _ss_release("pending")) == (([], 0), ([6.0, 2.6], 0), ([], 0)),
+    "follows the heat ask and drops them where it ignores it; while the "
+    "verdict is pending both wait",
+    (_ss_release("does_not_follow"), _ss_release("follows"), _ss_release("pending")) == (([], 0), ([6.0, 2.6], 0), ([], 2)),
     f"{(_ss_release('does_not_follow'), _ss_release('follows'), _ss_release('pending'))}",
 )
 
@@ -76448,7 +76460,7 @@ def _ss_cycle(rec, scale, asked, drawn, at, window=None, configured=1.0):
     tracking gate). Returns the scale in force after it."""
     row = _cf_row(asked, drawn, scale=scale, at=at)
     window = _ss_unob if window is None else window
-    rec.release(window, _cf_both, at)
+    rec.folded = getattr(rec, "folded", []) + [len(rec.release(window, _cf_both, at))]
     owed = rec.owed_scale(configured, at)
     rec.refusal = rec.judge_ratio(row.ratio, row, _cf_both, window)
     return scale if owed is None else owed
@@ -76491,22 +76503,26 @@ R.check(
     "a draw that follows the heat ask: the first row sets the base, the dither "
     "runs from the second cycle at both levels in runs of at most two cycles, "
     "the 24th pair's second row is the 50th and latches follows; the 51st "
-    "cycle returns to the base, and the first row to fold is the 52nd",
+    "cycle returns to the base, and the 52nd releases the 51 rows held "
+    "meanwhile and is the first to fold its own",
     [x[0] for x in _ss_b_led_out[:1]] == [1.0] and {x[0] for x in _ss_b_led_out[1:49]} == {0.9325, 1.0724}
     and _ss_b_runs == 2 and [x[1] for x in _ss_b_led_out[47:51]] == ["pending", "pending", "follows", "follows"]
     and [x[0] for x in _ss_b_led_out[50:]] == [1.0] * 4
-    and [x[2] for x in _ss_b_led_out] == [_cf_NOEV] * 51 + [None] * 3,
-    f"runs {_ss_b_runs}; {_ss_b_led_out[46:]}",
+    and [x[2] for x in _ss_b_led_out] == [_cf_NOEV] * 51 + [None] * 3
+    and _ss_b_led.folded == [0] * 51 + [51, 0, 0] and len(_ss_b_led.held) == 0,
+    f"runs {_ss_b_runs}; released {_ss_b_led.folded[49:]}; {_ss_b_led_out[46:]}",
 )
-_ss_b_self_out = _ss_bare(_ss_selfset, 53)[1]
+_ss_b_self, _ss_b_self_out = _ss_bare(_ss_selfset, 53)
 _ss_b_self07 = _ss_bare(_ss_selfset, 53, scale=0.7)[1]
 R.check(
     "a draw that varies on its own and ignores the heat ask latches "
     "does_not_follow on the 50th row and is owed the configured scale on the "
-    "51st cycle, from a base of 1.0 and from a walked 0.7 alike; no row folds",
+    "51st cycle, from a base of 1.0 and from a walked 0.7 alike; no row "
+    "folds, and the 50 held are dropped",
     [x[1] for x in _ss_b_self_out[48:51]] == ["pending", "does_not_follow", "does_not_follow"]
     and _ss_b_self_out[50][0] == 1.0 and _ss_b_self07[49][0] in (0.6528, 0.7507) and _ss_b_self07[50][0] == 1.0
-    and {x[2] for x in _ss_b_self_out} == {_cf_NOEV, "draw_off_ask"} and {x[2] for x in _ss_b_self07[:49]} == {_cf_NOEV},
+    and {x[2] for x in _ss_b_self_out} == {_cf_NOEV, "draw_off_ask"} and {x[2] for x in _ss_b_self07[:49]} == {_cf_NOEV}
+    and set(_ss_b_self.folded) == {0} and len(_ss_b_self.held) == 0,
     f"{_ss_b_self_out[47:]} / {_ss_b_self07[47:]}",
 )
 # The contrast is signed by the coin: a draw answering the scale backwards
@@ -76619,11 +76635,13 @@ _ss_t_led = _ss_trace(_ss_coord(), _ss_flat(140), true=0.8)
 _ss_t_pend = [x for x in _ss_t_led if x[2] == "pending"]
 R.check(
     "no fold lands while the verdict is pending: a heat-led pump of true 0.8 "
-    "folds nothing through its 96 pending cycles (47 held, 49 probed), its "
-    "scale at 1.0 or a dither level throughout; the 97th latches follows, the "
-    "98th returns to 1.0, and the 99th is the first to fold",
+    "folds nothing through its 96 pending cycles (47 while the window fills, "
+    "49 probed), its scale at 1.0 or a dither level throughout; the 97th "
+    "latches follows, the 98th returns to 1.0, and the 99th folds all 99, "
+    "from 1.0 to within 0.01 of 0.8",
     len(_ss_t_pend) == 96 and {x[1] for x in _ss_t_pend} == {0} and {x[0] for x in _ss_t_pend} == {1.0, 0.9325, 1.0724}
-    and _ss_t_led[96][1:] == (0, "follows") and _ss_t_led[97][:2] == (1.0, 0) and _ss_t_led[98][1] == 1,
+    and _ss_t_led[96][1:] == (0, "follows") and _ss_t_led[97][:2] == (1.0, 0)
+    and _ss_t_led[98][1] == 99 and abs(_ss_t_led[98][0] - 0.8) < 0.01,
     f"{len(_ss_t_pend)} pending; {sorted({x[:2] for x in _ss_t_pend})}; then {_ss_t_led[95:100]}",
 )
 # Null control 1 of the design note: the dither's amplitude forced to zero.
@@ -76728,7 +76746,8 @@ R.check(
 )
 # A reset mid-probe: the window's evidence governs again (asks that span).
 # The scale returns to the base in that same cycle, and that cycle's interval,
-# read under the dither level, folds nothing; the next one folds from the base.
+# read under the dither level, is held; the next cycle folds the hold (the 70
+# before, and that one, each against the scale it was read under) and its own.
 _ss_rst = _ss_mid()
 _ss_rst_level = round(_ss_rst._cop_scale, 4)
 _ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
@@ -76736,9 +76755,11 @@ _ss_rst_cycle = _ss_seen(_ss_rst)
 _ss_step(_ss_rst, 1.5, 1.5 * _ss_rst._cop_scale / 0.8, window=_cf_window(_cf_lit48))
 R.check(
     "a reset mid-probe returns the scale to the base in the same cycle and "
-    "that cycle's interval folds nothing; the next folds, from 1.0 toward 0.8",
+    "folds nothing in it; the next cycle folds the 71 held and its own, from "
+    "1.0 to within 0.03 of 0.8",
     _ss_rst_level in (0.9325, 1.0724) and _ss_rst_cycle == (1.0, 0, "pending", None, _cf_NOEV)
-    and _ss_rst._cop_samples == 1 and 0.94 < _ss_rst._cop_scale < 1.0 and _ss_rst._measured_cop.refusal is None,
+    and len(_ss_rst._measured_cop.held) == 0
+    and _ss_rst._cop_samples == 72 and abs(_ss_rst._cop_scale - 0.8) < 0.03 and _ss_rst._measured_cop.refusal is None,
     f"level {_ss_rst_level}; reset cycle {_ss_rst_cycle}; next {_ss_seen(_ss_rst)}",
 )
 # At a clamp: a configured scale of 0.5 is probed between 0.5 and 0.575 and

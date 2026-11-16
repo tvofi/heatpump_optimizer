@@ -70,11 +70,25 @@ Rows, each "folded/intervals scale":
     ``_reload70_400`` round-trips the COP record at ticks 70 and 400,
     ``_lost`` without its scale-response key. ``selfset_2.2_swing*`` and
     ``selfset_2.2_mix*`` (fix review 1 of #3662): the 2.2 kW pump whose draw
-    swings on its own (``swing``), ``swing0_control`` its null control.
+    swings on its own (``swing``), ``swing0_control`` its null control;
+    ``_p2``/``_p3``/``_p4`` swing over 2 to 4 cycles, the length of the
+    probe's own pairs.
     Each line adds the lowest and
-    highest scale, the cycles off 1.000 by more than 5 % and the verdict.
+    highest scale, the cycles off 1.000 by more than 5 % (a dither cycle at
+    +-7.2 % counts), the probes started, the furthest the scale sat from a
+    running probe's base in dither steps (``band``: 0.500 is the centred
+    level, 1.000 the one-sided level at a clamp), and the verdict.
     These runs are open loop: the ask stays fixed whatever the scale, as the
     live plan's does only where the ask is pinned (flat asks are that case).
+  * ``repriced_heat1.2_true_0.8`` (design verdict item 1b98ae3f) -- the same
+    asks re-priced each tick against the scale, as an unpinned plan does:
+    asked = 1.2 kW of heat over the scale, drawn = 1.2 over the true 0.8. The
+    heat ask stays flat under the dither, so the probe has no contrast: the
+    row must not read does_not_follow.
+  * ``null_dither0_<pump>`` -- null control 1 of the round-3 design note: the
+    dither's amplitude forced to zero (``ScaleDither.levels`` returning the
+    base twice). The verdict comes from the dither, so neither a heat-led
+    nor a self-setting pump may latch one. ``-`` at a tree without the dither.
   * ``defrost_inferred_<pump>_<t>C`` -- design-verdict item e98d0ab9: the
     defrost derate's inferred factor after 96 flat-ask intervals with no
     defrost flag, at 2 °C (frost band) and 8 °C; ``selfset_2.2`` against
@@ -137,10 +151,11 @@ def coord(p_max: float = 14.0, p_min: float = 1.0) -> HeatPumpOptimizerCoordinat
 
 
 def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm=(), moves=None,
-        scale0=None, reload_cop=(), lose_verdict=False, stats=None) -> str:
+        scale0=None, reload_cop=(), lose_verdict=False, stats=None, reprice=None, noise_seed=1) -> str:
     """Feed (asked, drawn) intervals as the cycle does: the running-draw fold
     (#2065's ``draw_range.fold``) and then the COP learner reading its
-    evidence. ``true`` replaces drawn by a heat-led pump's; ``reload_at``
+    evidence. ``true`` replaces drawn by a heat-led pump's (a callable: its
+    true scale at each tick; ``noise_seed`` seeds its meter noise); ``reload_at``
     round-trips the draw evidence through its store form at that tick (a
     restart). ``warm``: (asked, drawn) intervals folded into the running-draw
     window before the counted ones. ``moves``: a list that receives each
@@ -149,22 +164,29 @@ def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm
     released learner already walked). ``reload_cop``: ticks at which the COP
     learner's record round-trips through its store form (``lose_verdict``:
     without its scale-response key). ``stats``: a dict that receives the
-    lowest and highest scale, the cycles off 1.000 by more than 5 %, and the
-    latched scale-response verdict (``-`` where the code has none)."""
-    rnd = random.Random(1)
+    lowest and highest scale, the cycles off 1.000 by more than 5 %, the
+    probes started and the furthest the scale sat from a running probe's
+    base, in dither steps, and the latched scale-response verdict (``-``
+    where the code has none). ``reprice``: the heat, kW, a plan re-pricing
+    its ask against the scale asks for each tick (asked = reprice / scale,
+    drawn = reprice / ``true``)."""
+    rnd = random.Random(noise_seed)
     c = coord(p_max, p_min)
     if scale0 is not None:
         c._apply_cop_scale(scale0)
     lo = hi = c._cop_scale
-    off = 0
+    off = probes = 0
+    band, based = None, False
     for asked, drawn in warm:
         draw_range.fold(c._accuracy.draw, drawn, (asked, 0.0), c._thermal_params,
                         frozen=False, distorted=False, defrost=False)
     learn = getattr(c._learn_measured_cop, "__code__", None)
     takes_draw = learn is not None and learn.co_argcount > 1
     for tick, (asked, drawn) in enumerate(pairs):
-        if true is not None:
-            drawn = asked * c._cop_scale / true
+        if reprice is not None:
+            asked, drawn = reprice / c._cop_scale, reprice / true
+        elif true is not None:
+            drawn = asked * c._cop_scale / (true(tick) if callable(true) else true)
         c._current_action = {"power": asked, "dhw_power": 0.0}
         c._measured_power = drawn * (1.0 + rnd.uniform(-noise, noise))
         draw = getattr(c._accuracy, "draw", None)
@@ -187,8 +209,14 @@ def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm
             moves.append(abs(c._cop_scale - before))
         lo, hi = min(lo, c._cop_scale), max(hi, c._cop_scale)
         off += abs(c._cop_scale - 1.0) > 0.05
+        base = getattr(getattr(c._measured_cop, "probe", None), "base", None)
+        probes += base is not None and not based
+        based = base is not None
+        if based:
+            band = max(band or 0.0, abs(math.log(c._cop_scale / base)) / math.log(1.15))
     if stats is not None:
-        stats.update(lowest=f"{lo:.3f}", highest=f"{hi:.3f}", off=off,
+        stats.update(lowest=f"{lo:.3f}", highest=f"{hi:.3f}", off=off, probes=probes,
+                     band="-" if band is None else f"{band:.3f}",
                      verdict=getattr(c._measured_cop, "scale_response", "-"))
     return f"{c._cop_samples}/{len(pairs)} {c._cop_scale:.3f}"
 
@@ -232,11 +260,12 @@ def derate(pairs, outdoor: float) -> str:
 
 def flat_row(name: str, pairs, **kw) -> None:
     """One flat-ask row on the 4 kW nameplate: "folded/intervals scale", then
-    the lowest and highest scale, the cycles off 1.000 by more than 5 %, and
-    the scale-response verdict."""
+    the lowest and highest scale, the cycles off 1.000 by more than 5 %, the
+    probes started, the band (``run``) and the scale-response verdict."""
     st: dict = {}
     got = run(pairs, p_max=4.0, stats=st, **kw).replace(" ", "_scale=")
-    print(f"RESULT {name}={got} lowest={st['lowest']} highest={st['highest']} off5={st['off']} verdict={st['verdict']}")
+    print(f"RESULT {name}={got} lowest={st['lowest']} highest={st['highest']} off5={st['off']} "
+          f"probes={st['probes']} band={st['band']} verdict={st['verdict']}")
 
 
 def main() -> None:
@@ -341,6 +370,21 @@ def main() -> None:
         ("mix_daily0.1_5day0.2_phase0", [(0.1, 48), (0.2, 240)], 0.0),
     ):
         flat_row(f"selfset_2.2_{name}_s1", swing(672, 2.2, parts, 1, phase))
+    # The round-3 design's rows: swings as short as the probe's own pairs, a
+    # plan that re-prices its ask against the scale, and null control 1.
+    for amp, period in ((0.3, 2), (0.4, 3), (0.3, 4)):
+        flat_row(f"selfset_2.2_swing{amp:g}_p{period}_s1", swing(672, 2.2, [(amp, period)], 1))
+    flat_row("repriced_heat1.2_true_0.8_x672", flat(672), true=0.8, reprice=1.2)
+    dither = getattr(sys.modules[HeatPumpOptimizerCoordinator.__module__.rsplit(".", 1)[0] + ".accuracy"], "ScaleDither", None)
+    if dither is None:
+        print("RESULT null_dither0_heatled_true_0.8=- null_dither0_selfset_2.2=-")
+    else:
+        levels, dither.levels = dither.levels, staticmethod(lambda base: (base, base))
+        try:
+            flat_row("null_dither0_heatled_true_0.8", flat(672), true=0.8)
+            flat_row("null_dither0_selfset_2.2", flat(672, 2.2))
+        finally:
+            dither.levels = staticmethod(levels)
     # Invariant h's control under the moving held_* rows: heat-led twins of
     # true 0.8 behind the same windows (a fixed 3.2 kW draw is self-setting).
     # Design-verdict item e98d0ab9: the defrost derate's inferred estimator

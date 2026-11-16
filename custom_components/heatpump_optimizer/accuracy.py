@@ -1290,11 +1290,11 @@ class MeasuredCop:
         ``FOLLOW_ASK_SPAN`` keeps base's reach for them. Where :meth:`_admits`
         holds, the interval joins the probe instead: under ``ASK_IGNORED`` it
         reads ``COP_REFUSED_OFF_ASK``, under ``ASK_FOLLOWS`` it folds, and
-        while ``ASK_PENDING`` it folds nothing and is not held
-        (``COP_REFUSED_NO_EVIDENCE``): the draw must not move the scale it is
-        judged against. Nor does an interval fold while the probe is
-        ``unsettled``, whatever judges it: it ran under another scale than
-        the one a fold would start from.
+        while ``ASK_PENDING`` it is held, whatever its ratio: the draw must
+        not move the scale it is judged against. So is an interval judged
+        while the probe is ``unsettled``, by whichever evidence: it ran under
+        another scale than the one in force, and folds from the hold against
+        its own.
         """
         ratio = row.ratio
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
@@ -1309,6 +1309,7 @@ class MeasuredCop:
         if verdict == ASK_IGNORED:
             return COP_REFUSED_OFF_ASK
         if verdict == ASK_PENDING or self.probe.unsettled:
+            self.held.append(row)
             return COP_REFUSED_NO_EVIDENCE
         if verdict == ASK_FOLLOWS or abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
@@ -1332,18 +1333,24 @@ class MeasuredCop:
         oldest. So every held row leaves, and none that base folded is lost
         for want of evidence that never came.
 
-        The state is read first: where :meth:`_admits` does not hold, the
-        probe resets (``ScaleProbe.reset``) and the arms below run as before.
-        Where it holds, the hold empties on ``scale_response``: every row
-        folds under ``ASK_FOLLOWS`` and none otherwise. A row held before the
-        probe began was read under no dither, so it joins no pair, and while
-        the verdict is pending nothing folds: it is dropped, not kept.
+        The state is read first. Where :meth:`_admits` holds, the probe's
+        verdict stands in for the evidence: every row folds once it reads
+        ``ASK_FOLLOWS``, none under ``ASK_IGNORED``, and while it is pending
+        each waits as above -- but a row that leaves the wait is dropped, not
+        folded by base's rule: nothing folds on a pending verdict. Where it
+        does not hold, the probe resets (``ScaleProbe.reset``) and the arms
+        above run as before. Either way no row leaves while the probe still
+        owes a scale (``ScaleProbe.owed``): the folds would start from the
+        scale it is about to replace.
         """
         state, rows = ask_evidence(draw), list(self.held)
         self.held.clear()
-        if self._admits(state, draw, measured_heat):
-            return rows if self.scale_response == ASK_FOLLOWS else []
-        self.probe.reset(measured_heat)
+        if probed := self._admits(state, draw, measured_heat):
+            state = self.scale_response
+        else:
+            self.probe.reset(measured_heat)
+        if waits := self.probe.owed is not None or (probed and state == ASK_PENDING):
+            state = ASK_PENDING
         if state == ASK_FOLLOWS:
             return rows
         if state == ASK_IGNORED:
@@ -1356,7 +1363,7 @@ class MeasuredCop:
                 else:
                     due.append(row)
             rows = due
-        return [r for r in rows if self._base_folds(r, params)]
+        return [r for r in rows if not waits and self._base_folds(r, params)]
 
     def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None, at: datetime) -> None:
         """One folded interval's COP, its curve and when it folded, together."""
