@@ -2142,7 +2142,7 @@ const editable = () => {
     // the server's on a browser clock a step ahead -- the skew allowance.
     space_power: [[-4, -3], [-0.25, 1], [4, 6]],
   };
-  const extended = (windowHours) => {
+  const extended = (windowHours, seeded = runs) => {
     const st = JSON.parse(JSON.stringify(slotStates));
     const first = Date.parse(plan.dhw_plan.forecast[0].t);
     for (const [id, field] of [[DEFAULT_DHW, "dhw_power"],
@@ -2158,15 +2158,16 @@ const editable = () => {
       for (const f of fc) {
         const t = Date.parse(f.t);
         if (t < at(-4.5)) continue;
-        f[field] = runs[field].some(([a, b]) => t >= at(a) && t < at(b)) ? 3 : 0;
+        f[field] = seeded[field].some(([a, b]) => t >= at(a) && t < at(b)) ? 3 : 0;
       }
     }
     return st;
   };
-  const applied = (states) => {
+  const applied = (states, geom) => {
     const c = build(states, { what_if: true });
     c._hass = mkHass(states);
     c._onCardClick({});
+    if (geom) c.geomAt = () => geom;
     called = null;
     c.manual.apply();
     return { card: c, data: (called && called.data) || {} };
@@ -2190,6 +2191,27 @@ const editable = () => {
   check("a run starting within one step of the window is held back for clock skew (#3636)",
     JSON.stringify(span(data.space_slots)) === JSON.stringify([[-4, -3]]),
     JSON.stringify(span(data.space_slots)));
+  // The ceiling is the window, not the zoomed view: zoomed in so the visible
+  // end falls 3 h before the window, `editCeiling` would drop the run that
+  // straddles the window and the one before it. Design choice: what is applied
+  // does not depend on the zoom.
+  const zoomed = applied(extended(), { windowStart: 0, windowEnd: at(-3) });
+  check("a zoomed-in view does not change the applied runs (#3636)",
+    zoomed.card.manual.editCeiling() <= at(-3) &&
+      JSON.stringify(span(zoomed.data.dhw_slots)) ===
+        JSON.stringify([[-4, -3], [-2, 0.5]]),
+    JSON.stringify({ editCeiling: (zoomed.card.manual.editCeiling() - ceiling) / HOUR,
+                     dhw: span(zoomed.data.dhw_slots) }));
+  // The skew allowance is one step, not more: a run starting two steps
+  // before the window is inside the server's acceptance and is sent.
+  const twoSteps = applied(extended(undefined, {
+    dhw_power: [],
+    space_power: [[-4, -3], [-0.5, 1]],
+  })).data;
+  check("a run starting two steps before the window is sent (#3636)",
+    JSON.stringify(span(twoSteps.space_slots)) ===
+      JSON.stringify([[-4, -3], [-0.5, 1]]),
+    JSON.stringify(span(twoSteps.space_slots)));
 
   // Null control: the captured plan ends inside the window, so the payload
   // must be byte-identical to the one a window too wide to bind produces.
