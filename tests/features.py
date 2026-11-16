@@ -67530,6 +67530,9 @@ _P6_READ_ONLY = {
     **{key: "the pump's own start hysteresis, read_temperature_delta_k reads it" for key in (
         hp_const.CONF_SPACE_HYSTERESIS_ENTITY, hp_const.CONF_DHW_HYSTERESIS_ENTITY,
     )},
+    # #3616: room thermostats' attributes are read by inputs.read_room; phase 1
+    # writes no room thermostat.
+    hp_const.CONF_ROOM_TEMPERATURE_ENTITIES: "room thermostats inputs.read_room reads",
 }
 
 
