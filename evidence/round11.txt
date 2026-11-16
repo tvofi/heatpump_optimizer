@@ -1,7 +1,0 @@
-ok D16 mode=cells seats=3 universe=94 [s1:94f/74383loc, s2:94f/74383loc, s3:94f/74383loc]
-ok D17 mode=cells seats=3 universe=101 [s1:101f/74383loc, s2:101f/74383loc, s3:101f/74383loc]
-ok coverage tracked=11434 in_universe=1634 excluded=9800 unclassified=0
-ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
-FAIL start evaluation round=11: 1 gap(s), 0 card(s) beside the finders
-   dev/audit/yardstick/round11/EVALUATION.json is not in the tree: the start evaluation has not run
-rc=1

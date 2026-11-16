@@ -1,0 +1,87 @@
+auto-merge of 92d38ecb64 and e078a0bb2e:
+tree d8e98ed423783eeb39c8d0e72eabfa3f3be11c01 vs 387b83ea0e^{tree} e3162c787915347bca85a7c0e7a810a2a7417060
+ dev/programme/delivery/3672.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+PR net diff stat at head (merge base 92d38ecb64):
+ .claude/workflows/audit-find.js              |  14 +--
+ CLAUDE.md                                    |   9 +-
+ dev/audit/config/rotation.json               |   8 ++
+ dev/audit/config/scopes.json                 | 124 +++++++++++++++++++++++++++
+ dev/governance/config/policy_budgets.json    |  12 ++-
+ dev/governance/dimensions/D16.md             |  95 ++++++++++++++++++++
+ dev/governance/dimensions/D17.md             |  37 ++++++++
+ dev/governance/dimensions/D3.md              |   2 +-
+ dev/governance/roles/COMMON.md               |   6 +-
+ dev/programme/delivery/3672.md               |   1 +
+ tests/closures.json                          |   2 +
+ tools/audit/check_scopes.py                  |  68 +++++++++++++--
+ tools/audit/enumerate.py                     | 118 ++++++++++++++++++++-----
+ tools/audit/prepare_baseline.sh              |   2 +-
+ tools/audit/seat/finder_overlap.py           |  10 ++-
+ tools/audit/seat/instruments/enumerate.py.md |   5 +-
+ 16 files changed, 461 insertions(+), 52 deletions(-)
+
+commit 94503ed95b:
+commit 94503ed95bd88f0e84196dba7c4b9d143e688633
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Mon Nov 16 17:17:24 2026 +0000
+
+    enumerate, finder_overlap: self-test arms for the D16/D17 seat bound and the CLI --kind path
+    
+    finder_overlap.py: a case seating D16 and D17 seats and refusing D18, with
+    MUTANTS entries reverting the seat pattern's bound to 1[0-5], 1[0-6] and
+    widening it to 1[0-8]. enumerate.py: an arm driving main() with
+    d17-features --kind service and asserting the filtered lines.
+
+diff --git a/tools/audit/enumerate.py b/tools/audit/enumerate.py
+index c1c2e5248a..66e7b67c91 100644
+--- a/tools/audit/enumerate.py
++++ b/tools/audit/enumerate.py
+@@ -870,6 +870,17 @@ def self_test():
+         arm("d16 --cells a duty mode a state names and production dropped is refused",
+             planted(cut(f"{PKG}/const.py", "('off', 'observe', 'control')", "('off', 'control')"), cells=True), "Refuse")
+         arm("d17 --kind prints one prefix's lines", planted(u="d17-features", kind="service"), ["service set_a", "service set_b"])
++        def cli(*argv):
++            d = Path(tempfile.mkdtemp())
++            try:
++                plant(d)
++                buf = io.StringIO()
++                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
++                    rc = main([*argv, "--repo", str(d)])
++                return rc, buf.getvalue().splitlines()
++            finally:
++                shutil.rmtree(d, ignore_errors=True)
++        arm("d17 the command line's --kind reaches the filter", cli("d17-features", "--kind", "service"), (0, ["service set_a", "service set_b"]))
+         arm("d17 the kinds partition the universe", sorted(l for k in KINDS for l in (lambda r: [] if r == "Refuse" else r)(planted(u="d17-features", kind=k))), planted(u="d17-features"))
+         real_kinds = KINDS
+         try:
+diff --git a/tools/audit/seat/finder_overlap.py b/tools/audit/seat/finder_overlap.py
+index 1b6da68c2d..164bd1f19f 100644
+--- a/tools/audit/seat/finder_overlap.py
++++ b/tools/audit/seat/finder_overlap.py
+@@ -160,6 +160,11 @@ def cases(m) -> dict[str, bool]:
+     r["seat: a seat scopes.json does not hold is refused"] = m.seat_pair(scopes, "D1-s2", "a", "b", 11)[0] is None and \
+         m.seat_pair(scopes, "D2-s1", "a", "b", 11)[0] is None
+     r["seat: a missing model is refused"] = m.seat_pair(scopes, "D1-s1", "a", " ", 11)[0] is None
++    hi = {"D16": {"seats": {"s1": []}}, "D17": {"seats": {"s3": []}}, "D18": {"seats": {"s1": []}}}
++    r["seat: a D16 and a D17 seat are seated, a D18 one refused"] = \
++        (m.seat_pair(hi, "D16-s1", "a", "b", 11)[0] or {}).get("universe") == "D16-s1" and \
++        (m.seat_pair(hi, "D17-s3", "a", "b", 11)[0] or {}).get("universe") == "D17-s3" and \
++        m.seat_pair(hi, "D18-s1", "a", "b", 11)[0] is None
+     rep = lambda *ids: {"findings": [{"id": i} for i in ids]}
+     A, B = m.report_ids(rep("D1-s1-01", "D1-s1-02", "D1-s1-03"), "x"), m.report_ids(rep("D1-s1-71", "D1-s1-72"), "x")
+     r["report: a box file is read under the seat's name"] = \
+@@ -212,6 +217,9 @@ def cases(m) -> dict[str, bool]:
+ #: (needle, replacement, the case that must fail). One per predicate.
+ MUTANTS = {
+     "seat in scopes": ('m.group(2) not in ((scopes.get(m.group(1)) or {}).get("seats") or {})', "False", "does not hold"),
++    "seat bound D15": ("1[0-7]|[0-9]", "1[0-5]|[0-9]", "D17 seat are seated"),
++    "seat bound D16": ("1[0-7]|[0-9]", "1[0-6]|[0-9]", "D17 seat are seated"),
++    "seat bound D18": ("1[0-7]|[0-9]", "1[0-8]|[0-9]", "D17 seat are seated"),
+     "seat models": ("if not model_a.strip() or not model_b.strip():", "if False:", "missing model"),
+     "box key": ('rep = (rep.get("reports") or {}).get(name)', "rep = rep", "box file"),
+     "shared": ("m = len(bugs_a), len(bugs_b), len(bugs_a & bugs_b)", "m = len(bugs_a), len(bugs_b), 0", "Chapman"),
+
+body ## Head names e8f23fea178bf755a4b007fda4b26480adaa342e:
+fatal: remote error: upload-pack: not our ref e8f23fea178bf755a4b007fda4b26480adaa342e
