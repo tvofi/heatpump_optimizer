@@ -5,3 +5,4 @@
 1794845043 DONE blocked e99d63a673 probe-fail-open; verdict 90a7613b19 on probe/revt-r11-pre-security-privacy-6f832fbb
 1794850582 HB alive
 1794850598 CKPT setup done, prior block read snapshot 7f2a99ae5cbf
+1794850867 CKPT repros and mutants run; block found snapshot 8f2dbcd18486
