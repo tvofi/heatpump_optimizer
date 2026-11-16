@@ -3445,6 +3445,48 @@
     "note": null,
     "pr": 3669
    }
+  },
+  {
+   "group": "R11-HOTFIX-MAIN-SELFTEST-DRIFT",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Hotfix, S. Freeze ground: main red. governance / instrument-self-tests has failed on every main push since 1f7c59ebc4 (#3651) at step \"Refuse a self-test read set the committed table misses\": selftest_scope check, 120 gated steps, 27 UNDER-SCOPED refusals (run 43884631892 at e352724335, job 133359880684). Cause: merges after the last re-record (82e301585d, #3652) added self-test reads that no pull request re-measured: #3644 (tools/audit/seat/round_metrics.py), #3625 (dev/governance/dimensions/criteria/, dev/governance/config/machinery_target_budgets.json), #3651 (tools/audit/seat/plan_phases.py, dev/programme/round11/). Fix: commit that run's selftest-closures artifact (the committed table unioned with its Linux strace measurement) as tools/ci/selftest_closures.json; handoff 142926ec66. At least the fourth re-record hotfix (#3606, #3629, #3652), so a root-cause seat is owed.",
+   "carry": [],
+   "source": "programme",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r11-hotfix-main-selftest-drift",
+    "commit": "142926ec663e69a2a7371404256b4d4399ebb10a",
+    "last_step": "handoff pushed",
+    "next_step": "open PR, review, merge",
+    "note": "main red hotfix",
+    "pr": null
+   }
   }
  ]
 }
