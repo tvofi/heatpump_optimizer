@@ -3009,6 +3009,48 @@
     "next_step": "fixer dispatched 2026-11-15 high priority (owner)",
     "pr": 3649
    }
+  },
+  {
+   "group": "R11-HOTFIX-TICK-SEAT-WINDOW",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Hotfix, S. Freeze ground: main breakage. Since main 31255c3289 tools/audit/seat/orchestrator_tick.py raises NameError SEAT_WINDOW_MIN in outside_chain_idle on every run (the tick board is unreadable): d0f225c602 (#3651) moved the constant into tools/audit/seat/owed_watch.py and d1ee130c48 (#3635) used the old name. Fix: read it from owed_watch. PR #3661.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "commit": null,
+    "branch": "fix/r11-hotfix-tick-seat-window",
+    "last_step": "PR #3661 opened",
+    "next_step": "review, merge",
+    "note": "overlap admitted (R11-INTAKE-R10-RESIDUE): main breakage hotfix (tick NameError); cannot wait for R11-INTAKE-R10-RESIDUE, which is still in design",
+    "pr": 3661
+   },
+   "source": "programme"
   }
  ]
 }
