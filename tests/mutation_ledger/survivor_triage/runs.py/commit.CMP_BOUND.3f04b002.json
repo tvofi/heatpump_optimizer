@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CMP_BOUND 3f04b002",
+  "old": "        np.all(np.abs(walk) <= half * quantum + _SLACK) and abs(walk[-1]) <= f * dt / 2.0 + _SLACK)",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The two comparisons of `tracked` against the band edge and the end balance carry the float slack, so the variants differ only for a walk exactly at an edge plus 1e-9; the leaf fixtures sit exactly on the band edge (2.0 and 6.0 floor steps), inside the slack under both forms. Equivalent for every walk not within 1e-9 of that sum; not shown for one that is.",
+  "verdict": "gap"
+}
