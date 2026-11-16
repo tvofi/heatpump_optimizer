@@ -3225,7 +3225,9 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R11-OUTSIDE-ROOMS-P1"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/setpoint_check.py",
     "custom_components/heatpump_optimizer/presets.py",
