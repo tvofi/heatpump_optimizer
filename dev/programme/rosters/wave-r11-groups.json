@@ -2277,9 +2277,9 @@
     "From r11-pre-no-read-builders, body item 4847b00a: Parts C and D of the approved design, with the design note's fixer notes [paths], [d-p2-head], [P1] and [c-deferred] and the verdict's notes runs-json-width, d-hotfile-enumerator and branch-reuse, are unbuilt: the orchestrator dispatches them once R11-PRE-TOKEN-LEDGER (C) and R11-PRE-ROUND-METRICS parts 2 and 3 (D) are on main; lands in the group's row of the round-11 roster on handoff/audit-r10-roster (c9d838fdfc at this writing; not in this tree), D's surface being `tools/audit/seat/round_metrics.py`. Carry: R11-PRE-NO-READ-BUILDERS (items 4847b00a)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-no-read-builders",
-    "commit": null,
+    "commit": "cc2a14d02e0011d801d990595e6d6a34d9862134",
     "last_step": null,
     "next_step": "designer after R11-PRE-MACHINERY-LIMITER dispatches; not finder-critical",
     "note": "fix-gating (0018:274-278); not finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" \"Build all four reads\", an owner directive. Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.",
