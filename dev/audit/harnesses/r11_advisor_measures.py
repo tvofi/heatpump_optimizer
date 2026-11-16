@@ -24,9 +24,10 @@ tests/profiles.py houses, never through ``async_simulate``.
          Friday. Null: the same house without weekend comfort.
   pv     item pv-price: a schedule ask on a house with a PV surplus forecast.
          The estimate's two ends (the mean price, the what-if plan's own average
-         purchase price) beside the thermostat priced at each hour's own
-         surplus-aware price (the pair's ``monthly_held_cost_delta``, held
-         starts). Null: the same house without a surplus.
+         purchase price) beside the same reference-day thermostats priced at
+         each step's own surplus-aware price (``_energy_cost_fn``), which is
+         what the mean price stands in for. Null: the same house without a
+         surplus.
 
 Run from the tree root:
 
@@ -139,6 +140,17 @@ def arm_valve():
               f"{held.upper_floor_temperature:.2f} and {held.lower_floor_temperature:.2f}")
 
 
+def _thermostat_cost(side, given):
+    """What the reference day's thermostat (its second pass, ``reference_day``'s) pays at each
+    step's own surplus-aware price (``_energy_cost_fn``); ``side`` has solved ``given``."""
+    weather = seams.optimizer._day_mean_weather(seams.optimizer._horizon_weather(given.forecast, seams.N), seams.N)
+    when, hours = seams.optimizer._step_clock(given.start_time, seams.N, DT)
+    comfort = side._build_comfort_bounds(hours, seams.N, None, None, when)[0]
+    _, settled = side._compute_baseline_power(weather, given.state, DT, comfort)
+    power, _ = side._compute_baseline_power(weather, given.state, DT, comfort, start=settled)
+    return float(side._energy_cost_fn(np.asarray(given.forecast.prices[: seams.N], dtype=float), DT)(power))
+
+
 def arm_pv():
     opt, params = seams.build()
     surplus = np.array([2.5 * max(0.0, np.sin((h % 24 - 8) * np.pi / 8)) if 8 <= h % 24 <= 16 else 0.0
@@ -149,20 +161,85 @@ def arm_pv():
                 j = int(hour / DT)
                 given = seams.inputs(hour, seams.start(), pv=None if pv is None else pv[j:j + seams.N])
                 days = whatif.schedule_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given))
-                sim = seams.shadow(opt, params, asked).optimize(inputs=given)
+                sim_opt = seams.shadow(opt, params, asked)
+                sim = sim_opt.optimize(inputs=given)
                 out = price_tiles.schedule_figure(
                     *days, float(np.mean(given.forecast.prices)), 0.0, 24.0, price_tiles.realised_price(sim, DT))
-                held = replace(given, held_start=True)
-                live_h, sim_h = (seams.shadow(opt, params, a).optimize(inputs=held) for a in ({}, asked))
-                ref = price_tiles.monthly_deltas(live_h, sim_h, 0.0, 24.0)["monthly_held_cost_delta"]
+                live = seams.shadow(opt, params, {})
+                live.optimize(inputs=given)
+                ref = price_tiles.per_month(_thermostat_cost(sim_opt, given) - _thermostat_cost(live, given), 24.0)
                 lo, hi = sorted((out[whatif.STEADY_KEY], out[price_tiles.SHIFTED_KEY]))
                 closer = "own-price" if abs(out[price_tiles.SHIFTED_KEY] - ref) < abs(out[whatif.STEADY_KEY] - ref) else "mean-price"
                 print(f"RESULT pv {name} {hour:02d}:00 {label}: mean-price {out[whatif.STEADY_KEY]:+.1f} "
-                      f"own-price {out[price_tiles.SHIFTED_KEY]:+.1f} thermostat at each hour's price {ref:+.1f}; "
+                      f"own-price {out[price_tiles.SHIFTED_KEY]:+.1f} thermostat at each step's surplus-aware price {ref:+.1f}; "
                       f"inside the range {lo <= ref <= hi}, closer end {closer}")
 
 
-ARMS = {"asks": arm_asks, "valve": arm_valve, "pv": arm_pv}
+LOOP_DAYS, RESOLVE_STEPS = 4, 16
+
+
+def _loop(asked):
+    """(daily spend, end state) of the tanked house's plan run closed-loop for ``LOOP_DAYS`` days after
+    one warm-up day, re-solved every ``RESOLVE_STEPS`` steps from where the plan's own trajectory put the
+    house (the model is the truth here), each solve from the measured state, never a held one."""
+    base, params = seams.build(dhw=True)
+    opt = seams.shadow(base, params, asked)
+    prices, (o, w, r, sr) = deg_series(full=True)
+    state, spend = seams.start(), 0.0
+    for j in range(0, (LOOP_DAYS + 1) * seams.N, RESOLVE_STEPS):
+        cut = slice(j, j + seams.N)
+        plan = opt.optimize(inputs=seams.solve_inputs(
+            initial_state=replace(state), prices=prices[cut], outdoor_temps=o[cut], wind_speeds=w[cut],
+            precipitation=r[cut], solar_radiation=sr[cut], start_time=seams.MONDAY + timedelta(hours=j * DT)))
+        k = RESOLVE_STEPS
+        if j >= seams.N:
+            drawn = np.asarray(plan.power_schedule[:k]) + np.asarray(plan.dhw_power_schedule[:k])
+            spend += float(np.sum(drawn * prices[j:j + k]) * DT)
+        state = replace(state, room_temperature=plan.room_temp_trajectory[k], slab_temperature=plan.slab_temp_trajectory[k],
+                        upper_floor_temperature=plan.upper_temp_trajectory[k], lower_floor_temperature=plan.lower_temp_trajectory[k],
+                        dhw_temperature=plan.dhw_temp_trajectory[k], outdoor_temperature=float(o[j + k]))
+    return spend / LOOP_DAYS, state
+
+
+def _loop_one(item):
+    name, asked = item
+    daily, end = _loop(asked)
+    return name, daily, (end.room_temperature, end.slab_temperature, end.dhw_temperature)
+
+
+def arm_loop():
+    """The truth the pair is read against: each ask's closed loop against the live one's."""
+    from concurrent.futures import ProcessPoolExecutor
+
+    items = [("live", {})] + [(n, a) for n, a, _w in PAIR_ASKS]
+    with ProcessPoolExecutor() as pool:
+        done = dict((n, (d, e)) for n, d, e in pool.map(_loop_one, items))
+    params = seams.build(dhw=True)[1]
+    prices, o = deg_series()
+    live_daily, live_end = done["live"]
+    model = seams.ThermalModel(params)
+    cop = model.compute_cop(float(np.mean(o)))
+    for name, asked, want in PAIR_ASKS:
+        daily, end = done[name]
+        stored = (params.room_thermal_mass * (end[0] - live_end[0]) + params.slab_thermal_mass * (end[1] - live_end[1])
+                  + params.dhw_store.capacity_kwh_per_c * (end[2] - live_end[2]))
+        # The heat the loop ended with beyond the live loop's, bought back at the mean price and COP, over the loop's days.
+        settled = daily - live_daily - stored / cop * float(np.mean(prices)) / LOOP_DAYS
+        month = price_tiles.per_month(settled, 24.0)
+        print(f"RESULT loop {name}: closed-loop steady money {month:+.1f} a month "
+              f"(unsettled {price_tiles.per_month(daily - live_daily, 24.0):+.1f}), against the ask "
+              f"{want != 0 and month * want < 0}")
+
+
+def deg_series(full=False):
+    """The loop's prices and weather: ``r10_advisor_degree``'s days, a warm-up and a horizon longer."""
+    import r10_advisor_degree as deg
+
+    prices, wx = deg._series(LOOP_DAYS + 2, False)
+    return (prices, wx) if full else (prices, wx[0])
+
+
+ARMS = {"asks": arm_asks, "valve": arm_valve, "pv": arm_pv, "loop": arm_loop}
 
 if __name__ == "__main__":
     for arm in sys.argv[1:] or list(ARMS):
