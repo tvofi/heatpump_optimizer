@@ -1,0 +1,7 @@
+perturbation two_zone on
+CELL level CONF_AWAY_PRESENCE_ENTITY=absent	ok
+CELL level CONF_AWAY_PRESENCE_ENTITY=present	ok
+CELL level CONF_BUFFER_TANK_TEMP_ENTITY=absent	ok
+CELL level CONF_BUFFER_TANK_TEMP_ENTITY=present	ok
+CELL level CONF_COMPRESSOR_FREQ_ENTITY=absent	ok
+CELL level CONF_COMPRESSOR_FREQ_ENTITY=present	ok
