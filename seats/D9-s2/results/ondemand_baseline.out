@@ -1,0 +1,11 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 py3.14.7
+# arm=baseline calls=80 warm=6 cycle_errors=0
+RESULT retained_per_call[diagnostics]=108 B/call (response 8205 B; error=None)
+RESULT retained_per_call[simulate_plan]=-4 B/call (response 517 B; error=None)
+RESULT retained_per_call[diagnose_interval]=-0 B/call (response 175 B; error=None)
+RESULT retained_per_call[debug_collect_status]=0 B/call (response 103 B; error=None)
+RESULT retained_per_call[options_flow_init]=0 B/call (response 376 B; error=None)
+RESULT wall_s=5 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.4
+RESULT swapins=0

@@ -1,0 +1,5 @@
+RESULT attrs_recorded_per_cycle=44258 B
+RESULT attrs_unrecorded_per_cycle=47349 B
+RESULT recorded_changed_per_day=5804232 B (B6 budget 5000000)
+RESULT recorded_newrows_per_day=5756099 B (recorder dedup by content)
+RESULT entities_over_16384=2 count ['SpaceHeatingPlanSensor:test_entry_space_heating_plan', 'DHWHeatingPlanSensor:test_entry_dhw_heating_plan']

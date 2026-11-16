@@ -1,0 +1,25 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 py3.14.7
+# span=7 days, 0:00:00 cycles=1300 rows=1008 snapshots=7 final=True spawned=['_async_finish', 'async_save']
+# cycle=0 ring_bytes=88889
+# cycle=90 ring_bytes=186343
+# cycle=180 ring_bytes=368466
+# cycle=270 ring_bytes=464730
+# cycle=360 ring_bytes=646725
+# cycle=450 ring_bytes=828432
+# cycle=540 ring_bytes=924920
+# cycle=630 ring_bytes=1106851
+# cycle=720 ring_bytes=1288814
+# cycle=810 ring_bytes=1385014
+# cycle=900 ring_bytes=1567169
+# cycle=990 ring_bytes=1663593
+# cycle=1080 ring_bytes=1681613
+# cycle=1170 ring_bytes=1681613
+# cycle=1260 ring_bytes=1681613
+RESULT ring_peak_bytes=1681613 B
+RESULT ring_rows=1008 count
+RESULT first_day_slope=1048 B/cycle
+RESULT tail_slope=0 B/cycle (cycles 1100..1299)
+RESULT wall_s=5 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.41
+RESULT swapins=0

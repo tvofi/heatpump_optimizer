@@ -1,0 +1,3 @@
+# span=8 days, 0:00:00 cycles=1300 rows=1152 snapshots=8 final=True spawned=['_async_finish', 'async_save']
+RESULT ring_peak_bytes=1921264 B
+RESULT ring_rows=1152 count

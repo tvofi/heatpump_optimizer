@@ -42,6 +42,13 @@ INTERVAL_MIN = 10  # config_flow.py: _number(10, 120, ...) for optimization_inte
 CYCLES_PER_DAY = 24 * 60 // INTERVAL_MIN  # 144
 CYCLES_PER_YEAR = 365 * CYCLES_PER_DAY  # 52,560 -- D9-criteria B4
 
+RUN_SPAWNS = frozenset({
+    "restore_session", "async_load_profile", "async_load_draws", "async_load",
+    "_async_load_thermal_learning", "_async_load_price_model", "_async_load_accuracy",
+    "_async_load_energy_totals", "_async_load_ledger", "_async_load_snapshots",
+    "_async_setup_peak_guard", "_async_setup_defrost_watch", "_async_load_manual_plan",
+})
+
 TEMP_DAILY_AMPL = {"sensor.outdoor_temp": 4.0}
 DEFAULT_TEMP_AMPL = 0.6
 
@@ -93,9 +100,13 @@ class Driver:
 
         class QuietHass(FakeHass):
             def async_create_task(self, coro, name=None, eager_start=None):
-                # restore_session runs now, as set_up in replay.py does; every other
-                # spawn is closed exactly as FakeHass does.
-                if getattr(coro, "__name__", "") == "restore_session":
+                # restore_session and the coordinator's deferred store loads
+                # (coordinator.py __init__: the ``for load in (...)`` spawns) run now,
+                # as they complete in production before the first cycles: a load left
+                # unrun keeps e.g. wear.StartCounter.queued alive (its restore never
+                # comes), which reads as retained growth production does not have.
+                # Every other spawn is closed exactly as FakeHass does.
+                if getattr(coro, "__name__", "") in RUN_SPAWNS:
                     asyncio.run(coro)
                     return None
                 return super().async_create_task(coro)

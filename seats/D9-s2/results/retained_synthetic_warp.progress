@@ -1,0 +1,1 @@
+{"cycle": 200, "traced": 545620, "cpu_s": 11.4, "top": [["coord._snapshot_ring", 364412], ["coord.data", 248879], ["coord._optimization_result", 79447], ["module.heatpump_optimizer.debugger.DOMAINS", 47525], ["coord.logger", 27049]]}
