@@ -40,5 +40,5 @@
   "proposed_fix_scope": "tools/policy/policy_lint.mjs cmdHooks: require the tail to match `<n> passed, 0 failed` with n >= 1 (one line), plus a fixtures/policy-rot/hooks case whose self-test exits 0 silently, beside always-fails.sh. Mechanisation (D11.M5): already mechanical; the fix is one condition, about 0 s per merge, no policy line.",
   "files": ["tools/policy/policy_lint.mjs", "tools/policy/fixtures/policy-rot/hooks/"],
   "stop_rule_class": "bug",
-  "class_guess": "I3"
+  "class_guess": "I1"
 }

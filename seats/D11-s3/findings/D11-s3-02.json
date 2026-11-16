@@ -16,7 +16,7 @@
     "cpu_or_wall": "count",
     "contention_note": "fan-out, other seats running; counts are contention-immune",
     "tolerance": "exact",
-    "load1": 8.46,
+    "load1": 6.83,
     "thread_factor": 1.0
   },
   "instrumented_symbol": "tools/policy/brief_lint.mjs:main (workflowFiles roster list)",
@@ -38,7 +38,12 @@
     "node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json  (TOTAL 3: R10-RELAY-NOBODY-STALL path:line anchors moved)"
   ],
   "proposed_fix_scope": "brief_lint.mjs main() lints ROSTERS_DIR rosters on the no-argument run (one line; a named r10 run measured about 5 s here, provisional), the 3 rotted R10-RELAY-NOBODY-STALL anchors re-pinned in the same pull request, and brief-citations.md's first sentence names the roster directory. Mechanisation (D11.M5): this replaces the manual 're-pin owed' WARN that roster_edit.py prints with a refusal; cost one line of code, no policy line.",
-  "files": ["tools/policy/brief_lint.mjs", "dev/programme/rosters/wave-r10-groups.json", "dev/governance/rules/brief-citations.md", "tools/audit/seat/roster_edit.py"],
+  "files": [
+    "tools/policy/brief_lint.mjs",
+    "dev/programme/rosters/wave-r10-groups.json",
+    "dev/governance/rules/brief-citations.md",
+    "tools/audit/seat/roster_edit.py"
+  ],
   "stop_rule_class": "bug",
   "class_guess": "I3"
 }
