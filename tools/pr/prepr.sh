@@ -2430,14 +2430,15 @@ EOS
   printf 'def f(x):\n    if x > 0:\n        return 1\n    return 0\n' > "$MR/lib.py"
   printf 'import sys\nsys.path.insert(0, ".")\nfrom lib import f\nsys.exit(0 if [f(v) for v in (-2, 0, 1, 2)] == [0, 0, 1, 1] else 1)\n' > "$MR/tests/check.py"
   (mg add -A && mg commit -qm branch) >/dev/null 2>&1
-  got=$(mutants_line "$MR" "$MB" "false"); r=$?
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "false"); r=$?
   st "$r" 1 "a MUTANT_CMD failing on the unedited tree is refused, never read as no survivor"
   case "$got" in *'BASELINE FAILS'*) st 1 1 "and the refusal quotes mutant_run's own reason";; *) st 0 1 "and the refusal quotes mutant_run's own reason";; esac
-  got=$(mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
   st "$r" 0 "a check killing every mutant of the added lines passes (null control)"
   # A check that needs the checkout (git) fails the archive copy's baseline and
-  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379.
-  got=$(mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379. The
+  # archive-copy rows clear MUTANT_IN_PLACE: a fixer runs prepr with it set (fixer.md step 2).
+  got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
   got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"

@@ -58,6 +58,7 @@ from . import duty_legs, pump_mode, running_signal
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
 from .store import QuarantiningStore
+from .thermal_model import planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -442,6 +443,8 @@ class _Record:
     #: The both step whose legs were decided, and the legs, latched so
     #: neither the tick nor a re-solve inside the step flips them.
     order: tuple[datetime, duty_legs.Legs] | None = None
+    #: Whether the compressor ran as the last scheduled solve started (:func:`running_now`).
+    solved_running: bool = False
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -535,6 +538,25 @@ def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float
     else:
         legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
     return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+
+
+def running_now(rec: _Record, action: Any) -> bool:
+    """Whether the compressor runs as a scheduled solve starts, for the plan's start count.
+
+    The running signal's settled class with no change pending
+    (:func:`running_signal.running_now`); otherwise the executing step's
+    planned draw (``action``, the coordinator's current one) by the plan's
+    own running rule. Never the
+    start counter, which follows one sample per interval. The record keeps
+    the reading (``solved_running``) for a solve compared against that plan:
+    a what-if's start count stands beside the live plan's on the card, and
+    read afresh, a compressor that started in between would move it by one.
+    """
+    running = running_signal.running_now(rec.signal)
+    if running is None:
+        running = planned_draw_runs(float(action.get("power", 0.0)), float(action.get("dhw_power", 0.0)))
+    rec.solved_running = running
+    return running
 
 
 def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
