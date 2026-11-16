@@ -602,10 +602,6 @@
    "verdict": "keep",
    "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` last line -> VERDICTS 116: round 10's judge and catch-up records hold 116 verdict ids; `python3 -c \"import json,collections;print(collections.Counter(v['verdict'] for f in ('JUDGE.json','CATCHUP-JUDGE.json') for v in json.load(open('dev/audit/rounds/round10/'+f))['verdicts']))\"` -> verified 111, weakened 15, unreproduced 8, refuted 6, merged 6 over 146 rows. Whether a finding the judge voided was real is unread (0018 section 4, assumption 3: no term reads it; planted-defect recall, R11-PRE-ROUND-METRICS). NO-READ: nothing counts which seats load a contract, so cost (its tokens times the seats that load it) is unread (builder R11-PRE-TOKEN-LEDGER), and a clause's yield is unread until a block's class names the clause (card E11-N-ROLE-CLAUSE). Cost read: `git show a39627da59:dev/governance/roles/judge.md | wc -l` -> 29 lines (`git show v7.0.0:dev/governance/roles/judge.md | wc -l` -> 30); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/judge.md | wc -l` -> 1 merges touched it in round 10's window."
   },
-  "dev/governance/roles/nudge.md": {
-   "verdict": "keep",
-   "evidence": "NO-READ: nothing counts a load of this contract (it binds Cursor and ZCode sessions only), so its yield in rounds 9 and 10 is unread and a `remove` cannot rest on it. Lead: roster group R10-NUDGE-RETIRE (pull request 3566, open) retires it, and the round-end triage rules P764 `finish it` (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA)); this scoring neither contradicts nor confirms that ruling, it cannot measure it. Cost read: `git show a39627da59:dev/governance/roles/nudge.md | wc -l` -> 115 lines (`git show v7.0.0:dev/governance/roles/nudge.md | wc -l` -> 115); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/nudge.md | wc -l` -> 11 merges touched it in round 10's window."
-  },
   "dev/governance/roles/orchestrator.md": {
    "verdict": "change",
    "evidence": "`git ls-tree -r --name-only a39627da59 -- dev/audit/yardstick` -> nothing; `python3 tools/audit/check_scopes.py --repo . --ref a39627da59 --round 11` -> rc 1, `dev/audit/yardstick/round10/OBJECTIVE.json is not in the tree: round 10's close wrote no record to evaluate`. `grep -n -i '0018\\|objective' dev/governance/roles/orchestrator.md` -> one line (283, in section 14), none in its closure section; only `dev/audit/README.md` phase 13's artefact column names the record. Every layer-1 term read through the closing orchestrator's record is therefore unread for round 10. Cost read: `git show a39627da59:dev/governance/roles/orchestrator.md | wc -l` -> 289 lines (`git show v7.0.0:dev/governance/roles/orchestrator.md | wc -l` -> 319); `git log --first-parent --oneline v7.0.0..v10.0.0 -- dev/governance/roles/orchestrator.md | wc -l` -> 18 merges touched it in round 10's window.",
@@ -819,6 +815,10 @@
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/pr/depgraph.py` 341 lines (0 at the window's start), 1 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix."
   },
+  "tools/audit/seat/instruments/enumerate.py.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/enumerate.py` 956 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 267655f306 (R11-PRE-BRIEFS-CENSUS, pull request 3625): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 030a4d377f and not at the graded SHA a39627da59."
+  },
   "tools/audit/seat/instruments/failure_logs.sh.md": {
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/failure_logs.sh` 166 lines (163 at the window's start), 3 merges touched it in the window, 3 roster group(s) name it, 1 of them hotfix."
@@ -830,6 +830,10 @@
   "tools/audit/seat/instruments/figure_block.py.md": {
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/pr/figure_block.py` 304 lines (0 at the window's start), 1 merges touched it in the window, 3 roster group(s) name it, 3 of them hotfix."
+  },
+  "tools/audit/seat/instruments/finder_overlap.py.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/finder_overlap.py` 263 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 2e7bced82e (R11-PRE-ROUND-METRICS part 1, pull request 3612): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 030a4d377f and not at the graded SHA a39627da59."
   },
   "tools/audit/seat/instruments/flow_metrics.py.md": {
    "verdict": "keep",
@@ -955,6 +959,10 @@
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/plan_table.py` 329 lines (319 at the window's start), 4 merges touched it in the window, 3 roster group(s) name it, 0 of them hotfix."
   },
+  "tools/audit/seat/instruments/plant_recall.py.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/plant_recall.py` 443 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 2e7bced82e (R11-PRE-ROUND-METRICS part 1, pull request 3612): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 030a4d377f and not at the graded SHA a39627da59."
+  },
   "tools/audit/seat/instruments/policy_reread_check.py.md": {
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/policy_reread_check.py` 204 lines (0 at the window's start), 1 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix."
@@ -1058,6 +1066,10 @@
   "tools/audit/seat/instruments/roster_sync.py.md": {
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/roster_sync.py` 1596 lines (0 at the window's start), 11 merges touched it in the window, 10 roster group(s) name it, 0 of them hotfix."
+  },
+  "tools/audit/seat/instruments/round_metrics.py.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/round_metrics.py` 452 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 6c87325160 (R11-PRE-ROUND-METRICS): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 030a4d377f and not at the graded SHA a39627da59."
   },
   "tools/audit/seat/instruments/run_twins.py.md": {
    "verdict": "keep",
@@ -1172,7 +1184,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D1": {
    "object": "dev/governance/dimensions/D1.md",
@@ -1184,7 +1197,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D10": {
    "object": "dev/governance/dimensions/D10.md",
@@ -1196,7 +1210,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D11": {
    "object": "dev/governance/dimensions/D11.md",
@@ -1208,7 +1223,9 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "62f6bb2006892b59171b14ea4c3f7d025c2e74ce",
+   "merged_note": "Two merges built it: 511cf165f7 (pull request 3618) and 62f6bb2006 (pull request 3642); the later is recorded. Each changes dev/governance/dimensions/D11.md against its first parent."
   },
   "E11-D12": {
    "object": "dev/governance/dimensions/D12.md",
@@ -1220,7 +1237,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D14": {
    "object": "dev/governance/dimensions/D14.md",
@@ -1232,7 +1250,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D15": {
    "object": "dev/governance/dimensions/D15.md",
@@ -1244,7 +1263,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D2": {
    "object": "dev/governance/dimensions/D2.md",
@@ -1256,7 +1276,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D3": {
    "object": "dev/governance/dimensions/D3.md",
@@ -1268,7 +1289,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D4": {
    "object": "dev/governance/dimensions/D4.md",
@@ -1280,7 +1302,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D5": {
    "object": "dev/governance/dimensions/D5.md",
@@ -1292,7 +1315,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D6": {
    "object": "dev/governance/dimensions/D6.md",
@@ -1304,7 +1328,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D7": {
    "object": "dev/governance/dimensions/D7.md",
@@ -1316,7 +1341,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "511cf165f77359be8daf2b402e754d9dc0b6a5a2"
   },
   "E11-D8": {
    "object": "dev/governance/dimensions/D8.md",
@@ -1328,7 +1354,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all 14 (Recommended)\" (preliminary at 11:40Z, made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-D9": {
    "object": "dev/governance/dimensions/D9.md",
@@ -1340,7 +1367,8 @@
    "already_ruled": "tvofi, 2026-11-13: every dimension covers its whole scope each round with a reported denominator (roster group R10-DIMENSIONS-FULL-COVERAGE; carries 174 to 178 on R11-INTAKE-R10-RESIDUE name the brief edits decision 0018 owes; card E11-COMMON reports that no group builds the denominator rule itself). The round-end triage (dev/programme/triage/r10-round-end.md (pull request 3609; on main at 26dbf7c43e, after the graded SHA), P768) lists carries 173, 175, 177 and 178 as not instrument work and does not rule them. This card agrees with the ruling and adds the per-brief step and input.",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "f1520e3539b82407e56be9fe915d8a57ad6aedef"
   },
   "E11-COMMON": {
    "object": "dev/governance/roles/COMMON.md",
@@ -1357,7 +1385,8 @@
    "finder_critical": "yes: it changes the finder's contract, the finding schema and audit-find.js's inlined copy, so every finder report of round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept both parts (Recommended)\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b94425b94f0d25a02576e98fa10a8ff324974a0c"
   },
   "E11-INJECTED": {
    "paths": [
@@ -1388,7 +1417,9 @@
    "finder_critical": "no: it changes nothing a finder reads. It does gate the finder start mechanically: `audit-find.js` runs `check_scopes.py --round` in its Prepare step, which refuses the baseline while the record is absent",
    "decision": "accepted",
    "ruling": "tvofi: \"Write it now (Recommended)\" (made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "921214bf4246338c1a83fbc5269eaa0bfe91b7d5",
+   "merged_note": "Two merges built it: 646352ff13 (pull request 3611, part (a), dev/audit/yardstick/round10/OBJECTIVE.json) and 921214bf42 (pull request 3626, part (b), dev/governance/roles/orchestrator.md, the card's object); the object's is recorded."
   },
   "E11-SCORECARD": {
    "object": "tools/audit/seat/instruments/scorecard.py.md",
@@ -1508,7 +1539,8 @@
   "E11-N-P744-SCOPE": {
    "paths": [
     "tools/audit/seat/scorecard.py",
-    "dev/programme/rosters/wave-r10-groups.json"
+    "dev/programme/rosters/wave-r10-groups.json",
+    "tools/audit/seat/round_metrics.py"
    ],
    "proposal": "0018 section 2 names R11-PRE-ROUND-METRICS as the builder of `closure_slip` (the forecast history) and `unexamined` (from the roster's group kinds), and sections 4 and 5 of planted-defect recall and the two-finder overlap. The group's carries 1 and 3 name recall, overlap, `product_green`, the `lead_time` clock and runner seconds; neither its brief nor its carries name `closure_slip` or `unexamined` (only carry 0's general `build to 0018 section 2's definitions`), and P744's destination text names none of the four. Rule: P744's build includes carries 0 to 3 whole and the two terms by name, or each is carded elsewhere.",
    "term": "`closure_slip` (layer 2), `unexamined` (layer 1) and the two held-out checks stay NO-READ past round 11's close if the narrowed group does not build them; 0018 section 4 is then claimed for no round.",
@@ -1518,7 +1550,8 @@
    "finder_critical": "yes for two of the four reads: planted-defect recall writes defects into the baseline export the finders audit, and the two-finder overlap seats two finders on one universe, so both must exist before the finders run to be read for round 11; `closure_slip` and `unexamined` are read at the close and are not",
    "decision": "accepted",
    "ruling": "tvofi: \"Wait for both (Recommended)\" (planted-defect recall and two-finder overlap gate the finders). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "paths_note": "tools/audit/seat/round_metrics.py added at revision 4: it is the enumerator that reads `closure_slip` and `unexamined` (0018 section 2's builder R11-PRE-ROUND-METRICS put both there), and pull request 3658, which builds those two reads, changes only it among the tools. Planted-defect recall and the two-finder overlap are on main in tools/audit/seat/plant_recall.py and finder_overlap.py (2e7bced82e, pull request 3612). scorecard.py and the roster stay: pull request 3657 changes scorecard.py."
   },
   "E11-N-NULL-REVIEWER": {
    "paths": [
@@ -2061,5 +2094,18 @@
     "after": "rule selects at the pinned roster commit, 26 as escapes and 43 ruled out with the reason. The roster records"
    }
   }
+ },
+ "revision_4": {
+  "of": "c6ce415b7711d76cf6c08f926f30da91f7bda924",
+  "by": "r11-evaluator (Opus 5.5; the owner set the evaluator model to opus, tvofi 2026-11-16)",
+  "why": "`python3 -I tools/audit/check_scopes.py --repo . --ref <origin/main 030a4d377f merged with c6ce415b77> --round 11` printed 41 gaps; this revision answers those that are the evaluation's own. No existing verdict, `decision`, `ruling` or `gates_finders` moves.",
+  "changes": {
+   "objects.dev/governance/roles/nudge.md": "row dropped (was `keep`, NO-READ): main retired the file in 1ed1329e41, so objective.json's globs no longer match it.",
+   "objects.tools/audit/seat/instruments/{enumerate,finder_overlap,plant_recall,round_metrics}.py.md": "four rows added, each `keep` on a NO-READ yield with its cost read; they landed after the graded SHA. objective.json's globs at 030a4d377f match no other unrowed object (check_scopes.py names only these four).",
+   "cards.*.merged": "17 accepted cards carry `merged`: E11-COMMON b94425b94f; E11-D0, D1, D2, D8, D9, D12, D15 f1520e3539; E11-D3, D4, D5, D6, D7, D10, D14 511cf165f7; E11-D11 62f6bb2006; E11-N-OBJECTIVE-RECORD 921214bf42. Verified: `git merge-base --is-ancestor <merged> <ref>` rc 0, `git merge-base --is-ancestor <merged> 02a48db212` rc 1 and `git merge-base --is-ancestor <merged> c6ce415b77` rc 1, and `git diff --name-only <merged>^1 <merged>` names the card's object or one of its paths, for each of the 17, on <ref> a scratch merge of origin/main 030a4d377f and this revision; each <merged> is a first-parent merge of main.",
+   "cards.E11-N-P744-SCOPE.paths": "gains tools/audit/seat/round_metrics.py (see the card's paths_note); `merged` stays unset while pull requests 3657 and 3658 are open."
+  },
+  "unset": "`merged` stays unset on the 14 accepted gating cards whose work is open: E11-K-D4, K-D5, K-D9, K-D10 (pull request 3641), E11-N-P744-SCOPE (3657, 3658), E11-U1, U2, U4 to U10 (NEW-DIMENSIONS part 2).",
+  "review_owed": "The objects differ from those at the review sha 02a48db212, so check_scopes.py refuses the review until a reviewer approves at a commit holding these objects; a delta review of this revision is owed. A review sha on this line keeps every `merged` above after the review."
  }
 }
