@@ -1,0 +1,54 @@
+367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c 030a4d377f9f26f5b8befe5721d86aea454f29e0 36eb8805ec1eada0b267a5925116a9179bbdf759
+Merge pull request #3641 from tvofi/fix/r11-pre-owner-criteria
+on origin/main: yes
+ CLAUDE.md                                          |   3 +
+ dev/audit/config/objective.json                    |  42 +++++--
+ dev/audit/config/scopes.json                       |   4 +-
+ dev/audit/harnesses/r11_owner_criteria.py          | 134 +++++++++++++++++++++
+ dev/governance/config/policy_budgets.json          |  18 ++-
+ dev/governance/dimensions/D10.md                   |  28 ++---
+ dev/governance/dimensions/D4.md                    |  12 +-
+ dev/governance/dimensions/D5.md                    |   4 +-
+ dev/governance/dimensions/D9.md                    |   6 +-
+ dev/governance/dimensions/criteria/D10-criteria.md |  30 +++++
+ dev/governance/dimensions/criteria/D4-criteria.md  |  52 ++++++++
+ dev/governance/dimensions/criteria/D5-criteria.md  |  43 +++++++
+ dev/governance/dimensions/criteria/D9-criteria.md  |  49 ++++++++
+ dev/programme/delivery/3641.md                     |   1 +
+ tests/closure.py                                   |   1 +
+ tests/closures.json                                |   5 +
+ tests/layout.json                                  |   1 +
+ 17 files changed, 384 insertions(+), 49 deletions(-)
+
+owner_criteria at 367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c^1:
+{'D4': None, 'D5': None, 'D7': 'dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md', 'D9': None, 'D10': None}
+owner_criteria at 367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c:
+{'D4': 'dev/governance/dimensions/criteria/D4-criteria.md', 'D5': 'dev/governance/dimensions/criteria/D5-criteria.md', 'D7': 'dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md', 'D9': 'dev/governance/dimensions/criteria/D9-criteria.md', 'D10': 'dev/governance/dimensions/criteria/D10-criteria.md'}
+owner_criteria at origin/main:
+{'D4': 'dev/governance/dimensions/criteria/D4-criteria.md', 'D5': 'dev/governance/dimensions/criteria/D5-criteria.md', 'D7': 'dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md', 'D9': 'dev/governance/dimensions/criteria/D9-criteria.md', 'D10': 'dev/governance/dimensions/criteria/D10-criteria.md'}
+== D4
+tracked at C: dev/governance/dimensions/criteria/D4-criteria.md (52 lines)
+  absent at parent
+  brief cites at C: 2  at parent: 0
+7:`criteria/D4-criteria.md`, the file `dev/audit/config/objective.json` names
+8:under `owner_criteria` for D4: a finding names the statement it fails.
+30:   `D4-criteria.md`'s F3, F4, I1 to I3, and count its fields. Count the
+== D5
+tracked at C: dev/governance/dimensions/criteria/D5-criteria.md (43 lines)
+  absent at parent
+  brief cites at C: 1  at parent: 0
+10:`dev/audit/config/objective.json` names under `owner_criteria` for D5.
+37:   `criteria/D5-criteria.md`, whose statement a finding names.
+== D9
+tracked at C: dev/governance/dimensions/criteria/D9-criteria.md (49 lines)
+  absent at parent
+  brief cites at C: 2  at parent: 0
+17:Read `COMMON.md`, then `criteria/D9-criteria.md`, which budgets each
+57:Every Pi statement scales its M1 number by `D9-criteria.md`'s F.
+== D10
+tracked at C: dev/governance/dimensions/criteria/D10-criteria.md (30 lines)
+  absent at parent
+  brief cites at C: 2  at parent: 0
+6:Read `COMMON.md` first. Your criterion is `criteria/D10-criteria.md`, the
+7:file `dev/audit/config/objective.json` names under `owner_criteria` for D10:
+21:itself a finding (`D10-criteria.md`, Q1).
