@@ -47,7 +47,18 @@ ARMS = {
 }
 
 
+WORKER_CPU = []
+
+
 def run_arm(tmp, head, name):
+    t0 = time.thread_time()
+    try:
+        return _run_arm(tmp, head, name)
+    finally:
+        WORKER_CPU.append(time.thread_time() - t0)
+
+
+def _run_arm(tmp, head, name):
     wt = tmp / name
     r = subprocess.run(["git", "worktree", "add", "-q", "--detach", str(wt), head], cwd=ROOT,
                        capture_output=True, text=True)
@@ -96,8 +107,12 @@ def main():
     print("RESULT mutants=%d count" % (len(ARMS) - 1))
     print("RESULT mutants_killed=%d count" % killed)
     shutil.rmtree(tmp, ignore_errors=True)
+    # The arms run on deliberate worker threads (README: the FakeHass trap's rule):
+    # their CPU is subtracted and printed, and the residual is the factor.
     tp, tt = time.process_time() - t0p, time.thread_time() - t0t
-    print("RESULT thread_factor=%.3f ratio" % (tp / tt if tt else 1.0))
+    wc = sum(WORKER_CPU)
+    print("RESULT worker_thread_cpu=%.3f s" % wc)
+    print("RESULT thread_factor=%.3f ratio" % ((tp - wc) / tt if tt else 1.0))
     print("RESULT load1=%.2f" % os.getloadavg()[0])
     sw = 0
     try:
