@@ -162,10 +162,11 @@ class Install:
                 continue
             await asyncio.gather(*pending, return_exceptions=True)
 
-    async def setup(self):
+    async def setup(self, settle=True):
         ok = await ha_setup_entry(integration, self.hass, self.entry)
         assert ok, "setup failed"
-        await self.settle()
+        if settle:
+            await self.settle()
         return self.coord
 
     @property

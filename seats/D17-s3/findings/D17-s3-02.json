@@ -1,0 +1,50 @@
+{
+ "id": "D17-s3-02",
+ "scope": "D17-s3",
+ "step": "D17.M3",
+ "title": "set_thermal_parameters accepts house heat loss and thermal mass and changes nothing in two-zone",
+ "severity": "medium",
+ "claim": "With the two-zone model in force (the default 'auto' mode resolves to it, and 'on'), a set_thermal_parameters call raising house_heat_loss_coefficient 0.15 -> 0.35 kW/\u00b0C or lowering house_thermal_mass 10 -> 3 kWh/\u00b0C is acknowledged and stored but moves the published plan by 0.000 kW-steps, after the call and after a restart (4 of 4 two-zone cells), where the single-zone arm moves 167.6 and 5.9.",
+ "mechanism": "The two-zone model reads the per-zone upper/lower floor heat loss and masses; the action writes ThermalParameters.heat_loss_coefficient / house thermal mass and the entry options, which no two-zone solve reads, and the action has no per-zone heat-loss field to write instead. Its own description promises two-zone support and its field help states the coefficient's effect without a zone condition; nothing refuses or warns.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py",
+  "value": 4,
+  "unit": "two-zone cells (mode x field) whose plan delta is 0.000 after the call and after a restart",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (shared, three compute seats)",
+  "cpu_or_wall": "count",
+  "contention_note": "two other finder seats on the box; plan deltas are solver outputs at a frozen clock, contention-immune",
+  "tolerance": "exact (0.001 kW-steps)",
+  "load1": 3.86,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/services.py:handle_set_thermal_params",
+ "perturbation": {
+  "change": "two_zone_mode: off in the entry data of every arm (config change): f02_two_zone_inert.py --perturb",
+  "expected_direction": "up",
+  "observed_value": "inert cells 4 -> 0; plan delta 0.000 -> 167.619 (heat loss) and 5.882 (mass)"
+ },
+ "metric_definition": "|sum of data['schedule'][i]['power'] after - before| for one set_thermal_parameters field, after the call and after a restart, per two-zone mode",
+ "null_control": {
+  "command": "same harness, two_zone_mode off arm",
+  "value": 167.619,
+  "note": "single-zone: the same call moves the plan as documented"
+ },
+ "phenomenon_property": "Every field set_thermal_parameters accepts changes the model the next solve uses in every zone mode it accepts the field in, or the call refuses/flags it in that mode.",
+ "seam_rule": "grep -n '_THERMAL_PARAM_FIELDS\\|two_zone_enabled' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/thermal_model.py",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/services.py",
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/services.yaml",
+  "custom_components/heatpump_optimizer/strings.json"
+ ],
+ "reproduction_steps": [
+  "Set up an entry with default two_zone_mode (auto)",
+  "Call set_thermal_parameters house_heat_loss_coefficient: 0.35",
+  "Compare the plan before and after (and after a restart): identical"
+ ],
+ "proposed_fix_scope": "Either map the house fields onto the zone parameters in two-zone (scaling upper/lower floor heat loss and masses), or refuse them with a ServiceValidationError naming the per-zone fields, and add the per-zone heat-loss fields the options page has; field help says which mode reads which field."
+}
