@@ -1,10 +1,16 @@
-Question: the brief requires the audit-plan.js refusal in this PR (#3633), but no head carrying it can pass governance / wave-script (a required check) while main's check-wave-script.mjs lacks this PR's --open-cards stubs. Which route do you rule? (a) land the grader stubs first in a PR that merges ahead of this one (e.g. move them into part 1, #3620), after which this head goes green unchanged; (b) hand off this head red on wave-script as a WIP until the stubs reach main; (c) restore the split and record part 3 in the roster, as fix review 3633 offered.
+Question: body_push.sh refuses the figure block on a base mismatch; please re-render it (brief: "If body_push refuses the figure block on a base mismatch ... the orchestrator re-renders it").
 
-Evidence (worktree at ec058220b5, base 416280f5c2):
-- python3 tools/pr/ci_predict.py --base origin/main --only graders: "PREDICT governance / wave-script GRADER check-wave-script.mjs REFUSED by the base's copy ... BOOTSTRAP: no change in this pull request reaches the base's copy; move the registration to unpinned data the grader reads, or split p1 grader / p2 artifact", rc 1.
-- main's check-wave-script.mjs (pinned in CI, governance.yml "Restore the check source from the base commit") against this head's audit-plan.js: 209 passed, 7 failed (read stub carries no open_rc). Same grader against 416280f5's audit-plan.js: 223 passed, 0 failed.
-- No unpinned data route: main's P3 block reads only audit-plan.js and its own stubs; treating an absent listing as empty would be a guess the refusal exists to forbid.
+Topic r11-pre-round-check-gate-p2, PR #3633. Code handed off: refs/heads/handoff/r11-pre-round-check-gate-p2 at 2cb653f2dddc258386bddd7dc097bb9c0e323c17 (2061e87b06 merged with origin/main 30f9caac90, conflict in tools/audit/seat/roster_edit.py resolved by union, plus one self-test row). `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh <body>` passed rc=0 at that sha, its figure-blocks step included (`figure_block verify: 1 block(s), 0 refused` with mb=30f9caac90...).
 
-Built and verified at ec058220b5 (ready for handoff once routed):
-- 1c2d3af97b: the evaluator/reviewer arm also tries 1 and ["x"]; check_scopes.py --repo . --self-test rc 0 (66/66); reviewer's mutant C7 norm(str(ev.get(k) or "")) -> rc 1, 65/66, that arm alone false.
-- ec058220b5: refusal restored (reverses 25dabf079a). Head grader: 230 passed, 0 failed. Failing first, same grader vs 416280f5's audit-plan.js: 224 passed, 6 failed (the six refusal arms). Mutant deleting the `if (lost.length) throw` line: 228 passed, 2 failed (unaccounted, drop-with-no-reason). Null control: the kept/folded arm passes at the head.
+The body that was refused is kept at refs/heads/handoff-wip/r11-pre-round-check-gate-p2-body a0e1f7eb719028123bcd0e6547b435c5c12b7383.
+
+body_push.sh output (tail):
+
+    figure_block: refreshed 1 block(s) at 2cb653f2dddc
+    ERROR   [figure-block] line 91: block `scope-line` names head=2cb653f2dddc mb=6f422812d5d8, this run is head=2cb653f2dddc mb=30f9caac9073; re-render with `figure_block.py refresh <body>`
+    figure_block verify: 1 block(s), 1 refused
+    REFUSE figure blocks: figure_block verify: 1 block(s), 1 refused
+    body_push: REFUSED BODY-LINT
+    body_push: refused body kept at handoff-wip/r11-pre-round-check-gate-p2-body a0e1f7eb719028123bcd0e6547b435c5c12b7383
+
+The refresh step rendered against mb=6f422812d5 (the PR's base sha), and the verify step reads against the merge base with origin/main, 30f9caac90. The two disagree now that origin/main is merged into the head.
