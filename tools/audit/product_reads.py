@@ -878,6 +878,8 @@ def self_test():
                                ("generality", f"level mode=m1\tsimulation\ttests/fake_script.py payload\n"),
                                ("generality", f"level mode=m1\tguesswork\t{S}payload\n")):
                 arm(f"{name}: a malformed row exits 2: {text.strip()!r}", _refused(name, root, text, "x.tsv:1: a row is"), True)
+            arm("operation: a read that prints its RESULT exits 0", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n")[0],
+                "RESULT printed, exit 0")
             (root / PKG / "pump_arbiter.py").write_text("x = 1\n")
             (root / PKG / "log_latch.py").write_text("")
             (root / PKG / "off_restore.py").write_text("")
@@ -960,7 +962,7 @@ def _exit(name, root, text):
     led.write_text(text)
     with contextlib.redirect_stdout(io.StringIO()) as o, contextlib.redirect_stderr(io.StringIO()) as e:
         rc = main([name, "--repo", str(root), "--ledger", str(led), "--jobs", "1"])
-    return (rc, e.getvalue().replace(f"REFUSE: {root}/", "")) if "RESULT" not in o.getvalue() else ("RESULT printed", "")
+    return (rc, e.getvalue().replace(f"REFUSE: {root}/", "")) if "RESULT" not in o.getvalue() else (f"RESULT printed, exit {rc}", "")
 
 
 def main(argv=None):
