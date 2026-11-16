@@ -2,7 +2,7 @@
   "id": "D11-s3-04",
   "scope": "D11-s3",
   "step": "D11.M4",
-  "title": "prepr.sh --self-test never drives its main flow's step 5: wiring `no version edit` to a constant 0 leaves 553 passed, 0 failed",
+  "title": "prepr.sh --self-test never drives main-flow step 5: `no version edit` wired to 0 still gives 553 passed, 0 failed",
   "severity": "medium",
   "claim": "Replacing the main flow's `step \"no version edit\" $? \"$STAMPED\"` in tools/pr/prepr.sh with `step \"no version edit\" 0 \"$STAMPED\"` (prepr then reports ok on a branch that moves VERSION, the manifest version or a notes heading) leaves tools/pr/prepr.sh --self-test at 553 passed, 0 failed, identical to the unedited null arm, while gutting the version_edit() function it calls kills 9 cases.",
   "mechanism": "The self-test drives version_edit() through `ve`/`veco` and the `--version-edit` entry point pr-contract runs (exiting before the main flow), but no case runs the main flow over a VERSION-moving branch and reads step 5's verdict; the step's own comment calls it the cheaper detector for the same refusal, so its wiring has no live control. The refusal still exists later (pr-contract's --version-edit, the pre-edit hook, the stamp), which bounds the consequence to a slower detection.",

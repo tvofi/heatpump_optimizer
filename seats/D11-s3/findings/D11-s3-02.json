@@ -2,7 +2,7 @@
   "id": "D11-s3-02",
   "scope": "D11-s3",
   "step": "D11.M4",
-  "title": "brief_lint's CI run never lints the live rosters in dev/programme/rosters/ (66 live groups; 3 rotted citations at baseline)",
+  "title": "brief_lint's CI run never lints the live rosters in dev/programme/rosters/ (66 live groups; 3 rotted citations)",
   "severity": "medium",
   "claim": "The no-argument run of tools/policy/brief_lint.mjs (tests.yml `briefs`) lints 1 roster file, .claude/workflows/wave-3l-groups.json (1 live group), and not dev/programme/rosters/wave-r10-groups.json (52 live groups) or wave-r9-groups.json (14): an unresolvable path appended to a live brief there leaves TOTAL at 0, the same edit in wave-3l moves it to 1, and the r10 roster already carries 3 path:line errors that only a named-file run prints.",
   "mechanism": "main() takes `files = workflowFiles(ROSTER_FILE_RE)`, which lists .claude/workflows/ and dev/programme/carries/ only; ROSTERS_DIR is read by rosterIssues (the issue index) but never linted. roster_edit.py's write gate lints the roster by name but demotes every error the base already has to `WARN pre-existing, re-pin owed`, so a citation that rots after its write is refused by nothing.",
