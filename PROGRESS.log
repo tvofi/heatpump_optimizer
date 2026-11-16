@@ -4,3 +4,4 @@
 1794870988 CKPT note read, cites resolve at head snapshot 4a747baf782d
 1794871109 CKPT seam, cites, order checked; sibling sweep snapshot ea6437c7c1ec
 1794871206 CKPT verdict written: revise snapshot b18f87d3accf
+1794871219 DONE Design review: revise f7d50191e3 architecture-unsound, pushed design-verdict 9e83557135
