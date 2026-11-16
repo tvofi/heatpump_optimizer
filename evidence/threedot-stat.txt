@@ -1,0 +1,10 @@
+ .claude/workflows/audit-find.js                | 115 +++++++++++++++++++------
+ dev/audit/README.md                            |  20 +++--
+ dev/audit/config/finding.schema.json           |  32 ++++---
+ dev/audit/harnesses/r11_denominator_planted.py |  75 ++++++++++++++++
+ dev/governance/config/policy_budgets.json      |   4 +-
+ dev/governance/roles/COMMON.md                 |  50 ++++++-----
+ dev/programme/delivery/3647.md                 |   1 +
+ tests/closures.json                            |   1 +
+ tools/policy/check-wave-script.mjs             |  86 ++++++------------
+ 9 files changed, 254 insertions(+), 130 deletions(-)
