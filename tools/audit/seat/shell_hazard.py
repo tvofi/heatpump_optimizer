@@ -16,9 +16,11 @@ sites cost nothing, and a hazard already on main is not this branch's.
 THE RULES, one per added non-comment line:
   wc-compare  a `wc -l|-c|-w` command substitution that nothing normalises
               (`| tr -d ' '`, awk, sed, xargs) and that is compared as a STRING:
-              the first argument of `st`, or either side of `[ = ]`, `[[ ]]`
-              `==`/`!=`. A numeric test (`-eq`, `$(( ))`) is read as a number
-              and passes. Repair: `... | wc -l | tr -d ' '`; a compare that
+              the first argument of `st` or `case`, or either side of `=`,
+              `==` or `!=` inside the `[`/`[[` test that holds it. A numeric
+              test (`-eq`, `(( ))`, `$(( ))`) is read as a number and passes;
+              only the compare holding the substitution is judged, never the
+              rest of its line. Repair: `... | wc -l | tr -d ' '`; a compare that
               asserts the raw count on purpose (a stub's own padding) carries
               `# wc-raw: <reason>` on its line.
   wc-stub     a stub script text (a `#!` line) that calls the host's `wc` by
@@ -41,14 +43,31 @@ import sys
 
 WC_SUB = re.compile(r"\$\((?P<in>[^()]*\bwc\s+-[lcw]\b[^()]*)\)")
 NORMALISE = re.compile(r"\|\s*(?:tr\s+-d|awk|sed|xargs|cut)\b")
-NUMERIC = re.compile(r"\s-(?:eq|ne|lt|gt|le|ge)\s|\(\(|\$\(\(")
-STRING_CMP = re.compile(r"""\bst\s+['"]?\$\(|(?:^|\s)\[\[?\s[^\n]*(?:\s=\s|\s==\s|\s!=\s)|\bcase\s+['"]?\$\(""")
+STR_SUBJECT = re.compile(r"""\b(?:st|case)\s+['"]?$""")
+TEST_OPEN = re.compile(r"(?:^|\s)\[\[?\s")
+STR_OP_AFTER = re.compile(r"""^['"]?\s+(?:==?|!=)\s""")
+STR_OP_BEFORE = re.compile(r"""\s(?:==?|!=)\s+['"]?$""")
 STUB_WC = re.compile(r"#!/bin/(?:ba)?sh[^\n]*?/usr/bin/wc\b")
 EARLY = re.compile(r"\|\s*(?:grep\s+(?:-[A-Za-z]*[qm]\w*|--quiet\b|--max-count\b)|head\b)")
 PIPEFAIL = re.compile(r"^\s*[^#\n]*\bset\b[^#\n]*(?:-[A-Za-z]*o\s+pipefail|pipefail)", re.M)
 RAW = re.compile(r"#\s*wc-raw:\s*\S")
 SMALL = re.compile(r"#\s*pipe-small:\s*\S")
 DRAINED = re.compile(r"\|\|\s*true\b")
+
+
+def string_compared(line: str, m: re.Match) -> bool:
+    """Whether the substitution `m` is itself an operand of a string compare: `st`'s or `case`'s
+    subject, or a side of `=`/`==`/`!=` inside the `[`/`[[` test that holds it. A numeric
+    operator, an arithmetic context or a compare elsewhere on the line does not count."""
+    pre, post = line[:m.start()], line[m.end():]
+    if STR_SUBJECT.search(pre):
+        return True
+    opener = None
+    for opener in TEST_OPEN.finditer(pre):
+        pass
+    if opener is None or "]" in pre[opener.end():]:
+        return False
+    return bool(STR_OP_AFTER.search(post) or STR_OP_BEFORE.search(pre))
 
 
 def hazards(text: str, lines: set[int] | None = None) -> list[tuple[int, str, str]]:
@@ -59,9 +78,9 @@ def hazards(text: str, lines: set[int] | None = None) -> list[tuple[int, str, st
         if (lines is not None and n not in lines) or line.lstrip().startswith("#"):
             continue
         for m in WC_SUB.finditer(line):
-            if NORMALISE.search(m.group("in")) or NUMERIC.search(line) or RAW.search(line):
+            if NORMALISE.search(m.group("in")) or RAW.search(line):
                 continue
-            if STRING_CMP.search(line):
+            if string_compared(line, m):
                 out.append((n, "wc-compare", line.strip()))
                 break
         if STUB_WC.search(line) and not re.search(r"\|\s*tr\s+-d", line):
@@ -126,6 +145,34 @@ def self_test() -> int:
     st(rules('[ "$(wc -l <"$f")" = 3 ] || x\n'), ["wc-compare"], "a bracket string compare of a raw wc is refused")
     st(rules('[ "$(wc -l <"$f" | tr -d " ")" = 3 ] || x\n'), [], "a stripped bracket compare passes (null)")
     st(rules('[ "$(wc -l <"$f")" -eq 3 ] || x\n'), [], "a numeric test reads a number, not a string (null)")
+    # The exemption is the compare that holds the substitution, never the line (verdict/3639).
+    st(rules('[ "$(wc -l <f)" -eq 3 ] || [ "$a" = b ]\n'), [],
+       "a numeric compare of wc beside an unrelated string compare passes (null)")
+    st(rules('st "$(a | wc -l)" 0 m && [ $n -eq 0 ]\n'), ["wc-compare"],
+       "a numeric test elsewhere on the line does not excuse an st compare")
+    st(rules('[ "$(wc -l <f)" = 3 ] || exit $((1))\n'), ["wc-compare"],
+       "an arithmetic expansion elsewhere on the line does not excuse a bracket compare")
+    st(rules('[ 3 = "$(wc -l <f)" ]\n'), ["wc-compare"], "a raw wc on the right of = is refused")
+    st(rules('[ "$(wc -l <f)" != 3 ]\n'), ["wc-compare"], "!= is a string compare")
+    st(rules('[[ $(wc -l <f) == 3 ]]\n'), ["wc-compare"], "[[ == ]] is a string compare")
+    st(rules('case "$(wc -l <f)" in 3) x;; esac\n'), ["wc-compare"], "a case subject is a string compare")
+    st(rules('(( $(wc -l <f) == 3 ))\n'), [], "an arithmetic == reads a number (null)")
+    st(rules('n=$(( $(wc -l <f) + 1 ))\n'), [], "an arithmetic expansion reads a number (null)")
+    st(rules('[ -n "$x" ] && echo "$(wc -l <f)" = 3\n'), [], "an = outside any test bracket is no compare (null)")
+    # A generated spelling corpus: bracket x quoting x side x operator x unrelated tail.
+    corpus = bad = 0
+    for o, c in (("[", "]"), ("[[", "]]")):
+        for q in ('"', ""):
+            sub = f"{q}$(wc -l <f){q}"
+            for op in ("=", "==", "!=", "-eq", "-ne", "-lt", "-gt", "-le", "-ge"):
+                for tail in ("", " && [ $n -eq 0 ]", " || exit $((1))", " || [ \"$a\" = b ]"):
+                    for text in (f"{o} {sub} {op} 3 {c}{tail}\n", f"{o} 3 {op} {sub} {c}{tail}\n"):
+                        corpus += 1
+                        want = ["wc-compare"] if op in ("=", "==", "!=") else []
+                        if rules(text) != want:
+                            bad += 1
+                            st(rules(text), want, f"corpus: {text.strip()}")
+    st((corpus, bad), (288, 0), "the spelling corpus is judged by the compare holding the substitution")
     st(rules('n=$(wc -l <"$f")\n'), [], "a bare assignment is not a compare (null)")
     st(rules(raw.rstrip() + "  # wc-raw: asserts the stub's padding\n"), [], "a wc-raw reason passes (null)")
     st(rules(raw.rstrip() + "  # wc-raw:\n"), ["wc-compare"], "a wc-raw marker with no reason does not excuse")
