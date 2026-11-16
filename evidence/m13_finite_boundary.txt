@@ -1,0 +1,5 @@
+  ok   two concurrent loads of a migrating store both land: the write-back does not wait on the second read, parked on the first (#1869)
+  ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
+RESULT store_version_unsurfaced=0 count
+
+ALL 114 FINITE BOUNDARY CHECKS PASSED
