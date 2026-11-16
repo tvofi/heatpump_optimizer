@@ -727,6 +727,10 @@ def step_replay_self_test(root: Path) -> int:
         got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
         print(f"  {'ok  ' if got == 1 else 'FAIL'} a closure's `tools/lib/**` entry covers the changed file")
         bad += got != 1
+        table.unlink()
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} no table: no recorded reader, nothing replayed, nothing raised")
+        bad += got != 0
     g = globals()
     real = g["step_replay_preds"]
     g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
@@ -914,13 +918,10 @@ def refresh_round_rosters(root: Path) -> str | None:
     try:
         out = subprocess.run(["git", "fetch", "-q", "--no-tags", "origin", ROUND_ROSTERS],
                              cwd=root, capture_output=True, text=True, timeout=60)
+        why = f"failed: {' '.join(out.stderr.split())[:240] or 'no output'}" if out.returncode else None
     except subprocess.TimeoutExpired:
-        return "ROSTER UNFETCHED: git fetch of the round rosters timed out; the carry check read this clone's refs"
-    if out.returncode:
-        return ("ROSTER UNFETCHED: git fetch of the round rosters failed ("
-                + (out.stderr.strip().splitlines() or ["no output"])[-1][:160]
-                + "); the carry check read this clone's refs")
-    return None
+        why = "timed out"
+    return None if why is None else f"ROSTER UNFETCHED: git fetch of the round rosters {why}; the carry check read this clone's refs"
 
 
 def fetch_round_rosters(run) -> None:
@@ -1754,9 +1755,8 @@ def roundref_self_test(root: Path) -> int:
 def roundfetch_self_test(root: Path) -> int:
     """refresh_round_rosters moves a seat's stale remote-tracking round ref to
     origin's branch, as pr-contract's fetch does; null: an unreachable origin
-    leaves the ref, raises nothing and returns the note; predict's call line
-    pinned."""
-    import inspect
+    leaves the ref, raises nothing and returns the note; predict refreshes
+    when given a body and only then."""
     import shutil
     import tempfile
     sys.path.insert(0, str(root / "tests"))
@@ -1797,12 +1797,27 @@ def roundfetch_self_test(root: Path) -> int:
             note, raised = refresh_round_rosters(r), False
         except Exception:
             note, raised = None, True
-        check("an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED (null control)",
-              not raised and got() == stale and (note or "").startswith("ROSTER UNFETCHED"))
+        check("an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED with git's "
+              "reason (null control)", not raised and got() == stale
+              and (note or "").startswith("ROSTER UNFETCHED") and "absent.git" in (note or ""))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    line = [l for l in inspect.getsource(predict).splitlines() if "refresh_round_rosters(" in l]
-    check("predict calls refresh_round_rosters on one `# mut:roundfetch` line", len(line) == 1 and "# mut:roundfetch" in line[0])
+    g = globals()
+    real, calls = g["refresh_round_rosters"], []
+    g["refresh_round_rosters"] = lambda r: calls.append(r) or "ROSTER UNFETCHED sentinel"
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as f:
+            f.write("## Forward-carry\n\nnone\n")
+            f.flush()
+            notes: list[str] = []
+            predict(root, "HEAD", body=f.name, only="orphans", notes=notes)
+            check("predict with a body refreshes the round rosters and notes a failed refresh",
+                  len(calls) == 1 and "ROSTER UNFETCHED sentinel" in notes)
+            calls.clear()
+            predict(root, "HEAD", only="orphans", notes=[])
+            check("predict without a body fetches nothing (null control)", not calls)
+    finally:
+        g["refresh_round_rosters"] = real
     return bad
 
 

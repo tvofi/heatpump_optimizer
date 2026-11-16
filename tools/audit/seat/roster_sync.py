@@ -1146,9 +1146,9 @@ def self_test() -> int:
             "- an issue keeps its own record. Carry: #77\n")
     qid = next(r["id"] for r in carry_audit.audit(BODY, [], carry_audit.Dests(ROSTER_FIXTURE, set()))["rows"]
                if "R9-QID" in r["dests"])
-    next(g for g in groups if g["group"] == "R9-QID")["carry"] = [
-        f"From #15 (r9-carry), body item {qid}: reworded when the queue "
-        f"landed it. Carry: R9-QID (items {qid})"]
+    qid_landing = (f"From #15 (r9-carry), body item {qid}: reworded when the queue "
+                   f"landed it. Carry: R9-QID (items {qid})")
+    next(g for g in groups if g["group"] == "R9-QID")["carry"] = [qid_landing]
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
          "mergeCommit": {"oid": "a" * 40}, "body": "## Friction\n\n- none\n"},
@@ -1296,7 +1296,7 @@ def self_test() -> int:
                   "a distinct finding for the queued group. Carry: R9-QUEUED"],
               by["R9-QUEUED"].get("carry"))
         check("a reworded queue landing tagged with the item's own id is not "
-              "appended again", len(by["R9-QID"].get("carry") or []) == 1,
+              "appended again", by["R9-QID"].get("carry") == [qid_landing],
               by["R9-QID"].get("carry"))
         check("a duplicate differing only in markup is not appended",
               by["R9-ECHO"].get("carry")
