@@ -93373,6 +93373,14 @@ R.check(
     and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
     f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
 )
+_rm_scaled_ends = [inputs_mod._scaled(360.0, s) for s in (0.0, 0.5, 10.0, 1e9)]
+R.check(
+    "the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over "
+    "10 as 10; null control, the two ends themselves pass through unchanged",
+    (inputs_mod.STALENESS_SCALE_MIN, inputs_mod.STALENESS_SCALE_MAX) == (0.5, 10.0)
+    and _rm_scaled_ends == [180.0, 180.0, 3600.0, 3600.0],
+    f"{_rm_scaled_ends}",
+)
 _rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
     str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
     for v in (-30.0, 60.0, -30.1, 60.1)}
@@ -93549,6 +93557,21 @@ R.check(
     and _rm.lift_of(_rl_less_owner) == _rm.HeldLift(0.5, "climate.e", None, 0.25)
     and _rm.lift_of(_rl_capped_owner).lift_c == _rm.ROOM_LIFT_CAP_C == 1.0,
     f"{_rm.lift_of(_rl_same_owner)} {_rm.lift_of(_rl_less_owner)} {_rm.lift_of(_rl_capped_owner)}",
+)
+_rl_ahead, _rl_ahead_owner = _rl_solve(readings=_rl_e(19.8), house=19.0)
+R.check(
+    "a room less short of its target than the house is of its own holds a lift of zero, never a "
+    "negative one; null control, a room 0.5 K shorter than the house holds 0.5 K",
+    _rl_ahead is None and _rm.lift_of(_rl_ahead_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner).lift_c == 0.5,
+    f"{_rm.lift_of(_rl_ahead_owner)}",
+)
+_rl_neg_base, _ = _rl_solve(house=20.0, base=np.full(_RL_N, -0.5))
+R.check(
+    "a negative confidence margin is read as zero, as the solver reads it: the lifted margins "
+    "equal those with no confidence margin at all, the night band's 1.0 K included",
+    _rl_neg_base is not None and _rl_flat is not None and np.allclose(_rl_neg_base, _rl_flat),
+    f"{None if _rl_neg_base is None else sorted(set(np.round(_rl_neg_base, 4).tolist()))}",
 )
 _rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
 R.check(
