@@ -4545,6 +4545,9 @@ def self_test() -> int:
         t_cv, o_cv = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95),
                              carries=lambda v, hd: cv_asked.append((v, hd)) or True)
         t_cv0, o_cv0 = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95), carries=lambda v, hd: False)
+        cvb_asked = []
+        t_cvb, o_cvb = oboard2([(95, "CLEAN", [f"Fix review: blocked {h(1095)} x: y"], 5)], red=gate_red(95),
+                               carries=lambda v, hd: cvb_asked.append((v, hd)) or True)
         t_vp, o_vp = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89), disp=(89,))
         t_vp0, o_vp0 = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89))
         t_wf, o_wf = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
@@ -4650,6 +4653,9 @@ def self_test() -> int:
              o_cv == [] and "verdicted 1" in bk_of(t_cv) and cv_asked == [(h(1095), h(95))]),
             ("P657 null control: the same PR with the carry predicate refusing is still RED-UNOWNED",
              len(o_cv0) == 1 and o_cv0[0].startswith("OWED red-unowned #95")),
+            ("P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED",
+             "verdicted" not in bk_of(t_cvb) and len(o_cvb) == 1 and o_cvb[0].startswith("OWED red-unowned #95")
+             and cvb_asked == []),
             ("null: a DIRTY, red PR with a merge verdict at its head is verdicted, owed nothing",
              o_vd == [] and "verdicted 1" in bk_of(t_vd)),
             ("null: a DIRTY, red PR on the dispatch record is verdict-pending; off it, it is owed",
