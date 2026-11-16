@@ -1,3 +1,4 @@
 1794839046 INIT box CAP2
 1794839058 HB alive
 1794839069 HB drift warm skipped: HEAD is the baseline
+1794839121 HB PROBE OVERRIDE: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
