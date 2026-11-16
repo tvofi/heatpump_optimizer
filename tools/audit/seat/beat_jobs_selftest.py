@@ -242,7 +242,7 @@ def cases(bj) -> dict[str, bool]:
         digest(c) == (FIXTURE / "digest.txt").read_text())
     src = "".join((HERE / f).read_text() for f in ("orchestrator_tick.py", "ledger.py"))
     lits = ["OWED", "DISPATCH:", "OWNER FLAG:", "BLOCKED-UNFIXED:", "DESIGN-BUILD:", "UNREADABLE:",
-            "DESIGN OWED:", "REVIEW OWED:", "RECORD-OWED:", "REVIEW STALLED:", "UNLEVELLED:", "APPROVAL-OWED:",
+            "DESIGN OWED:", "DESIGN-REVIEW OWED:", "UNDISPATCHED:", "OUTSIDE-CHAIN-IDLE ", "REVIEW OWED:", "RECORD-OWED:", "REVIEW STALLED:", "UNLEVELLED:", "APPROVAL-OWED:",
             "MERGE-READY:", "main-red ", "REQUIRED not green", "RAISE APPROVAL OWED", "NOT REVIEWABLE",
             "mergeable state DIRTY", "RED unanswered", "code-owned with no ",
             "BOARD measured from origin/main at"]
@@ -802,6 +802,32 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"verdict_audit.py": (0, "note\n", "")})
     bj.verdict_audit(c)
     res["verdict-audit null: nothing unheld writes no byte"] = not files(c)
+
+    # cp-owed
+    cpl = "CP-OWED DESIGN-REVIEW-OWED R11-X 64m past its 10m grace [OUTSIDE] -- design/R11-X at abc has no design review"
+    c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired"},
+                 answers={"owed_watch.py": (0, "note\n" + cpl + "\n", "")})
+    pre = "CP-OWED" not in digest(c)
+    bj.cp_owed(c)
+    v = (f.calls or [[]])[0]
+    res["cp-owed: a CP-OWED line reaches the digest, and the repo, ledger and checkout are handed on"] = (
+        pre and digest(c) == bj.norm(cpl) + "\n" and "cp-owed" in v and arg(v, "--repo") == "o/r"
+        and arg(v, "--fired") == "/fired" and arg(v, "--checkout") == str(root))
+    c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired"},
+                 answers={"owed_watch.py": (2, cpl + "\ncp-owed: UNREADABLE critical path: not JSON\n", "")})
+    bj.cp_owed(c)
+    res["cp-owed: rc 2 is its UNREADABLE line, never its partial lines"] = (
+        digest(c) == "cp-owed: UNREADABLE critical path: not JSON\n")
+    c, f = fresh(overlay={"repo": "o/r"})
+    bj.cp_owed(c)
+    res["cp-owed: an overlay with no fire_ledger is UNREADABLE and runs nothing"] = (
+        digest(c) == "cp-owed: UNREADABLE overlay lacks fire_ledger\n" and f.ran("owed_watch.py") == 0)
+    c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired"}, answers={"owed_watch.py": (0, "note\n", "")})
+    bj.cp_owed(c)
+    res["cp-owed null: nothing owed writes no byte"] = not files(c) and f.ran("owed_watch.py") == 1
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "cp-owed"]
+    res["cp-owed: the table row runs every 300 s, under the shortest grace, and takes no class lock"] = (
+        len(row) == 1 and row[0]["interval_s"] <= 300 and row[0]["class"] is None)
 
     # pulse
     ok = "PULSE opener ok fine\npulse: 1 arms, 0 stopped, 0 unreadable at 2026-11-01T09:00:00Z\n"
@@ -1401,6 +1427,14 @@ MUTANTS = {
                             "gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger"),
     "verdict_filter_dropped": ('if ln.startswith("UNHELD ")])', "])",
                                "verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"),
+    "cp_owed_filter_dropped": ('    write_job(ctx, "cp-owed", [ln for ln in out.splitlines() if ln.startswith("CP-OWED ")])',
+                               '    write_job(ctx, "cp-owed", out.splitlines())',
+                               "cp-owed: a CP-OWED line reaches the digest, and the repo, ledger and checkout are handed on"),
+    "cp_owed_rc_ignored": ('    if rc != 0:\n        why = next((ln for ln in out.splitlines() if ln.startswith("cp-owed: UNREADABLE"))',
+                           '    if False:\n        why = next((ln for ln in out.splitlines() if ln.startswith("cp-owed: UNREADABLE"))',
+                           "cp-owed: rc 2 is its UNREADABLE line, never its partial lines"),
+    "cp_owed_ledger_optional": ('got = ctx.need("cp-owed", "repo", "fire_ledger")', 'got = ctx.need("cp-owed", "repo", "repo")',
+                                "cp-owed: an overlay with no fire_ledger is UNREADABLE and runs nothing"),
     "verdict_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "verdict-audit",', '    if False:\n        return write_job(ctx, "verdict-audit",',
                            "verdict-audit: a failed run is UNREADABLE, never its partial lines"),
     "gantt_gh_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE gh pr list',
