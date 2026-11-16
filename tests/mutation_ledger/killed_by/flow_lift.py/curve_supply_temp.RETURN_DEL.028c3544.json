@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:curve_supply_temp RETURN_DEL 028c3544",
+  "killed_by": "tests/features.py",
+  "old": "    return curve if np.isfinite(curve) else None",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

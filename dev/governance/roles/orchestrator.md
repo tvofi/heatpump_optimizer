@@ -105,12 +105,16 @@ whenever you merge.
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
-- **A proposal waits for the round-end triage** (`proposal-triage.md`, once per
-  round; tvofi 2026-11-14): a process, tooling or instrument proposal from the
-  sweep, a seat's result or a verdict is consolidated, never routed before its
-  ruling. Where a mandate lets you act on a recommendation absent the owner,
-  that means adding it to the batch; an ACCEPT reaches the next round's roster
-  citing its ruling. An instrument fix stays local and in-round.
+- **The instrument freeze** (card P11): an instrument fault is worked around
+  by a local prototype runnable in `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use
+  a sweep line `WORKAROUND <id> onset=<UTC> cost=<min>`. Its permanent fix is
+  proposal `<id>` in `$HPO_STATE_DIR/r<N>/`, citing the prototype and its
+  measured effect: `proposal-triage.md` rules all proposals once at round end,
+  duplicates merged, uses and cost summed; ACCEPTs are built before the next
+  round's finders, others refused with numbers. A workaround never touches
+  production code, gates, budgets or reviews. Exempt: a production defect,
+  an owner order, a red required check on main, an owner or outside item. A mandate-taken
+  recommendation joins the batch.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments.
 - **Give it the constraints that already exist**: findings carried into its
@@ -127,7 +131,7 @@ whenever you merge.
   shape); it binds them (`fixer.md` 17). A serial chain orders groups whose
   owning seams overlap, not groups that share a file.
 - **A round's scope freezes at its register**: a mid-round finding goes to the
-  next round's unless it is expedite or a size-S fly-in.
+  next round's unless expedite, a size-S fly-in, or an undeferred owner or outside item.
 - **An L or XL group with no approved design, pre-study or prototype is
   designed first** (decision 0014): dispatch `designer.md` when its last
   predecessor dispatches, `design-review.md` at the design's head, and its
