@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:ask_evidence CMP_BOUND a8271da4",
+  "killed_by": "tests/features.py",
+  "old": "    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return ASK_FOLLOWS if slope > FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
