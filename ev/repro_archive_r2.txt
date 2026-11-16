@@ -1,0 +1,7 @@
+null control: one deflated member: returned ''
+the member's encrypted flag is set: RAISED RuntimeError (uncaught by safe_extract)
+the member's compression method is one zipfile does not implement (99): RAISED NotImplementedError (uncaught by safe_extract)
+the member's deflate stream is corrupt: RAISED error (uncaught by safe_extract)
+the member's stream ends early: returned 'a member cannot be written (BadZipFile)'
+scan, run 901's logs archive where the member's encrypted flag is set: RAISED RuntimeError out of scan(); in-memory state 'running'
+scan, run 901's logs archive where the member's compression method is one zipfile does not implement (99): RAISED NotImplementedError out of scan(); in-memory state 'running'
