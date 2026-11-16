@@ -1,0 +1,12 @@
+HEAD=9e535642649c96ade5a1ad960b37851130319378
+NULL-FO rc=0 finder_overlap self-test: ok (with mutants)
+NULL-EN rc=0 SELF-TEST passed (161 arms)
+F1 bound 1[0-5] rc=1 finder_overlap self-test: FAIL seat: a D16 and a D17 seat are seated, a D18 one refused; mutant seat bound D15; mutant seat bound D16; mutant seat bound D18
+F2 bound 1[0-6] rc=1 finder_overlap self-test: FAIL seat: a D16 and a D17 seat are seated, a D18 one refused; mutant seat bound D15; mutant seat bound D16; mutant seat bound D18
+F3 bound 1[0-8] rc=1 finder_overlap self-test: FAIL seat: a D16 and a D17 seat are seated, a D18 one refused; mutant seat bound D15; mutant seat bound D16; mutant seat bound D18
+F4 bound 1[0-9] rc=1 finder_overlap self-test: FAIL seat: a D16 and a D17 seat are seated, a D18 one refused; mutant seat bound D15; mutant seat bound D16; mutant seat bound D18
+F5 bound any rc=1 finder_overlap self-test: FAIL seat: a D16 and a D17 seat are seated, a D18 one refused; mutant seat bound D15; mutant seat bound D16; mutant seat bound D18
+E14 kind dropped rc=1 SELF-TEST FAILED: d17 the command line's --kind reaches the filter: got (0, ['blueprint blueprints/automation/b.yaml', 'config-field user.f1', 'config-field user.f2', 'config-step user', 'entity switc
+E15 kind None rc=1 SELF-TEST FAILED: d17 the command line's --kind reaches the filter: got (0, ['blueprint blueprints/automation/b.yaml', 'config-field user.f1', 'config-field user.f2', 'config-step user', 'entity switc
+E16 choices dropped rc=0 SELF-TEST passed (161 arms)
+E17 isinstance dropped rc=0 SELF-TEST passed (161 arms)
