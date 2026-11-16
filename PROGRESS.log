@@ -12,3 +12,4 @@
 1794856693 HB alive
 1794856744 CKPT net case + mutant written; fails on mutant, ok at head snapshot ba292fc741ca
 1794856779 CKPT repair committed a527be6; wip pushed; mutant runs + self-test running snapshot 45075adb9cba
+1794856875 CKPT specs: all KILLED incl net-all-pages, NULL SURVIVED; self-test ok 50 mutants snapshot 2bb7bdd480ce
