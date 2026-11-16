@@ -1,0 +1,20 @@
+diff --git a/dev/audit/config/scopes.json b/dev/audit/config/scopes.json
+index 2f08deea70..10f2b6dc75 100644
+--- a/dev/audit/config/scopes.json
++++ b/dev/audit/config/scopes.json
+@@ -479,6 +479,7 @@
+   "mode": "files",
+   "universe": [
+    "README.md",
++   "ROADMAP.md",
+    "DISCLAIMER.md",
+    "RELEASE_NOTES.md",
+    "docs/index.html",
+@@ -535,6 +536,7 @@
+     {
+      "files": [
+       "README.md",
++      "ROADMAP.md",
+       "DISCLAIMER.md",
+       "RELEASE_NOTES.md",
+       "docs/index.html",
