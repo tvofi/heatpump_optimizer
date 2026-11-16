@@ -23,3 +23,4 @@
 1794852392 CKPT evidence runs at candidate tree; hand mutants 20+/38 all killed bar one boundary case now pinned; body next snapshot 1e179f641ee7
 1794852859 HB alive
 1794853465 HB alive
+1794853869 CKPT hand mutants: 39 defined, all killed; first scoped gate found 2 reds (eager config read, .read name), both fixed; rerunning gate snapshot 15fca8d6262c
