@@ -27,12 +27,13 @@ write; `changed` compares the builder's own return value on the loop.
 Run:   PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py [--origin debounced|direct] [--perturb-rerun] [--part A|B|AB]
 Expect: Part A shared_mutable_objects=1 (inputs.forecast.pv_surplus IS coordinator._pv_surplus;
         both sides only rebind it), torn_inputs=0; positive control --control-inplace: torn_inputs=1.
-        Part B --origin debounced: stale_plan_rows = the rows whose writer
-        re-plans through async_request_refresh (see ROW lines); --origin direct
-        (null control): 0 of those rows.
+        Part B --origin debounced: stale_request_refresh_rows=7 of 8 (stale_plan_rows=10; the other
+        3 are the power-event and pv-export rows, which no writer re-plans by design);
+        --origin direct (null control): 0 of 8 (stale_plan_rows=3). Exact.
+        Census: D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 (the committed enumerator output).
 Perturbation (--perturb-rerun): `async_request_refresh` records the #1754
         re-run when a solve is in flight (one line in the coordinator):
-        stale_plan_rows (debounced) -> 0.
+        stale_request_refresh_rows (debounced) 7 -> 0.
 Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692; machine: box B4 container, linux x86_64.
 """
 from __future__ import annotations
