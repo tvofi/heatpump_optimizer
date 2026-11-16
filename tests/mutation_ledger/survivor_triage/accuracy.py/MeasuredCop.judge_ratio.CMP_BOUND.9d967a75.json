@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio CMP_BOUND 9d967a75",
-  "old": "        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:",
-  "reason": "Equivalent (CMP_BOUND, `<=` -> `<`), carried from the triage of this comparison's previous text (`if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:`, anchor d2c128b3), which R10-COP-LEARNER-DRAW-FLOOR rewrote by adding the `or state == ASK_FOLLOWS` operand and nothing else. The arms differ only where `abs(ratio - 1.0)` is exactly the double 0.15, and no double ratio reaches it: 1.0 + double(0.15) and 1.0 - double(0.15) are not doubles, and the doubles either side were measured at this head with math.nextafter -- ratio 1.15 gives 0.1499999999999999, its neighbours 0.1499999999999997 and 0.15000000000000013; ratio 0.85 gives 0.15000000000000002, its neighbours 0.15000000000000013 and 0.1499999999999999 -- none equal to 0.15. For a ratio in [0.5, 2] the subtraction is exact (Sterbenz), so these are the only candidates; outside it |ratio - 1.0| >= 0.5 and both arms take the same branch. Driven by prepr.sh's diff-mutant step over the two tests/features.py blocks that pin judge_ratio (from `# silence the learner. Synthetic numbers only.` to `R.section(\"R10-COP-GATE (#2262)`): the mutant survived.",
-  "verdict": "equivalent"
-}
