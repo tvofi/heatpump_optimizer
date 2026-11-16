@@ -1,0 +1,29 @@
+# `owner_only.py`
+
+- `owner_only.py` — the only way a session of an owner-only audit dimension
+  starts, and the probe that refuses one able to publish. A dimension whose
+  `dev/audit/config/scopes.json` entry carries `owner_only: true` publishes
+  nothing; the closure is that no process of its run holds a credential that
+  writes, which a second OS account (the seat account) gives and an
+  instruction cannot. The owner runs, as that account:
+
+        python3 -I tools/audit/seat/owner_only.py launch --private-root <abs dir, mode 700> \
+          --owner-identity <the directory the App keys live in> [--deploy-key <file>]... \
+          --model-env <the model credential's variable> --token-fd 3 -- <session command> 3< <read token file>
+
+  It builds the session's environment from an allow-list under the private
+  root, runs `corpus_mirror.py` first with the read credential on the
+  descriptor, and starts the session only between two green probes.
+  `--skip-mirror` reuses a corpus already there.
+  - **`probe --private-root <dir>`** exits 0 only when the running account can
+    read no owner identity directory or deploy key, gets no password from
+    `git credential fill`, holds no agent socket, private key or token
+    variable, reaches no logged-in `gh`, resolves `gh` to the seat shim in its
+    owner-only mode, has a private root of mode 700 outside every work tree,
+    and is no cloud session. A line names a path or a variable, never a
+    content. Both workflow drivers run it again in Prepare.
+  - What the probe cannot see is in the script's docstring: a credential in
+    a file it is not told of, and, on a host with one account, the
+    two-account property itself.
+  `--self-test`: the probe over a fixture view of an account, the allow-list,
+  the launch order, and one mutant per predicate.
