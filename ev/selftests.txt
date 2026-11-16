@@ -1,0 +1,15 @@
+== tools/audit/seat/orchestrator_tick.py --self-test
+orchestrator_tick self-test: 368 checks, 0 failed
+rc=0
+== tools/audit/seat/ledger.py --self-test
+ledger self-test: 108 checks, 0 failed
+rc=0
+== tools/audit/seat/owed_unactioned.py --self-test
+owed_unactioned self-test: 60 checks, 0 failed
+rc=0
+== tools/audit/seat/beat_jobs.py --self-test --no-mutants
+beat_jobs self-test: 156 checks, 0 failed
+rc=0
+== structure
+
+STRUCTURE RATCHET PASSED
