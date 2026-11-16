@@ -8,8 +8,10 @@
   - `found_by` — a finder dimension `D<n>`, `reviewer`, `ci-main`, `owner` or `outside`;
   - `owned_by` — the owning dimension `D<n>`, or `none`;
   - `caused_by` — `{"cause": "#<pr>" | <group> | "external" | "original", "rca": <id>}`,
-    the id one of the group's own `rca` records under `dev/audit/rca/`, so the
-    cause is the root-cause seat's, never the fixer's;
+    the id a record under `dev/audit/rca/` that is one of the group's own `rca`
+    records or names the group (`roster_lib.rca_lists`), so the cause is the
+    root-cause seat's, never the fixer's; a group with no `rca` of its own takes
+    `caused_by` once a record names it, and until then that read stays `unread`;
   - `family` — a class of `dev/audit/config/bugclasses.json`;
   - `cm_kind` — `delete`, `self-heal`, `narrow`, `widen`, `new-refusal` or `policy-text`;
   - `parent` — the roster group this one descends from;
