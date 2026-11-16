@@ -1,0 +1,40 @@
+  ok   the window reader asks the reviews endpoint and joins what it answers into its map (#1471)
+  ok   and it asks whether or not the window posted a review, with the body and comment reads as the ledger's null control (#1471)
+  ok   the --sunset mode prints the marker census its zero is a zero of, beside the corpus count (#1469)
+  ok   the rework key is the class the wave teaches, so the histogram cannot key a word no reviewer is told to write (#1405)
+  ok   the stats histogram counts a rework round on a moved head on its own rework row, keyed on the class the wave defines for it and the passing verdict hides (#1405; #2221)
+  ok   and the rework count tracks the window rather than a constant (null control; the finder's own perturbation)
+  ok   and the passing row is left exactly as it was, and the verdict row the wave's `head-moved` word keys holds no rework round, so the rework row adds a figure rather than moving one (#1405; #2221)
+  ok   and a verdict naming the same head twice, or a first line the grammar refuses, is not rework (null control)
+  ok   the rework row counts a re-verification of a head that moved after a `merge` verdict, once per round, and not a repair or a repeat (#1549)
+  ok   the verdict table's `head-moved` row holds only the verdicts whose class word a reviewer wrote, and its rows partition the parsable verdicts (#2221)
+  ok   and the rework row is the rounds line's re-verification part, one object rather than a second count of it (#2221)
+  ok   and every round after a merge's first is split by the verdict before it: re-verification, repair, repeat (#1549)
+  ok   and the split tracks the verdict before the round rather than a constant (null control: #3's block rewritten as a merge)
+  ok   the stats mode prints the one-round yield beside the first-verdict yield, each named for its rule (#1549)
+  ok   and the one-round yield moves with the window (null control: #3 flipped to a first `merge` raises the first-verdict yield only)
+  ok   the stats mode splits the merges carrying no parsable verdict by the title's type, so an exempt record merge and an unreviewed fix are two rows (#2220)
+  ok   and the split tracks the titles rather than a constant (perturbation: #3 retitled `record`; null control: every fetched merge carries a verdict)
+  ok   a moved policy file named at its live path and at its canonical spelling reaches one friction key, the canonical path (#2221)
+  ok   and an id naming no policy file keeps its own spelling (null control)
+  ok   the ledger script is classified: NOT_A_TEST, and not on INERT
+  ok   the by-design-red exclusion list is in-tree, with a reason per job and a citation that resolves (#1303)
+  ok   and the CFR instrument reads that registered artifact, not a copy beside itself (#1303)
+  ok   and the list excludes only what it names (null control)
+  ok   the change-failure instrument reports the merge-keyed AND the PR-head-keyed rate (#1407)
+  ok   the change-failure instrument publishes the rate per check-run NAME at both keyings, so the name that separates them is visible (#1476)
+  ok   and the exclusion artifact records `mutation` as deliberately NOT excluded, with a reason and a citation the tree carries (#1476)
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  ok   every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ok   the cited-program arm: a cited harness that runs passes, a planted opened stale path and a planted unloadable citation are refused, a stale path a program only holds is not (null controls, perturbation)
+  ok   the cited-program arm follows a path literal through every open shape the two fix reviews planted and the binding family beside them -- an alias, a join, a pathlib / read through .read_text() or .open(), an f-string prefix, a dict or list subscript, a tuple unpack, an annotated assignment, a for target, a walrus, +=, a parameter or lambda default, a with ... as target, a self.x attribute, and a name bound through a global or nonlocal declaration -- the shapes it already caught stay caught, and a literal the program only HOLDS is still not an open
+  ok   no cited program binds a path literal to an attribute or a class-body name at all -- so the attribute-bound-in-one-scope-opened-in-another shape (`self.x` set in one method and opened in another, a class-body name opened through its owner) that the name-only resolver cannot follow has 0 live sites today, and the census catches each planted variant
+  ok   every carry and every policy file this arm reads for citations selects this script, so a broken citation added to one is refused on the pull request and not on the next merge to main (#2312, F2)
+  ok   the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+rc=124
