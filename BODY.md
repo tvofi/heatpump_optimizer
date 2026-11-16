@@ -1,8 +1,8 @@
 R11-PRE-NEW-DIMENSIONS, p2 of 2: two dimensions whose oracle is the plan (D16, actuator write) and the documented effect (D17, feature behaviour), each over a universe a command prints. Policy pull request (two dimension briefs, `CLAUDE.md`, `COMMON.md`, `D3.md`, `policy_budgets.json`); finder-critical: the round-11 finder start waits on it.
 
-**Split.** p1 (#3646, `tools/audit/prepare_baseline.sh`'s `ISOLATED_DIMS` gaining D16) is on main as `47f0f18a7e`. This head is the earlier p2 head `4f73a0c5e8` merged into `origin/main` `030a4d377f9f26f5b8befe5721d86aea454f29e0` by merge (`4632a10bff41d516b5a5cf1176f14b29c8481f51`: six files conflicted, each taking main's side with this group's own edits re-applied, listed in that commit's message), then `origin/main` `e352724335c136b65562cd3e71f728549ad04a82` merged in once more because it conflicted (`dev/governance/config/policy_budgets.json`'s `corpus:` row, re-measured at this head), on refs of the topic `r11-pre-new-dimensions-p2`.
+**Split.** p1 (#3646, `tools/audit/prepare_baseline.sh`'s `ISOLATED_DIMS` gaining D16) is on main as `47f0f18a7e`. This head is the earlier p2 head `4f73a0c5e8` merged into `origin/main` `030a4d377f9f26f5b8befe5721d86aea454f29e0` by merge (`4632a10bff41d516b5a5cf1176f14b29c8481f51`: six files conflicted, each taking main's side with this group's own edits re-applied, listed in that commit's message), then `origin/main` `e352724335c136b65562cd3e71f728549ad04a82` merged in once more because it conflicted (`dev/governance/config/policy_budgets.json`'s `corpus:` row, re-measured at this head), then the PR head `8e8b06549997fb7154c7b54d18e0526355a0ab19` (origin/main `6f422812d5` merged by the orchestrator, and the delivery row), then the review block's two self-test arms on it, on refs of the topic `r11-pre-new-dimensions-p2`.
 
-**Evaluation.** Built from `c6ce415b7711d76cf6c08f926f30da91f7bda924`, the tip of `eval/r11`, whose `review` field reads `approve` of `02a48db212e0e49af62863575cba86bc339d4958`. At that tip every card closed here is `accepted` with tvofi's ruling and `gates_finders` true, and names one file: E11-U1 `dev/governance/dimensions/D17.md`; E11-U2, E11-U4, E11-U5, E11-U6, E11-U7, E11-U8, E11-U9 and E11-U10 `dev/governance/dimensions/D16.md`. This diff adds both files, so each card's `paths` is among the merge's changed files. No card names a path the design does not. The fold of `check_scopes.py --round` (a path ending in a slash read as a prefix) is not built: its condition, "unless the approved evaluation names file paths", is met. E11-U9 and E11-U10 are ruled ("Accept all four") and built with the rest. This head is not an ancestor of the review sha (decision 0018 section 6; `## Figures`).
+**Evaluation.** Built from `c04cef7fca50e00fa23466dab28f941a4d5034af`, the tip of `eval/r11` (revision 4), whose `review` field reads `approve` of `83dc9488180379b859042b5f24b87d94a5a02c95`. At that tip every card closed here is `accepted` with tvofi's ruling and `gates_finders` true, and names one file: E11-U1 `dev/governance/dimensions/D17.md`; E11-U2, E11-U4, E11-U5, E11-U6, E11-U7, E11-U8, E11-U9 and E11-U10 `dev/governance/dimensions/D16.md`. This diff adds both files, so each card's `paths` is among the merge's changed files. No card names a path the design does not. The fold of `check_scopes.py --round` (a path ending in a slash read as a prefix) is not built: its condition, "unless the approved evaluation names file paths", is met. E11-U9 and E11-U10 are ruled ("Accept all four") and built with the rest. The nine cards are byte-equal at that tip and at the earlier one this body named, `c6ce415b7711d76cf6c08f926f30da91f7bda924` (`## Figures`). This head is not an ancestor of the review sha (decision 0018 section 6; `## Figures`).
 
 **Wording.** Both briefs are drafted by this seat under mandate 6893738184 (scope all, in force to 2026-12-15T12:00Z), declared in `D16.md`'s opening, which `D17.md` cites; the owner's to change at review.
 
@@ -38,7 +38,11 @@ Alternatives that lost: the oracle read from `desired` (one call, and it grades 
 
 ## Head
 
-e078a0bb2e3b4663cc505282d70aaad8053a566b
+94503ed95bd88f0e84196dba7c4b9d143e688633
+
+prepr: passed rc=0 at 94503ed95bd88f0e84196dba7c4b9d143e688633
+
+The block on `e078a0bb2e3b4663cc505282d70aaad8053a566b` (verdict/3672) is answered: `finder_overlap.py`'s seat-pattern bound and `main()`'s `kind=a.kind` each now have a failing check (`## Mutation proof`); the two equivalents are under `## Unpinned sites`.
 
 ## Mutation proof
 
@@ -57,16 +61,23 @@ Ten predicate mutants, each applied alone in a detached worktree at `4632a10bff4
 
 Each line names the arm or arms read from that run's `SELF-TEST FAILED` line up to its first 230 characters; an arm past that was not transcribed.
 
+The review block's survivors, at this head. Null control for each: the same mutant applied to the PR head `8e8b06549997fb7154c7b54d18e0526355a0ab19`'s file, whose self-test exits 0 (the survivor the block names); the unmutated file at this head exits 0.
+
+- `finder_overlap.py`, the seat pattern's bound `1[0-7]` made `1[0-5]` (main's line), `1[0-6]`, and `1[0-8]`: the case `seat: a D16 and a D17 seat are seated, a D18 one refused` fails on each, and the self-test's in-tree `MUTANTS` table now carries all three (`seat bound D15`, `seat bound D16`, `seat bound D18`), each printed `ok   mutant killed` by `python3 -I tools/audit/seat/finder_overlap.py --self-test`. Control: `1[0-5]` and `1[0-6]` applied to `8e8b0654`'s file, `--self-test --no-mutants`: rc 0 both.
+- `enumerate.py`, `kind=a.kind` dropped from `main()`'s call of `run`: `SELF-TEST FAILED: d17 the command line's --kind reaches the filter: got (0, ['blueprint blueprints/automation/b.yaml', 'config-field user.f1', ...` exit 1. The arm drives `main(["d17-features", "--kind", "service", "--repo", <plant>])` and asserts `(0, ["service set_a", "service set_b"])`. Control: the same mutant on `8e8b0654`'s file: `SELF-TEST passed (160 arms)`, rc 0.
+
 Unpinned by construction: the contents of `STATES`, `READ_ONLY_DOMAINS` and `KINDS` are data; a state renamed or a domain added moves no arm. The briefs' state table is the second reader of `STATES`.
 
 ## Unpinned sites
 
-All four are lines of `check_scopes.py`'s self-test, none a production predicate.
+The first four are lines of `check_scopes.py`'s self-test; the last two are the review block's equivalents in `enumerate.py`.
 
 - `tools/audit/check_scopes.py:901 CONST_SWAP`: equivalent. The index picks which D17 seat the arm empties; any seat emptied leaves its cells unowned, which is what the arm asserts.
 - `tools/audit/check_scopes.py:904 CONST_SWAP`: equivalent. The index picks which D17 seat also carries the planted kind; the refusal asserted is `axis_errors`' on the axis list, whichever seat carries it.
 - `tools/audit/check_scopes.py:904 STMT_DEL`: equivalent for the arm. With no seat carrying the planted kind the axis list still names a kind the enumerator does not print, and the arm asserts that refusal by its text.
 - `tools/audit/check_scopes.py:1050 STMT_DEL`: the mutant deletes one arm of the self-test (the blueprints globs dropped from every universe that names one); nothing counts the self-test's arms, so an arm removed is not seen by the arms that remain. The arm predates this diff, which changes its wording and which universes it strips; no killing check is added, since a count of arms pinned in the same file is deleted by the same edit.
+- `tools/audit/enumerate.py:1005`, `choices=KINDS` dropped from `main()`'s `--kind` argument: equivalent in effect. An unknown kind is then refused by `run` at rc 2 (`d17-features yields zero items`) instead of by argparse at rc 2; no kind is admitted that the head refuses, and a valid kind filters the same lines (the arm above).
+- `tools/audit/enumerate.py:130`, `and isinstance(arg.value, str)` dropped from `d16`'s domain read: equivalent for every valid call. A non-string literal domain would print as itself instead of `?`, still a `write` line and still a cell; `hass.services.async_call` takes a string domain, so no valid site has a non-string literal there.
 
 ## Null control
 
@@ -78,9 +89,11 @@ All four are lines of `check_scopes.py`'s self-test, none a production predicate
 
 ## Figures
 
-Each at e078a0bb2e3b4663cc505282d70aaad8053a566b unless a sha is named; an arm is one comparison in a self-test.
+Each at e078a0bb2e3b4663cc505282d70aaad8053a566b unless a sha is named (the review-block delta since, `git diff e078a0bb2e3b 8e8b06549997`'s merge of main aside, changes only the two self-tests' files); an arm is one comparison in a self-test.
 
-- `python3 -I tools/audit/enumerate.py --self-test`: `SELF-TEST passed (160 arms)`; at 030a4d377f9f26f5b8befe5721d86aea454f29e0: `SELF-TEST passed (147 arms)`.
+- `python3 -I tools/audit/enumerate.py --self-test`: `SELF-TEST passed (161 arms)` at 94503ed95bd88f0e84196dba7c4b9d143e688633; `SELF-TEST passed (160 arms)` at e078a0bb2e3b4663cc505282d70aaad8053a566b; at 030a4d377f9f26f5b8befe5721d86aea454f29e0: `SELF-TEST passed (147 arms)`.
+- `python3 -I tools/audit/seat/finder_overlap.py --self-test` at 94503ed95bd88f0e84196dba7c4b9d143e688633: `finder_overlap self-test: ok (with mutants)`, 15 `mutant killed` lines.
+- The nine cards E11-U1, U2, U4 to U10 of `dev/audit/yardstick/round11/EVALUATION.json`'s `cards`, serialised with sorted keys and hashed by sha1: `d123e0973ae1c66c97496686975208ed6d8b3d83` at both `c6ce415b7711d76cf6c08f926f30da91f7bda924` and `c04cef7fca50e00fa23466dab28f941a4d5034af`; each `accepted`, `gates_finders` true, no `merged`.
 - `python3 -I tools/audit/enumerate.py d16-writes` piped to `wc -l`: 38, of which 8 `write` and 30 `hold` (the first word of each line, counted); 4 of the 8 print `domain=?`. Main's copy over the same tree prints one line naming `_fetch_weather_forecast` and none naming `_disinfection_switch`; this head's none and one.
 - The same with `--cells`: 532, which is 38 times the 14 entries of `STATES`; main's copy over the same tree: 456.
 - `python3 -I tools/audit/enumerate.py d17-features` piped to `wc -l`: 307; by `--kind`: option 130, config-field 102, options-step 26, config-step 15, service 15, entity 14, blueprint 5, summing to 307.
@@ -91,11 +104,11 @@ Each at e078a0bb2e3b4663cc505282d70aaad8053a566b unless a sha is named; an arm i
 - `python3 tools/audit/fold_ledger.py sync --dry-run`: the driver already carries the schema.
 - `python3 -I tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `git merge-base --is-ancestor HEAD 02a48db212e0e49af62863575cba86bc339d4958`: exit 1 (not an ancestor).
-- Gate scope, `python3 tests/closure.py select --diff e352724335c136b65562cd3e71f728549ad04a82`: the mode line below; the one script it names is `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py`: exit 0, `ALL 2723 ENTITY CHECKS PASSED`.
-- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, `MUTANT_IN_PLACE=1` and both self-tests as `MUTANT_CMD`, at 4632a10bff41d516b5a5cf1176f14b29c8481f51: rc 0, no step refused; `diff mutants` its one `WARN`, 4 survivors among the diff's first 40 mutants, each under `## Unpinned sites`. At e078a0bb2e3b4663cc505282d70aaad8053a566b, the same command with no `MUTANT_CMD`: rc 0, no step refused, `ci predict` naming no closures, fast, governance or instrument red against e352724335c1, and `diff mutants` skipped: the three mutated files are unchanged since the run above.
+- `git merge-base --is-ancestor 94503ed95bd88f0e84196dba7c4b9d143e688633 83dc9488180379b859042b5f24b87d94a5a02c95`: exit 1 (not an ancestor); against `02a48db212e0e49af62863575cba86bc339d4958` at e078a0bb: exit 1.
+- Gate scope, `python3 tests/closure.py select --diff 6f422812d5d8b918beace0283419c153f6df66ce` at 94503ed95bd88f0e84196dba7c4b9d143e688633: the mode line below; the one script it names is `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py`: exit 0, `ALL 2723 ENTITY CHECKS PASSED`.
+- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, `MUTANT_IN_PLACE=1` and both self-tests as `MUTANT_CMD`, at 4632a10bff41d516b5a5cf1176f14b29c8481f51: rc 0, no step refused; `diff mutants` its one `WARN`, 4 survivors among the diff's first 40 mutants, each under `## Unpinned sites`. At e078a0bb2e3b4663cc505282d70aaad8053a566b, the same command with no `MUTANT_CMD`: rc 0, no step refused, `ci predict` naming no closures, fast, governance or instrument red against e352724335c1, and `diff mutants` skipped: the three mutated files are unchanged since the run above. At 94503ed95bd88f0e84196dba7c4b9d143e688633: `PREPR_SKIP_CLOSURES=1`, `MUTANT_IN_PLACE=1`, `MUTANT_CMD` the `check_scopes.py`, `finder_overlap.py` (`--no-mutants`) and `enumerate.py` self-tests chained under `bash -c`: rc 0 (`## Head`), `diff mutants` its one `WARN`, 4 survivors among the diff's first 40 mutants (all in `check_scopes.py`, unchanged since e078a0bb); named by `mutant_run.py --diff 6f422812d5d8...HEAD --path tools/audit/check_scopes.py --report-only --in-place` under its self-test: `check_scopes.py:901 CONST_SWAP`, `:904 CONST_SWAP`, `:904 STMT_DEL`, `:1050 STMT_DEL`, each under `## Unpinned sites`.
 
-<!-- figure-block: scope-line mb=e352724335c136b65562cd3e71f728549ad04a82 head=e078a0bb2e3b4663cc505282d70aaad8053a566b -->
+<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=94503ed95bd88f0e84196dba7c4b9d143e688633 -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -115,7 +128,7 @@ Pending; none is claimed here. A policy pull request: it merges on tvofi's appro
 
 ## Red checks
 
-- budget-raise-gate: red by design until an approving review at the head: this diff raises rows of `dev/governance/config/policy_budgets.json` and `## Raise justification` is what the gate reads. Cheaper detector: none owed; `node tools/policy/policy_lint.mjs --budgets` prints each raised row before any push at no standing cost.
+- budget-raise-gate / budget-raise-gate: red by design until an approving review at the head: this diff raises rows of `dev/governance/config/policy_budgets.json` and `## Raise justification` is what the gate reads. Cheaper detector: none owed; `node tools/policy/policy_lint.mjs --budgets` prints each raised row before any push at no standing cost.
 
 ## Forward-carry
 
