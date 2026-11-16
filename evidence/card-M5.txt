@@ -247,6 +247,9 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    no slot sent starts at or after the manual-plan window (#3636)
   ok    a run straddling the window is sent whole, later ones dropped (#3636)
   ok    a run starting within one step of the window is held back for clock skew (#3636)
+  FAIL  a zoomed-in view does not change the applied runs (#3636)
+        {"editCeiling":-3,"dhw":[[-4,-3]]}
+  ok    a run starting two steps before the window is sent (#3636)
   ok    the captured plan ends inside the window (#3636)
   ok    a plan wholly inside the window sends the same payload (#3636)
   ok    Home Assistant's configured currency is used
@@ -1449,4 +1452,5 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    user text: the refit row states the band_percent the refit publishes, in every card language
   ok    user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
 
-ALL CARD CHECKS PASSED
+1 CARD CHECK(S) FAILED
+rc=1
