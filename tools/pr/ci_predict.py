@@ -858,6 +858,27 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
 
 
+ROUND_ROSTERS = "+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster"
+
+
+def refresh_round_rosters(root: Path) -> str | None:
+    """pr-contract fetches the round rosters before its carry check; a seat's
+    remote-tracking ref is as old as its last fetch, so a group the roster
+    gained since reads as a bad destination. Fetch them into `root` as CI does
+    (the grader arm's clone then takes them, `fetch_round_rosters`). None when
+    fetched, else the note that the roster read may be stale."""
+    try:
+        out = subprocess.run(["git", "fetch", "-q", "--no-tags", "origin", ROUND_ROSTERS],
+                             cwd=root, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        return "ROSTER UNFETCHED: git fetch of the round rosters timed out; the carry check read this clone's refs"
+    if out.returncode:
+        return ("ROSTER UNFETCHED: git fetch of the round rosters failed ("
+                + (out.stderr.strip().splitlines() or ["no output"])[-1][:160]
+                + "); the carry check read this clone's refs")
+    return None
+
+
 def fetch_round_rosters(run) -> None:
     """CI's pr-contract fetches the round rosters' remote-tracking refs; a
     --shared clone's own origin/handoff/* are root's local branches, so take
@@ -1174,6 +1195,10 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
+    if body:  # the carry arm, and the graders arm's pr-contract run, read the round roster
+        stale = refresh_round_rosters(root)  # mut:roundfetch
+        if stale and notes is not None:
+            notes.append(stale)
     sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
     import closure
     names = git(root, "diff", "--name-only", "--no-renames", f"{base}...HEAD") or ""
@@ -1679,6 +1704,63 @@ def roundref_self_test(root: Path) -> int:
         shutil.rmtree(tmp, ignore_errors=True)
     line = [l for l in inspect.getsource(ci_tree_run).splitlines() if "fetch_round_rosters" in l]
     check("ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line", len(line) == 1 and "# mut:roundrefs" in line[0])
+    return bad + roundfetch_self_test(root)
+
+
+def roundfetch_self_test(root: Path) -> int:
+    """refresh_round_rosters moves a seat's stale remote-tracking round ref to
+    origin's branch, as pr-contract's fetch does; null: an unreachable origin
+    leaves the ref, raises nothing and returns the note; predict's call line
+    pinned."""
+    import inspect
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundfetch-"))
+    bad = 0
+
+    def check(label, ok):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    try:
+        o = tmp / "o.git"
+        oenv = throwaway_git_init(o, "-q", "--bare", "-b", "main")
+        seed = tmp / "seed"
+        throwaway_git_clone(o, seed, "-q")
+
+        def sgit(*a):
+            return subprocess.run(a, cwd=seed, env=oenv, capture_output=True, text=True, check=True).stdout.strip()
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "main")
+        sgit("git", "push", "-q", "origin", "HEAD:refs/heads/main", "HEAD:refs/heads/handoff/audit-r10-roster")
+        stale = sgit("git", "rev-parse", "HEAD")
+        r = tmp / "seat"
+        env = throwaway_git_clone(o, r, "-q")
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "the roster gains a group")
+        sgit("git", "push", "-q", "origin", "HEAD:refs/heads/handoff/audit-r10-roster")
+        newer = sgit("git", "rev-parse", "HEAD")
+
+        def got():
+            return subprocess.run(["git", "rev-parse", "-q", "--verify", ref], cwd=r, env=env,
+                                  capture_output=True, text=True).stdout.strip()
+        check("the seat's round ref is stale before the refresh", got() == stale)
+        note = refresh_round_rosters(r)
+        check("refresh_round_rosters moves it to origin's branch and returns no note",
+              note is None and got() == newer)
+        subprocess.run(["git", "update-ref", ref, stale], cwd=r, env=env, check=True)
+        subprocess.run(["git", "remote", "set-url", "origin", str(tmp / "absent.git")], cwd=r, env=env, check=True)
+        try:
+            note, raised = refresh_round_rosters(r), False
+        except Exception:
+            note, raised = None, True
+        check("an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED (null control)",
+              not raised and got() == stale and (note or "").startswith("ROSTER UNFETCHED"))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    line = [l for l in inspect.getsource(predict).splitlines() if "refresh_round_rosters(" in l]
+    check("predict calls refresh_round_rosters on one `# mut:roundfetch` line", len(line) == 1 and "# mut:roundfetch" in line[0])
     return bad
 
 
