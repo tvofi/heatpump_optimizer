@@ -14,8 +14,11 @@ Expected at baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (exact, counts):
     RESULT space_setpoint_final_while_off=25                  (the optimizer's gate, not the captured 45)
     RESULT null_restore_without_failure=1 / null_space_final=45 (the restore the harness can see)
     RESULT person_toggle_restores=1                           (only a person's Auto->Off->... toggle releases it)
+    RESULT writes_again_off_restore_neutral_failed_while_off=0, heat_curve_offset_final_while_off=3 (the neutral
+           consumer's path, off_restore.py:253/256: the heat-curve offset keeps the optimizer's +3 K)
     every other writes_again_* >= 1 and every gates_no_write_* >= 1 (non-findings)
-    --perturb retry_off_restore: writes_again_off_restore_failed_while_off=1, space_setpoint_final_while_off=45
+    --perturb retry_off_restore: writes_again_off_restore_failed_while_off=1, space_setpoint_final_while_off=45,
+                                 writes_again_off_restore_neutral_failed_while_off=1, heat_curve_offset_final_while_off=0
 Machine: box B11 (shared). Plant: m6_restore.py's coord_all_features plus actuator slots; the harness builds the plan.
 Instrumented symbols: off_restore:async_restore/_restore_baseline (key off_restore_<key>),
 pump_arbiter:_arbitrate/_space_target/_arm_space, heat_curve:write_displace/write_persistent/_write_persistent_target/_send,
@@ -77,7 +80,9 @@ def install(kind):
 # --------------------------------------------------------------------------
 # off_restore.py:220/253/256 -- a restore that fails on the change into Off
 # --------------------------------------------------------------------------
-async def off_restore_failure(fail=True):
+async def off_restore_failure(fail=True, entity="number.water_set"):
+    """``entity``: number.water_set (a baseline consumer, off_restore.py:220) or number.offset (the heat
+    curve's neutral consumer, off_restore.py:253/256)."""
     hass = FakeHass(plant.states())
     entry = FakeEntry(data=plant.config(), entry_id=f"m5s3_or_{next(_IDS)}")
     plant._LIVE[:] = [entry]
@@ -87,7 +92,7 @@ async def off_restore_failure(fail=True):
     state = {"fail": fail}
 
     async def flaky(domain, service, data=None, **kw):
-        if state["fail"] and (data or {}).get("entity_id") == "number.water_set":
+        if state["fail"] and (data or {}).get("entity_id") == entity:
             hass.services.calls.append((domain, service, data))
             raise RuntimeError("device briefly unreachable")
         return await real(domain, service, data, **kw)
@@ -102,16 +107,16 @@ async def off_restore_failure(fail=True):
             await plant.cycle(c, minute)
         else:
             await pump_arbiter.apply(c)
-    again = calls_to(hass, "number.water_set", mark)
+    again = calls_to(hass, entity, mark)
     plant.settle(hass)
-    final = hass.states.get("number.water_set").state
+    final = hass.states.get(entity).state
     toggled = None
     if fail:
         # The only release at baseline: a person turns the optimizer back on and off again.
         await c.async_set_mode(MODE_AUTO, refresh=False)
         mark = len(hass.services.calls)
         await c.async_set_mode(MODE_OFF, refresh=False)
-        toggled = calls_to(hass, "number.water_set", mark)
+        toggled = calls_to(hass, entity, mark)
     return again, final, toggled
 
 
@@ -386,6 +391,10 @@ def main():
         result("writes_again_off_restore_failed_while_off", again)
         result("space_setpoint_final_while_off", final, "degC")
         result("person_toggle_restores", toggled)
+        again, final, toggled = asyncio.run(off_restore_failure(entity="number.offset"))
+        result("writes_again_off_restore_neutral_failed_while_off", again)
+        result("heat_curve_offset_final_while_off", final, "K")
+        result("person_toggle_restores_neutral", toggled)
         n_again, n_final, _ = asyncio.run(off_restore_failure(fail=False))
         result("null_restore_without_failure_later_writes", n_again)
         result("null_space_final", n_final, "degC")
