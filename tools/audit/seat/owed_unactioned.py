@@ -53,8 +53,6 @@ import re
 import sys
 import tempfile
 
-# The tick's cap notice (Tick.orphans) rides the OWED prefix but is no obligation: it names a count, not a topic (carry 10).
-CAP_NOTICE = re.compile(r"^-> OWED handoffs capped at \d+ of \d+(?: \([^)]*\))?;")
 FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|RECORD-OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|DESIGN-REVIEW OWED:|UNDISPATCHED:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:|REVIEW STALLED:)")
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
@@ -135,7 +133,7 @@ def board(text: str) -> "tuple[dt.datetime, dict]":
         raise Unreadable("no `BOARD measured from origin/main at <sha>, <UTC>` provenance line")
     keys: dict = {}
     for line in lines:
-        if FAMILY.match(line) and not CAP_NOTICE.match(line):
+        if FAMILY.match(line):
             k, shas = key_of(line)
             e = keys.setdefault(k, {"shas": [], "lines": []})
             e["shas"] += [s for s in shas if s not in e["shas"]]
@@ -429,14 +427,16 @@ def self_test() -> int:
             check("null control: an OWED line naming no PR stays Unreadable", False)
         except Unreadable:
             check("null control: an OWED line naming no PR stays Unreadable", True)
-        cap = "-> OWED handoffs capped at 8 of 11; the rest print next pass once these are discharged"
+        cap = "-> HANDOFF LIST CAPPED at 20 of 25 (14 held, listed last); the rest print next pass once these are discharged"
         _, kc = board(tick(t0, cap, "-> OWED handoff: r10-y 4f3e2d1c0b9a is stranded -- no PR head carries it"))
-        check("the cap notice beside one real owed key still reads that key", set(kc) == {"r10-y"})
-        capn = "-> OWED handoffs capped at 20 of 25 (14 held, listed last); the rest print next pass once these are discharged"
-        check("the tick's cap line with its held count is no obligation: a computed result, never Unreadable",
-              board(tick(t0, capn, "-> OWED handoff: r10-y 4f3e2d1c0b9a is stranded -- no PR head carries it"))[1].keys() == {"r10-y"})
-        check("null control: a board with only the cap notice has no key and is not Unreadable",
+        check("the tick's cap summary is outside the family: the board reads the one real owed key", set(kc) == {"r10-y"})
+        check("null control: a board with only the cap summary has no key and is not Unreadable",
               board(tick(t0, cap))[1] == {})
+        try:
+            board(tick(t0, "-> OWED handoffs capped at 20 of 25; the rest"))
+            check("null control: an OWED-prefixed summary is read as an obligation and stays Unreadable", False)
+        except Unreadable:
+            check("null control: an OWED-prefixed summary is read as an obligation and stays Unreadable", True)
         _, kv = board(tick(t0, review, mr))
         check("REVIEW OWED and MERGE-READY on one pull request are one key",
               set(kv) == {"#2896"} and kv["#2896"]["shas"] == ["5f3a5dd615b5", "5f3a5dd6"])

@@ -2627,7 +2627,9 @@ class Tick:
                          "carries it: open_pr.sh (opener), update_pr.sh "
                          f"(update) or a human decision (review){self._opener_last(od, l.split()[1])}", flag=True)
         if len(stranded) > CAP_ORPHANS:
-            self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
+            # a summary, not an owed item: it opens with no owed-family word (no topic, never
+            # acknowledgeable), so owed_unactioned never reads it as an obligation
+            self.line(S, f"HANDOFF LIST CAPPED at {CAP_ORPHANS} of "
                          f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
                          "these are discharged", flag=True)
         for l in out:
@@ -4066,13 +4068,30 @@ def self_test() -> int:
         t = tick(bus_refs=held14 + live11 + [summ25], bus_rc=1)
         t.orphans("REPLAN")
         owed = [x["text"] for x in t.findings if x["text"].startswith("OWED handoff: ")]
-        capl = [x["text"] for x in t.findings if x["text"].startswith("OWED handoffs capped at")]
+        capl = [x["text"] for x in t.findings if x["text"].startswith("HANDOFF LIST CAPPED at")]
+        ou_cap = _module("owed_unactioned_cap", "tools/audit/seat/owed_unactioned.py")
+        def cap_family(tt):  # every flagged line the orphan section emits, through owed_unactioned's reader
+            fl = ["-> " + x["text"] for x in tt.findings]
+            keyed, unreadable = [], False
+            try:
+                keyed = [ou_cap.key_of(l) for l in fl if ou_cap.FAMILY.match(l)]
+                ou_cap.board("BOARD measured from origin/main at " + "a" * 40 + ", 2026-11-15T01:00:00Z\n" + "\n".join(fl))
+            except ou_cap.Unreadable:
+                unreadable = True
+            return fl, keyed, unreadable
         a, f = check("OWED handoffs held-last", [
             ("25 stranded with 14 held: all 11 others print within the cap, held ones after them",
              len(owed) == CAP_ORPHANS and all(f"r10-live-{i} " in owed[i] for i in range(11))
              and "triage-s14-batch0 " in owed[11]),
             ("the cap line counts the held refs",
-             len(capl) == 1 and "capped at 20 of 25 (14 held" in capl[0]),
+             len(capl) == 1 and "CAPPED at 20 of 25 (14 held" in capl[0]),
+            ("the cap line is no owed-family line, and every family line the section emits keys: not UNREADABLE",
+             (lambda r: not any(ou_cap.FAMILY.match(l) for l in r[0] if "CAPPED" in l)
+              and len(r[1]) == CAP_ORPHANS and not r[2])(cap_family(t))),
+            ("null control: exactly CAP_ORPHANS stranded print no cap line and are not UNREADABLE",
+             (lambda tt: (tt.orphans("REPLAN"), (lambda r: not any("CAPPED" in l for l in r[0]) and len(r[1]) == CAP_ORPHANS
+                                                  and not r[2])(cap_family(tt)))[1])(
+                 tick(bus_refs=live11 + held14[:CAP_ORPHANS - 11] + [summ25.replace("25", str(CAP_ORPHANS))], bus_rc=1))),
             ("null control: 11 live refs and no held ones print in bus order, no cap line",
              (lambda t2: [x["text"].split()[2] for x in t2.findings if x["text"].startswith("OWED handoff: ")]
               == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
