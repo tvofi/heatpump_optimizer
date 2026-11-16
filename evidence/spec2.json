@@ -1,0 +1,20 @@
+[
+ {
+  "name": "groups-json-kind",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "{\"kind\": g.get(\"kind\"), \"stage\"",
+  "new": "{\"kind\": None, \"stage\""
+ },
+ {
+  "name": "plans-json-write",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "    write(d / \"plans.json\", json.dumps(plans, sort_keys=True))\n",
+  "new": ""
+ },
+ {
+  "name": "groups-json-write",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "    write(d / \"groups.json\", json.dumps({g[\"group\"]",
+  "new": "    (lambda *a: None)(d / \"groups.json\", json.dumps({g[\"group\"]"
+ }
+]
