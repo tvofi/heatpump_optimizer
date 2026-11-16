@@ -140,6 +140,80 @@ except Exception as e:
     FAIL.append(f"[two-tank nulls] EXCEPTION {type(e).__name__}: {e}")
     print(f"  FAIL two-tank nulls {type(e).__name__}: {e}")
 
+# -- #3616 R11-OUTSIDE-ROOMS-P2: the room lift through the production solve ----
+# rooms.lifted's own array as SolveLimits.min_temp_margins, on the mild
+# day of dev/audit/harnesses/room_lift_solve.py: floor 19.5, target 20.0, the
+# house at 19.6, room A three kelvin under its target.
+from datetime import UTC  # noqa: E402
+from heatpump_optimizer import rooms as _rooms  # noqa: E402
+
+_RL_START = datetime(2026, 4, 15, 12, 0, tzinfo=UTC)
+_RL_OC = OptimizationConfig(horizon_hours=24, time_step_minutes=15, target_temp=20.0,
+                            min_temp=19.5, max_temp=23.0, comfort_temp_day=20.0,
+                            comfort_temp_night=20.0)
+
+
+class _RlOwner:
+    """What rooms' side tables key on in place of a coordinator."""
+
+
+def _rl_margins(**signals):
+    owner = _RlOwner()
+    _rooms.record(owner, (
+        _rooms.RoomReading("climate.a", 18.0, target_c=21.0, hvac_mode="heat"),
+        _rooms.RoomReading("climate.d", 17.0, target_c=22.0, hvac_mode="off")))
+    gated = _rooms.gate(**dict(dict(enabled=True, economy=False, open_window=False, away=False,
+                                    manual_pin=False, two_zone=False), **signals))
+    held = _rooms.resolve(_rooms.readings_of(owner), None, gated, _RL_OC, 19.6, _RL_START)
+    return _rooms.lifted(held, None, _RL_OC, _RL_START, N)
+
+
+def _rl_run(margins, pins=None):
+    params = ThermalParameters.from_config(house(target_temperature=20.0, min_temperature=19.5))
+    ot, wi, ra, so = weather("shoulder", _RL_START)
+    st = ThermalState(room_temperature=19.6, slab_temperature=20.6,
+                      outdoor_temperature=float(ot[0]), dhw_temperature=50.0,
+                      dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+                      lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+    return HeatPumpOptimizer(ThermalModel(params), _RL_OC).optimize(inputs=solve_inputs(
+        initial_state=st, prices=prices("winter_typical", _RL_START), outdoor_temps=ot,
+        wind_speeds=wi, precipitation=ra, solar_radiation=so, start_time=_RL_START,
+        min_temp_margins=margins, space_pins=pins))
+
+
+try:
+    _rl_lift = _rl_margins()
+    _rl_none, _rl_zero, _rl_on = _rl_run(None), _rl_run(np.zeros(N)), _rl_run(_rl_lift)
+    _rl_low = lambda r: float(np.min(r.room_temp_trajectory[1 + int(3 / DT):]))  # noqa: E731
+    _rl_kwh = lambda r: float(np.sum(r.power_schedule) * DT)  # noqa: E731
+    check("room lift null", _rl_none.power_schedule == _rl_zero.power_schedule
+          and all(_rl_margins(**{k: k != "enabled"}) is None for k in
+                  ("enabled", "economy", "open_window", "away", "manual_pin", "two_zone")),
+          "an all-zero margin array, or a gated lift, did not reproduce the unlifted plan's inputs")
+    check("room lift plan", _rl_lift is not None and _rl_low(_rl_on) > _rl_low(_rl_none) + 0.2
+          and _rl_kwh(_rl_on) > _rl_kwh(_rl_none) + 0.5,
+          f"the lift did not raise the lowest planned temperature and the space energy "
+          f"({_rl_low(_rl_none):.3f} -> {_rl_low(_rl_on):.3f} C, "
+          f"{_rl_kwh(_rl_none):.2f} -> {_rl_kwh(_rl_on):.2f} kWh)")
+    print(f"  ok  {'room lift: floor held, more heat':<38} "
+          f"min={_rl_low(_rl_none):.3f}->{_rl_low(_rl_on):.3f} C "
+          f"kWh={_rl_kwh(_rl_none):.2f}->{_rl_kwh(_rl_on):.2f}")
+    # Why a manual pin gates the lift: forced into a plan with a forced-off
+    # pin, the lifted floor releases pinned steps the unlifted plan keeps.
+    _rl_pins = np.full(N, np.nan)
+    _rl_pins[int(1 / DT):int(3 / DT)] = 0.0
+    _rl_kept, _rl_forced = _rl_run(None, _rl_pins), _rl_run(_rl_lift, _rl_pins)
+    check("room lift pins", _rl_kept.manual_released_space == []
+          and len(_rl_forced.manual_released_space) > 0,
+          f"released: unlifted {_rl_kept.manual_released_space}, "
+          f"lift forced in {_rl_forced.manual_released_space}")
+    print(f"  ok  {'room lift: a pin is why it is gated':<38} "
+          f"released {len(_rl_kept.manual_released_space)} unlifted, "
+          f"{len(_rl_forced.manual_released_space)} with the lift forced in")
+except Exception as e:
+    FAIL.append(f"[room lift] EXCEPTION {type(e).__name__}: {e}")
+    print(f"  FAIL room lift {type(e).__name__}: {e}")
+
 print()
 print(f"{len(FAIL)} FAILURES" if FAIL else "ALL EDGE CASES PASS")
 for f in FAIL: print("  "+f)
