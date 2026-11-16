@@ -1640,6 +1640,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
@@ -5330,7 +5331,7 @@
    "seconds": 21.5
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
