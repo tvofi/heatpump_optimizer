@@ -2,3 +2,4 @@
 1794841310 HB alive
 1794841413 CKPT setup ok, role pack + packet rendered snapshot 26f9f657f371
 1794841492 CKPT delta scoped: prod own-diff unchanged since 5b33358e80; checking test/pin delta snapshot 6bfc0ffebcda
+1794841742 CKPT rev5 mutants done: guard_pins kills cap guards, typing_ruler kills _run_bounds RETURN_DEL; env_drift next snapshot 75ae593aa68a
