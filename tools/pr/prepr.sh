@@ -4348,7 +4348,7 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
 # WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
 # steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
-# are minutes of CPU each. nudge.md §8's cap of four was advisory: the tick
+# are minutes of CPU each. The orchestrator's cap of four was advisory: the tick
 # counted and flagged it and nothing blocked a fifth, so on 2026-10-14 ten ran
 # at once and load1 reached 168 on 8 cores. `tests/gate_lock.py`'s pool is that
 # cap made mechanical (four slots, FIFO, expiry and orphan-steal shared with
