@@ -7,7 +7,9 @@ edit a temp copy of round_metrics.py; a mutant that survives, or whose copy does
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -88,7 +90,8 @@ def git_cases(m, tests: Path, r: dict) -> None:
         ros = "dev/programme/rosters/wave-r1-groups.json"
         g = lambda *names: json.dumps({"groups": [{"group": n, "resume": {"pr": 7} if n == "G-PR" else {}} for n in names]},
                                       indent=1)
-        commit(T0, {ros: g("G-A"), "tools/ci/gate.py": "REQUIRED = {'push': ('a', 'b')}\n"}, "base")
+        commit(T0, {ros: g("G-A"), "tools/ci/gate.py": "REQUIRED = {'push': ('a', 'b')}\n",
+                   "dev/audit/rounds/round1/JUDGE.json": "[]"}, "base")
         subprocess.run(["git", "tag", "v0.0.0"], cwd=repo, env=env, check=True)
         commit(T0 + 2 * H, {ros: g("G-A", "G-B", "G-PR")}, "add G-B")
         subprocess.run(["git", "tag", "v1.0.0"], cwd=repo, env=env, check=True)
@@ -138,11 +141,19 @@ def git_cases(m, tests: Path, r: dict) -> None:
         judge.unlink()
         commit(T0 + 13 * H, {}, "the register leaves")
         commit(T0 + 14 * H, {str(judge.relative_to(repo)): "[]"}, "and comes back: the first add is the register")
+        commit(T0 + 15 * H, {"dev/programme/rosters/wave-r2-groups.json": json.dumps({"groups": [
+            {"group": "R2-A", "kind": "feature", "resume": {"stage": "deferred"}},
+            {"group": "R2-B", "kind": "fix", "resume": {"stage": "done"}}, {"note": "no group key"}]})}, "round 2's roster")
+        subprocess.run(["git", "checkout", "-q", "-b", "plan1", "v0.0.0"], cwd=repo, env=env, check=True)
+        for k, day in enumerate((20, 22, 21)):  # round 1's pages, each half an hour apart inside its closed window
+            commit(T0 + (k + 1) * H // 2, {"handoff/round1/state/PLAN.html": f"<p>merge batches, closure 2027-01-{day}T08:00Z.</p>"})
+        subprocess.run(["git", "update-ref", "refs/remotes/origin/handoff/audit-r1-plan", "plan1"], cwd=repo, env=env, check=True)
+        subprocess.run(["git", "checkout", "-q", "main"], cwd=repo, env=env, check=True)
         subprocess.run(["git", "checkout", "-q", "-b", "plan"], cwd=repo, env=env, check=True)
         page = "handoff/round2/state/PLAN.html"
-        for k, text in enumerate(("merge batches, closure 2027-01-20T08:00:00Z.", "UNAVAILABLE",
-                                  "merge batches, closure 2027-01-21T08:00Z.")):
-            commit(T0 + (20 + k) * H, {page: f"<p>{text}</p>"})
+        for hr, text in ((20, "merge batches, closure 2027-01-20T08:00:00Z."), (21, "UNAVAILABLE"),
+                         (46, "merge batches, closure 2027-01-21T08:00Z.")):  # the last page a day after the first
+            commit(T0 + hr * H, {page: f"<p>{text}</p>"})
         for ref, at_ in (("refs/remotes/origin/main", "main"), ("refs/remotes/origin/handoff/audit-r2-plan", "plan")):
             subprocess.run(["git", "update-ref", ref, at_], cwd=repo, env=env, check=True)
         subprocess.run(["git", "checkout", "-q", "main"], cwd=repo, env=env, check=True)
@@ -165,12 +176,62 @@ def git_cases(m, tests: Path, r: dict) -> None:
                       (rnd(2), rows2, T0 + H))] == ["unexamined unread"] * 4)
         h = m.plan_history(repo, 2, {})
         r["plan history: one forecast per page commit, an UNAVAILABLE page null, the register the first add"] = \
-            h["history"] == [[T0 + 20 * H, T0 + 5 * D], [T0 + 21 * H, None], [T0 + 22 * H, T0 + 6 * D]] \
+            h["history"] == [[T0 + 20 * H, T0 + 5 * D], [T0 + 21 * H, None], [T0 + 46 * H, T0 + 6 * D]] \
             and h["register"] == T0 + 12 * H
         r["plan history: an incremental scan from the cached tip keeps the cache"] = chk(
             lambda: m.plan_history(repo, 2, {"tip": h["tip"], "history": [[1, 2]]})["history"] == [[1, 2]])
         r["plan history: a round with no state ref keeps its cached history"] = chk(
             lambda: m.plan_history(repo, 3, {"history": [[1, 2]]}) == {"history": [[1, 2]], "register": None})
+        producer_cases(m, tests, repo, Path(td), r)
+        # the checkout leaves origin/main: a branch drops round 2's baseline and first adds round 3's register
+        subprocess.run(["git", "checkout", "-q", "-b", "side"], cwd=repo, env=env, check=True)
+        (repo / rounds.format(2) / "LEADS.json").unlink()
+        commit(T0 + 30 * H, {rounds.format(3) + "JUDGE.json": "[]"}, "a branch the reads must not see")
+        side = lambda: m.git(repo, "ls-tree", "--name-only", "HEAD", rounds.format(2)).split() == [rounds.format(2) + "JUDGE.json"] and \
+            m.git(repo, "log", "--format=%ct", "HEAD", "--", rounds.format(3) + "JUDGE.json").strip() == str(T0 + 30 * H)
+        r["unexamined: the baselines are origin/main's, not the checkout's"] = chk(
+            lambda: side() and m.round_baselines(repo, 2) == ([rows[0]["sha"]], []))
+        r["plan history: a register first added on a branch is no register"] = chk(
+            lambda: side() and m.plan_history(repo, 3, {})["register"] is None)
+
+
+def producer_cases(m, tests: Path, repo: Path, td: Path, r: dict) -> None:
+    """produce over the fixture: groups.json and plans.json read from its output, then main's --round read of them."""
+    for p in (tests.parent / "tools/audit/seat", tests.parent / "tools/ci"):
+        sys.path.insert(0, str(p))
+    d = td / "produced"
+    notes = m.produce(d, repo, "o/r", "main", lambda path, params: [])
+    r["producer: groups.json carries each roster group's kind, resume.stage and round"] = chk(
+        lambda: notes == [] and json.loads((d / "groups.json").read_text()) == {
+            "G-A": {"kind": None, "stage": None, "round": 1}, "G-B": {"kind": None, "stage": None, "round": 1},
+            "G-PR": {"kind": None, "stage": None, "round": 1},
+            "R2-A": {"kind": "feature", "stage": "deferred", "round": 2}, "R2-B": {"kind": "fix", "stage": "done", "round": 2}})
+    half = lambda k: T0 + k * H // 2
+    r["producer: plans.json caches rounds N-1 and N from their state refs"] = chk(
+        lambda: json.loads((d / "plans.json").read_text()) == {
+            "1": {"tip": m.git(repo, "rev-parse", "plan1").strip(), "register": T0,
+                  "history": [[half(1), T0 + 5 * D], [half(2), T0 + 7 * D], [half(3), T0 + 6 * D]]},
+            "2": {"tip": m.git(repo, "rev-parse", "plan").strip(), "register": T0 + 12 * H,
+                  "history": [[T0 + 20 * H, T0 + 5 * D], [T0 + 21 * H, None], [T0 + 46 * H, T0 + 6 * D]]}})
+    obj = repo / "dev/audit/config/objective.json"
+    obj.parent.mkdir(parents=True, exist_ok=True)
+
+    def report(value) -> list[str]:
+        obj.write_text(json.dumps({"thresholds": {"closure_slip_ceiling": {"value": value, "proposed": 0.2}}}))
+        out, clock = io.StringIO(), m.time
+        m.time = type("Clock", (), {"time": staticmethod(lambda: T0 + 40 * D)})  # round 2 stays open to T0 + 40 days
+        try:
+            with contextlib.redirect_stdout(out):
+                rc = m.main(["report", "--round", "2", "--dir", str(d), "--repo", str(repo)])
+        finally:
+            m.time = clock
+        return [ln for ln in out.getvalue().splitlines() if rc == 0 and ln.startswith("closure_slip ")]
+    slip = ("closure_slip 0.92 days per day (1.00 days later over 1.08 days of plan history after the register, "
+            "2 daily samples of 3 pages; net +1.00 days; 1 pages without a forecast; {}; round start to closure "
+            "5.9 days (forecast); 1 groups deferred out)")
+    r["report --round: a set ceiling is read from objective.json's value"] = chk(
+        lambda: report(0.5) == [slip.format("over the ceiling 0.5")])
+    r["report --round: a null ceiling is undecided"] = chk(lambda: report(None) == [slip.format("ceiling unset, undecided")])
 
 
 def cases(m, tests: Path) -> dict[str, bool]:
@@ -281,14 +342,22 @@ def slip_cases(m, r: dict) -> None:
         rnd = lambda n=2, **k: dict({"n": n, "start": T0, "end": T0 + 30 * D, "state": "open", "ceiling": 0.5}, **k)
         r["closure_slip: later moves only, over the plan-history days after the register"] = chk(
             lambda: m.slip_line(d, rnd(), T0, T0 + 30 * D) ==
-            "closure_slip 0.75 days per day (3.00 days later over 4.00 days of plan history after the register; "
-            "net +2.50 days; 4 pages, 1 without a forecast; over the ceiling 0.5; round start to closure 12.5 days "
+            "closure_slip 0.75 days per day (3.00 days later over 4.00 days of plan history after the register, "
+            "4 daily samples of 5 pages; net +2.50 days; 1 pages without a forecast; over the ceiling 0.5; round start to closure 12.5 days "
             "(forecast); 1 groups deferred out)")
         r["closure_slip: a closed round closes at its tag; a null ceiling is undecided"] = chk(
             lambda: "ceiling unset, undecided; round start to closure 20.0 days (closed)" in
             m.slip_line(d, rnd(state="closed", end=T0 + 20 * D, ceiling=None), T0, T0 + 30 * D))
         r["closure_slip: the window cuts the history"] = chk(
             lambda: m.slip_line(d, rnd(), T0, reg + 3.5 * D).startswith("closure_slip 0.33 days per day (1.00 days later over 3.00"))
+        busy = [[reg, T0 + 10 * D], [reg + D / 4, T0 + 12 * D], [reg + D / 2, T0 + 10 * D], [reg + D, T0 + 11 * D],
+                [reg + 2 * D, T0 + 11 * D]]
+        (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": busy}}))
+        r["closure_slip: read at a fixed daily cadence, the last page of each day from the register"] = chk(
+            lambda: m.slip_line(d, rnd(), T0, T0 + 30 * D).startswith(
+                "closure_slip 0.67 days per day (1.00 days later over 1.50 days of plan history after the register, "
+                "3 daily samples of 5 pages; net +1.00 days; 0 pages without a forecast;"))
+        (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": hist}, "3": {"register": None, "history": hist}}))
         r["closure_slip: one page, no register, no history and no round are unread"] = chk(
             lambda: [m.slip_line(d, x, T0, b).split(" (")[0] for x, b in
                      ((rnd(), reg + 0.5 * D), (rnd(3), T0 + 30 * D), (rnd(5), T0 + 30 * D), (None, T0 + 30 * D))]
@@ -328,7 +397,20 @@ MUTANTS = {
     "slip register": ('h[0] >= doc["register"] and ', "", "closure_slip: later moves only"),
     "slip window": (' and a <= h[0] < b)', ")", "closure_slip: the window cuts"),
     "slip blank page": ("hist = [h for h in every if h[1] is not None]", "hist = every", "closure_slip: later moves only"),
-    "slip two pages": ("len({h[0] for h in hist}) < 2", "len({h[0] for h in hist}) < 1", "closure_slip: one page"),
+    "slip two pages": ("len(daily) < 2", "len(daily) < 1", "closure_slip: one page"),
+    "slip daily cadence": ('(h[0] - doc["register"]) // SLIP_SAMPLE_S', "h[0]", "closure_slip: read at a fixed daily cadence"),
+    "ceiling value key": ('.get("closure_slip_ceiling") or {}).get("value")', '.get("closure_slip_ceiling") or {})',
+                          "report --round: a null ceiling"),
+    "produce prior round": ("for k in (n - 1, n):", "for k in (n,):", "producer: plans.json"),
+    "groups json round": ('"round": k} for k, g in pairs', '"round": 0} for k, g in pairs', "producer: groups.json"),
+    "groups json stage": ('"stage": (g.get("resume") or {}).get("stage")', '"stage": None', "producer: groups.json"),
+    "groups json kind": ('{"kind": g.get("kind"), "stage"', '{"kind": None, "stage"', "producer: groups.json"),
+    "groups json write": ('    write(d / "groups.json", json.dumps({g["group"]',
+                          '    (lambda *a: None)(d / "groups.json", json.dumps({g["group"]', "producer: groups.json"),
+    "plans json write": ('    write(d / "plans.json", json.dumps(plans, sort_keys=True))\n', "", "producer: plans.json"),
+    "baselines ref": ('BASELINE.pattern, "origin/main"', 'BASELINE.pattern, "HEAD"', "unexamined: the baselines are origin/main's"),
+    "register ref": ('"--format=%ct", "origin/main", "--"', '"--format=%ct", "--all", "--"',
+                     "plan history: a register first added on a branch"),
     "slip ceiling": ("slip <= cap", "slip >= cap", "closure_slip: later moves only"),
     "slip closed round": ('if rnd["state"] == "closed"', "if False", "closure_slip: a closed round"),
     "slip deferred round": ("g.get('round') == n and ", "", "closure_slip: later moves only"),
