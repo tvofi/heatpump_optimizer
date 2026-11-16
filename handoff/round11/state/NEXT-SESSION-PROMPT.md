@@ -31,7 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (stage carries-open, branch `handoff/r11-outside-contributor-cycle-p3`): `git fetch origin handoff/r11-outside-contributor-cycle-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-HOTFIX-SELFTEST-FLAKE-ARMS (stage carries-open, branch `handoff/r11-hotfix-selftest-flake-arms`): `git fetch origin handoff/r11-hotfix-selftest-flake-arms && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-FINDER-CONTRACT (stage carries-open, branch `handoff/r11-pre-finder-contract`): `git fetch origin handoff/r11-pre-finder-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-BRIEFS-CENSUS (stage in-progress, branch `handoff/r11-pre-briefs-census`): `git fetch origin handoff/r11-pre-briefs-census && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-BRIEFS-CENSUS (stage carries-open, branch `handoff/r11-pre-briefs-census`): `git fetch origin handoff/r11-pre-briefs-census && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage carries-open, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OWNER-CRITERIA (stage in-progress, branch `handoff/r11-pre-owner-criteria`): `git fetch origin handoff/r11-pre-owner-criteria && git worktree add --detach $SEAT/wt FETCH_HEAD`

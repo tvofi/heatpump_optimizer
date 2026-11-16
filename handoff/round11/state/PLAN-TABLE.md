@@ -98,7 +98,7 @@ gantt
 | R11-OUTSIDE-HONEST-DHW-RUNS | CORE | 3 | not-started | - | fable/fable | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Group B of the approved design for outside pull request 3529 by Bankaifan: hot-water charges as runs (design/R11-OUTSIDE-HONEST-STARTS-RUNS at a63a2ca6cd, ru... |  |
 | R11-OUTSIDE-HONEST-METERED-FLOOR | CORE | 1 | not-started | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Group C of the approved design for outside pull request 3529 by Bankaifan: the metered floor, the note's part 3 (design/R11-OUTSIDE-HONEST-STARTS-RUNS at a63... |  |
 | R11-PRE-FINDER-CONTRACT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
-| R11-PRE-BRIEFS-CENSUS | IN | 1 | in-progress | - | fable/fable | - | Finder-critical. |  |
+| R11-PRE-BRIEFS-CENSUS | IN | 1 | carries-open | - | fable/fable | - | Finder-critical. |  |
 | R11-PRE-BRIEFS-TEXT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
 | R11-PRE-NEW-DIMENSIONS | IN | 2 | carries-open | - | fable/fable | - | Finder-critical. |  |
 | R11-PRE-OWNER-CRITERIA | IN | 1 | in-progress | - | opus/opus | - | Finder-critical by tvofi's ruling of 2026-11-15 on the owner-criteria cards, "All four before finders". |  |
