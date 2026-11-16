@@ -1,0 +1,55 @@
+ok   null: an empty input directory prints every read unread
+ok   lead_time: the latest merge per group, p50 and p90 by nearest rank
+ok   lead_time: a merge naming no group and a group entered after its merge are beside
+ok   lead_time: each class its own line; a class with none merged is unread
+ok   merges: the window's merges by class
+ok   rank: nearest rank
+ok   product_green: concluded runs whose gate (latest attempt) succeeded; cancelled beside
+ok   product_green: a run failing outside its gate counts green (null)
+ok   restore: median over red spells closed in the window, an open spell beside
+ok   restore: a spell closed before the window is not counted
+ok   restore: no red spell is a read, not unread
+ok   product_green: a concluded run with no job listing makes it unread (a partial ledger)
+ok   product_green: a cancelled run with no listing does not blind it
+ok   runner_s: job seconds of the window's CI runs over its merges
+ok   runner_s: a run whose listing is of an older attempt makes it unread
+ok   tokens: the ledger over the window, over production merges
+ok   tokens: a seat class with no row in the window makes it unread
+ok   weeks: 7-day spans from the start, the last short
+ok   group_of: resume.pr, then the branch, then the branch less a part suffix
+ok   producer: main push runs in runs.json, every run in ci_runs.json, each listing fetched
+ok   producer: a listing cached at the run's latest attempt is not fetched again
+ok   roster clock: a group's entry is the commit that first added it, not a later reorder
+ok   roster clock: an incremental scan from the cached tip keeps the cache
+ok   merges: classes by machinery_ratchet, a split part maps to its group, resume.pr wins
+ok   merges: a cached class is not re-derived
+ok   window: an open round runs from its opening tag to now
+ok   window: a closed round runs from its opening tag to its own
+ok   window: a round with no opening tag is unread
+ok   window: the open round is one past the newest major tag
+ok   gate checks: REQUIRED['push'] counted at the window's two ends
+ok   gate checks: a commit without gate.py is unread
+ok   mutant killed: rank index (by 'rank: nearest rank')
+ok   mutant killed: lead latest per group (by 'lead_time: the latest merge')
+ok   mutant killed: lead unknowable kept (by 'lead_time: the latest merge')
+ok   mutant killed: lead class filter (by 'lead_time: each class')
+ok   mutant killed: green concluded (by 'product_green: concluded runs')
+ok   mutant killed: green gate (by 'product_green: a run failing outside')
+ok   mutant killed: green partial ledger (by 'product_green: a concluded run with no job listing')
+ok   mutant killed: gate latest attempt (by 'product_green: concluded runs')
+ok   mutant killed: restore window (by 'restore: a spell closed before')
+ok   mutant killed: restore start kept (by 'restore: median')
+ok   mutant killed: runner attempt (by 'runner_s: a run whose listing is of an older')
+ok   mutant killed: runner window (by 'runner_s: job seconds')
+ok   mutant killed: tokens class (by 'tokens: a seat class')
+ok   mutant killed: tokens production (by 'tokens: the ledger')
+ok   mutant killed: roster first add (by 'roster clock: a group's entry')
+ok   mutant killed: roster incremental (by 'roster clock: an incremental')
+ok   mutant killed: group part suffix (by 'group_of:')
+ok   mutant killed: group by pr (by 'merges: classes')
+ok   mutant killed: merge cached class (by 'merges: a cached class')
+ok   mutant killed: producer main filter (by 'producer: main push runs')
+ok   mutant killed: producer cache (by 'producer: a listing cached')
+ok   mutant killed: window open (by 'window: a closed round')
+ok   mutant killed: week span (by 'weeks:')
+round_metrics self-test: ok (with mutants)

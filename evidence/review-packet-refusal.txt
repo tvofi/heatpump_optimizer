@@ -1,0 +1,6 @@
+$ python3 -I tools/audit/seat/review_packet.py render --pr 3644 --head 715fbbe5d3805b034667b98858eb65a14b6ad0d2 --out $HOME/review-packet.md
+review_packet: UNAVAILABLE: git merge-base --is-ancestor 42469369199 origin/handoff/audit-r10-roster: fatal: Not a valid object name 42469369199
+(exit 1; no packet written; repeated after fetching handoff refs, same result)
+Cause: review_packet.LANDED (`\bcarry\s*\[?(\d+)\]?...\blanded\b...\b([0-9a-f]{7,40})\b`) matches the body line
+"Carry 1 and carry 3 (same text): the two held-out instruments landed with #3612; ... PR #3319's runs 42469369199 ..."
+and takes the decimal CI run id 42469369199 as a sha; is_ancestor raises Unavailable on a non-object.
