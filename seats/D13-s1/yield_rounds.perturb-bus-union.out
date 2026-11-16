@@ -1,0 +1,45 @@
+window v7.1.10..92d38ecb640bd462f2e19c0814d0f0b7df1ee692 cache /tmp/hpo-d13s1-92d38ecb640b-v7.1.10.json (read from cache, 2026-11-16T19:39:18.974Z)
+perturb bus-union: 42 bus-only verdict(s) fed to statsHistogram as comments
+STATS ROUNDS: over the 208 merged pull request(s) carrying a parsable verdict, first-verdict yield 122/208 = 0.587 (the first verdict was `merge`), one-round yield 93/208 = 0.447 (merged on that one verdict, no later parsable one). Of the 254 parsable verdict(s) after a pull request's first, by the verdict before each: 86 re-verified a head that moved after a `merge` (57 PR(s), the "head-moved (rework)" row), 159 repaired after a `blocked`, 9 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+RESULT window_first_parent_commits=250 count
+RESULT merges=234 count
+RESULT api_failures=0 count
+RESULT gap_recovered_from_subject=0 count
+RESULT comment_verdicts=462 count
+RESULT review_endpoint_verdicts=0 count
+RESULT outside_grammar=0 count
+RESULT verdict_prs=208 count
+RESULT first_verdict_yield=0.587 ratio
+RESULT one_round_yield=0.447 ratio
+RESULT rounds_mean=2.221 verdicts/merge
+RESULT rounds_max=10 verdicts (#3355)
+RESULT instrument_repeat_rounds=9 count
+RESULT instrument_reverify_rounds=86 count
+RESULT instrument_repair_rounds=159 count
+RESULT relay_duplicates=9 count
+RESULT relay_duplicate_prs=8 count
+RESULT bus_tips_read=420 count
+RESULT bus_tips_unfetched=0 count
+RESULT bus_verdicts=452 count
+RESULT bus_only_verdicts=0 count
+RESULT bus_only_blocked=0 count
+RESULT bus_only_prs=0 count
+RESULT bus_verdict_prs_read_as_no_verdict=0 (none)
+RESULT bus_only_heads_on_merged_branch=0 count
+RESULT prs_without_bus_only_verdicts=234 count
+RESULT max_comments_on_one_pr=10 count
+RESULT max_reviews_on_one_pr=7 count
+STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 22 of 24 (#3660 #3650 #3634 #3617 #3605 #3603 #3594 #3591 #3586 #3559 +12 more); build 4 of 4 (#3610 #3545 #3322 #3321); (untyped) 0 of 184; closure 0 of 3; hotfix 0 of 3; policy 0 of 1; roster 0 of 3; triage 0 of 12
+  M2 record|hpo-author[bot]           no-verdict 22 of 24  rule: .github/workflows/nightly.yml record-autofix: "A record pull request the guard passes merges with no review seat" (tvofi, 2026-10-07)  [#3660 #3650 #3634 #3617 #3605 #3603 #3594 #3591 #3586 #3559 #3548 #3542 #3537 #3527 #3504 #3496 #3489 #3486 #3480 #3459 #3432 #3422]
+  M2 build|dependabot[bot]            no-verdict 4 of 4  rule: .github/workflows/dependabot-automerge.yml: a patch/minor bump is approved by the App and `gate` decides (tvofi, 2026-10-24)  [#3610 #3545 #3322 #3321]
+  M2 (untyped)|hpo-author[bot]        no-verdict 0 of 184  rule: none
+  M2 closure|hpo-author[bot]          no-verdict 0 of 3  rule: none
+  M2 hotfix|hpo-author[bot]           no-verdict 0 of 3  rule: none
+  M2 policy|hpo-author[bot]           no-verdict 0 of 1  rule: none
+  M2 roster|hpo-author[bot]           no-verdict 0 of 3  rule: none
+  M2 triage|hpo-author[bot]           no-verdict 0 of 12  rule: none
+RESULT no_verdict_prs=26 count
+RESULT no_verdict_unexempt=0 count
+RESULT thread_factor=1.00 ratio (process_cpu 0.92 s on one JS thread; no BLAS)
+RESULT load1=3.09 load
+RESULT swapins=0 count

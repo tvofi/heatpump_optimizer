@@ -1,0 +1,46 @@
+{
+  "id": "D13-s1-01",
+  "scope": "D13-s1",
+  "step": "D13.M1",
+  "title": "The yield instrument's verdict population is not the review rounds the verdict bus records: 42 rounds missing, 9 counted twice",
+  "severity": "medium",
+  "claim": "Over the 234 merges of v7.1.10..92d38ecb, policy_lint.mjs --stats (fetchWindow + statsHistogram, comments and reviews) reads 420 verdict comments, while the verdict bus holds 452 distinct (PR, word, head) verdicts: 42 bus verdicts (24 blocked, over 32 PRs, every head an ancestor of the merged branch) never reached the PR as a comment or review, and 9 comments are second relays of one verdict (same bus-nonce), so rounds per merge reads 2.039 where the bus population read once gives 2.178, one-round yield 0.476 where it gives 0.452, and #3618 (a fix lane with a bus merge verdict) reads as a merge carrying no verdict.",
+  "mechanism": "A reviewer's verdict is written to the bus (review/<pr>, verdict/<pr>, archived as archive/review/<pr>) and relayed to the PR as an hpo-approver comment; the relay delivered some verdicts never (42, including a cluster written to the bus 2026-11-14 10:45-11:45) and some twice (9, identical bus-nonce, hours apart). fetchWindow reads only /issues/<n>/comments and /pulls/<n>/reviews, and statsHistogram counts every parsable comment as one round; review_strength.py reads the bus. The two in-tree verdict readers therefore count different populations of the same rounds, and the brief's rule (comment or review) inherits the comment side's gaps.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+    "harness_path": "dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+    "value": "bus_only_verdicts=42 (24 blocked, 32 PRs, 42/42 heads on the merged branch); relay_duplicates=9 (8 PRs); rounds_mean 2.039 -> 2.178; one_round_yield 0.476 -> 0.452; verdict_prs 206 -> 208",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8, Linux, node v22.23.4",
+    "cpu_or_wall": "count",
+    "contention_note": "count-only; other D13/D15 seats running on the box; numbers do not depend on load. GitHub state read 2026-11-16 (comments can be added or deleted later; the window cache file is printed by the harness)",
+    "tolerance": "exact",
+    "load1": 2.67,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (driven over the window as fetchWindow's comment+review stream), with policy_lint.mjs:enumerateMerges/resolvePrFromCommit enumerating the window",
+  "perturbation": {
+    "change": "--perturb dedup,bus-union: read each relayed verdict once (drop a comment repeating an earlier bus-nonce) and feed statsHistogram the 42 bus-only verdicts as comments at their bus author time",
+    "expected_direction": "up",
+    "observed_value": "comment_verdicts 420 -> 453, rounds_mean 2.039 -> 2.178, verdict_prs 206 -> 208, instrument_repeat_rounds 9 -> 0 (dedup alone: 420 -> 411, rounds_mean 1.995); one_round_yield 0.476 -> 0.452"
+  },
+  "metric_definition": "Distinct (PR, verdict word, 40-hex head) verdicts on the bus for window merges that no comment/review verdict on the PR names, plus comments repeating an earlier comment's bus-nonce on the same PR.",
+  "phenomenon_property": "Every review round the verdict bus records for a merged PR appears exactly once in the population the first-pass-yield and rounds-per-merge instrument reads (policy_lint.mjs --stats), so its yield, rounds and coverage lines agree with review_strength.py's bus reading of the same window.",
+  "seam_rule": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs | grep -E '^  bus-only #|RESULT (bus_only_verdicts|relay_duplicates)'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --perturb reshape",
+    "value": "202 of 234 merges carry no bus-only verdict and keep their count under bus-union; first_verdict_yield moves only 0.583 -> 0.587 (ordering-dependent: the 2026-11-14 bus cluster's author time sorts it after the PR's comment verdicts), so the robust effect is on rounds and one-round yield, not on first-verdict yield",
+    "note": "The claim is a count, not a cost or a time; the null is the set of PRs the bus and the comments agree on."
+  },
+  "leave_one_out": {"cells": 32, "min": 1, "max": 5, "drop_most_favourable": 37},
+  "reproduction_steps": [
+    "From the export root, with GITHUB_TOKEN (or the session proxy) for api.github.com and `git ls-remote origin` access:",
+    "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs  (first run fetches the window into os.tmpdir(), ~7 min)",
+    "Read RESULT bus_only_verdicts, relay_duplicates, rounds_mean; then --perturb dedup,bus-union and compare."
+  ],
+  "proposed_fix_scope": "Either make the relay post each bus verdict exactly once (idempotent on bus-nonce, and a sweep for bus verdicts with no PR comment), or have policy_lint.mjs --stats read the bus (review_strength.py's population) deduplicated by (PR, word, head); name in the --stats header which population it reads.",
+  "files": ["tools/policy/policy_lint.mjs", "tools/audit/seat/review_strength.py", "tools/audit/seat/cloud_relay.sh", "tools/audit/seat/bus.sh"],
+  "stop_rule_class": "bug",
+  "class_guess": "I4"
+}

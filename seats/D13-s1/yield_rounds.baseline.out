@@ -1,0 +1,86 @@
+window v7.1.10..92d38ecb640bd462f2e19c0814d0f0b7df1ee692 cache /tmp/hpo-d13s1-92d38ecb640b-v7.1.10.json (read from cache, 2026-11-16T19:39:18.974Z)
+STATS ROUNDS: over the 206 merged pull request(s) carrying a parsable verdict, first-verdict yield 120/206 = 0.583 (the first verdict was `merge`), one-round yield 98/206 = 0.476 (merged on that one verdict, no later parsable one). Of the 214 parsable verdict(s) after a pull request's first, by the verdict before each: 55 re-verified a head that moved after a `merge` (36 PR(s), the "head-moved (rework)" row), 150 repaired after a `blocked`, 9 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+RESULT window_first_parent_commits=250 count
+RESULT merges=234 count
+RESULT api_failures=0 count
+RESULT gap_recovered_from_subject=0 count
+RESULT comment_verdicts=420 count
+RESULT review_endpoint_verdicts=0 count
+RESULT outside_grammar=0 count
+RESULT verdict_prs=206 count
+RESULT first_verdict_yield=0.583 ratio
+RESULT one_round_yield=0.476 ratio
+RESULT rounds_mean=2.039 verdicts/merge
+RESULT rounds_max=10 verdicts (#3355)
+RESULT instrument_repeat_rounds=9 count
+RESULT instrument_reverify_rounds=55 count
+RESULT instrument_repair_rounds=150 count
+RESULT relay_duplicates=9 count
+RESULT relay_duplicate_prs=8 count
+RESULT bus_tips_read=420 count
+RESULT bus_tips_unfetched=0 count
+RESULT bus_verdicts=452 count
+RESULT bus_only_verdicts=42 count
+RESULT bus_only_blocked=24 count
+RESULT bus_only_prs=32 count
+RESULT bus_verdict_prs_read_as_no_verdict=2 (#3618 #3517)
+  bus-only #3641 merge 5023cde19 2026-11-16T12:39:13.000Z Fix review: merge 5023cde196c43c5bdd4b11789a45780f1c70790a
+  bus-only #3647 merge 5c753a73c 2026-11-16T07:09:25.000Z Fix review: merge 5c753a73c3a222053904e2a26812f7d6c24414ec
+  bus-only #3618 merge 60073e460 2026-11-15T17:15:25.000Z Fix review: merge 60073e460b9b8af16596edf7d2739c4dd326d0fc
+  bus-only #3512 blocked a936a11d4 2026-11-14T10:45:48.000Z Fix review: blocked a936a11d461cdf08ef8b9e098c3da27cecf9e249 head-moved: measure
+  bus-only #3471 blocked 1131843cf 2026-11-14T10:15:18.000Z Fix review: blocked 1131843cf418a2bc0bb81c28bac1be45ea7d1def mutation-vacuous: X
+  bus-only #3510 blocked 9d3da2820 2026-11-14T10:13:55.000Z Fix review: blocked 9d3da28204b0683981252bff8651c19b8f89f3f7 evidence-cut: two s
+  bus-only #3533 blocked d95a3490e 2026-11-14T10:13:23.000Z Fix review: blocked d95a3490ef0a1ae41a1bd20095f665a44e40d40a mutation-vacuous: f
+  bus-only #3448 blocked bb3933b18 2026-11-14T10:13:05.000Z Fix review: blocked bb3933b18fc35aea81c755dceb5e59eb07d3224d mutation-vacuous: r
+  bus-only #3465 blocked befd1f541 2026-11-14T10:12:37.000Z Fix review: blocked befd1f54144062002c51c88c0c181eccdd37c00c mutation-vacuous: m
+  bus-only #3465 blocked 9647bc111 2026-11-14T10:12:19.000Z Fix review: blocked 9647bc111d7e57b2928ca887ed1f6724a873b44e body-stale: Forward
+  bus-only #3503 blocked b131ad0ad 2026-11-14T10:11:48.000Z Fix review: blocked b131ad0ad8c8e8e9710681160a8b539ab88137ff closures-regressed:
+  bus-only #3428 merge baaf00643 2026-11-14T10:10:56.000Z Fix review: merge baaf0064355bdf4838021df66683584e3d8608c7
+  bus-only #3478 blocked b3b51d425 2026-11-14T10:10:32.000Z Fix review: blocked b3b51d4258a1fa4861cd74341925f307773c0f45 carry-missing: not 
+  bus-only #3512 blocked 5dea8264f 2026-11-14T10:10:03.000Z Fix review: blocked 5dea8264f2c8712c15725884d00b99eea5b48d24 mutation-vacuous: 1
+  bus-only #3505 blocked 594238bfd 2026-11-14T10:09:22.000Z Fix review: blocked 594238bfda916f814ca54bb5e84725602b7005dd mutation-vacuous: X
+  bus-only #3516 blocked dbe75142a 2026-11-14T10:07:34.000Z Fix review: blocked dbe75142ac7cc3e505aebfc9758102132a102804 mutation-survivor: 
+  bus-only #3520 blocked 81ea9ea29 2026-11-14T10:07:10.000Z Fix review: blocked 81ea9ea2908ea83a012e3e42d694df56bb097c8c mutation-vacuous: t
+  bus-only #3520 blocked 510c46643 2026-11-14T10:06:53.000Z Fix review: blocked 510c46643055f5f2f9f61b815258a960518eabe0 class-open: a calle
+  bus-only #3477 merge bd93b5634 2026-11-14T10:06:19.000Z Fix review: merge bd93b5634bd7cd9cb7614121132b1597966154fc
+  bus-only #3488 blocked 138644142 2026-11-14T10:05:46.000Z Fix review: blocked 1386441425905fd0d7bb0571f1bac61ff5d7777b darwin-red: the new
+  bus-only #3526 merge 74dbd998d 2026-11-14T09:56:11.000Z Fix review: merge 74dbd998df706fc471cb150e571dca5dcad860a5
+  bus-only #3511 merge dc727c4d8 2026-11-14T09:55:07.000Z Fix review: merge dc727c4d8fbf98a3fe9ef93feb16c428912eb78b
+  bus-only #3498 blocked d0c9eb664 2026-11-14T09:54:20.000Z Fix review: blocked d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 hold-unrefreshed: t
+  bus-only #3479 merge 336a6ca07 2026-11-14T09:52:53.000Z Fix review: merge 336a6ca07744d5139914947f58d9f0c4f04bb45a
+  bus-only #3479 merge 433536b65 2026-11-14T09:52:30.000Z Fix review: merge 433536b65f2507d47eaeeadebc8b9461bac19013
+  bus-only #3464 merge f0f6b47f2 2026-11-14T09:51:41.000Z Fix review: merge f0f6b47f2c8f402e6d35b461c06760318576b01a
+  bus-only #3461 blocked 84405a2a2 2026-11-14T09:50:57.000Z Fix review: blocked 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 mutation-vacuous: r
+  bus-only #3461 blocked 112f0d777 2026-11-14T09:50:39.000Z Fix review: blocked 112f0d777b8f8c921a75982d36305e94ffd2f7f4 mutation-vacuous: r
+  bus-only #3461 blocked 42659b971 2026-11-14T09:50:23.000Z Fix review: blocked 42659b9711f2940aa54145b7b6e1b47e65717376 mutation-vacuous: r
+  bus-only #3461 blocked 1b3707d0b 2026-11-14T09:50:07.000Z Fix review: blocked 1b3707d0bf67416d6d70563beaa08b1022ce74f8 mutation-vacuous: r
+  bus-only #3461 blocked 3a47c7c15 2026-11-14T09:49:51.000Z Fix review: blocked 3a47c7c156ff1ee55bd0a343023606f7655d2638 mutation-vacuous: r
+  bus-only #3442 merge 7c398bfbd 2026-11-14T09:48:31.000Z Fix review: merge 7c398bfbdaf389a767a473e320eba20c2b6fbec3
+  bus-only #3430 blocked a4eac74f1 2026-11-14T09:47:37.000Z Fix review: blocked a4eac74f1b795b565cf2843b91c5c079796368b2 doc-claim-false: de
+  bus-only #3430 blocked ba0ed526c 2026-11-14T09:47:18.000Z Fix review: blocked ba0ed526cc3b0a4b62a4e05b165710237e3bd123 doc-claim-false: do
+  bus-only #3430 merge 822a3556d 2026-11-14T09:46:58.000Z Fix review: merge 822a3556df06781ed7a0a1e8cecd74be0a1ffd01
+  bus-only #3425 merge c6becb317 2026-11-14T09:46:17.000Z Fix review: merge c6becb3175c5979f1c117755161b1950aee2d821
+  bus-only #3404 merge d7347d0cb 2026-11-14T09:45:30.000Z Fix review: merge d7347d0cbfeccbfdf4e9d7a19ecafcb59ba2cb34
+  bus-only #3562 merge 7db7de155 2026-11-13T19:11:57.000Z Fix review: merge 7db7de155fef49a36118c10ca5747b1804babf32
+  bus-only #3532 merge 29370fdbb 2026-11-13T00:10:30.000Z Fix review: merge 29370fdbb59aeb18da82ebe9612e7c036e9dc29c
+  bus-only #3517 merge dac5a8086 2026-11-12T19:39:54.000Z Fix review: merge dac5a8086ec7c0b82a29d7ac9b00c773ed206798
+  bus-only #3469 merge 580f12908 2026-11-11T19:24:17.000Z Fix review: merge 580f12908056021e9448d5f0520919044e6de41a
+  bus-only #3444 blocked 8e2b7d99d 2026-11-11T08:13:42.000Z Fix review: blocked 8e2b7d99d0e99f3cbd00d49ceb9b4a1458b87257 regression-unmeasur
+RESULT bus_only_heads_on_merged_branch=42 count
+RESULT prs_without_bus_only_verdicts=202 count
+RESULT max_comments_on_one_pr=10 count
+RESULT max_reviews_on_one_pr=7 count
+STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 23 of 24 (#3660 #3650 #3634 #3617 #3605 #3603 #3594 #3591 #3586 #3559 +13 more); build 4 of 4 (#3610 #3545 #3322 #3321); (untyped) 1 of 184 (#3618); closure 0 of 3; hotfix 0 of 3; policy 0 of 1; roster 0 of 3; triage 0 of 12
+  M2 record|hpo-author[bot]           no-verdict 23 of 24  rule: .github/workflows/nightly.yml record-autofix: "A record pull request the guard passes merges with no review seat" (tvofi, 2026-10-07)  [#3660 #3650 #3634 #3617 #3605 #3603 #3594 #3591 #3586 #3559 #3548 #3542 #3537 #3527 #3517 #3504 #3496 #3489 #3486 #3480 #3459 #3432 #3422]
+  M2 build|dependabot[bot]            no-verdict 4 of 4  rule: .github/workflows/dependabot-automerge.yml: a patch/minor bump is approved by the App and `gate` decides (tvofi, 2026-10-24)  [#3610 #3545 #3322 #3321]
+  M2 (untyped)|hpo-author[bot]        no-verdict 1 of 184  rule: none  [#3618]
+  M2 closure|hpo-author[bot]          no-verdict 0 of 3  rule: none
+  M2 hotfix|hpo-author[bot]           no-verdict 0 of 3  rule: none
+  M2 policy|hpo-author[bot]           no-verdict 0 of 1  rule: none
+  M2 roster|hpo-author[bot]           no-verdict 0 of 3  rule: none
+  M2 triage|hpo-author[bot]           no-verdict 0 of 12  rule: none
+RESULT no_verdict_prs=28 count
+RESULT no_verdict_unexempt=1 count
+RESULT thread_factor=1.00 ratio (process_cpu 0.92 s on one JS thread; no BLAS)
+RESULT load1=3.23 load
+RESULT swapins=0 count
