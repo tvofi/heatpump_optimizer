@@ -1,0 +1,22 @@
+beat-job-rows files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+dependency-graph-census dirs new= ['tests/mutation_ledger/killed_by/running_signal.py'] gone= [] dups= 0
+field-coverage files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+hooks-setup files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+open-pr files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+open-pr probes new= [] gone= [] dups= 1
+outside-contract files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+policy-lint-mutants files new= ['dev/programme/RULINGS.md'] gone= [] dups= 0
+policy-lint-mutants probes new= [] gone= [] dups= 8
+post-merge-bookkeeping files new= ['dev/governance/roles/orchestrator.md', 'dev/governance/roles/standing-merge.md'] gone= [] dups= 0
+pr-args files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+pr-args probes new= [] gone= [] dups= 1
+prepr files new= ['tools/audit/seat/pr_args.sh'] gone= [] dups= 0
+prepr dirs new= ['tests/mutation_ledger/killed_by/running_signal.py'] gone= [] dups= 0
+push-names-the-host files new= ['tools/audit/seat/pr_args.sh'] gone= [] dups= 0
+push-names-the-host probes new= [] gone= [] dups= 1
+self-tests-outside-seat files new= ['dev/programme/RULINGS.md'] gone= [] dups= 0
+selftest-wiring files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+sweep-template probes new= ['dev/governance/roles/standing.md', 'dev/governance/rules/delivery-status-tracking.md', 'dev/governance/rules/gate-scoping.md', 'dev/programme/RULINGS.md'] gone= [] dups= 0
+temp-or-machine-path probes new= ['tests/mutation_ledger/killed_by/running_signal.py/.gitattributes'] gone= [] dups= 1
+update-pr files new= ['tools/audit/seat/finder_overlap.py', 'tools/audit/seat/plant_recall.py'] gone= [] dups= 0
+update-pr probes new= [] gone= [] dups= 1
