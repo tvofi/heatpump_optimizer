@@ -6,3 +6,4 @@
 1794853400 HB alive
 1794853873 CKPT carries 7-9 committed and step-pushed snapshot a21e65c24775
 1794854005 HB alive
+1794854106 CKPT body drafted and body-check ok; waiting on entities run snapshot 8c9f37684da5
