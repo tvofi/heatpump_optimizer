@@ -1,0 +1,9 @@
+14:37:00 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:38:18 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:39:35 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:40:53 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:42:10 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:43:27 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:44:45 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:46:02 rc=3 WAIT fe138c567b915546e95e8e963fffc527633bfb95 pending: gate red: none
+14:47:19 rc=1 RED fe138c567b915546e95e8e963fffc527633bfb95 pending: none red: gate

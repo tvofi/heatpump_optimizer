@@ -1,0 +1,10 @@
+== head renderer, --base e0ad8b2bd32b --head 72ade22524ea8d99d9c857af0aa982c70767da0d
+MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+~~~
+<!-- /figure-block -->
+rc=0
+== base renderer, --base e0ad8b2bd32b --head 72ade22524ea8d99d9c857af0aa982c70767da0d
+MODE: FULL -- every test script runs, nothing is scoped out.
+~~~
+<!-- /figure-block -->
+rc=0

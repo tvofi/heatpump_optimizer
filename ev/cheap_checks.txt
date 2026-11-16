@@ -1,0 +1,13 @@
+selftest_scope static: 120 gated step(s), 0 problem(s)
+rc=0
+  ok   a program main changed or added after the fork runs as the base's and is not the head's diff
+  ok   null: a file the instrument's run leaves changed in the head's tree is still listed
+figure_block self-test: 13 checks, 0 failed
+rc=0
+
+STRUCTURE RATCHET PASSED
+fold_ledger: 0 violation(s)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+versions-untouched-check-done
