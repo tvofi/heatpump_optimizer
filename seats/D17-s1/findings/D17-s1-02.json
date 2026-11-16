@@ -1,0 +1,47 @@
+{
+ "id": "D17-s1-02",
+ "scope": "D17-s1",
+ "step": "D17.M3",
+ "title": "Weekend/holiday comfort value kept as shown is dropped when the same save changes the weekday value",
+ "severity": "high",
+ "claim": "On the comfort options page, a weekend or holiday field left at the value the form shows is silently discarded whenever the same submit changes the weekday field its default is computed from, so the solve then plans that day with the new weekday value instead of the value on screen: 8 of 8 such fields lose the kept value, 0 of 8 in the null control.",
+ "mechanism": "config_flow._omit_unstored_computed drops an unstored _Computed field whose posted value equals row.default.of(current), with current the PRE-save entry; the reader (EntryConfig None -> OptimizationConfig._comfort_pair falls back to the weekday value) evaluates the fallback against the POST-save entry. Saving comfort_temp_day 22.5->21.0 with weekend shown 22.5 stores only comfort_temp_day=21.0, so Saturday plans 21.0.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_computed.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s1/h_computed.py",
+  "value": 8,
+  "unit": "computed-default fields whose kept value is lost (of 8 same-page numeric)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (vm, 4 cpu, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; immune to load",
+  "tolerance": "exact",
+  "load1": 6.16,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.config_flow:_omit_unstored_computed",
+ "perturbation": {
+  "change": "--perturb-merged: compute the _Computed default over {**current, **user_input} (the configuration the save produces)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of _Computed option rows with a same-page numeric source where entry src=A, submit src=B keeping field=A shown, gives effective field (EntryConfig, None->source) != A",
+ "phenomenon_property": "A value an options page posts for a field whose default is computed from other settings is stored whenever it differs from that default computed over the configuration the save produces (not the one it replaces).",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_computed.py (enumerates every config_flow._OPTION_FIELDS row with a _Computed default and its recorded sources)",
+ "null_control": {
+  "command": "same harness, B=A arm (RESULT null_kept_value_lost)",
+  "value": 0,
+  "note": "source unchanged: no kept value is lost; end to end the owed-cell harness dev/audit/rounds/round11/D17/s1/h_owed.py shows the solve's Saturday 12h comfort target 21.0 where 22.5 was on screen (the hooked heatpump_optimizer.optimizer:OptimizationConfig.get_comfort_temp)"
+ },
+ "reproduction_steps": [
+  "entry options {comfort_temp_day: 22.5}; open Comfort; weekend daytime shows 22.5",
+  "set Daytime comfort to 21.0, leave Weekend daytime at 22.5, save",
+  "entry options == {comfort_temp_day: 21.0}; Saturday daytime comfort target = 21.0"
+ ],
+ "proposed_fix_scope": "config_flow._omit_unstored_computed: compare against row.default.of over the merged post-save configuration (current overlaid with the submitted non-computed answers); pin with a failing test on the comfort page (weekday changed, weekend kept) and the null control.",
+ "files": [
+  "custom_components/heatpump_optimizer/config_flow.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}
