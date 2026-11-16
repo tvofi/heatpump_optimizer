@@ -1,0 +1,11 @@
+RESULT units=3628
+RESULT rows=3628
+RESULT claims=3628
+RESULT false=0
+RESULT stale=25
+RESULT true=1114
+RESULT unverifiable=2489
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in tests/arch_score.py
