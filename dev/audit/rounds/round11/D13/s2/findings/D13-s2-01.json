@@ -1,0 +1,52 @@
+{
+ "id": "D13-s2-01",
+ "scope": "D13-s2",
+ "step": "D13.M3",
+ "title": "47.8% of blocked verdicts carry a class word VERDICT_CLASSES lacks; bus.sh and fixer.md teach a second vocabulary",
+ "severity": "medium",
+ "claim": "Over the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 214 of the 448 parseable blocked verdicts (0.478; 93 distinct words, on 155 PRs) carry a class word that web-fix-wave.js's VERDICT_CLASSES does not hold, so parseVerdict routes every one to `other` and no bucket can be read off the grammar for them; 71 of them (ci-red 63, ci-cancelled 4, ci-pending 2, red-unanswered 1, body 1) are words that bus.sh's MECHANICAL_CLASSES and fixer.md's 'Never for a mechanical-only gap' paragraph teach, 9 of bus.sh's 12 mechanical words being absent from VERDICT_CLASSES.",
+ "mechanism": "Two writers of the block vocabulary and one reader: VERDICT_CLASSES (web-fix-wave.js, read by policy_lint.mjs:blockClasses and the wave's parseVerdict) and MECHANICAL_CLASSES (tools/audit/seat/bus.sh:672, taught by dev/governance/roles/fixer.md:311), while fix-review.md teaches the class as free `[a-z-]+`. check-wave-script.mjs's taught-word check reads only `blocked <sha> <word>:` examples in briefs, so fixer.md's prose list and bus.sh's shell variable never meet it. The same verdict is therefore `mechanical` to bus.sh dispatch and `other` to the wave and the --stats class table; 143 further verdicts are untaught by both (bus.sh's 'an unknown one refuses').",
+ "evidence": {
+  "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+  "harness_path": "dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+  "value": 214,
+  "unit": "blocked verdicts outside VERDICT_CLASSES (of 448; share 0.478)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B8",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out; a count over the committed snapshot window.json, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.45,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (class key), :blockClasses / :waveVerdictRe (the wave's VERDICT_CLASSES and VERDICT_RE)",
+ "perturbation": {
+  "change": "--perturb teach-ci-red: the VERDICT_CLASSES literal of .claude/workflows/web-fix-wave.js edited in memory to carry 'ci-red', read through policy_lint.mjs:blockClasses",
+  "expected_direction": "down",
+  "observed_value": "214 -> 151 (share 0.478 -> 0.337); bus_mechanical_not_in_wave 9 -> 8"
+ },
+ "metric_definition": "blocked verdicts (trimmed first line of an issue comment or review parsing under VERDICT_RE's blocked arm) whose statsHistogram class word is not in blockClasses(), over the window",
+ "phenomenon_property": "Every class word a seat is taught to write in a blocked verdict (fix-review.md, fixer.md, bus.sh's MECHANICAL_CLASSES) is one word list, the one VERDICT_CLASSES holds, so the wave, bus.sh dispatch and the --stats class table route each verdict alike",
+ "seam_rule": "grep -nE '^MECHANICAL_CLASSES=|^const VERDICT_CLASSES' tools/audit/seat/bus.sh .claude/workflows/web-fix-wave.js; HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read | grep UNTAUGHT",
+ "null_control": {
+  "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read --perturb reshape-one",
+  "value": "blocked 448 -> 447, outside_grammar 0 -> 1, untaught 214 -> 213",
+  "note": "the brief's fixture perturbation: one verdict re-shaped out of the grammar moves the population by exactly one, so the harness counts verdicts and not rows"
+ },
+ "reproduction_steps": [
+  "(optional, network) PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s2/fetch_window.py --since v7.1.0 --head 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out /tmp/w.json",
+  "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read [--window /tmp/w.json]",
+  "read RESULT untaught_blocked, untaught_in_bus_vocabulary, bus_mechanical_not_in_wave"
+ ],
+ "proposed_fix_scope": "One block vocabulary: VERDICT_CLASSES carries bus.sh's mechanical words (or bus.sh derives MECHANICAL_CLASSES from it), fix-review.md's class teaches that list rather than any [a-z-]+, and check-wave-script.mjs's taught-word check reads fixer.md's mechanical list and bus.sh's variable",
+ "files": [
+  ".claude/workflows/web-fix-wave.js",
+  "tools/audit/seat/bus.sh",
+  "dev/governance/roles/fixer.md",
+  "dev/governance/roles/fix-review.md",
+  "tools/policy/check-wave-script.mjs",
+  "tools/policy/policy_lint.mjs"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-vocabulary-drift"
+}

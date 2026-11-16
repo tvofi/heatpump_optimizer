@@ -1,0 +1,33 @@
+{
+ "id": "D13-s3-02",
+ "scope": "D13-s3",
+ "step": "D13.M4",
+ "title": "instrument-self-tests red on main at 200 of 271 merges, green at 186 of their heads; time to restore 106 h, still open",
+ "severity": "medium",
+ "claim": "Per check-run name, `governance / instrument-self-tests` concluded failure at 200 of the window's 271 merge commits (0.738) and at 18 of their 271 pull-request heads; at 186 merges it failed at the merge commit after passing at the head. Its red episodes on main: 2, median 65.82 h, max 106.19 h, one still open at the window's end, against the required `gate`'s 19 episodes of median 0.34 h. It is the only failing name at 162 merges, so it alone carries the merge-keyed change-failure rate from 0.24 to 0.808. The logs read at four failures show the drift check (`tools/ci/selftest_scope.py check`, which its docstring runs only on a push to main) refusing 11 then 27 steps: a red that no pull-request head can see, which then stands on main for days and masks any new red of the job.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+  "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+  "value": 186,
+  "unit": "merges whose instrument-self-tests failed at the merge commit and passed at the PR head (ist_fail_merge_pass_head); ttr max 106.19 h, still_open=True",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.04,
+  "thread_factor": 1.009
+ },
+ "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:latest_by_name driven on the check runs of .github/workflows/governance.yml job `instrument-self-tests` (whose push-only step is tools/ci/selftest_scope.py `check`)",
+ "perturbation": "`--exclude 'governance / instrument-self-tests'` (in memory): cfr_raw_merge_keyed falls 0.808 -> 0.24 and merges_failing_only_excluded_jobs_merge rises 3 -> 165 (the 162 merges whose only red it is, plus the 3 `record`-only)",
+ "metric_definition": "ist_fail_merge_pass_head = count of window merges whose latest `governance / instrument-self-tests` run concluded failure at the merge commit and success at the PR head; TTR = completed_at of the first failing run at a merge to completed_at of the next succeeding run at a later merge, first-parent order",
+ "phenomenon_property": "A job whose check runs on a push to main also runs, with the same verdict, at the pull-request head that produced the merge, so its red is answered before the merge rather than restored after it",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py | grep \"per name\" | grep 'head=0.0 (0)'   (every name failing at merge commits and at no head)",
+ "stop_rule_class": "bug",
+ "class_guess": "R10-SELFTEST-RED-INTRODUCED",
+ "files": [
+  ".github/workflows/governance.yml",
+  "tools/ci/selftest_scope.py"
+ ],
+ "proposed_fix_scope": "run selftest_scope.py's drift `check` (or an equivalent table-staleness test) on the pull-request event of a diff that reaches tools/, or auto-commit the unioned table on main the way record-autofix answers `record`; M; frozen machinery -- needs the owner's instrument window"
+}
