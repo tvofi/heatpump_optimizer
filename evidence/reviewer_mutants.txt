@@ -1,0 +1,17 @@
+KILLED  M1 absorb here(): git reads never carried rc=1 ['selftest_scope self-test: 162 checks, 2 failed'] ['FAIL absorb: a read main measured and the table lacks is added, and named', "FAIL absorb: a gated step the table has no entry for takes main's; an id no step gates takes none"]
+KILLED  M2 absorb: a flag added is not listed rc=1 ['selftest_scope self-test: 162 checks, 2 failed'] ['FAIL absorb: a read main measured and the table lacks is added, and named', "FAIL absorb: a gated step the table has no entry for takes main's; an id no step gates takes none"]
+SURVIVED M3 base_drift: no mb==HEAD short-circuit rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+NOT-APPLIED M4 precheck: ignores a holding tracer (count 3)
+SURVIVED M5 absorb_cli: gone is empty rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+SURVIVED M6 scratch clone: tags not copied rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+NOT-APPLIED M7 step_commands: bg_run launcher forgotten (count 2)
+KILLED  M8 drift only: other steps graded rc=1 ['selftest_scope self-test: 162 checks, 5 failed'] ["FAIL drift over a part of the job: the traced step's miss is refused, the untraced steps are neither UNMEASURED nor EXTRA (whole-job drift over the same measurement names both: the control)", "FAIL precheck: a table that lost a read the step still makes is refused (the base's table held it)", "FAIL precheck: a read the merge base's own trace makes too is main's drift, a note and no refusal (rc 0); with the branch's own read beside it the line is the branch's (rc 1)"]
+KILLED  M9 ci_predict: rc 3 not a note rc=1 ['ci_predict self-test: 2 failed'] ['FAIL selftest-scope: rc 3 (no strace) is a note and no red', 'FAIL selftest-scope: rc 0 predicts nothing (null control)']
+KILLED  M10 ci_predict: rc 0 path dropped rc=1 ['ci_predict self-test: 1 failed'] ['FAIL selftest-scope: rc 0 predicts nothing (null control)']
+KILLED  M11 figure_block: no skip-worktree rc=1 ['figure_block self-test: 13 checks, 1 failed'] ["FAIL a program main changed or added after the fork runs as the base's and is not the head's diff"]
+KILLED  M12 figure_block: index not reset to head rc=1 ['figure_block self-test: 13 checks, 1 failed'] ["FAIL a program main changed or added after the fork runs as the base's and is not the head's diff"]
+KILLED  M13 figure_block: base-only file not excluded rc=1 ['figure_block self-test: 13 checks, 1 failed'] ["FAIL a program main changed or added after the fork runs as the base's and is not the head's diff"]
+KILLED  M14 figure_block: excludes env not returned rc=1 ['figure_block self-test: 13 checks, 1 failed'] ["FAIL a program main changed or added after the fork runs as the base's and is not the head's diff"]
+KILLED  M15 scratch clone: origin url not set rc=1 ['selftest_scope self-test: 162 checks, 1 failed'] ["FAIL scratch clone: a link replaced by a file is that file, not a write through the link; a new link stays a link; origin's URL is the seat's"]
+KILLED  M16 trace_steps: BASH_ENV kept rc=1 ['selftest_scope self-test: 162 checks, 5 failed'] ['FAIL precheck: a step whose script gained a read the table lacks is refused, naming the read and the record command (rc=0); the table is left as it was', "FAIL precheck: a table that lost a read the step still makes is refused (the base's table held it)", "FAIL precheck: a read the merge base's own trace makes too is main's drift, a note and no refusal (rc 0); with the branch's own read beside it the line is the branch's (rc 1)"]
+done

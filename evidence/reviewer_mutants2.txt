@@ -1,0 +1,4 @@
+SURVIVED M4b precheck: ignores a holding tracer rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+SURVIVED M7b step_commands: bg_run launcher forgotten rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+SURVIVED M5a absorb_cli: ignored probes not gone rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
+SURVIVED M5b absorb_cli: retired probes not gone rc=0 ['selftest_scope self-test: 162 checks, 0 failed'] []
