@@ -328,9 +328,10 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
     # R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor (absent while
-    # unset) and the samples appended since it last moved.
-    "draw/floor_kw": Domain("real", _POS, whole=_DRAW_KEY),
-    "draw/floor_since": Domain("int", 0, whole=_DRAW_KEY),
+    # unset) and the samples appended since it last moved; a bad cell reads
+    # unset or 0 (_stored_floor) and costs only itself, never the record.
+    "draw/floor_kw": Domain("real", _POS),
+    "draw/floor_since": _COUNT,
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {

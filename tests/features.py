@@ -93291,6 +93291,40 @@ R.check(
     f"rt {_mf_rt.floor_kw} {_mf_rt.floor_since} absent {_mf_noread.floor_kw} bad {_mf_bad.floor_kw}",
 )
 
+# The declared cost of a bad floor cell is its measured cost (fix review of
+# #3670): store._ACCURACY's ``whole`` licenses a loader to drop the draw
+# record for one bad cell, so a leaf declares it exactly when a bad value
+# measures the record lost, and declares "cell" when only the cell reads unset.
+from heatpump_optimizer import store as _mf_store  # noqa: E402
+_mf_good = _mf_arm_g.as_dict()
+_MF_BAD_CELLS = {"floor_kw": ("x", -1.0, True, [1]), "floor_since": ("x", -3, 1.5)}
+
+
+def _mf_cost(leaf, value):
+    """``cell`` when only ``leaf`` reads unset, ``record`` when the samples or
+    configuration go with it, else what came back."""
+    after = _mf_dr.DrawRange.from_dict({**_mf_good, leaf: value}).as_dict()
+    unset = {k: v for k, v in _mf_good.items() if k != "floor_kw"} if leaf == "floor_kw" \
+        else {**_mf_good, "floor_since": 0}
+    if after == unset:
+        return "cell"
+    lost = any(after.get(k) != _mf_good.get(k) for k in ("samples", "config", "engaged"))
+    return "record" if lost else repr(after)
+
+
+_mf_declared = {leaf: "record" if _mf_store._ACCURACY[f"draw/{leaf}"].whole else "cell"
+                for leaf in _MF_BAD_CELLS}
+_mf_measured = {(leaf, repr(v)): _mf_cost(leaf, v) for leaf, vs in _MF_BAD_CELLS.items() for v in vs}
+R.check(
+    "metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since "
+    "('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load "
+    "measures; null control, the good record (floor, count, samples) reads back unchanged",
+    _mf_good.get("floor_kw") is not None and _mf_good["floor_since"] > 0 and _mf_good["samples"]
+    and _mf_dr.DrawRange.from_dict(_mf_good).as_dict() == _mf_good
+    and all(m == _mf_declared[leaf] for (leaf, _v), m in _mf_measured.items()),
+    f"declared {_mf_declared} measured {_mf_measured}",
+)
+
 # Application: only under the predicate, min(F, top), plan_writes_power.
 _mf_set = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
 _mf_low_top = _mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0))
