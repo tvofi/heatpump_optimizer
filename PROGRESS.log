@@ -11,3 +11,4 @@
 1794873162 CKPT note read, base and cites resolve at 54cb721164 snapshot 315ff43b46dd
 1794873232 CKPT seam read at base: runs.py, planner start rule, exchange snapshot d3185200440b
 1794873353 CKPT verdict written: approve snapshot 1d0f6291155d
+1794873366 DONE Design review: approve ce85b10049, pushed design-verdict 53b01494c8; comms init died after 'resumed' (pipefail on the snapshot lookup), heartbeats by hand and loop since
