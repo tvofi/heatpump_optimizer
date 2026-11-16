@@ -1,0 +1,25 @@
+$ python3 tools/audit/carry_audit.py check --body /root/drv/BODY.md --pr-group R11-PRE-NEW-DIMENSIONS 2>&1 | tail -15
+NOTE stale tree: e078a0bb2e3b4663cc505282d70aaad8053a566b lacks origin/main 6f422812d5d8b918beace0283419c153f6df66ce; roster read at origin/main
+NOTE body item ff0aff0d: dismissed:no consumer of the old format exists in the tree
+NOTE body item a03072ca: dismissed:built here
+NOTE body item 77bf862b: dismissed:built here
+NOTE body item 8670e5ae: dismissed:done here
+NOTE body item cc812513: dismissed:settled by #3647's merge
+NOTE body item 9d256bbc: dismissed:built here
+NOTE body item 1ac4b785: dismissed:both briefs cite `tests/README.md` instead
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+$ node tools/policy/policy_lint.mjs --pr-body /root/drv/BODY.md 2>&1 | tail -12
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+PR-BODY: 0 error(s) in /root/drv/BODY.md
+rc=0
+$ timeout 200 bash tools/pr/prepr.sh --body-check /root/drv/BODY.md 2>&1 | tail -25
+pr-body ok: PR-BODY: 0 error(s) in /root/drv/BODY.md -- 1 budget raise(s), budget-raise-gate red until tvofi approves at the head: .claude/workflows/policy_budgets.json: corpus_tokens: 69244 -> 71212 (a cap went up)
+carry ok: CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster e9f1c10d5a
+preflight ok
+figures ok: FIGURES: 15 resolved, 2 not verified, 0 refused
+figure blocks ok: figure_block verify: 1 block(s), 0 refused
+ref_privacy ok: ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 313 line(s) added since e352724335c1 judged, 0 refused
+ref_privacy (body) ok: no host identity in the body
+rc=0

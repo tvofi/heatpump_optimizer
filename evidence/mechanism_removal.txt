@@ -1,0 +1,39 @@
+# worktree at head e078a0bb2e3b4663cc505282d70aaad8053a566b, one perturbation at a time, restored after each
+$ echo 'P1: tests/closures.json as at the merge base (the two brief rows removed)'; python3 tests/closure.py select --diff e352724335c136b65562cd3e71f728549ad04a82 2>&1 | grep -E 'MODE|UNDER|force|D16|D17|unclass' | head -8
+P1: tests/closures.json as at the merge base (the two brief rows removed)
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no recorded closure mentions dev/governance/dimensions/D16.md, dev/governance/dimensions/D17.md -- an unmeasured file is not a safe skip
+rc=0
+$ echo 'P2: CLAUDE.md without the D17 row'; node tools/policy/policy_lint.mjs 2>&1 | grep -E 'TOTAL|D17' | head -5; node tools/policy/check-wave-script.mjs 2>&1 | tail -1
+P2: CLAUDE.md without the D17 row
+  ERROR   [index] CLAUDE.md: does not name `dev/governance/dimensions/D17.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
+TOTAL: 1 error(s) across 57 policy file(s)
+249 passed, 0 failed
+rc=0
+$ echo 'P3: D17.md absent from the tree (index and worktree), DIMS still naming it'; node tools/policy/check-wave-script.mjs 2>&1 | grep -vE '^\s*ok|^$' | tail -6 | cut -c1-300; python3 -I tools/audit/enumerate.py --briefs 2>&1 | grep -E 'D17|REFUSE' | head -3
+P3: D17.md absent from the tree (index and worktree), DIMS still naming it
+  drive  round 9 dispatched 65 finder seat(s)
+-- The panel verification pass: the lenses per dimension, the panel rule, one judge
+-- The verification pass feeds the rotation ledger its yield
+-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)
+  FAIL (probe, expected) threw: deliberate
+245 passed, 4 failed
+rc=0
+$ echo 'P4: DIMS without D17, brief present'; node tools/policy/check-wave-script.mjs 2>&1 | grep -vE '^\s*ok|^$' | tail -6 | cut -c1-300
+P4: DIMS without D17, brief present
+  FAIL the scoped round driver threw: Cannot read properties of undefined (reading 'findings')
+-- The panel verification pass: the lenses per dimension, the panel rule, one judge
+-- The verification pass feeds the rotation ledger its yield
+-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)
+  FAIL (probe, expected) threw: deliberate
+180 passed, 31 failed
+rc=0
+$ echo 'P5: ISOLATED without D16 (prepare_baseline.sh still listing it)'; node tools/policy/check-wave-script.mjs 2>&1 | grep -vE '^\s*ok|^$' | tail -6 | cut -c1-300
+P5: ISOLATED without D16 (prepare_baseline.sh still listing it)
+  drive  round 9 dispatched 65 finder seat(s)
+-- The panel verification pass: the lenses per dimension, the panel rule, one judge
+-- The verification pass feeds the rotation ledger its yield
+-- P3: the architect, the plan reviewer, and the plan ref (R10-FLOW-AUDIT-PLAN)
+  FAIL (probe, expected) threw: deliberate
+247 passed, 2 failed
+rc=0

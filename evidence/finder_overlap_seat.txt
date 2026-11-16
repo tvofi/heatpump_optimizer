@@ -1,0 +1,8 @@
+D15-s1   head                         -> PAIR ''
+D15-s1   pattern reverted to 1[0-5]   -> PAIR ''
+D16-s1   head                         -> PAIR ''
+D16-s1   pattern reverted to 1[0-5]   -> REFUSED "'D16-s1' is no seat of scopes.json"
+D17-s3   head                         -> PAIR ''
+D17-s3   pattern reverted to 1[0-5]   -> REFUSED "'D17-s3' is no seat of scopes.json"
+D18-s1   head                         -> REFUSED "'D18-s1' is no seat of scopes.json"
+D18-s1   pattern reverted to 1[0-5]   -> REFUSED "'D18-s1' is no seat of scopes.json"
