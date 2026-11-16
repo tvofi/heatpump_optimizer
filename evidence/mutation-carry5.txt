@@ -1,0 +1,11 @@
+== head
+PASS ['dev/audit/README.md                              309  321     5926  6059   key tools/audit/README.md', 'tests/README.md                                  461  800     6677  6686 ']
+== M0 revert change to merge base
+FAIL ['tools/audit/README.md                            309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
+== M1 const live = r.file
+FAIL ['tools/audit/README.md                            309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
+== M2 key on every row
+FAIL ['dev/audit/README.md                              309  321     5926  6059   key tools/audit/README.md', 'tests/README.md                                  461  800     6677  6686   key tests/README.md']
+== M3 key dropped from printed row
+FAIL ['dev/audit/README.md                              309  321     5926  6059 ', 'tests/README.md                                  461  800     6677  6686 ']
+== restored:
