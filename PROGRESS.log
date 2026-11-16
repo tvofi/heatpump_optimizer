@@ -1,3 +1,4 @@
 1794855280 INIT r11-rev-3682
 1794855289 HB alive
 1794855409 CKPT setup done, worktree at head, merge-tree run snapshot a4dd0a463c3a
+1794855525 CKPT figures re-derived; zero-run cache defect reproduced; mutant A survives snapshot e00db7de907e
