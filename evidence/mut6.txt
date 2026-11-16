@@ -1,2 +1,0 @@
-RESULT m21-bj-family-oc: KILLED [('beat_jobs.py', 1, ['beat_jobs self-test: 148 checks, 1 failed'])]
-       FAIL every family literal is one the board's printers print

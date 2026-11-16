@@ -1,0 +1,18 @@
+RESULT m1-dr-dispatch-clause: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self
+RESULT m2-dr-stage-gate: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test
+RESULT m3-dr-disposition: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-tes
+RESULT m4-dr-verdict-at-tip: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-
+RESULT m5-dr-call-dropped: KILLED [('orchestrator_tick.py', 1, ['IndexError: list index ou
+RESULT m7-ud-seatless: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 
+RESULT m8-ud-after-clear: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-tes
+RESULT m9-ud-startafter: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test
+RESULT m10-ud-ref-age: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 
+RESULT m11-ud-unreadable: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-tes
+RESULT m13-oc-window: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 3
+RESULT m14-oc-gates: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 36
+RESULT m15-oc-outside: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 
+RESULT m17-op-lastline: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test:
+RESULT m18-op-absent-stranded: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick sel
+RESULT m19-ou-key-dr: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 3
+RESULT m26-ou-key-ud: KILLED [('orchestrator_tick.py', 1, ['owed_unactioned_tick.Unreadabl
+RESULT m20-ou-family-dr: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test

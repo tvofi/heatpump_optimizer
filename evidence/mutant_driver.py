@@ -1,5 +1,5 @@
 import subprocess, sys, pathlib
-R = pathlib.Path("/home/user/rev")
+R = pathlib.Path("/root/rev")
 M = [
  ("m1-dr-dispatch-clause", "tools/audit/seat/ledger.py", "        if t in review_at and review_at[t] >= tip_at[t]:\n            continue\n", ""),
  ("m2-dr-stage-gate", "tools/audit/seat/ledger.py", " or stage not in DESIGN_REVIEW_STAGES \\\n", " \\\n"),
