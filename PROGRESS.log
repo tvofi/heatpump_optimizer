@@ -25,3 +25,4 @@
 1794872033 CKPT worktree at 5356706 snapshot 83dc1723442a
 1794872079 CKPT row added, S1 killed, pushed wip snapshot de31eb2d31ef
 1794872175 CKPT mutants re-run snapshot a030c392fe3e
+1794872465 DONE returned: handoff a56af234d8 (S1 killed), body f28dcd4c30; step/kept-body ref deletes refused HTTP 403
