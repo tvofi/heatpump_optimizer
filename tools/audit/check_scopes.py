@@ -6,10 +6,13 @@ Exit 0 only if every dimension passes and coverage passes; each failure prints t
 twice or not at all. Coverage: every tracked path at --ref is in some dimension's universe or
 matches one entry of scopes.json's `_coverage_excluded` (glob -> reason), never both, and every
 entry matches some path; a path in neither is refused by name, so no path goes unmeasured.
-Null control: --self-test duplicates one seat's block and empties another's, drops D10's
+An axis tools/audit/enumerate.py also prints (D17's `kind`, its d17-features prefixes) must name
+exactly those prefixes: a value in one copy alone is refused.
+Null control: --self-test duplicates one seat's block and empties another's (D1 and D2, then D16
+and D17, with a kind planted in either copy of D17's axis), drops D10's
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
 when the checker refuses each perturbed file by the path it names. It also runs the default
-invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
+invocation as a subprocess, on the live scopes (rc 0) and with every universe's blueprints glob dropped (rc 1).
 Ledger dimensions (D5, D6): a dimension's `ledger` {step, max_units} caps each seat's text units
 (tools/audit/text_ledger.py, the dimension's own rule) over the files its blocks hold for that step,
 so a seat's cell is finishable; a seat over the cap is refused by name. Its `classify` globs and
@@ -59,6 +62,11 @@ import roster_lib
 _spec = importlib.util.spec_from_file_location("text_ledger", Path(__file__).with_name("text_ledger.py"))
 text_ledger = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(text_ledger)
+_spec = importlib.util.spec_from_file_location("audit_enumerate", Path(__file__).with_name("enumerate.py"))
+audit_enumerate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(audit_enumerate)
+# An axis whose values are a second copy of an enumerator's line prefixes: (dimension, axis) -> the prefixes.
+AXIS_SOURCES = {("D17", "kind"): lambda: audit_enumerate.KINDS}
 
 def expand_braces(p):
     m = re.search(r"\{([^{}]*)\}", p)
@@ -120,6 +128,17 @@ def classify_errors(d, tree, uni, dim=None):
     return errs
 
 
+def axis_errors(dim, d):
+    """An axis the enumerator also prints must name exactly the enumerator's prefixes: a kind in one
+    copy alone is a cell no seat can print, or a line no seat owns."""
+    errs = []
+    for name, vals in d.get("axis", {}).items():
+        src = AXIS_SOURCES.get((dim, name))
+        if src and set(vals) != set(src()):
+            errs.append(f"axis {name} {sorted(set(vals) ^ set(src()))} in scopes.json or tools/audit/enumerate.py, not both")
+    return errs
+
+
 def check(scopes, tree, loc, units=lambda dim, f: 0):
     ok = True
     for dim, d in scopes.items():
@@ -151,7 +170,7 @@ def check(scopes, tree, loc, units=lambda dim, f: 0):
             dup = {k: v for k, v in owners.items() if len(v) > 1 and k[0] != "step"}
         missing = want - set(owners)
         extra = set(owners) - want
-        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim), {}
+        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim) + axis_errors(dim, d), {}
         if "ledger" in d:
             per_seat = ledger_units(dim, d, files_of, units)
             over = [s for s, n in per_seat.items() if n > d["ledger"]["max_units"]]
@@ -868,6 +887,38 @@ def main():
         none = copy.deepcopy(scopes)
         none["D2"]["seats"][list(none["D2"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
         res = [check(bad, tree, loc) for bad in (twice, none)]
+        # The same two on the plan-oracle dimensions, each refused by what it names, and the axis
+        # D17 shares with the enumerator: a kind planted in either copy alone is refused.
+        def _dim(bad, dim):
+            o = io.StringIO()
+            with contextlib.redirect_stdout(o):
+                r = check({dim: bad[dim]}, tree, loc)
+            return r, o.getvalue()
+        twice16 = copy.deepcopy(scopes)
+        a16, b16 = list(twice16["D16"]["seats"])[:2]
+        twice16["D16"]["seats"][b16].append(copy.deepcopy(twice16["D16"]["seats"][a16][0]))
+        none17 = copy.deepcopy(scopes)
+        none17["D17"]["seats"][list(none17["D17"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
+        kind17 = copy.deepcopy(scopes)
+        kind17["D17"]["axis"]["kind"].append("planted-kind")
+        kind17["D17"]["seats"][list(kind17["D17"]["seats"])[0]][0]["axis"].append("planted-kind")
+        r_t16, o_t16 = _dim(twice16, "D16")
+        r_n17, o_n17 = _dim(none17, "D17")
+        r_k17, o_k17 = _dim(kind17, "D17")
+        real_kinds = audit_enumerate.KINDS
+        try:
+            audit_enumerate.KINDS = real_kinds + ("planted-prefix",)
+            r_e17, o_e17 = _dim(scopes, "D17")
+        finally:
+            audit_enumerate.KINDS = real_kinds
+        new_dims = {
+            "null control: the live D16 and D17 pass": _dim(scopes, "D16")[0] is True and _dim(scopes, "D17")[0] is True,
+            "a D16 block owned by two seats is refused": not r_t16 and f"by ['{a16}', '{b16}']" in o_t16,
+            "a D17 seat emptied leaves its cells unowned": not r_n17 and "   unowned (" in o_n17,
+            "a D17 kind the enumerator does not print is refused": not r_k17 and "axis kind ['planted-kind']" in o_k17,
+            "a prefix the enumerator prints and no D17 seat owns is refused": not r_e17 and "axis kind ['planted-prefix']" in o_e17,
+        }
+        print(f"   D16 and D17 arms: {sum(new_dims.values())}/{len(new_dims)} held")
         # Coverage arms, each refused by the path it must name, so a broad
         # exclusion cannot satisfy an arm by rc alone. D10 is the one universe
         # that alone holds py.typed; stripping every tests/ and blueprints/ glob
@@ -888,7 +939,7 @@ def main():
             "drop D10's universe": (no_d10, [PKG + "py.typed"]),
             "strip tests/ and blueprints/ globs": (bare, ["tests/closure.py", "blueprints/automation/notifications.yaml"]),
         }
-        cov = {}
+        cov = dict(new_dims)
         for name, (bad, must) in arms.items():
             ok, unc = coverage(bad, tree, quiet=True)
             cov[name] = (not ok) and all(m in unc for m in must) and nulls not in unc
@@ -979,12 +1030,13 @@ def main():
                     "and refuses an uncited brief-named harness": uncited_refused})
         print(f"   default verdict: live {live}, no D10 refused {no_d10_refused}, uncited refused {uncited_refused}")
         # The default invocation, run whole as a subprocess of this file with
-        # --repo/--ref: the live scopes exit 0, and the scopes with D4's and D6's
-        # blueprints/** globs dropped exit 1 naming a blueprint, both printing
+        # --repo/--ref: the live scopes exit 0, and the scopes with the blueprints/**
+        # glob dropped from every universe that names one exit 1 naming a blueprint, both printing
         # verdict()'s citation line. So coverage cannot fall out of main()'s exit
         # code, and that exit is verdict()'s, whose citation arm is pinned above.
         no_bp = copy.deepcopy(scopes)
-        for k in ("D4", "D6"):
+        bp_dims = [k for k, d in scopes.items() if not k.startswith("_") and any(g.startswith("blueprints/") for g in d["universe"])]
+        for k in bp_dims:
             no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
         def default_run(sc, *more):
             with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
@@ -995,7 +1047,7 @@ def main():
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
-        cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
+        cov["and exits 1 with the blueprints globs dropped from every universe that names one"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
         # The start evaluation: the rules as a function, then the default
