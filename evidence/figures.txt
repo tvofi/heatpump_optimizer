@@ -1,0 +1,30 @@
+== fig1 at e352724335c136b65562cd3e71f728549ad04a82
+['tools/audit/briefs/nudge.md', 'tools/audit/harnesses/README.md']
+in tree: ['tools/audit/briefs/nudge.md', 'tools/audit/harnesses/README.md']
+tools/audit/briefs/nudge.md absent at e352724335c136b65562cd3e71f728549ad04a82
+tools/audit/harnesses/README.md absent at e352724335c136b65562cd3e71f728549ad04a82
+== fig5
+== fig6
+e352724335c136b65562cd3e71f728549ad04a82:dev/governance/config/policy_budgets.json:136:    "tools/audit/briefs/nudge.md": 3814,
+e352724335c136b65562cd3e71f728549ad04a82:dev/programme/HANDOVER.md:607:| R10-NUDGE-RETIRE | `#3566` | `nudge.md` binds Cursor and ZCode sessions only; retire it
+e352724335c136b65562cd3e71f728549ad04a82:dev/programme/RULINGS.md:317:  (`nudge.md`, which binds Cursor orchestrators only).
+e352724335c136b65562cd3e71f728549ad04a82:dev/programme/round10/state/PLAN-TABLE.md:126:| R10-CI-LAYOUT | IN | 1 | done | #2495 | opus/opus | yes: Code-owned (`/
+e352724335c136b65562cd3e71f728549ad04a82:dev/programme/round10/state/PLAN-TABLE.md:163:| R10-CI-LAYOUT-P1 | IN | 1 | done | #2495 | opus/opus | yes: Code-owned 
+e352724335c136b65562cd3e71f728549ad04a82:dev/programme/round10/state/PLAN-TABLE.md:164:| R10-CI-LAYOUT-P2 | IN | 1 | done | **#2495** | opus/opus | yes: Code-ow
+== fig1 at 2e3fc21cca5a64a9dd1684f184c210951a767b37
+[]
+in tree: []
+tools/audit/briefs/nudge.md absent at 2e3fc21cca5a64a9dd1684f184c210951a767b37
+tools/audit/harnesses/README.md absent at 2e3fc21cca5a64a9dd1684f184c210951a767b37
+== fig5
+== fig6
+2e3fc21cca5a64a9dd1684f184c210951a767b37:dev/programme/HANDOVER.md:607:| R10-NUDGE-RETIRE | `#3566` | `nudge.md` binds Cursor and ZCode sessions only; retire it
+2e3fc21cca5a64a9dd1684f184c210951a767b37:dev/programme/RULINGS.md:317:  (`nudge.md`, which binds Cursor orchestrators only).
+2e3fc21cca5a64a9dd1684f184c210951a767b37:dev/programme/round10/state/PLAN-TABLE.md:126:| R10-CI-LAYOUT | IN | 1 | done | #2495 | opus/opus | yes: Code-owned (`/
+2e3fc21cca5a64a9dd1684f184c210951a767b37:dev/programme/round10/state/PLAN-TABLE.md:163:| R10-CI-LAYOUT-P1 | IN | 1 | done | #2495 | opus/opus | yes: Code-owned 
+2e3fc21cca5a64a9dd1684f184c210951a767b37:dev/programme/round10/state/PLAN-TABLE.md:164:| R10-CI-LAYOUT-P2 | IN | 1 | done | **#2495** | opus/opus | yes: Code-ow
+== version/manifest/notes untouched
+ dev/governance/config/policy_budgets.json |  2 --
+ dev/programme/delivery/3668.md            |  1 +
+ tools/policy/policy_lint.mjs              | 22 +++++++++++++++++-----
+ 3 files changed, 18 insertions(+), 7 deletions(-)
