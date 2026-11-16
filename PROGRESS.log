@@ -20,3 +20,4 @@
 1794860722 DONE verdict merge c0bc81e0a1 pushed to probe/rev-3670-9eae24af (944bf2641c), pending-ci
 1794870535 HB alive
 1794870671 CKPT read packet; CI RED gate (mutation pin lag); starting checks snapshot 89fa9a2918f2
+1794870901 CKPT mutants 4/4 killed; merge-tree clean; awaiting env_drift; CI RED snapshot 8f8e2176fb56
