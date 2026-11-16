@@ -500,16 +500,46 @@ def draw_response(pairs: Any) -> str:
     ``ASK_UNOBTAINABLE`` where the regressor's ``LOW_PERCENTILE`` to
     ``HIGH_PERCENTILE`` does not span ``FOLLOW_ASK_SPAN``, else the slope of
     log drawn on log regressor against ``FOLLOW_SLOPE_MIN``. The caller
-    counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask, and the
-    COP learner on the heat ask (``accuracy.MeasuredCop``).
+    counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask; a
+    regressor the draw moves is :func:`step_response`'s.
     """
     pairs = np.asarray(pairs, dtype=float)
-    low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
-    if high < FOLLOW_ASK_SPAN * low:
+    if not _spans(pairs):
         return ASK_UNOBTAINABLE
     asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
-    asked = asked - asked.mean()
-    slope = float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked))
+    return _slope_verdict(asked - asked.mean(), drawn - drawn.mean())
+
+
+def step_response(pairs: Any) -> str:
+    """Whether the draw follows a regressor it may itself have moved: (drawn,
+    regressor) rows, kW, one per interval, oldest first.
+
+    ``ASK_UNOBTAINABLE`` where the regressor does not span (as
+    :func:`draw_response`), else the slope of the row-to-row change of log
+    drawn on that of log regressor against ``FOLLOW_SLOPE_MIN``. Where the
+    regressor moves only as a learner folds the draw (the COP learner's heat
+    ask, ``accuracy.MeasuredCop``), its levels split the rows by time, and a
+    draw drifting on its own over the window (a weather front) reads as
+    following on levels. Differenced, that drift is left only its per-row
+    increment, while a draw that follows steps with the regressor in the
+    same row; each row's regressor is the one its draw was read under.
+    """
+    pairs = np.asarray(pairs, dtype=float)
+    if not _spans(pairs):
+        return ASK_UNOBTAINABLE
+    return _slope_verdict(np.diff(np.log(pairs[:, 1])), np.diff(np.log(pairs[:, 0])))
+
+
+def _spans(pairs: Any) -> bool:
+    """Whether the regressor's ``LOW_PERCENTILE`` to ``HIGH_PERCENTILE`` spans ``FOLLOW_ASK_SPAN``."""
+    low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
+    return bool(high >= FOLLOW_ASK_SPAN * low)
+
+
+def _slope_verdict(regressor: Any, drawn: Any) -> str:
+    """``ASK_FOLLOWS`` where the least-squares slope of ``drawn`` on the
+    centred or differenced ``regressor`` reaches ``FOLLOW_SLOPE_MIN``."""
+    slope = float(np.dot(regressor, drawn) / np.dot(regressor, regressor))
     return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGNORED
 
 
