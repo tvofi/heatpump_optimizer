@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stage_box RETURN_DEL 92f7c0da",
+  "killed_by": "tests/features.py",
+  "old": "    return lo, hi, other, cycled",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
+}

@@ -1185,7 +1185,7 @@ def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
 #: and ``_compute_baseline_power`` says why flooring them would burn
 #: ``min_electrical_power`` around the clock -- so every watt a plan books
 #: above this floor is heat its trajectory, its cost and its published
-#: savings all count as delivered, and it is what ``count_compressor_starts``
+#: savings all count as delivered, and it is what ``runs.edge_count``
 #: counts as a run. No seam that actuates or reports the plan may call such a
 #: step off. Until this owner existed the switch schedule called it off at
 #: half the modulation floor instead (see ``on_threshold_kw``), which on a
@@ -1953,6 +1953,27 @@ def on_threshold_kw(params: ThermalParameters) -> float:
     take this; readers of the plan take ``planned_draw_runs``.
     """
     return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)
+
+
+def immersion_level_kw(params: ThermalParameters) -> float:
+    """The MEASURED draw over which the meter carries more than the compressor (#11), in kW."""
+    return float(params.max_electrical_power) * const.IMMERSION_FACTOR
+
+
+def immersion_over(measured_kw: float | None, params: ThermalParameters, commanded_kw: float) -> bool:
+    """Whether one reading is the immersion element wearing the pump's meter (#11).
+
+    Over :func:`immersion_level_kw` while the plan commands heat: no
+    compressor pulls that. The coordinator's latch counts two of these, and
+    the running signal reads the meter as no signal on one, so the two never
+    disagree on what over means.
+    """
+    return (
+        measured_kw is not None
+        and float(params.max_electrical_power) > 0.1
+        and measured_kw > immersion_level_kw(params)
+        and commanded_kw > 0.1
+    )
 
 
 def is_sunlit_interval(solar_radiation: float | None) -> bool:
