@@ -6,7 +6,7 @@
 THE RULE (the enumeration, so a sibling cannot be missed). The file is parsed
 with `ast`; every node of every module-level statement is visited except the
 docstring, the imports, `ROOT`, `self_test` and its `_self_test_main`, `_self_test_seams`,
-`_self_test_vocabulary` and `_self_test_guardrail`, type annotations
+`_self_test_vocabulary`, `_self_test_guardrail` and `_self_test_clause`, type annotations
 and the `__main__` guard, and each
 operator class below yields one mutant per site and per replacement:
 
@@ -104,8 +104,9 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 TARGET = "tools/audit/seat/review_strength.py"
-COPY = ("tests/throwaway_git.py", "dev/audit/rounds/round10/D13/yield-probe.md", ".claude/workflows/web-fix-wave.js")
-SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams", "_self_test_vocabulary", "_self_test_guardrail"}
+COPY = ("tests/throwaway_git.py", "dev/audit/rounds/round10/D13/yield-probe.md", ".claude/workflows/web-fix-wave.js",
+        "dev/governance/roles/fix-review.md")
+SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams", "_self_test_vocabulary", "_self_test_guardrail", "_self_test_clause"}
 SKIP_ASSIGN = {"ROOT"}
 TEXT_KW = {"help", "metavar", "description"}
 TEXT_CALLS = {"error", "SystemExit"}
@@ -123,6 +124,14 @@ SWAP_CALL = {"max": "min", "min": "max", "any": "all", "all": "any", "sorted": "
 # Survivors the self-test cannot see because they change nothing, keyed "<function> @ <statement>: <mutant>".
 # Every entry is an equivalent mutant and says why; one equivalent only on the bus's inputs names the input separating it.
 DISPOSED = {
+    'PAIR_RE @ PAIR_RE = re.compile("\'([a-z][a-z0-9-]*)\':\\\\s*(?:\'([^\']*)...: "\'([a-z][a-z0-9-]*)\':\\\\s*(?:\'([^\']*)\'|null)" -> "\'([a-z][a-z0-9-]*)\':\\\\s*(?:\'([^\']*)|null)"':
+        "equivalent: `[^']*` is greedy and stops only at a quote or the end of the literal, so the pair it reads ends at the same quote whether or not the pattern names it, and the next pair starts after that quote either way",
+    "verdict_clauses @ pairs = PAIR_RE.findall(re.sub('//[^\\\\n]*', '', m[1])): 1 -> 0":
+        'equivalent: the whole match adds only `const VERDICT_CLAUSES = {` and `}` to the group, and neither holds a quoted key followed by a colon',
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if by == 'clause': with the next statement":
+        'equivalent: the two branches test `by` against different words and each returns, so their order changes no answer',
+    "main @ if row.startswith('UNRESOLVED '):: 'UNRESOLVED ' -> 'UNRESOLVED'":
+        'equivalent: clause_rows writes every such row as `UNRESOLVED <clause>`, and no other row opens with that word (the others open with `(` or with a role file name, which CLAUSE_RE holds to lower case)',
     "guardrail @ verdict = 'would-trip: audit the last reviews with a plan...: cdf < ALPHA [op 0: Lt -> LtE]":
         "equivalent on the guardrail's inputs: main calls it only with ARMS' N (30 and 20) and P0 = 0.28, and no P(X<=k|30 or 20, 0.28) equals 0.05 (the nearest are 0.0495 and 0.0526); separated by an arm whose CDF lands on ALPHA exactly, which no arm in ARMS has",
     "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--guardrai... with the next statement":
