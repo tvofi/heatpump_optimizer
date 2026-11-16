@@ -9,3 +9,4 @@
 1794854146 CKPT reproduced: head cpu_ratio 350.6 over 332.8, merge base 242.4; profiling snapshot 4d893acdca27
 1794854723 HB alive
 1794854729 INBOX acked through 2
+1794854796 CKPT RESULT.md pushed to handoff-wip snapshot ef97f16657fd
