@@ -77,9 +77,10 @@ async def measure(name, work):
     t0 = time.perf_counter()
     await work()
     t1 = time.perf_counter()
+    await asyncio.sleep(0.003)  # the stamp after a trailing block joins the window
     stop.set()
     await hb
-    win = [s for s in stamps if t0 <= s <= t1]
+    win = [s for s in stamps if t0 <= s <= t1] + [s for s in stamps if s > t1][:1]
     gaps = [b - a for a, b in zip(win, win[1:])]
     wall = t1 - t0
     over = sum(g for g in gaps if g > CUT)

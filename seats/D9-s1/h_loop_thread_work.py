@@ -18,7 +18,9 @@ run twice per call (in memory) -> loop_ms must go UP by about its own share.
 Null control: the same cycle with the solve's executor job a no-op is not
 needed for a loop-thread figure; idle loop thread_time over a 1 s sleep is
 printed instead (idle_loop_ms ~ 0).
-Census pass (separate, profiled; times inflated, used for attribution only):
+Arms: default (two-zone DHW house), tiles_fuse, all_features (tests/golden.py
+coord_all_features' switches plus tiles and a 20 A fuse).
+Census pass (all_features; separate, profiled; times inflated, used for attribution only):
 sys.setprofile on the loop thread and threading.setprofile on executor
 threads, self time per integration file.
 
@@ -166,11 +168,17 @@ def main():
     tiles = {const.CONF_PRICE_TILES_ENABLED: True, const.CONF_MAIN_FUSE_A: 20}
     summarise("default", asyncio.run(run({}, a.cycles, ents_out=n_ents)), a.warm)
     summarise("tiles_fuse", asyncio.run(run(tiles, a.cycles)), a.warm)
+    allf = {**tiles, "peak_tariff_enabled": True, "peak_tariff_price_per_kw": 45.0,
+            "pv_enabled": True, "pv_peak_kw": 8.0, "pv_export_price": 0.3,
+            "away_enabled": True, "external_heat_detection_enabled": True,
+            "comfort_learning_enabled": True, "system_identification_enabled": True,
+            "compressor_cycling_cost": 0.5}  # tests/golden.py coord_all_features + tiles/fuse
+    summarise("all_features", asyncio.run(run(allf, a.cycles)), a.warm)
     summarise("perturb_build_data_dict_x2", asyncio.run(run({}, a.cycles, perturb=True)), a.warm)
     L.result("entities", n_ents[0], "count")
     if not a.no_census:
         c = Census(threading.get_ident())
-        asyncio.run(run(tiles, 3, census=c))
+        asyncio.run(run(allf, 3, census=c))
         for kind in ("loop", "executor"):
             files = sorted(((k[1], v) for k, v in c.self_t.items() if k[0] == kind),
                            key=lambda kv: -kv[1])
