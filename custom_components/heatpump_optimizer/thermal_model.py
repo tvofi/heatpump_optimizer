@@ -3502,25 +3502,20 @@ class ThermalModel:
         `indoor_target` (#398) -- the same conversion `_simulate_step_two_zone`
         uses to bound a dumb valve's delivery, reused rather than re-derived.
         A single-zone house behind a throttling valve reads the plant's own
-        curve (`_valve_flow_set`) at zero wind; every other install, and so
-        every priced direct curve, keeps the expression below.
+        curve at zero wind; every other install, so every priced curve, the sum.
         """
         p = self.params
         if not p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode):
-            return _valve_flow_set(
-                p, indoor_target, outdoor_temp,
-                self.effective_heat_loss_coefficient(p.heat_loss_coefficient),
-                _valve_ua(p),
-            )
+            u = self.effective_heat_loss_coefficient(p.heat_loss_coefficient)
+            return _valve_flow_set(p, indoor_target, outdoor_temp, u, _valve_ua(p))
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
-        design_power = p.max_electrical_power * p.cop_nominal_floored
         return mixing_valve.flow_setpoint(
             target_temp=indoor_target,
             outdoor_temp=outdoor_temp,
             heat_loss_coefficient=heat_loss,
-            emitter_ua=design_power / p.emitter_design_delta_t_floored,
+            emitter_ua=_valve_ua(p),
         )
 
     def compute_solar_gain(self, solar_radiation: float) -> float:
@@ -4317,14 +4312,9 @@ class ThermalModel:
             # are uniform across it); a direct caller gets them computed as
             # the scalar branch does.
             valve_row = 0.0
-            if (p.mixing_valve_mode or mixing_valve.MODE_NONE) in (
-                mixing_valve.THROTTLING_MODES
-            ):
+            if mixing_valve.is_throttling(p.mixing_valve_mode):
                 if ua_valve is None:
-                    ua_valve = (
-                        p.max_electrical_power * p.cop_nominal_floored
-                        / p.emitter_design_delta_t_floored
-                    )
+                    ua_valve = _valve_ua(p)
                 if c_buf is None:
                     c_buf = _buffer_capacity(p)
                 valve_row = ua_valve / c_buf
