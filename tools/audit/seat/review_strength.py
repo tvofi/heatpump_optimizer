@@ -5,7 +5,7 @@
     python3 tools/audit/seat/review_strength.py [--fetch] \\
         --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
         --window L=2026-10-19T14:50Z..2026-10-21T14:50Z \\
-        [--by kind|class|prior-merge|origin|size|product|fixer[+...] ...] \\
+        [--by kind|class|clause|prior-merge|origin|size|product|fixer[+...] ...] \\
         [--roster REF:PATH] [--as-of T] [--guardrail]
 
 R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
@@ -34,6 +34,21 @@ untaught real words reviewers wrote. `--by route` keys a block on the class
 the wave routes it to: its word when taught, else `other` (parseVerdict's
 rule). Each subject names ONE class, so a verdict blocked for two
 reasons counts once, under the class its reviewer wrote first.
+
+THE CLAUSE (`--by clause`; card E11-N-ROLE-CLAUSE, decision 0018 section 3).
+The wave script's VERDICT_CLAUSES object, beside the list and read from the
+same `--tree` text, names for each taught class the role-contract clause its
+block enforces, `<role>.md step N`, or null where no step does. A block
+counts on its clause's row, keyed on the class word, so a window reviewed
+before the map existed reads by clause with no re-review. A clause resolves
+when `dev/governance/roles/<role>.md` at `--tree` holds a line opening
+`N. `; any other value, a section name included, is the row
+`UNRESOLVED <clause>`, also printed in the header with its class. A class
+mapped to null is `(no clause) <word>`, an untaught word `(untaught) <word>`,
+a block naming none `(no class)`, a merge `(merge)`: each its own row, none
+folded into a clause. A map whose keys are not exactly the taught classes,
+or a tree with no map, refuses `--by clause` and leaves every other stratum
+read.
 
     real per PR = real blocks / reviewed PRs  (one PR blocked in 6 rounds
                   counts 6, so a few long PRs dominate it)
@@ -122,10 +137,14 @@ MODEL_RE = re.compile(r"^bus-model: (\S+)$", re.M)
 MODEL_N = 20
 GROUP_RE = re.compile(r"\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b")
 MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
-STRATA = ("kind", "class", "route", "prior-merge", "origin", "size", "product", "fixer")
+STRATA = ("kind", "class", "route", "clause", "prior-merge", "origin", "size", "product", "fixer")
 WAVE_SCRIPT = ".claude/workflows/web-fix-wave.js"
 CLASSES_RE = re.compile(r"const VERDICT_CLASSES = \[([^\]]*)\]")
 WORD_RE = re.compile(r"'([a-z][a-z0-9-]*)'")
+ROLES_DIR = "dev/governance/roles"
+CLAUSES_RE = re.compile(r"const VERDICT_CLAUSES = \{([^}]*)\}")
+PAIR_RE = re.compile(r"'([a-z][a-z0-9-]*)':\s*(?:'([^']*)'|null)")
+CLAUSE_RE = re.compile(r"([a-z][a-z-]*\.md) step ([1-9][0-9]*)")
 FACT_STRATA = {"origin", "fixer", "size", "product"}
 
 
@@ -192,6 +211,35 @@ def verdict_classes(text: str) -> tuple[str, ...]:
     if not words:
         raise SystemExit(f"review_strength: no VERDICT_CLASSES literal in {WAVE_SCRIPT}")
     return words
+
+
+def verdict_clauses(text: str, taught: tuple[str, ...]) -> dict[str, str | None]:
+    """Each taught class's contract clause (None: no step enforces it), read from the wave script's
+    VERDICT_CLAUSES literal; refuses without one, or when its keys are not exactly the taught classes."""
+    m = CLAUSES_RE.search(text)
+    if not m:
+        raise SystemExit(f"review_strength: no VERDICT_CLAUSES literal in {WAVE_SCRIPT}")
+    pairs = PAIR_RE.findall(re.sub(r"//[^\n]*", "", m[1]))
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)) or set(keys) != set(taught):
+        raise SystemExit(f"review_strength: VERDICT_CLAUSES keys are not the taught classes, one each: "
+                         f"missing {sorted(set(taught) - set(keys))}, untaught {sorted(set(keys) - set(taught))}, "
+                         f"twice {sorted({k for k in keys if keys.count(k) > 1})}")
+    return {k: clause or None for k, clause in pairs}
+
+
+def clause_rows(clauses: dict[str, str | None], role_text) -> dict[str, str]:
+    """Each taught class's `--by clause` row. `role_text(name)` is the text of the role contract
+    `name` under ROLES_DIR, or None when there is no such file."""
+    rows = {}
+    for cls, clause in clauses.items():
+        if clause is None:
+            rows[cls] = f"(no clause) {cls}"
+            continue
+        m = CLAUSE_RE.fullmatch(clause)
+        text = role_text(m[1]) if m else None
+        rows[cls] = clause if text and re.search(rf"^{m[2]}\. ", text, re.M) else f"UNRESOLVED {clause}"
+    return rows
 
 
 def class_sets(taught: tuple[str, ...], real: frozenset) -> dict[str, list[str]]:
@@ -261,9 +309,10 @@ def fixer_of(grp: dict | None) -> str:
     return (model if isinstance(model, str) else (model or {}).get("fixer")) or "none"
 
 
-def stratum(by: str, v: dict, facts: dict[int, dict], taught: tuple[str, ...] = ()) -> str:
+def stratum(by: str, v: dict, facts: dict[int, dict], taught: tuple[str, ...] = (),
+            clause_of: dict[str, str] | None = None) -> str:
     if "+" in by:
-        return "+".join(stratum(b, v, facts, taught) for b in by.split("+"))
+        return "+".join(stratum(b, v, facts, taught, clause_of) for b in by.split("+"))
     if by == "all":
         return "all"
     if by == "kind":
@@ -272,6 +321,10 @@ def stratum(by: str, v: dict, facts: dict[int, dict], taught: tuple[str, ...] = 
         return v["cls"] or ("(merge)" if v["kind"] == "merge" else "(no class)")
     if by == "route":
         return "(merge)" if v["kind"] == "merge" else v["cls"] if v["cls"] in taught else "other"
+    if by == "clause":
+        if v["kind"] == "merge" or not v["cls"]:
+            return "(merge)" if v["kind"] == "merge" else "(no class)"
+        return (clause_of or {}).get(v["cls"], f"(untaught) {v['cls']}")
     if by == "prior-merge":
         return "after-a-merge-verdict" if v["prior_merge"] else "no-merge-yet"
     return str(facts[v["pr"]][by]) if v["pr"] in facts else "(unreviewed at T)"
@@ -386,9 +439,17 @@ def main(argv: list[str]) -> int:
     taught = verdict_classes(git(repo, "show", f"{a.tree}:{WAVE_SCRIPT}"))
     for k, words in class_sets(taught, REAL_CATCH | extra).items():
         print(f"{k}: {', '.join(words) or '-'}")
+    clause_of = None
+    if "clause" in used:
+        wave = git(repo, "show", f"{a.tree}:{WAVE_SCRIPT}")
+        role = lambda name: git(repo, "show", f"{a.tree}:{ROLES_DIR}/{name}", check=False) or None
+        clause_of = clause_rows(verdict_clauses(wave, taught), role)
+        for cls, row in sorted(clause_of.items()):
+            if row.startswith("UNRESOLVED "):
+                print(f"{row} (class {cls})")
     for by in ["all", *a.by]:
         print(f"## {by}")
-        rows = {name: tally(verdicts, f, u, lambda v: stratum(by, v, facts, taught)) for name, f, u in wins}
+        rows = {name: tally(verdicts, f, u, lambda v: stratum(by, v, facts, taught, clause_of)) for name, f, u in wins}
         for k in sorted({k for r in rows.values() for k in r}):
             for name, _, _ in wins:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
@@ -513,7 +574,9 @@ def self_test() -> int:
         g("update-ref", "refs/remotes/origin/roster", r2)
         m0 = g("rev-parse", "main")
         m1 = mk(m0, {"dev/programme/delivery/6.md": "| 6 | R1-GRP |\n", "dev/programme/delivery/8.md": "| 8 | R1-FINDS |\n",
-                     WAVE_SCRIPT: "const VERDICT_CLASSES = [\n  'harness', 'carry-missing',\n]\n",
+                     WAVE_SCRIPT: "const VERDICT_CLASSES = [\n  'harness', 'carry-missing',\n]\n"
+                                  "const VERDICT_CLAUSES = {\n  'harness': 'fix-review.md step 2',\n  'carry-missing': null,\n}\n",
+                     f"{ROLES_DIR}/fix-review.md": "1. one\n2. two\n",
                      "docs/base.md": lines(300)}, "row 6", "2026-10-01T12:00:00Z")
         c1 = mk(m1, {"custom_components/x.py": lines(20)}, "pr 5 first", "2026-10-02T01:00:00Z")
         c2 = mk(c1, {"custom_components/x.py": lines(160)}, "pr 5 second", "2026-10-02T03:00:00Z")
@@ -673,8 +736,102 @@ def self_test() -> int:
         _self_test_seams(R, g, mk, verdict, lines, m1, RP, r2, check)
         _self_test_vocabulary(R, g, verdict, check)
         _self_test_guardrail(R, verdict, check)
+        _self_test_clause(R, d, mk, verdict, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _self_test_clause(R: Path, d: str, mk, verdict, check) -> None:
+    """--by clause: a block's class reads as the contract clause the wave script's VERDICT_CLAUSES names."""
+    H = "c" * 40
+    words = ("harness", "carry-missing", "conflict", "claims", "version", "null-control")
+    lit = "const VERDICT_CLASSES = [\n  " + ", ".join(f"'{w}'" for w in words) + ",\n]\n"
+    # Decoys a looser extractor reads: another *_CLAUSES object, the name after a non-`const` word,
+    # and a comment's quoted pair inside the literal.
+    decoy = "const ROOT_CLAUSES = {\n  'harness': 'fix-review.md step 9',\n}\nKonst VERDICT_CLAUSES = { 'harness': 'x.md step 1' }\n"
+    clauses = (decoy + "const VERDICT_CLAUSES = {\n  // never 'harness': 'fix-review.md step 1'\n"
+               "  'harness': 'fix-review.md step 2',\n  'carry-missing': 'fix-review.md step 10',\n"
+               "  'conflict': null,\n  'claims': 'fix-review.md step 4',\n"
+               "  'version': 'nobody.md step 5',\n  'null-control': 'fix-review.md Preamble',\n}\n")
+    role = "Preamble\n1. one\n2. two\n10. ten\n   4. an indented four is no step\n"
+    t0 = mk(None, {WAVE_SCRIPT: lit + clauses, f"{ROLES_DIR}/fix-review.md": role}, "clause tree", "2026-07-01T00:00:00Z")
+    got = verdict_clauses(lit + clauses, words)
+    check("verdict_clauses reads only the VERDICT_CLAUSES literal: a decoy object, a non-const name and a comment's pair are not read",
+          got == {"harness": "fix-review.md step 2", "carry-missing": "fix-review.md step 10", "conflict": None,
+                  "claims": "fix-review.md step 4", "version": "nobody.md step 5", "null-control": "fix-review.md Preamble"})
+    for why, text, taught in (("no VERDICT_CLAUSES literal", lit, words),
+                              ("a taught class with no key", lit + clauses, (*words, "other")),
+                              ("a key no class teaches", lit + clauses, words[:-1]),
+                              ("a class keyed twice", lit + clauses.replace("'conflict': null", "'harness': null, 'conflict': null"), words)):
+        try:
+            verdict_clauses(text, taught)
+            check(f"verdict_clauses refuses {why}", False)
+        except SystemExit as e:
+            check(f"verdict_clauses refuses {why}", "VERDICT_CLAUSES" in str(e))
+    rv = lambda pr: f"refs/remotes/origin/review/{pr}"
+    blocks = (("harness", 60), ("harness", 61), ("carry-missing", 60), ("conflict", 62), ("defect", 62),
+              ("claims", 63), ("version", 63), ("null-control", 63))
+    for i, (cls, pr) in enumerate(blocks):
+        verdict(rv(pr), f"verdict: #{pr} Fix review: blocked {H} {cls}: x", f"{60 + i:02d}" * 16, f"2026-07-01T{i + 1:02d}:00:00Z")
+    verdict(rv(64), f"verdict: #64 Fix review: blocked {H}", "70" * 16, "2026-07-01T12:00:00Z")
+    for i, pr in enumerate((60, 61)):
+        verdict(rv(pr), f"verdict: #{pr} Fix review: merge {H}", f"{80 + i:02d}" * 16, f"2026-07-02T0{i + 1}:00:00Z")
+
+    def run(*argv: str) -> tuple[int, str]:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                rc = main(["--repo", d, "--tree", t0, *argv])
+            except SystemExit as exc:
+                rc = exc.code
+        return rc, out.getvalue()
+
+    rc, text = run("--window", "P=2026-07-01T00:00Z..2026-07-02T00:00Z", "--window", "M=2026-07-02T00:00Z..2026-07-03T00:00Z",
+                   "--by", "clause")
+    rows = {}
+    for line in text.split("## clause\n")[-1].splitlines():
+        m = re.match(r"  (.*?)\s+([PM])\s+PRs (\d+) verdicts (\d+) real (\d+) \(\S+\) book (\d+) ", line)
+        if m:
+            rows[(m[1], m[2])] = tuple(int(x) for x in m.groups()[2:])
+    check("--by clause: the planted harness blocks count on the row of the clause the map names (2 PRs, 2 verdicts, 2 real)",
+          rc == 0 and rows.get(("fix-review.md step 2", "P")) == (2, 2, 2, 0))
+    check("--by clause: a two-digit step resolves and counts its bookkeeping block",
+          rows.get(("fix-review.md step 10", "P")) == (1, 1, 0, 1))
+    check("--by clause: a class mapped to null, an untaught word, a block naming no class and a merge each keep their own row",
+          rows.get(("(no clause) conflict", "P")) == (1, 1, 0, 1) and rows.get(("(untaught) defect", "P")) == (1, 1, 1, 0)
+          and rows.get(("(no class)", "P")) == (1, 1, 0, 1) and rows.get(("(merge)", "M")) == (2, 2, 0, 0))
+    check("--by clause: a step the role file does not number, a role file that does not exist and a section name read UNRESOLVED",
+          all(rows.get((f"UNRESOLVED {c}", "P")) == (1, 1, 0, 1) for c in
+              ("fix-review.md step 4", "nobody.md step 5", "fix-review.md Preamble"))
+          and all(f"UNRESOLVED {c} (class {w})\n" in text for c, w in
+                  (("fix-review.md step 4", "claims"), ("nobody.md step 5", "version"), ("fix-review.md Preamble", "null-control"))))
+    check("--by clause, the null control: a merges-only window prints 0 verdicts on every clause row, never a missing row",
+          all(v == (0, 0, 0, 0) for (k, w), v in rows.items() if w == "M" and k != "(merge)")
+          and sum(1 for (k, w) in rows if w == "M" and "step" in k) == 4)
+    check("--by clause crosses with another stratum (kind+clause)",
+          "local+fix-review.md step 2" in run("--window", "P=2026-07-01T00:00Z..2026-07-02T00:00Z", "--by", "kind+clause")[1])
+    t1 = mk(None, {WAVE_SCRIPT: lit}, "no clause map", "2026-07-01T00:00:00Z")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+        try:
+            rc = main(["--repo", d, "--tree", t1, "--window", "P=2026-07-01T00:00Z..2026-07-02T00:00Z", "--by", "clause"])
+        except SystemExit as exc:
+            rc = exc.code
+    check("--by clause on a tree whose wave script has no VERDICT_CLAUSES refuses, never an unread zero",
+          "no VERDICT_CLAUSES" in str(rc) and "## clause" not in out.getvalue())
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = main(["--repo", d, "--tree", t1, "--window", "P=2026-07-01T00:00Z..2026-07-02T00:00Z", "--by", "class"])
+    check("a tree with no VERDICT_CLAUSES still reads every other stratum", rc == 0 and "## class" in out.getvalue())
+    live_text = (ROOT / WAVE_SCRIPT).read_text()
+    live = verdict_classes(live_text)
+    live_rows = clause_rows(verdict_clauses(live_text, live),
+                            lambda name: (ROOT / ROLES_DIR / name).read_text() if (ROOT / ROLES_DIR / name).is_file() else None)
+    check("the live map: every taught class has one key, and every clause it names resolves in the role contract",
+          set(live_rows) == set(live) and not [r for r in live_rows.values() if r.startswith("UNRESOLVED")])
+    check("the live map: harness names fix-review.md step 2; other and conflict name no clause",
+          live_rows["harness"] == "fix-review.md step 2" and live_rows["other"] == "(no clause) other"
+          and live_rows["conflict"] == "(no clause) conflict")
 
 
 def _self_test_vocabulary(R: Path, g, verdict, check) -> None:
@@ -916,6 +1073,20 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
         "  harness                  L      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
         "  other                    E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0\n"
         "  other                    L      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        # clause: the class rows under the row the map gives each word, and route's merge row (PR 11's
+        # merge verdict naming a class is a merge here too): harness on its step, carry-missing mapped
+        # to null, the untaught mutation-survivor and the classless block each on their own row.
+        "## clause\n"
+        "  (merge)                  E      PRs 2 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/2 (0.00) first-pass 0/0\n"
+        "  (merge)                  L      PRs 8 verdicts 8 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/8 (0.00) first-pass 7/7\n"
+        "  (no class)               E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0\n"
+        "  (no class)               L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  (no clause) carry-missing E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1\n"
+        "  (no clause) carry-missing L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  (untaught) mutation-survivor E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  (untaught) mutation-survivor L      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "  fix-review.md step 2     E      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
+        "  fix-review.md step 2     L      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
         "## prior-merge\n"
         "  after-a-merge-verdict    E      PRs 2 verdicts 2 real 0 (0.00/PR) book 1 (0.50/PR) incidence 0/2 (0.00) first-pass 0/0\n"
         "  after-a-merge-verdict    L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
