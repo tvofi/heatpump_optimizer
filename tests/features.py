@@ -76113,6 +76113,78 @@ R.check(
 )
 
 
+# (s) Fix review 1 of #3662: the heat ask moves only as the scale folds the
+# draw, so its levels split the probe's rows by time, and a draw swinging on
+# its own over the window (a weather front's 64-96 cycles) read as following
+# on levels: the scale walked to 0.500 (follows) exactly as at base.
+import math as _ss_math  # noqa: E402
+
+
+def _ss_swing(n, kw, parts, seed, phase=0.0):
+    """Flat asks as ``_ss_flat``; a draw of ``kw`` x (1 + sum a sin(2 pi t / p + phase)) +-3 %."""
+    rng = _random.Random(seed)
+    out = []
+    for t in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        swing = 1 + sum(a * _ss_math.sin(2 * _ss_math.pi * t / p + phase) for a, p in parts)
+        out.append((ask, kw * swing * rng.uniform(0.97, 1.03)))
+    return out
+
+
+_ss_swings = {
+    f"{name}_s{seed}": _ss_end(_ss_feed(_ss_coord(), _ss_swing(200, 2.2, parts, seed, phase)))
+    for name, parts, phase in (
+        ("0.15_p64", [(0.15, 64)], 0.0), ("0.3_p96", [(0.3, 96)], 0.0),
+        ("mix_pi", [(0.1, 48), (0.2, 240)], _ss_math.pi),
+    )
+    for seed in (1, 2)
+}
+R.check(
+    "(s) a pump drawing 2.2 kW +-15 % over 64 cycles, +-30 % over 96, or a "
+    "daily plus five-day swing at phase pi, whatever is asked, ends at the "
+    "configured scale reading does_not_follow over 200 cycles, seeds 1-2 "
+    "(head 1134fe3655: 0.500, follows)",
+    set(_ss_swings.values()) == {(1.0, _df_acc.ASK_IGNORED, "draw_off_ask")},
+    f"{_ss_swings}",
+)
+
+
+def _ss_led_weather(true, n=400):
+    """A heat-led pump whose true scale swings +-15 % over 64 cycles (the
+    weather moving its COP), its meter +-3 %: the draw is the heat ask over it."""
+    coord = _ss_coord()
+    for t, (asked, noise) in enumerate(_ss_swing(n, 1.0, [], 3)):
+        cop = true * (1 + 0.15 * _ss_math.sin(2 * _ss_math.pi * t / 64))
+        _ss_step(coord, asked, asked * coord._cop_scale / cop * noise)
+    return _ss_end(coord)[:2]
+
+
+_ss_led_wx = {true: _ss_led_weather(true) for true in (0.68, 0.8)}
+R.check(
+    "(s) a heat-led pump whose true scale swings +-15 % over 64 cycles still "
+    "latches follows and ends within 15 % of its mean true scale (0.68 and 0.8)",
+    all(v[1] == _df_acc.ASK_FOLLOWS and abs(v[0] - t) <= 0.15 * t for t, v in _ss_led_wx.items()),
+    f"{_ss_led_wx}",
+)
+# The predicate itself (``draw_range.step_response``): 36 rows at one heat
+# ask, then 12 at an ask 27 % lower, the draw drifting 2.6 -> 1.9 kW across
+# all 48 on its own. On levels the drift reads follows; differenced, the
+# step's row carries only the drift's own increment.
+_ss_drift = [(2.6 - 0.7 * i / 47, 1.5 if i < 36 else 1.1) for i in range(48)]
+_ss_stepd = [(1.47 * h * (1.0 + 0.01 * (-1) ** i), h) for i, (_, h) in enumerate(_ss_drift)]
+_ss_flatd = [(d, 1.5) for d, _ in _ss_drift]
+R.check(
+    "(s) step_response reads a draw drifting on its own across a heat-ask "
+    "step as does_not_follow (draw_response on levels: follows), a draw "
+    "stepping with it as follows, and a flat heat ask as unobtainable",
+    (_cf_drm.draw_response(_ss_drift), _cf_drm.step_response(_ss_drift))
+    == (_df_acc.ASK_FOLLOWS, _df_acc.ASK_IGNORED)
+    and _cf_drm.step_response(_ss_stepd) == _df_acc.ASK_FOLLOWS
+    and _cf_drm.step_response(_ss_flatd) == _cf_drm.ASK_UNOBTAINABLE,
+    f"{(_cf_drm.draw_response(_ss_drift), _cf_drm.step_response(_ss_drift), _cf_drm.step_response(_ss_stepd), _cf_drm.step_response(_ss_flatd))}",
+)
+
+
 # (k) Any state but unobtainable is base's: the same rows judged with the
 # probe admissible (no measured heat) and not (measured heat) read alike,
 # and the probe stays empty -- pending (an empty window), follows and ignored.
