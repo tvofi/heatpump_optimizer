@@ -1,9 +1,0 @@
-RESULT m16-op-stuck3: SURVIVED [('orchestrator_tick.py', 0, ['orchestrator_tick self-test: 356 checks, 0 failed'])]
-RESULT m17-op-lastline: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed'])]
-       FAIL OWED handoffs opener state: a line carries the opener's newest log line for its topic and its STUCK count
-RESULT m18-op-absent-stranded: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 1 failed'])]
-       FAIL OWED handoffs opener state: null control: an all-clear bus prints no OPENER ABSENT with no state directory
-RESULT m19-ou-key-dr: SKIP pattern count 7
-RESULT m20-ou-family-dr: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 356 checks, 2 failed']), ('owed_unactioned.py', 0, ['owed_unactioned self-test: 60 checks, 0 failed'])]
-       FAIL DESIGN-REVIEW OWED: the emitted line keys in owed_unactioned on design/<g> and the tip
-       FAIL repair-discharges-line census: every owed-family kind is armed or debt, none both, none stale

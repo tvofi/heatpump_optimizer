@@ -1,0 +1,13 @@
+RESULT m6-dr-fetch-unreadable: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 368 checks, 1 failed'])]
+       FAIL DESIGN-REVIEW OWED: a failed fetch of the design refs is UNREADABLE and owes no line
+RESULT m12-ud-cp: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 368 checks, 1 failed'])]
+       FAIL UNDISPATCHED: a carries-open group whose gate is open and that has no seat ref prints the line with its age
+RESULT m16-op-stuck3: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 368 checks, 1 failed'])]
+       FAIL OWED handoffs opener state: below three failures there is no STUCK (n=1 and n=2); at three there is
+RESULT m22-ledger-arm: KILLED [('orchestrator_tick.py', 1, ["ledger_tick.Refused: 'refs/heads/design/r10-g1' matches no ledger arm (refs/heads/probe/, refs/heads/handoff-body/, refs/heads/handoff/, refs/heads/design-verdict/, refs/heads/review/, refs/heads/handoff-wip/)"]), ('ledger.py', 2, ["ledger: refused: 'refs/heads/design/x' matches no ledger arm (refs/heads/probe/, refs/heads/handoff-body/, refs/heads/handoff/, refs/heads/design-verdict/, refs/heads/review/, refs/heads/handoff-wip/)"])]
+RESULT m23-ud-wipseat: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 368 checks, 1 failed'])]
+       FAIL UNDISPATCHED: every SEAT_REFS family is a seat: a fresh ref of each alone silences its group
+RESULT m24-dr-cp: KILLED [('orchestrator_tick.py', 1, ['orchestrator_tick self-test: 368 checks, 1 failed']), ('ledger.py', 1, ["ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is no relay OWED shape"])]
+       FAIL DESIGN-REVIEW OWED: a critical-path group's line carries the CP mark, as DESIGN OWED does
+       FAIL DESIGN-REVIEW OWED carries the CP mark for a critical group, as DESIGN OWED does
+RESULT m25-dr-timeread-unreadable: KILLED [('orchestrator_tick.py', 1, ["KeyError: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'"])]
