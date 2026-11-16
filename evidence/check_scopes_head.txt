@@ -1,0 +1,29 @@
+origin/main=2c911234e1455e819d8ff6cd8e2e0d4216e6b31b head=98dd1f9ac2e4887b87a9b434a253ecc9c70be82d merge=838fa6909a850123b80dab6db940819d4197ccda (local only)
+ref=838fa6909a850123b80dab6db940819d4197ccda seats=59
+ok coverage tracked=11448 in_universe=1635 excluded=9813 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 11 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for tools/audit/seat/instruments/loop_ledger.py.md
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 is accepted and not merged at this ref
+   PARALLEL E11-GATE-REDS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-INJECTED accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-GATE-CAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INSTRUMENT-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INTAKE-BUILDER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-NULL-REVIEWER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-ROLE-CLAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-RULE-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-R-WORKFLOWS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-S-SEATS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-SCORECARD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-T-product_green_floor accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+rc=1
