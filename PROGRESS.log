@@ -3,3 +3,4 @@
 1794871082 HB alive
 1794871095 CKPT read brief, verdict 18fc037a, prior note 9edf6494 snapshot 16b3faff3448
 1794871230 CKPT pushed design de4e49ddc1 snapshot 79f1c8837422
+1794871235 DONE design/R11-PRE-NO-READ-BUILDERS at de4e49ddc1: round 5, parts C+D at base c82f014a, answers runs-json-width, d-hotfile-enumerator, branch-reuse
