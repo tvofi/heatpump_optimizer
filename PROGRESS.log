@@ -1,3 +1,4 @@
 1794849529 INIT r11-rev-3676
 1794849613 HB alive
 1794849668 CKPT packet rendered; starting CI poll and worktree snapshot fcdcc891a9cb
+1794850078 CKPT self-tests re-derived; mutants 1-4 killed; phase_hours unwired found snapshot aeb5a07e362a
