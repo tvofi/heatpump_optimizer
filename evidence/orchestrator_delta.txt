@@ -1,0 +1,33 @@
+diff --git a/dev/governance/roles/orchestrator.md b/dev/governance/roles/orchestrator.md
+index 96f8796c65..1469f9538e 100644
+--- a/dev/governance/roles/orchestrator.md
++++ b/dev/governance/roles/orchestrator.md
+@@ -105,18 +105,16 @@ whenever you merge.
+   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
+   triaged or designed, then wired into a roster group or refused
+   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
+-- **The instrument freeze, every round** (card P11): you or a seat work
+-  an instrument fault around locally by a prototype kept runnable in
+-  `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use a sweep-log line `WORKAROUND <id>
+-  onset=<UTC> cost=<min>`. Its permanent fix, as every other proposal, is entry
+-  `<id>` of the proposals file in `$HPO_STATE_DIR/r<N>/`, citing the prototype
+-  and its measured effect, never built in-round: `proposal-triage.md`
+-  rules them once at round end, duplicates merged, uses and cost summed; an
+-  ACCEPT is built at the next round's start before its finders, the rest
+-  refused with their numbers. A workaround never changes production code,
+-  loosens a gate or budget, or skips a review. Exempt: a production defect, an
+-  owner order, a red required check on main, an owner or outside item. A
+-  recommendation taken under a mandate joins the batch.
++- **The instrument freeze** (card P11): an instrument fault is worked around
++  by a local prototype runnable in `$HPO_STATE_DIR/r<N>/proto/<id>/`, each use
++  a sweep line `WORKAROUND <id> onset=<UTC> cost=<min>`. Its permanent fix is
++  proposal `<id>` in `$HPO_STATE_DIR/r<N>/`, citing the prototype and its
++  measured effect: `proposal-triage.md` rules all proposals once at round end,
++  duplicates merged, uses and cost summed; ACCEPTs are built before the next
++  round's finders, others refused with numbers. A workaround never touches
++  production code, gates, budgets or reviews. Exempt: a production defect,
++  an owner order, a red required check on main, an owner or outside item. A mandate-taken
++  recommendation joins the batch.
+ - **Establish the work is not already done or in flight.** One
+   `list_pull_requests` over the open set, and the issue's comments.
+ - **Give it the constraints that already exist**: findings carried into its
