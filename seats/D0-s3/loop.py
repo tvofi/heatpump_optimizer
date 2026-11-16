@@ -19,6 +19,7 @@ house_heat_loss_scale x1.2 and every zone's thermal mass x0.85):
   --days N runs the loop N days (multi-day; J is then summed over days, each
   day scored by its own day-start plant objective).
 
+Enumerator (D0.M6's universe, every race gap cell): loop.py --list
 Command (from the export root):
   PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py [--min-gap 0.01] [--workers 2] [--days 1] [--cells FILE]
 Perturbation: --perturb no_seeds makes the augmented arm production itself
@@ -310,5 +311,17 @@ def summarize(path, cells):
     print(f"RESULT swapins={L.swapins()}")
 
 
+def list_universe(min_gap=1e-4):
+    """D0.M6's enumerator: every race cell (grid and coordinator capture) whose
+    shipped call has a gap above the race's GAP_EPS, one per line."""
+    for line in open(os.path.join(HERE, "race_out", "cells.jsonl")):
+        d = json.loads(line)
+        if "error" not in d and d["cell_gap"] > min_gap:
+            print(d["cell"])
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--list":
+        list_universe()
+    else:
+        main()
