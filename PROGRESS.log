@@ -3,3 +3,4 @@
 1794842664 HB alive
 1794842796 CKPT base harnesses re-run at e352724335: one-tank 20.662/19.115/17.568, fields 19.88 24/72, combi 20.734/19.214/17.694 snapshot bf46a9909974
 1794842898 CKPT p1 digest committed and pushed to handoff-wip snapshot ff213dbcfc53
+1794842945 CKPT failing tests committed (a,b,d fail at base) snapshot 2697efc6b12e
