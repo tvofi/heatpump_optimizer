@@ -1,0 +1,2 @@
+register 1792054747 pages 564 null 1
+closure_slip 1.27 days per day (17.60 days later over 13.89 days of plan history after the register, 15 daily samples of 564 pages; net +14.94 days; 1 pages without a forecast; ceiling unset, undecided; round start to closure 34.3 days (forecast); 0 groups deferred out)
