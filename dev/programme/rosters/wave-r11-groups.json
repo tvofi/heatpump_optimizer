@@ -2469,9 +2469,9 @@
    "architect_note": "",
    "source": "programme",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-product-reads",
-    "commit": null,
+    "commit": "54cb7211642364d762ba47f42d5f7b8a5953f742",
     "last_step": null,
     "next_step": "designer first (decision 0014), then design review; fixer on Design review: approve; beside the finders",
     "note": "tvofi 2026-11-15 on evaluation card E11-N-INTAKE-BUILDER: New L group, design first; not finder-critical; overlap admitted (R11-PRE-OWNER-CRITERIA): R11-PRE-OWNER-CRITERIA writes owner_criteria in objective.json; this group changes only the builder it names for the product reads, at its merge",
