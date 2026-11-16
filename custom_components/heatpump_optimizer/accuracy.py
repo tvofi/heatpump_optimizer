@@ -27,7 +27,7 @@ import random
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Deque, Iterable, Sequence
+from typing import Any, Callable, Deque, Iterable, Sequence
 
 import numpy as np
 
@@ -920,7 +920,7 @@ class ScaleDither:
     not, whatever its own period, because the coin did not see it.
 
     :meth:`step` hands out the scale each next interval runs under and
-    :meth:`read` takes the row that interval produced, one cycle later.
+    :meth:`take` takes the row that interval produced, one cycle later.
     """
 
     coin: random.Random = field(default_factory=lambda: random.Random(DITHER_SEED))
@@ -972,7 +972,7 @@ class ScaleDither:
         coin, second = self.ahead
         return self.levels(base)[(coin > 0) != second]
 
-    def read(self, row: CopInterval) -> None:
+    def take(self, row: CopInterval) -> None:
         """Take the row of the interval :meth:`step` set up a cycle ago.
 
         A pair's second row adds its contrast, unless the heat asks of the
@@ -1072,7 +1072,7 @@ class ScaleProbe:
             self.base = float(row.cop_scale)
         if self.parked_at is not None:
             return ASK_PENDING
-        self.dither.read(row)
+        self.dither.take(row)
         self.response = self.dither.verdict()
         if self.response == ASK_PENDING:
             if self.dither.rows < WINDOW:
@@ -1085,12 +1085,12 @@ class ScaleProbe:
         self.dither.clear()
         return self.response
 
-    def owed_scale(self, configured: float, now: datetime, read: bool = True) -> float | None:
+    def owed_scale(self, configured: Callable[[], float], now: datetime, read: bool = True) -> float | None:
         """The COP scale the probe owes this cycle, or None: the scale stands.
 
         Called once on every cycle a scale may move (past the freeze gate),
-        ahead of the cycle's own judgement. ``configured`` is the configured
-        scale, owed where a restore is due; a restore that re-seeds a pending
+        ahead of the cycle's own judgement. ``configured`` reads the configured
+        scale, called only where a restore is due; a restore that re-seeds a pending
         probe makes it the probe's ``base``. Then, in order: a scale owed
         once (``owed``); nothing where no probe runs; ``base`` while the
         probe is parked, which re-arms once ``COP_HOLD_HORIZON_S`` has passed
@@ -1107,13 +1107,14 @@ class ScaleProbe:
         self.level = want
         return want if self.moved else None
 
-    def _owed(self, configured: float, now: datetime, live: bool) -> float | None:
+    def _owed(self, configured: Callable[[], float], now: datetime, live: bool) -> float | None:
         """:meth:`owed_scale`'s rule: the scale the probe wants in force, or None."""
         if self.restore_due:
             self.restore_due, self.owed, self.level = False, None, None
+            scale = float(np.clip(configured(), COP_SCALE_MIN, COP_SCALE_MAX))
             if self.response == ASK_PENDING:
-                self.base = float(np.clip(configured, COP_SCALE_MIN, COP_SCALE_MAX))
-            return configured
+                self.base = scale
+            return scale
         if self.owed is not None:
             want, self.owed, self.level = self.owed, None, None
             return want
@@ -1250,7 +1251,7 @@ class MeasuredCop:
         install measures no heat (``probe_install(...).measured_heat``)."""
         return state == ASK_UNOBTAINABLE and draw is not None and not measured_heat
 
-    def owed_scale(self, configured: float, now: datetime) -> float | None:
+    def owed_scale(self, configured: Callable[[], float], now: datetime) -> float | None:
         """The COP scale ``probe`` owes this cycle, or None (``ScaleProbe.owed_scale``).
         A frozen or unread cycle since the last one (``refusal``) read no interval."""
         return self.probe.owed_scale(configured, now, self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))

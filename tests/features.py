@@ -76385,7 +76385,7 @@ _ss_s_seen = []
 for _ss_s_round in range(2):
     for _ss_s_try in range(2):
         _ss_s_rec.judge_ratio(1.0, _cf_row(1.5, 1.5, scale=0.5), _cf_both, _ss_s_unob)
-        _ss_s_owed = _ss_s_rec.owed_scale(0.9, _df_hour)
+        _ss_s_owed = _ss_s_rec.owed_scale(lambda: 0.9, _df_hour)
         _ss_s_seen.append((_ss_s_rec.probe.dither.rows, _ss_s_rec.probe.base, None if _ss_s_owed is None else round(_ss_s_owed, 4)))
     _ss_s_rec.release(_cf_window(_cf_lit48), _cf_both, _df_hour)  # a reset
 R.check(
@@ -76465,7 +76465,7 @@ def _ss_cycle(rec, scale, asked, drawn, at, window=None, configured=1.0):
     row = _cf_row(asked, drawn, scale=scale, at=at)
     window = _ss_unob if window is None else window
     rec.folded = getattr(rec, "folded", []) + [len(rec.release(window, _cf_both, at))]
-    owed = rec.owed_scale(configured, at)
+    owed = rec.owed_scale(lambda: configured, at)
     rec.refusal = rec.judge_ratio(row.ratio, row, _cf_both, window)
     return scale if owed is None else owed
 
@@ -76589,15 +76589,15 @@ _ss_b_gap = [
 ]
 
 
-def _ss_floor_gap(n):
-    """As ``_ss_bare`` on a follower, every third cycle refused ahead of the
+def _ss_floor_gap(n, every=3):
+    """As ``_ss_bare`` on a follower, every third (``every``) cycle refused ahead of the
     judgement (the duty floor's place): the release and the owed scale run, no row is read."""
     rec, scale, seen = _cf_MC(), 1.0, []
     for tick in range(n):
         at = _CF_T0 + _cf_td(minutes=30 * tick)
-        if tick % 3 == 2:
+        if tick % every == every - 1:
             rec.release(_ss_unob, _cf_both, at)
-            owed = rec.owed_scale(1.0, at)
+            owed = rec.owed_scale(lambda: 1.0, at)
             scale, rec.refusal = scale if owed is None else owed, "duty_floor"
         else:
             scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, at)
@@ -76619,6 +76619,17 @@ R.check(
     and {_ss_b_gap[2][1][t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724}
     and all({o[t][0] for t in range(2, 150, 3)} <= {0.9325, 1.0724} for _r, o in _ss_b_gap[:2]),
     f"{_ss_b_gap_end}; {[o[:9] for _r, o in _ss_b_gap]}",
+)
+# Three admitted rows then a floor refusal: the pair's first row is read, its
+# second is not, and the row after the gap ran at the next pair's level -- half
+# the time a full step from the first. It must not complete that pair.
+_ss_b_gap4 = _ss_floor_gap(400, every=4)[0]
+R.check(
+    "a pair whose second row was refused is void, not stretched to the row "
+    "after the gap: three admitted rows then a floor refusal, over 400 "
+    "cycles, completes no pair on 300 rows",
+    (len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows) == (0, "pending", 300),
+    f"{(len(_ss_b_gap4.probe.dither.contrasts), _ss_b_gap4.scale_response, _ss_b_gap4.probe.dither.rows)}",
 )
 
 

@@ -5328,7 +5328,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4).
         for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
-        if (owed := self._measured_cop.owed_scale(ctx._config.cop_scale, dt_util.now())) is not None:
+        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
             self._apply_cop_scale(owed)
         if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
             return refusal
