@@ -548,6 +548,13 @@ jobs:
         id: owner-only-channel
         if: steps.scope.outputs.owner-only-channel == 'true'
         run: python3 -I dev/audit/harnesses/owner_only_channel.py
+      # The convergence record's loop ledger (R11-PRE-ROUND-METRICS part 2; cards
+      # P7 and L1): escapes by found_by and owning dimension, injected, refix and
+      # the countermeasure loop per round and week; a partial ledger reads unread.
+      - name: Show the loop ledger reading unread on an empty or partial ledger and each read on a recorded one
+        id: loop-ledger
+        if: steps.scope.outputs.loop-ledger == 'true'
+        run: python3 -I tools/audit/seat/loop_ledger.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
