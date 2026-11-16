@@ -37,7 +37,7 @@
   "cells": 15,
   "min": 0.5401,
   "max": 0.5687,
-  "drop_most_favourable": 0.556
+  "drop_most_favourable": 0.5585
  },
  "reproduction_steps": [
   "Run the harness (about 1 min); read the CELL lines' gain_recovery_mean and scale_bias_genuine_mean per noise arm",

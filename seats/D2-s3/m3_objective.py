@@ -133,6 +133,7 @@ def main():
             if errs:
                 grad_rows.append((name, max(errs), float(np.median(errs))))
                 print(f"CELL gradient-fd golden={name} relerr_max={max(errs):.3e} relerr_median={np.median(errs):.3e} "
+                      f"per_point=[{','.join(f'{e:.1e}' for e in errs)}] (point 0 = the solve's start x0) "
                       f"worst_step={worst_i[0]} |dg|={worst_i[1]:.3e} g_central={worst_i[2]:.4g} g_solver={worst_i[3]:.4g}")
         sys.stdout.flush()
 

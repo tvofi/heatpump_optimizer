@@ -103,3 +103,57 @@ CELL gradient-fd golden=valve_storage_low_target relerr_max=9.791e-01 relerr_med
 CELL predicted-cost-sum golden=valve_storage_flat_prices err=0.000e+00 predicted=75.302075 raw_sum=75.302075 published_price_dev=0 baseline_err=0.000e+00
 CELL penalty-scaling golden=valve_storage_flat_prices scaling_err=1.000e-15
 CELL gradient-fd golden=valve_storage_flat_prices relerr_max=1.266e+00 relerr_median=6.912e-07 worst_step=52 |dg|=2.094e-01 g_central=-0.1825 g_solver=0.02688
+CELL predicted-cost-sum golden=valve_storage_small_tank err=0.000e+00 predicted=54.471538 raw_sum=54.471538 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_small_tank scaling_err=1.459e-15
+CELL gradient-fd golden=valve_storage_small_tank relerr_max=2.642e-01 relerr_median=2.451e-07 worst_step=38 |dg|=4.229e-01 g_central=-0.6302 g_solver=-0.2073
+CELL predicted-cost-sum golden=valve_storage_smart_write err=0.000e+00 predicted=45.421033 raw_sum=45.421033 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_storage_smart_write scaling_err=9.849e-16
+CELL gradient-fd golden=valve_storage_smart_write relerr_max=1.192e+00 relerr_median=8.683e-08 worst_step=84 |dg|=4.643e-01 g_central=-0.4241 g_solver=0.04017
+CELL predicted-cost-sum golden=wood_two_tank err=0.000e+00 predicted=32.336977 raw_sum=32.336977 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_two_tank scaling_err=5.848e-16
+CELL gradient-fd golden=wood_two_tank relerr_max=7.219e-01 relerr_median=1.209e-07 worst_step=80 |dg|=2.923e-01 g_central=-0.3592 g_solver=-0.06695
+CELL predicted-cost-sum golden=wood_two_tank_smart_write err=0.000e+00 predicted=25.130073 raw_sum=25.130073 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_two_tank_smart_write scaling_err=6.206e-16
+CELL gradient-fd golden=wood_two_tank_smart_write relerr_max=6.232e-01 relerr_median=5.543e-08 worst_step=92 |dg|=2.589e-01 g_central=-0.3807 g_solver=-0.1218
+CELL predicted-cost-sum golden=wood_coil err=0.000e+00 predicted=38.375283 raw_sum=38.375283 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=wood_coil scaling_err=1.540e-15
+CELL gradient-fd golden=wood_coil relerr_max=6.081e-01 relerr_median=1.462e-07 worst_step=80 |dg|=3.274e-01 g_central=-0.4041 g_solver=-0.07675
+CELL predicted-cost-sum golden=valve_upper_direct_slab err=0.000e+00 predicted=38.952140 raw_sum=38.952140 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=valve_upper_direct_slab scaling_err=9.909e-16
+CELL gradient-fd golden=valve_upper_direct_slab relerr_max=1.170e+00 relerr_median=1.525e-07 worst_step=80 |dg|=3.440e-01 g_central=-0.3039 g_solver=0.04015
+CELL predicted-cost-sum golden=tariff_plus_two_zone err=0.000e+00 predicted=80.449606 raw_sum=80.449606 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=tariff_plus_two_zone scaling_err=8.276e-16
+CELL gradient-fd golden=tariff_plus_two_zone relerr_max=3.329e-06 relerr_median=2.053e-07 worst_step=48 |dg|=8.565e-05 g_central=-24 g_solver=-24
+CELL predicted-cost-sum golden=everything_on err=0.000e+00 predicted=57.851215 raw_sum=57.851215 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=everything_on scaling_err=1.493e-15
+CELL gradient-fd golden=everything_on relerr_max=1.009e+00 relerr_median=3.431e-06 worst_step=4 |dg|=1.854e+00 g_central=1.831 g_solver=3.685
+CELL predicted-cost-sum golden=peak_masked err=0.000e+00 predicted=42.499598 raw_sum=42.499598 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=peak_masked scaling_err=6.077e-16
+CELL gradient-fd golden=peak_masked relerr_max=1.149e+00 relerr_median=1.010e-07 worst_step=85 |dg|=3.538e-01 g_central=-0.3252 g_solver=0.02859
+CELL predicted-cost-sum golden=price_risk err=9.204e-01 predicted=42.398249 raw_sum=41.477818 published_price_dev=0.5 baseline_err=1.338e+01
+CELL penalty-scaling golden=price_risk scaling_err=1.038e-15
+CELL gradient-fd golden=price_risk relerr_max=1.020e+00 relerr_median=8.735e-08 worst_step=87 |dg|=3.219e-01 g_central=-0.2376 g_solver=0.08432
+CELL predicted-cost-sum golden=fuse_guard err=0.000e+00 predicted=45.099396 raw_sum=45.099396 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=fuse_guard scaling_err=5.866e-16
+CELL gradient-fd golden=fuse_guard relerr_max=1.276e+00 relerr_median=1.683e-07 worst_step=79 |dg|=3.364e-01 g_central=0.03065 g_solver=0.3671
+CELL predicted-cost-sum golden=capacity_curve err=0.000e+00 predicted=39.795787 raw_sum=39.795787 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=capacity_curve scaling_err=2.245e-16
+CELL gradient-fd golden=capacity_curve relerr_max=4.226e-01 relerr_median=1.610e-07 worst_step=61 |dg|=1.142e-01 g_central=-0.2061 g_solver=-0.0919
+CELL predicted-cost-sum golden=precip_snow err=0.000e+00 predicted=16.930687 raw_sum=16.930687 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=precip_snow scaling_err=5.551e-16
+CELL gradient-fd golden=precip_snow relerr_max=2.968e-03 relerr_median=8.005e-07 worst_step=15 |dg|=3.359e-04 g_central=251.7 g_solver=251.7
+CELL predicted-cost-sum golden=confidence_margins err=0.000e+00 predicted=64.042305 raw_sum=64.042305 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=confidence_margins scaling_err=1.200e-15
+CELL gradient-fd golden=confidence_margins relerr_max=7.674e-06 relerr_median=6.543e-07 worst_step=54 |dg|=3.111e-05 g_central=-2.657 g_solver=-2.657
+CELL predicted-cost-sum golden=direct_flow_carnot err=0.000e+00 predicted=105.090000 raw_sum=105.090000 published_price_dev=0 baseline_err=0.000e+00
+CELL penalty-scaling golden=direct_flow_carnot scaling_err=2.941e-16
+CELL gradient-fd golden=direct_flow_carnot relerr_max=2.233e-07 relerr_median=2.218e-07 worst_step=11 |dg|=2.616e-04 g_central=-991.6 g_solver=-991.6
+RESULT cost_sum_mismatches=1 count
+RESULT cells=50 count
+RESULT scaling_err_max=1.804e-15 ratio
+RESULT grad_relerr_max=1.828e+00 ratio (golden=extreme_prices)
+RESULT grad_relerr_median_of_medians=1.595e-07 ratio
+RESULT thread_factor=1.0000
+RESULT load1=5.70
+RESULT swapins=0
+EXIT 0
