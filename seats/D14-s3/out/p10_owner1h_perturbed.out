@@ -1,0 +1,11 @@
+arm owner-1h: cycles=2 cycle_offenders=0 worker=3066 loop=0 executor=0
+  reached in worker: ['coordinator.py:_async_learn_house_heat_loss', 'coordinator.py:_async_learn_interval', 'coordinator.py:_async_learn_lower_floor_loss', 'coordinator.py:_replay_fabric', 'coordinator.py:_replay_interval']
+RESULT owner-1h_loop=0 count
+RESULT owner-1h_executor=0 count
+RESULT owner-1h_worker=3066 count
+RESULT loop_kernels_total=0 count
+RESULT executor_kernels_total=0 count
+RESULT wall_s=261.0 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.94
+RESULT swapins=0
