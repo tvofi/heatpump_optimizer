@@ -45,3 +45,4 @@
 1794862970 HB alive
 1794863575 HB alive
 1794864180 HB alive
+1794864234 CKPT code handed off at e1fa50dd75 (prepr rc=0); body_push REFUSED BODY-LINT (figure-block base mismatch between body_push and prepr); BLOCKED.md at ca1d3940f7 snapshot 66b4155d9e57
