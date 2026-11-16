@@ -209,6 +209,7 @@ BRIEF_CAP = 5
 HEARTBEAT_SECONDS = 480
 CI_BUDGETS = "tests/ci_budgets.json"
 BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
+ANSI_ESC = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
 UNBLOCKABLE_STAGES = (None, "", "not-started")
@@ -2077,6 +2078,10 @@ class Tick:
                 except ValueError:
                     pass
         blob = summary + "\n" + text
+        if cid and not blob.strip():  # P541: an Actions job publishes no output; its log holds the error line
+            log = mt.job_log(lambda argv: self.gh(argv[1:]), self.repo, cid)  # mut:redlog
+            blob = ANSI_ESC.sub("", log or "")
+            summary = ""
         err = next((l.strip() for l in blob.splitlines() if ERR_LINE.search(l)),
                    (summary or text or "no error line read"))[:160]
         if re.search(r"closures\.json|UNDER-SCOPED|closure", blob, re.I):
@@ -4802,7 +4807,8 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure", cid=424242))
               + "\n" + json.dumps(run_obj("record-autofix",
-                                           conclusion="failure", cid=424243)))
+                                           conclusion="failure", cid=424243))
+              + "\n" + json.dumps(run_obj("closures", conclusion="failure", cid=424245)))
         # the stub answers what `gh api --jq .output` returns: the output
         # object itself, not the response body
         gh.on("check-runs/424242", out=json.dumps(
@@ -4812,6 +4818,10 @@ def self_test() -> int:
         gh.on("check-runs/424243", out=json.dumps(
             {"summary": "skip-failed-recording: no bot commit is coming",
              "text": ""}))
+        # an Actions job publishes no check-run output: the output object is all null, the job's log holds the line
+        gh.on("check-runs/424245", out=json.dumps({"title": None, "summary": None, "text": None}))
+        gh.on("actions/jobs/424245/logs",
+              out="\x1b[36;1mrun gate\x1b[0m\nstep ok\n\x1b[31;1mERROR: closure drift in tests/closures.json\x1b[0m\nafter\n")
         gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
         t = Tick("o/r", str(version), gh=gh, git=Stub(),
@@ -4822,7 +4832,13 @@ def self_test() -> int:
                   or l["text"].startswith("main-red ")]
         tests_brief = next((b for b in briefs if "main-red tests" in b), "")
         bot_brief = next((b for b in briefs if "record-autofix" in b), "")
+        log_brief = next((b for b in briefs if "main-red closures" in b), "")
         a, f = check("main-red briefs", [
+            ("P541: a check-run with null output quotes the error line of the job's log, escapes stripped",
+             'error line: "ERROR: closure drift in tests/closures.json"' in log_brief and "\x1b" not in log_brief),
+            ("P541 null control: a check-run with its own output makes no log read",
+             not any("actions/jobs/424242/logs" in " ".join(c) for c in gh.calls)
+             and any("actions/jobs/424245/logs" in " ".join(c) for c in gh.calls)),
             ("required-lane brief has the four fields",
              all(k in tests_brief for k in
                  ("main-red tests", "job 424242", "error line:",
