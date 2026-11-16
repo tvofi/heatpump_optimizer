@@ -8,3 +8,4 @@
 1794853491 CKPT cadence committed 411d996; specs all KILLED; running prepr snapshot b11482b894c4
 1794853619 HB alive
 1794854212 CKPT code pushed 411d996; body_push refused figure-block base mismatch; BLOCKED.md pushed 08154d5 snapshot 8ca2343b124e
+1794854217 DONE blocked: body_push figure-block base mismatch; code 411d996 on handoff/, prepr rc=0; BLOCKED.md at handoff-wip 08154d5
