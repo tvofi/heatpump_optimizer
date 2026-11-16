@@ -76246,7 +76246,7 @@ def _ss_twin(window, rows, ewma=1.0):
         rec = _cf_MC()
         got = [rec.judge_ratio(ewma, r, _cf_both, window, measured_heat=heat) for r in rows]
         got.append([x.drawn_kw for x in rec.release(window, _cf_both, _df_hour, measured_heat=heat)])
-        out.append((got, rec.probe.rows, rec.base, rec.scale_response))
+        out.append((got, rec.probe.dither.rows, rec.probe.base, rec.scale_response))
     return out
 
 
@@ -76271,7 +76271,7 @@ _ss_flat_rows = [_cf_row(a, d) for a, d in _ss_flat(60, 2.2)]
 def _ss_base_rule(window, heat):
     rec = _cf_MC()
     got = [rec.judge_ratio(1.47, r, _cf_both, window, measured_heat=heat) for r in _ss_flat_rows]
-    return got, rec.probe.rows, rec.base, rec.scale_response
+    return got, rec.probe.dither.rows, rec.probe.base, rec.scale_response
 
 
 R.check(
@@ -76287,26 +76287,26 @@ _ss_heat = _ss_feed(_ss_coord(heat_pump_thermal_power_entity="sensor.heat"), _ss
 R.check(
     "(l) an install with a thermal power entity reading no heat probes "
     "nothing: 672 flat cycles read no_heat_reading and the verdict stays pending",
-    (_ss_heat._measured_cop.probe.rows, _ss_heat._measured_cop.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, "refusal"))
+    (_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, "refusal"))
     == (0, None, "pending", "no_heat_reading") and _ss_heat._cop_scale == 1.0,
-    f"{(_ss_heat._measured_cop.probe.rows, _ss_heat._measured_cop.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, 'refusal'))}",
+    f"{(_ss_heat._measured_cop.probe.dither.rows, _ss_heat._measured_cop.probe.base, _ss_heat._measured_cop.scale_response, _cf_last(_ss_heat, 'refusal'))}",
 )
 # (o) The restore moves the scale only on an unfrozen cycle: stopped on the
 # cycle judge_ratio latched ignored, the scale is still a dither level and the
 # restore is due; a frozen cycle leaves both; the next live one restores.
 _ss_o = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
-_ss_o_latched = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.restore_due)
+_ss_o_latched = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due)
 _ss_o_live = _ss_o._learning_frozen
 _ss_o._learning_frozen = lambda *entities, **_kw: "stale_inputs"
 _ss_step(_ss_o, 1.5, 2.2)
-_ss_o_frozen = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.restore_due, _cf_last(_ss_o, "refusal"))
+_ss_o_frozen = (round(_ss_o._cop_scale, 4) in (0.9325, 1.0724), _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal"))
 _ss_o._learning_frozen = _ss_o_live
 _ss_step(_ss_o, 1.5, 2.2)
 R.check(
     "(o) a latched ignored restores the configured scale on the next unfrozen "
     "cycle only: a frozen cycle keeps the dither level and the restore due",
     _ss_o_latched == (True, True) and _ss_o_frozen == (True, True, "learners_frozen")
-    and (_ss_o._cop_scale, _ss_o._measured_cop.restore_due, _cf_last(_ss_o, "refusal")) == (1.0, False, "draw_off_ask"),
+    and (_ss_o._cop_scale, _ss_o._measured_cop.probe.restore_due, _cf_last(_ss_o, "refusal")) == (1.0, False, "draw_off_ask"),
     f"latched {_ss_o_latched}; frozen {_ss_o_frozen}; live {_ss_end(_ss_o)}",
 )
 # (p) A verdict leaves only by a reset, and a reload keeps it; a reload
@@ -76315,7 +76315,7 @@ R.check(
 _ss_p = _ss_feed(_ss_coord(), _ss_flat(672, 2.2), until=_df_acc.ASK_IGNORED)
 _ss_p_walked = round(_ss_p._cop_scale, 4)
 _ss_p._measured_cop = _cf_MC.from_dict(_ss_p._measured_cop.as_dict())
-_ss_p_loaded = (_ss_p._measured_cop.scale_response, _ss_p._measured_cop.restore_due)
+_ss_p_loaded = (_ss_p._measured_cop.scale_response, _ss_p._measured_cop.probe.restore_due)
 _ss_step(_ss_p, 1.5, 2.2)
 R.check(
     "(p) a reload between the latch and the next cycle keeps ignored and the "
@@ -76335,10 +76335,10 @@ R.check(
     "reloads as follows with no restore; a reset by a window with evidence "
     "clears the verdict and the probe, and a restore already due is still paid",
     _ss_p_kept == (1.0, _df_acc.ASK_IGNORED, "draw_off_ask")
-    and (_ss_follows.scale_response, _ss_follows.restore_due) == (_df_acc.ASK_FOLLOWS, False)
-    and (_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.rows) == (1.0, "pending", 0),
-    f"kept {_ss_p_kept}; follows {(_ss_follows.scale_response, _ss_follows.restore_due)}; reset "
-    f"{(_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.rows)}",
+    and (_ss_follows.scale_response, _ss_follows.probe.restore_due) == (_df_acc.ASK_FOLLOWS, False)
+    and (_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows) == (1.0, "pending", 0),
+    f"kept {_ss_p_kept}; follows {(_ss_follows.scale_response, _ss_follows.probe.restore_due)}; reset "
+    f"{(_ss_r._cop_scale, _ss_r._measured_cop.scale_response, _ss_r._measured_cop.probe.dither.rows)}",
 )
 # (q) An unreadable stored verdict keeps the measured COP; a stored verdict
 # on a record with no COP (every admitted install: it measures no heat) loads.
@@ -76348,9 +76348,9 @@ _ss_q_none = _cf_MC.from_dict({"cop": None, "curve_dhw": False, "dhw_temp": None
 R.check(
     "(q) an unreadable or absent stored verdict loads pending beside the "
     "measured COP; a verdict beside no COP loads, its restore due",
-    [(q.cop, q.scale_response, q.restore_due) for q in _ss_q] == [(3.1, "pending", False)] * 5
+    [(q.cop, q.scale_response, q.probe.restore_due) for q in _ss_q] == [(3.1, "pending", False)] * 5
     and _cf_MC.from_dict(_ss_q_rec).scale_response == "pending"
-    and (_ss_q_none.cop, _ss_q_none.scale_response, _ss_q_none.restore_due) == (None, "does_not_follow", True),
+    and (_ss_q_none.cop, _ss_q_none.scale_response, _ss_q_none.probe.restore_due) == (None, "does_not_follow", True),
     f"{[(q.cop, q.scale_response) for q in _ss_q]} / {(_ss_q_none.cop, _ss_q_none.scale_response)}",
 )
 # (r) A pending row aged out by base's rule seeds nothing: the reset reads the
@@ -76360,8 +76360,8 @@ _ss_r_rec.held.extend([_cf_row(2.0, 2.6)] * 3)
 _ss_r_out = _ss_r_rec.release(_cf_drm.DrawRange(), _cf_both, _CF_T0 + _cf_td(days=8))
 R.check(
     "(r) rows aged out of a pending hold leave by base's rule and seed no probe row",
-    (len(_ss_r_out), _ss_r_rec.probe.rows, _ss_r_rec.base, _ss_r_rec.scale_response) == (0, 0, None, "pending"),
-    f"{(len(_ss_r_out), _ss_r_rec.probe.rows, _ss_r_rec.base, _ss_r_rec.scale_response)}",
+    (len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response) == (0, 0, None, "pending"),
+    f"{(len(_ss_r_out), _ss_r_rec.probe.dither.rows, _ss_r_rec.probe.base, _ss_r_rec.scale_response)}",
 )
 # (s) Remedy A (tvofi, 2026-11-16): a probe whose first row was read at a
 # clamp re-seeds from the configured scale, once per reset. A heat-led pump of
@@ -76374,7 +76374,7 @@ for _ss_s_round in range(2):
     for _ss_s_try in range(2):
         _ss_s_rec.judge_ratio(1.0, _cf_row(1.5, 1.5, scale=0.5), _cf_both, _ss_s_unob)
         _ss_s_owed = _ss_s_rec.owed_scale(0.9, _df_hour)
-        _ss_s_seen.append((_ss_s_rec.probe.rows, _ss_s_rec.base, None if _ss_s_owed is None else round(_ss_s_owed, 4)))
+        _ss_s_seen.append((_ss_s_rec.probe.dither.rows, _ss_s_rec.probe.base, None if _ss_s_owed is None else round(_ss_s_owed, 4)))
     _ss_s_rec.release(_cf_window(_cf_lit48), _cf_both, _df_hour)  # a reset
 R.check(
     "(s) a probe whose first row is read at the clamp owes the configured "
@@ -76389,7 +76389,7 @@ R.check(
 # row folds under follows, none under ignored, and none while it is pending
 # (owner decision 2: a row held before the probe is dropped, not folded).
 def _ss_release(response):
-    rec = _cf_MC(scale_response=response)
+    rec = _cf_MC(probe=_df_acc.ScaleProbe(response=response))
     rec.held.extend([_cf_row(5.0, 6.0), _cf_row(2.0, 2.6)])
     return [r.drawn_kw for r in rec.release(_ss_unob, _cf_both, _df_hour)], len(rec.held)
 
@@ -76511,7 +76511,7 @@ R.check(
 )
 # The contrast is signed by the coin: a draw answering the scale backwards
 # (drawn over the scale) reads -1 a pair, never follows.
-_ss_b_signs = [[round(c, 9) for c in _ss_bare(pump, 49)[0].probe.contrasts] for pump in (_ss_anti, _ss_led_pump(0.8))]
+_ss_b_signs = [[round(c, 9) for c in _ss_bare(pump, 49)[0].probe.dither.contrasts] for pump in (_ss_anti, _ss_led_pump(0.8))]
 R.check(
     "a draw moving against the scale reads does_not_follow at the 50th row; "
     "its 23 contrasts by the 49th were each -1, the follower's each +1",
@@ -76522,10 +76522,10 @@ R.check(
 # flat: no pair shows a step, every pair is void, and the probe stays pending
 # (design verdict item 1b98ae3f) until the cap parks it.
 _ss_b_rep, _ss_b_rep_out = _ss_bare(_ss_repriced, 335)
-_ss_b_rep_335 = (_ss_b_rep.probe.rows, len(_ss_b_rep.probe.contrasts), _ss_b_rep.parked_at, _ss_b_rep.scale_response)
+_ss_b_rep_335 = (_ss_b_rep.probe.dither.rows, len(_ss_b_rep.probe.dither.contrasts), _ss_b_rep.probe.parked_at, _ss_b_rep.scale_response)
 _ss_b_rep_lvl = _ss_bare(_ss_repriced, 1, rec=_ss_b_rep, scale=_ss_b_rep_out[-1][0], t0=335)[1][0][0]
 _ss_b_park_at = _CF_T0 + _cf_td(minutes=30 * 335)
-_ss_b_rep_336 = (_ss_b_rep.probe.rows, _ss_b_rep.parked_at == _ss_b_park_at, _ss_b_rep.scale_response, _ss_b_rep.base)
+_ss_b_rep_336 = (_ss_b_rep.probe.dither.rows, _ss_b_rep.probe.parked_at == _ss_b_park_at, _ss_b_rep.scale_response, _ss_b_rep.probe.base)
 _ss_b_parked = _ss_bare(_ss_repriced, 40, rec=_ss_b_rep, scale=_ss_b_rep_lvl, t0=336)[1]
 R.check(
     "a re-priced plan (the heat ask flat under the dither) builds no contrast "
@@ -76533,7 +76533,7 @@ R.check(
     "336th parks it: the next cycle returns to the base and stays there, "
     "pending, reading nothing and folding nothing",
     _ss_b_rep_335 == (335, 0, None, "pending") and _ss_b_rep_336 == (0, True, "pending", 1.0)
-    and _ss_b_rep_lvl in (0.9325, 1.0724) and set(_ss_b_parked) == {(1.0, "pending", _cf_NOEV)} and _ss_b_rep.probe.rows == 0,
+    and _ss_b_rep_lvl in (0.9325, 1.0724) and set(_ss_b_parked) == {(1.0, "pending", _cf_NOEV)} and _ss_b_rep.probe.dither.rows == 0,
     f"335: {_ss_b_rep_335}; 336: {_ss_b_rep_336} at {_ss_b_rep_lvl}; parked {sorted(set(_ss_b_parked))}",
 )
 
@@ -76542,11 +76542,11 @@ def _ss_rearm(after):
     """A probe parked at ``_CF_T0`` under a follower, 6 cycles from ``after``
     later: whether it is still parked, the rows read, the first cycle's scale,
     and whether the dither ran from the third."""
-    rec, scale, seen = _cf_MC(base=1.0, parked_at=_CF_T0, level=1.0), 1.0, []
+    rec, scale, seen = _cf_MC(probe=_df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)), 1.0, []
     for tick in range(6):
         scale = _ss_cycle(rec, scale, 1.5, 1.5 * scale / 0.8, _CF_T0 + after + _cf_td(minutes=30 * tick))
         seen.append(round(scale, 4))
-    return rec.parked_at is not None, rec.probe.rows, seen[0], set(seen[2:]) <= {0.9325, 1.0724}
+    return rec.probe.parked_at is not None, rec.probe.dither.rows, seen[0], set(seen[2:]) <= {0.9325, 1.0724}
 
 
 _ss_rearm_at = (_cf_td(days=7) - _cf_td(hours=3), _cf_td(days=7, seconds=1) - _cf_td(hours=2.5), _cf_td(days=7, seconds=1), -_cf_td(hours=1))
@@ -76586,7 +76586,7 @@ def _ss_floor_gap(n):
 
 
 _ss_b_gap.append(_ss_floor_gap(150))
-_ss_b_gap_end = [(len(rec.probe.contrasts), rec.scale_response, rec.probe.rows) for rec, _o in _ss_b_gap]
+_ss_b_gap_end = [(len(rec.probe.dither.contrasts), rec.scale_response, rec.probe.dither.rows) for rec, _o in _ss_b_gap]
 R.check(
     "two admitted rows then a frozen cycle, an unread one, or one refused "
     "under the duty floor, repeated over 150 cycles: no pair completes and "
@@ -76655,7 +76655,7 @@ def _ss_reload(lose):
     after = round(coord._cop_scale, 4)
     for _ in range(5):  # the reload dropped the walking ratio: the tracking gate admits a row again within five
         _ss_step(coord, 1.5, 1.5 * coord._cop_scale / 0.8)
-    return level, stored.get("scale_base"), after, coord._measured_cop.base, coord._measured_cop.scale_response
+    return level, stored.get("scale_base"), after, coord._measured_cop.probe.base, coord._measured_cop.scale_response
 
 
 R.check(
@@ -76668,7 +76668,7 @@ R.check(
     f"{_ss_reload(False)} / lost {_ss_reload(True)}",
 )
 _ss_q_base = [
-    _cf_MC.from_dict({"cop": None, "scale_response": r, "scale_base": b}).base
+    _cf_MC.from_dict({"cop": None, "scale_response": r, "scale_base": b}).probe.base
     for r, b in (("pending", 0.9), ("pending", 0.5), ("pending", 1.6), (None, 0.9), ("pending", 0.49), ("pending", 1.61),
                  ("pending", "x"), ("pending", True), ("pending", float("nan")), ("pending", None),
                  ("follows", 0.9), ("does_not_follow", 0.9))
@@ -76677,9 +76677,9 @@ R.check(
     "a stored base loads beside a pending or absent verdict where the clamps "
     "admit it (0.5 and 1.6 included); out of them, unreadable, or beside a "
     "latched verdict, none loads; a record that is no mapping loads none",
-    _ss_q_base == [0.9, 0.5, 1.6, 0.9] + [None] * 8 and _cf_MC.from_dict(None).base is None
+    _ss_q_base == [0.9, 0.5, 1.6, 0.9] + [None] * 8 and _cf_MC.from_dict(None).probe.base is None
     and _cf_MC.from_dict({"cop": 3.1, "curve_dhw": False, "dhw_temp": None, "at": None, "scale_base": 0.9}).cop == 3.1
-    and _cf_MC(base=0.9).as_dict()["scale_base"] == 0.9 and _cf_MC().as_dict()["scale_base"] is None,
+    and _cf_MC(probe=_df_acc.ScaleProbe(base=0.9)).as_dict()["scale_base"] == 0.9 and _cf_MC().as_dict()["scale_base"] is None,
     f"{_ss_q_base}",
 )
 # Mid-probe cycles that admit no row (design verdict items 76b936b7, 5bb6a355).
@@ -76690,7 +76690,7 @@ def _ss_mid():
 
 
 def _ss_seen(coord):
-    return round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response, coord._measured_cop.base, _cf_last(coord, "refusal")
+    return round(coord._cop_scale, 4), coord._cop_samples, coord._measured_cop.scale_response, coord._measured_cop.probe.base, _cf_last(coord, "refusal")
 
 
 # Pump off: the ask and the draw under the duty floor, three cycles running.
@@ -76793,15 +76793,15 @@ R.check(
 # scale its heat-measured folds left, here 0.7, through a cycle with no reading.
 _ss_gain = _ss_coord(scale0=0.7, heat_pump_thermal_power_entity="sensor.heat")
 _ss_gain._measured_cop = _cf_MC.from_dict({"cop": None, "scale_response": "does_not_follow"})
-_ss_gain_loaded = _ss_gain._measured_cop.restore_due
+_ss_gain_loaded = _ss_gain._measured_cop.probe.restore_due
 _ss_step(_ss_gain, 1.5, 2.2, window=_ss_unob)
 R.check(
     "measured heat drops a restore a stored does_not_follow made due: the "
     "scale stays 0.7, and the verdict resets",
     _ss_gain_loaded is True
-    and (round(_ss_gain._cop_scale, 3), _ss_gain._measured_cop.restore_due, _ss_gain._measured_cop.scale_response)
+    and (round(_ss_gain._cop_scale, 3), _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)
     == (0.7, False, "pending"),
-    f"{(_ss_gain._cop_scale, _ss_gain._measured_cop.restore_due, _ss_gain._measured_cop.scale_response)}",
+    f"{(_ss_gain._cop_scale, _ss_gain._measured_cop.probe.restore_due, _ss_gain._measured_cop.scale_response)}",
 )
 R.check(
     "the diagnostics publish the verdict beside the window's evidence",

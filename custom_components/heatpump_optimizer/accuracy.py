@@ -1005,6 +1005,163 @@ class ScaleDither:
 
 
 @dataclass
+class ScaleProbe:
+    """Whether the draw follows the HEAT ask, ``asked_kw x cop_scale``, and
+    the scale owed while that is being found out.
+
+    A heat-led pump's draw answers the scale; a pump that sets its own power
+    does not, and its ratio of draw to ask would walk the scale to a clamp
+    (owner ruling D4). ``dither`` is the experiment that tells them apart,
+    around ``base``, the scale the first admitted row was priced at. While
+    ``response`` is pending no admitted row folds (``MeasuredCop.judge_ratio``),
+    so the scale moves only as the probe moves it: :meth:`owed_scale` is the
+    scale it owes each cycle -- a dither level; ``base`` once it reads follows,
+    after ``draw_range.WINDOW`` undecided rows (``parked_at``: no dither until
+    ``COP_HOLD_HORIZON_S`` has passed) and on a :meth:`reset`; the configured
+    scale once it reads ignored (``restore_due``). ``response`` persists, and
+    ``base`` beside it while pending.
+    """
+
+    #: ``ASK_PENDING``, then ``ASK_FOLLOWS`` or ``ASK_IGNORED`` once ``dither``
+    #: judges it (:meth:`admit`); only :meth:`reset` clears it.
+    response: str = ASK_PENDING
+    dither: ScaleDither = field(default_factory=ScaleDither)
+    #: The scale the probe dithers around and returns to; None: no probe runs.
+    base: float | None = None
+    #: The scale is owed the configured one: the draw ignores the heat ask, so
+    #: every fold since configuration read a draw the scale did not move; or
+    #: the probe's first row was read at a clamp, where the scale cannot span.
+    restore_due: bool = False
+    #: The probe re-seeded at a clamp since its last reset: once, so a
+    #: configured scale at a clamp is probed from there instead of re-seeding forever.
+    reseeded: bool = False
+    #: The scale is owed this one, once: the base of a probe that read
+    #: follows, or that a reset ended.
+    owed: float | None = None
+    #: When the probe stopped undecided; None while it runs.
+    parked_at: datetime | None = None
+    #: The scale :meth:`owed_scale` last returned (None: none it still holds),
+    #: and whether it returned one this cycle.
+    level: float | None = None
+    moved: bool = False
+
+    @property
+    def unsettled(self) -> bool:
+        """This cycle's interval ran under another scale than the one in
+        force: the probe moved the scale this cycle, or still owes its base."""
+        return self.moved or self.owed is not None
+
+    def admit(self, row: CopInterval) -> str:
+        """Admit ``row``; the verdict after it.
+
+        A latched verdict, or a restore not yet applied, keeps no row. The
+        first row read at a clamp (``COP_SCALE_MIN``/``COP_SCALE_MAX``) is
+        kept by none: the restore falls due and the probe starts from the
+        configured scale, once per reset. Otherwise the first row's scale
+        is the probe's ``base`` and ``dither`` reads every row. Its verdict
+        ends the probe: follows owes ``base`` back, ignored makes the restore
+        due. ``WINDOW`` rows with neither park it (``parked_at``), and a
+        parked probe reads nothing.
+        """
+        if self.response != ASK_PENDING or self.restore_due:
+            return self.response
+        if self.base is None:
+            if not self.reseeded and not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:
+                self.reseeded = self.restore_due = True
+                return ASK_PENDING
+            self.base = float(row.cop_scale)
+        if self.parked_at is not None:
+            return ASK_PENDING
+        self.dither.read(row)
+        self.response = self.dither.verdict()
+        if self.response == ASK_PENDING:
+            if self.dither.rows < WINDOW:
+                return ASK_PENDING
+            self.parked_at = row.at
+        elif self.response == ASK_FOLLOWS:
+            self.owed, self.base = self.base, None
+        else:
+            self.restore_due, self.base = True, None
+        self.dither.clear()
+        return self.response
+
+    def owed_scale(self, configured: float, now: datetime, read: bool = True) -> float | None:
+        """The COP scale the probe owes this cycle, or None: the scale stands.
+
+        Called once on every cycle a scale may move (past the freeze gate),
+        ahead of the cycle's own judgement. ``configured`` is the configured
+        scale, owed where a restore is due; a restore that re-seeds a pending
+        probe makes it the probe's ``base``. Then, in order: a scale owed
+        once (``owed``); nothing where no probe runs; ``base`` while the
+        probe is parked, which re-arms once ``COP_HOLD_HORIZON_S`` has passed
+        (or the wait is unknowable, ``parked_at`` ahead of ``now``); else the
+        next dither level (``ScaleDither.step``), which is ``base`` unless the
+        last cycle's interval was admitted (``read``: no frozen or unread
+        cycle came since). A scale already in force is not returned again
+        (``level``); ``moved`` says one was.
+        """
+        live = self.dither.admitted and read
+        self.dither.admitted = False
+        want = self._owed(configured, now, live)
+        self.moved = want is not None and want != self.level
+        self.level = want
+        return want if self.moved else None
+
+    def _owed(self, configured: float, now: datetime, live: bool) -> float | None:
+        """:meth:`owed_scale`'s rule: the scale the probe wants in force, or None."""
+        if self.restore_due:
+            self.restore_due, self.owed, self.level = False, None, None
+            if self.response == ASK_PENDING:
+                self.base = float(np.clip(configured, COP_SCALE_MIN, COP_SCALE_MAX))
+            return configured
+        if self.owed is not None:
+            want, self.owed, self.level = self.owed, None, None
+            return want
+        if self.base is None:
+            return None
+        if self.parked_at is not None:
+            if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HOLD_HORIZON_S:
+                return self.base
+            self.parked_at = None
+        return self.dither.step(self.base, live)
+
+    def reset(self, measured_heat: bool) -> None:
+        """The window's evidence, or measured heat, governs again: the verdict
+        and the experiment clear, and a running probe's ``base`` falls owed.
+        A due restore survives it, but not measured heat, whose folds are no ratio's."""
+        self.owed = self.base if self.owed is None else self.owed
+        self.base = self.parked_at = None
+        self.dither.clear()
+        self.response, self.reseeded = ASK_PENDING, False
+        self.restore_due = self.restore_due and not measured_heat
+
+    def as_dict(self) -> dict[str, Any]:
+        """The verdict, and a running probe's ``base``."""
+        return {"scale_response": self.response, "scale_base": self.base}
+
+    @classmethod
+    def from_dict(cls, raw: Any) -> ScaleProbe:
+        """A stored verdict; absent or unreadable, pending.
+
+        A stored ``ASK_IGNORED`` loads with the restore due, so a save between
+        the latch and the restore it owes loses neither (restoring the
+        configured scale twice is restoring it once). A pending verdict
+        loads the ``base`` stored beside it, where that is a scale the clamps
+        admit: the stored COP scale may be a dither level, and
+        :meth:`owed_scale` returns to ``base`` on the first cycle. The pairs
+        and a parked probe's wait are not stored: the probe starts over.
+        """
+        probe = cls()
+        response = raw.get("scale_response") if isinstance(raw, dict) else None
+        if isinstance(response, str) and response in (ASK_FOLLOWS, ASK_IGNORED):
+            probe.response, probe.restore_due = response, response == ASK_IGNORED
+        elif isinstance(raw, dict):
+            base = finite_float(raw.get("scale_base"))
+            probe.base = base if base is not None and COP_SCALE_MIN <= base <= COP_SCALE_MAX else None
+        return probe
+
+
+@dataclass
 class MeasuredCop:
     """The COP learner's last word: the COP it measured, or why it refused.
 
@@ -1029,20 +1186,11 @@ class MeasuredCop:
     judges them: :meth:`judge_ratio` appends, :meth:`release` is the only way
     out. Neither it nor ``ratio_ewma`` is persisted: a restart drops both.
 
-    ``scale_response`` answers what the window's evidence cannot where it is
-    unobtainable (asks that never span ``FOLLOW_ASK_SPAN``) on an install
-    with no measured heat: whether the draw follows the HEAT ask, ``asked_kw x
-    cop_scale``. A heat-led pump's draw answers the scale; a pump that sets
-    its own power does not, and its ratio of draw to ask would walk the scale
-    to a clamp (owner ruling D4). ``probe`` is the experiment that judges it
-    (:class:`ScaleDither`) around ``base``, the scale the first admitted row
-    was priced at. While the verdict is pending no admitted row folds, so
-    the scale moves only as the probe moves it: :meth:`owed_scale` is the
-    scale it owes each cycle -- a dither level; ``base`` once it reads
-    follows, after ``draw_range.WINDOW`` undecided rows (``parked_at``: no
-    dither until ``COP_HOLD_HORIZON_S`` has passed) and on a reset; the
-    configured scale once it reads ignored (``restore_due``).
-    ``scale_response`` persists, and ``base`` beside it while pending.
+    ``probe`` answers what the window's evidence cannot where it is
+    unobtainable on an install with no measured heat (:meth:`_admits`):
+    whether the draw follows the HEAT ask (:class:`ScaleProbe`, whose verdict
+    ``scale_response`` reads). While it is pending no admitted interval
+    folds, and :meth:`owed_scale` is the scale it owes each cycle.
     """
 
     cop: float | None = None
@@ -1059,29 +1207,13 @@ class MeasuredCop:
     ratio_ewma: float | None = None
     #: Departures awaiting ``draw_range.ask_evidence``, oldest first.
     held: Deque[CopInterval] = field(default_factory=deque)
-    #: ``ASK_PENDING``, then ``ASK_FOLLOWS`` or ``ASK_IGNORED`` once ``probe``
-    #: judges it (:meth:`_admit`); only a reset (:meth:`release`) clears it.
-    scale_response: str = ASK_PENDING
-    probe: ScaleDither = field(default_factory=ScaleDither)
-    #: The scale the probe dithers around and returns to; None: no probe runs.
-    base: float | None = None
-    #: The scale is owed the configured one: the draw ignores the heat ask, so
-    #: every fold since configuration read a draw the scale did not move; or
-    #: the probe's first row was read at a clamp, where the scale cannot span.
-    restore_due: bool = False
-    #: The probe re-seeded at a clamp since its last reset: once, so a
-    #: configured scale at a clamp is probed from there instead of re-seeding forever.
-    reseeded: bool = False
-    #: The scale is owed this one, once: the base of a probe that read
-    #: follows, or that a reset ended.
-    owed: float | None = None
-    #: When the probe stopped undecided; None while it runs.
-    parked_at: datetime | None = None
-    #: The scale :meth:`owed_scale` last returned (None: none it still holds),
-    #: and whether it returned one this cycle: this cycle's interval then ran
-    #: under another scale than the one in force, and folds against neither.
-    level: float | None = None
-    moved: bool = False
+    #: The heat-ask probe: its verdict, and the scale it owes meanwhile.
+    probe: ScaleProbe = field(default_factory=ScaleProbe)
+
+    @property
+    def scale_response(self) -> str:
+        """``probe``'s verdict: ``ASK_PENDING``, ``ASK_FOLLOWS`` or ``ASK_IGNORED``."""
+        return self.probe.response
 
     @staticmethod
     def judge_floor(asked_kw: float, drawn_kw: float | None, params: Any, draw: DrawRange | None = None) -> str | None:
@@ -1117,79 +1249,10 @@ class MeasuredCop:
         install measures no heat (``probe_install(...).measured_heat``)."""
         return state == ASK_UNOBTAINABLE and draw is not None and not measured_heat
 
-    def _admit(self, row: CopInterval) -> str:
-        """Admit ``row`` to the probe; ``scale_response`` after it.
-
-        A latched verdict, or a restore not yet applied, keeps no row. The
-        first row read at a clamp (``COP_SCALE_MIN``/``COP_SCALE_MAX``) is
-        kept by none: the restore falls due and the probe starts from the
-        configured scale, once per reset. Otherwise the first row's scale
-        is the probe's ``base`` and ``probe`` reads every row. Its verdict
-        ends the probe: follows owes ``base`` back, ignored makes the restore
-        due. ``WINDOW`` rows with neither park it (``parked_at``), and a
-        parked probe reads nothing.
-        """
-        if self.scale_response != ASK_PENDING or self.restore_due:
-            return self.scale_response
-        if self.base is None:
-            if not self.reseeded and not COP_SCALE_MIN < row.cop_scale < COP_SCALE_MAX:
-                self.reseeded = self.restore_due = True
-                return ASK_PENDING
-            self.base = float(row.cop_scale)
-        if self.parked_at is not None:
-            return ASK_PENDING
-        self.probe.read(row)
-        self.scale_response = self.probe.verdict()
-        if self.scale_response == ASK_PENDING:
-            if self.probe.rows < WINDOW:
-                return ASK_PENDING
-            self.parked_at = row.at
-        elif self.scale_response == ASK_FOLLOWS:
-            self.owed, self.base = self.base, None
-        else:
-            self.restore_due, self.base = True, None
-        self.probe.clear()
-        return self.scale_response
-
     def owed_scale(self, configured: float, now: datetime) -> float | None:
-        """The COP scale the probe owes this cycle, or None: the scale stands.
-
-        Called once on every cycle a scale may move (past the freeze gate),
-        ahead of the cycle's own judgement. ``configured`` is the configured
-        scale, owed where a restore is due; a restore that re-seeds a pending
-        probe makes it the probe's ``base``. Then, in order: a scale owed
-        once (``owed``); nothing where no probe runs; ``base`` while the
-        probe is parked, which re-arms once ``COP_HOLD_HORIZON_S`` has passed
-        (or the wait is unknowable, ``parked_at`` ahead of ``now``); else the
-        next dither level (``ScaleDither.step``), which is ``base`` unless the
-        last cycle's interval was admitted -- a frozen or unread cycle since
-        (``refusal``) admitted none. A scale already in force is not returned
-        again (``level``); ``moved`` says one was.
-        """
-        live = self.probe.admitted and self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER)
-        self.probe.admitted = False
-        want = self._owed(configured, now, live)
-        self.moved = want is not None and want != self.level
-        self.level = want
-        return want if self.moved else None
-
-    def _owed(self, configured: float, now: datetime, live: bool) -> float | None:
-        """:meth:`owed_scale`'s rule: the scale the probe wants in force, or None."""
-        if self.restore_due:
-            self.restore_due, self.owed, self.level = False, None, None
-            if self.scale_response == ASK_PENDING:
-                self.base = float(np.clip(configured, COP_SCALE_MIN, COP_SCALE_MAX))
-            return configured
-        if self.owed is not None:
-            want, self.owed, self.level = self.owed, None, None
-            return want
-        if self.base is None:
-            return None
-        if self.parked_at is not None:
-            if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HOLD_HORIZON_S:
-                return self.base
-            self.parked_at = None
-        return self.probe.step(self.base, live)
+        """The COP scale ``probe`` owes this cycle, or None (``ScaleProbe.owed_scale``).
+        A frozen or unread cycle since the last one (``refusal``) read no interval."""
+        return self.probe.owed_scale(configured, now, self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))
 
     def judge_ratio(
         self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None, measured_heat: bool = False
@@ -1229,9 +1292,9 @@ class MeasuredCop:
         reads ``COP_REFUSED_OFF_ASK``, under ``ASK_FOLLOWS`` it folds, and
         while ``ASK_PENDING`` it folds nothing and is not held
         (``COP_REFUSED_NO_EVIDENCE``): the draw must not move the scale it is
-        judged against. Nor does an interval fold on a cycle the probe moved
-        the scale (``moved``) or still owes its base (``owed``), whatever
-        judges it: it ran under another scale than the one a fold starts from.
+        judged against. Nor does an interval fold while the probe is
+        ``unsettled``, whatever judges it: it ran under another scale than
+        the one a fold would start from.
         """
         ratio = row.ratio
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
@@ -1242,10 +1305,10 @@ class MeasuredCop:
             # efficiency reading at ANY ratio; one within the tolerance only
             # happened to land near the ask.
             return COP_REFUSED_OFF_ASK
-        verdict = self._admit(row) if self._admits(state, draw, measured_heat) else None
+        verdict = self.probe.admit(row) if self._admits(state, draw, measured_heat) else None
         if verdict == ASK_IGNORED:
             return COP_REFUSED_OFF_ASK
-        if verdict == ASK_PENDING or self.moved or self.owed is not None:
+        if verdict == ASK_PENDING or self.probe.unsettled:
             return COP_REFUSED_NO_EVIDENCE
         if verdict == ASK_FOLLOWS or abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
@@ -1270,11 +1333,9 @@ class MeasuredCop:
         for want of evidence that never came.
 
         The state is read first: where :meth:`_admits` does not hold, the
-        probe and ``scale_response`` reset, a running probe's ``base`` falls
-        owed (a due restore survives the reset too, but not measured heat,
-        whose folds are no ratio's), and the arms below run as before. Where
-        it holds, the hold empties on ``scale_response``: every row folds
-        under ``ASK_FOLLOWS`` and none otherwise. A row held before the
+        probe resets (``ScaleProbe.reset``) and the arms below run as before.
+        Where it holds, the hold empties on ``scale_response``: every row
+        folds under ``ASK_FOLLOWS`` and none otherwise. A row held before the
         probe began was read under no dither, so it joins no pair, and while
         the verdict is pending nothing folds: it is dropped, not kept.
         """
@@ -1282,11 +1343,7 @@ class MeasuredCop:
         self.held.clear()
         if self._admits(state, draw, measured_heat):
             return rows if self.scale_response == ASK_FOLLOWS else []
-        self.owed = self.base if self.owed is None else self.owed
-        self.base = self.parked_at = None
-        self.probe.clear()
-        self.scale_response, self.reseeded = ASK_PENDING, False
-        self.restore_due = self.restore_due and not measured_heat
+        self.probe.reset(measured_heat)
         if state == ASK_FOLLOWS:
             return rows
         if state == ASK_IGNORED:
@@ -1324,34 +1381,17 @@ class MeasuredCop:
         return round(float(self.cop) - float(modelled), 3)
 
     def as_dict(self) -> dict[str, Any]:
-        """The measurement, ``scale_response`` and a running probe's ``base``;
-        a refusal describes one interval."""
+        """The measurement and what ``probe`` stores; a refusal describes one interval."""
         at = None if self.at is None else self.at.isoformat()
-        return {
-            "cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp, "at": at,
-            "scale_response": self.scale_response, "scale_base": self.base,
-        }
+        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp, "at": at, **self.probe.as_dict()}
 
     @classmethod
     def from_dict(cls, raw: Any) -> MeasuredCop:
-        """A stored record, with its ``scale_response`` read apart from it.
-
-        Absent or unreadable, the verdict is pending and the measurement
-        stands; a stored ``ASK_IGNORED`` loads with the restore due, so a save
-        between the latch and the restore it owes loses neither (restoring the
-        configured scale twice is restoring it once). A pending verdict
-        loads the ``base`` stored beside it, where that is a scale the clamps
-        admit: the stored COP scale may be a dither level, and
-        :meth:`owed_scale` returns to ``base`` on the first cycle. The pairs
-        and a parked probe's wait are not stored: the probe starts over.
-        """
+        """A stored record, with the probe's part read apart from it
+        (``ScaleProbe.from_dict``): absent or unreadable, the verdict is
+        pending and the measurement stands."""
         record = cls._stored_measurement(raw)
-        response = raw.get("scale_response") if isinstance(raw, dict) else None
-        if isinstance(response, str) and response in (ASK_FOLLOWS, ASK_IGNORED):
-            record.scale_response, record.restore_due = response, response == ASK_IGNORED
-        elif isinstance(raw, dict):
-            base = finite_float(raw.get("scale_base"))
-            record.base = base if base is not None and COP_SCALE_MIN <= base <= COP_SCALE_MAX else None
+        record.probe = ScaleProbe.from_dict(raw)
         return record
 
     @classmethod
