@@ -1,0 +1,2 @@
+raises_between -> []
+grader control -> ['dev/governance/config/policy_budgets.json: files_tokens.CLAUDE.md: cap removed while the file it caps is still in the tree']

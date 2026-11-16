@@ -1,0 +1,6 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 55 policy file(s)
+
+FIXTURE VACUOUS: checkOrphanCaps did not report the files_tokens cap on docs/a-file-no-glob-matches.md exactly once (got [["docs/a-file-no-glob-matches.md","has a cap in dev/governance/config/polic"]]); a token cap that measures nothing would read exactly like one that holds.
