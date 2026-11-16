@@ -1,0 +1,8 @@
+RUN push-names-the-host rc 0
+RUN self-tests-outside-seat rc 0
+broken []
+HEAD table: 0 refusal(s)
+MUTANT drop push-names-the-host.files tools/audit/seat/pr_args.sh: 1 refusal(s)
+    UNDER-SCOPED step push-names-the-host: files misses ['tools/audit/seat/pr_args.sh']
+MUTANT drop self-tests-outside-seat.files dev/programme/RULINGS.md: 1 refusal(s)
+    UNDER-SCOPED step self-tests-outside-seat: files misses ['dev/programme/RULINGS.md']
