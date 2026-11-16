@@ -614,6 +614,22 @@ handoff_level() { # the handoff-no-pr and hold-stale levels, derived from this p
   case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
     *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
 }
+# VERDICTS DURING AN UPDATE (owner card P12; R10-RELAY-ARM-ORDER's deferred residual). pass() runs the probe and
+# confirm arms before the handoff arm, but a verdict returned during an update_pr.sh run (a full prepr: 57 min for
+# #3531 on 2026-11-13, 94 min at worst) waited for the rest of it. While an update runs, every HPO_RELAY_INFLIGHT_SECS
+# (default 60, digits only) the probe arm runs again, and the confirm arm too under --confirm, so a returned verdict
+# is relayed and posted without waiting behind the update. Each such run prints `cloud_relay: IN-FLIGHT #<pr> ...`.
+update_wait() { # <pid> <pr>: the update's exit status, the probe (and confirm) arms run every HPO_RELAY_INFLIGHT_SECS meanwhile
+  local every=${HPO_RELAY_INFLIGHT_SECS:-60} n
+  case $every in ''|*[!0-9]*|0) echo "cloud_relay: HPO_RELAY_INFLIGHT_SECS='$every' is not a positive number of seconds; 60 is used" >&2; every=60;; esac
+  while kill -0 "$1" 2>/dev/null; do
+    n=0; while [ "$n" -lt "$every" ] && kill -0 "$1" 2>/dev/null; do sleep 1; n=$((n + 1)); done
+    kill -0 "$1" 2>/dev/null || break
+    echo "cloud_relay: IN-FLIGHT #$2 update running ${n}s past the last arms run: probe${CONFIRM:+ and confirm} arms run now"
+    probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm  # mut:inflight
+  done
+  wait "$1"
+}
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
   local bf bonly key seed="" tries n cls ht
@@ -731,7 +747,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
     # A body-only move skipped the review freeze, so update_pr.sh refuses one that would move the head.
     HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
-    PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
+    PR_REAP_LEAD=$!; update_wait "$PR_REAP_LEAD" "$pr" || urc=$?
     [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
@@ -1474,6 +1490,30 @@ EOF
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$NEW" > "$prs"; rm -f "$t/updated"
   handoff_arm >/dev/null 2>&1
   chk "a handoff already merged into its PR does nothing (null control)" 0 test ! -e "$t/updated"
+  # VERDICTS DURING AN UPDATE (owner card P12): while update_pr runs, the probe arm runs again every
+  # HPO_RELAY_INFLIGHT_SECS, and the confirm arm too under --confirm, so a returned verdict never waits behind it.
+  for x in cloud-handoff-bodied cloud-handoff-failed cloud-handoff-failed.tries cloud-handoff-failed.why; do [ ! -e "$t/state/$x" ] || cp "$t/state/$x" "$t/state/$x.ifkeep"; done
+  BS0=$(git -C "$t/o.git" rev-parse refs/heads/handoff-body/topic-a); hc inflight; mkref handoff/topic-a; LOG=$t/if.log; : > "$LOG"
+  printf '#!/bin/sh\necho running > "%s/if.state"\nsleep "${SLOW_SECS:-3}"\necho ended > "%s/if.state"\nexit "${SLOW_RC:-0}"\n' "$t" "$t" > "$t/slow.sh"; chmod +x "$t/slow.sh"
+  ifrun() { # <CONFIRM value> <HPO_RELAY_INFLIGHT_SECS>: one handoff pass over the slow update; each arm logs the update's state when it ran
+    rm -f "$t/if.state" "$t/if.order" "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.tries"
+    ( probe_arm() { echo "probe $(cat "$t/if.state" 2>/dev/null)" >> "$t/if.order"; }; confirm_arm() { echo "confirm $(cat "$t/if.state" 2>/dev/null)" >> "$t/if.order"; }
+      CONFIRM=$1 HPO_RELAY_UPDATE=$t/slow.sh HPO_RELAY_INFLIGHT_SECS=$2 handoff_arm ) > "$t/if.out" 2>&1; }
+  ifrun "" 1
+  chk "a verdict returned during an update is not held behind it: the probe arm runs while update_pr is still running (P12)" 0 grep -qx "probe running" "$t/if.order"
+  chk "and the pass says so: IN-FLIGHT #41" 0 grep -q "^cloud_relay: IN-FLIGHT #41 update running 1s past the last arms run: probe arms run now$" "$t/if.out"
+  chk "without --confirm the confirm arm does not run in flight" 1 grep -q "^confirm" "$t/if.order"
+  chk "the update still completes: dispatch runs after it" 0 grep -q "^41 $NEW cloud$" "$t/dispatched.seen"
+  ifrun 1 1
+  chk "under --confirm the confirm arm runs in flight too, so a relayed verdict is posted during the update" 0 grep -qx "confirm running" "$t/if.order"
+  ifrun "" 10
+  chk "null control: an update shorter than HPO_RELAY_INFLIGHT_SECS runs no in-flight arm" 0 test ! -e "$t/if.order"
+  SLOW_RC=1 ifrun "" 1
+  chk "a failed update's exit status survives the in-flight arms: it is owed handoff-update" 0 grep -q " handoff-update refs/heads/handoff/topic-a " "$LOG.level"
+  ifrun "" x
+  chk "a non-numeric HPO_RELAY_INFLIGHT_SECS says so and falls back to 60 s" 0 grep -q "HPO_RELAY_INFLIGHT_SECS='x' is not a positive number of seconds; 60 is used" "$t/if.out"
+  git -C "$t/o.git" update-ref refs/heads/handoff/topic-a "$HS"; git -C "$t/o.git" update-ref refs/heads/handoff-body/topic-a "$BS0"; git -C "$t/b" reset -q --hard "$BS0"; git -C "$t/pr" reset -q --hard "$NEW"; LOG=$t/pass.log; rm -f "$t/updated" "$t/dispatched.seen"
+  for x in cloud-handoff-bodied cloud-handoff-failed cloud-handoff-failed.tries cloud-handoff-failed.why; do rm -f "$t/state/$x"; [ ! -e "$t/state/$x.ifkeep" ] || mv "$t/state/$x.ifkeep" "$t/state/$x"; done
   # #3358's shape (R11-PRE-RELAY-REBUILD carry 0): handoff/topic-a is an older tip the head holds, its body applied, and the
   # repair returned under handoff/topic-a-pr, fix/<t>-pr's other spelling; the arm reading <t> alone skipped it in silence.
   hc repair; git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/handoff/topic-a-pr"; HP=$(git -C "$t/pr" rev-parse HEAD)
