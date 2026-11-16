@@ -1643,7 +1643,8 @@
    "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D4's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
    "decision": "accepted",
    "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c"
   },
   "E11-K-D5": {
    "object": "dev/audit/config/objective.json",
@@ -1655,7 +1656,8 @@
    "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D5's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
    "decision": "accepted",
    "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c"
   },
   "E11-K-D9": {
    "object": "dev/audit/config/objective.json",
@@ -1667,7 +1669,8 @@
    "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D9's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
    "decision": "accepted",
    "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c"
   },
   "E11-K-D10": {
    "object": "dev/audit/config/objective.json",
@@ -1679,7 +1682,8 @@
    "finder_critical": "no as the card stands: `git grep -l owner_criteria a39627da59` -> objective.json, decision 0018 and check_scopes.py only, so nothing a finder reads names the criterion file; it becomes yes only where D10's brief cites that file. tvofi ruled on 2026-11-15, preliminary (the coordinator's relay), `All four before finders`, with the group R11-PRE-OWNER-CRITERIA building them",
    "decision": "accepted",
    "ruling": "tvofi: \"All four before finders\" (finder-critical by this ruling; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c"
   },
   "E11-S-SEATS": {
    "object": "dev/audit/config/objective.json",
