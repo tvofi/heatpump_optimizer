@@ -1,44 +1,24 @@
-Design review: revise 9cebbb202dc93846f77b12303e5112cdc5727d92 architecture-unsound
+Design review: approve 9edf64948f7522213ca07a313f5121fe4c20a72a
 
-Round 3. Reviewed from a detached worktree at 9cebbb202d (one file, design.md), judged against base 030a4d377f, the base the note names. Change since round 2: `git diff dd3283712b..9cebbb202d`, design.md only.
+Round 4, the re-cut after the third revise. Reviewed from a detached worktree at 9edf64948f (one file, design.md), judged against base 030a4d377f, the base the note names. Change since round 3: `git diff 9cebbb202d..9edf64948f`, design.md only. Parts A, B and C are byte-identical to 9cebbb202d except the new carries.
 
-## Round-2 point and notes
+## Round-3 point
 
-- P1 (C, the refusal predicate): answered. The cited sites hold at 030a4d377f: `tools/audit/seat/bus.sh:563` (`BUS refused`, return 1); `tools/audit/seat/roster_edit.py:1345` (`LINT GATE REFUSED`, return 3); `tools/audit/seat/cloud-setup.sh:97` (`cloud-setup check: REFUSE`, return 1); `tools/pr/app_push.sh:159`; `tools/pr/push.sh:636`; `tools/pr/prepr.sh:1824`. A text predicate misses these, so exit status with structural exclusion rows is a sound replacement. The evidence row at :58 plants each refusal format, and each exclusion arm has a mutant.
-- d-p2-head, b-hotfile-head: answered (handoff/r11-pre-round-metrics-p2 at 28c3ba15ee and design/R11-PRE-SECURITY-PRIVACY at 8f52783880, both unmoved at review). siblings: nothing was needed.
-- d-fetcher: the reader is now named, but the answer opens point 1 below.
-
-## Revise point
-
-1. architecture-unsound, design.md:49 ([d-fetcher], "The reader"), and :13 (the part table's D row, "the run fetcher of [d-fetcher]").
-   - The note adds a second fetcher of the CI run listing as a new seat instrument (gate_runs.py, promoted from the eval/r11 prototype). Its output is a jsonl directory that `loop_ledger.py --runs` reads.
-   - That concern already has an owner at 030a4d377f. `tools/audit/seat/round_metrics.py:391` `fetch_runs` (the `produce` subcommand) pages `actions/workflows/ci.yml/runs` for every completed CI run since the round's start. It covers push and pull_request events and records `run_attempt`. It writes `ci_runs.json` and `runs.json`, and caches each run's job listing with `filter=all` under `jobs/jobs_<id>.json`. That listing returns the jobs of every attempt with their `run_attempt`, so attempt 1 red then attempt 2 green is already readable with no `/attempts/<n>` call. The cache is append-and-resume (`JOB_FETCH_MAX`, "job listings left for the next pass"), and the self-test runs on a fake paginator (`round_metrics_selftest.py:203`).
-   - `round_metrics.py`'s `restore` read already computes red spells on main from the same input.
-   - The note never names `round_metrics.py` (`git grep -n round_metrics 9cebbb202d -- design.md` prints nothing).
-   - A second fetcher means two caches of one listing that can disagree, two input registrations in `field_coverage.mjs`, a new closure entry and a new file under one-in-one-out, for a record decision 0018's producer already keeps.
-   - Fix wanted: D reads `round_metrics.py produce`'s directory.
-     - Widen `fetch_runs`'s kept fields by what the clearing-event match needs: `head_sha`, `event`, `head_branch`, and the pull-request number from `pull_requests[]`. Keep the existing keys, so `runner_s`, `product_green` and `restore` are unchanged; their self-test arms prove it.
-     - Point `loop_ledger.py --runs` at that directory.
-     - Drop the new instrument and its `/attempts/<n>` widening.
-   - D's evidence row at :59 keeps its plants, rebuilt as `ci_runs.json` plus `jobs_<id>.json` fixtures. The attempt case is one jobs file whose `gate` job has `run_attempt` 1 failure and 2 success, and it reads `external`. The same run with no jobs file reads `unread`.
-   - If `round_metrics.py` is a hot file of a sibling in flight, the note says so and names the order. No open `design/*` ref names it at review time (`git grep round_metrics` over the 15 `refs/remotes/origin/design/*`).
+- P1 (architecture-unsound, D's second run fetcher): answered as the fix wanted it. D adds no file. The reader is `round_metrics.py produce`'s directory, and `fetch_runs` (`tools/audit/seat/round_metrics.py:391`, at 030a4d377f) keeps four more fields read with `.get`. The existing keys stay `id, t, c, attempt` (:395), so `gate_conclusions` (:151) and `runner_line` (:216, the attempt rule :227) read as before.
+  - The fake paginator at `round_metrics_selftest.py:203` already carries `event` and `head_branch` and lacks `head_sha` and `pull_requests`, so the `.get` reading leaves the existing producer arms valid. The new producer arm, and a mutant on the `pr` extraction, are in the evidence row.
+  - `/attempts/<n>` is dropped: `fetch_runs` lists jobs with `filter=all` and keeps `run_attempt` (:400-404).
+  - `tools/policy/field_coverage.mjs` names no `round_metrics` file at the base (grep prints nothing), so no registration is owed.
+- Hot files (step 5): `handoff/r11-pre-round-metrics-p3` at fae479abae contains the base. Its diff to `round_metrics.py` touches no `fetch_runs`, `ci_runs` or `run_attempt` line (`git diff 030a4d377f fae479abae -- tools/audit/seat/round_metrics.py | grep -E '^[-+].*(fetch_runs|ci_runs|run_attempt)'` prints nothing). Among the open `design/*` refs, only this note's design.md names `round_metrics`, `fetch_runs` or `ci_runs`. The serial order "part 3 first, then D" stands.
+- The notes from round 3 are now carries in the note's own "Notes for the fixer": [c-deferred], [d-p2-head-text], and [name-collision] (dismissed with a reason). That is what the re-cut owed (design-review.md, "Three notes at most").
 
 ## Routed
 
-- decision: orchestrator. The `after` edges stand as round 2 recorded (D after R11-PRE-ROUND-METRICS part 2 merges, C after R11-PRE-TOKEN-LEDGER). If D extends `round_metrics.py`, check that file against R11-PRE-ROUND-METRICS part 2's diff and add any serial edge it needs.
+- decision: orchestrator. D's `after` edges are R11-PRE-ROUND-METRICS parts 2 and 3 merged. C's is R11-PRE-TOKEN-LEDGER. The note gives these at design.md:15 and :19, together with the option to dispatch C and D as separate parts.
 
 ## Notes for the fixer
 
-- Part C step 2 (design.md:35): some non-zero exits are deferrals by the instrument's own contract, not refusals.
-  - `tools/audit/seat/merge_pr.sh:533-538`: exit 3 is "the train's WAIT ... never RED, so a caller retries rather than reads a refusal".
-  - `tools/audit/seat/cloud_relay.sh:276-299`: return 75 means "the pending-ci draft is held".
-  - Report-by-exit instruments: `postmerge.py` (exit 1 when something is owed) and `mutant_run.py` (rc non-zero on a survivor).
-  - Add a structural `deferred` scope row (75 EX_TEMPFAIL, plus each instrument-declared wait code, enumerated at the merge base by `git grep -n -E "WAIT|return 75|exit 75" -- tools .claude/hooks`), planted and mutated like `usage`, so a deferral prints in its own row and never counts as a refusal. List the report-by-exit instruments in the body.
-  - Carry: R11-PRE-NO-READ-BUILDERS (item c-deferred)
-- Part D (design.md:44): the [R1] sentence still reads "at acf0b72578" while the table row at :15 reads 28c3ba15ee. Cite part 2's merge commit once D builds. Carry: R11-PRE-NO-READ-BUILDERS (item d-p2-head-text)
-- design/R11-PRE-TOOLCHAIN-PIN:design.md:30 uses `gate_runs` as stamp.py's existing function (`tools/release/stamp.py:774`). If any new file survives point 1, a module named gate_runs.py would collide with that name. Carry: R11-PRE-NO-READ-BUILDERS (item name-collision)
-- design/R11-PRE-SECURITY-PRIVACY:design.md:77 (S5) also lists `actions/runs`, but for text scanning, not for gate status. It is not this concern. Carry: dismissed: different concern, no shared record (item s5-runs)
-
-This is the third note. If it draws `revise` again, the designer re-cuts to the minimal shape (decision 0014; design-review.md "Three notes at most"), and the points above become carries.
+- design.md:50 says `runs.json` is unchanged as "the same dicts, filtered". But `main` at `round_metrics.py:396` filters the same dict objects, so each `runs.json` row would also gain the four fields. That breaks nothing: `scorecard.py`'s consumers (:114-177) index only `id, t, c`. Its docstring at `tools/audit/seat/scorecard.py:14` still states `[{id, t, c, attempt}]`. Build `runs.json` from the narrow keys, or update that docstring and `instruments/scorecard.py.md:35` in the same diff. Carry: R11-PRE-NO-READ-BUILDERS (item runs-json-width)
+- design.md:69 ([d-hotfile]) gives the enumerator `git diff --name-only $(git merge-base origin/main <ref>) <ref>`. Every `design/*` ref is a root commit holding only design.md, so `git merge-base` prints nothing for those refs. The diff then lists every tracked file, including `round_metrics.py`, for all 15 design refs. For `design/*`, read `git show <ref>:design.md | grep -E 'round_metrics|fetch_runs|ci_runs'` instead. Keep the merge-base form for `handoff/*` refs only. Re-run the enumerator at D's merge base. Carry: R11-PRE-NO-READ-BUILDERS (item d-hotfile-enumerator)
+- `pull_requests[]` is empty on a run from a fork or from a head that no longer matches. The `head_branch` fallback at design.md:52 covers this, but an internal branch name can be reused across PRs. Add one fixture where two `pull_request` runs share a `head_branch`, have a null `pr` and belong to different PRs. Pin that the earlier red does not read the later PR's commit as `#<pr>`, or name the limit in the body. Carry: R11-PRE-NO-READ-BUILDERS (item branch-reuse)
 
 Seat token count: not reported by this harness.
