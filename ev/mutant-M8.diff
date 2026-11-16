@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index f04c1430f3..e37b2fd8ec 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -3068,7 +3068,7 @@ const MANUAL_PLAN_WINDOW_FALLBACK_H = 20;
+ // the window, the service at the server's. One plan step, because runs start
+ // on step boundaries: holding back a run that starts within the last step costs
+ // at most one step's pin before the expiry, and tolerates a clock a step fast.
+-const APPLY_CLOCK_SKEW_MS = PLAN_STEP_MS;
++const APPLY_CLOCK_SKEW_MS = 2 * PLAN_STEP_MS;
+ 
+ // Range of the hot water minimum slider. The floor matches the options flow so
+ // the two editors of the same setting agree. There is deliberately no margin
