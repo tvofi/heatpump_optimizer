@@ -1,0 +1,1 @@
+claim files, VERSION, notes, custom_components byte-identical to merge base

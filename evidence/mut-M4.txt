@@ -1,0 +1,3 @@
+  ok   every dimension brief is in the round driver's DIMS, and its worktree lists agree
+  ok   ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: none)
+223 passed, 0 failed

@@ -1,0 +1,3 @@
+  FAIL every dimension brief is in the round driver's DIMS, and its worktree lists agree prepare_baseline.sh ISOLATED_DIMS [D0,D3,D9,D11,D13,D14,D15] != audit-find.js ISOLATED [D0,D3,D9,D11,D13,D14,D15,D16]
+  FAIL ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: none) a declared or briefed dimension was tolerated, or a pending one refused
+221 passed, 2 failed

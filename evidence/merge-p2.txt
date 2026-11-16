@@ -1,0 +1,16 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (578 entries)
+  re-run the gate that owns this file before pushing
+cea0bd321688adec7347d1d65f9ad3f35f9f2b89
+100644 937834a84892d93aa44a75c2eafa1b52be1cf2f6 1	CLAUDE.md
+100644 56143b7f57536ba3eb9ca88cc2ab715ed2367c95 2	CLAUDE.md
+100644 e770524ebaa5256303a37cf341ef5b30eb07add1 3	CLAUDE.md
+
+Auto-merging .github/workflows/governance.yml
+Auto-merging CLAUDE.md
+CONFLICT (content): Merge conflict in CLAUDE.md
+Auto-merging dev/audit/config/scopes.json
+Auto-merging tests/closures.json
+Auto-merging tests/layout.json
+Auto-merging tools/audit/prepare_baseline.sh
+Auto-merging tools/ci/selftest_closures.json
