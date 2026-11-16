@@ -2074,7 +2074,7 @@
           "dhw_window": "Heating hot water inside a hot water window",
           "idle": "Idle",
           "idle_coasting": "Above the floor, coasting",
-          "idle_dearer": "Dearer than the hours used",
+          "idle_dearer": "More expensive than the hours used",
           "idle_fuse": "Capped by the fuse",
           "idle_other_channel": "The other channel has the capacity",
           "idle_solar": "Waiting for solar",

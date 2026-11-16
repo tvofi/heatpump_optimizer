@@ -816,7 +816,7 @@ check("an unknown reason code still shows something",
   check("UX-1 the explanation names the step's own quarter hour",
     dear.includes(`${clk(45)}\u2013${clk(60)}`), dear);
   check("UX-1 a dear idle step gives its price rank within the horizon",
-    dear.includes("3.00 SEK/kWh") && dear.includes("dearest 25 %") &&
+    dear.includes("3.00 SEK/kWh") && dear.includes("most expensive 25 %") &&
       dear.includes("cheapest 0.50"), dear);
   check("UX-1 it names the run it coasts on and the next run",
     dear.includes(`${clk(0)}\u2013${clk(30)}`) &&
@@ -829,14 +829,14 @@ check("an unknown reason code still shows something",
   check("UX-1 both channels idle share one block and one price line",
     (both.match(/class="tt-why"/g) || []).length === 1 &&
       /Space heating and hot water off/.test(both) &&
-      (both.match(/dearest/g) || []).length === 1 &&
+      (both.match(/most expensive/g) || []).length === 1 &&
       /next heating run/.test(both) &&
       /tank was heated/.test(both), both);
   check("UX-1 nothing is claimed the published fields cannot show",
     !/floor|fuse/i.test(dear), dear);
   const cheap = idleWhyHtml([row("space_power", 2, 0, "idle")], ctx);
   check("UX-1 a step in the cheaper half claims no price reason",
-    /Likely because/.test(cheap) && !/dearest/.test(cheap), cheap);
+    /Likely because/.test(cheap) && !/most expensive/.test(cheap), cheap);
   check("UX-1 an active step is not explained here",
     idleWhyHtml([row("space_power", 0, 2, "cheap_price")], ctx) === "");
   // A DHW step classified off the DHW path publishes no reason at all, so
@@ -862,7 +862,7 @@ check("an unknown reason code still shows something",
   const fused = idleWhyHtml([row("space_power", 3, 0, "idle_fuse")], ctx);
   check("UX-5 a published sub-code says because and replaces the inferred lines",
     /Because:/.test(fused) && !/Likely because/.test(fused) &&
-      /fuse limit caps heating/.test(fused) && !/dearest/.test(fused), fused);
+      /fuse limit caps heating/.test(fused) && !/most expensive/.test(fused), fused);
   check("UX-5 an idle step with no sub-code still says likely because",
     /Likely because/.test(dear) && !/Because:/.test(dear));
   check("UX-5 an idle sub-code is not also a reason label",

@@ -88,8 +88,8 @@ repair passes against the real tank simulation — and space heating is then
 optimized around the fixed DHW blocks by multi-start L-BFGS-B.
 
 Solving them in sequence would let hot water fill the cheapest hours to the
-compressor ceiling and push space heating into dearer ones. Two things prevent
-that:
+compressor ceiling and push space heating into more expensive ones. Two
+things prevent that:
 
 - **A congestion premium** inside the DHW program. Taking compressor capacity
   in a step where space heating also wants it is charged the extra price of
