@@ -202,6 +202,9 @@ if __name__ == "__main__":
     L.result("switchinterval_s", sys.getswitchinterval(), "s")
     L.result("load1_start", L.load1(), "1")
     asyncio.run(main(a.reps, set(a.arms.split(","))))
-    # deliberate work on executor threads: thread_factor is not meaningful as
-    # process/thread here; print the residual against the loop thread anyway.
-    L.tail(clock, swap0=swap0)
+    # executor threads and the worker carry deliberate work, so the BLAS
+    # signal is taken over a single-threaded reference section alone
+    L.result("whole_run_process_over_main_thread", clock.factor(), "1")
+    rclock = L.Clock()
+    L.result("reference_solve_cpu_ms", L.ref_ms(), "ms")
+    L.tail(rclock, swap0=swap0)
