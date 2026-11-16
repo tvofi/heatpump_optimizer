@@ -44,3 +44,5 @@
 1794860370 CKPT D14-s3 22 file(s)
 1794860431 CKPT D14-s3 22 file(s)
 1794860435 SEAT D14-s3 reported
+1794860583 HB alive
+1794860584 HB container restarted: seats D14-s2 and D11-s3 killed mid-run without REPORT.json (partial findings checkpointed); re-running each once through gate
