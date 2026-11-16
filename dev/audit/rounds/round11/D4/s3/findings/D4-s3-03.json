@@ -1,0 +1,49 @@
+{
+ "id": "D4-s3-03",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "Tooltip, picker-note and layout-verdict text renders below the card's own 12 px type floor",
+ "severity": "medium",
+ "claim": "Across the 900-cell grid, 78 cells render text below 12 px, the smallest step of the card's --hpo-text scale and the floor its other small text keeps with max(12px, ...): the chart tooltip at 10.92 px and its shared-step note at 9.28 px in the phone-width dialog, the shared-step note at 10.95 px at 768/1280 px, the entity picker's note (.sp-note) at 11.2 px and the layout verdict at 11.9 px at every viewport.",
+ "mechanism": "These rules size type as a bare em multiple of an already reduced parent (dialog.expanded .tooltip { font-size: 0.78em } under @media (max-width: 600px), .tooltip .tt-shared { font-size: 0.85em }, .sp-note and .layout-verdict.match at 0.8/0.85 em), without the max(12px, ...) guard the stylesheet applies in 13 other places, so the product falls under the scale's floor.",
+ "evidence": {
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+  "tolerance": "exact",
+  "thread_factor": 1.0,
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=tooltip_hover,shared_steps_hover,estimated_price_hover,layout_editing,picker_twins,setup_clear_armed",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+  "value": 78,
+  "unit": "count of cells with any visible HTML text run whose computed font-size < 12 px",
+  "load1": 2.77
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.tooltip, .tooltip .tt-shared, dialog.expanded .tooltip, .sp-note, .layout-verdict rules) as Chromium computes them",
+ "perturbation": {
+  "change": "--perturb=tooltip_floor: dialog.expanded .tooltip and .tooltip .tt-shared read max(12px, <em>)",
+  "expected_direction": "down",
+  "observed_value": 54
+ },
+ "metric_definition": "cells (state x viewport x theme x language) in which a visible HTML element with its own text has computed font-size below 11.995 px",
+ "phenomenon_property": "No text the card renders, in any state, viewport or language, is smaller than the --hpo-text-xs floor (12 px).",
+ "seam_rule": "grep -nE \"font-size: *[0-9.]+em\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+ "null_control": {
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280  (below_floor in --out JSON)",
+  "value": "0 of 822 cells outside these six states",
+  "note": "the other 44 states, all viewports, both themes, three languages render no text under 12 px: the floor holds wherever a max(12px, ...) guard or a token sets the size"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 4,
+  "max": 18,
+  "drop_most_favourable": 60
+ },
+ "proposed_fix_scope": "Give the five rules the stylesheet's own max(12px, ...) guard or a --hpo-text token; keep the phone tooltip inside its chart by width, not by shrinking type.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P9",
+ "criteria_statement": "D4-criteria 'look professional' (D4.M3 typography consistency); P9's unfloored mechanism applied to type"
+}

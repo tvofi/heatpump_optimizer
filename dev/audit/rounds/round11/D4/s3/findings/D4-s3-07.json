@@ -1,0 +1,45 @@
+{
+ "id": "D4-s3-07",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "German text mixes „typographic“ and \"straight\" quotes; a blueprint writes degrees as '15 C'",
+ "severity": "low",
+ "claim": "In German, 27 quoted spans across translations/de.json and the card's STRINGS use straight ASCII quotes while 95 use „…“ (25 of the 27 in de.json, e.g. exceptions.config_entry_not_loaded); and blueprints/automation/economy_mode_on_price_peak.yaml's description writes '1.5 C' and '15 C' where every other surface writes °C.",
+ "mechanism": "Strings were translated at different times by different passes: some kept the English source's ASCII quotes around placeholders and option names, others used German typography; the blueprint description is plain text written without the degree sign.",
+ "evidence": {
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, CPython 3.14 venv-ci, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "a count over file-delivered strings, contention-immune",
+  "tolerance": "exact",
+  "load1": 0.5,
+  "thread_factor": 1.0,
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "value": 27,
+  "unit": "count of straight-quoted spans in de strings (translations/de.json + card STRINGS.de) beside 95 typographic ones"
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/translations/de.json (all leaf strings HA renders) and heatpump-optimizer-card.js:STRINGS.de (loaded in a Node vm, the table L() reads); blueprints/automation/economy_mode_on_price_peak.yaml:blueprint.description",
+ "perturbation": {
+  "change": "--perturb=de_quotes: de.json's straight-quoted spans rewritten „…“ in memory",
+  "expected_direction": "down",
+  "observed_value": 2
+ },
+ "metric_definition": "regex count of \"…\" spans (1-80 chars) in de delivered strings, beside the count of „…“ spans",
+ "phenomenon_property": "Within one language, the user-facing text uses one quotation style and one temperature notation (°C).",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s3/m3_text.py",
+  "value": "en: 2 degree-without-sign, 0 in de/sv",
+  "note": "the degree count is 0 in de and sv over the same surfaces, so the regex does not read '°C' as bare 'C'"
+ },
+ "proposed_fix_scope": "Normalise de.json (and the 2 card STRINGS.de spans) to „…“; write '1.5 °C' / '15 °C' in the blueprint description. sv/en straight quotes are the majority style there and are not claimed.",
+ "files": [
+  "custom_components/heatpump_optimizer/translations/de.json",
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+  "blueprints/automation/economy_mode_on_price_peak.yaml"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "criteria_statement": "'look professional' (D4.M3 typography consistency)"
+}
