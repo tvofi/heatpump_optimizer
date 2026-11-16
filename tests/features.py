@@ -9014,57 +9014,42 @@ _ok, _detail = _from_dict_survives(
 )
 R.check("StartCounter.from_dict swallows inf lifetime", _ok, _detail)
 
-# The streak is what makes "START_HYSTERESIS_SAMPLES consecutive samples"
-# true. A sample that AGREES with the state already held is not part of an
-# edge, so it must reset the streak: otherwise a steady running signal keeps
-# the streak alive across agreeing samples and the next real edge is
-# confirmed on fewer samples than the promise. Drive a steady above-threshold
-# signal while the counter already believes it is running.
-from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _FUZZ_HYST
+# R10-START-COUNTER-EDGES re-points the streak checks to what replaced the
+# streak. A start is an edge to running from a last known class of stopped:
+# a steady running signal, folded as many confirmed True edges as you like
+# into a counter that already believes it runs, books nothing.
+from heatpump_optimizer.wear import EdgeTracker as _FuzzEdges
 
-_steady = _FuzzStarts()
-_steady.running = True
-_steady_confirmed = 0
-for _i in range(_FUZZ_HYST + 2):
-    if _steady.observe(NOW + timedelta(minutes=_i), 2.0, 1.0, False):
-        _steady_confirmed += 1
+_steady = _FuzzStarts.from_dict({"running": True})
+_steady_confirmed = sum(len(_steady.fold(NOW + timedelta(minutes=_i), True)) for _i in range(4))
 R.check(
-    "a steady running signal restarts the streak and confirms no start",
-    _steady_confirmed == 0 and _steady._streak == 0 and _steady.lifetime == 0,
-    f"confirmed {_steady_confirmed}, streak {_steady._streak}, "
-    f"lifetime {_steady.lifetime}",
+    "a steady running signal confirms no start",
+    _steady_confirmed == 0 and _steady.lifetime == 0 and _steady.running,
+    f"confirmed {_steady_confirmed}, lifetime {_steady.lifetime}",
 )
 
-# The check above cannot fail on the reset: there `above == self.running`
-# holds from the very first sample, so `_streak` never leaves 0 and the
-# reset line is dead weight in it. The reset shows itself only when the
-# streak is ALIVE as the agreeing sample arrives. Walk above -> below ->
-# above: sample 1 starts a streak of 1, sample 2 agrees with the held False
-# state, and sample 3 is the second "above" -- but NON-consecutive, so it
-# must start a fresh streak of 1, not confirm. Measured: intact -> streak
-# 1 -> 0 -> 1, no confirmation (lifetime 0); with `self._streak = 0`
-# deleted -> streak 1 -> 1, sample 3 confirms a start (running True,
-# lifetime 1).
-_noncon = _FuzzStarts()
-_noncon_first = _noncon.observe(NOW, 2.0, 1.0, False)
-_noncon_streak_first = _noncon._streak
-_noncon_agree = _noncon.observe(NOW + timedelta(minutes=1), 0.0, 1.0, False)
-_noncon_streak_agree = _noncon._streak
-_noncon_third = _noncon.observe(NOW + timedelta(minutes=2), 2.0, 1.0, False)
+# The debounce is the tracker's: a changed class must hold EDGE_DEBOUNCE_S,
+# and a reading that agrees with the settled class clears the pending
+# change, so above -> below -> above inside the debounce is no edge. Null
+# control: the same walk with the third reading held past the debounce
+# confirms exactly one edge to running.
+_noncon = _FuzzEdges(settled=False)
+_noncon_edges = [
+    _noncon.note(NOW + timedelta(seconds=_s), _v)
+    for _s, _v in ((0, True), (10, False), (20, True), (40, True))
+]
+_noncon_held = _FuzzEdges(settled=False)
+_noncon_held_edges = [
+    _noncon_held.note(NOW + timedelta(seconds=_s), _v) for _s, _v in ((0, True), (40, True))
+]
 R.check(
-    "above->below->above: the agreeing sample resets the streak, no start",
-    not _noncon_first
-    and _noncon_streak_first == 1
-    and not _noncon_agree
-    and _noncon_streak_agree == 0
-    and not _noncon_third
-    and _noncon._streak == 1
-    and not _noncon.running
-    and _noncon.lifetime == 0,
-    f"confirmed ({_noncon_first!r},{_noncon_agree!r},{_noncon_third!r}), "
-    f"streak {_noncon_streak_first}->{_noncon_streak_agree}->{_noncon._streak}, "
-    f"running {_noncon.running}, lifetime {_noncon.lifetime}",
+    "above->below->above: the agreeing reading clears the pending change, no edge inside the debounce",
+    _noncon_edges == [None, None, None, None] and _noncon.settled is False
+    and _noncon.pending == (True, NOW + timedelta(seconds=20))
+    and _noncon_held_edges == [None, (NOW, True)],
+    f"{_noncon_edges} {_noncon.pending} {_noncon_held_edges}",
 )
+
 _ok, _detail = _from_dict_survives(
     lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
 )
@@ -19282,8 +19267,11 @@ def _t2_coord(states=None, **extra):
 
 
 def _listeners(coord):
+    # The guard's own registrations: the running signal (R10-START-COUNTER-EDGES)
+    # listens on the heat pump's meter from construction, before this setup runs.
+    before = list(getattr(coord.hass, "state_listeners", []))
     _asyncio.run(coord._async_setup_peak_guard())
-    return getattr(coord.hass, "state_listeners", [])
+    return [entry for entry in getattr(coord.hass, "state_listeners", []) if entry not in before]
 
 _c = _t2_coord(
     peak_guard_enabled=True,
@@ -24487,42 +24475,35 @@ import re as _re6
 from heatpump_optimizer import diagnosis as diagnosis_mod
 from heatpump_optimizer import narrative as narrative_mod
 from heatpump_optimizer.const import COP_HEALTH_THRESHOLD
+from heatpump_optimizer import running_signal
 from heatpump_optimizer.wear import StartCounter, wear_price_per_start
 
 _T6 = datetime(2026, 3, 28, 12, 0, tzinfo=UTC)
 
 # --- #55 the start counter -------------------------------------------------------
-_sc = StartCounter()
-_thr = 0.5
+# R10-START-COUNTER-EDGES: the counter folds confirmed edges of the running
+# signal; the debounce that a noisy reading must clear is EdgeTracker's
+# (pinned above, "above->below->above"), so these drive the fold itself.
+_sc = StartCounter.from_dict(None)
 R.check(
-    "one noisy sample above the threshold books nothing",
-    not _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 0,
-    "two-sample hysteresis: a single meter glitch is not a start",
+    "an edge to running from stopped books one start at the edge's own time",
+    _sc.fold(_T6, True) == [_T6] and _sc.lifetime == 1 and _sc.running,
 )
 R.check(
-    "the second consecutive sample confirms the start",
-    _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 1 and _sc.running,
+    "a falling edge books no start",
+    _sc.fold(_T6, False) == [] and _sc.lifetime == 1 and not _sc.running,
 )
 R.check(
-    "a falling edge needs two samples too, and books no start",
-    not _sc.observe(_T6, 0.0, _thr, False)
-    and not _sc.observe(_T6, 0.0, _thr, False)
-    and _sc.lifetime == 1
-    and not _sc.running,
+    "no signal (an outage, or the element on the meter) is not a transition: the last "
+    "known class holds through it, so stopped -> None -> stopped -> None books nothing",
+    _sc.fold(_T6, None) == [] and _sc.fold(_T6, False) == [] and _sc.fold(_T6, None) == []
+    and _sc.lifetime == 1 and not _sc.running,
+    "#11's classifier owns resistive draw; the meter reads no signal while it runs",
 )
-_sc.observe(_T6, 2.0, _thr, False)  # half an edge...
 R.check(
-    "the immersion element freezes the machine and resets the streak",
-    not _sc.observe(_T6, 2.0, _thr, True)  # ...the element cuts in
-    and not _sc.observe(_T6, 2.0, _thr, False)  # half an edge again
-    and _sc.lifetime == 1,
-    "#11's classifier owns resistive draw; half-edges must not combine "
-    "across an immersion event",
-)
-_sc.observe(_T6, 2.0, _thr, False)
-R.check(
-    "after the element drops out a full clean edge counts again",
-    _sc.lifetime == 2 and _sc.month_count("2026-03") == 2,
+    "a start under the element counts once, at the edge that ends the no-signal stretch",
+    _sc.fold(_T6, True) == [_T6] and _sc.fold(_T6, None) == [] and _sc.fold(_T6, True) == []
+    and _sc.lifetime == 2 and _sc.month_count("2026-03") == 2,
 )
 _sc2 = StartCounter.from_dict(_sc.as_dict())
 R.check(
@@ -24546,9 +24527,11 @@ R.check(
 _cw = _t2_coord(
     compressor_replacement_cost=50000.0, compressor_rated_starts=100000
 )
-_cw._measured_power = 3.0
-_cw._observe_compressor_start(_T6)
-_cw._observe_compressor_start(_T6)
+_cw._start_counter.restore(None)
+for _cw_hear in running_signal.signal_for(_cw).subscribers:
+    _cw_hear((_T6, True))
+for _cw_tick in running_signal.signal_for(_cw).ticks * 2:  # a meter's rise counts at its second refresh (S7)
+    _cw_tick(True)
 R.check(
     "a confirmed start books its wear price on the ledger's wear line",
     _cw._start_counter.lifetime == 1
@@ -26498,14 +26481,18 @@ R.check(
     "the crashing month on every cycle forever",
 )
 
-# The debounce streak dies with the meter: two noise spikes separated by
-# an outage are not two CONSECUTIVE samples.
-_sc8 = StartCounter()
-_sc8.observe(_T6, 2.0, 0.5, False)
-_sc8.observe(_T6, None, 0.5, False)
+# The debounce dies with the meter (R10-START-COUNTER-EDGES re-points this
+# from the streak): two noise spikes separated by an outage are one pending
+# change each, never one held change.
+_sc8 = running_signal.Signal(reader=lambda: (None, _sc8_kw[0], 0.5, False))
+_sc8_counter = StartCounter.from_dict(None)
+running_signal.subscribe(_sc8, lambda edge: _sc8_counter.fold(*edge))
+for _sc8_s, _sc8_kw in ((0, [2.0]), (20, [None]), (40, [2.0]), (60, [2.0])):
+    running_signal.note(_sc8, _T6 + timedelta(seconds=_sc8_s))
 R.check(
-    "a meter outage resets the hysteresis streak",
-    not _sc8.observe(_T6, 2.0, 0.5, False) and _sc8.lifetime == 0,
+    "a meter outage resets the debounce",
+    _sc8_counter.lifetime == 0 and _sc8.tracker.pending == (True, _T6 + timedelta(seconds=40)),
+    f"{_sc8_counter.lifetime} {_sc8.tracker.pending}",
 )
 
 # The day book keeps its signs and its baseline honest: a negative-price
@@ -57017,7 +57004,7 @@ from heatpump_optimizer.snapshots import SnapshotRing as _G8Ring  # noqa: E402
 from heatpump_optimizer.comfort_learning import ComfortLearner as _G8Learner  # noqa: E402
 from heatpump_optimizer.dhw_draws import DrawStats as _G8Draws  # noqa: E402
 from heatpump_optimizer.dhw_draws import labels_for as _g8_labels  # noqa: E402
-from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _G8_HYST  # noqa: E402
+from heatpump_optimizer.wear import EdgeTracker as _G8Edges, compressor_running as _g8_class  # noqa: E402
 
 _G8_T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
 
@@ -57031,56 +57018,46 @@ def _g8_call(fn, *args, **kwargs):
 
 
 # -- wear.StartCounter: a meter outage is not a state transition -----------
-# `observe` is a two-sample edge detector. The three uncovered lines are the
-# two refusals that reset the streak and the month eviction, and the first two
-# matter for the same reason: half an edge seen before a meter gap and half
-# seen after it are not two CONSECUTIVE samples, and counting them as one edge
-# invents a compressor start that never happened.
-def _g8_starts(samples, *, threshold=1.0):
-    """Feed `(kw, immersion)` samples in order; return (counter, starts)."""
-    counter = _G8Starts()
-    fired = []
-    for i, (kw, imm) in enumerate(samples):
-        fired.append(
-            counter.observe(_G8_T0 + timedelta(minutes=5 * i), kw, threshold, imm)
-        )
+# R10-START-COUNTER-EDGES re-points these from the retired two-sample streak to
+# the edge path that replaced it: readings through compressor_running and the
+# EdgeTracker's debounce, edges folded into the counter. Half an edge seen
+# before a meter gap and half seen after it must not combine into one edge:
+# that would invent a compressor start that never happened. The element on
+# the meter is the same case, since the meter source reads no signal then.
+def _g8_starts(readings, *, threshold=1.0):
+    """Feed `(seconds, kw)` readings in order; return (counter, starts)."""
+    counter, tracker, fired = _G8Starts.from_dict(None), _G8Edges(settled=False), []
+    for second, kw in readings:
+        edge = tracker.note(_G8_T0 + timedelta(seconds=second), _g8_class(None, kw, threshold, False))
+        fired.append(counter.fold(*edge) if edge else [])
     return counter, fired
 
 
-_g8_run = [(2.0, False)] * _G8_HYST
-_g8_clean, _g8_clean_fired = _g8_starts(_g8_run)
-_g8_gap, _g8_gap_fired = _g8_starts(
-    [(2.0, False), (None, False)] + _g8_run
-)
-_g8_imm, _g8_imm_fired = _g8_starts(
-    [(2.0, False), (2.0, True)] + _g8_run
-)
+_g8_clean, _g8_clean_fired = _g8_starts([(0, 2.0), (40, 2.0)])
+_g8_gap, _g8_gap_fired = _g8_starts([(0, 2.0), (10, None), (35, 2.0), (50, 2.0)])
+_g8_imm, _g8_imm_fired = _g8_starts([(0, 2.0), (10, None), (35, 2.0), (50, 2.0), (70, 2.0)])
 R.check(
-    "a confirmed start needs consecutive samples, and a meter outage breaks the run",
-    any(_g8_clean_fired)
+    "a confirmed start needs its class held through the debounce, and a meter outage breaks the run",
+    _g8_clean_fired == [[], [_G8_T0]]
     and _g8_clean.lifetime == 1
-    and _g8_gap.lifetime == 1
-    and _g8_gap_fired[0] is False
-    and _g8_gap_fired[1] is False,
+    and _g8_gap.lifetime == 0
+    and _g8_gap_fired == [[], [], [], []],
     f"clean {_g8_clean_fired!r} -> lifetime {_g8_clean.lifetime}; across a "
     f"None reading {_g8_gap_fired!r} -> lifetime {_g8_gap.lifetime}. Without "
-    "the reset, the sample before the gap and the one after it combine into "
+    "the reset, the reading before the gap and the one after it combine into "
     "an edge, and the wear counter bills a start the compressor never made",
 )
 R.check(
-    "and the immersion element freezes the detector rather than clamping it",
-    _g8_imm.lifetime == 1 and _g8_imm_fired[1] is False,
-    f"with the element active mid-run {_g8_imm_fired!r} -> lifetime "
-    f"{_g8_imm.lifetime} -- while it runs the meter reads compressor plus "
-    "resistive, so neither edge direction can be trusted and half an edge "
-    "observed on each side of it must not combine",
+    "and the element's no-signal stretch restarts the debounce rather than bridging it",
+    _g8_imm.lifetime == 1 and _g8_imm_fired[-1] == [_G8_T0 + timedelta(seconds=35)],
+    f"with the element read as no signal mid-run {_g8_imm_fired!r} -> lifetime "
+    f"{_g8_imm.lifetime}: the start dates from the first reading after it",
 )
-_g8_keep = _G8Starts()
+_g8_keep = _G8Starts.from_dict(None)
 for _i in range(30):
     _g8_keep.months[f"20{24 + _i // 12:02d}-{_i % 12 + 1:02d}"] = _i + 1
 _g8_keep_before = len(_g8_keep.months)
-for _i in range(_G8_HYST):
-    _g8_keep.observe(_G8_T0 + timedelta(minutes=5 * _i), 2.0, 1.0, False)
+_g8_keep.fold(_G8_T0, True)
 R.check(
     "the month map is evicted oldest-first when a start pushes it over the cap",
     len(_g8_keep.months) <= 24
@@ -85433,6 +85410,8 @@ R.check("an install with no power switch: the gate writes and holds nothing, and
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
 from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
 from heatpump_optimizer import wear as _ds_wear  # noqa: E402
+from heatpump_optimizer import running_signal as _ds_rs  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _DsConfig  # noqa: E402
 from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
 import json  # noqa: E402
 from pathlib import Path as _DsPath  # noqa: E402
@@ -85983,6 +85962,10 @@ class _DsArb:
 
     def arbiter_inputs(self):
         self.passes += 1
+        # R10-START-COUNTER-EDGES: the coordinator attaches the running signal, the arbiter only
+        # subscribes to it. Attached here, at the first pass's frozen clock, the timing the
+        # duty-switch checks below were written against (the arbiter attached at its first pass).
+        self.signal()
         return _sa_pa.ArbiterInputs(
             hass=self.hass, config=self._config, mode=self.mode, plan=self.plan, plan_stale=False,
             entry_released=False, state=SimpleNamespace(
@@ -85990,6 +85973,16 @@ class _DsArb:
             thermal=SimpleNamespace(params=self.params), params=self.params,
             action=self.action, measured_power_kw=None, disinfecting=self.disinfecting,
             defrosting=self.defrosting)
+
+
+def _ds_signal(self):
+    """The coordinator's attach of the running signal, over this surface's frequency source."""
+    _ds_rs.attach(_ds_rs.signal_for(self), *_ds_rs.source(self.hass, _DsConfig.from_mapping(self._config), lambda: self.params,
+                                       lambda kw: False))
+    return _ds_rs.signal_for(self)
+
+
+_DsArb.signal = _ds_signal
 
 
 def _ds_fire(c, value):
@@ -86322,20 +86315,24 @@ R.check(
 _ds_twice = _DsArb()
 _ds_twice_rec = _ds_mod.record_for(_ds_twice)
 for _ds_i in range(2):
-    _ds_mod.attach(_ds_twice_rec, *_sa_pa._running_signal(_ds_twice.arbiter_inputs()))
+    _ds_twice.signal()
+    _ds_mod.attach(_ds_twice_rec)
 _ds_deaf = _DsArb({"compressor_freq_sensor": None})
-_ds_mod.attach(_ds_mod.record_for(_ds_deaf), *_sa_pa._running_signal(_ds_deaf.arbiter_inputs()))
+_ds_deaf.signal()
+_ds_mod.attach(_ds_mod.record_for(_ds_deaf))
 _ds_never = _DsArb({"pump_duty_mode": "off"})
 _asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
-_ds_mod.record_for(_ds_never).tracker.settled = True
+_ds_mod.record_for(_ds_never).signal.tracker.settled = True
 _asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
 R.check(
-    "the listener is armed once however often the arbiter attaches, and not at all with no signal entity; "
-    "duty mode off on a pump never arbitrated, or never attached, raises nothing and forgets nothing",
+    "the listener is armed once however often it is attached, and the record heard once however often the "
+    "arbiter subscribes; not at all with no signal entity; duty mode off on a pump never arbitrated, or never "
+    "attached, raises nothing and forgets nothing",
     sum("sensor.freq" in ids for ids, _a in _ds_twice.hass.state_listeners) == 1
-    and (_ds_mod.record_for(_ds_deaf).unsub, _ds_mod.record_for(_ds_deaf).reader) == (None, None)
+    and _ds_twice_rec.signal.subscribers == [_ds_twice_rec.feed]
+    and (_ds_mod.record_for(_ds_deaf).signal.unsub, _ds_mod.record_for(_ds_deaf).signal.reader) == (None, None)
     and not getattr(_ds_deaf.hass, "state_listeners", [])
-    and _ds_mod.record_for(_ds_never).tracker.settled is True,
+    and _ds_mod.record_for(_ds_never).signal.tracker.settled is True,
 )
 # Duty mode off with an episode open: the episode is dropped uncounted, not
 # left to be judged against a signal nobody listens to.
@@ -86344,29 +86341,33 @@ _ds_open_before = _ds_mod.record_for(_ds_open_c).learner.episode
 _ds_open_c._config = {**_ds_open_c._config, "pump_duty_mode": "off"}
 _asyncio.run(_sa_pa.apply(_ds_open_c, _DS_T0 + timedelta(minutes=9)))
 R.check(
-    "detaching with an episode open drops it uncounted and forgets the running class",
+    "detaching with an episode open drops it uncounted and stops hearing the edges; the running class is "
+    "the running signal's and outlives the arbiter (R10-START-COUNTER-EDGES)",
     _ds_open_before is not None and _ds_open_before.direction == "dhw_space"
     and _ds_mod.record_for(_ds_open_c).learner.episode is None
-    and _ds_mod.record_for(_ds_open_c).tracker == _ds_wear.EdgeTracker() and _ds_open_row == (0, 0, 0, 0, [])
+    and _ds_mod.record_for(_ds_open_c).signal.subscribers == []
+    and _ds_mod.record_for(_ds_open_c).signal.tracker.settled is True and _ds_open_row == (0, 0, 0, 0, [])
     and _ds_mod.record_for(_ds_open_c).learner.directions["dhw_space"].void == 0,
     f"{_ds_open_before}",
 )
-_ds_reader = _sa_pa._running_signal(_ds_c.arbiter_inputs())
+_ds_reader = _ds_rs.source(_ds_c.hass, _DsConfig.from_mapping(_ds_c._config), lambda: _ds_c.params, lambda kw: False)
 _ds_words = []
 for _ds_word in ("unavailable", "unknown", "abc", "", "0", "0.5", "1", "40"):
     _ds_c.hass.states.set("sensor.freq", FakeState(_ds_word))
     _ds_words.append(_ds_run(*_ds_reader[1]()))
 _ds_meter = _DsArb({"compressor_freq_sensor": None, "heat_pump_power_entity": "sensor.kw"})
 _ds_meter.hass.states.set("sensor.kw", FakeState("0.4", unit="kW"))
-_ds_meter_reader = _sa_pa._running_signal(_ds_meter.arbiter_inputs())
+_ds_meter_reader = _ds_rs.source(_ds_meter.hass, _DsConfig.from_mapping(_ds_meter._config), lambda: _ds_meter.params,
+                                 lambda kw: False)
 _ds_meter_low = _ds_run(*_ds_meter_reader[1]())
 _ds_meter.hass.states.set("sensor.kw", FakeState("0.6", unit="kW"))
 R.check(
-    "the arbiter's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
+    "the running signal's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
     "frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to",
     _ds_reader[0] == "sensor.freq" and _ds_words == [None, None, None, None, False, False, True, True]
     and _ds_meter_reader[0] == "sensor.kw" and (_ds_meter_low, _ds_run(*_ds_meter_reader[1]())) == (False, True)
-    and _sa_pa._running_signal(_DsArb({"compressor_freq_sensor": None}).arbiter_inputs())[0] is None,
+    and _ds_rs.source(FakeHass({}), _DsConfig.from_mapping({"compressor_freq_sensor": None}), lambda: None,
+                      lambda kw: False)[0] is None,
     f"{_ds_words} {_ds_meter_low}",
 )
 _ds_quiet = _DsArb()
@@ -86375,12 +86376,15 @@ _ds_quiet_passes = _ds_quiet.passes
 for _ds_word in ("0", "40", "0", "unavailable", "40"):
     _ds_fire(_ds_quiet, _ds_word)
 _ds_quiet._config = {**_ds_quiet._config, "pump_duty_mode": "off"}
-_ds_armed = _ds_mod.record_for(_ds_quiet).unsub is not None
+_ds_quiet_rec = _ds_mod.record_for(_ds_quiet)
+_ds_armed = _ds_quiet_rec.feed in _ds_quiet_rec.signal.subscribers
 _asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=2)))
 R.check(
-    "the listener is the learner's own and triggers no arbiter pass; duty mode off detaches it",
-    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1 and _ds_mod.record_for(_ds_quiet).unsub is None
-    and not any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
+    "the running signal's listener triggers no arbiter pass; duty mode off unsubscribes the learner and "
+    "leaves the listener, which the start counter hears in every mode (R10-START-COUNTER-EDGES)",
+    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1
+    and _ds_quiet_rec.feed not in _ds_quiet_rec.signal.subscribers
+    and any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
     f"{_ds_quiet.passes=} {_ds_quiet_passes=}",
 )
 def _ds_shape(learner):
@@ -86415,7 +86419,7 @@ class _DsNoDisk:
 _ds_late_rec.store = _DsNoDisk()
 _asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_mod.SwitchContext()))
 _ds_late_rec.store = _ds_late_store
-_ds_late_rec.tracker.settled = True
+_ds_late_rec.signal.tracker.settled = True
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_late_before = (_ds_late_rec.loaded, _ds_late_rec.learner.episode)
 _asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_ctx(_DS_T0)))
@@ -86434,10 +86438,10 @@ _ds_late_rec.loaded = True
 _sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
 _ds_slot_kept = _ds_late_rec.learner.episode is not None
 _sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
-_ds_late_rec.tracker.pending = (False, _DS_T0)
+_ds_late_rec.signal.tracker.pending = (False, _DS_T0)
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_pending_open = _ds_late_rec.learner.episode
-_ds_late_rec.tracker.pending = None
+_ds_late_rec.signal.tracker.pending = None
 _ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 R.check(
     "a set-point write reports nothing to the learner and a mode write does; a pending change of the "
@@ -86738,17 +86742,21 @@ _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+_ds_rs_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "running_signal.py").read_text()))
+              if isinstance(n, _ds_ast.ImportFrom) and n.level == 1}
 R.check(
     "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
     "store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's "
-    "read; the module imports none of them; the pure half of wear stays pure",
+    "read; the module imports none of them, and the running signal it hears imports none of them nor it; the pure "
+    "half of wear stays pure",
     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
     and _ds_plan_uses == ["planner_fields", "record_for"]
-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
+    and _ds_uses == ["STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
                      "note_mode_write", "note_pass", "planner_fields", "record_for", "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+    and not _ds_rs_own & {"duty_switch", "pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
-    f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
+    f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own} {_ds_rs_own}",
 )
 # Published on the compressor-starts sensor, beside the counter, off the payload.
 from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
@@ -86804,13 +86812,14 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
     rec = _ds_mod._Record(None, _DsSaves())
     rec.loaded = True
     hz = [readings[0][1]]
-    rec.reader = lambda: (hz[0], None, None, True)
+    rec.signal.reader = lambda: (hz[0], None, None, True)
+    _ds_mod.attach(rec)
     if not fresh:
-        _ds_mod.note_signal(rec, _DS_T0 - timedelta(minutes=10))
+        _ds_rs.note(rec.signal, _DS_T0 - timedelta(minutes=10))
         _asyncio.run(_ds_mod.note_pass(rec, _DS_T0 - timedelta(minutes=5), _ds_ctx(None)))
     for lead, value in before:
         hz[0] = value
-        _ds_mod.note_signal(rec, _DS_T0 - timedelta(seconds=lead))
+        _ds_rs.note(rec.signal, _DS_T0 - timedelta(seconds=lead))
     ctx = _ds_ctx(_DS_T0)
     _ds_mod.note_mode_write(rec, _DS_T0 + timedelta(seconds=writes_at), _DS_DHW, _DS_HEAT, ctx)
     opened = rec.learner.episode is not None
@@ -86820,7 +86829,7 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
         for at, value in readings[1:]:
             if at == mark:
                 hz[0] = value
-                _ds_mod.note_signal(rec, when)
+                _ds_rs.note(rec.signal, when)
         if mark % 15 == 0:
             defrost = defrost_from is not None and mark >= defrost_from
             _asyncio.run(_ds_mod.note_pass(rec, when, _ds_ctx(_DS_T0, defrosting=True) if defrost else ctx))
@@ -86829,7 +86838,7 @@ def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=Fal
 
 
 # A stop read in the window's last debounce is still pending at the pass on the window's end.
-_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_mod.wear.EDGE_DEBOUNCE_S / 2.0
+_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_wear.EDGE_DEBOUNCE_S / 2.0
 R.check(
     "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on "
     "the window's end keeps the episode open and books the stop once confirmed; null control, with no stop "
@@ -86866,12 +86875,11 @@ R.check(
     _ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
-    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    and 0.0 < _DS_START_LEAD < _ds_wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
     f"{_ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)])} "
     f"{_ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
 )
 # Home Assistant 2025.2 runs Python 3.13, which evaluates the arbiter's annotations at import; 3.14 defers them.
-from heatpump_optimizer import pump_arbiter as _ds_pa  # noqa: E402
 import typing as _ds_typing  # noqa: E402
 
 
@@ -86887,9 +86895,9 @@ def _ds_unbound(reader: "_DsNoSuchReader") -> None:  # noqa: F821
     """A seam annotated with a name no module binds: the null control of the check below."""
 
 
-_ds_seams = _ds_hints(_ds_pa._running_signal, _ds_mod.attach)
+_ds_seams = _ds_hints(_ds_rs.source, _ds_rs.attach)
 R.check(
-    "the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import: _running_signal returns "
+    "the reader's annotations resolve, as Python 3.13 resolves the module's at import: running_signal.source returns "
     "and attach takes the one reader type; null control, a seam annotated with a name no module binds does not "
     "resolve",
     isinstance(_ds_seams, tuple)
@@ -86906,13 +86914,13 @@ R.check(
     _ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
-    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    and 0.0 < _DS_START_LEAD < _ds_wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
     f"{_ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
     f"{_ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
     f"{_ds_wrapped([(0, 50.0)])}",
 )
 # A stop read 60 s after the write is confirmed by the pass one debounce later, on a clean context.
-_DS_CONFIRM_AT = 60 + _ds_mod.wear.EDGE_DEBOUNCE_S
+_DS_CONFIRM_AT = 60 + _ds_wear.EDGE_DEBOUNCE_S
 R.check(
     "through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a "
     "defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; "
@@ -92320,6 +92328,769 @@ R.check(
     all(_dsp_same_plan(_dsp_solve(*_dsp_table.planner_pairs(), **kw), _dsp_priced[n])
         for n, kw in _DSP_INSTALLS.items()),
 )
+
+
+# --- #3616: an implausible slab seed is refused --------------------------------
+R.section("#3616: a floor-return reading far above the room does not seed the slab")
+
+# A heat-pump return on a buffer plant, configured in the floor-return field,
+# reads far warmer than any floor loop: the slab estimate followed it and the
+# plan held 0 kWh of space heating with the room below its comfort band.
+# Closed loop through the production coordinator and solver (the r9f12 rig):
+# room 19.6 C under a 22 C comfort target, 6 C outside, as the reporter's.
+from heatpump_optimizer import slab_seed as _ssg  # noqa: E402
+
+_ssg_start = datetime(2026, 11, 15, 6, 0, tzinfo=UTC)
+
+
+def _ssg_cycles(return_c, cycles=6, mode=None, defrost=None):
+    """Hourly cycles: (slab after each, planned space kWh, issues raised)."""
+    cfg = dict(_r9f12_seed_cfg, comfort_temperature=22.0)
+    live = {"sensor.indoor": ("19.6", "°C"), "sensor.outdoor": ("6.0", "°C")}
+    if return_c is not None:
+        cfg["floor_return_temp_entity"] = "sensor.ret"
+        live["sensor.ret"] = (str(return_c), "°C")
+    if mode is not None:
+        cfg["heat_pump_mode_entity"] = "select.mode"
+        live["select.mode"] = (mode, None)
+    if defrost is not None:
+        cfg["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+        live["binary_sensor.defrost"] = (defrost, None)
+    hass = FakeHass()
+    # The notifier fires an event on a mode or defrost change; this rig's bus
+    # records nothing, so a sink stands in for it.
+    hass.bus.async_fire = lambda *_a, **_k: None
+    entry = _r9f12_entry(data=cfg, entry_id=f"ssg_{return_c}_{mode}_{defrost}")
+    seen = []
+    try:
+        for hour in range(cycles):
+            now = _ssg_start + timedelta(hours=hour)
+            _r9f12_dt.freeze(now)
+            for name, (value, unit) in live.items():
+                hass.states.set(name, FakeState(value, unit=unit) if unit else FakeState(value))
+            _r9f12_seed_prices(hass, now)
+            if hour == 0:
+                _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+                coord = entry.runtime_data
+            _r9f12_aio.run(coord.async_refresh())
+            seen.append(coord._current_state.slab_temperature)
+        kwh = sum(float(p) for p in coord._optimization_result.power_schedule) * 0.25
+    finally:
+        _r9f12_dt.freeze(None)
+    return seen, kwh, {i[1]: i[2] for i in getattr(hass, "issues", [])}
+
+
+_ssg_warm = _ssg_cycles(38.0)
+_ssg_none = _ssg_cycles(None)
+_ssg_ok = _ssg_cycles(26.0)
+R.check(
+    "#3616: a 38 C heat-pump return in the floor-return field no longer plans "
+    "zero space heating for a room below its comfort band",
+    _ssg_warm[1] > 1.0,
+    f"planned {_ssg_warm[1]:.3f} kWh, slab {[round(s, 2) for s in _ssg_warm[0]]}",
+)
+R.check(
+    "and a refused reading leaves the slab to the model exactly as an install "
+    "with no floor-return sensor does",
+    _ssg_warm[0] == _ssg_none[0] and _ssg_warm[1] == _ssg_none[1],
+    f"refused {_ssg_warm[0]} {_ssg_warm[1]} / unconfigured {_ssg_none[0]} {_ssg_none[1]}",
+)
+R.check(
+    "and a repair issue names the sensor and the bound",
+    _ssg_warm[2].get(_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE, {}).get(
+        "translation_placeholders", {}).get("entity") == "sensor.ret"
+    and _ssg_warm[2][_ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE][
+        "translation_placeholders"]["bound"] == "12",
+    f"{sorted(_ssg_warm[2])}",
+)
+# Null control: a plausible floor-loop reading (6.4 K above the room) still
+# seeds the slab unchanged, converging on the merge's return + 1 K fixed point,
+# raises nothing, and plans heat as before.
+R.check(
+    "null control: a plausible floor-loop return still seeds the slab, to the "
+    "return + 1 K fixed point, and raises no repair",
+    abs(_ssg_ok[0][-1] - 27.0) < 0.05 and _ssg_ok[0] != _ssg_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_ok[2],
+    f"slab {[round(s, 2) for s in _ssg_ok[0]]}, issues {sorted(_ssg_ok[2])}",
+)
+# A plausible reading during a hot-water run or a defrost is the pump's own
+# circuit water, not the floor's: it seeds nothing, and raises nothing.
+_ssg_dhw = _ssg_cycles(26.0, mode="DHW (Hot Water)")
+_ssg_dhw_none = _ssg_cycles(None, mode="DHW (Hot Water)")
+_ssg_frost = _ssg_cycles(26.0, defrost="on")
+_ssg_frost_none = _ssg_cycles(None, defrost="on")
+_ssg_both = _ssg_cycles(26.0, mode="Heating + DHW", defrost="off")
+R.check(
+    "a hot-water-only run does not seed the slab from the return",
+    _ssg_dhw[0] == _ssg_dhw_none[0]
+    and _ssg.ISSUE_FLOOR_RETURN_IMPLAUSIBLE not in _ssg_dhw[2],
+    f"{_ssg_dhw[0]} vs {_ssg_dhw_none[0]}",
+)
+R.check(
+    "nor does a defrost",
+    _ssg_frost[0] == _ssg_frost_none[0],
+    f"{_ssg_frost[0]} vs {_ssg_frost_none[0]}",
+)
+R.check(
+    "control: a heating mode with the defrost flag off seeds as with no signals",
+    _ssg_both[0] == _ssg_ok[0],
+    f"{_ssg_both[0]} vs {_ssg_ok[0]}",
+)
+# The bound at its edge, through the production predicate.
+R.check(
+    "the bound: 12 K above the room is a floor loop, anything warmer is not",
+    not _ssg.above_room(32.0, 20.0) and _ssg.above_room(32.1, 20.0)
+    and _ssg.SLAB_SEED_MAX_ABOVE_ROOM_K == 12.0,
+)
+# The option text states the bound the code applies, in every language.
+import json as _ssg_json  # noqa: E402
+from pathlib import Path as _ssg_Path  # noqa: E402
+
+_ssg_cc = _ssg_Path(_ssg.__file__).parent
+
+
+def _ssg_find(node):
+    """Every ``data_description`` text for the floor-return field, at any depth."""
+    if isinstance(node, dict):
+        text = (node.get("data_description") or {}).get("floor_return_temp_entity")
+        return ([text] if text else []) + [t for v in node.values() for t in _ssg_find(v)]
+    return []
+
+
+_ssg_texts = [
+    t for name in ("strings.json", "translations/en.json", "translations/de.json",
+                   "translations/sv.json")
+    for t in _ssg_find(_ssg_json.loads((_ssg_cc / name).read_text(encoding="utf-8")))
+]
+R.check(
+    "every floor-return option text names the bound the guard applies",
+    len(_ssg_texts) == 12
+    and all(f"{_ssg.SLAB_SEED_MAX_ABOVE_ROOM_K:g} K" in t for t in _ssg_texts),
+    f"{len(_ssg_texts)} texts",
+)
+
+
+
+# --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---
+# Part D of Bankaifan's outside pull request 3420, on the approved design
+# (design/R10-START-COUNTER-EDGES). The counter folds the confirmed edges of
+# running_signal, the one owner of the running signal in every duty mode,
+# instead of sampling the meter once per refresh in _record_accuracy. Every
+# check drives the production coordinator or module over the fake bus; timers
+# are fired by the replay when due, as Home Assistant fires them.
+import asyncio as _sce_aio  # noqa: E402
+
+from harness import FakeEntry as _SceEntry  # noqa: E402
+from homeassistant.util import dt as _sce_dt  # noqa: E402
+from heatpump_optimizer import running_signal as _sce_rs  # noqa: E402
+from heatpump_optimizer.const import DEFAULT_OPTIMIZATION_INTERVAL as _SCE_PERIOD_MIN  # noqa: E402
+from dataclasses import replace as _sce_dc_replace  # noqa: E402
+
+from heatpump_optimizer.thermal_model import immersion_level_kw as _sce_over_kw  # noqa: E402
+from heatpump_optimizer.thermal_model import immersion_over as _sce_io  # noqa: E402
+from heatpump_optimizer.thermal_model import on_threshold_kw as _sce_on_kw  # noqa: E402
+from heatpump_optimizer.wear import EDGE_DEBOUNCE_S as _SCE_DEBOUNCE_S  # noqa: E402
+from heatpump_optimizer.wear import RiseHold as _SceRiseHold  # noqa: E402
+from heatpump_optimizer.wear import StartCounter as _SceStarts  # noqa: E402
+
+R.section("R10-START-COUNTER-EDGES: the start counter fed from running-signal edges")
+
+_SCE_T0 = datetime(2026, 2, 3, 6, 0, tzinfo=UTC)
+_SCE_PERIOD_S = 60 * _SCE_PERIOD_MIN
+
+
+class _SceRig:
+    """A live coordinator over the fake bus, its clock, its due timers and its refreshes."""
+
+    def __init__(self, states, priced=False, **config):
+        _sce_dt.freeze(_SCE_T0)
+        money = {"compressor_replacement_cost": 50000.0, "compressor_rated_starts": 100000} if priced else {}
+        self.c = HeatPumpOptimizerCoordinator(
+            FakeHass(states), _SceEntry(data=dict(_T2_DATA, **money, **config)))
+        self.now, self.armed = _SCE_T0, {}
+        self.saves = 0
+        inner = self.c._schedule_ledger_save
+
+        def counted():
+            self.saves += 1
+            inner()
+        self.c._schedule_ledger_save = counted
+        self._seen()
+
+    def _seen(self):
+        for entry in getattr(self.c.hass, "timers", []):
+            self.armed.setdefault(id(entry), (self.now, entry))
+
+    def at(self, when):
+        """Advance the clock to ``when``, firing each timer due on the way, once."""
+        while True:
+            due = [(armed_at + timedelta(seconds=entry[0]), key, entry) for key, (armed_at, entry)
+                   in self.armed.items() if entry in getattr(self.c.hass, "timers", [])]
+            due = sorted((d for d in due if d[0] <= when), key=lambda d: d[0])
+            if not due:
+                break
+            fire_at, key, entry = due[0]
+            self.now = max(self.now, fire_at)
+            _sce_dt.freeze(self.now)
+            self.c.hass.timers.remove(entry)
+            del self.armed[key]
+            entry[1](self.now)
+            self._seen()
+        self.now = when
+        _sce_dt.freeze(when)
+
+    def set(self, entity, value, when, unit=None):
+        """A state change of ``entity`` at ``when``: the listeners hear it, as the bus delivers it."""
+        self.at(when)
+        old = self.c.hass.states.get(entity)
+        self.c.hass.states.set(entity, FakeState(value, unit=unit))
+        if old is not None and old.state == value:
+            return  # no change, no state_changed event
+        for ids, action in list(getattr(self.c.hass, "state_listeners", [])):
+            if entity in ids:
+                action(SimpleNamespace(data={"new_state": self.c.hass.states.get(entity)}))
+        self._seen()
+
+    def refresh(self, when):
+        self.at(when)
+        _sce_aio.run(self.c._update_current_state())
+        self._seen()
+
+    def load(self, payload):
+        async def _load(_p=payload):
+            return _p
+        self.c._ledger_store.async_load = _load
+        _sce_aio.run(self.c._async_load_ledger())
+
+    @property
+    def counter(self):
+        return self.c._start_counter
+
+
+def _sce_meter_trace(phases, perturb=None, every_s=60, refreshes=True, rig=None):
+    """Replay a meter-only install: ``phases`` is [(minutes, kW)], read every ``every_s``;
+    ``perturb`` (start minute, stop minutes) drops the draw to 0 inside one phase.
+    A refresh runs every default optimization interval. Returns the rig."""
+    rig = rig or _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    t, refresh_at = 0, _SCE_PERIOD_S
+    for minutes, kw in phases:
+        for s in range(t, t + minutes * 60, every_s):
+            value = kw
+            if perturb is not None and perturb[0] * 60 <= s < (perturb[0] + perturb[1]) * 60:
+                value = 0.0
+            if refreshes and s >= refresh_at:
+                rig.refresh(_SCE_T0 + timedelta(seconds=refresh_at))
+                refresh_at += _SCE_PERIOD_S
+            rig.set("sensor.kw", f"{value:.1f}", _SCE_T0 + timedelta(seconds=s), unit="kW")
+        t += minutes * 60
+    rig.at(_SCE_T0 + timedelta(seconds=t + 60))
+    return rig
+
+
+# The control trace: every on and off phase spans at least two refresh
+# periods, so the retired sampled path saw each one (two consecutive samples
+# a phase), and no start falls within one period of a month boundary.
+_SCE_ON_KW = 2.0
+_SCE_PHASES = [(90, 0.0), (120, _SCE_ON_KW), (90, 0.0), (150, _SCE_ON_KW), (120, 0.0), (90, _SCE_ON_KW), (60, 0.0)]
+_SCE_ON_PHASES = sum(1 for _m, kw in _SCE_PHASES if kw > 0)
+_sce_control = _sce_meter_trace(_SCE_PHASES)
+# The perturbation: one stop and restart inside one refresh period (5 min off,
+# 40 minutes into the second on phase, between two refreshes).
+_sce_perturbed = _sce_meter_trace(_SCE_PHASES, perturb=(90 + 40, 5))
+R.check(
+    "the control trace (every phase at least two refresh periods long) counts one start per on "
+    "phase; one stop and restart inside one refresh period counts exactly one more",
+    _sce_control.counter.lifetime == _SCE_ON_PHASES
+    and _sce_perturbed.counter.lifetime == _SCE_ON_PHASES + 1
+    and _sce_control.counter.month_count("2026-02") == _SCE_ON_PHASES,
+    f"control {_sce_control.counter.lifetime}, perturbed {_sce_perturbed.counter.lifetime}, "
+    f"on phases {_SCE_ON_PHASES}",
+)
+R.check(
+    "the counted starts are what the cycling cost and the plan never read: the effective "
+    "cycling cost is the same with no start and with every start counted",
+    _SceRig({}, priced=True, wear_autotune_enabled=True).c._effective_cycling_cost()
+    == _sce_meter_trace(_SCE_PHASES, rig=_SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True,
+                        wear_autotune_enabled=True, heat_pump_power_entity="sensor.kw")).c._effective_cycling_cost(),
+)
+
+# Lifecycle: the listener is armed in __init__, before the ledger store is
+# read; an edge confirmed before the read is queued, and the restore replays
+# it over the stored count on every exit of the load.
+def _sce_early(payload, released=False):
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
+    for k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+        rig.refresh(_SCE_T0 + timedelta(minutes=3, seconds=k))
+    queued = list(rig.counter.queued or [])
+    if released:
+        rig.c._release_registrations()
+    rig.load(payload)
+    wear = rig.c._ledger.line("2026-02", "wear")
+    return rig, queued, (wear or {}).get("sek", 0.0)
+
+
+_sce_stored, _sce_stored_q, _sce_stored_wear = _sce_early(
+    {"ledger": {"months": {}}, "starts": {"lifetime": 7, "months": {"2026-01": 7}, "running": False}})
+_sce_fresh, _sce_fresh_q, _sce_fresh_wear = _sce_early(None)
+_sce_gone, _sce_gone_q, _sce_gone_wear = _sce_early(
+    {"ledger": {"months": {}}, "starts": {"lifetime": 7, "months": {"2026-01": 7}, "running": False}}, released=True)
+R.check(
+    "an edge confirmed before the ledger load lands survives the restore: on a stored payload it "
+    "adds to the stored count and books its wear, on a fresh install it is the first start, and on a "
+    "load landing after the release it is counted in memory and books and saves nothing",
+    [cls for _t, cls in _sce_stored_q] == [False, True]
+    and (_sce_stored.counter.lifetime, _sce_stored.counter.months) == (8, {"2026-01": 7, "2026-02": 1})
+    and abs(_sce_stored_wear - 0.5) < 1e-9 and _sce_stored.saves == 1
+    and _sce_stored.counter.queued is None
+    and (_sce_fresh.counter.lifetime, abs(_sce_fresh_wear - 0.5) < 1e-9, _sce_fresh.saves) == (1, True, 1)
+    and (_sce_gone.counter.lifetime, _sce_gone_wear, _sce_gone.saves) == (8, 0.0, 0),
+    f"stored {_sce_stored.counter.lifetime} {_sce_stored_wear} {_sce_stored.saves}; fresh "
+    f"{_sce_fresh.counter.lifetime} {_sce_fresh_wear} {_sce_fresh.saves}; released "
+    f"{_sce_gone.counter.lifetime} {_sce_gone_wear} {_sce_gone.saves}",
+)
+
+
+_sce_free = _sce_meter_trace(_SCE_PHASES)
+R.check(
+    "a counted start books money, never energy, and only at a nonzero price: the priced install's wear "
+    "line carries 0 kWh, and the default install (no replacement cost) counts its starts with no wear line",
+    (_sce_stored.c._ledger.line("2026-02", "wear") or {}).get("kwh") == 0.0
+    and _sce_free.counter.lifetime == _SCE_ON_PHASES
+    and "wear" not in _sce_free.c._ledger.months.get("2026-02", {}).get("lines", {}),
+    f"{_sce_stored.c._ledger.line('2026-02', 'wear')} {_sce_free.c._ledger.months.get('2026-02', {}).get('lines')}",
+)
+
+
+class _SceRaises:
+    async def async_load(self):
+        raise RuntimeError("store")
+
+
+_sce_raise = _SceRig({"sensor.kw": FakeState("2.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7)
+    _sce_raise.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
+_sce_raise.c._ledger_store = _SceRaises()
+_sce_raise_err = None
+try:
+    _sce_aio.run(_sce_raise.c._async_load_ledger())
+except RuntimeError as err:
+    _sce_raise_err = err
+R.check(
+    "a load that raises still restores the counter and replays the queue",
+    _sce_raise.counter.queued is None and _sce_raise.counter.lifetime == 1,
+    f"{_sce_raise_err!r} {_sce_raise.counter.lifetime} {_sce_raise.counter.queued}",
+)
+_sce_cut = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_cut.at(_SCE_T0 + timedelta(minutes=1))
+_sce_cut.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
+_sce_cut_armed = len(getattr(_sce_cut.c.hass, "timers", []))
+_sce_cut.c._release_registrations()
+R.check(
+    "the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and a "
+    "second release is harmless; null control, the change was pending with its timer armed",
+    _sce_cut_armed == 1 and not _sce_cut.c.hass.state_listeners and not _sce_cut.c.hass.timers
+    and not _sce_rs.signal_for(_sce_cut.c).subscribers and not _sce_rs.signal_for(_sce_cut.c).ticks
+    and _sce_cut.c._release_registrations() is None,
+    f"{_sce_cut_armed} {_sce_cut.c.hass.timers}",
+)
+
+# A stored payload of the shape the sampled path wrote continues: the
+# lifetime and the months are not reset, and a compressor still running
+# across the upgrade is not counted again.
+_sce_cont = _SceRig({"sensor.kw": FakeState("2.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_cont.at(_SCE_T0 + timedelta(minutes=1))
+_sce_cont.load({"ledger": {"months": {}}, "starts": {"lifetime": 41, "months": {"2026-02": 5}, "running": True}})
+_sce_cont_kept = (_sce_cont.counter.lifetime, dict(_sce_cont.counter.months))
+_sce_cont.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+_sce_cont.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=20), unit="kW")
+for _sce_k in (21, 22):  # the meter's rise is held for two refreshes (S7)
+    _sce_cont.refresh(_SCE_T0 + timedelta(minutes=_sce_k))
+R.check(
+    "the stored lifetime and month counts continue across the change: a compressor running "
+    "through the restart is no new start, and the next real start adds one",
+    _sce_cont_kept == (41, {"2026-02": 5})
+    and (_sce_cont.counter.lifetime, _sce_cont.counter.months) == (42, {"2026-02": 6}),
+    f"{_sce_cont_kept} {_sce_cont.counter.lifetime} {_sce_cont.counter.months}",
+)
+
+# Duty mode off (the default): nothing arbitrates, and a frequency sensor that
+# holds 40 Hz fires no further event; the timer confirms the start.
+_sce_hold = _SceRig({"sensor.freq": FakeState("0")}, compressor_freq_sensor="sensor.freq")
+_sce_hold.load(None)
+_sce_hold.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=5))
+_sce_hold_pending = _sce_rs.running_now(_sce_rs.signal_for(_sce_hold.c))
+_sce_hold_before = _sce_hold.counter.lifetime
+_sce_hold.at(_SCE_T0 + timedelta(minutes=5, seconds=_SCE_DEBOUNCE_S))
+R.check(
+    "in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer "
+    "at the debounce, and counted from its first reading",
+    _sce_hold.c._ctx._config.pump_duty_mode == "off"
+    and _sce_hold_pending is None and _sce_hold_before == 0
+    and _sce_hold.counter.lifetime == 1
+    and _sce_rs.running_now(_sce_rs.signal_for(_sce_hold.c)) is True
+    and not getattr(_sce_hold.c.hass, "timers", []),
+    f"{_sce_hold_pending} {_sce_hold_before} {_sce_hold.counter.lifetime}",
+)
+
+# The debounce with its timer armed: a meter blip over the on-threshold that
+# reverts before EDGE_DEBOUNCE_S is no start, one that outlasts it is one.
+# Every trace above reads at 60 s or longer, so its timer is always due before
+# the next reading; here the revert lands while the timer is still pending.
+def _sce_blip(seconds):
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=seconds), unit="kW")
+    rig.at(_SCE_T0 + timedelta(minutes=20))
+    return rig.counter.lifetime, len(getattr(rig.c.hass, "timers", []))
+
+
+_sce_blips = {s: _sce_blip(s) for s in (5, _SCE_DEBOUNCE_S - 1, _SCE_DEBOUNCE_S + 1)}
+R.check(
+    "a meter blip shorter than the debounce counts no start (5 s and one second under it), and one "
+    "second over it counts one; no timer outlives either",
+    _sce_blips == {5: (0, 0), _SCE_DEBOUNCE_S - 1: (0, 0), _SCE_DEBOUNCE_S + 1: (1, 0)},
+    f"{_sce_blips}",
+)
+
+# An unavailable or non-numeric signal counts nothing, and is no transition:
+# running -> unavailable -> running is no start; stopped -> unknown -> running is one.
+_sce_words = _SceRig({"sensor.freq": FakeState("0")}, compressor_freq_sensor="sensor.freq")
+_sce_words.load(None)
+_sce_words_seq = []
+for _sce_i, _sce_word in enumerate(("40", "unavailable", "40", "abc", "", "0", "unknown", "45")):
+    _sce_words.set("sensor.freq", _sce_word, _SCE_T0 + timedelta(minutes=2 * (_sce_i + 1)))
+    _sce_words.at(_SCE_T0 + timedelta(minutes=2 * (_sce_i + 1), seconds=_SCE_DEBOUNCE_S + 1))
+    _sce_words_seq.append((_sce_words.counter.lifetime, _sce_rs.running_now(_sce_rs.signal_for(_sce_words.c))))
+R.check(
+    "an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; "
+    "the last known class holds across it",
+    _sce_words_seq == [(1, True), (1, None), (1, True), (1, None), (1, None), (1, False), (1, None), (2, True)],
+    f"{_sce_words_seq}",
+)
+R.check(
+    "with neither a frequency sensor nor a meter configured nothing is listened to and the read is None",
+    (lambda rig: not getattr(rig.c.hass, "state_listeners", [])
+     and _sce_rs.running_now(_sce_rs.signal_for(rig.c)) is None)(_SceRig({})),
+)
+
+# An install with both: the frequency sensor is the source and the meter is
+# not read (the retired sampled path read the meter on such an install).
+_sce_both = _SceRig({"sensor.freq": FakeState("0"), "sensor.kw": FakeState("0.0", unit="kW")},
+                    compressor_freq_sensor="sensor.freq", heat_pump_power_entity="sensor.kw")
+_sce_both.load(None)
+_sce_both.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=5), unit="kW")
+_sce_both.at(_SCE_T0 + timedelta(minutes=10))
+_sce_both_meter_only = _sce_both.counter.lifetime
+_sce_both.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=11))
+_sce_both.at(_SCE_T0 + timedelta(minutes=12))
+R.check(
+    "with both a frequency sensor and a meter, the frequency is the source: the meter's rise "
+    "counts nothing, the frequency's counts one",
+    [ids for ids, _a in _sce_both.c.hass.state_listeners] == [["sensor.freq"]]
+    and (_sce_both_meter_only, _sce_both.counter.lifetime) == (0, 1),
+    f"{_sce_both_meter_only} {_sce_both.counter.lifetime}",
+)
+
+# The month and the wear line take the edge's one stamp: a start whose first
+# reading is before midnight at a month's end and whose confirmation is after
+# it is January's, in the count and on the ledger.
+_sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
+_sce_mid.load(None)
+_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=UTC)
+_sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
+for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
+    _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
+R.check(
+    "a start straddling a month boundary is counted and billed in the month of its first reading",
+    _sce_mid.counter.months == {"2026-02": 1}
+    and abs(((_sce_mid.c._ledger.line("2026-02", "wear") or {}).get("sek", 0.0)) - 0.5) < 1e-9
+    and not (_sce_mid.c._ledger.line("2026-03", "wear") or {}).get("sek", 0.0),
+    f"{_sce_mid.counter.months}",
+)
+
+# Immersion (design section 2): a meter-only install at the default interval.
+# The meter reads no signal while the element runs, by the latch or by the
+# reading itself being over (thermal_model.immersion_over).
+def _sce_element_rig():
+    rig = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+    rig.load(None)
+    rig.c._current_action = {**rig.c._current_action, "power": 2.0, "dhw_power": 0.0}
+    params = rig.c._ctx._thermal_params
+    return rig, _sce_on_kw(params), _sce_over_kw(params)
+
+
+def _sce_kw(x):
+    return f"{x:.2f}"
+
+
+# S1: the element cuts in with the compressor off; over from its first reading.
+_sce_s1, _sce_on, _sce_over = _sce_element_rig()
+_sce_s1.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s1.at(_SCE_T0 + timedelta(minutes=10))
+_sce_s1.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s1.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s1_latched = _sce_s1.c._immersion_active
+_sce_s1.set("sensor.kw", "0.0", _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s1.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120))
+# S5: over and back inside one refresh period, never latched.
+_sce_s5, _o, _o = _sce_element_rig()
+_sce_s5.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s5.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=8), unit="kW")
+_sce_s5.at(_SCE_T0 + timedelta(minutes=10))
+# S3: the compressor runs, the element latches, the compressor stops under it:
+# the element alone reads between the on-threshold and the over level.
+_sce_s3, _o, _o = _sce_element_rig()
+_sce_s3.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=1), unit="kW")
+for _sce_k in (0, 1):  # the meter's rise is held for two refreshes (S7)
+    _sce_s3.refresh(_SCE_T0 + timedelta(minutes=2, seconds=_sce_k))
+_sce_s3_started = _sce_s3.counter.lifetime
+_sce_s3.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=3), unit="kW")
+_sce_s3.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s3.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s3.set("sensor.kw", _sce_kw((_sce_on + _sce_over) / 2), _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s3.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120))
+_sce_s3_read = _sce_rs.running_now(_sce_rs.signal_for(_sce_s3.c))
+# S4: a start under the element counts once, at the release.
+_sce_s4, _o, _o = _sce_element_rig()
+_sce_s4.set("sensor.kw", _sce_kw(_sce_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+_sce_s4.set("sensor.kw", _sce_kw(_sce_over + 0.5), _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 60), unit="kW")
+_sce_s4.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 120), unit="kW")
+_sce_s4.refresh(_SCE_T0 + timedelta(seconds=3 * _SCE_PERIOD_S))
+for _sce_k in (4, 5, 6):  # the release, then the rise's two refreshes (S7)
+    _sce_s4.refresh(_SCE_T0 + timedelta(seconds=_sce_k * _SCE_PERIOD_S))
+_sce_s4.at(_SCE_T0 + timedelta(seconds=6 * _SCE_PERIOD_S + 120))
+R.check(
+    "the immersion element on a meter-only install: cutting in over the level with the "
+    "compressor off (S1) and over and back inside one refresh period (S5) count no start; a "
+    "compressor stopping under the latched element reads no class rather than running (S3); a "
+    "start under the element counts once, when it releases (S4)",
+    _sce_s1_latched and _sce_s1.counter.lifetime == 0
+    and _sce_s5.counter.lifetime == 0
+    and _sce_s3_started == 1 and _sce_s3.c._immersion_active and _sce_s3_read is None
+    and _sce_s3.counter.lifetime == 1
+    and not _sce_s4.c._immersion_active and _sce_s4.counter.lifetime == 1,
+    f"S1 {_sce_s1_latched} {_sce_s1.counter.lifetime}; S5 {_sce_s5.counter.lifetime}; S3 "
+    f"{_sce_s3_started} {_sce_s3.c._immersion_active} {_sce_s3_read}; S4 "
+    f"{_sce_s4.c._immersion_active} {_sce_s4.counter.lifetime}",
+)
+# The over test reads the frequency source not at all: a frequency install
+# with a meter reading over still counts its start.
+_sce_fq, _o, _sce_fq_over = _sce_element_rig()
+_sce_fq = _SceRig({"sensor.freq": FakeState("0"), "sensor.kw": FakeState(_sce_kw(_sce_fq_over + 1.0), unit="kW")},
+                  compressor_freq_sensor="sensor.freq", heat_pump_power_entity="sensor.kw")
+_sce_fq.load(None)
+_sce_fq.c._current_action = {**_sce_fq.c._current_action, "power": 2.0, "dhw_power": 0.0}
+_sce_fq.c._immersion_active = True
+_sce_fq.set("sensor.freq", "40", _SCE_T0 + timedelta(minutes=1))
+_sce_fq.at(_SCE_T0 + timedelta(minutes=2))
+R.check(
+    "the element rule is the meter source's only: a frequency install under a latched element counts its start",
+    _sce_fq.counter.lifetime == 1,
+)
+
+# The per-refresh re-read: the commanded draw changes at a refresh and fires
+# no meter event. A steady over-level reading the plan did not command reads
+# running; once a refresh brings a command, the same unchanged reading is over.
+_sce_rr, _o, _sce_rr_over = _sce_element_rig()
+_sce_rr.c._current_action = {**_sce_rr.c._current_action, "power": 0.0, "dhw_power": 0.0}
+_sce_rr.set("sensor.kw", _sce_kw(_sce_rr_over + 1.0), _SCE_T0 + timedelta(minutes=1), unit="kW")
+_sce_rr.at(_SCE_T0 + timedelta(minutes=2))
+_sce_rr_before = _sce_rs.running_now(_sce_rs.signal_for(_sce_rr.c))
+_sce_rr.c._current_action = {**_sce_rr.c._current_action, "power": 2.0}
+_sce_rr.refresh(_SCE_T0 + timedelta(minutes=3))
+_sce_rr_pending = _sce_rs.signal_for(_sce_rr.c).tracker.pending
+R.check(
+    "a refresh re-reads the signal against an unchanged meter: the command it brings makes the "
+    "same reading the element's, a change now pending to no class",
+    _sce_rr_before is True and _sce_rr_pending is not None and _sce_rr_pending[0] is None,
+    f"{_sce_rr_before} {_sce_rr_pending}",
+)
+
+# The confirm timer is one per pending change (running_signal._arm_timer): a
+# re-read of the same pending change keeps the timer it holds, and a revert
+# cancels it at once rather than leaving it to fire empty at its due time.
+_sce_one = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_one.load(None)
+_sce_one.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=10), unit="kW")
+_sce_one_first = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.refresh(_SCE_T0 + timedelta(minutes=10, seconds=5))
+_sce_one_kept = list(getattr(_sce_one.c.hass, "timers", []))
+_sce_one.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=10, seconds=10), unit="kW")
+_sce_one_after = list(getattr(_sce_one.c.hass, "timers", []))
+R.check(
+    "the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps "
+    "the timer armed for it, and a revert before the debounce cancels it at once; null control, "
+    "the rise armed exactly one",
+    len(_sce_one_first) == 1 and len(_sce_one_kept) == 1 and _sce_one_kept[0] is _sce_one_first[0]
+    and _sce_rs.signal_for(_sce_one.c).tracker.pending is None and _sce_one_after == [],
+    f"{_sce_one_first} {_sce_one_kept} {_sce_one_after}",
+)
+
+# thermal_model.immersion_over is strict at each of its three bounds: a
+# reading AT the immersion level is not over it, and a rated power or a
+# commanded draw of exactly the 0.1 kW nothing-gauge counts as none. Each
+# row's control is the same row one step past its bound, which is over.
+_sce_io_p = _sce_element_rig()[0].c._ctx._thermal_params
+_sce_io_rated = _sce_dc_replace(_sce_io_p, max_electrical_power=0.1)
+_sce_io_rows = {
+    "at level": _sce_io(_sce_over_kw(_sce_io_p), _sce_io_p, 2.0),
+    "past level": _sce_io(_sce_over_kw(_sce_io_p) + 0.01, _sce_io_p, 2.0),
+    "rated 0.1": _sce_io(_sce_over_kw(_sce_io_rated) + 1.0, _sce_io_rated, 2.0),
+    "rated past 0.1": _sce_io(
+        _sce_over_kw(_sce_io_p) + 1.0, _sce_dc_replace(_sce_io_p, max_electrical_power=0.11), 2.0),
+    "commanded 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.1),
+    "commanded past 0.1": _sce_io(_sce_over_kw(_sce_io_p) + 1.0, _sce_io_p, 0.11),
+}
+R.check(
+    "immersion_over is strict at each bound: a reading at the immersion level, a rated power of "
+    "0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is",
+    _sce_io_rows == {"at level": False, "past level": True, "rated 0.1": False, "rated past 0.1": True,
+                     "commanded 0.1": False, "commanded past 0.1": True},
+    f"{_sce_io_rows}",
+)
+
+# S7 (owner ruling D1, 2026-11-15): a meter reporting its window's average
+# gives an element cut-in, compressor off, one partial report between the
+# on-threshold and the over level; it holds one report period, at least the
+# debounce, so it is a confirmed rise before over arrives. On the meter a rise
+# counts only once two refreshes read the signal settled running; the no-class
+# edge over brings drops it first. Six offsets inside a 60 s and a 30 s window
+# (offset 0 fills its window and is over from its first report), a refresh
+# landing between the partial's confirmation and over, the element running
+# three refresh periods; then a real start on the same rig counts from its
+# second refresh. The cut-out of a short element, never latched, falls
+# through a partial from no class and stops: no start either; nor does a
+# second refresh landing while over is still pending.
+def _sce_s7(window_s, offset_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - _SCE_DEBOUNCE_S - 15)
+    rig.set("sensor.kw", _sce_kw(level * (window_s - offset_s) / window_s), rise, unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    for k in (2, 3, 4):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    cut = _SCE_T0 + timedelta(seconds=4 * _SCE_PERIOD_S + 60)
+    rig.set("sensor.kw", _sce_kw(level * offset_s / window_s), cut, unit="kW")
+    rig.set("sensor.kw", "0.0", cut + timedelta(seconds=window_s), unit="kW")
+    for k in (5, 6, 7):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    false = rig.counter.lifetime
+    rig.set("sensor.kw", "2.0", _SCE_T0 + timedelta(seconds=7 * _SCE_PERIOD_S + 60), unit="kW")
+    seen = []
+    for k in (8, 9):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+        seen.append(rig.counter.lifetime)
+    return false, *seen
+
+
+def _sce_s7_quick(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rise = _SCE_T0 + timedelta(minutes=5)
+    rig.set("sensor.kw", _sce_kw(level / 2), rise, unit="kW")
+    rig.refresh(rise + timedelta(seconds=_SCE_DEBOUNCE_S + 1))
+    rig.set("sensor.kw", _sce_kw(level), rise + timedelta(seconds=window_s), unit="kW")
+    rig.refresh(rise + timedelta(seconds=window_s + 1))
+    rig.at(rise + timedelta(minutes=5))
+    return rig.counter.lifetime
+
+
+def _sce_s7_cutout(window_s):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.set("sensor.kw", _sce_kw(level / 2), _SCE_T0 + timedelta(minutes=5), unit="kW")
+    rig.set("sensor.kw", "0.0", _SCE_T0 + timedelta(minutes=5, seconds=window_s), unit="kW")
+    for k in (1, 2, 3):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+    return rig.counter.lifetime, rig.c._immersion_active
+
+
+# The controls, on the same rig and refreshes: a real start counts once, in
+# the month of its first reading, from its second refresh; a run stopping
+# before that counts once, at its stop.
+def _sce_s7_real(stop_s=None):
+    rig, _on, _over = _sce_element_rig()
+    rise = _SCE_T0 + timedelta(seconds=_SCE_PERIOD_S - 300)
+    rig.set("sensor.kw", "2.0", rise, unit="kW")
+    if stop_s is not None:
+        rig.set("sensor.kw", "0.0", rise + timedelta(seconds=stop_s), unit="kW")
+    seen = []
+    for k in (1, 2):
+        rig.refresh(_SCE_T0 + timedelta(seconds=k * _SCE_PERIOD_S))
+        seen.append(rig.counter.lifetime)
+    return *seen, dict(rig.counter.months)
+
+
+_sce_s7_rows = {(w, round(w * k / 6)): _sce_s7(w, w * k / 6) for w in (60, 30) for k in range(6)}
+_sce_s7_cut = {w: (_sce_s7_cutout(w), _sce_s7_quick(w)) for w in (60, 30)}
+_sce_s7_ctl = (_sce_s7_real(), _sce_s7_real(stop_s=240))
+R.check(
+    "S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, "
+    "and a real start after it counts at its second refresh; neither the falling average of a short "
+    "element's cut-out nor a second refresh landing while over is pending counts one; null control, "
+    "on the same rig and refreshes a real start counts once, from its second refresh, and a run "
+    "stopping before it counts once, at its stop",
+    set(_sce_s7_rows.values()) == {(0, 0, 1)}
+    and _sce_s7_cut == {60: ((0, False), 0), 30: ((0, False), 0)}
+    and _sce_s7_ctl == ((0, 1, {"2026-02": 1}), (1, 1, {"2026-02": 1})),
+    f"{_sce_s7_rows} {_sce_s7_cut} {_sce_s7_ctl}",
+)
+
+# wear.RiseHold alone: each edge it passes on keeps its own time; a held rise
+# released by its refreshes is the rise's, and a short run is the rise's then
+# the stop's. Null control, the frequency source's counter holds nothing.
+_sce_rh_t = [_SCE_T0 + timedelta(minutes=m) for m in range(5)]
+_sce_rh = _SceRiseHold()
+_sce_rh_seq = [_sce_rh.admit(_sce_rh_t[0], False), _sce_rh.admit(_sce_rh_t[1], True), _sce_rh.refresh(True),
+               _sce_rh.refresh(False), _sce_rh.refresh(True), _sce_rh.admit(_sce_rh_t[2], False),
+               _sce_rh.admit(_sce_rh_t[3], True), _sce_rh.admit(_sce_rh_t[4], False)]
+R.check(
+    "wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh "
+    "reading it running and one reading it unsettled, released by the second running one; a short "
+    "run is its rise then its stop; null control, a counter with no hold counts the rise at once",
+    _sce_rh_seq == [[(_sce_rh_t[0], False)], [], [], [], [(_sce_rh_t[1], True)], [(_sce_rh_t[2], False)],
+                    [], [(_sce_rh_t[3], True), (_sce_rh_t[4], False)]]
+    and _SceStarts(queued=None).hear(_sce_rh_t[1], True) == [_sce_rh_t[1]],
+    f"{_sce_rh_seq}",
+)
+
+# A refresh's own re-read moves the class with no meter event: the element's
+# latch, or the commanded draw that makes the same reading the element's.
+# The held rise must hear the class as this refresh re-reads it, so the
+# re-read comes before the tick (running_signal.refresh). Null control, the
+# same rig with nothing moving counts the rise at its second refresh.
+def _sce_reread(move):
+    rig, _on, over = _sce_element_rig()
+    level = over + 1.0 if move == "commanded" else 2.0
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 0.0, "dhw_power": 0.0}
+    rig.set("sensor.kw", _sce_kw(level), _SCE_T0 + timedelta(minutes=1), unit="kW")
+    rig.refresh(_SCE_T0 + timedelta(seconds=_SCE_PERIOD_S))
+    if move == "commanded":
+        rig.c._current_action = {**rig.c._current_action, "power": 2.0}
+    elif move == "latch":
+        rig.c._immersion_active, rig.c._immersion_clear_count = True, 0  # as _detect_immersion latches
+    rig.refresh(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S))
+    rig.at(_SCE_T0 + timedelta(seconds=2 * _SCE_PERIOD_S + 2 * _SCE_DEBOUNCE_S))
+    return rig.counter.lifetime
+
+
+_sce_reread_rows = {m: _sce_reread(m) for m in ("commanded", "latch", None)}
+R.check(
+    "a refresh whose own re-read moves the class off running (the commanded draw or the element's "
+    "latch changing, no meter event) while a rise is held counts no start: the tick hears the class "
+    "this refresh re-reads; null control, the same rig with nothing moving counts the rise once",
+    _sce_reread_rows == {"commanded": 0, "latch": 0, None: 1},
+    f"{_sce_reread_rows}",
+)
+_sce_dt.freeze(None)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
