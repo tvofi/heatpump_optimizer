@@ -3504,6 +3504,51 @@
     "note": "main red hotfix",
     "pr": 3671
    }
+  },
+  {
+   "group": "R11-RCA-SELFTEST-TABLE-DRIFT",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/rca/R11-RCA-SELFTEST-TABLE-DRIFT.md",
+    "dev/audit/harnesses/r11_selftest_static_edge.py",
+    "tests/closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [
+    "R11-RCA-SELFTEST-TABLE-DRIFT"
+   ],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Root-cause record, S. The root-cause seat beside R11-HOTFIX-MAIN-SELFTEST-DRIFT, under defect-root-cause.md: why main's instrument self-test read-set drift step goes red one merge after a pull request adds a read to a gated step, six hand re-record hotfixes in 48 h. It adds the analysis under dev/audit/rca/ and the harness behind its measurements, and changes no production code, tool or policy. Process state (c). Its countermeasure is process proposal P-R11-41, ruled at round end. Handoff de8325b3259a356758dd306101744a47a1400dff.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "commit": null,
+    "branch": "fix/r11-rca-selftest-table-drift",
+    "last_step": "handoff pushed",
+    "next_step": "open, review, merge",
+    "note": null
+   },
+   "source": "programme"
   }
  ]
 }
