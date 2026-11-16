@@ -67,7 +67,7 @@
    "id": "D13-s3-02",
    "scope": "D13-s3",
    "step": "D13.M4",
-   "title": "instrument-self-tests is red on main at 200 of 271 merges, green at 186 of their heads; time to restore 106 h, still open",
+   "title": "instrument-self-tests red on main at 200 of 271 merges, green at 186 of their heads; time to restore 106 h, still open",
    "severity": "medium",
    "claim": "Per check-run name, `governance / instrument-self-tests` concluded failure at 200 of the window's 271 merge commits (0.738) and at 18 of their 271 pull-request heads; at 186 merges it failed at the merge commit after passing at the head. Its red episodes on main: 2, median 65.82 h, max 106.19 h, one still open at the window's end, against the required `gate`'s 19 episodes of median 0.34 h. It is the only failing name at 162 merges, so it alone carries the merge-keyed change-failure rate from 0.24 to 0.808. The logs read at four failures show the drift check (`tools/ci/selftest_scope.py check`, which its docstring runs only on a push to main) refusing 11 then 27 steps: a red that no pull-request head can see, which then stands on main for days and masks any new red of the job.",
    "evidence": {
