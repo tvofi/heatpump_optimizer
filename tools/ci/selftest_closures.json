@@ -4929,6 +4929,7 @@
    "run_sha": "95edb059af375232f0da09f23b7ab1bc4166923800970f72578cf90b3be9173a",
    "files": [
     "dev/audit/config/bugclasses.json",
+    "tests/throwaway_git.py",
     "tools/audit/seat/loop_ledger.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/scorecard.py"
@@ -4937,11 +4938,13 @@
     ".",
     "dev/audit/rca/R10-N-log-flood.md",
     "dev/governance/dimensions/D8.md",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat"
    ],
    "dirs": [
+    "tests",
     "tools/audit/seat"
    ],
    "index": false,
