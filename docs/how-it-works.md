@@ -124,7 +124,7 @@ What the space heating solve minimizes:
 |---|---|
 | `grid_cost(P_space + P_dhw)` | Electricity, piecewise in PV surplus, × `price_weight` |
 | comfort terms | Pull toward the target, plus penalties for breaching the floor/ceiling |
-| cycling cost | Compressor start-stop wear, × `price_weight` |
+| cycling cost | Compressor wear: the cost of one start × the plan's starts, × `price_weight` |
 | capacity tariff | The month's peak charge exposure, × `price_weight` |
 | terminal cost | The value of heat left stored at the end of the horizon |
 
@@ -157,7 +157,17 @@ trade off.
 would be priced in invented units, and measured, it costs about 5% of the
 two-zone winter bill for no reduction in compressor starts. Discouraging
 chatter is the cycling cost's job, and that is denominated in currency per
-start-stop cycle.
+compressor start.
+
+**A priced start is counted as one start.** A start is an off-to-on edge of the
+compressor, whatever level it starts to; changing level inside a run is free.
+A level under the pump's minimum power is a duty-cycle average, so the solve
+counts it as the starts it is. With a start priced, or on an install that
+cannot duty-cycle, the solve first plans without the start cost, then commits
+that plan to whole runs at or above the minimum power, at the same energy: a
+step lifted to the minimum is paid for by a step left out. Several such plans
+are scored with the start cost included, and the cheapest ships. (Finding and
+method: Bankaifan, pull request 3529.)
 
 ### Weather anticipation is emergent, not a bonus
 
