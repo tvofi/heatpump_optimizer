@@ -40,13 +40,15 @@ variable, never a content. It refuses when the running account:
   - gets a password from `git credential fill` for github.com;
   - has an agent socket (SSH_AUTH_SOCK) or a private key under its home;
   - has a variable set whose name is a credential's (CREDENTIAL_WORD: a
-    segment ending TOKEN, AUTH, SECRET, ..., or one that is KEY, PEM or PAT,
-    or one of TOKEN_VAR), other than
+    segment ending TOKEN, AUTH, SECRET, KEY, PASS, ..., or one that is PEM,
+    PAT or NETRC, singular or plural, or one of TOKEN_VAR), other than
     the one model credential the launcher recorded, or a gh further along PATH
     that reports a login;
   - gets NO ANSWER to a question it asks: git or a gh that cannot be run or
-    does not return in time, a git exit that is neither answer, a path whose
-    state the host does not report. An unanswered question refuses;
+    does not return in time, an exit that is not the command's stated no
+    (git: 128 naming no repository, or no username or password to read; gh:
+    1 saying it is logged into no host), a path whose state the host does
+    not report. Each of the three commands it runs passes only on that no;
   - resolves `gh` to anything but the seat shim, or has HPO_OWNER_ONLY unset;
   - runs in a cloud session.
 Each workflow driver runs `probe` again in its Prepare step and throws unless
@@ -83,8 +85,10 @@ IDENTITY_FILES = ("hpo-author.pem", "hpo-author.appid.txt", "identity-approver.p
                   "hpo-runs.pem", "hpo-runs.appid.txt", "github_known_hosts")
 TOKEN_VAR = re.compile(r"(?:GH|GITHUB)_(?:[A-Z0-9]+_)*TOKEN|GH_ENTERPRISE_TOKEN|GITHUB_PAT|HPO_PUSH_URL")
 #: A name segment that says the variable holds a credential. TOKEN_VAR names GitHub's; this names the class,
-#: which a list of the tree's own push variables (PUSH_AUTH, tools/pr/merge_main_bot.py) only samples.
-CREDENTIAL_WORD = re.compile(r".*(?:TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?|AUTH|APIKEY)|PAT|KEY|PEM")
+#: which a list of the tree's own push variables (PUSH_AUTH, tools/pr/merge_main_bot.py) only samples. A
+#: segment that ENDS with a word of the first group, or IS one of the second, in the singular or the plural.
+#: It errs to refusing: MONKEY, COMPASS and BYPASS end with a word and are refused; unset the variable.
+CREDENTIAL_WORD = re.compile(r"(?:.*(?:TOKEN|SECRET|PASSWORD|PASSWD|PASSPHRASE|PASS|CREDENTIAL|AUTH|AUTHORIZATION|KEY|BEARER|COOKIE|JWT)|PAT|PEM|NETRC)S?")
 CLOUD_VAR = re.compile(r"CLAUDE_CODE_REMOTE(?:_.*)?|CCR_.*")
 PRIVATE_KEY_NAMES = re.compile(r"id_[a-z0-9_]+|.*\.pem|.*_key")
 #: The session's PATH after its own bin: the system directories, never the launching user's.
@@ -95,6 +99,9 @@ ABSENT, DENIED, OPEN, UNKNOWN = "absent", "denied", "open", "unknown"
 #: git's two answers that are a "no" (LC_ALL=C): any other non-zero exit is no answer.
 NOT_A_REPOSITORY = "not a git repository"
 NO_CREDENTIAL = re.compile(r"could not read (?:Username|Password)")
+#: gh's answer that is a "no": `gh auth status` exits 1 saying this. Exit 1 is also what it answers for a login
+#: whose token it could not validate, so the exit alone is no answer.
+NO_LOGIN = "not logged into any"
 MANIFEST = "corpus/MANIFEST.json"
 
 
@@ -188,11 +195,7 @@ def probe(view, root: str) -> list[str]:
     mode = view.mode(root)
     if mode != 0o700:
         why.append(f"the private root {root} is {'absent' if mode is None else f'mode {mode:o}'}, not a directory of mode 700")
-    rc, _, err = view.run(["git", "-C", root, "rev-parse", "--is-inside-work-tree"], env={**env, "LC_ALL": "C"})
-    if rc == 0:
-        why.append(f"the private root {root} is inside a git work tree")
-    elif rc != 128 or NOT_A_REPOSITORY not in err:
-        why.append(f"git did not answer whether the private root {root} is inside a work tree ({unanswered(rc)})")
+    why += work_tree_refusal(view, root)
     try:
         cfg = json.loads(Path(root, PROBE_FILE).read_text())
         identity_dirs, deploy_keys = list(cfg["identity_dirs"]), list(cfg["deploy_keys"])
@@ -241,12 +244,30 @@ def probe(view, root: str) -> list[str]:
     for path, is_shim in ghs:
         if is_shim:
             continue
-        rc = view.run([path, "auth", "status"])[0]
+        rc, out, err = view.run([path, "auth", "status"])
         if rc == 0:
             why.append(f"a gh on PATH reports a login: {path}")
-        elif rc is None:
-            why.append(f"a gh on PATH did not answer whether it holds a login: {path}")
+        elif rc != 1 or NO_LOGIN not in out + err:
+            why.append(f"a gh on PATH did not answer whether it holds a login: {path} ({unanswered(rc)})")
     return why
+
+
+def work_tree_refusal(view, root: str) -> list[str]:
+    """Why the private root may be inside a work tree; [] only when git says, each time it is asked, that it is in none.
+
+    Asked first with none of git's own variables in the environment: GIT_DIR or GIT_CEILING_DIRECTORIES there
+    makes git answer for another place, and the prefix names them all. A file-system boundary does not end the
+    search. Asked again as the session's git is configured, where those variables can only add a work tree.
+    """
+    plain = {k: v for k, v in view.env.items() if not k.startswith("GIT_")}
+    for asked in ([plain] if plain == view.env else [plain, view.env]):
+        rc, _, err = view.run(["git", "-C", root, "rev-parse", "--is-inside-work-tree"],
+                              env={**asked, "LC_ALL": "C", "GIT_DISCOVERY_ACROSS_FILESYSTEM": "1"})
+        if rc == 0:
+            return [f"the private root {root} is inside a git work tree"]
+        if rc != 128 or NOT_A_REPOSITORY not in err:
+            return [f"git did not answer whether the private root {root} is inside a work tree ({unanswered(rc)})"]
+    return []
 
 
 def unanswered(rc) -> str:
@@ -391,6 +412,8 @@ class Fixture(Host):
         self.credential = ""
         self.fill_answer = None   # what `git credential fill` answers instead of a filled description
         self.unrunnable: set[str] = set()   # a gh that cannot be run, or does not return
+        self.gh_answers: dict[str, tuple] = {}   # what a gh answers `auth status` instead of saying it holds no login
+        self.asked: list[tuple[list[str], dict]] = []   # each question with the environment it was asked in
         self.ghs = [(os.path.join(root, "bin", "gh"), True)]
         self.logins: set[str] = set()
         self.ran: list[list[str]] = []
@@ -406,32 +429,42 @@ class Fixture(Host):
 
     def run(self, argv, stdin="", env=None):
         self.ran.append(list(argv))
+        self.asked.append((list(argv), dict(self.env if env is None else env)))
         if argv[:1] == ["git"] and "rev-parse" in argv:
             return (0, "true\n", "") if self.work_tree else self.tree_answer
         if argv[:3] == ["git", "credential", "fill"]:
             return self.fill_answer or (0, stdin.strip() + ("\n" + self.credential if self.credential else "") + "\n", "")
         if argv[1:] == ["auth", "status"]:
-            return (None, "", "") if argv[0] in self.unrunnable else ((0, "", "") if argv[0] in self.logins else (1, "", ""))
+            if argv[0] in self.unrunnable:
+                return None, "", ""
+            return self.gh_answers.get(argv[0]) or ((0, "", "") if argv[0] in self.logins else (1, "", GH_SAYS_NO))
         return None, "", ""
 
     def gh_on_path(self):
         return list(self.ghs)
 
 
-#: The words CREDENTIAL_WORD names: those a segment may END with, and those a segment must EQUAL.
-ENDING, WHOLE = ("TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "CREDENTIALS", "AUTH", "APIKEY"), ("PAT", "KEY", "PEM")
+#: gh's own sentence for an account with no login (gh 2.89.0, exit 1, on stderr).
+GH_SAYS_NO = "You are not logged into any GitHub hosts. To log in, run: gh auth login\n"
+#: The words CREDENTIAL_WORD names: those a segment may END with, and those a segment must EQUAL; each also in its plural.
+ENDING = ("TOKEN", "SECRET", "PASSWORD", "PASSWD", "PASSPHRASE", "PASS", "CREDENTIAL", "AUTH", "AUTHORIZATION", "KEY", "BEARER", "COOKIE", "JWT")
+WHOLE = ("PAT", "PEM", "NETRC")
 
 
 def name_corpus() -> tuple[list[str], list[str]]:
     """(names that say credential, names that do not): every word in every position, delimiter, case and gluing."""
     # first the variables this tree's own writers read a credential from (merge_main_bot.py, the workflows' env blocks)
     yes, no = ["PUSH_AUTH", "PUSH_TOKEN", "CLOSURES_PUSH_TOKEN", "HPO_RUNS_PEM", "RUNS_PEM", "HPO_LEDGER_PEM", "HPO_RECORD_PEM", "HPO_APPROVER_PEM"], ["PATH", "HOME", "LANG", "TOKENIZER", "AUTHOR_NAME", "KEYBOARD_LAYOUT", "COMPAT_MODE", "SECRETARY",
-                              "HPO_IDENTITY_DIR", "HPO_PRIVATE_ROOT", "HPO_STATE_DIR", "HPO_OWNER_ONLY", "MONKEY", "SSH_AUTH_SOCK"]
+                              "HPO_IDENTITY_DIR", "HPO_PRIVATE_ROOT", "HPO_STATE_DIR", "HPO_OWNER_ONLY", "SSH_AUTH_SOCK", "PASSAGE_ID", "STATUS", "ACCESS_MODE"]
+    # then the spellings the round-2 review found passing (its ev/repro_probe_r2.txt): plurals, a word glued behind another, five more words
+    yes += ["DEPLOYKEY", "SSHKEY", "PRIVATEKEY", "ACCESS_TOKENS", "PUSH_SECRETS", "SIGNING_KEYS", "GH_PASS", "PUSH_BEARER", "SESSION_COOKIE", "PUSH_JWT",
+            "PUSH_AUTHORIZATION", "NETRC"]
     for word in ENDING + WHOLE:
-        for name in [word] + [shape.format(w=word, d=d) for d in ("_", ".", "-") for shape in ("XA{d}{w}", "{w}{d}YB", "XA{d}{w}{d}YB")]:
-            yes += [name, name.lower(), name.title()]
-        no += [word + "X", "XA_" + word + "X", word + "X_YB"]   # the word running on into a longer one
-        (yes if word in ENDING else no).append("XA" + word)     # glued behind a prefix: GHTOKEN is one, COMPAT is not
+        for form in (word, word + "S"):
+            for name in [form] + [shape.format(w=form, d=d) for d in ("_", ".", "-") for shape in ("XA{d}{w}", "{w}{d}YB", "XA{d}{w}{d}YB")]:
+                yes += [name, name.lower(), name.title()]
+            (yes if word in ENDING else no).append("XA" + form)     # glued behind a prefix: GHTOKEN and DEPLOYKEYS are one, COMPAT is not
+        no += [word + "X", "XA_" + word + "X", word + "X_YB", word + "SX"]   # the word running on into a longer one
     return sorted(set(yes)), sorted(set(no))
 
 
@@ -545,9 +578,30 @@ def cases(m) -> dict[str, bool]:
             one(lines(ghs=[("/usr/bin/gh", False), (os.path.join(root, "bin", "gh"), True)]), "not the seat shim") \
             and one(lines(ghs=[]), "not the seat shim")
         r["probe: a real gh behind the shim that reports a login is refused by its path"] = \
-            one(lines(ghs=[(os.path.join(root, "bin", "gh"), True), ("/usr/bin/gh", False)], logins={"/usr/bin/gh"}), "/usr/bin/gh")
+            one(lines(ghs=[(os.path.join(root, "bin", "gh"), True), ("/usr/bin/gh", False)], logins={"/usr/bin/gh"}), "reports a login: /usr/bin/gh")
         r["probe: a real gh behind the shim that cannot be run, or does not return, is refused by its path"] = \
             one(lines(ghs=[(os.path.join(root, "bin", "gh"), True), ("/usr/bin/gh", False)], unrunnable={"/usr/bin/gh"}), "did not answer whether it holds a login: /usr/bin/gh")
+        behind = [(os.path.join(root, "bin", "gh"), True), ("/usr/bin/gh", False)]
+        not_a_no = {"exit 1 and silent": (1, "", ""), "exit 1 saying its token is invalid": (1, "", "X Failed to log in to github.com account x (default)\n"),
+                    "exit 2": (2, "", ""), "exit 4": (4, "", GH_SAYS_NO), "exit 127": (127, "", "sh: 1: nonexistent: not found\n"),
+                    "killed by a signal": (-9, "", ""), "exit 128": (128, "", "")}
+        for label, answer in not_a_no.items():
+            r[f"probe: a real gh behind the shim that answers {label} has not said it holds no login and is refused by its path"] = \
+                one(lines(ghs=behind, gh_answers={"/usr/bin/gh": answer}), "did not answer whether it holds a login: /usr/bin/gh")
+        r["probe null: a real gh that says it holds no login, on either stream, passes"] = \
+            lines(ghs=behind, gh_answers={"/usr/bin/gh": (1, "", GH_SAYS_NO)}) == [] and lines(ghs=behind, gh_answers={"/usr/bin/gh": (1, GH_SAYS_NO, "")}) == []
+        tree_env = lambda v: [e for argv, e in (m.probe(v, root), v.asked)[1] if "rev-parse" in argv]  # noqa: E731
+        plain_q, both_q = tree_env(view()), tree_env(fx({**env, "GIT_DIR": "/nowhere", "GIT_CEILING_DIRECTORIES": td}))
+        r["probe: the work-tree question is asked with none of git's variables but the two the probe sets, and again as the session's git is configured"] = \
+            [sorted(k for k in e if k.startswith("GIT_")) for e in plain_q] == [["GIT_DISCOVERY_ACROSS_FILESYSTEM"]] \
+            and [sorted(k for k in e if k.startswith("GIT_")) for e in both_q] == [["GIT_DISCOVERY_ACROSS_FILESYSTEM"], ["GIT_CEILING_DIRECTORIES", "GIT_DIR", "GIT_DISCOVERY_ACROSS_FILESYSTEM"]] \
+            and all(e.get("GIT_DISCOVERY_ACROSS_FILESYSTEM") == "1" and e.get("LC_ALL") == "C" for e in plain_q + both_q)
+
+        def second_yes(v):
+            v.run = lambda argv, stdin="", env=None, _run=v.run: (0, "true\n", "") if "rev-parse" in argv and "GIT_DIR" in (env or {}) else _run(argv, stdin, env)
+            return v
+        r["probe: a root that only the session's own git configuration makes a work tree is refused"] = \
+            one(m.probe(second_yes(fx({**env, "GIT_DIR": "/elsewhere", "GIT_WORK_TREE": root})), root), "is inside a git work tree")
         r["probe null: a real gh behind the shim with no login passes, and the shim itself is never asked"] = \
             lines(ghs=[(os.path.join(root, "bin", "gh"), True), ("/usr/bin/gh", False)]) == [] \
             and [os.path.join(root, "bin", "gh"), "auth", "status"] not in (lambda v: (m.probe(v, root), v.ran)[1])(view(logins={os.path.join(root, "bin", "gh")}))
@@ -611,6 +665,44 @@ def cases(m) -> dict[str, bool]:
             every(host(path=stalled, timeout_s=0.3), 2, "it could not be run, or did not return in time")
         r["host: a gh behind the shim that cannot be run is refused"] = \
             one(host(path=tools + ":" + broken), "did not answer whether it holds a login: " + os.path.join(broken, "gh"))
+        scripts = {"exit0": "exit 0", "exit1": "exit 1", "exit2": "exit 2", "exit127": "nonexistent-command-of-the-fixture", "signal": "kill -9 $$",
+                   "says-no": "echo 'You are not logged into any GitHub hosts. To log in, run: gh auth login' >&2; exit 1"}
+        got = {}
+        for label, body in scripts.items():
+            os.mkdir(os.path.join(td, "gh-" + label))
+            Path(td, "gh-" + label, "gh").write_text("#!/bin/sh\n" + body + "\n")
+            os.chmod(os.path.join(td, "gh-" + label, "gh"), 0o700)
+            got[label] = [ln.split(":")[0] for ln in host(path=tools + ":" + os.path.join(td, "gh-" + label))]
+        r["host: a real gh behind the shim passes only by saying it holds no login: exit 0 is a login, and exit 1 unsaid, 2, 127 or a signal is no answer"
+          + ("" if got.get("says-no") == [] else f"; got {got}")] = \
+            got == {"exit0": ["a gh on PATH reports a login"], "says-no": [], **{k: ["a gh on PATH did not answer whether it holds a login"] for k in ("exit1", "exit2", "exit127", "signal")}}
+        tree = os.path.join(td, "tree")
+        for sub in (".git/objects", ".git/refs", "private"):   # a work tree by hand: what git's discovery looks for
+            os.makedirs(os.path.join(tree, sub))
+        Path(tree, ".git", "HEAD").write_text("ref: refs/heads/main\n")
+        inner = os.path.join(tree, "private")
+        os.chmod(inner, 0o700)
+        m.prepare(inner, [owner_id], [deploy], "MODEL_KEY")
+        inner_env = m.session_env(inner, "MODEL_KEY", {"MODEL_KEY": "k"})
+
+        def in_tree(**more):
+            return m.probe(Sealed({**inner_env, "GIT_CONFIG_NOSYSTEM": "1", "PATH": os.path.join(inner, "bin") + ":" + tools, **more}), inner)
+        r["host: a private root inside a work tree is refused, and no variable of git's in the environment hides the tree"
+          + ("" if one(in_tree(), "inside") else f"; control {in_tree()}")] = \
+            all(one(got_, f"the private root {inner} is inside a git work tree") for got_ in (
+                in_tree(), in_tree(GIT_DIR=os.path.join(td, "nowhere")), in_tree(GIT_CEILING_DIRECTORIES=tree),
+                in_tree(GIT_DIR=os.path.join(td, "nowhere"), GIT_CEILING_DIRECTORIES=tree, GIT_WORK_TREE=empty)))
+        r["host null: the same variables over a root outside every work tree are refused nothing"] = \
+            host(GIT_CEILING_DIRECTORIES=tree) == [] and host(GIT_DISCOVERY_ACROSS_FILESYSTEM="0") == []
+
+        def stat_raising(error):
+            class Raising(m.Host):
+                _stat = staticmethod(lambda path: (_ for _ in ()).throw(error))
+            return Raising({})
+        import errno
+        r["host: reach reads a stat the kernel refuses as denied, and one that fails any other way as no answer"] = \
+            (stat_raising(PermissionError(errno.EACCES, "x")).reach(deploy), stat_raising(OSError(errno.EIO, "x")).reach(deploy),
+             stat_raising(OSError(errno.ELOOP, "x")).reach(deploy)) == (m.DENIED, m.UNKNOWN, m.UNKNOWN)
         r["host: PUSH_AUTH set in the real environment is refused by name"] = one(host(PUSH_AUTH=secret), "the credential variable PUSH_AUTH is set")
         gone = os.path.join(td, "owner", "absent-typo")
         m.prepare(root, [gone], [gone + "-key"], "MODEL_KEY")
@@ -676,10 +768,18 @@ def cases(m) -> dict[str, bool]:
 #: (needle, replacement, the case that must fail). One per predicate.
 MUTANTS = {
     "root mode": ("if mode != 0o700:", "if mode is None:", "not mode 700"),
-    "work tree": ('    if rc == 0:\n        why.append(f"the private root {root} is inside a git work tree")', '    if rc == 99:\n        why.append(f"the private root {root} is inside a git work tree")', "inside a work tree"),
-    "work tree unanswered": ("    elif rc != 128 or NOT_A_REPOSITORY not in err:\n", "    elif False:\n", "leaves the work-tree question unanswered"),
-    "work tree any 128": ("    elif rc != 128 or NOT_A_REPOSITORY not in err:\n", "    elif rc != 128:\n", "leaves the work-tree question unanswered"),
-    "work tree any exit": ("    elif rc != 128 or NOT_A_REPOSITORY not in err:\n", "    elif rc is None:\n", "leaves the work-tree question unanswered"),
+    "work tree": ('        if rc == 0:\n            return [f"the private root {root} is inside a git work tree"]', '        if rc == 99:\n            return [f"the private root {root} is inside a git work tree"]', "inside a work tree"),
+    "work tree unanswered": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if False:\n", "leaves the work-tree question unanswered"),
+    "work tree any 128": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc != 128:\n", "leaves the work-tree question unanswered"),
+    "work tree either half": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc != 128 and NOT_A_REPOSITORY not in err:\n", "leaves the work-tree question unanswered"),
+    "work tree any exit": ("        if rc != 128 or NOT_A_REPOSITORY not in err:\n", "        if rc is None:\n", "leaves the work-tree question unanswered"),
+    "git variables out of the question": ('if not k.startswith("GIT_")}', "if True}", "no variable of git's in the environment hides the tree"),
+    "git variables, two named": ('if not k.startswith("GIT_")}', 'if k not in ("GIT_DIR", "GIT_WORK_TREE")}', "no variable of git's in the environment hides the tree"),
+    "asked without them first": ("    for asked in ([plain] if plain == view.env else [plain, view.env]):\n", "    for asked in [view.env]:\n", "no variable of git's in the environment hides the tree"),
+    "asked as configured too": ("    for asked in ([plain] if plain == view.env else [plain, view.env]):\n", "    for asked in [plain]:\n", "only the session's own git configuration"),
+    "across file systems": ('"LC_ALL": "C", "GIT_DISCOVERY_ACROSS_FILESYSTEM": "1"}', '"LC_ALL": "C"}', "asked with none of git's variables"),
+    "stat denied": ("        except PermissionError:\n            return DENIED\n", "        except PermissionError:\n            return ABSENT\n", "a stat the kernel refuses as denied"),
+    "stat unanswered": ("        except OSError:\n            return UNKNOWN\n", "        except OSError:\n            return DENIED\n", "a stat the kernel refuses as denied"),
     "run unanswered": ('            return None, "", ""\n        return p.returncode, p.stdout, p.stderr', '            return 128, "", NOT_A_REPOSITORY + NO_CREDENTIAL.pattern[:14] + "Username"\n        return p.returncode, p.stdout, p.stderr', "with no git on PATH"),
     "run timeout": ("timeout=self.timeout_s,", "timeout=None,", "does not return in time"),
     "run stderr": ("        return p.returncode, p.stdout, p.stderr", '        return p.returncode, p.stdout, ""', "host null"),
@@ -711,7 +811,10 @@ MUTANTS = {
     "model by record": ('        model_env = str(cfg.get("model_env") or "")\n', '        model_env = "MODEL_KEY"\n', "exempt only by the launcher's record"),
     "record written": ('"model_env": model_env}', '"model_env": ""}', "probe.json holds the owner's paths"),
     "record passed": ("    prepare(root, a.owner_identity, a.deploy_key, a.model_env)\n", "    prepare(root, a.owner_identity, a.deploy_key)\n", "launch null"),
-    "auth word": ("CREDENTIALS?|AUTH|APIKEY)", "CREDENTIALS?|APIKEY)", "every credential-named variable"),
+    "auth word": ("|CREDENTIAL|AUTH|AUTHORIZATION|", "|CREDENTIAL|AUTHORIZATION|", "every credential-named variable"),
+    "key ends a segment": ("|AUTHORIZATION|KEY|BEARER|", "|AUTHORIZATION|BEARER|", "every credential-named variable"),
+    "plural": (')|PAT|PEM|NETRC)S?")', ')|PAT|PEM|NETRC)")', "every credential-named variable"),
+    "whole words stay whole": ("|JWT)|PAT|PEM|NETRC)S?", "|JWT|PAT|PEM|NETRC))S?", "runs on into a longer one"),
     "word ends a segment": ("any(CREDENTIAL_WORD.fullmatch(seg)", "any(CREDENTIAL_WORD.search(seg)", "runs on into a longer one"),
     "segments": ('re.split(r"[^A-Z0-9]+", name.upper())', "[name.upper()]", "every credential-named variable"),
     "any case": ('re.split(r"[^A-Z0-9]+", name.upper())', 're.split(r"[^A-Za-z0-9]+", name)', "every credential-named variable"),
@@ -720,7 +823,12 @@ MUTANTS = {
     "shim first": ("    if not ghs or not ghs[0][1]:\n", "    if not ghs:\n", "not the shim first on PATH"),
     "mode var": ('    if not env.get("HPO_OWNER_ONLY"):\n', "    if False:\n", "HPO_OWNER_ONLY unset"),
     "gh login": ('        if rc == 0:\n            why.append(f"a gh on PATH reports a login: {path}")', '        if False:\n            why.append(f"a gh on PATH reports a login: {path}")', "reports a login"),
-    "gh unanswered": ("        elif rc is None:\n", "        elif False:\n", "cannot be run, or does not return"),
+    "gh unanswered": ("        elif rc != 1 or NO_LOGIN not in out + err:\n", "        elif False:\n", "cannot be run, or does not return"),
+    "gh any exit": ("        elif rc != 1 or NO_LOGIN not in out + err:\n", "        elif rc is None:\n", "answers exit 2 has not said"),
+    "gh exit 1 unsaid": ("        elif rc != 1 or NO_LOGIN not in out + err:\n", "        elif rc != 1:\n", "answers exit 1 and silent"),
+    "gh said under another exit": ("        elif rc != 1 or NO_LOGIN not in out + err:\n", "        elif NO_LOGIN not in out + err:\n", "answers exit 4 has not said"),
+    "gh said on stdout": ("NO_LOGIN not in out + err:", "NO_LOGIN not in err:", "on either stream"),
+    "gh real exits": ("        elif rc != 1 or NO_LOGIN not in out + err:\n", "        elif rc is None or rc > 100:\n", "passes only by saying it holds no login"),
     "shim not asked": ("        if is_shim:\n            continue\n", "", "shim itself is never asked"),
     "inherit": ('    env[model_env] = parent[model_env]\n', '    env[model_env] = parent[model_env]\n    env.update({k: v for k, v in parent.items() if k not in env})\n', "inherits nothing"),
     "model name": ("if model_env in env or TOKEN_VAR.fullmatch(model_env) or not", "if not", "is no model credential"),

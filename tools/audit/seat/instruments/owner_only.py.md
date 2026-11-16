@@ -22,10 +22,18 @@
     `launch` recorded in `probe.json` apart), reaches no logged-in `gh`,
     resolves `gh` to the seat shim in its owner-only mode, has a private root
     of mode 700 outside every work tree, and is no cloud session. It refuses
-    an owner path that does not exist, and every question left unanswered: a
-    git or `gh` that cannot be run or does not return, a git exit that is
-    neither answer. A line names a path or a variable, never a content. Both
-    workflow drivers run it again in Prepare.
+    an owner path that does not exist, and every question left unanswered:
+    each of the three commands it runs passes only on that command's stated
+    no (git: exit 128 naming no repository, or no username or password to
+    read; `gh auth status`: exit 1 saying it is logged into no host), so a
+    command that cannot be run, does not return, is killed, or exits any
+    other way refuses. The work-tree question is asked with none of git's
+    own variables in the environment (`GIT_DIR` and
+    `GIT_CEILING_DIRECTORIES` cannot hide a tree), then as the session's git
+    is configured. A credential-named variable is a segment ending with a
+    word of `CREDENTIAL_WORD`, singular or plural; the rule errs to
+    refusing (`MONKEY` ends with `KEY`). A line names a path or a variable,
+    never a content. Both workflow drivers run it again in Prepare.
   - What the probe cannot see is in the script's docstring: a credential in
     a file it is not told of, one in a variable whose name says nothing of
     it, an owner path mistyped below a directory the account cannot enter,

@@ -127,13 +127,12 @@ Under `dev/governance/roles/`.
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
 | `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
-**There is exactly one `COMMON.md`, and it is the finder's contract.** A running
-session may also hand its seats an out-of-tree shared block, named
-`SEAT-BLOCK.md`; that one is **not** policy but a convenience copy.
+**There is exactly one `COMMON.md`.** `SEAT-BLOCK.md`, an out-of-tree block a
+running session hands its seats, is a convenience copy, **not** policy.
 
 ### Dimension briefs — the audit rounds
 One per dimension, under `dev/governance/dimensions/`, in the owner's own words. Named
-individually, because a range reads as complete while covering a fraction:
+individually, never as a range:
 
 | brief | dimension |
 |---|---|
@@ -153,6 +152,8 @@ individually, because a range reads as complete while covering a fraction:
 | `D13.md` | process yield and cost |
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
+| `D16.md` | actuator writes, holds and releases against the plan |
+| `D17.md` | feature behaviour against its documented effect |
 
 Finder criteria (`owner_criteria`): `D4-criteria.md`,
 `D5-criteria.md`, `D9-criteria.md`, `D10-criteria.md`.

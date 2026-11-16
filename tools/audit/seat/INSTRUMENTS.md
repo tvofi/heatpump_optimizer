@@ -129,6 +129,7 @@ standing-seat liveness step keep the seats alive.
 - [`owner_only.py`](instruments/owner_only.py.md) — launches a session of an owner-only audit dimension under a seat account and an allow-listed environment, and probes that the account can publish nothing
 - [`corpus_mirror.py`](instruments/corpus_mirror.py.md) — reads every published source once into the private root for an owner-only dimension, one serial stream under `gh_read.py`'s budget floor, pausing at its cursor
 - [`leak_detectors.py`](instruments/leak_detectors.py.md) — candidate spans of already-published data by class, written only under the private root, and the location harness a finding cites
+- [`loop_ledger.py`](instruments/loop_ledger.py.md) — the convergence record per round and week: escapes by found_by and owning dimension, injected, refix and card L1's countermeasure loop, read from the roster fields `roster_edit.py set-field` validates; unread on a partial ledger
 - [`outside_intake.py`](instruments/outside_intake.py.md) — lists submissions by outside users since a cursor with what each is owed (triage, answer, reply), and answers or refuses one, marked so none is answered twice
 - [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the record-issue line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
 - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's record-issue line from a fixed template, the full merge sha, read back byte-identical

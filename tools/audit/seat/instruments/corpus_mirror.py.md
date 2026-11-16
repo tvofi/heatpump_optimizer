@@ -22,16 +22,21 @@
     ref namespace outside heads, tags and pull is a `not_reached` line and a
     non-zero exit. An archive that traverses, links, passes a size or
     ratio cap, names its own directory as a file, holds a path that is both
-    a file and a directory, or that the file system will not write, is
-    refused whole, in `refused.json`: `safe_extract` raises for none. A
-    per-item read that answers an error is `not_reached` in its pass and is
-    read again by the next.
+    a file and a directory, a name past the length cap, or a member that
+    cannot be read, is refused whole, in `refused.json`. Whatever reading
+    an archive's bytes raises is the archive's (`read_archive`); whatever
+    this host's file system raises is this host's, is no answer, and is
+    never a refusal (`Mirror.each`). A per-item read that answers an
+    error, or that this host failed on, is `not_reached` in its pass and
+    is read again by the next; a kept answer that is not `ok` (gone,
+    refused) is `not_reached` in every pass and read once.
   - `cost` prints the scan's own calls per bucket; `gh_calls.py --top --since
     <scan start>` prints the shim's.
   - Not yet run against GitHub: the self-test stubs `gh`, `git` and HTTPS. An
     endpoint that does not serve what the script expects becomes a
     `not_reached` line, never a dropped row.
   `--self-test`: pause and exact resume under a secondary limit and a spent
-  bucket, the floor, the namespace assertion, hostile archives, the re-read
-  of a unit that answered an error, and one
+  bucket, the floor, the namespace assertion, hostile and unreadable
+  archives, the re-read of a unit that answered an error or that this host
+  failed on, and one
   mutant per predicate.
