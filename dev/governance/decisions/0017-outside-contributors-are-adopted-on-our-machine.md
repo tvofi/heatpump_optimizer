@@ -95,7 +95,9 @@ approvals remain in our machinery even for such PRs."*
    never resolves). The train's `[OUTSIDE]` class is that park, and also
    the contract's refusal, a pull request whose head repository and branch
    could not be read, a checkout copy of the contract that is not
-   origin/main's, and a fork head the train could not check out; no secret reaches a fork run (the three
+   origin/main's, a fork head the train could not check out, and an
+   approval of item 5's verdict-driven writers it would post on a fork
+   head; no secret reaches a fork run (the three
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 
