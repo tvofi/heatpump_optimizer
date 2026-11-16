@@ -1114,12 +1114,14 @@ function requiredContextsOverTree() {
 
 function checkOrphanCaps(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
-  if (!b || !b.files) return []
+  if (!b) return []
   // Against the TREE's policy files, never against a caller's list: the
   // acceptance drives `checkBudgets` with the rot fixtures, and comparing the
   // recorded caps against that list would report all 33 real files as orphans.
   const measured = new Set(policyFiles())
-  return Object.keys(b.files)
+  // Both per-file tables: a `files_tokens` cap on an unmeasured path is the
+  // same escape as a `files` one, and it once outlived its file for a round.
+  return ['files', 'files_tokens'].flatMap((table) => Object.keys(b[table] ?? {})
     // A rot fixture is an input to the acceptance and never a member of the
     // corpus; `budgets.md` is capped at 1 so the fixture drive can produce an
     // "exceeds its cap" finding at all. Exempting the directory is what keeps
@@ -1129,8 +1131,8 @@ function checkOrphanCaps(budget) {
       severity: 'error',
       check: 'budgets',
       where: k,
-      message: `has a cap in ${BUDGET_FILE} but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.`,
-    }))
+      message: `has a cap in ${BUDGET_FILE}'s ${table} but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.`,
+    })))
 }
 
 function checkCoverage(files = null) {
@@ -5446,7 +5448,7 @@ function assertAcceptance(derived) {
   // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
   // against nothing, which made "give it a cap" a way out of the corpus. False
   // on a healthy tree like every other budget property, so it is driven.
-  pins += 3
+  pins += 4
   const driveOC = (budget) => {
     const prev = orphanCapBudgetSource
     orphanCapBudgetSource = () => budget
@@ -5462,7 +5464,15 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report ${ORPHAN} exactly once (got ${JSON.stringify(ocRot.map((f) => f.where))}); a cap that measures nothing would read exactly like one that holds.`)
     return 1
   }
-  const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
+  // The token table is the same escape by its other column: a `files_tokens`
+  // cap on a path no glob matches compares nothing, and it outlived the file
+  // it was kept for (the retired orchestrator turn, R11-POLICY-TOKEN-CAP).
+  const ocTok = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])), files_tokens: { [ORPHAN]: 1 } })
+  if (ocTok.length !== 1 || ocTok[0].where !== ORPHAN || !/files_tokens/.test(ocTok[0].message)) {
+    console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report the files_tokens cap on ${ORPHAN} exactly once (got ${JSON.stringify(ocTok.map((f) => [f.where, f.message.slice(0, 40)]))}); a token cap that measures nothing would read exactly like one that holds.`)
+    return 1
+  }
+  const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])), files_tokens: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
   if (ocOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
     return 1
