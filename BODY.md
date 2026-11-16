@@ -11,7 +11,7 @@ Ported from the WIP head cb6600d2f1 (base 26dbf7c43e) onto 31117b1029; the two c
 
 ## Head
 
-b405d7d8db6ca3c9e529d2d8323fc50e0c262b8f, measured against origin/main 31117b1029de63938d949e78dcbcd8f9451e5e33 at 2026-11-15T22:37Z.
+2c54bbc78547d241f2a45b3fca381a929a77d655, measured against origin/main 921214bf4246338c1a83fbc5269eaa0bfe91b7d5 (merge base 31117b1029de63938d949e78dcbcd8f9451e5e33) at 2026-11-16T00:24Z. The repair over b405d7d8db is one commit: COMMON.md's provisional-number sentence loses its motivation clause ("so the judge sees the conditions") and the file's token cap is re-recorded down to what `--budgets` measures.
 
 ## Mutation proof
 
@@ -37,19 +37,22 @@ No `.py` line outside `tests/` and `dev/` is added, so `prepr.sh`'s mutant draw 
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 -I tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
 - Round start, run as step 1 writes it: `R` resolves to `origin/handoff/audit-r10-roster`; `carry_audit.py --roster-ref $R roster` exits 1 on two `STRANDED` carries of R10-SELFTEST-SCOPE-UNION-GUARD (the round's pickup to dispose of, not this diff's); the stage one-liner over `wave-r11-groups.json` prints 44 lines.
-- Budgets, `node tools/policy/policy_lint.mjs --budgets` rows this group grows: `tools/audit/briefs/COMMON.md` (COMMON.md's row) recorded at the lines and tokens it prints, a raise (below); `tools/audit/README.md` (dev/audit/README.md's row) under its cap, unchanged; the corpus aggregate inside its band, unchanged.
+- Budgets, `node tools/policy/policy_lint.mjs --budgets` rows this group grows: `tools/audit/briefs/COMMON.md` (COMMON.md's row) recorded at the lines and tokens it prints, a raise (below); `tools/audit/README.md` (dev/audit/README.md's row) under its cap, unchanged; the corpus aggregate inside its band on this head alone and on its merge with main 921214bf (the tree CI grades).
+- `node tools/policy/policy_lint.mjs` on the PR's CI head b2e0163b7f (b405d7d8db merged with main 921214bf): `ERROR [budgets] (whole corpus): about 69836 tokens exceeds the cap of 69833`, `TOTAL: 1 error(s)`. The same command on b2e0163b7f merged with this repair: `TOTAL: 0 error(s) across 52 policy file(s)`, corpus `~69824` against `69333 +band 500 = 69833`; on this head alone `~69816`. COMMON.md's row: 1697 tokens, cap 1697 (was 1709).
+- `node tools/policy/policy_lint_envmatrix.mjs "$PWD" <out> "$(git rev-parse HEAD)"` on b2e0163b7f merged with this repair (baseline origin/main 921214b): `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)`; CI's run at b2e0163b7f read `9 declared outcome(s) held, 7 did not`.
+- `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
 
-<!-- figure-block: scope-line mb=31117b1029de63938d949e78dcbcd8f9451e5e33 head=b405d7d8db6ca3c9e529d2d8323fc50e0c262b8f -->
+<!-- figure-block: scope-line mb=31117b1029de63938d949e78dcbcd8f9451e5e33 head=2c54bbc78547d241f2a45b3fca381a929a77d655 -->
 ~~~text
-MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
 ## Raise justification
 
-COMMON.md's line and token caps rise to the values `--budgets` measures at this head, from 108 lines and 1598 tokens. Under the mandate path (`CLAUDE.md` rule 2, decision 0013): the denominator section is the owner-ordered contract (tvofi 2026-11-13; E11-COMMON accepted 2026-11-15), and the file a finder reads before measuring is where it binds.
+COMMON.md's line and token caps rise to the values `--budgets` measures at this head, from 108 lines and 1598 tokens (to 114 lines and 1697 tokens). Under the mandate path (`CLAUDE.md` rule 2, decision 0013): the denominator section is the owner-ordered contract (tvofi 2026-11-13; E11-COMMON accepted 2026-11-15), and the file a finder reads before measuring is where it binds.
 
-Payments tried: taken, the Budget section (replaced by the `check_scopes.py --seat` bound), the schema restated under Output, the three-sentence "not a finding" opening folded to one, the flat-price motivation clause, the non-finding motivation sentence, and in `dev/audit/README.md` R10-ROUND-PLAYBOOK-FINAL's carry 31 (spent: `D11.md` and `D13.md` carry the paragraph). Not taken: moving the denominator text into the schema's descriptions (prose moved to an uncapped file, `ratchet-budgets.md`'s refused shape; a finder reads COMMON.md first); copying it into the dimension briefs (one rule duplicated per brief); cutting #961's keying example (it carries a rule anchored to a defect, not motivation).
+Payments tried: taken, the Budget section (replaced by the `check_scopes.py --seat` bound), the schema restated under Output, the three-sentence "not a finding" opening folded to one, the flat-price motivation clause, the non-finding motivation sentence, the provisional-number sentence's "so the judge sees the conditions" clause (12 tokens, taken in the repair), and in `dev/audit/README.md` R10-ROUND-PLAYBOOK-FINAL's carry 31 (spent: `D11.md` and `D13.md` carry the paragraph). Not taken: moving the denominator text into the schema's descriptions (prose moved to an uncapped file, `ratchet-budgets.md`'s refused shape; a finder reads COMMON.md first); copying it into the dimension briefs (one rule duplicated per brief); cutting #961's keying example (it carries a rule anchored to a defect, not motivation).
 Architecture score: dS +0.0000 NULL
 
 ## Approval
@@ -58,7 +61,9 @@ Pending: a policy pull request (`dev/governance/roles/COMMON.md`, `dev/audit/REA
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until an approval at this head clears it: this diff raises `tools/audit/briefs/COMMON.md`'s two caps in `dev/governance/config/policy_budgets.json` (`## Raise justification`), and the gate holds any `*_budgets.json` raise for the owner's approving review or a mandated one (decision 0013). Cheaper detector: none; the gate is the detector the raise is meant to meet, and `prepr.sh`'s `pr-body` step already named it before any CI ran. No other check in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints has gone red on a commit of this branch.
+- `budget-raise-gate`: red by design until an approval at this head clears it: this diff raises `tools/audit/briefs/COMMON.md`'s two caps in `dev/governance/config/policy_budgets.json` (`## Raise justification`), and the gate holds any `*_budgets.json` raise for the owner's approving review or a mandated one (decision 0013). Cheaper detector: none; the gate is the detector the raise is meant to meet, and `prepr.sh`'s `pr-body` step already named it before any CI ran.
+- `governance / policy-docs` and `governance / env-matrix`: red at b2e0163b7f on one cause, `policy_lint`'s whole-corpus budget (69836 over the 69833 cap); env-matrix's seven FAILs are that one ERROR seen from each environment shape. Each side was under the cap alone (b405d7d8db: `TOTAL: 0 error(s)`); the merge with main 921214bf (#3626's policy text) summed past it. Repaired by the cut above, measured on the merged tree. Cheaper detector: `policy_lint.mjs` over the merged tree, under a minute; at the handoff it ran green against the main of that moment, and only CI's run on the merged head sees a later main, so CI's run is the cheapest detector that reaches it: none built. Process state (d): main moved under a clean prepr run.
+- No other check in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints has gone red on a commit of this branch.
 
 ## Forward-carry
 
