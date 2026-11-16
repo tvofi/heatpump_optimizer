@@ -1,0 +1,135 @@
+SURVIVED tools/audit/product_reads.py:34 CONST_SWAP  sys.path.insert(1, str(Path(__file__).resolve().parent))
+SURVIVED tools/audit/product_reads.py:38 CONST_SWAP  RUN_TIMEOUT_S = 901
+SURVIVED tools/audit/product_reads.py:76 CONST_SWAP  return {k: (v + 14.0 if _num(v) else f"{v}~perturbed" if isinstance(v, str) and k != "entity_id" else v) for k, v in data.items()}
+SURVIVED tools/audit/product_reads.py:107 CMP_BOUND  elif _num(p) and 0 <= s < float(p):
+SURVIVED tools/audit/product_reads.py:128 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:138 CONST_SWAP  short = name.rsplit(".", 2)[-1]
+SURVIVED tools/audit/product_reads.py:147 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:153 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:155 CONST_SWAP  sys.path[:] = [str((repo / spec["script"]).parent), str(repo / "tests")] + [x for x in sys.path[2:] if x != str(Path(__file__).resolve().parent)]
+SURVIVED tools/audit/product_reads.py:193 GUARD_OFF  elif False:
+SURVIVED tools/audit/product_reads.py:245 GUARD_OFF  if False:
+SURVIVED tools/audit/product_reads.py:246 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:269 GUARD_OFF  if False:
+SURVIVED tools/audit/product_reads.py:283 CONST_SWAP  sys.meta_path.insert(1, _Hook(patches))
+SURVIVED tools/audit/product_reads.py:344 CONST_SWAP  capture_output=False, text=True, timeout=RUN_TIMEOUT_S)
+SURVIVED tools/audit/product_reads.py:370 CONST_SWAP  with concurrent.futures.ThreadPoolExecutor(max(2, self.jobs)) as ex:
+SURVIVED tools/audit/product_reads.py:408 CMP_BOUND  at_site = [e for e in evs if e["site"] == r["site"] and (c is None or e["seq"] <= c["seq"])]
+SURVIVED tools/audit/product_reads.py:439 CONST_SWAP  rec = runs[key(s, 1)]
+SURVIVED tools/audit/product_reads.py:524 CMP_BOUND  before = [i for i, cfg in enumerate(base["configs"]) if c and cfg["seq"] <= c["seq"] and carried(cfg, o, r["level"])]
+SURVIVED tools/audit/product_reads.py:570 CONST_SWAP  rec = runs[key(s, 1)]
+SURVIVED tools/audit/product_reads.py:710 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:726 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:737 CONST_SWAP  arms, fails = 1, []
+SURVIVED tools/audit/product_reads.py:741 CONST_SWAP  arms += 2
+SURVIVED tools/audit/product_reads.py:742 GUARD_OFF  if False:
+SURVIVED tools/audit/product_reads.py:743 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:775 CONST_SWAP  out = read_operation(root, led, 5)
+SURVIVED tools/audit/product_reads.py:780 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:781 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:781 CONST_SWAP  arm("null: the target half reads the plan's set-point", next(l for l in out if l.startswith(ops[1][0]) and S + "payload" in l).endswith("target=plan"), True)
+SURVIVED tools/audit/product_reads.py:782 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:782 CONST_SWAP  arm("planted (i): a constant-condition check does not move", v(2), "not witnessed: the check does not move")
+SURVIVED tools/audit/product_reads.py:785 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:786 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:787 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:788 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:789 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:790 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:791 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:794 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:795 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:800 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:801 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:801 CONST_SWAP  arm("planted: a set-point the plan does not hold", full[(ops[17][0], S + ops[16][1])], "moved\ttarget=differs plan=21.0 sent=22.0")
+SURVIVED tools/audit/product_reads.py:802 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:802 CONST_SWAP  arm("null: a pass with no `now` reads the clock", v(18), "moved")
+SURVIVED tools/audit/product_reads.py:803 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:804 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:805 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:806 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:807 CONST_SWAP  arm("null: a check that stays ok while only its detail moves under the perturbed payload: moved", full[(ops[23][0], S + ops[22][1])],
+SURVIVED tools/audit/product_reads.py:820 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:821 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:825 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:827 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:828 CONST_SWAP  ps = {"duty": "control", "plan": True, "k": None, "plan_state": None, "ordinal": 1}
+SURVIVED tools/audit/product_reads.py:829 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:829 CONST_SWAP  arm("token: baseline is a plan held and no step covering now", (token_holds("baseline", ps, None), token_holds("baseline", {**ps, "k": 1}, None)), (True, False))
+SURVIVED tools/audit/product_reads.py:830 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:831 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:845 CONST_SWAP  gout = read_generality(root, gl, 5, pairs_out=po)
+SURVIVED tools/audit/product_reads.py:852 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:852 CONST_SWAP  arm("null: a check on a key's presence, its level switched: witnessed", g(1), "witnessed (configuration 0)")
+SURVIVED tools/audit/product_reads.py:853 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:856 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:857 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:858 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:859 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:862 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:863 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:864 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:864 CONST_SWAP  arm("null: two keys of one axis carry two levels in one configuration", (g(12), g(12)), ("witnessed (configuration 5)",) * 2)
+SURVIVED tools/audit/product_reads.py:865 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:866 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:867 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:872 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:884 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:889 CONST_SWAP  next(l for l in read_generality(root, gl, 5) if l.startswith("level grid=g1\t")).endswith("no witness: no observable in the stub"), True)
+SURVIVED tools/audit/product_reads.py:891 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:893 CONST_SWAP  for name, fn in (("operation", lambda: read_operation(root, led, 2)), ("generality", lambda: read_generality(root, gl, 1))):
+SURVIVED tools/audit/product_reads.py:896 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:902 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:908 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:910 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:911 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:914 GUARD_OFF  if False:
+SURVIVED tools/audit/product_reads.py:916 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:916 CONST_SWAP  return 2
+SURVIVED tools/audit/product_reads.py:918 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:924 CONST_SWAP  mk = lambda s, d, f=None, n=3: NS(timestamps=[_T0 + timedelta(minutes=15 * i) for i in range(n)], power_schedule=[s] * n,
+SURVIVED tools/audit/product_reads.py:925 CONST_SWAP  dhw_power_schedule=[d] * n, optimal_setpoints=[40.0] * n, duty_floor_kw=f)
+SURVIVED tools/audit/product_reads.py:930 CONST_SWAP  ("no configured maximum reads no partial", mk(4.0, 0.0), {}, None),
+SURVIVED tools/audit/product_reads.py:931 CONST_SWAP  ("now past the plan has no k", NS(timestamps=[_T0 - timedelta(hours=3), _T0 - timedelta(hours=1, minutes=45)],
+SURVIVED tools/audit/product_reads.py:932 CONST_SWAP  power_schedule=[4.0, 2.0]), cfg, None),
+SURVIVED tools/audit/product_reads.py:933 CONST_SWAP  ("no power schedule reads no state", NS(timestamps=[_T0, _T0 + timedelta(minutes=16)]), cfg, None),
+SURVIVED tools/audit/product_reads.py:934 CONST_SWAP  ("dhw past its end reads 0", NS(timestamps=[_T0 - timedelta(minutes=16), _T0], power_schedule=[0.5, 0.5],
+SURVIVED tools/audit/product_reads.py:935 CONST_SWAP  dhw_power_schedule=[2.0], duty_floor_kw=None), cfg, "partial")]
+SURVIVED tools/audit/product_reads.py:938 CONST_SWAP  _T0 = __import__("datetime").datetime(2027, 1, 1, tzinfo=__import__("datetime").timezone.utc)
+SURVIVED tools/audit/product_reads.py:951 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:965 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:966 CONST_SWAP  return int(r.stdout.strip() or -2)
+SURVIVED tools/audit/product_reads.py:991 CONST_SWAP  ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
+SURVIVED tools/audit/product_reads.py:997 CONST_SWAP  ap.add_argument("--jobs", type=int, default=os.cpu_count() or 2)
+SURVIVED tools/audit/product_reads.py:1004 RETURN_DEL  pass
+SURVIVED tools/audit/product_reads.py:1004 CONST_SWAP  return 1
+SURVIVED tools/audit/product_reads.py:1016 GUARD_OFF  if False:
+SURVIVED tools/audit/product_reads.py:1017 CALL_DEL  pass
+SURVIVED tools/audit/product_reads.py:706 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:741 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:756 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:783 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:792 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:796 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:798 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:807 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:809 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:811 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:814 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:822 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:832 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:854 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:860 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:868 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:870 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:873 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:877 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:880 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:885 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:888 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:890 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:894 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:903 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:906 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:907 STMT_DEL  pass
+SURVIVED tools/audit/product_reads.py:913 STMT_DEL  pass

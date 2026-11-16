@@ -1,0 +1,4 @@
+NOTE stale tree: 67ff9b3898d347a756c7731ea3fe0b5f460d2fec lacks origin/main 92d38ecb640bd462f2e19c0814d0f0b7df1ee692; roster read at origin/main
+NOTE review 0 item 1578ac2b: R11-PRE-PRODUCT-READS: R11-PRE-PRODUCT-READS resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item a60e6cf6: dismissed:fails loud (TypeError), never a wrong count
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
