@@ -1,0 +1,1 @@
+CELL terminal-credit golden=winter_single_dhw T_E=16.6855 T_Estar=0.00e+00 dC=19.0892 dJ=17.6259 r_C=0.874 r_J=0.947 deficit_K slab=1.65 room=3.05 buffer=0.00 OK

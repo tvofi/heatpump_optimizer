@@ -49,5 +49,5 @@
   "custom_components/heatpump_optimizer/sysid.py"
  ],
  "stop_rule_class": "bug",
- "class_guess": "N-confounded-learner"
+ "class_guess": "new"
 }
