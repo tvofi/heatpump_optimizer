@@ -1,0 +1,3 @@
+NOTE stale tree: 4f3aa7edb38f9818e7ddb5ce2d411c67a35fe8db lacks origin/main e352724335c136b65562cd3e71f728549ad04a82; roster read at origin/main
+CI PREDICT: no closures, fast, governance or instrument red predicted against 367c3b9cac0f (a data-file read is not seen)
+rc=0 wall=1s ref-after=5e4fdcb7cd
