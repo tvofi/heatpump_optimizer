@@ -1,0 +1,4 @@
+MUTATE 'size: float'
+payload958 rc=1   FAIL errors did not grow  [recorded 0, measured 1 (+1)]   FAIL by_code[typeddict-unknown-key] did not grow  [recorded 0, measured 1 (+1)] 
+MUTATE 'return {key: block.get(key) for key in ("coldest_entity", "warmest_entity", "lift")}'
+sensor778 rc=1   FAIL the room sensors read the payload's rooms block: average in degC, spread in K, the dropped room and the coldest and warmest as attributes  [[('room_avera TypeError: 'NoneType' object is not subscriptable 

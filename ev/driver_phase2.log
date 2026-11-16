@@ -1,0 +1,8 @@
+SURVIVED custom_components/heatpump_optimizer/config_flow.py:1693 STMT_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/payload.py:958 STMT_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/payload.py:959 STMT_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/payload.py:960 STMT_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/payload.py:979 STMT_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/rooms.py:35 GUARD_OFF  if False:
+SURVIVED custom_components/heatpump_optimizer/sensor.py:778 RETURN_DEL  pass
+rc=1
