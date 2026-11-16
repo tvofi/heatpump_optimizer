@@ -1,0 +1,5 @@
+VERSION/manifest/RELEASE_NOTES in delta:
+dev/audit/yardstick/round11/EVALUATION.json
+tests/closures.json
+untouched: VERSION custom_components RELEASE_NOTES.md tests/golden
+roles diff base...main:
