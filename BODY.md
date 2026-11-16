@@ -9,6 +9,8 @@ Carries of this group, each named with what became of it:
 
 ## Head
 
+prepr: passed rc=0 at 6e7fd991c0d184d21c89d0fd18fef1a64cbb890a
+
 6e7fd991c0d184d21c89d0fd18fef1a64cbb890a, on origin/main 98847b99d7bb3238686efd6869f805c89c6d1ff1 at 2026-11-15T20:34Z.
 
 ## Mutation proof
