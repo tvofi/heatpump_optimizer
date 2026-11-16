@@ -1,3 +1,4 @@
 1794860746 INIT r11-rev-3672
 1794860823 INIT r11-rev-3672
 1794860833 HB alive
+1794861161 CKPT mutants re-run at head: F1-F5, E14, E15 killed; E16, E17 survive, listed unpinned snapshot 2922a115a932
