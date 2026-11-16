@@ -1,0 +1,1 @@
+ROW entities_pump.heat_pump_return_temp_entity EFFECT [control flow set-point (pump_duty_mode doc: 5 K above the first fresh return reading): saved=menu/advanced err=None stored='sensor.hp_return' moved=['writes'] [] obs0={} obs1={}]
