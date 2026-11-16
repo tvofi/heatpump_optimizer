@@ -6,3 +6,4 @@
 1794852121 DONE blocked mutation-vacuous at 321d7f9f; verdict on probe/rev-3658-6834d873 (4ca16be0)
 1794855280 HB alive
 1794855340 CKPT packet rendered, reading delta snapshot 667166268761
+1794855462 CKPT reviewer mutants run: 15 killed, net-all-pages survives snapshot 79f96c13b4bb
