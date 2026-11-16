@@ -1,0 +1,7 @@
+M1 pr_cap.py:230 drop 'and v > PRODUCTION_SLOTS'
+  FAIL slots at or below PRODUCTION_SLOTS are unread, never a negative allowance; 11 reads
+pr_cap self-test: 32 checks, 1 failed
+    return cap - tdoc["step"] * (n // tdoc["every_merges"]), n
+M2 machinery_ratchet.py:359 drop max(0,...)
+  FAIL target: a schedule driven past zero holds at 0, never below it: got (1, False), want (0, True)
+machinery_ratchet self-test: 72 checks, 1 failed

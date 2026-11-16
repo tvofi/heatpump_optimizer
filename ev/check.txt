@@ -1,0 +1,4 @@
+machinery_ratchet: PR mode, #3627 as the candidate on origin/main; window 580 merge(s): 99 production, 329 machinery, 152 record; 21768 product line(s), 303263 nonproduct
+  ok   nonproduction_merges 481 <= 478 + band 5
+  ok   churn_per_kilo_product_lines 13932 <= 14797 + band 3636
+  ok   target nonproduction_merges 481 <= 478 + band 5 (18 merge(s) past anchor b3831ff64eca, 48 down per 290)

@@ -1,0 +1,57 @@
+01:35:59
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:37:16
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:38:33
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:39:50
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:41:07
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:42:25
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:43:42
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:44:59
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:46:16
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:47:33
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:48:51
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:50:08
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:51:25
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:52:42
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:54:00
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:55:17
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:56:34
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:57:51
+WAIT 842b068dd0ea4b8edb6f3de1c7955380e10ca23c pending: gate red: none
+rc=3
+01:59:08
+APPROVAL-OWED 842b068dd0ea4b8edb6f3de1c7955380e10ca23c 5 budget raise(s), first dev/governance/config/machinery_target_budgets.json: _comment: None -> "The declining target on machinery_budgets.json's nonproduction_merges (tvofi, 2026-11-13, card P2), graded by tools/audit/machinery_ratchet.py (THE TARGET in its docstring): the cap less `step` for every `every_merges` first-parent merges past `anchor`, binding a non-production candidate only. Policy: dev/governance/rules/ratchet-budgets.md, the machinery section." (a pinned value the gate cannot sign as routine): a raise is the owner's (0013): tvofi's approval is on 56fda94e8568, not this head 842b068dd0ea: an approval covers only the commit it was given on
+rc=4
