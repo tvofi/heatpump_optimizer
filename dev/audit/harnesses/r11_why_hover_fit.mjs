@@ -1,5 +1,5 @@
 // R11-OWNER-GENERIC-CONTROL-TEXT carry (#3643): does the chart hover's
-// "Because:" block survive fitWhy once why.sub_dearer is reworded? Drives the
+// explanation block (.tt-why) survive fitWhy once why.sub_dearer is reworded? Drives the
 // card at one git ref in Chromium at 375 and 500 px, on the tile chart and the
 // expanded dialog's chart, hovering the repository fixture's dearest idle space
 // step (tests/plan_view.py's payload through tests/card_rig.mjs's planStates,
@@ -75,7 +75,7 @@ for (const dialog of [false, true]) for (const natural of [true, false]) for (co
     const why = tt.querySelector(".tt-why");
     const li = why ? [...why.querySelectorAll("li")] : [];
     const lh = li.length ? parseFloat(getComputedStyle(li[0]).lineHeight) : 0;
-    return { cap: Math.round(rect.height - 16), h: tt.offsetHeight, shown: !!why && /Because:/.test(tt.innerHTML),
+    return { cap: Math.round(rect.height - 16), h: tt.offsetHeight, shown: !!why,
       lines: li.map((l) => Math.round(l.getBoundingClientRect().height / (lh || 1))), first: li.length ? li[0].textContent : "" };
   }, [st, W, step.t, natural, dialog]);
   console.log(`${dialog ? "dialog" : "tile"} ${natural ? "natural" : "fitted"} W=${W} cap=${r.cap} height=${r.h} ` +
