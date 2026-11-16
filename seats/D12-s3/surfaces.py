@@ -25,9 +25,9 @@ Run (from the export root):
   ... surfaces.py --list           # the M3 universe (enumerator), one cell per line
   ... surfaces.py --perturb doc-modulation   # declared_modulation patched to its documented map (on_off->False): fail_count must go DOWN by 1
   ... surfaces.py --perturb range-keys       # C2: climate min_temp/max_temp unread (decoy min/max used): space_setpoint:climate and dhw_setpoint:climate/water_heater must FAIL (count up)
-  ... surfaces.py --perturb drop-pv          # plant shrink (brief M6 style): PV/away/peak dropped from the reference arm; with --reference the count must not move
-Expected at baseline 92d38ecb (export as handed over, box B6): fail_count=1 (modulation:on_off) exact,
-both arms; --perturb doc-modulation -> 0.
+  ... surfaces.py --reference --perturb drop-pv   # plant shrink (brief M6 style): PV/away/peak dropped from the reference arm; the count must not move (0)
+Expected at baseline 92d38ecb (export as handed over, box B6): 27 cells; fail_count=1 (modulation:on_off) exact on the
+generalization arm, 0 on --reference (its cycling cost 0.5 plans no sub-minimum step); --perturb doc-modulation -> 0.
 Machine: box B6, Linux x86_64, python 3.14, numpy 2.5.4 / scipy 1.18.1.
 """
 from __future__ import annotations
@@ -168,6 +168,8 @@ CELLS = {
     "frequency:none": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp"}, {"switch.hp": FakeState("off")}, "switch.hp", None),
     "frequency:observe": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, {"switch.hp": FakeState("off"), "sensor.hz": FakeState("0", attributes={"unit_of_measurement": "Hz"})}, "switch.hp", None),
     "frequency:control": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_COMPRESSOR_FREQ_ENTITY: "number.hz", c.CONF_FREQ_CONTROL_MODE: "control", c.CONF_POWER_ENTITY: "sensor.hp_power"}, {"switch.hp": FakeState("off"), "number.hz": FakeState("45", attributes={"unit_of_measurement": "Hz", "min": 20, "max": 90, "step": 1}), "sensor.hp_power": FakeState("1800", attributes={"unit_of_measurement": "W", "device_class": "power"})}, "switch.hp", None),
+    # --- control with an evidenced kW-per-Hz map (seeded before the cycle): the write must land in the number's own range
+    "frequency:control_evidenced": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_COMPRESSOR_FREQ_ENTITY: "number.hz", c.CONF_FREQ_CONTROL_MODE: "control", c.CONF_POWER_ENTITY: "sensor.hp_power"}, {"switch.hp": FakeState("off"), "number.hz": FakeState("45", attributes={"unit_of_measurement": "Hz", "min": 20, "max": 90, "step": 1}), "sensor.hp_power": FakeState("1800", attributes={"unit_of_measurement": "W", "device_class": "power"})}, "number.hz", None),
     # --- a counter-metered pump whose spans hold hot-water charges (two cycles, counter advancing, tank charging)
     "metering:counter_dhw_spans": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_ENERGY_ENTITY: "sensor.hp_energy", c.CONF_HEAT_ENERGY_ENTITY: "sensor.heat_energy"}, {"switch.hp": FakeState("on"), "sensor.hp_energy": FakeState("1000.0", attributes={"unit_of_measurement": "kWh", "device_class": "energy", "state_class": "total_increasing"}), "sensor.heat_energy": FakeState("3000.0", attributes={"unit_of_measurement": "kWh", "device_class": "energy", "state_class": "total_increasing"})}, "switch.hp", None),
     # --- a short boost: shorter than one optimisation interval
@@ -226,6 +228,9 @@ def run_cell(name, reference=False, drop_pv=False):
             now = dt_util.now()
             boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, now)
             boost_mod.held_for(coord).until[boost_mod.CHANNEL_SPACE] = now + timedelta(minutes=10)
+        if name == "frequency:control_evidenced":
+            coord._freq_map.buckets = {d: [0.04, 50] for d in range(10)}
+            coord._freq_last_write = None  # past the designed 5-minute post-start hold (coordinator init stamp)
         data = asyncio.run(coord._async_update_data())
         if name == "metering:counter_dhw_spans":
             hass.states.set("sensor.hp_energy", FakeState("1000.6", attributes=dict(states["sensor.hp_energy"].attributes)))
