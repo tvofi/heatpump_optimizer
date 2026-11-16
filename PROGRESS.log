@@ -43,3 +43,5 @@
 1794862065 HB alive
 1794862121 CKPT D0-s3 12 file(s)
 1794862127 CKPT D3-s3 8 file(s)
+1794862135 HB alive
+1794862135 HB container restarted: D0-s3 and D3-s3 subagents lost, partial work checkpointed, re-running both
