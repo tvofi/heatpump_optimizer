@@ -1,0 +1,146 @@
+[
+ {
+  "name": "pair-same-axis-guard-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "            if a != b:\n",
+  "new": "            if True:\n"
+ },
+ {
+  "name": "operation-fail-at-head-branch-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "        elif not c[\"ok\"]:\n            v = \"not witnessed: FAIL at the head\"\n        elif r[\"check\"] in nondet:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:",
+  "new": "        elif False:\n            v = \"not witnessed: FAIL at the head\"\n        elif r[\"check\"] in nondet:\n            v = \"not witnessed: nondeterministic\"\n        elif not at_site:"
+ },
+ {
+  "name": "target-compare-always-plan",
+  "file": "tools/audit/product_reads.py",
+  "old": "return \"target=plan\" if float(sent) == ps[\"setpoint\"] else",
+  "new": "return \"target=plan\" if True else"
+ },
+ {
+  "name": "perturb-site-restriction-dropped",
+  "file": "tools/audit/product_reads.py",
+  "old": "if (pert and site == pert[\"site\"] and",
+  "new": "if (pert and"
+ },
+ {
+  "name": "unlisted-writer-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "e[\"site\"].startswith(PKG + \"/\") and e[\"site\"] not in sites",
+  "new": "False"
+ },
+ {
+  "name": "hold-reached-before-state-check",
+  "file": "tools/audit/product_reads.py",
+  "old": "        elif unrec:\n            v = f\"not witnessed: state not recorded",
+  "new": "        elif r[\"kind\"] == \"hold\":\n            v = \"reached\"\n        elif unrec:\n            v = f\"not witnessed: state not recorded"
+ },
+ {
+  "name": "presence-carried-ignores-level",
+  "file": "tools/audit/product_reads.py",
+  "old": "return (what in v) == (level == \"present\")",
+  "new": "return (what in v)"
+ },
+ {
+  "name": "gen-fail-at-head-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "            elif not c[\"ok\"]:\n                v = \"not witnessed: FAIL at the head\"",
+  "new": "            elif False:\n                v = \"not witnessed: FAIL at the head\""
+ },
+ {
+  "name": "hasses-first-pass",
+  "file": "tools/audit/product_reads.py",
+  "old": "hasses[pi]) if pi",
+  "new": "hasses[0]) if pi"
+ },
+ {
+  "name": "construction-ordinal-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "                ordinal(self)  # built",
+  "new": "                pass  # built"
+ },
+ {
+  "name": "entry-switch-ordinal-shift",
+  "file": "tools/audit/product_reads.py",
+  "old": "if switch and switch[\"ordinal\"] == len(rec[\"configs\"]):",
+  "new": "if switch and switch[\"ordinal\"] == len(rec[\"configs\"]) - 1:"
+ },
+ {
+  "name": "absent-to-present-noop",
+  "file": "tools/audit/product_reads.py",
+  "old": "                    data[k] = switch[\"to\"]\n",
+  "new": "                    pass\n"
+ },
+ {
+  "name": "profile-switch-noop",
+  "file": "tools/audit/product_reads.py",
+  "old": "                    profile = switch[\"to\"]\n",
+  "new": "                    pass\n"
+ },
+ {
+  "name": "ledger-colcount-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "if len(c) != 2 + three or \"::\"",
+  "new": "if False or \"::\""
+ },
+ {
+  "name": "ledger-source-check-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "(three and c[1] not in census.SOURCES)",
+  "new": "(False)"
+ },
+ {
+  "name": "ledger-no-coloncolon-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "or \"::\" not in c[-1] or",
+  "new": "or False or"
+ },
+ {
+  "name": "carried-profile-kind-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "return cfg[\"kind\"] == what and v.get(\"profile\") == level",
+  "new": "return v.get(\"profile\") == level"
+ },
+ {
+  "name": "carried-entry-guard-off",
+  "file": "tools/audit/product_reads.py",
+  "old": "    if cfg[\"kind\"] != \"entry\":\n        return False\n",
+  "new": "    if False:\n        return False\n"
+ },
+ {
+  "name": "moved-detail-ignored",
+  "file": "tools/audit/product_reads.py",
+  "old": "(not b[\"ok\"] or b[\"detail\"] != a[\"detail\"])",
+  "new": "(not b[\"ok\"])"
+ },
+ {
+  "name": "nondet-detail-ignored",
+  "file": "tools/audit/product_reads.py",
+  "old": "or (a[\"by_check\"].get(k) or {}).get(\"detail\") != (b[\"by_check\"].get(k) or {}).get(\"detail\")}",
+  "new": "}"
+ },
+ {
+  "name": "outside-pass-count-any",
+  "file": "tools/audit/product_reads.py",
+  "old": "if e[\"pass\"] is None and e[\"site\"] in sites:",
+  "new": "if e[\"site\"] in sites:"
+ },
+ {
+  "name": "counted-reached-dropped",
+  "file": "tools/audit/product_reads.py",
+  "old": "any(\"\\tmoved\" in v or v.endswith(\"\\treached\") for v in vs)",
+  "new": "any(\"\\tmoved\" in v for v in vs)"
+ },
+ {
+  "name": "gen-pairs-cross-script",
+  "file": "tools/audit/product_reads.py",
+  "old": "for (script, _o), lv in witnessed.items():",
+  "new": "for (script, _o), lv in [(k, set().union(*witnessed.values())) for k in list(witnessed)[:1]]:"
+ },
+ {
+  "name": "null-noop",
+  "file": "tools/audit/product_reads.py",
+  "old": "# As `python3 <script>` would",
+  "new": "# As `python3 <script>`  would"
+ }
+]

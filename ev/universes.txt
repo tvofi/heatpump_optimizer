@@ -1,0 +1,2 @@
+d16-writes cells: 456
+d12-cells pairs: 18897

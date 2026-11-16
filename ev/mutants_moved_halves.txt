@@ -1,0 +1,3 @@
+SURVIVED NULL
+KILLED moved-ok-half-dropped
+SURVIVED moved-detail-ignored
