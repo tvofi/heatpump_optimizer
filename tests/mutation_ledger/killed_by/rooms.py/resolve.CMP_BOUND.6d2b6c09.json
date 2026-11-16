@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/rooms.py:resolve CMP_BOUND 6d2b6c09",
+  "killed_by": "tests/features.py",
+  "old": "    lift_c = raw_c if abs(raw_c - kept_c) >= ROOM_LIFT_DEADBAND_C else kept_c",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`lift_c = raw_c if abs(raw_c - kept_c) > ROOM_LIFT_DEADBAND_C else kept_c`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

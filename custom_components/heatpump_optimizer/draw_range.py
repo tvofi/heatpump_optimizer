@@ -67,9 +67,10 @@ AGREE_TOLERANCE = 0.15
 #: a flat ask is no test of following.
 FOLLOW_ASK_SPAN = 1.15
 #: ... and the draw follows when the slope of log drawn on log asked is at
-#: least this. A draw proportional to its ask has slope 1, an efficiency shift
-#: included (it scales every draw alike); a draw the pump's own controller
-#: sets has slope 0 whatever its level. Halfway between the two.
+#: least this, and its level holds (``ask_evidence``). A draw proportional
+#: to its ask has slope 1, an efficiency shift included (it scales every draw
+#: alike); a draw the pump's own controller sets has slope 0 whatever its
+#: level. Halfway between the two.
 FOLLOW_SLOPE_MIN = 0.5
 #: ``ask_evidence``'s four states. ``ASK_FOLLOWS`` and ``ASK_IGNORED`` are the
 #: evidence itself. ``ASK_UNOBTAINABLE``: this window will not say -- no window,
@@ -480,8 +481,14 @@ def ask_evidence(draw: DrawRange | None) -> str:
     One of the ``ASK_*`` states, judged on the run-asked pairs
     (``DrawRange._run_asked``). With ``MIN_SAMPLES`` of them whose asks span
     ``FOLLOW_ASK_SPAN`` the slope of log drawn on log asked decides
-    (``FOLLOW_SLOPE_MIN``). Without that evidence the state says whether to
-    wait for it: ``ASK_PENDING`` while the window is still filling, else
+    (``FOLLOW_SLOPE_MIN``), and so does the level: the draw follows only where
+    one ratio of drawn to asked holds across the span, its fitted value at the
+    span's top and low end within ``DISAGREE_FACTOR`` of each other. The
+    COP learner reads a departure as an efficiency shift on ``ASK_FOLLOWS``,
+    and a shift scales every draw alike; a slope of 0.7 over asks spanning
+    3.9 moved the level from 2.1 to 1.4 times the ask. Without that
+    evidence the state says whether to wait for it: ``ASK_PENDING`` while
+    the window is still filling, else
     ``ASK_UNOBTAINABLE`` -- no window at all, asks that never moved, or a
     full window (``WINDOW`` samples) that holds too few run-asked pairs, which
     more of the same operation will not change.
@@ -497,7 +504,11 @@ def ask_evidence(draw: DrawRange | None) -> str:
     asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
     asked = asked - asked.mean()
     slope = float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked))
-    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN else ASK_IGNORED
+    # The level: drawn over asked on the fitted line moves by this factor
+    # from the span's low end to its top. One efficiency shift is one level
+    # at every ask; a level that moves is the pump's own map, not efficiency.
+    level_moves = float(high / low) ** abs(1.0 - slope)
+    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED
 
 
 def follows_ask(draw: DrawRange | None) -> bool | None:

@@ -75427,12 +75427,13 @@ R.check(
     _cf_drm.follows_ask(_cf_window(_cf_span)) is True,
     f"{_cf_drm.follows_ask(_cf_window(_cf_span))}",
 )
-# 24 asks at 1.0 drawn at 1.0, 24 at 2.0 drawn at sqrt(2): the log-log slope is
-# the double 0.5 exactly, which is FOLLOW_SLOPE_MIN.
-_cf_half = [(1.0, 1.0)] * 24 + [(2.0, 2 ** 0.5)] * 24
+# 24 asks at 1.0 drawn at 1.0, 24 at 1.5625 drawn at 1.25: the log-log slope
+# is the double 0.5 exactly, which is FOLLOW_SLOPE_MIN, and the level moves by
+# 1.5625 ** 0.5 across the span, the double 1.25 exactly, DISAGREE_FACTOR.
+_cf_half = [(1.0, 1.0)] * 24 + [(1.5625, 1.25)] * 24
 R.check(
-    "a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound "
-    "is `>=`, not `>`)",
+    "a draw whose log-log slope is exactly 0.5, and whose level moves by "
+    "exactly 1.25 across the span, follows the ask (both bounds inclusive)",
     _cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0))) is True,
     f"{_cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0)))}",
 )
@@ -75639,6 +75640,52 @@ R.check(
     "follows_ask is that state as a tri-state: None for both waiting states",
     [_cf_drm.follows_ask(w) for w in (_df_led(0.6, 48), _df_selfset, _df_flat, _df_full_sub, _cf_drm.DrawRange(), None)]
     == [True, False, None, None, None, None],
+)
+
+# R10-DRAW-MAP-EVIDENCE (b). One install's run-asked window, its shape
+# reproduced synthetically (no row of it): 90 pairs on a 0.5..4.0 kW range,
+# asks piled at the 0.5 kW floor and thinning to 3.9 kW, drawn 1.75 x ask**0.7
+# with a +15/-13/0 % ripple -- log-log slope 0.70, drawn summed over asked
+# 1.70, asks spanning 3.86 (90th over 10th percentile). The slope passed, so a
+# departure read as an efficiency shift; but no one shift describes it: the
+# fitted draw is 2.1 x the ask at the low end of the span and 1.4 x at the top.
+# The level judgement reads that ratio at both ends of the span. Nulls: the
+# same asks drawn 1.70 x their ask with the same ripple (one shift, the same
+# level) still follow; asks drawn within the COP tolerance of themselves
+# still follow; draws that ignore the ask still fail, on the slope.
+_dm_asks = ([0.5] * 46 + [0.55 + 0.4 * i / 23 for i in range(24)] + [1.05 + 0.4 * i / 8 for i in range(9)]
+            + [1.6, 1.9, 2.2, 2.4, 2.9] + [3.1 + 0.8 * i / 5 for i in range(6)])
+_dm_ripple = [(1.15, 0.87, 1.0)[i % 3] for i in range(len(_dm_asks))]
+
+
+def _dm_win(drawn):
+    return _cf_win_cfg([(a, drawn(a) * r) for a, r in zip(_dm_asks, _dm_ripple)], (0.5, 4.0))
+
+
+_dm_shape = _dm_win(lambda a: 1.75 * a ** 0.7)
+_dm_states = tuple(_df_ev(w) for w in (
+    _dm_shape, _dm_win(lambda a: 1.70 * a), _dm_win(lambda a: 1.0 * a), _dm_win(lambda a: 2.2),
+))
+R.check(
+    "the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the "
+    "span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a "
+    "draw within tolerance of its ask follow, a self-set draw still does not",
+    _dm_states == ("does_not_follow", "follows", "follows", "does_not_follow")
+    and len(_dm_shape._run_asked()) == 90,
+    f"{_dm_states}",
+)
+# Each half of the judgement on a window only it refuses: asks spanning 1.2
+# (under DISAGREE_FACTOR) drawn 2.2 kW flat move the level by 1.2 alone, so
+# only the slope refuses them; a draw growing as the square of asks spanning
+# 1.5 has slope 2, so only the level refuses it (its level moves by 1.5 the
+# other way round).
+_dm_halves = (_df_ev(_cf_win_cfg([(1.0, 2.2), (1.2, 2.2)] * 24, (1.0, 14.0))),
+              _df_ev(_cf_win_cfg([(1.0, 1.0), (1.5, 2.25)] * 24, (1.0, 14.0))))
+R.check(
+    "a flat draw over asks spanning 1.2 fails on the slope, a square-law draw "
+    "over asks spanning 1.5 fails on the level",
+    _dm_halves == ("does_not_follow", "does_not_follow"),
+    f"{_dm_halves}",
 )
 
 # MeasuredCop.judge_ratio holds a departure only while the evidence is
@@ -93326,6 +93373,14 @@ R.check(
     and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
     f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
 )
+_rm_scaled_ends = [inputs_mod._scaled(360.0, s) for s in (0.0, 0.5, 10.0, 1e9)]
+R.check(
+    "the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over "
+    "10 as 10; null control, the two ends themselves pass through unchanged",
+    (inputs_mod.STALENESS_SCALE_MIN, inputs_mod.STALENESS_SCALE_MAX) == (0.5, 10.0)
+    and _rm_scaled_ends == [180.0, 180.0, 3600.0, 3600.0],
+    f"{_rm_scaled_ends}",
+)
 _rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
     str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
     for v in (-30.0, 60.0, -30.1, 60.1)}
@@ -93502,6 +93557,21 @@ R.check(
     and _rm.lift_of(_rl_less_owner) == _rm.HeldLift(0.5, "climate.e", None, 0.25)
     and _rm.lift_of(_rl_capped_owner).lift_c == _rm.ROOM_LIFT_CAP_C == 1.0,
     f"{_rm.lift_of(_rl_same_owner)} {_rm.lift_of(_rl_less_owner)} {_rm.lift_of(_rl_capped_owner)}",
+)
+_rl_ahead, _rl_ahead_owner = _rl_solve(readings=_rl_e(19.8), house=19.0)
+R.check(
+    "a room less short of its target than the house is of its own holds a lift of zero, never a "
+    "negative one; null control, a room 0.5 K shorter than the house holds 0.5 K",
+    _rl_ahead is None and _rm.lift_of(_rl_ahead_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner).lift_c == 0.5,
+    f"{_rm.lift_of(_rl_ahead_owner)}",
+)
+_rl_neg_base, _ = _rl_solve(house=20.0, base=np.full(_RL_N, -0.5))
+R.check(
+    "a negative confidence margin is read as zero, as the solver reads it: the lifted margins "
+    "equal those with no confidence margin at all, the night band's 1.0 K included",
+    _rl_neg_base is not None and _rl_flat is not None and np.allclose(_rl_neg_base, _rl_flat),
+    f"{None if _rl_neg_base is None else sorted(set(np.round(_rl_neg_base, 4).tolist()))}",
 )
 _rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
 R.check(
