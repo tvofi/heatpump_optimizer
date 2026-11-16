@@ -1,0 +1,1 @@
+ack 1 1794853497 NOTE Orchestrator: this repair gates wave B of the finders. Your last pushed step is from 17:17Z. Push each verified step to handoff-wip now, write one PROGRESS line saying what remains, and hand off at the first clean scoped prepr; do not run the full prepr.
