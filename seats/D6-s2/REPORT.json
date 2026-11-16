@@ -1,0 +1,321 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s2/REPORT.md",
+ "exposure": "Read only my cells, the D6/COMMON/README contracts, and production code to check claims; no docs/*.md prose read (D6-s1's), no gh, no GitHub records. HEAD requests (curl -I) to the 10 external URLs in my cells (heads.tsv), one answered 403 by the session proxy. INTEGRITY: check_scopes.py needs git, so I ran it with --repo /home/user/heatpump_optimizer, and while confirming my cells were the baseline's I hashed every tracked file of the export against 92d38ecb's blobs: my 109 cell files are identical, but 19 production files and docs/configuration.md differ (const.py, defrost.py, grid_fee.py, heat_curve.py, inputs.py, legionella.py, mixing_valve.py, optimizer.py, power_guard.py, presets.py, price_model.py, pump_arbiter.py, sensor.py, store.py, tariff.py, thermal_model.py, translations/de.json, wood_fuel.py, www/heatpump-optimizer-card.js), and macOS AppleDouble files (._const.py, ._wood_fuel.py, docs/._configuration.md, ...) sit beside them. I read the diff hunks of wood_fuel.py, const.py and pump_arbiter.py only, before the claim checks were written; every finding here is a claim of my cells checked against the export's production, and four of its five mechanisms (birch row, L/min factor, station preset, observe write path, return offset) are hunks in that diff. If the export is a blind calibration tree, score this seat as having seen those three files' hunks. docs/._configuration.md also makes tests/doc_claims.py die with UnicodeDecodeError in this export.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s2 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 4012,
+   "examined": 4012,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py: RESULT units=4012 rows=4012 claims=1747 no-claim=2265 unrowed=0 orphan=0 malformed=0. C2: every sentence of my cells is a numbered unit (ledger.tsv), behavioural 'optimizer will' sentences included. C3: how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md are D6-s1's cells (check_scopes.py --seat D6-s1), not mine; passed as a lead."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "awk -F'\\t' 'NR>1 && $3==\"claim\"' dev/audit/rounds/round11/D6/s2/ledger.tsv",
+   "universe": 1747,
+   "examined": 105,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/strings.json (1388 claims unprobed)",
+    "custom_components/heatpump_optimizer/services.yaml (50 claims unprobed)",
+    "blueprints/automation/notify_wood_cheaper_window.yaml (29 claims unprobed)",
+    "blueprints/automation/notifications.yaml (23 claims unprobed)",
+    "dev/governance/roles/fixer.md (17 claims unprobed)",
+    "blueprints/automation/economy_mode_on_price_peak.yaml (12 claims unprobed)",
+    "docs/img/model/make_model_figures.py (12 claims unprobed)",
+    "docs/img/card/pages.json (11 claims unprobed)",
+    "blueprints/automation/charge_ev_from_grid_headroom.yaml (10 claims unprobed)",
+    "docs/img/readme/mermaid_figures.json (9 claims unprobed)",
+    "blueprints/automation/notify_on_manual_plan.yaml (8 claims unprobed)",
+    "dev/governance/roles/orchestrator.md (7 claims unprobed)",
+    "dev/governance/dimensions/D15.md (5 claims unprobed)",
+    "dev/governance/dimensions/D12.md (4 claims unprobed)",
+    "dev/governance/dimensions/D4.md (4 claims unprobed)",
+    "dev/governance/dimensions/D11.md (3 claims unprobed)",
+    "dev/governance/dimensions/D13.md (3 claims unprobed)",
+    "dev/governance/dimensions/D5.md (3 claims unprobed)",
+    "dev/governance/dimensions/criteria/D9-criteria.md (3 claims unprobed)",
+    "dev/governance/roles/COMMON.md (3 claims unprobed)",
+    "dev/governance/roles/proposal-triage.md (3 claims unprobed)",
+    "docs/img/readme/make_readme_figures.py (3 claims unprobed)",
+    "dev/governance/dimensions/D0.md (2 claims unprobed)",
+    "dev/governance/dimensions/D1.md (2 claims unprobed)",
+    "dev/governance/dimensions/D10.md (2 claims unprobed)",
+    "dev/governance/dimensions/D2.md (2 claims unprobed)",
+    "dev/governance/dimensions/D3.md (2 claims unprobed)",
+    "dev/governance/dimensions/D6.md (2 claims unprobed)",
+    "dev/governance/dimensions/D7.md (2 claims unprobed)",
+    "dev/governance/dimensions/D9.md (2 claims unprobed)",
+    "dev/governance/roles/standing-roster.md (2 claims unprobed)",
+    "dev/governance/roles/standing-tick.md (2 claims unprobed)",
+    "dev/governance/roles/standing.md (2 claims unprobed)",
+    "dev/governance/dimensions/D14.md (1 claims unprobed)",
+    "dev/governance/dimensions/D8.md (1 claims unprobed)",
+    "dev/governance/roles/architect-planner.md (1 claims unprobed)",
+    "dev/governance/roles/designer.md (1 claims unprobed)",
+    "dev/governance/roles/evaluator.md (1 claims unprobed)",
+    "dev/governance/roles/fix-review.md (1 claims unprobed)",
+    "dev/governance/roles/standing-dispatch.md (1 claims unprobed)",
+    "dev/governance/roles/standing-merge.md (1 claims unprobed)",
+    "docs/img/model/make_card_weekly_figure.mjs (1 claims unprobed)",
+    "docs/img/readme/render_mermaid.mjs (1 claims unprobed)"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py: RESULT true=97 false=6 stale=2 unverifiable=1642. Examined = claims with an executed check that decided them (curated production-constant and behaviour probes, entity ids through the platforms' async_setup_entry, notifier.EVENT_DATA, registered services, governance path resolution, manifest/hacs, HEAD). C1: in my cells, 'next 20 hours'/'Defaults to 20 hours' = const.MANUAL_PLAN_WINDOW_HOURS 20 (true); 'weekly snapshot, about a week' = snapshots.SNAPSHOT_INTERVAL_DAYS 7 (true); link HEADs taken (9/10 answer 200, ossf/scorecard 403 proxy). '23 options pages', '8 weekly snapshots' and '+-12 %' occur in no file of my cells (grep), they are D6-s1's: lead. C4: HEADs done; behavioural claims against golden scenarios not done - the 1642 unverifiable rows remain."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s2 | cut -f3",
+   "universe": 109,
+   "examined": 109,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py runs text_ledger.run_check(..., plant=True) over all 109 cell files: RESULT unrowed=0 orphan=0 malformed=0 plant_refused=1 planted_units=1 check_rc=0; files with a false or stale row: 3 (strings.json, fixer.md, orchestrator.md), one finding each."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M2",
+   "what": "1642 claims rowed unverifiable without a probe that decides them: 1388 behavioural sentences of strings.json (config/options descriptions, issues, exceptions, service descriptions), 50 of services.yaml, 82 blueprint sentences (quiet hours, templates), 86 governance sentences whose cited paths resolve but whose stated behaviour was not executed, 36 figure/record strings under docs/img (pages.json structure hashes and sizes not re-rendered: tests/doc_claims.py cannot run in this export, see exposure). Also: governance sentences citing no path were classed mandates (no-claim) by rule, so a factual governance sentence without a backticked path was not rowed as a claim."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s2-01",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "strings.json holds 6 false rows: five user-facing claims contradict the production symbol that decides them",
+   "severity": "high",
+   "claim": "In the tree under test, six strings.json sentences are contradicted by the production code deciding them: loose birch is not 0.60 of packed (wood_fuel), a flow sensor in L/min is read at 1/60 of its value (const.FLOW_UNIT_TO_KG_S), a fresh-water station carries 150 L of potable water not 0 (const.COMBI_TANK_PRESETS), Observe duty mode reaches the pump write (pump_arbiter._arbitrate), and the return-target off gate is 30 degC not 20 degC (pump_arbiter._gate_floor_c, two sentences).",
+   "mechanism": "The text states the shipped behaviour; the production symbol each sentence describes delivers a different value. Per row (ledger.tsv, verdict false): #538b900c1b wood_packing (birch loose/packed=1.667, pine and mixed 0.600); #25d4327206 flow units (FLOW_UNIT_TO_KG_S['L/min']=0.998/3600, so 10 L/min x 5 K reads 0.058 kW instead of 3.48 kW); #60b9412b58 '0 for a fresh-water station' (external_station potable_volume_l=150.0); #b6c5358b63 'Observe writes none either' (one _command, one _adopt and one night-schedule write per observe pass); #3102a60501 and #7a9d1fff5d '20 degC for a return target' (_as_target adds RETURN_SUPPLY_OFFSET_K for a return unit, so _gate_floor_c returns 30.0 and the W35 hold 40.0).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+    "harness_path": "dev/audit/rounds/round11/D6/s2/ledger.py",
+    "value": 6,
+    "unit": "false rows in custom_components/heatpump_optimizer/strings.json",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 7.49,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.wood_fuel:useful_kwh_m3; heatpump_optimizer.const:FLOW_UNIT_TO_KG_S; heatpump_optimizer.const:COMBI_TANK_PRESETS; heatpump_optimizer.pump_arbiter:_arbitrate; heatpump_optimizer.pump_arbiter:_gate_floor_c",
+   "perturbation": {
+    "change": "ledger.py --perturb: the five one-line production edits of probes.py --perturb applied in memory (birch row {packed:1900, loose:1140}; 'L/min': WATER_KG_PER_L/60.0; external_station CombiTankPreset(0.75, 0.0); 'if mode != DUTY_CONTROL or _pump_off(inp, held): return' in _arbitrate; 'supply_c - RETURN_SUPPLY_OFFSET_K' in _as_target)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Ledger rows of strings.json whose executed probe of the deciding production symbol contradicts the sentence (text_ledger verdict false).",
+   "phenomenon_property": "Every numeric or behavioural claim a strings.json sentence makes equals what the production symbol deciding it delivers.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # prints each false row; per mechanism: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe {wood_packing_ratio,flow_unit_lmin,station_potable,observe_writes,return_gate}",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/wood_fuel.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "proposed_fix_scope": "The text is the documented intent in all five; the fix is production (five one-line edits, the perturbation's), each owned by its seam's seat (leads to D2-s1, D8-s1, D1-s1); translations/*.json carry the same sentences and need no change once production matches.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py --perturb",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --perturb"
+   ],
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # the same probes over the 97 rows it holds true",
+    "value": "97 true rows, e.g. const.DHW_GATE_C=30, LEASE_MINUTES=90/30 at -10 degC, SNAPSHOT_INTERVAL_DAYS=7, MANUAL_PLAN_WINDOW_HOURS=20",
+    "note": "the probe machinery reads true where production matches; the counted rows are not an artefact of the harness"
+   },
+   "expected_golden_drift": [
+    "fixing the flow-unit factor, the station preset, the birch row or the return offset may move golden fixtures that exercise them; claim per tests/golden/claimed_drift.txt"
+   ]
+  },
+  {
+   "id": "D6-s2-02",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "fixer.md cites decision 0011 at docs/decisions/, a path that does not exist",
+   "severity": "low",
+   "claim": "dev/governance/roles/fixer.md line 104 cites docs/decisions/0011-app-authored-identity.md; no such path exists and the decision is at dev/governance/decisions/0011-app-authored-identity.md.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+    "harness_path": "dev/audit/rounds/round11/D6/s2/probes.py",
+    "value": 1,
+    "unit": "unresolved backticked paths in fixer.md (2 across the governance cells)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 7.23,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "dev/audit/rounds/round11/D6/s2/probes.py:gov_paths over the tree under test (os.walk of the export); text_ledger:units_of for the unit",
+   "perturbation": {
+    "change": "cite dev/governance/decisions/0011-app-authored-identity.md (or add the file at the cited path; --perturb models the latter)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Backticked repository paths with a directory part in fixer.md that resolve to no file or directory of the tree.",
+   "phenomenon_property": "Every repository path a role contract or dimension brief cites resolves in the tree.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "dev/governance/roles/fixer.md"
+   ],
+   "proposed_fix_scope": "One-line policy text edit (owner approval before merge, CLAUDE.md); decisions are named by number elsewhere, so 'decision 0011' alone also fixes it."
+  },
+  {
+   "id": "D6-s2-03",
+   "scope": "D6-s2",
+   "step": "D6.M2",
+   "title": "orchestrator.md cites decision 0010 at docs/decisions/, a path that does not exist",
+   "severity": "low",
+   "claim": "dev/governance/roles/orchestrator.md line 73 cites docs/decisions/0010-merge-commits-on-main.md; no such path exists and the decision is at dev/governance/decisions/0010-merge-commits-on-main.md.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+    "harness_path": "dev/audit/rounds/round11/D6/s2/probes.py",
+    "value": 1,
+    "unit": "unresolved backticked paths in orchestrator.md (2 across the governance cells)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 7.23,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "dev/audit/rounds/round11/D6/s2/probes.py:gov_paths over the tree under test (os.walk of the export); text_ledger:units_of for the unit",
+   "perturbation": {
+    "change": "cite dev/governance/decisions/0010-merge-commits-on-main.md (or add the file at the cited path; --perturb models the latter)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Backticked repository paths with a directory part in orchestrator.md that resolve to no file or directory of the tree.",
+   "phenomenon_property": "Every repository path a role contract or dimension brief cites resolves in the tree.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "dev/governance/roles/orchestrator.md"
+   ],
+   "proposed_fix_scope": "One-line policy text edit (owner approval before merge); or name it 'decision 0010'."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Blueprint entity ids (sensor.heat_pump_optimizer_cost_power_headroom, _cost_current_electricity_price, _plan_space_heating, binary_sensor.heat_pump_optimizer_wood_cheaper) are added by the integration",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check entity_ids",
+   "value": "4/4 among 82 entity ids from the six platforms' async_setup_entry"
+  },
+  {
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check events",
+   "claim": "notifications.yaml's five event types are fired, each carrying entry_id",
+   "value": "5/5 in notifier.EVENT_DATA; entry_id first key of each"
+  },
+  {
+   "claim": "Services named in blueprints and strings exist (heatpump_optimizer.set_mode ...)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check services",
+   "value": "all named services registered"
+  },
+  {
+   "claim": "Curated numeric claims of strings.json/services.yaml hold",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+   "value": "true: MANUAL_PLAN_WINDOW_HOURS 20, OUTAGE 2 h/45 min, CONFIDENCE_MARGIN_CAP_C 0.8, ECONOMY 1.5 K/15 degC, OPEN_WINDOW_RELAX_C 1.0, CAPACITY_FLOOR_FRACTION 0.6 and silent_mode.caps raising 0.3 to 0.6, MOLD 0.8, legionella hold 20 min, combi potable limit 3 L, buffer 500/35 L, store min 100 L, wood margin 2 degC, top-only -5 degC, flow bias 15 K/75 degC, comfort weight 5, retry 5 min, feedback 5 min/10 %, DHW gate 30 degC, flow gate 25 degC, lease 90/30 min at -10 degC, slab seed 12 K, price tiles 75 %/30 d, self-test 15 min, refit 3 d/10 %, snapshot 7 d, DHW cooling 45/20 degC, rain 2/0.1 mm/h and 1.15, inlet 10 degC, curve writes 12/day, Daikin 19/day, partload 0.44/0.17, defaults off for tiles/window/duty, v5.1.7 comfort_band introduction (git tags), COP nominal 3.5"
+  },
+  {
+   "claim": "External links in my cells answer",
+   "command": "curl -sS -o /dev/null -I -L -w %{http_code} (ledger.py --net -> heads.tsv)",
+   "value": "9/10 HTTP 200; github.com/ossf/scorecard 403 from the session proxy (unverifiable, not the link's answer)"
+  },
+  {
+   "claim": "Governance briefs/roles: every backticked file:symbol resolves and every cited CLI flag exists in its script",
+   "command": "ad-hoc scan during the seat (symbol and flag census), path half committed as probes.py --probe gov_paths",
+   "value": "0 unresolved symbols; 1 flag miss was a false positive (--dim belongs to text_ledger in the same code span); 2 unresolved paths -> D6-s2-02/03"
+  },
+  {
+   "claim": "manifest domain and requirements, hacs name",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+   "value": "domain == const.DOMAIN; numpy/scipy/threadpoolctl installed in venv-ci; hacs.json name == manifest name"
+  },
+  {
+   "claim": "D6.M3 refuses a skipped unit",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+   "value": "plant_refused=1"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s2/ledger.py",
+  "dev/audit/rounds/round11/D6/s2/probes.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "symbol": "WOOD_KWH_M3['birch']",
+   "what": "birch packed 1140 / loose 1900 kWh/m3, inverted against pine and mixed (loose = 0.60 x packed); a packed-birch m3 is priced 1.67x dearer per kWh in wood_sek_per_kwh and the cheaper-than-pump rule. Probe: probes.py --probe wood_packing_ratio."
+  },
+  {
+   "owner_seat": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "FLOW_UNIT_TO_KG_S['L/min']",
+   "what": "0.998/3600 kg/s per L/min (the L/h factor); a flow meter in L/min yields 1/60 of the delivered heat (10 L/min x 5 K -> 0.058 kW, physical 3.48). Probe: probes.py --probe flow_unit_lmin."
+  },
+  {
+   "owner_seat": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "COMBI_TANK_PRESETS['external_station']",
+   "what": "potable_volume_l 150.0 though its own comment says a plate exchanger stores none; adds 150 L to buffer_store_volume and lifts the station above COMBI_LEGIONELLA_POTABLE_LIMIT_L so the legionella cycle runs. Probe: probes.py --probe station_potable."
+  },
+  {
+   "owner_seat": "D1-s1",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_arbitrate",
+   "what": "in duty mode observe the pass continues past the off block to _adopt, _command and _write_night_schedule (only _pump_off guards it); observe writes to the pump. Probe: probes.py --probe observe_writes."
+  },
+  {
+   "owner_seat": "D1-s1",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_as_target",
+   "what": "adds RETURN_SUPPLY_OFFSET_K for a return-water target instead of subtracting; off gate 30 degC (docstring and UI: 20), W35 hold written as 40. Probe: probes.py --probe return_gate."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "docs/how-it-works.md",
+   "symbol": "prose claims (C3; C1's '23 options pages', '8 weekly snapshots', '+-12 %')",
+   "what": "redispatched C1/C3 items that live in D6-s1's docs cells: the behaviour/unit/version prose of how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md, and the three C1 numbers, none of which occurs in D6-s2's cells. snapshots.RING_SIZE=8 and SNAPSHOT_INTERVAL_DAYS=7 for the snapshot one."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/doc_claims.py",
+   "symbol": "DOCS (module level)",
+   "what": "read_text over docs/*.md dies with UnicodeDecodeError on an AppleDouble docs/._configuration.md present in this export (not in git); environment, but the registered doc-claims gate cannot run here."
+  }
+ ]
+}
