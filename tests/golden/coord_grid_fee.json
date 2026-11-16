@@ -1903,6 +1903,9 @@
     "pump_max_power": null,
     "pump_max_power_reason": null,
     "pump_max_power_source": null,
+    "pump_min_power": null,
+    "pump_min_power_reason": null,
+    "pump_min_power_source": null,
     "solar_aperture": {
      "needed": 30,
      "samples": 0,

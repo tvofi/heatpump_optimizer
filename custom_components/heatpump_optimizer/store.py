@@ -323,6 +323,10 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/overdraws": _COUNT,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
+    # R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor (absent while
+    # unset) and the samples appended since it last moved.
+    "draw/floor_kw": Domain("real", _POS, whole=_DRAW_KEY),
+    "draw/floor_since": Domain("int", 0, whole=_DRAW_KEY),
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {

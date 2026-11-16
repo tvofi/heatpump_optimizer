@@ -772,3 +772,17 @@
 # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
 # with one are suspended above for this release (the wood_coil precedent).
 # Direction per fixture, branch vs base:
+# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
+# publishes which electrical minimum the plan used, so every coord capture gains,
+# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
+# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# against the merge base, one environment). Claimed rather than re-recorded, as
+# R10-COP-GATE-D's keys were: the committed files were patched in those three
+# paths alone, each null because a coord fixture holds no plan.
+coord_all_features  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_dhw  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_grid_fee  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_minimal  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_two_zone  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves

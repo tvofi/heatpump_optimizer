@@ -2089,6 +2089,7 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "system_identification_outcome": _sysid_outcome(data.get("system_identification")),
             "learner_progress": data.get("learner_progress"),
             **_pump_max_power(data.get("pump_max_power")),
+            **_pump_min_power(data.get("pump_max_power")),
         }
 
 
@@ -2103,6 +2104,25 @@ def _pump_max_power(band: Any) -> dict[str, Any]:
         "pump_max_power": row if b else None,
         "pump_max_power_source": b.get("source"),
         "pump_max_power_reason": b.get("reason"),
+    }
+
+
+def _pump_min_power(band: Any) -> dict[str, Any]:
+    """Which electrical minimum the live plan booked, and why
+    (R11-OUTSIDE-HONEST-METERED-FLOOR): ``_pump_max_power``'s shape for the
+    bottom end, read off the same stamp. No plan publishes all three as
+    ``None``."""
+    b = _mapping(band)
+    row = {
+        "configured_min_kw": b.get("configured_min_kw"),
+        "planned_min_kw": b.get("planned_min_kw"),
+        "learned_min_kw": b.get("learned_min_kw"),
+        "samples": b.get("min_samples"),
+    }
+    return {
+        "pump_min_power": row if b else None,
+        "pump_min_power_source": b.get("min_source"),
+        "pump_min_power_reason": b.get("min_reason"),
     }
 
 
