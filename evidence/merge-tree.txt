@@ -1,34 +1,3 @@
-head: 7a2b2cdef2283bf3c2f07d70d9a380f9fce0b04e
-origin/main: d4968fe08ba0b18f9d96f6ca308edf45f35ca469
-merge-base: 56ce2f695bcba5218444f52c04a5ed923a07d563
-$ git merge-tree --write-tree origin/main 7a2b2cdef2283bf3c2f07d70d9a380f9fce0b04e
-LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/entities.py: merged as a set (88 entries)
-  re-run the gate that owns this file before pushing
-e1c7858177deefdcef06bc48ddd3721327dace40
-100644 278971983f1373a9e81ff408205a0a1611dc7a0c 1	.github/workflows/governance.yml
-100644 83ae8933aa3133c6dfb85f7ecff167c60ca6ea35 2	.github/workflows/governance.yml
-100644 6c1012552bd539b70db10ca2316bb483c20e0631 3	.github/workflows/governance.yml
-100644 4627ab4238c35441d9404b514d086459077ac53c 1	tools/audit/seat/INSTRUMENTS.md
-100644 2e6cbed837f0ebda9d735ca24a5e135551b3e074 2	tools/audit/seat/INSTRUMENTS.md
-100644 b331a364fe530bb54765ae6b601a2563057176ae 3	tools/audit/seat/INSTRUMENTS.md
-100644 62868e3c79ade385b3cdbbebb1f3cbab977f29ab 1	tools/audit/seat/beat_jobs.py
-100644 1e3ec838b9e861cad1c8d1fe03bd70a88e8beb8a 2	tools/audit/seat/beat_jobs.py
-100644 8c6c5374c48bb9d6fa2a4f4854f23ffc656086d5 3	tools/audit/seat/beat_jobs.py
-100644 4f1ee4170a5151b59c50fdf7970919e5081c67ba 1	tools/audit/seat/instruments/beat_jobs.py.md
-100644 fbbf9c6ee2e65c15fb124bdace79752990bb7d12 2	tools/audit/seat/instruments/beat_jobs.py.md
-100644 afe9f0fe59cb2e6372b68fcfe7605b621888f06a 3	tools/audit/seat/instruments/beat_jobs.py.md
-
-Auto-merging .github/workflows/governance.yml
-CONFLICT (content): Merge conflict in .github/workflows/governance.yml
-Auto-merging tests/closures.json
-Auto-merging tools/audit/seat/INSTRUMENTS.md
-CONFLICT (content): Merge conflict in tools/audit/seat/INSTRUMENTS.md
-Auto-merging tools/audit/seat/beat_jobs.py
-CONFLICT (content): Merge conflict in tools/audit/seat/beat_jobs.py
-Auto-merging tools/audit/seat/beat_jobs_selftest.py
-Auto-merging tools/audit/seat/beatd.jobs.json
-Auto-merging tools/audit/seat/instruments/beat_jobs.py.md
-CONFLICT (content): Merge conflict in tools/audit/seat/instruments/beat_jobs.py.md
-Auto-merging tools/ci/selftest_closures.json
-rc=1
+$ git merge-tree --write-tree origin/main da36537f137ad9bb8a1cbc8c2fdc60bd7c81df8e  (origin/main f9b680fee43bb519996fc107c5f1c65df02683d7)
+797df826dcb8b56ac6de9e6d272db6b50ef21703
+rc=0
