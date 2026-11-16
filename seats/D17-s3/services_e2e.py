@@ -22,7 +22,8 @@ to 0 (down). Findings ride their own harnesses (f01-f03).
 Run:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
         dev/audit/rounds/round11/D17/s3/services_e2e.py [--perturb]
 Expected (baseline): every oracle 1 except run_optimization.publishes_new_price=0
-  (D17-s3-01) and restore_learned_snapshot.refuses_unevidenced=0 (D17-s3-03); exact.
+  (D17-s3-01) and restore_learned_snapshot.refuses_unevidenced=0 (D17-s3-03), so
+  oracles_failed=2; exact.
 Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13 (shared, 3 seats).
 """
 from __future__ import annotations
@@ -81,10 +82,15 @@ async def s_run_optimization():
     await inst.call("run_optimization")
     check("run_optimization", "publishes_new_price", inst.coord.data["schedule"][0]["price"] == 2.0,
           f"published {inst.coord.data['schedule'][0]['price']}")
+    # The refusal state ("fewer than four electricity price steps") is not
+    # reachable through an entity feed: a two-row feed is 8 known quarter
+    # steps and the price prior fills the horizon, so the solve can run.
     inst.hass.states.set("sensor.prices", FakeState("2.0", attributes={"raw_today": rig.price_rows(2, 2.0)}))
-    await inst.cycle()
+    d = await inst.cycle()
     err = await raises(inst.call("run_optimization"))
-    check("run_optimization", "fails_under_four_price_steps", err is not None, str(err))
+    print(f"RESULT run_optimization.two_row_feed_known_steps={d.get('price_known_steps')} count")
+    print(f"RESULT run_optimization.two_row_feed_plan_steps={len(d['schedule'])} count")
+    check("run_optimization", "runs_when_solve_can_run", err is None, str(err))
 
 
 async def s_set_away():
@@ -133,13 +139,31 @@ async def s_set_mode():
     inst.hass.states.set("sensor.prices", FakeState("0.1", attributes={"raw_today": spike_rows(dt_util.now())}))
     d_auto = await inst.cycle()
     auto_min = min(x["room_temp"] for x in d_auto["schedule"])
-    await inst.call("set_mode", {"mode": "economy"})
-    published_now = inst.coord.data["mode"] == "economy"
-    d = await inst.cycle()
+    from heatpump_optimizer import coordinator as cmod
+
+    bands: list = []
+    orig = cmod.HeatPumpOptimizerCoordinator._solve_hubs
+
+    def hook(self, *a, **k):
+        out = orig(self, *a, **k)
+        bands.append(out[0].min_temp)
+        return out
+
+    cmod.HeatPumpOptimizerCoordinator._solve_hubs = hook
+    try:
+        await inst.call("set_mode", {"mode": "economy"})
+        published_now = inst.coord.data["mode"] == "economy"
+        d = await inst.cycle()
+    finally:
+        cmod.HeatPumpOptimizerCoordinator._solve_hubs = orig
     eco_min = min(x["room_temp"] for x in d["schedule"])
-    check("set_mode", "economy_rides_below_floor",
-          d["mode"] == "economy" and eco_min < auto_min - 0.2 and eco_min >= d["min_temperature"] - 1.5 - 0.1
-          and eco_min >= 15.0, f"auto min {auto_min:.2f}, economy min {eco_min:.2f}")
+    floor = float(d["min_temperature"])
+    # "Lets the plan take the house up to 1.5 °C below your comfort floor": the
+    # solve's floor is widened by 1.5, never below 15 (the permission). Whether
+    # the plan uses it is the objective's call (lead to D0).
+    check("set_mode", "economy_widens_solve_floor",
+          d["mode"] == "economy" and bands and abs(bands[-1] - max(15.0, floor - 1.5)) < 1e-6,
+          f"solve floor {bands[-1] if bands else None}, configured {floor}, auto min {auto_min:.2f}, economy min {eco_min:.2f}")
     check("set_mode", "mode_published_without_waiting", published_now)
     await inst.restart()
     d = await inst.cycle()
@@ -262,7 +286,8 @@ async def s_reset_heat_loss():
     check("reset_heat_loss_learners", "replans_straight_away", d["last_optimization"] != stamp)
     check("reset_heat_loss_learners", "others_left_alone", d["comfort_weight"] == cw)
     await inst.call("reset_heat_loss_learners", {})
-    check("reset_heat_loss_learners", "empty_resets_both", inst.coord.data["lower_floor_loss_ratio"] == 1.0)
+    d = await inst.cycle()  # a second request inside the debouncer's 10 s cooldown trails it
+    check("reset_heat_loss_learners", "empty_resets_both", d["lower_floor_loss_ratio"] == 1.0)
 
 
 async def s_factory_reset():
