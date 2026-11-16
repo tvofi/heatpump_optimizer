@@ -1,0 +1,23 @@
+Design review: approve e36406c0f4c7ff73bdce5f7f3b5b7ec25a311ab7
+
+design.md read at design/R11-OUTSIDE-ROOMS-P3 e36406c0f4 (a single-file tree; no code). The note names base f9b680fee4; cites were checked at 030a4d377f, the head this review judges against (f9b680fee4 is its ancestor). Every production cite holds there unchanged: optimizer.py:4750 (`power_caps_extra - dhw_plan`), sysid.py:213 (`np.linalg.lstsq`), duty_switch.py:452-462 (`record_for`) and :495-512 (`rec.store.async_save`), coordinator.py:6116-6118 (`_async_save_accuracy` step), coordinator.py:1332 (`_restored_stores`), coordinator.py:1452 (`_FACTORY_VOID`), store.py:328 (`DOMAINS`), __init__.py:401 (`async_unload_entry`), config_flow.py:1868 (interval 10..120), accuracy.py:51 (`HISTORY_LENGTH = 672`), const.py:1876 (`ROOM_AIR_RANGE_C`), diagnostics.py:100 (`TO_REDACT`), thermal_model.py:4056 (`simulate_step`), tests/features.py:15040 (`_FR_STORES`). Nothing was rerun.
+
+1. Seam: one new module owns ring, store and report; the coordinator gains one awaited step after `_record_accuracy` (coordinator.py:10111-10112 records the executed step's `space_power`/`dhw_power` the space share reads), house values passed as arguments; no write into another module's state. Holds.
+2. Shape against the finding: 3a is the brief's history and identifiability report; the 3b re-cut was already approved in the P2 note (point 8 there) and the only thing added for 3b is recorded columns and one report line. No behaviour outside the brief moves; invariant (i) keeps every golden. Holds.
+3. Sibling sites: `git grep -n "QuarantiningStore(" -- custom_components/heatpump_optimizer` returns 18 lines at 030a4d377f as stated; `_best_effort_cycle_step(` 13 in coordinator.py. The new store needs its `_FR_STORES` row and `DOMAINS` entry, both named. Holds.
+4. Evidence: the failing test fails on today's code (module absent); there is no finder harness (owner report, as in P2); null controls named for collinearity (B on its own schedule) and invariant (i) (empty list, no file); finite_boundary and entities named; no value-bearing golden moves, so no claim file. Holds.
+5. Siblings in flight: every open design/* ref grepped for `_FR_STORES`, `DOMAINS`, diagnostics.py, __init__.py, `_record_accuracy`, `_async_save_accuracy`, `TO_REDACT`, room history. design/R11-OUTSIDE-HONEST-METERED-FLOOR shares `store.DOMAINS` and sensor.py (different entities); design/R10-START-COUNTER-EDGES 18655c84b6 reads `_record_accuracy`'s ordering and edits nothing this note claims. Shared files, not a shared seam.
+6. Cost: one new module plus one line each in coordinator.py, sensor.py, diagnostics.py, store.py, __init__.py, strings and translations; fits M.
+
+## Decisions routed (no revise point)
+
+- decision: orchestrator. P3 to 3a only, `after` edge to R11-OUTSIDE-ROOMS-P1, 3b its own group (the note's first routed decision).
+- decision: owner. Factory reset keeps room history; a crash loses up to 6 h (the note's second and third).
+
+## Notes for the fixer (carries)
+
+- The Shape diagram says "schedule save (async_delay_save)", but `QuarantiningStore` (store.py:696) guards only `async_save` (store.py:801-824: waits for the read in flight, D1-s2-52, and keeps a newer release's document, #1869); `Store.async_delay_save` writes around both, and no caller in the tree uses it. Save with an awaited `async_save` (or `async_save_if_changed`) inside the cycle step every 12th row, as duty_switch.py:510 does, and flush in `async_unload_entry` before `coordinator.async_shutdown()` (__init__.py:429) sets the #237 latch; unload already runs at a Home Assistant stop (the off-restore comment, __init__.py:424-425), so no separate stop listener is needed. Carry: R11-OUTSIDE-ROOMS-P3 (item v3a)
+- The store paragraph validates "a cell outside `ROOM_AIR_RANGE_C`" for every column, but calling share (0..100 in centi-units), measured power and space share are not temperatures, and outdoor below -30 degC is valid (`OUTDOOR_AIR_RANGE_C`, const.py:1877); give each column its own range, and state what a bad house-column cell drops (the house columns whole, never a room's ring). Carry: R11-OUTSIDE-ROOMS-P3 (item v3b)
+- With an interval above 30 min some or all rows are null (the note's own 60-minute case leaves every other row empty), so a fit "over consecutive pairs" has no pairs and such an entry can only ever read short history. Fit over successive non-null rows with dT divided by their elapsed time (bounded, e.g. at most 2 h apart), count those pairs against the 144 threshold, and add a 60-minute case to the report tests that reads separable. Carry: R11-OUTSIDE-ROOMS-P3 (item v3c)
+
+Seat tokens: the harness reports none for the main loop; no scouts were used.
