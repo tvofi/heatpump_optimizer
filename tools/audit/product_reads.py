@@ -82,9 +82,7 @@ def plan_state(plan, cfg, now, defaults):
     get = (lambda key, d=None: cfg.get(key, d)) if hasattr(cfg, "get") else (lambda key, d=None: d)
     st = {"duty": get(defaults["duty_key"], defaults["duty_default"]), "plan": plan is not None, "k": None, "plan_state": None, "setpoint": None}
     ts = list(getattr(plan, "timestamps", None) or [])
-    if plan is None or len(ts) < 2:
-        return st
-    for i, t in enumerate(ts):
+    for i, t in enumerate(ts):  # a one-step plan's step has no length (ts[-1] is itself), so no k
         end = ts[i + 1] if i + 1 < len(ts) else t + (t - ts[i - 1])
         if t <= now < end:
             st["k"] = i
@@ -742,6 +740,7 @@ def self_test():
             ps = {"duty": "control", "plan": True, "k": None, "plan_state": None, "ordinal": 0}
             arm("token: baseline is a plan held and no step covering now", (token_holds("baseline", ps, None), token_holds("baseline", {**ps, "k": 0}, None)), (True, False))
             arm("token: an unknown token is not recorded", token_holds("boost-partial", ps, None), None)
+            arm("token: a write outside every pass holds no token", token_holds("duty=control", None, None), False)
             # generality
             gl = root / "gen.tsv"
             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),
@@ -807,8 +806,13 @@ def _plan_cases():
     cfg = {"max": 4.0}
     return [("idle", mk(0.0, 0.0), cfg, "idle"), ("dhw-only", mk(0.0, 1.0), cfg, "dhw-only"), ("both", mk(2.0, 1.0), cfg, "both"),
             ("full", mk(4.0, 0.0), cfg, "full"), ("min-cold-tank", mk(1.0, 0.0, 1.0), cfg, "min-cold-tank"),
-            ("partial", mk(2.0, 0.0, 1.0), cfg, "partial"), ("a one-step plan has no k", mk(2.0, 0.0, n=1), cfg, None),
-            ("no configured maximum reads no partial", mk(2.0, 0.0), {}, None)]
+            ("partial", mk(0.5, 0.0, 1.0), cfg, "partial"), ("a one-step plan has no k", mk(2.0, 0.0, n=1), cfg, None),
+            ("no configured maximum reads no partial", mk(2.0, 0.0), {}, None),
+            ("now past the plan has no k", NS(timestamps=[_T0 - timedelta(hours=2), _T0 - timedelta(hours=1, minutes=45)],
+                                              power_schedule=[2.0, 2.0]), cfg, None),
+            ("no power schedule reads no state", NS(timestamps=[_T0, _T0 + timedelta(minutes=15)]), cfg, None),
+            ("dhw past its end reads 0", NS(timestamps=[_T0 - timedelta(minutes=15), _T0], power_schedule=[0.5, 0.5],
+                                            dhw_power_schedule=[1.0], duty_floor_kw=None), cfg, "partial")]
 
 
 _T0 = __import__("datetime").datetime(2026, 1, 1, tzinfo=__import__("datetime").timezone.utc)
