@@ -1,3 +1,4 @@
 1794849819 INIT r10-prepr-darwin-selftest-lane
 1794849829 HB alive
 1794849925 CKPT fix + rows + 288 corpus green; running mutation proof snapshot 6be4de4fa0ab
+1794850025 CKPT prepr running at 8d2eb5c41a snapshot 541abd8c1731
