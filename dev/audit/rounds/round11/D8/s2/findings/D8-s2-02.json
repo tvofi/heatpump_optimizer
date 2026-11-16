@@ -1,0 +1,48 @@
+{
+ "id": "D8-s2-02",
+ "scope": "D8-s2",
+ "step": "D8.M3",
+ "title": "Declared 'lifetime' family sorts as 3 runs by sensor entity_id (cost_total_heating, space_heating_*, total_energy)",
+ "severity": "low",
+ "claim": "The four sensors const.ENTITY_FAMILY_OVERRIDES declares as family 'lifetime' suggest entity ids sensor.heat_pump_optimizer_{cost_total_heating, space_heating_cost, space_heating_energy, total_energy}, which sort into 3 separate runs among the sensor ids; every other declared family is one run per platform.",
+ "mechanism": "#1668 moved the four meters' display names to lead with 'Lifetime' and declared the family via overrides, but left translation keys (from which the suggested object id is built) untouched, so the id sort keeps the old cost_/space_/total_ placement. The name sort is contiguous in en/sv/de (0 excess runs).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+  "harness_path": "dev/audit/rounds/round11/D8/s2/m3_naming.py",
+  "value": 2,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64, orchestrator box (local seat B5)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other finder seats running; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 24.26,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.sensor:async_setup_entry (entity_id of each built sensor) with heatpump_optimizer.const:ENTITY_FAMILY_OVERRIDES",
+ "perturbation": {
+  "change": "--perturb-lifetime-ids: each lifetime member's entity_id -> sensor.heat_pump_optimizer_lifetime_<key> in memory",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "RESULT fam_runs_excess_entity_id_sensor: sum over declared families of (contiguous runs - 1) in the sorted sensor entity_id list",
+ "phenomenon_property": "Every declared family (ENTITY_FAMILY_OVERRIDES, else translation key lead token) forms one contiguous run in each platform's suggested entity_id sort, as it does in each language's name sort.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py  (RESULT fam_runs_excess_entity_id_<platform>)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py",
+  "value": 0,
+  "note": "fam_runs_excess_entity_id for binary_sensor, button, switch, climate, datetime = 0; fam_runs_excess_name_en/sv/de = 0"
+ },
+ "reproduction_steps": [
+  "m3_naming.py: fam_runs_excess_entity_id_sensor=2 (lifetime:3runs)",
+  "--perturb-lifetime-ids: 0"
+ ],
+ "proposed_fix_scope": "New installs only, the #1227/#1333 pattern: suggested ids for the four meters gain the lifetime_ lead (unique ids unchanged, so existing installs keep their ids and history), or an owner ruling that a declared family is a name-sort family only, recorded beside ENTITY_FAMILY_OVERRIDES. Docs/card references to these ids need the legacy-fallback treatment.",
+ "files": [
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/sensor.py",
+  "custom_components/heatpump_optimizer/entity.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-name-sort"
+}

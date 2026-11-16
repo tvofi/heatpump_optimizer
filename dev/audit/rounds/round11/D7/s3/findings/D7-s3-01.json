@@ -1,0 +1,48 @@
+{
+ "id": "D7-s3-01",
+ "scope": "D7-s3",
+ "step": "D7.M8",
+ "title": "temperature_from_c is not the inverse of normalize_temperature_c: every Fahrenheit set-point write is wrong",
+ "severity": "high",
+ "claim": "inputs.temperature_from_c(c, unit) multiplies by the unit's to-Celsius factor instead of dividing by it, so for the three Fahrenheit spellings a value written and read back through normalize_temperature_c is not the value written: 21.5 degC is written as 43.94 degF (6.6 degC) instead of 70.7 degF.",
+ "mechanism": "const.TEMPERATURE_UNIT_TO_C holds (offset, factor) with degC = (value + offset) * factor. The forward rule (inputs.py:normalize_temperature_c) applies it; the backward rule (inputs.py:temperature_from_c) returns value_c * factor - offset where the inverse is value_c / factor - offset. Factor is 1.0 for degC and K, so only the 5/9 rows disagree. Callers: SetpointGrid.quantise (inputs.py:643-647), write_setpoint_c (inputs.py:770) and setpoint_check's Fix value (setpoint_check.py:183): every set-point the integration writes to an entity whose unit is degF.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only temperature_roundtrip",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 12,
+  "unit": "probes of 35 on which write-then-read differs (4 temperatures x 3 Fahrenheit spellings; 0 degC and the 4 Celsius/Kelvin spellings agree)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 172.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.inputs:temperature_from_c",
+ "perturbation": {
+  "change": "attribute swap of inputs.temperature_from_c for `value_c / factor - offset` (m8_agree.py --only temperature_roundtrip --perturb)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes (unit, degC) with normalize_temperature_c(temperature_from_c(c, unit), unit) != c, over every unit of TEMPERATURE_UNIT_TO_C x 5 temperatures",
+ "phenomenon_property": "For every unit row u of a unit table and every value v in the model's unit, to_model(from_model(v, u), u) == v: a conversion written forwards and backwards is one rule, and the backward form is derived from the forward one (or tested against it) rather than written again.",
+ "seam_rule": "grep -n 'TEMPERATURE_UNIT_TO_C\\|_UNIT_TO_KW\\|_UNIT_TO_KWH\\|_UNIT_TO_KG_S' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only dhw_store_tap",
+  "value": 0,
+  "note": "the other forward/backward pair of the package (DhwStore.store_temp_for_tap / tap_temp_for_store) round-trips on 24 of 24 probes; the Celsius and Kelvin rows of the same table round-trip on 20 of 20"
+ },
+ "reproduction_steps": [
+  "from custom_components.heatpump_optimizer import inputs",
+  "inputs.temperature_from_c(21.5, '°F')  -> 43.944 (expected 70.7)",
+  "inputs.normalize_temperature_c(43.944, '°F') -> 6.64"
+ ],
+ "proposed_fix_scope": "inputs.py:temperature_from_c divides by the factor; a round-trip check over every row of TEMPERATURE_UNIT_TO_C in the suite. One owner: inputs.py (the table's only reader pair).",
+ "files": [
+  "custom_components/heatpump_optimizer/inputs.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "P8"
+}

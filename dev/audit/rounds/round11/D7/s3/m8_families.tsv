@@ -1,0 +1,119 @@
+# D7.M8 round 11, seat D7-s3: one row per family `m8_enum.py --list` prints (defaults: ratio 0.72, 14 tokens, 2 %).
+# disposition: probed = driven by m8_agree.py (the family named); construction = the copies are AST-identical in the
+# rule's own statements, read side by side (an agreement test would compare a text with itself); siblings = one shape,
+# two different rules (different data, different question), read side by side; unrelated = a token-stream coincidence.
+# id	disposition	agree_family	note
+A001	siblings		two hass.data registries, one accessor each
+A002	siblings		mean absolute error and mean signed error over one pairing
+A003	siblings		realised and predicted sums
+A004	siblings		three store factories; lead and naive_zone are each store's own declaration
+A005	unrelated		a try/except around one await
+A006	siblings		usable span and stored span of one component
+A007	probed	soc	StorageComponent.soc and VirtualBattery.soc: 0 of 5 disagree
+A008	siblings		two platforms' entity lists
+A009	construction		the two entity bases' __init__: identical statements
+A010	siblings		availability and state readers over different payload keys
+A011	siblings		attribute views over different payload keys
+A012	siblings		one expiry test over two dicts (until, blocked)
+A013	construction		the per-owner state registry, written in boost, heat_curve and pump_arbiter: identical statements
+A014	siblings		seven persist wrappers; one awaits async_wait_for_read first (lead, D1)
+A015	unrelated		an optional await
+A016	unrelated		a loop over keys
+A017	siblings		three selectors, three option lists
+A018	siblings		two prefill forms; the placeholders differ by design
+A019	siblings		two menus
+A020	siblings		setup and options overview steps
+A021	siblings		three wizard steps, each with its own check
+A022	siblings		two menus
+A023	siblings		two field checks; _disinfection_errors compares the disinfection mode to FREQ_MODE_CONTROL (one word, two vocabularies; noted in REPORT.md)
+A024	siblings		five options pages
+A025	probed	buffer_prior_in_bounds	default_buffer_cooling_rate inside buffer_cooling_rate_bounds at 8 of 8 volumes
+A026	unrelated		an entity read
+A027	siblings		four clamp-and-publish setters, each with its own bounds
+A028	siblings		two persist wrappers; one awaits async_wait_for_read first (lead, D1)
+A029	siblings		two store loads
+A030	unrelated		`None if x is None else f(x)`
+A031	construction		labels_for and format_windows: the same f-string over format_clock
+A032	unrelated		`None if x is None else f(x)`
+A033	siblings		temperature_c and price_per_kwh: one adopt-raw-on-unknown-unit shape over two tables
+A034	construction		Cusum._note and GuardState._note: identical statements
+A035	probed	stored_number	duty_switch._stored_number and store._number: 0 of 13 disagree
+A036	construction		three unsubscribe-once bodies: identical statements
+A037	siblings		has_hot_water and valve_throttling: two questions, one two-path read
+A038	siblings		largest magnitude and most negative component
+A039	siblings		stale keys and missing keys
+A040	unrelated		a dict comprehension with round()
+A041	probed	temperature_roundtrip	normalize_temperature_c and temperature_from_c: 12 of 35 disagree (finding D7-s3-01)
+A042	siblings		read_power_kw and read_flow_kg_s: the flow reader refuses a negative, the power reader's sign is its caller's
+A043	siblings		a ledger line and a running mean
+A044	construction		two closures `_capped` and `_t` in optimizer.py: identical statements
+A045	siblings		two confidences over two day counts
+A046	siblings		space and hot-water block flags
+A047	siblings		two field validators, two patterns
+A048	siblings		payload readers with a no-data default
+A049	siblings		attribute views
+A050	construction		two sensors' currency unit line: identical statement
+A051	siblings		payload readers
+A052	siblings		attribute views
+A053	siblings		four waiting-for reasons
+A054	probed	ua_from_rate	wood and hot-water tank UA from a cooling rate: 0 of 3 disagree
+A055	siblings		duty_cycle_realizable and learner_unmetered: related predicates over one probe, different questions
+A056	probed	dhw_store_tap	store_temp_for_tap and tap_temp_for_store: 0 of 24 disagree
+A057	siblings		StartCounter.hear and .refresh
+B001	siblings		debugger._aware returns aware text (a naive stamp read as UTC), price_tiles._aware answers whether a stamp is aware; see D002
+B002	siblings		boost._dhw_floor is a release reason, setpoint_check._dhw_floor a temperature
+B003	unrelated		a learner grid and a set-point grid
+B004	siblings		two store loads
+B005	siblings		four functions named _number, four rules; store._number is A035's, replay_doc._number is D003's
+B006	unrelated		a role filter and an exemption test
+B007	siblings		two persists
+B008	probed	step_covering_now	early_cutoff._planned_room and pump_arbiter._planned_room against _step_index and _covering_index: 4 of 8 disagree (finding D7-s3-03)
+B009	siblings		two restorers
+B010	siblings		four store factories (A004)
+B011	unrelated		a boost overlay and the arbiter's pass
+B012	siblings		the platform contract
+B013	unrelated		two attach functions
+B014	unrelated		a battery view and a narrative
+B015	unrelated		modbus candidates and run candidates
+B016	siblings		quiet windows and silent mode compose caps on one horizon; different inputs
+B017	siblings		presets.derive is called by quick_setup.derive
+B018	unrelated		three detach functions
+B019	siblings		heat_curve.diagnostics embeds off_restore.diagnostics
+B020	siblings		four diagnostics views
+B021	unrelated		three folds
+B022	unrelated		two published views
+B023	siblings		two releases (A036 is the shared statement)
+B024	unrelated		three resolvers
+B025	unrelated		three restores
+B026	siblings		duty_switch.running_now delegates to running_signal.running_now
+B027	siblings		two spec validators over two grammars
+B028	construction		four per-owner state registries (A013)
+B029	unrelated		band violations and replay-document violations
+C001	unrelated		water density 0.998 and a forgetting factor 0.999
+C002	unrelated		m/s to knots, a normal quantile and a volume exponent
+C003	probed	water_heat	4.186 (const), 0.00116 (const) and 4.187 (sensor.py:2948): three values of one constant, spread 0.26 % (finding D7-s3-04)
+D001	probed	no_value_state	seven literals of `a state holding no value`; 3 of 5 members differ (static literals; reported, not counted)
+D002	probed	naive_instant	drift._as_utc, dt_util.as_utc, open_meteo._ensure_utc, manual_plan._instant: 2 of 3 disagree (finding D7-s3-04)
+D003	probed	finite_number	finite_float, payload_number, _as_float, replay_doc.numeric: 9 of 17 disagree (finding D7-s3-04)
+D004	probed	effective	comfort_band.effective and config_flow._effective: 0 of 4 disagree
+D005	probed	step_covering_now	every bisect_right over plan timestamps (B008's rule)
+D006	probed	window_mean	project_window_mean against a constant draw: 7 of 8 disagree (finding D7-s3-02, found by M6)
+D007	probed	twin_switch_weight	duty_legs.switch_weight and switch_weights_batch: 0 of 3 disagree, to the bit
+E001	probed	twin_objective	the comfort term, as a term of the objective pair (E011); not called alone
+E002	probed	twin_day_peaks	_day_peaks under the solver's top-k rule and _day_peaks_batch: 0 of 4 disagree, to the bit
+E003	probed	twin_topk	_plateau_aware_topk_sum and its batch twin: 4 of 12 disagree, every k above 1 off a plateau (finding D7-s3-07)
+E004	siblings		simulate_step dispatches to _simulate_step_single: one body, not two
+E005	probed	twin_topk	_smooth_topk_sum and its batch twin: 0 of 12 disagree, to the bit
+E006	probed	twin_objective	the terminal cost, as a term of the objective pair (E011); not called alone
+E007	siblings		_thermostat_demand dispatches to _thermostat_demand_single
+E008	probed	twin_wood_share	wood_share and _wood_share_vec: 0 of 24 disagree, to the bit
+E009	probed	twin_objective	the capacity closures, through the objective pair's three tariff cases: 2 of 3 disagree (finding D7-s3-07)
+E010	probed	twin_objective	the terminal-cost closures, as a term of the objective pair (E011)
+E011	probed	twin_objective	the solve's objective and objective_batch, captured at _solve_space: 2 of 8 disagree, both under a per-window capacity tariff (finding D7-s3-07)
+E012	probed	twin_peak_cost	peak_cost_smooth and peak_cost_batch on one PeakBilling: 1 of 4 disagree (finding D7-s3-07)
+E013	probed	twin_trajectory	simulate_trajectory and simulate_trajectory_batch: 0 of 9 disagree, to the bit, 3 models x 3 weathers x 4 schedules
+E014	construction		start_count is the one-row case of start_count_batch by a call
+F001	probed	parse_format	day selectors (all 127 weekday sets), clock times, window specs and weekly specs survive format-then-parse: 0 of 146 disagree
+F002	probed	as_from_dict	15 classes with both: from_dict(as_dict(x)) is x on a default instance and, after one admission, on one moved off its defaults: 0 of 29 disagree (AccuracySample has no default instance: not driven)
+F003	probed	temperature_roundtrip	A041's pair by its table: 12 of 35 disagree (finding D7-s3-01)
+F004	probed	dhw_store_tap	A056's pair: 0 of 24 disagree

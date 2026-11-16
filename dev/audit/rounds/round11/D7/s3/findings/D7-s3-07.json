@@ -1,0 +1,50 @@
+{
+ "id": "D7-s3-07",
+ "scope": "D7-s3",
+ "step": "D7.M8",
+ "title": "tariff._exact_topk_sum sums the k smallest excesses: the scalar capacity charge and its batch twin disagree",
+ "severity": "high",
+ "claim": "tariff._exact_topk_sum returns sum(sort(excess)[:k]), the k smallest values, where its docstring and its batch twin (`np.sort(x, axis=1)[:, -k:]`) take the k largest; for every k above 1 with more than k windows the scalar _plateau_aware_topk_sum differs from _plateau_aware_topk_sum_batch (4 of 12 probes), peak_cost_smooth from peak_cost_batch (1 of 4), and the solve's scalar objective from objective_batch under a per-window capacity tariff (2 of 8, relative difference 1.4).",
+ "mechanism": "The rule `the billed top-k` is written twice: once as tariff._exact_topk_sum (tariff.py:916), which the exact published charge peak_cost (tariff.py:1038) and the solver's scalar term _plateau_aware_topk_sum (tariff.py:958) call, and once inline in _plateau_aware_topk_sum_batch (tariff.py:943), which the batched objective calls for the finite-difference gradient. The scalar copy slices the wrong end of the sort. With [1, 5, 3, 4, 2, 0.5] and k = 2 the scalar returns 1.5 and the twin 9.0. It bites whenever more than k excesses are compared with k above 1: `Peaks on different days` off (peak_tariff_distinct_days False, the per-window rule the option's own text names), or a horizon spanning more plan days than peak_count. There the published projected_peak_cost bills the smallest excesses (often 0), and the solver's line search reads a capacity term its gradient was not taken from. On the default (distinct days, 3 peaks, a horizon of at most 3 days) k equals the number of day peaks and the two ends of the sort are the same sum, which is why the objective pair agrees there.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_topk",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 4,
+  "unit": "probes of 24 on which a row of the batch is not the scalar's value to the bit (plateau_aware at k = 2 and 3 on the random and one-spike matrices; the 12 smooth probes and every k = 1 probe agree); twin_peak_cost 1 of 4, twin_objective 2 of 8",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 274.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_exact_topk_sum",
+ "perturbation": {
+  "change": "attribute swap of tariff._exact_topk_sum for `float(np.sum(np.sort(excess)[-k:]))` (m8_agree.py --only twin_topk --perturb; the same swap under --only twin_peak_cost and --only twin_objective)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes (a matrix of window excesses, k) at which a row of _plateau_aware_topk_sum_batch / _smooth_topk_sum_batch differs in any bit from the scalar function on that row",
+ "phenomenon_property": "Every `_batch` twin returns, row for row and to the bit, what its scalar returns on that row; a rule both call (the exact top-k) is one function, not a helper on one side and an inline expression on the other.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^E'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --only twin_trajectory",
+  "value": 0,
+  "note": "the other twins agree to the bit in the same harness: simulate_trajectory 9 of 9, wood_share 24 of 24, _day_peaks 4 of 4, switch_weight 3 of 3, _smooth_topk_sum 12 of 12, and the objective pair on all five no-tariff cases and on the distinct-days tariff case"
+ },
+ "reproduction_steps": [
+  "import numpy as np; from custom_components.heatpump_optimizer import tariff",
+  "x = np.array([[1.0, 5.0, 3.0, 4.0, 2.0, 0.5]])",
+  "tariff._plateau_aware_topk_sum(x[0], 2) -> 1.5; tariff._plateau_aware_topk_sum_batch(x, 2) -> [9.0]"
+ ],
+ "proposed_fix_scope": "tariff.py: _exact_topk_sum takes the sorted tail, and _plateau_aware_topk_sum_batch's exact arm calls the same rule (one owner: tariff.py). The row-parity grid the batch docstring cites gains a k > 1, more-than-k-windows row for the exact arm.",
+ "files": [
+  "custom_components/heatpump_optimizer/tariff.py"
+ ],
+ "expected_golden_drift": [
+  "any golden with a capacity tariff whose compared excesses outnumber peak_count: projected_peak_cost, and the plan where the per-window rule is on"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}

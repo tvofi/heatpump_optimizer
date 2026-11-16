@@ -1,0 +1,48 @@
+{
+ "id": "D7-s3-06",
+ "scope": "D7-s3",
+ "step": "D7.M5",
+ "title": "This year's 29 modules: 93 of 480 functions can be deleted with no behaviour script failing",
+ "severity": "medium",
+ "claim": "Of the 480 non-trivial functions in the 29 modules added since the previous baseline, 89 are entered by no script of the behaviour suite and 4 more are entered but raise on every call with every script that enters them still green; 285 are pinned (a script reports a failing check it did not report unmutated) and 102 could not be driven through their long scripts in the window.",
+ "mechanism": "Every module has a module docstring, a docs paragraph and at least one importer, and 27 of the 28 that hold functions have a script that pins some of them (whatif.py's six are entered only by scripts this seat could not drive; payload.py holds types only); what is missing is per function. The unentered ones cluster (heat_curve 18, duty_switch 15, draw_range 14, duty_legs 9, heat_energy 9, runs 6): code paths a module ships that nothing in tests/ calls. The swallowed ones sit behind the coordinator's best-effort wrappers and diagnostics' never-breaks view, which turn a raise into a logged line no check reads. In this tree tests/entities.py also stops at line 9634 of 42669 on KeyError 'house_heat_loss_coefficient', so every check after it pins nothing (lead). Not counted: the golden differential (tests/golden.py, tests/env_drift.py) cannot run in an export without .git, so a function whose deletion only moves a golden reads unpinned here -- each row is a candidate for D3's gate, not a verdict on it.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py report --trace <trace dir> --out dev/audit/rounds/round11/D7/s3/m5_mutants.json",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m5_train.py",
+  "value": 93,
+  "unit": "functions of 480 (unentered 89, swallowed 4; pinned 285, not_reached 102)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 224.17,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.early_cutoff:diagnostics_view",
+ "perturbation": {
+  "change": "a check that calls the function: m5_pin_demo.py reports 0 failing unmutated and 1 failing under HPO_FN_MUTATE=early_cutoff.py:329, where every suite script entering it stays green -- one such check per function takes `swallowed` down by one; the deletion mutant itself is the perturbation for the pinned rows (new failing checks 0 -> >=1)",
+  "expected_direction": "down",
+  "observed_value": 1
+ },
+ "metric_definition": "functions (file, qualified name, first line) of the 29 added modules with no tests/ script whose failing-check set grows when the function raises RuntimeError on entry",
+ "phenomenon_property": "Every function of a module added in a round is entered by a check that fails when the function is deleted; a function reached only through a swallow-and-log wrapper has a check on the value it contributes.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py report --trace <trace dir> | grep '^UNENTERED\\|^SWALLOWED'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m5_train.py null --trace <trace dir>",
+  "value": 0,
+  "note": "the hook armed on a line no function starts at kills nothing in the three scripts driven; a pinned mutant's kill is a new failing check against the same script's unmutated log"
+ },
+ "proposed_fix_scope": "Tests, by module: a check per unentered function (or its deletion where m6 agrees nothing reaches it), and a value check behind each swallowing wrapper. D3 owns the gate-level verdict; the structure is this dimension's.",
+ "files": [
+  "custom_components/heatpump_optimizer/heat_curve.py",
+  "custom_components/heatpump_optimizer/duty_switch.py",
+  "custom_components/heatpump_optimizer/draw_range.py",
+  "custom_components/heatpump_optimizer/duty_legs.py",
+  "custom_components/heatpump_optimizer/heat_energy.py",
+  "custom_components/heatpump_optimizer/runs.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "hygiene",
+ "class_guess": "I1"
+}

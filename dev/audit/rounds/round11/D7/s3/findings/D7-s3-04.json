@@ -1,0 +1,49 @@
+{
+ "id": "D7-s3-04",
+ "scope": "D7-s3",
+ "step": "D7.M8",
+ "title": "Three small rules have copies that disagree: water's heat capacity, a naive instant's zone, a finite number",
+ "severity": "low",
+ "claim": "Driven with the same probes, the package's copies of three small rules disagree on 12 of 21 probes: the heat that warms a litre of water by 1 K has three values (0.0011600, 0.0011605 and 0.0011631 kWh, spread 0.26 %); a naive datetime is read as UTC by drift._as_utc and manual_plan._instant and as the host's local zone by open_meteo._ensure_utc (9 h apart under TZ=Asia/Tokyo); and `is this a finite number` is answered four ways (finite_float refuses NaN and inf, entity.payload_number and sensor._as_float pass them, replay_doc.numeric passes True, 'nan' and 'inf').",
+ "mechanism": "Each rule has no single owner. Water: const.WATER_SPECIFIC_HEAT = 0.00116 kWh/(L K) (thermal_model's tank masses, external_heat), const.WATER_CP_KJ_PER_KG_K = 4.186 with WATER_KG_PER_L = 0.998 (flow_meter.thermal_output_kw), and the literal 4.187 / 3600 in sensor._gap_probe_terms. Naive instants: drift._as_utc (`replace(tzinfo=utc)`), open_meteo._ensure_utc (`astimezone(utc)`, the host zone), manual_plan._instant (UTC), and Home Assistant's dt_util.as_utc at coordinator._utc_age_seconds; debugger._aware keeps a naive stored stamp as UTC text where price_tiles._aware drops it. Numbers: four predicates with four domains. No wrong published value was produced from any of the three here -- the sensor base scrubs a non-finite native value, the 0.26 % sits inside the learners' noise -- so this is the structure, not a defect in an output.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --quiet",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m8_agree.py",
+  "value": 12,
+  "unit": "probes of 21 on which the copies disagree, over the families water_heat (1 of 1), naive_instant (2 of 3) and finite_number (9 of 17)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 172.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sensor:_gap_probe_terms",
+ "perturbation": {
+  "change": "m8_agree.py --perturb: const.WATER_CP_KJ_PER_KG_K set from WATER_SPECIFIC_HEAT and sensor._gap_probe_terms re-executed with the literal replaced by it; open_meteo._ensure_utc swapped for drift._as_utc; entity.payload_number, sensor.payload_number and replay_doc.numeric swapped for finite_float",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "probes on which the production implementations of one rule return different answers, summed over the three families (m8_agree.py RESULT <family>_disagreements)",
+ "phenomenon_property": "A physical constant, a time-zone convention and a value-domain predicate each have one definition in the package, and every other site imports it; where two domains are meant (a payload number that may be NaN, a stored number that may not) the two predicates carry different names that say so.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list | grep '^C003\\|^D002\\|^D003'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m8_agree.py --quiet",
+  "value": 0,
+  "note": "six families of the same run agree on every probe (dhw_store_tap 24, stored_number 13, soc 5, buffer_prior_in_bounds 8, effective 4, ua_from_rate 3), and naive_instant's aware-datetime probe agrees across all four implementations"
+ },
+ "proposed_fix_scope": "sensor._gap_probe_terms and flow_meter read one water constant from const.py; open_meteo._ensure_utc and drift._as_utc become one function in drift.py with the zone an argument; payload_number is named for what it admits (or refuses NaN). The seven `unknown`/`unavailable` literals (m8_agree.py --seams) join one tuple in inputs.py in the same change.",
+ "files": [
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/sensor.py",
+  "custom_components/heatpump_optimizer/flow_meter.py",
+  "custom_components/heatpump_optimizer/open_meteo.py",
+  "custom_components/heatpump_optimizer/drift.py",
+  "custom_components/heatpump_optimizer/entity.py",
+  "custom_components/heatpump_optimizer/replay_doc.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "hygiene",
+ "class_guess": "P2"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "D7-s1-06",
+  "scope": "D7-s1",
+  "step": "D7.M7",
+  "title": "Seven pure modules reach Home Assistant through an import they do not need: layer_violations 13 -> 6",
+  "severity": "low",
+  "claim": "Seven of the 13 layer violations the score counts ride on imports with a pure owner: comfort_learning.py, external_heat.py and power_guard.py take utc_elapsed_seconds through accuracy.py's re-export although drift.py owns it; tariff.py takes the constant HISTORY_LENGTH from accuracy.py, which carries optimizer.py and topology.py with it; and grid_fee.py reaches the glue through currency.py, whose only Home Assistant import is one annotation. Two prototypes read layer_violations 13 -> 6, dS +1.0000, admissible; the six left need a design.",
+  "mechanism": "layering.py ranks a module by the highest boundary it imports itself (pure < scipy < Home Assistant) and counts a module reaching a higher layer through package imports. m7_layer_edges.py names the carrier edge of each violation: 11 of the 13 have exactly one. accuracy.py imports homeassistant.util.dt at module level and carries five edges (comfort_learning, external_heat, power_guard, sysid, tariff); tariff carries optimizer's and topology's. accuracy.py:43 already re-exports utc_elapsed_seconds from drift; eleven modules import it from drift and eight still from accuracy. HISTORY_LENGTH (accuracy.py:51) is a number the tariff's house-sample cap also reads. currency.py imports homeassistant.core.HomeAssistant for the annotation of resolve_currency alone, under `from __future__ import annotations`. NEEDING A DESIGN, not built: disinfection, price_model, quiet_windows and sysid ride on inputs.py, which is glue by one function-scope import of the clock (inputs.py:984) that the suite freezes -- the pure helpers leave the module or the reader's clock is injected (--cut inputs reads 10, --cut inputs,accuracy 3); setpoint_check rides on inputs and on issues.py, real glue; snapshots rides on store.admitted, whose domain table lives in the storage module (--cut store reads 14, not fewer).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only note,avail,step,day,reader,layer,fdjac,entry,notice,curr --combined",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m7_prototypes.py",
+    "value": 6,
+    "unit": "layer_violations of the prototype tree (13 on the tree; term +1.0000). Alone: layer 13 -> 7, dS +0.8074; curr 13 -> 12, dS +0.1069; both IMPROVES, admissible. m7_layer_edges.py: single_carrier_violations=11 of 13",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 16 to 350 across the runs; static counts",
+    "tolerance": "exact",
+    "load1": 86.98,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/archscore/metrics/layering.py:graph",
+  "perturbation": {
+    "change": "m7_layer_edges.py --cut accuracy: in memory, accuracy's own boundary imports are dropped from the graph's external roots. layer_violations falls 13 -> 7, the count the layer prototype's real edits reach (it leaves sysid, which also rides on quiet_windows -> inputs); --cut currency reads 12, the count the curr prototype reaches.",
+    "expected_direction": "down",
+    "observed_value": 7
+  },
+  "metric_definition": "layer_violations (layering.py) of the tree with the prototype's import edits; and per violation the direct package imports whose closure reaches the higher layer. Key: layering.graph's edges.",
+  "phenomenon_property": "A pure module imports a pure name from a pure module: no model, learner or solver module reaches Home Assistant through a package import whose only use is a constant, a re-exported helper or an annotation.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_layer_edges.py | grep '^CARRIER'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_layer_edges.py --cut issues",
+    "value": 13,
+    "note": "cutting a glue module that carries no single-edge violation (issues carries one of setpoint_check's three edges) leaves the count at 13; each prototype reverted reads dS +0.0000"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_layer_edges.py -> 13 CARRIER lines, TARGET accuracy carries 5 edges, TARGET inputs 4, TARGET tariff 2.",
+    "The same with --cut accuracy -> RESULT layer_violations=7; --cut inputs -> 10; --cut inputs,accuracy -> 3; --cut currency -> 12.",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only layer,curr -> layer 13 -> 7 (+0.8074), curr 13 -> 12 (+0.1069), each dS_reverted +0.0000."
+  ],
+  "proposed_fix_scope": "comfort_learning.py, external_heat.py, power_guard.py and sysid.py import utc_elapsed_seconds from drift; HISTORY_LENGTH moves to const.py and accuracy.py, tariff.py and store.py read it from there (PROTOS layer); currency.py's HomeAssistant import goes under `if TYPE_CHECKING:` (PROTOS curr). The inputs.py carrier, setpoint_check and snapshots are separate moves that need a design first.",
+  "files": [
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/comfort_learning.py",
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/power_guard.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/currency.py"
+  ],
+  "expected_golden_drift": [],
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-leaf-imports-solver"
+}
