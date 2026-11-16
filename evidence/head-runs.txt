@@ -1,0 +1,35 @@
+open_driver self-test: 114 checks, 0 failed
+rc=0
+  ok   null: `run` and `sweep` still never cancel a main run
+cancel_superseded self-test: 76 checks, 0 failed
+RESULT mutant=M-reap-log failed=1 verdict=killed
+RESULT mutant=M-escape failed=1 verdict=killed
+RESULT mutant=M-maxtries failed=2 verdict=killed
+RESULT mutant=M-stale-env failed=11 verdict=killed
+RESULT mutant=M-stale-key failed=5 verdict=killed
+RESULT mutant=M-stale-count failed=3 verdict=killed
+RESULT mutant=M-stale-unread failed=1 verdict=killed
+RESULT mutant=M-stale-notice failed=2 verdict=killed
+RESULT mutant=M-retry-nowrite failed=5 verdict=killed
+RESULT mutant=M-retry-refuse failed=2 verdict=killed
+RESULT mutant=M-retry-namesake failed=1 verdict=killed
+RESULT mutant=M-unlisted failed=1 verdict=killed
+RESULT mutant=M-stuckowed failed=2 verdict=killed
+RESULT mutants=33
+RESULT survived=0
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=M-newest failed=8 verdict=killed
+RESULT mutant=M-row failed=9 verdict=killed
+RESULT mutant=M-bound failed=7 verdict=killed
+RESULT mutant=M-older-side failed=8 verdict=killed
+RESULT mutant=M-newer-side failed=1 verdict=killed
+RESULT mutant=M-planned failed=4 verdict=killed
+RESULT mutant=M-full failed=1 verdict=killed
+RESULT mutant=M-verdicts failed=1 verdict=killed
+RESULT mutant=M-event failed=1 verdict=killed
+RESULT mutant=M-branch failed=1 verdict=killed
+RESULT mutant=M-dry failed=1 verdict=killed
+RESULT mutants=11
+RESULT survived=0
+ALL 115 HARNESS HEADER CHECKS PASSED
+STRUCTURE RATCHET PASSED

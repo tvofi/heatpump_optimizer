@@ -1,0 +1,10 @@
+ dev/audit/harnesses/r10_open_driver_mutants.py     |  22 ++-
+ dev/audit/harnesses/r11_main_cancel_mutants.py     |  97 ++++++++++++
+ dev/programme/delivery/3645.md                     |   1 +
+ tests/closures.json                                |   1 +
+ .../audit/seat/instruments/cancel_superseded.py.md |  10 ++
+ tools/audit/seat/instruments/open_driver.py.md     |  10 +-
+ tools/audit/seat/open_driver.py                    |  72 ++++++++-
+ tools/audit/seat/open_driver_selftest.py           | 164 +++++++++++++++++++++
+ tools/pr/cancel_superseded.py                      | 151 ++++++++++++++++++-
+ 9 files changed, 520 insertions(+), 8 deletions(-)

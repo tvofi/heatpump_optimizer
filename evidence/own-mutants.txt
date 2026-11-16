@@ -1,0 +1,19 @@
+MUT cancel_superseded.py 'full=len(runs) >= PAGE'->'full=len(runs) > PAGE': rc=0 fails=0 SURVIVED
+MUT cancel_superseded.py 'full=len(runs) >= PAGE'->'full=False': rc=0 fails=0 SURVIVED
+MUT cancel_superseded.py 'VERDICTS = ("success", "failure", "timed_out"'->'VERDICTS = ("success", "failur': rc=1 fails=1 killed
+    FAIL main: a run that completed skipped, stale or with no conclusion is no verdict; success, failure and timed_out are: got [[], [], [], [4], [4], []], want [[]
+ABORT tools/pr/cancel_superseded.py key=lambda r: int(r["id"])) 3
+MUT cancel_superseded.py '            print(f"CANCEL-MAIN: {wf}: unread'->'            print(f"CANCEL-MAI': rc=0 fails=0 SURVIVED
+MUT open_driver.py 'tools = world.tools_head() if any(f.get("stal'->'tools = ""': rc=1 fails=3 killed
+    FAIL stale (ii): after the HEAD changes it is retried on the next pass
+    FAIL stale (i): any number of STALE CHECKOUT results never reaches stuck: each new HEAD relaunches
+    FAIL stale (v) replay: the three 13:34:54Z refusals are all retried on the first pass after the 13:44:40Z HEAD change
+MUT open_driver.py '"next": prev.get("next", 0), "rc": rc'->'"next": 0, "rc": rc': rc=1 fails=1 killed
+    FAIL stale: after a counted failure the count and its backoff stand unchanged
+MUT open_driver.py 'k.split()[1].startswith(sha or "")'->'True': rc=1 fails=2 killed
+    FAIL retry (iv): a topic with no entry is refused and fails.json is byte-identical
+    FAIL retry: a sha names one (topic, sha) entry; no sha removes every entry of that topic and no namesake's
+MUT open_driver.py '    if _load(p, None) != fails:\n'->'    if False:\n': rc=1 fails=1 killed
+    FAIL retry: a file that does not read back as what was written is refused (rc 1), naming the read-back
+MUT open_driver.py 'STALE_RE = re.compile(r"\\S+: REFUSE: STALE CH'->'STALE_RE = re.compile(r"\\S+: R': rc=1 fails=1 killed
+    FAIL stale: the classifier agrees with pr_tools_fresh's line over 480 generated spellings
