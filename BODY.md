@@ -1,6 +1,6 @@
 R11-PRE-NEW-DIMENSIONS, p2 of 2: two dimensions whose oracle is the plan (D16, actuator write) and the documented effect (D17, feature behaviour), each over a universe a command prints. Policy pull request (two dimension briefs, `CLAUDE.md`, `COMMON.md`, `D3.md`, `policy_budgets.json`); finder-critical: the round-11 finder start waits on it.
 
-**Split.** p1 (#3646, `tools/audit/prepare_baseline.sh`'s `ISOLATED_DIMS` gaining D16) is on main as `47f0f18a7e`. This head is the earlier p2 head `4f73a0c5e8` merged into `origin/main` `030a4d377f9f26f5b8befe5721d86aea454f29e0` by merge, on refs of the topic `r11-pre-new-dimensions-p2`. Six files conflicted; each takes main's side with this group's own edits re-applied, listed in the merge commit's message.
+**Split.** p1 (#3646, `tools/audit/prepare_baseline.sh`'s `ISOLATED_DIMS` gaining D16) is on main as `47f0f18a7e`. This head is the earlier p2 head `4f73a0c5e8` merged into `origin/main` `030a4d377f9f26f5b8befe5721d86aea454f29e0` by merge (`4632a10bff41d516b5a5cf1176f14b29c8481f51`: six files conflicted, each taking main's side with this group's own edits re-applied, listed in that commit's message), then `origin/main` `e352724335c136b65562cd3e71f728549ad04a82` merged in once more because it conflicted (`dev/governance/config/policy_budgets.json`'s `corpus:` row, re-measured at this head), on refs of the topic `r11-pre-new-dimensions-p2`.
 
 **Evaluation.** Built from `c6ce415b7711d76cf6c08f926f30da91f7bda924`, the tip of `eval/r11`, whose `review` field reads `approve` of `02a48db212e0e49af62863575cba86bc339d4958`. At that tip every card closed here is `accepted` with tvofi's ruling and `gates_finders` true, and names one file: E11-U1 `dev/governance/dimensions/D17.md`; E11-U2, E11-U4, E11-U5, E11-U6, E11-U7, E11-U8, E11-U9 and E11-U10 `dev/governance/dimensions/D16.md`. This diff adds both files, so each card's `paths` is among the merge's changed files. No card names a path the design does not. The fold of `check_scopes.py --round` (a path ending in a slash read as a prefix) is not built: its condition, "unless the approved evaluation names file paths", is met. E11-U9 and E11-U10 are ruled ("Accept all four") and built with the rest. This head is not an ancestor of the review sha (decision 0018 section 6; `## Figures`).
 
@@ -38,11 +38,11 @@ Alternatives that lost: the oracle read from `desired` (one call, and it grades 
 
 ## Head
 
-4632a10bff41d516b5a5cf1176f14b29c8481f51
+e078a0bb2e3b4663cc505282d70aaad8053a566b
 
 ## Mutation proof
 
-Ten predicate mutants, each applied alone in a detached worktree at this head, the file's `--self-test` run, then restored. Each exits 1 naming:
+Ten predicate mutants, each applied alone in a detached worktree at `4632a10bff41d516b5a5cf1176f14b29c8481f51`, whose `tools/audit/enumerate.py`, `tools/audit/check_scopes.py` and `tools/audit/seat/finder_overlap.py` are this head's byte for byte (`git diff 4632a10bff41d516b5a5cf1176f14b29c8481f51 e078a0bb2e3b4663cc505282d70aaad8053a566b -- ` those three paths prints nothing), the file's `--self-test` run, then restored. Each exits 1 naming:
 
 - `enumerate.py`, `if dom not in READ_ONLY_DOMAINS` made always true (a read-only domain no longer skipped): `d16 a call on a read-only domain is no write (the count stays)`, `d16 a domain passed by keyword is read`
 - `enumerate.py`, the site test also requiring the attribute to be called (only calls are sites): `d16 a reference handed on uncalled is a write with no literal domain`
@@ -72,13 +72,13 @@ All four are lines of `check_scopes.py`'s self-test, none a production predicate
 
 - The base enumerator (`origin/main:tools/audit/enumerate.py`) over this head's tree prints the forecast read (`_fetch_weather_forecast`) as a write and no line for the handed-on service call (`_disinfection_switch`); this head's prints the reverse (`## Figures`).
 - `check_scopes.py --self-test`: the live file passes; a block of D16's first seat copied into its second is refused naming both seats; D17's last seat emptied is refused `unowned`; a kind planted in `scopes.json` alone, and a prefix planted in the enumerator alone, are each refused naming it.
-- The schedule is graded by `tools/policy/check-wave-script.mjs`, which this diff does not change (`git diff origin/main 4632a10bff41d516b5a5cf1176f14b29c8481f51 -- tools/policy/check-wave-script.mjs` prints nothing), so the base copy and the head's are one file.
+- The schedule is graded by `tools/policy/check-wave-script.mjs`, which this diff does not change (`git diff origin/main e078a0bb2e3b4663cc505282d70aaad8053a566b -- tools/policy/check-wave-script.mjs` prints nothing), so the base copy and the head's are one file.
 - The D16 oracle's own controls are the brief's: P1 and P2 are owed by the finder in its worktree, with the unedited tree green and the docstring edited alone moving no cell.
 - No finder harness exists for the cards (each is an owner or outside report); the planted cells above are the fixture.
 
 ## Figures
 
-Each at 4632a10bff41d516b5a5cf1176f14b29c8481f51 unless a sha is named; an arm is one comparison in a self-test.
+Each at e078a0bb2e3b4663cc505282d70aaad8053a566b unless a sha is named; an arm is one comparison in a self-test.
 
 - `python3 -I tools/audit/enumerate.py --self-test`: `SELF-TEST passed (160 arms)`; at 030a4d377f9f26f5b8befe5721d86aea454f29e0: `SELF-TEST passed (147 arms)`.
 - `python3 -I tools/audit/enumerate.py d16-writes` piped to `wc -l`: 38, of which 8 `write` and 30 `hold` (the first word of each line, counted); 4 of the 8 print `domain=?`. Main's copy over the same tree prints one line naming `_fetch_weather_forecast` and none naming `_disinfection_switch`; this head's none and one.
@@ -92,10 +92,10 @@ Each at 4632a10bff41d516b5a5cf1176f14b29c8481f51 unless a sha is named; an arm i
 - `python3 -I tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `git merge-base --is-ancestor HEAD 02a48db212e0e49af62863575cba86bc339d4958`: exit 1 (not an ancestor).
-- Gate scope, `python3 tests/closure.py select --diff 030a4d377f9f26f5b8befe5721d86aea454f29e0`: the mode line below; the one script it names is `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py`: exit 0, `ALL 2723 ENTITY CHECKS PASSED`.
-- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, `MUTANT_IN_PLACE=1` and both self-tests as `MUTANT_CMD`: rc 0 at 4632a10bff41d516b5a5cf1176f14b29c8481f51; no step refused; `ci predict` names no closures, fast, governance or instrument red against 030a4d377f9f; `diff mutants` is its one `WARN`, 4 survivors among the diff's first 40 mutants, each under `## Unpinned sites`.
+- Gate scope, `python3 tests/closure.py select --diff e352724335c136b65562cd3e71f728549ad04a82`: the mode line below; the one script it names is `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py`: exit 0, `ALL 2723 ENTITY CHECKS PASSED`.
+- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, `MUTANT_IN_PLACE=1` and both self-tests as `MUTANT_CMD`, at 4632a10bff41d516b5a5cf1176f14b29c8481f51: rc 0, no step refused; `diff mutants` its one `WARN`, 4 survivors among the diff's first 40 mutants, each under `## Unpinned sites`. At e078a0bb2e3b4663cc505282d70aaad8053a566b, the same command with no `MUTANT_CMD`: rc 0, no step refused, `ci predict` naming no closures, fast, governance or instrument red against e352724335c1, and `diff mutants` skipped: the three mutated files are unchanged since the run above.
 
-<!-- figure-block: scope-line mb=030a4d377f9f26f5b8befe5721d86aea454f29e0 head=4632a10bff41d516b5a5cf1176f14b29c8481f51 -->
+<!-- figure-block: scope-line mb=e352724335c136b65562cd3e71f728549ad04a82 head=e078a0bb2e3b4663cc505282d70aaad8053a566b -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -103,9 +103,9 @@ MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 
 ## Raise justification
 
-Rows of `node tools/policy/policy_lint.mjs --budgets` raised, each to the value it measures at this head (the literals are in the diff of `dev/governance/config/policy_budgets.json`): the `lines` and `~tokens` rows of `dev/governance/dimensions/D16.md` and `dev/governance/dimensions/D17.md`, new, and `corpus:`. No other row rises. Three rows are re-recorded down to their measurement: the `~tokens` rows of `CLAUDE.md`, of the row the lint keys `tools/audit/briefs/COMMON.md`, and of the row it keys `tools/audit/briefs/D3.md`. The other four aggregates are inside their band and untouched. `corpus:` at `origin/main` already measures above its recorded cap and inside the band; the value written is this head's measurement.
+Rows of `node tools/policy/policy_lint.mjs --budgets` raised, each to the value it measures at this head (the literals are in the diff of `dev/governance/config/policy_budgets.json`): the `lines` and `~tokens` rows of `dev/governance/dimensions/D16.md` and `dev/governance/dimensions/D17.md`, new, and `corpus:`. No other row rises. Three rows are re-recorded down to their measurement: the `~tokens` rows of `CLAUDE.md`, of the row the lint keys `tools/audit/briefs/COMMON.md`, and of the row it keys `tools/audit/briefs/D3.md`. The other four aggregates are inside their band and untouched. `corpus:` is re-measured at this head, after the merge of `origin/main` e352724335c136b65562cd3e71f728549ad04a82, whose own row both sides had re-recorded.
 
-Payments tried: (1) taken: the prototype's "Escapes this dimension exists for" lists dropped from both briefs, the cards carry them; (2) taken: the prototype's fourth D17 step (null control and perturbation) dropped, `COMMON.md` owes both of every finding; (3) taken: the territory against each neighbour stated once, in D16's hunting section, with D17 citing D16 for the ruling and wording; (4) taken: `CLAUDE.md`'s two rows paid inside the file by shortening the D16 row until the file's `~tokens` row is below main's cap; `COMMON.md`'s two additions by cutting "that have already cost a day each", which names no trap and no cost a seat can check; `D3.md` by "the one finder"; (5) not taken: D16's state table moved into the enumerator's output, since prose moved to an uncapped file is the reclassification `ratchet-budgets.md` refuses, and the invariants are the oracle the brief exists to state; (6) not taken: one brief for both dimensions, the design's rejected alternative, which would cut the two headers and one hunting section and leave `unowned` unable to say which oracle failed; (7) not taken: cutting another brief's prose to make room, which is R11-PRE-BRIEFS-TEXT's diff on the same files.
+Payments tried: (1) taken: the prototype's "Escapes this dimension exists for" lists dropped from both briefs, the cards carry them; (2) taken: the prototype's fourth D17 step (null control and perturbation) dropped, `COMMON.md` owes both of every finding; (3) taken: the territory against each neighbour stated once, in D16's hunting section, with D17 citing D16 for the ruling and wording; (4) taken: `CLAUDE.md`'s two rows paid inside the file, its `~tokens` row ending below main's cap: the D16 row shortened, the sentence restating that `COMMON.md` is the finder's contract shortened (its table row says so), and the dimension table's intro keeping "never as a range" without its reason clause; `COMMON.md`'s two additions by cutting "that have already cost a day each", which names no trap and no cost a seat can check; `D3.md` by "the one finder"; (5) not taken: D16's state table moved into the enumerator's output, since prose moved to an uncapped file is the reclassification `ratchet-budgets.md` refuses, and the invariants are the oracle the brief exists to state; (6) not taken: one brief for both dimensions, the design's rejected alternative, which would cut the two headers and one hunting section and leave `unowned` unable to say which oracle failed; (7) not taken: cutting another brief's prose to make room, which is R11-PRE-BRIEFS-TEXT's diff on the same files.
 
 Architecture score: dS +0.0000 NULL
 
