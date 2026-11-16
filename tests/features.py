@@ -76440,16 +76440,20 @@ _ss_v_cases = (
     [1.0] * 23, [0.0] * 23, [1.0] * 24, [0.0] * 24, [0.5] * 24,
     [0.4, 1.6] * 12, [0.0, 2.0] * 12, [-0.6, 0.6] * 12, [-1.0, 1.0] * 12,
     [0.45, 1.05] * 12, [-0.05, 0.55] * 12, [0.5 - 1e-9] * 24,
+    # 36 pairs whose mean plus 3 standard errors is 0.5 to the bit (mean 13/32, deviation 3/16, 3 * 3/16 / 6 = 3/32).
+    [-0.6875] + [0.4375] * 35, [-0.6875] + [0.4375] * 34 + [0.4376],
 )
 R.check(
     "the verdict waits for 24 pairs, then reads follows where the mean "
     "contrast less 3 standard errors reaches 0.5 and ignored where the mean "
     "plus 3 does not pass it, each bound inclusive, and pending between: "
     "means 1.0 and 0.0 at 23 pairs and at 24; 0.5 flat; 1.0 +-0.6 against "
-    "+-1.0; 0.0 +-0.6 against +-1.0; 0.75 +-0.3, 0.25 +-0.3; a hair under 0.5",
+    "+-1.0; 0.0 +-0.6 against +-1.0; 0.75 +-0.3, 0.25 +-0.3; a hair under "
+    "0.5; and a mean plus 3 standard errors of exactly 0.5 against a hair over",
     [_ss_verdict(c) for c in _ss_v_cases]
     == ["pending", "pending", "follows", "does_not_follow", "follows",
-        "follows", "pending", "does_not_follow", "pending", "follows", "does_not_follow", "does_not_follow"],
+        "follows", "pending", "does_not_follow", "pending", "follows", "does_not_follow", "does_not_follow",
+        "does_not_follow", "pending"],
     f"{[_ss_verdict(c) for c in _ss_v_cases]}",
 )
 

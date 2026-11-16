@@ -57,8 +57,12 @@ Rows, each "folded/intervals scale":
     pump of true scale 0.6 whose plan never asks at or above its configured
     minimum (min == max == 3 kW, asks 1.9-2.55 kW), over ``n`` intervals. No
     run-asked pair ever exists, so the evidence is pending until the window
-    is full (``draw_range.WINDOW`` running samples) and unobtainable after:
-    the departures base folded at once wait for that, then fold in one cycle.
+    is full (``draw_range.WINDOW`` running samples) and unobtainable after.
+    From there the heat-ask probe judges it (R11-OUTSIDE-SELF-SETTING-PUMP,
+    round-3 design): two asks in three are under the duty floor, so no two
+    admitted intervals are consecutive, no pair completes, and the verdict
+    stays pending with nothing folded (``x1440`` is 30 days of it). Before
+    that design the departures base folded waited for the window, then folded.
   * ``selfset_<kw>_flat_*`` / ``selfset_<kw>_within_*`` and
     ``heatled_true_<s>_flat_*`` (R11-OUTSIDE-SELF-SETTING-PUMP, owner ruling
     D4) -- a 4 kW nameplate under flat asks of 1.5 kW +-2 % (``flat``), which
@@ -80,6 +84,9 @@ Rows, each "folded/intervals scale":
     level, 1.000 the one-sided level at a clamp), and the verdict.
     These runs are open loop: the ask stays fixed whatever the scale, as the
     live plan's does only where the ask is pinned (flat asks are that case).
+  * ``heatled_true_0.68_flat_max_cycle_move`` -- the largest change of the
+    scale in one cycle of ``heatled_true_0.68_flat_x672``, beside
+    ``true_0.6_max_cycle_move``: the hold a pending probe built folds at once.
   * ``repriced_heat1.2_true_0.8`` (design verdict item 1b98ae3f) -- the same
     asks re-priced each tick against the scale, as an unpinned plan does:
     asked = 1.2 kW of heat over the scale, drawn = 1.2 over the true 0.8. The
@@ -341,7 +348,7 @@ def main() -> None:
     run(matched * 3, true=0.6, noise=0.05, moves=moves)
     print(f"RESULT true_0.6_max_cycle_move={max(moves):.3f}")
     # The wait before the evidence turns unobtainable (the unobtainable-arm decision's row).
-    for n in (288, 384, 480):
+    for n in (288, 384, 480, 1440):
         got = run(cyc(matched, n), p_max=3.0, p_min=3.0, true=0.6, noise=0.05)
         print(f"RESULT sub_min_true_0.6_x{n}={got.replace(' ', '_scale=')}")
     # R11-OUTSIDE-SELF-SETTING-PUMP (owner ruling D4): flat asks on a 4 kW
@@ -354,6 +361,11 @@ def main() -> None:
         flat_row(f"selfset_{kw:g}_within_x672", flat(672, kw))
     for true in (0.68, 0.8):
         flat_row(f"heatled_true_{true:g}_flat_x672", flat(672), true=true)
+    # Design verdict item 1ff86b5f: the rows held while the probe is pending
+    # fold in one cycle once it reads follows; the largest one-cycle move.
+    moves = []
+    run(flat(672), p_max=4.0, true=0.68, moves=moves)
+    print(f"RESULT heatled_true_0.68_flat_max_cycle_move={max(moves):.3f}")
     for s0 in (0.5, 0.7):
         flat_row(f"selfset_2.2_flat_from{s0:g}", flat(672, 2.2), scale0=s0)
         flat_row(f"selfset_1.6_within_from{s0:g}", flat(672, 1.6), scale0=s0)
