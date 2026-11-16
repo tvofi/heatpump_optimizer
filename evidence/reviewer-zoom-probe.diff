@@ -1,0 +1,24 @@
+diff --git a/tests/card.mjs b/tests/card.mjs
+index 76f690cb8a..c2b5715ff8 100644
+--- a/tests/card.mjs
++++ b/tests/card.mjs
+@@ -2191,6 +2191,19 @@ const editable = () => {
+     JSON.stringify(span(data.space_slots)) === JSON.stringify([[-4, -3]]),
+     JSON.stringify(span(data.space_slots)));
+ 
++  // REVIEWER PROBE: zoomed in, visible end 3 h before the window.
++  {
++    const c = build(extended(), { what_if: true });
++    c._hass = mkHass(extended());
++    c._onCardClick({});
++    c.geomAt = () => ({ windowStart: 0, windowEnd: at(-3) });
++    called = null;
++    c.manual.apply();
++    const d = (called && called.data) || {};
++    check("REVIEWER PROBE zoomed view does not change the applied dhw runs",
++      JSON.stringify(span(d.dhw_slots)) === JSON.stringify([[-4, -3], [-2, 0.5]]),
++      JSON.stringify(span(d.dhw_slots)));
++  }
+   // Null control: the captured plan ends inside the window, so the payload
+   // must be byte-identical to the one a window too wide to bind produces.
+   check("the captured plan ends inside the window (#3636)",
