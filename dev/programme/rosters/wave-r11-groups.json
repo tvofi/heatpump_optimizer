@@ -3492,9 +3492,9 @@
    "carry": [],
    "source": "programme",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-hotfix-main-selftest-drift",
-    "commit": "142926ec663e69a2a7371404256b4d4399ebb10a",
+    "commit": "30f9caac90735c402c8e3ae60fbaa80c45dc6d26",
     "last_step": "handoff pushed",
     "next_step": "open PR, review, merge",
     "note": "main red hotfix",
