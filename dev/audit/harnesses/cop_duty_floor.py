@@ -59,6 +59,22 @@ Rows, each "folded/intervals scale":
     run-asked pair ever exists, so the evidence is pending until the window
     is full (``draw_range.WINDOW`` running samples) and unobtainable after:
     the departures base folded at once wait for that, then fold in one cycle.
+  * ``selfset_<kw>_flat_*`` / ``selfset_<kw>_within_*`` and
+    ``heatled_true_<s>_flat_*`` (R11-OUTSIDE-SELF-SETTING-PUMP, owner ruling
+    D4) -- a 4 kW nameplate under flat asks of 1.5 kW +-2 % (``flat``), which
+    never span ``draw_range.FOLLOW_ASK_SPAN``, so the window's evidence turns
+    unobtainable: a pump drawing ``kw`` +-3 % whatever is asked (2.2 beyond
+    ``COP_ASK_TOLERANCE``, 1.6 and 1.4 within it; right scale 1.000), or a
+    heat-led one of true scale ``s``. ``_from<s0>`` starts at a persisted
+    scale ``s0`` (an install the released learner already walked);
+    ``_reload70_400`` round-trips the COP record at ticks 70 and 400,
+    ``_lost`` without its scale-response key. Each line adds the lowest and
+    highest scale, the cycles off 1.000 by more than 5 % and the verdict.
+    These runs are open loop: the ask stays fixed whatever the scale, as the
+    live plan's does only where the ask is pinned (flat asks are that case).
+  * ``held_<fill>_heatled_true_0.8`` -- the ``held_*`` windows behind a
+    heat-led pump of true scale 0.8: the control for the ``held_*`` rows,
+    whose fixed 3.2 kW draw is a self-setting pump's.
 
 The folded column is ``_cop_samples`` at the end of the run, replays included.
 """
@@ -110,16 +126,27 @@ def coord(p_max: float = 14.0, p_min: float = 1.0) -> HeatPumpOptimizerCoordinat
     return c
 
 
-def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm=(), moves=None) -> str:
+def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm=(), moves=None,
+        scale0=None, reload_cop=(), lose_verdict=False, stats=None) -> str:
     """Feed (asked, drawn) intervals as the cycle does: the running-draw fold
     (#2065's ``draw_range.fold``) and then the COP learner reading its
     evidence. ``true`` replaces drawn by a heat-led pump's; ``reload_at``
     round-trips the draw evidence through its store form at that tick (a
     restart). ``warm``: (asked, drawn) intervals folded into the running-draw
     window before the counted ones. ``moves``: a list that receives each
-    cycle's change of the COP scale."""
+    cycle's change of the COP scale. ``scale0``: the COP scale a store
+    persisted, applied before the first interval (an upgraded install the
+    released learner already walked). ``reload_cop``: ticks at which the COP
+    learner's record round-trips through its store form (``lose_verdict``:
+    without its scale-response key). ``stats``: a dict that receives the
+    lowest and highest scale, the cycles off 1.000 by more than 5 %, and the
+    latched scale-response verdict (``-`` where the code has none)."""
     rnd = random.Random(1)
     c = coord(p_max, p_min)
+    if scale0 is not None:
+        c._apply_cop_scale(scale0)
+    lo = hi = c._cop_scale
+    off = 0
     for asked, drawn in warm:
         draw_range.fold(c._accuracy.draw, drawn, (asked, 0.0), c._thermal_params,
                         frozen=False, distorted=False, defrost=False)
@@ -136,6 +163,11 @@ def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm
                 c._accuracy.draw = draw = type(draw).from_dict(draw.as_dict())
             draw_range.fold(draw, c._measured_power, c._commanded_split(), c._thermal_params,
                             frozen=False, distorted=False, defrost=False)
+        if tick in reload_cop:
+            stored = c._measured_cop.as_dict()
+            if lose_verdict:
+                stored.pop("scale_response", None)
+            c._measured_cop = type(c._measured_cop).from_dict(stored)
         before = c._cop_scale
         if takes_draw:
             c._learn_measured_cop(draw)
@@ -143,7 +175,33 @@ def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm
             c._learn_measured_cop()
         if moves is not None:
             moves.append(abs(c._cop_scale - before))
+        lo, hi = min(lo, c._cop_scale), max(hi, c._cop_scale)
+        off += abs(c._cop_scale - 1.0) > 0.05
+    if stats is not None:
+        stats.update(lowest=f"{lo:.3f}", highest=f"{hi:.3f}", off=off,
+                     verdict=getattr(c._measured_cop, "scale_response", "-"))
     return f"{c._cop_samples}/{len(pairs)} {c._cop_scale:.3f}"
+
+
+def flat(n: int, drawn=None, seed: int = 7) -> list[tuple[float, float]]:
+    """``n`` flat asks of 1.5 kW +-2 %, each beside a draw of ``drawn`` kW
+    +-3 % (a pump setting its own power), or of the ask where ``drawn`` is
+    None (a heat-led ``true`` run replaces it)."""
+    rng = random.Random(seed)
+    out = []
+    for _ in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        out.append((ask, ask if drawn is None else drawn * rng.uniform(0.97, 1.03)))
+    return out
+
+
+def flat_row(name: str, pairs, **kw) -> None:
+    """One flat-ask row on the 4 kW nameplate: "folded/intervals scale", then
+    the lowest and highest scale, the cycles off 1.000 by more than 5 %, and
+    the scale-response verdict."""
+    st: dict = {}
+    got = run(pairs, p_max=4.0, stats=st, **kw).replace(" ", "_scale=")
+    print(f"RESULT {name}={got} lowest={st['lowest']} highest={st['highest']} off5={st['off']} verdict={st['verdict']}")
 
 
 def main() -> None:
@@ -222,6 +280,27 @@ def main() -> None:
     for n in (288, 384, 480):
         got = run(cyc(matched, n), p_max=3.0, p_min=3.0, true=0.6, noise=0.05)
         print(f"RESULT sub_min_true_0.6_x{n}={got.replace(' ', '_scale=')}")
+    # R11-OUTSIDE-SELF-SETTING-PUMP (owner ruling D4): flat asks on a 4 kW
+    # nameplate. The run is open loop: the ask stays fixed whatever the scale,
+    # as the live plan's does only where the ask is pinned (flat asks are that
+    # case); an unpinned plan re-prices its ask as the scale moves.
+    for n in (96, 672):
+        flat_row(f"selfset_2.2_flat_x{n}", flat(n, 2.2))
+    for kw in (1.6, 1.4):
+        flat_row(f"selfset_{kw:g}_within_x672", flat(672, kw))
+    for true in (0.68, 0.8):
+        flat_row(f"heatled_true_{true:g}_flat_x672", flat(672), true=true)
+    for s0 in (0.5, 0.7):
+        flat_row(f"selfset_2.2_flat_from{s0:g}", flat(672, 2.2), scale0=s0)
+        flat_row(f"selfset_1.6_within_from{s0:g}", flat(672, 1.6), scale0=s0)
+    for true in (0.45, 0.68):
+        flat_row(f"heatled_true_{true:g}_flat_from0.5", flat(672), true=true, scale0=0.5)
+    flat_row("selfset_2.2_flat_reload70_400", flat(672, 2.2), reload_cop=(70, 400))
+    flat_row("selfset_2.2_flat_reload70_400_lost", flat(672, 2.2), reload_cop=(70, 400), lose_verdict=True)
+    # Invariant h's control under the moving held_* rows: heat-led twins of
+    # true 0.8 behind the same windows (a fixed 3.2 kW draw is self-setting).
+    for name, n in (("full", draw_range.WINDOW), ("filling", draw_range.WINDOW - 48)):
+        print(f"RESULT held_{name}_heatled_true_0.8={run(depart, p_max=4.0, p_min=3.0, true=0.8, warm=[(2.6, 3.2)] * n).replace(' ', '_scale=')}")
 
 
 if __name__ == "__main__":

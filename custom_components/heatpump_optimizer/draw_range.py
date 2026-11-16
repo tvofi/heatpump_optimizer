@@ -491,6 +491,19 @@ def ask_evidence(draw: DrawRange | None) -> str:
     pairs = np.array(draw._run_asked(), dtype=float).reshape(-1, 2)
     if len(pairs) < MIN_SAMPLES:
         return ASK_UNOBTAINABLE if len(draw.samples) >= WINDOW else ASK_PENDING
+    return draw_response(pairs)
+
+
+def draw_response(pairs: Any) -> str:
+    """Whether the draw follows a regressor: (drawn, regressor) rows, kW.
+
+    ``ASK_UNOBTAINABLE`` where the regressor's ``LOW_PERCENTILE`` to
+    ``HIGH_PERCENTILE`` does not span ``FOLLOW_ASK_SPAN``, else the slope of
+    log drawn on log regressor against ``FOLLOW_SLOPE_MIN``. The caller
+    counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask, and the
+    COP learner on the heat ask (``accuracy.MeasuredCop``).
+    """
+    pairs = np.asarray(pairs, dtype=float).reshape(-1, 2)
     low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
     if high < FOLLOW_ASK_SPAN * low:
         return ASK_UNOBTAINABLE

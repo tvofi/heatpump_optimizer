@@ -281,6 +281,26 @@
       "kind": "periodic"
     },
     {
+      "name": "cp-owed",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "cp-owed",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 300,
+      "timeout_s": 180,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
       "name": "bottleneck",
       "argv": [
         "python3",
