@@ -1,8 +1,0 @@
-head efc63b60e8 | learned floor 1.6 since 32 samples 80
-floor_kw 'x' -> floor None samples kept 80 config (0.53, 3.3)
-floor_kw -1.0 -> floor None samples kept 80 config (0.53, 3.3)
-floor_kw True -> floor None samples kept 80 config (0.53, 3.3)
-floor_kw [1] -> floor None samples kept 80 config (0.53, 3.3)
-floor_since 'x' -> 0 samples kept 80
-floor_since -3 -> 0 samples kept 80
-floor_since 1.5 -> 0 samples kept 80

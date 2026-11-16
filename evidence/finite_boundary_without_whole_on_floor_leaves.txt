@@ -1,3 +1,0 @@
-RESULT store_version_unsurfaced=0 count
-
-ALL 114 FINITE BOUNDARY CHECKS PASSED

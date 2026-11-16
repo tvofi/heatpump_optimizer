@@ -1,2 +1,0 @@
-Traceback (most recent call last):
-TypeError: solve_band() got an unexpected keyword argument 'applies_floor'
