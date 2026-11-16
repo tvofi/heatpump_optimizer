@@ -23,7 +23,7 @@
  "perturbation": {
   "change": "--top-n 108 (the gate's STRESS_MEMORY_TOP_N raised past the scenario count, so the pass probes every scenario)",
   "expected_direction": "down",
-  "observed_value": "see out_mem_topn108.txt: blind_confined -> 0, detected_confined -> 54"
+  "observed_value": "--top-n 108: probed_by_gate=54, detected_confined=54, blind_confined=0 (out_mem_topn108.txt)"
  },
  "metric_definition": "Per sweep scenario: detected = in the gate's memory probe set AND the gate's own traced/RSS thresholds fire on the probe reading with a retained ballast of 1x the recorded traced peak.",
  "phenomenon_property": "Every scenario whose memory peak is recorded in tests/stress_budgets.json must be re-measured by a gate run (or the detection check must count only the rows it re-measures), so that a 2x memory regression confined to any recorded scenario fails the gate.",
