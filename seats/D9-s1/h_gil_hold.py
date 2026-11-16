@@ -15,6 +15,9 @@ Arms
   thread.<scenario>         optimize_in_process on a ThreadPoolExecutor: the
                             #511 in-process fallback _await_optimize degrades to
   thread_si05.<scenario>    perturbation: sys.setswitchinterval 5 ms -> 0.5 ms
+  thread_yield100us.<sc>     optimizer._gil_yield made time.sleep(0.0001)
+  thread_noyield.<scenario> optimizer._gil_yield (sleep(0) per evaluation) made a
+                            no-op: the in-run yield's own contribution
   cycle.process             one full HeatPumpOptimizerCoordinator._async_update_data
                             (real process worker; the loop thread's own work
                             counts, as it would in Home Assistant)
@@ -147,6 +150,39 @@ async def main(reps: int, arms: set[str]):
                     optimize_in_process, opt, inp)))
             report(f"thread.{sc}", rows)
 
+        if "noyield" in arms:
+            # the in-run yield (optimizer._gil_yield, time.sleep(0) per
+            # objective / fused value-and-gradient evaluation) made a no-op:
+            # does it bound the hold on the thread route?
+            from heatpump_optimizer import optimizer as om
+            real_y = om._gil_yield
+            om._gil_yield = lambda: None
+            try:
+                rows = []
+                for _ in range(reps):
+                    opt, inp, _ = L.make_solve(sc)
+                    rows.append(await measure(sc, lambda: hass.async_add_executor_job(
+                        optimize_in_process, opt, inp)))
+                report(f"thread_noyield.{sc}", rows)
+            finally:
+                om._gil_yield = real_y
+
+        if "yield100us" in arms:
+            # the in-run yield made a REAL sleep (100 us): the waiter can take
+            # the GIL while the solver thread is off it
+            from heatpump_optimizer import optimizer as om
+            real_y = om._gil_yield
+            om._gil_yield = lambda: time.sleep(0.0001)
+            try:
+                rows = []
+                for _ in range(reps):
+                    opt, inp, _ = L.make_solve(sc)
+                    rows.append(await measure(sc, lambda: hass.async_add_executor_job(
+                        optimize_in_process, opt, inp)))
+                report(f"thread_yield100us.{sc}", rows)
+            finally:
+                om._gil_yield = real_y
+
         if "si05" in arms:
             prev = sys.getswitchinterval()
             sys.setswitchinterval(0.0005)
@@ -196,7 +232,7 @@ async def main(reps: int, arms: set[str]):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--reps", type=int, default=3)
-    ap.add_argument("--arms", default="idle,process,perturb,thread,si05,pickle,cycle")
+    ap.add_argument("--arms", default="idle,process,perturb,thread,noyield,si05,pickle,cycle")
     a = ap.parse_args()
     clock = L.Clock()
     swap0 = L.swapins()
