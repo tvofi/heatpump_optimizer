@@ -1,0 +1,98 @@
+[
+ {
+  "name": "ceiling-proposed-key",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": ".get(\"closure_slip_ceiling\") or {}).get(\"value\")",
+  "new": ".get(\"closure_slip_ceiling\") or {}).get(\"proposed\")"
+ },
+ {
+  "name": "produce-same-round",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "for k in (n - 1, n):",
+  "new": "for k in (n, n):"
+ },
+ {
+  "name": "groups-round-open",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "\"round\": k} for k, g in pairs",
+  "new": "\"round\": n} for k, g in pairs"
+ },
+ {
+  "name": "groups-stage-wrong",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "\"stage\": (g.get(\"resume\") or {}).get(\"stage\")",
+  "new": "\"stage\": (g.get(\"resume\") or {}).get(\"pr\")"
+ },
+ {
+  "name": "groups-kind-wrong",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "{\"kind\": g.get(\"kind\"), \"stage\"",
+  "new": "{\"kind\": g.get(\"group\"), \"stage\""
+ },
+ {
+  "name": "groups-write-elsewhere",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "write(d / \"groups.json\"",
+  "new": "write(d / \"groups2.json\""
+ },
+ {
+  "name": "plans-write-elsewhere",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "write(d / \"plans.json\"",
+  "new": "write(d / \"plans2.json\""
+ },
+ {
+  "name": "baselines-all",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "BASELINE.pattern, \"origin/main\"",
+  "new": "BASELINE.pattern, \"side\""
+ },
+ {
+  "name": "register-head",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "\"--format=%ct\", \"origin/main\", \"--\", REGISTER",
+  "new": "\"--format=%ct\", \"HEAD\", \"--\", REGISTER"
+ },
+ {
+  "name": "sample-half-day",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "SLIP_SAMPLE_S = DAY_S",
+  "new": "SLIP_SAMPLE_S = DAY_S // 2"
+ },
+ {
+  "name": "sample-epoch-days",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "(h[0] - doc[\"register\"]) // SLIP_SAMPLE_S",
+  "new": "h[0] // SLIP_SAMPLE_S"
+ },
+ {
+  "name": "sample-first-of-day",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "{(h[0] - doc[\"register\"]) // SLIP_SAMPLE_S: h for h in hist}",
+  "new": "{(h[0] - doc[\"register\"]) // SLIP_SAMPLE_S: h for h in reversed(hist)}"
+ },
+ {
+  "name": "span-all-pages",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "span = (daily[-1][0] - daily[0][0]) / DAY_S",
+  "new": "span = (hist[-1][0] - hist[0][0]) / DAY_S"
+ },
+ {
+  "name": "later-all-pages",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "for p, q in zip(daily, daily[1:])) / DAY_S",
+  "new": "for p, q in zip(hist, hist[1:])) / DAY_S"
+ },
+ {
+  "name": "net-all-pages",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "(daily[-1][1] - daily[0][1]) / DAY_S",
+  "new": "(hist[-1][1] - hist[0][1]) / DAY_S"
+ },
+ {
+  "name": "pages-count-hist",
+  "file": "tools/audit/seat/round_metrics.py",
+  "old": "daily samples of {len(every)} pages",
+  "new": "daily samples of {len(hist)} pages"
+ }
+]

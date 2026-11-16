@@ -22,6 +22,7 @@ ok   producer: a listing cached at the run's latest attempt is not fetched again
 ok   closure_slip: later moves only, over the plan-history days after the register
 ok   closure_slip: a closed round closes at its tag; a null ceiling is undecided
 ok   closure_slip: the window cuts the history
+ok   closure_slip: read at a fixed daily cadence, the last page of each day from the register
 ok   closure_slip: one page, no register, no history and no round are unread
 ok   roster clock: a group's entry is the commit that first added it, not a later reorder
 ok   roster clock: an incremental scan from the cached tip keeps the cache
@@ -40,6 +41,12 @@ ok   unexamined: a round with no baseline, no round, no merges and no production
 ok   plan history: one forecast per page commit, an UNAVAILABLE page null, the register the first add
 ok   plan history: an incremental scan from the cached tip keeps the cache
 ok   plan history: a round with no state ref keeps its cached history
+ok   producer: groups.json carries each roster group's kind, resume.stage and round
+ok   producer: plans.json caches rounds N-1 and N from their state refs
+ok   report --round: a set ceiling is read from objective.json's value
+ok   report --round: a null ceiling is undecided
+ok   unexamined: the baselines are origin/main's, not the checkout's
+ok   plan history: a register first added on a branch is no register
 ok   mutant killed: rank index (by 'rank: nearest rank')
 ok   mutant killed: lead latest per group (by 'lead_time: the latest merge')
 ok   mutant killed: lead unknowable kept (by 'lead_time: the latest merge')
@@ -68,6 +75,16 @@ ok   mutant killed: slip register (by 'closure_slip: later moves only')
 ok   mutant killed: slip window (by 'closure_slip: the window cuts')
 ok   mutant killed: slip blank page (by 'closure_slip: later moves only')
 ok   mutant killed: slip two pages (by 'closure_slip: one page')
+ok   mutant killed: slip daily cadence (by 'closure_slip: read at a fixed daily cadence')
+ok   mutant killed: ceiling value key (by 'report --round: a null ceiling')
+ok   mutant killed: produce prior round (by 'producer: plans.json')
+ok   mutant killed: groups json round (by 'producer: groups.json')
+ok   mutant killed: groups json stage (by 'producer: groups.json')
+ok   mutant killed: groups json kind (by 'producer: groups.json')
+ok   mutant killed: groups json write (by 'producer: groups.json')
+ok   mutant killed: plans json write (by 'producer: plans.json')
+ok   mutant killed: baselines ref (by 'unexamined: the baselines are origin/main's')
+ok   mutant killed: register ref (by 'plan history: a register first added on a branch')
 ok   mutant killed: slip ceiling (by 'closure_slip: later moves only')
 ok   mutant killed: slip closed round (by 'closure_slip: a closed round')
 ok   mutant killed: slip deferred round (by 'closure_slip: later moves only')

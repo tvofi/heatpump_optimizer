@@ -1,0 +1,2 @@
+head:   closure_slip 2.00 days per day (1.00 days later over 0.50 days of plan history after the register, 2 daily samples of 3 pages; net +1.00 days; 0 pages without a forecast; ceiling unset, undecided; round start to closure 13.0 days (forecast); 0 groups deferred out)
+mutant: closure_slip 2.00 days per day (1.00 days later over 0.50 days of plan history after the register, 2 daily samples of 3 pages; net +3.00 days; 0 pages without a forecast; ceiling unset, undecided; round start to closure 13.0 days (forecast); 0 groups deferred out)

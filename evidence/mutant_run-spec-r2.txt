@@ -1,0 +1,17 @@
+SURVIVED NULL
+KILLED ceiling-proposed-key
+KILLED produce-same-round
+KILLED groups-round-open
+KILLED groups-stage-wrong
+KILLED groups-kind-wrong
+KILLED groups-write-elsewhere
+KILLED plans-write-elsewhere
+KILLED baselines-all
+KILLED register-head
+KILLED sample-half-day
+KILLED sample-epoch-days
+KILLED sample-first-of-day
+KILLED span-all-pages
+KILLED later-all-pages
+SURVIVED net-all-pages
+KILLED pages-count-hist
