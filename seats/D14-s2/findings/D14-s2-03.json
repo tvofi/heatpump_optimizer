@@ -16,7 +16,7 @@
   "cpu_or_wall": "count",
   "contention_note": "shared compute box, other finder seats running; AST counts are contention-immune",
   "tolerance": "exact",
-  "load1": 7.6,
+  "load1": 9.99,
   "thread_factor": 1.0
  },
  "instrumented_symbol": "tests/entities.py:_r10_unlatched_logs (extracted by AST from the baseline file and run over the package's own sources plus one planted site per shape)",
