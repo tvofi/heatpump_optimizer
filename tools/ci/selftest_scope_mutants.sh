@@ -21,8 +21,11 @@ apply() { # <file> <old> <new> <out>: the file with old, present once, replaced 
 # The mutants run JOBS at a time (55 runs of a self-test that waits more than
 # it computes: in line they outlast the step replay of tools/pr/ci_predict.py
 # and a third of the job's own timeout); each writes its report to a file of
-# its own and the reports are printed in order once all have ended.
-JOBS=${SELFTEST_MUTANT_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
+# its own and the reports are printed in order once all have ended. Four to a
+# processor: a run computes for about a quarter of the time it takes, and one
+# to a processor still outlasted that replay on a seat slower than the one it
+# was timed on.
+JOBS=${SELFTEST_MUTANT_JOBS:-$(($(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2) * 4))}
 n=0
 report() { # <label> <rc> <output>
   echo "== $1: self-test rc $2"
