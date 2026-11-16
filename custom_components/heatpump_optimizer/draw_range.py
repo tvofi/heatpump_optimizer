@@ -503,7 +503,7 @@ def draw_response(pairs: Any) -> str:
     counts ``MIN_SAMPLES``: :func:`ask_evidence` on the plan's ask, and the
     COP learner on the heat ask (``accuracy.MeasuredCop``).
     """
-    pairs = np.asarray(pairs, dtype=float).reshape(-1, 2)
+    pairs = np.asarray(pairs, dtype=float)
     low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
     if high < FOLLOW_ASK_SPAN * low:
         return ASK_UNOBTAINABLE

@@ -76315,6 +76315,21 @@ R.check(
     _ss_log_fold == [] and len(_ss_log.lines) == 1 and _ss_log.lines[0].startswith("Skipping COP sample (tracking_gate)"),
     f"{_ss_log.lines}",
 )
+# Measured heat drops a due restore (departure 2 of the body): an install
+# that gained a thermal power entity after a stored does_not_follow keeps the
+# scale its heat-measured folds left, here 0.7, through a cycle with no reading.
+_ss_gain = _ss_coord(scale0=0.7, heat_pump_thermal_power_entity="sensor.heat")
+_ss_gain._measured_cop = _cf_MC.from_dict({"cop": None, "scale_response": "does_not_follow"})
+_ss_gain_loaded = _ss_gain._measured_cop.restore_due
+_ss_step(_ss_gain, 1.5, 2.2, window=_ss_unob)
+R.check(
+    "measured heat drops a restore a stored does_not_follow made due: the "
+    "scale stays 0.7, and the verdict resets",
+    _ss_gain_loaded is True
+    and (round(_ss_gain._cop_scale, 3), _ss_gain._measured_cop.restore_due, _ss_gain._measured_cop.scale_response)
+    == (0.7, False, "pending"),
+    f"{(_ss_gain._cop_scale, _ss_gain._measured_cop.restore_due, _ss_gain._measured_cop.scale_response)}",
+)
 R.check(
     "the diagnostics publish the verdict beside the window's evidence",
     _cf_diag._coordinator_snapshot(_ss_beyond)["cop_learner"]["scale_response"] == "does_not_follow"
