@@ -1843,6 +1843,15 @@ def _a6_enrich(coord, t0) -> None:
         dhw_slots=None, expires_at=_A4_NOW + _dt.timedelta(hours=6), created_at=t0)
     coord._away_state.migrated_helpers = True
     coord._flow_bias.bias_k, coord._flow_bias.samples = 2.5, 4
+    # The draw window with a learned floor (R11-OUTSIDE-HONEST-METERED-FLOOR,
+    # Bankaifan #3529), so every draw/ leaf is driven, the floor's included.
+    from heatpump_optimizer.draw_range import DrawRange
+    draw = DrawRange(config=(1.0, 5.0), floor_kw=1.5, floor_since=2, overdraws=1)
+    draw.samples.extend([(1.25, 1.0), (1.75, 1.5), (2.5, 2.0)])
+    draw.commands.extend([(35.5, 55.0), (40.5, 55.0), (45.5, 55.0)])
+    draw.idle.extend([0.125, 0.375])
+    draw.ceiling.extend([(3.25, t0.timestamp() - 3600.0)])
+    coord._accuracy.draw = draw
     coord._measured_cop.record(3.17, True, 52.5, t0 - _dt.timedelta(hours=2))
     learner = coord._dhw_learner
     for name, low in (("hourly_profile", 0.5), ("profile_weekday", 0.75), ("profile_weekend", 0.25)):

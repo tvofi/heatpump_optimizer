@@ -607,13 +607,12 @@ def update_floor(draw: DrawRange) -> None:
     and while too few pairs, the floor holds: no age lapses it. A move
     restarts the count, so a new floor reads only runs asked at it.
     """
-    if draw.config is None:
-        return
     f = floor_in_force_kw(draw)
     low, _ = floor_evidence(draw)
     if low is None or (1.0 - AGREE_TOLERANCE) * f <= low <= (1.0 + AGREE_TOLERANCE) * f:
         return
-    moved = low if low > (1.0 + AGREE_TOLERANCE) * draw.config[0] else None
+    cfg_min = draw.config[0] if draw.config is not None else 0.0
+    moved = low if low > (1.0 + AGREE_TOLERANCE) * cfg_min else None
     if moved != draw.floor_kw:
         draw.floor_kw, draw.floor_since = moved, 0
 

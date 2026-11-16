@@ -93368,6 +93368,45 @@ R.check(
     f"{_mf_set_attrs} {_mf_min_attrs}",
 )
 
+# The edges, each a value check: the hold band's bounds are inclusive and the
+# clear-to-configured bound exclusive; a move restarts the count at 0; a fresh
+# window counts 0; a stored floor at the configured minimum, and a stored count
+# of 1, read as written; the COP floor still stands under too few pairs; an
+# unkeyed window reports no pairs; the stamp rounds to the watt.
+_mf_edge = lambda drawn: _mf_run(lambda a, f, i: drawn if 0.6 < a <= 1.3 else a, 2 * _mf_dr.MIN_SAMPLES + 2,  # noqa: E731
+                                 d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0)))[0]
+_mf_at_lower = _mf_edge((1.0 - _MF_TOL) * 1.1)
+_mf_at_clear = _mf_edge((1.0 + _MF_TOL) * 0.53)
+_mf_rec1 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.53, "floor_since": 1})
+_mf_rec2 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5301})
+_mf_few = _mf_dr.DrawRange()
+for _k in range(_mf_dr.MIN_SAMPLES - 1):
+    _mf_few.observe(0.6, 1.0, 0.5, 5.0)
+_mf_bare = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe")
+_mf_round = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe",
+                             configured_min_kw=0.12345, learned_min_kw=0.67891).as_dict()
+R.check(
+    "metered floor, edges: a low end exactly (1 - 15 %) of the floor holds it; one exactly "
+    "15 % over the configured minimum clears it; a move sets the count to 0; a fresh window "
+    "counts 0; a stored floor at the configured minimum reads unset, one just above and a "
+    "count of 1 read as written; the COP floor under 47 pairs is the configured figure; an "
+    "unkeyed window reports 0 pairs; a band built without the bottom reads configured with "
+    "no evidence; the stamp rounds the bottom to 3 decimals",
+    _mf_at_lower.floor_kw == 1.1
+    and _mf_at_clear.floor_kw is None
+    and _mf_post.floor_since == 0
+    and _mf_dr.DrawRange().as_dict()["floor_since"] == 0
+    and _mf_rec1.floor_kw is None and _mf_rec1.floor_since == 1 and _mf_rec2.floor_kw == 0.5301
+    and _mf_dr.power_floor_kw(_mf_few, _MfNS(
+        flow_lift_power_floor_kw=0.9, min_electrical_power=0.5, max_electrical_power=5.0)) == 0.9
+    and _mf_band(_mf_rt, lo=0.6).min_samples == 0
+    and (_mf_bare.configured_min_kw, _mf_bare.min_source, _mf_bare.min_reason,
+         _mf_bare.learned_min_kw, _mf_bare.min_samples) == (0.0, "configured", "awaiting", None, 0)
+    and (_mf_round["configured_min_kw"], _mf_round["learned_min_kw"]) == (0.123, 0.679),
+    f"lower {_mf_at_lower.floor_kw} clear {_mf_at_clear.floor_kw} post {_mf_post.floor_since} "
+    f"rec {_mf_rec1.floor_kw} {_mf_rec1.floor_since} {_mf_rec2.floor_kw}",
+)
+
 # Null controls. (b) a pump drawing its ask plus under 15 % of the configured
 # floor, and (c) a cold week of high asks only: nothing moves.
 _mf_nb, _mf_nb_mins = _mf_run(lambda a, f, i: a + 0.1 * 0.53, _MF_N)
