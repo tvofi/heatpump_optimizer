@@ -10,9 +10,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -67,13 +65,9 @@
   "O2": false,
   "O2_why": "failure",
   "O3": true,
-  "O4": false,
-  "reds": [
-   "pr-contract / pr-contract"
-  ],
-  "unanswered": [
-   "pr-contract / pr-contract"
-  ]
+  "O4": true,
+  "reds": [],
+  "unanswered": []
  },
  {
   "pr": 3598,
@@ -253,24 +247,17 @@
   "O2": false,
   "O2_why": "failure",
   "O3": true,
-  "O4": false,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate",
-   "codeql / Analyze (python)",
-   "pr-contract / pr-contract"
-  ],
-  "unanswered": [
-   "codeql / Analyze (python)",
-   "pr-contract / pr-contract"
-  ]
+  "O4": true,
+  "reds": [],
+  "unanswered": []
  },
  {
   "pr": 3619,
   "title": "R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3: r11 outside contributor cy",
   "author": "hpo-author[bot]",
   "merged_by": "tvofi",
-  "O1": false,
-  "O1_why": "merge verdict at 419fd6d2 not head 4a601b82 nor a carry",
+  "O1": true,
+  "O1_why": "carried",
   "O2": true,
   "O2_why": "success",
   "O3": true,
@@ -297,8 +284,8 @@
   "title": "R11-PRE-FINDER-CONTRACT: r11 pre finder contract",
   "author": "hpo-author[bot]",
   "merged_by": "tvofi",
-  "O1": false,
-  "O1_why": "merge verdict at d1051479 not head 4ad61911 nor a carry",
+  "O1": true,
+  "O1_why": "carried",
   "O2": true,
   "O2_why": "success",
   "O3": true,
@@ -345,9 +332,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -375,9 +360,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -475,9 +458,7 @@
   "O2_why": "failure",
   "O3": true,
   "O4": true,
-  "reds": [
-   "pr-contract / pr-contract"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -491,9 +472,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -507,9 +486,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {
@@ -565,9 +542,7 @@
   "O2_why": "success",
   "O3": true,
   "O4": true,
-  "reds": [
-   "budget-raise-gate / budget-raise-gate"
-  ],
+  "reds": [],
   "unanswered": []
  },
  {

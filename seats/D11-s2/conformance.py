@@ -13,9 +13,11 @@ Obligations (D11.md method 3, conformance):
   O2 contract  the FIRST completed, non-skipped `pr-contract / pr-contract` run at
                the merged head (check-runs listing, filter=all) is `success`.
   O3 row       a #3394 comment `Merged #<N>` exists (delivery-status-tracking.md 1).
-  O4 red-ans   every failed run at the merged head of a context in
-               `tools/ci/gate.py:REQUIRED`'s union is named in the body's
-               `## Red checks` section (vacuously met when none failed).
+  O4 red-ans   every context in `tools/ci/gate.py:REQUIRED`'s union whose latest
+               run completed at the merged head by merged_at is red is named in the
+               body's `## Red checks` section (vacuously met when none is).
+  O3 uses `tools/audit/seat/record_beat.py:TEMPLATE`'s prefix ("Merged #").
+  O1 counts a delivery-row-only commit after the verdict as a carry.
 Key: the count is keyed on the parsed verdict / the check-run conclusion GitHub
 delivered, never on a title or a label.
 
@@ -33,6 +35,7 @@ import json, re, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = ["tools/audit/seat", "tools/ci"]
 import proof_watch  # noqa: E402
+import record_beat  # noqa: E402
 import gate  # noqa: E402
 
 APPROVER = "hpo-approver[bot]"
@@ -50,6 +53,10 @@ def carried(verdict_sha, head, first_parent):
     if git("merge-base", "--is-ancestor", verdict_sha, head).returncode != 0:
         return False
     own = git("rev-list", "--no-merges", f"{verdict_sha}..{head}", f"^{first_parent}").stdout.split()
+    # a commit touching only dev/programme/delivery/ rows is the recognised
+    # delivery-row carry (the approval bodies say "delivery-row commit only")
+    own = [c for c in own if not all(f.startswith("dev/programme/delivery/")
+                                     for f in git("show", "--name-only", "--format=", c).stdout.split())]
     return not own
 
 
@@ -87,9 +94,14 @@ def measure(d, issue3394):
                      key=lambda c: c["started_at"] or "")
         o2 = bool(pcs) and pcs[0]["conclusion"] == "success"
         why2 = pcs[0]["conclusion"] if pcs else "no completed pr-contract run at head"
-        o3 = re.search(rf"Merged #{n}\b", merged_lines) is not None
-        reds = sorted({c["name"] for c in p["check_runs_at_head"] if c["name"] in req
-                       and c["conclusion"] in ("failure", "timed_out", "action_required")})
+        prefix = record_beat.TEMPLATE.split("{pr}")[0]
+        o3 = re.search(rf"{re.escape(prefix)}{n}\b", merged_lines) is not None
+        last = {}
+        for c in p["check_runs_at_head"]:
+            if c["name"] in req and c["completed_at"] and c["completed_at"] <= pr["merged_at"]:
+                if c["name"] not in last or c["completed_at"] > last[c["name"]]["completed_at"]:
+                    last[c["name"]] = c
+        reds = sorted(k for k, c in last.items() if c["conclusion"] in ("failure", "timed_out", "action_required"))
         sec = red_section(pr["body"])
         unanswered = [r for r in reds if sec is None or (r not in sec and r.split(" / ")[-1] not in sec)]
         o4 = not unanswered
