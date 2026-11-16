@@ -12,3 +12,4 @@
 1794853491 HB alive
 1794853497 INBOX acked through 1
 1794853502 CKPT PROGRESS: code 94503ed9 pushed to handoff-wip (both block mutants killed, controls run); remains: scoped prepr run 3 (diff mutants, ~25 min), then handoff + body_push snapshot 12388d5d479d
+1794854101 HB alive
