@@ -4,15 +4,28 @@ Carries as dispositioned: Carry 0 and Carry 2 (duplicates) are the stub rule and
 
 ## Head
 
-f9f1537051f60d87f13f5e070575bfb85562d2ee (repair of 78e578010065c691fd66032154fe0ddcca6453f1: one re-record commit 53d750ded4, then a merge of origin/main e352724335c136b65562cd3e71f728549ad04a82, forced by a conflict `git merge-tree --write-tree origin/main HEAD` reported in `.claude/workflows/audit-find.js`; measured 2026-11-16, `date -u`). The conflict is the generated FINDING-SCHEMA block: main's side taken, then `python3 tools/audit/fold_ledger.py sync` rewrote it from the merged `finding.schema.json` (`fold_ledger.py check` printed `0 violation(s)`; `node tools/policy/check-wave-script.mjs` printed `249 passed, 0 failed`). The figures below the Red checks section were measured at fe7cb1beb3 and describe the unchanged diff; the merge touched none of its files but the generated block.
+8d2eb5c41a480f91fc092db7e89354807de6925c (repair of 296a0a30d41de41aced099d6c16045cbaefaa1d7, blocked by verdict/3639 as mutation-vacuous: one commit on it, touching only `tools/audit/seat/shell_hazard.py`; `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main is not merged). The figures from the Null control section on that were not re-measured describe the unchanged rest of the diff.
+
+prepr: passed rc=0 at 8d2eb5c41a480f91fc092db7e89354807de6925c
 
 ## Mutation proof
 
-Each mutant is one predicate of `tools/audit/seat/shell_hazard.py` made inert by `sed` on a copy, then `python3 -I tools/audit/seat/shell_hazard.py --self-test`, then restored: `STRING_CMP.search(line)` replaced by `False` (5 rows red: the #3455 compare, the bracket compare and the diff-scope row among them); `pipefail and EARLY.search` (7 red); `STUB_WC.search` (2 red, the padded stub row among them); `or RAW.search(line)` (2 red, the wc-raw null control); `and not DRAINED.search` (2 red, the drained-pipe null control). No mutant printed "ok". prepr's own rows (`hazard_line`, `inline_walk_line`, and each step's call site) are in `bash tools/pr/prepr.sh --self-test`.
+The block: deleting ` or NUMERIC.search(line)` left `--self-test` at ok, and the line-wide search excused a raw wc string compare on any line also holding `-eq`, `((` or `$((`. The repair deletes `NUMERIC` and the line-wide `STRING_CMP`. A new `string_compared(line, m)` judges only the compare that holds the substitution: it is `st`'s or `case`'s subject (`STR_SUBJECT`), or a side of `=`, `==` or `!=` (`STR_OP_AFTER`, `STR_OP_BEFORE`) inside the `[`/`[[` test that holds it (`TEST_OPEN`, and no `]` between that opener and the substitution).
+
+Failing test first: at 296a0a30d4 with only the new rows added, `--self-test` printed `FAILED` with three FAIL rows: `st "$(a | wc -l)" 0 m && [ $n -eq 0 ]` passed and `[ "$(wc -l <f)" = 3 ] || exit $((1))` passed (both should be refused), and `[ -n "$x" ] && echo "$(wc -l <f)" = 3` was refused (should pass).
+
+Mutants, one replacement per predicate on the file, then `python3 -I tools/audit/seat/shell_hazard.py --self-test`, then restore; the count is the `FAIL` rows printed, not counting the summary line. Every mutant exited rc 1:
+- `STR_SUBJECT` limited to `st` (the `case` arm gone): 1; limited to `case`: 4; the `STR_SUBJECT` arm deleted: 5.
+- `TEST_OPEN` without `[[`: 50. The test-bracket requirement dropped (`opener is not None and ...`): 1, the `(( == ))` null row. The closed-bracket check dropped: 1, the `echo ... =` null row.
+- `STR_OP_AFTER` never matching: 53; `STR_OP_BEFORE` never matching: 50; `==` dropped from the operator: 18; `!=` dropped: 18; `-eq` added as a string operator: 19.
+- The operator search widened back to the whole line: 50. The line-wide `NUMERIC` exemption re-added: 51 (the verdict's survivor, now killed).
+- `string_compared` returning False: 107. The unchanged predicates, re-measured: `EARLY` 6, `STUB_WC` 1, `RAW` 1, `DRAINED` 1, `NORMALISE` 3.
+
+A generated spelling corpus drives the rule: `[`/`[[` x double-quoted or bare substitution x left or right side x nine operators (`=`, `==`, `!=`, `-eq`, `-ne`, `-lt`, `-gt`, `-le`, `-ge`) x four tails (none, `&& [ $n -eq 0 ]`, `|| exit $((1))`, `|| [ "$a" = b ]`), 288 lines; the self-test asserts the count and zero misjudged. Null control: the same corpus through 296a0a30d4's `hazards()` misjudges 48 of 288, every one a string compare with a numeric tail.
 
 ## Null control
 
-Instance heads, `shell_hazard.py --check --base <parent> --head <commit>` at the commit that reached CI or macOS, then at its repair: `003f89cf9c^..003f89cf9c` refuses `tools/pr/prepr.sh:2396: wc-compare` (#3455); `1386441425^..1386441425` refuses `:2405: wc-stub` and `:2406: wc-compare`; `09b7856fc0^..09b7856fc0` refuses `tools/pr/app_approve.sh:303: early-pipe` (the carry-tip read); the repair `cb803e9eed^..cb803e9eed` prints no `app_approve.sh` line (the here-string passes). Null controls inside the self-test: the stripped compare, a numeric `-eq` test, a here-string, `|| true`, a `# pipe-small:` reason, a `# wc-raw:` reason, and `c8780ea33d`'s stub, each pass; a marker with no reason does not excuse. The diff scope is a scratch repository: only added lines of nested `tools/**/*.sh` are named, not the old line, a `.py` or a root `.sh`. `inline_scan` in prepr: a scratch tree whose copies match passes, one planted line in a harness's `repo_root` is refused and named.
+Instance heads, `shell_hazard.py --check --base <parent> --head <commit>` at the commit that reached CI or macOS, then at its repair: `003f89cf9c^..003f89cf9c` refuses `tools/pr/prepr.sh:2396: wc-compare` (#3455); `1386441425^..1386441425` refuses `:2405: wc-stub` and `:2406: wc-compare`; `09b7856fc0^..09b7856fc0` refuses `tools/pr/app_approve.sh:303: early-pipe` (the carry-tip read); the repair `cb803e9eed^..cb803e9eed` prints no `app_approve.sh` line (the here-string passes). Null controls inside the self-test: the stripped compare, a numeric `-eq` test, a numeric compare of wc beside an unrelated string compare, `(( $(wc -l <f) == 3 ))`, `$(( $(wc -l <f) + 1 ))`, an `=` outside any test bracket, a here-string, `|| true`, a `# pipe-small:` reason, a `# wc-raw:` reason, and `c8780ea33d`'s stub, each pass; a marker with no reason does not excuse. The diff scope is a scratch repository: only added lines of nested `tools/**/*.sh` are named, not the old line, a `.py` or a root `.sh`. `inline_scan` in prepr: a scratch tree whose copies match passes, one planted line in a harness's `repo_root` is refused and named.
 
 Stub host-independence rule (carry 0): in `tools/audit/seat/instruments/shell_hazard.py.md`, enforced by the `wc-stub` and `wc-compare` rules. Why not `tests/README.md`: it is at its per-file token cap (`policy_lint.mjs --budgets`), and the section took it 190 tokens over; the instrument record has no cap.
 
@@ -25,6 +38,12 @@ Brief item (a): the RCA body is landed verbatim as `dev/audit/rca/R10-RCA-PREPR-
 - Seam census (fixer.md step 8): `git grep -nE '\|[[:space:]]*grep[[:space:]]+-[a-zA-Z]*q' -- tools/pr tools/audit/seat` lists the existing early-pipe sites; they are not judged (only added lines), a distinct finding by id P761 carry 6, closed by the lint for new lines only. The existing `wc` seam: the RCA found one site (#3455), repaired on main by `c8780ea33d`.
 - T_mac and the lane's break-even are void with the lane (carry 1 void by triage).
 - `python3 tools/audit/fold_ledger.py check` printed `0 violation(s)`; `node tools/policy/check-wave-script.mjs` printed `223 passed, 0 failed`; `python3 tests/structure.py` and `GOLDEN_MODE` are untouched (no production file moved).
+
+## Unpinned sites
+
+- `NUMERIC.search(line)` in `hazards()` (verdict/3639's survivor): deleted, with the line-wide `STRING_CMP` it qualified. Its replacement's predicates are each killed above.
+- prepr step 6d', `MUTANT_CMD="python3 -I tools/audit/seat/shell_hazard.py --self-test"` at 8d2eb5c41a, printed 11 `SURVIVED` lines, all inside `self_test()` and none in `hazards()` or `string_compared()`: `shell_hazard.py:134` GUARD_OFF (`if got != want:` in the `st` helper) and `:135` CALL_DEL (its `fails.append`) disable the assertion itself; `:143`-`:147` and `:155`-`:158` CALL_DEL each delete one self-test row. Disposition: a value check. A mutant of the self-test's own assertion or rows cannot be killed by that same self-test. Each deleted row is the check that kills a production mutant named in the Mutation proof (for example `:158`, the `case` row, is the one row that kills M1 `STR_SUBJECT` limited to `st`), and those production mutants were run on the file by hand above, each rc 1.
+- `test "$(wc -l <f)" = 3`, which the verdict names as optional and outside the stated rule: not matched (the rule knows `st`, `case`, `[` and `[[`). Left alone, as the brief scopes this repair to the numeric exemption.
 
 ## Red checks
 
