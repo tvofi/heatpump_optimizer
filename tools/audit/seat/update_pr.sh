@@ -67,7 +67,7 @@ pr_tools_fresh  # the checkout holding these tools, against the main just fetche
 OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | awk -v p="$PR_STATE/" 'index($0, p) == 1' || true); for o in $OWN; do  # mut:seatwt
   [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
   git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_busy "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
-  case $o in "$P"/*) ;; *) pr_cwd_free "$o"; case $? in 0) ;;  # mut:seatcwd
+  case $o in "$P"/*) ;; *) cw=0; pr_cwd_free "$o" || cw=$?; case $cw in 0) ;;  # mut:seatcwd -- tested in `||`: the STOPPED trap reads a bare non-zero as a stop
     1) pr_busy "worktree $o on $BR is outside $P and a live process stands in it: not detaching it";;
     *) pr_busy "worktree $o on $BR is outside $P and lsof could not be read: not detaching it";; esac;; esac
   git -C $o checkout -q --detach

@@ -2014,7 +2014,7 @@ STUB
     seatwt - cwd
     [ "$(cat "$t/rcs")" = 75 ] && [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "a live process stands in it" "$t/outs"
     ck "null control: with a live process's cwd in that worktree the run is BUSY and the worktree keeps the branch" $?
-    seatwt 's/pr_cwd_free "\$o"; case/true; case/' cwd
+    seatwt 's/pr_cwd_free "\$o" \|\| cw=\$\?;/true;/' cwd
     [ "$(cat "$t/attached")" = detached ] && ! grep -qF "a live process stands in it" "$t/outs"
     ck "  mutant mut:seatcwd (the cwd guard made true): the worktree is detached under the live process" $?
     seatwt - commit
