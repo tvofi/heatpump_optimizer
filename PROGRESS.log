@@ -1,3 +1,4 @@
 1794849191 INIT r11-rev-3673
 1794849281 HB alive
 1794849335 CKPT packet and role pack read snapshot da70cf08fa06
+1794849691 CKPT mutants M1-M4 killed, null control at base reproduced snapshot 3b9454384ddf
