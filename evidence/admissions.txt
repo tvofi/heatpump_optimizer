@@ -1,6 +1,0 @@
-10 R10-COMBI-TANK <- R10-RCA-TICK-BLIND | ['### (a) Outside request #3225 (R10-COMBI-TANK) sat with no live seat', '(`git log -S R10-COMBI-TANK` on the roster file, then `after` read per commit):']
-10 R10-HOTFIX-COP-UNMEASURED <- R10-RCA-COP-UNMEASURED | ['This is the root-cause seat for R10-HOTFIX-COP-UNMEASURED (PR #3297, branch', "cause** section on the defect's own issue. R10-HOTFIX-COP-UNMEASURED is an"]
-10 R10-HOTFIX-COP-UNMEASURED <- R10-RCA-TICK-BLIND | ['| R10-COP-GATE-E | `blocked by R10-HOTFIX-COP-UNMEASURED` | dispatch 2026-11-07T15:04Z | 28.1 h (`SEAT ENDED NO RETURN`) |', '| R10-HOTFIX-COP-UNMEASURED | `in progress` | wip-sync 2026-11-08T10:47Z | 8.4 h; #3297 real red and DIRTY |']
-10 R10-GENERIC-HEAT-CURVE <- R10-RCA-TICK-BLIND | ['| R10-GENERIC-HEAT-CURVE-PERSISTENT | `blocked by R10-GENERIC-HEAT-CURVE` | none | not started |', '| R10-GENERIC-HEAT-CURVE | `in progress` | handoff-wip 2026-11-08T17:38Z | 1.5 h (live) |']
-10 R10-GENERIC-HEAT-CURVE-PERSISTENT <- R10-RCA-TICK-BLIND | ['R10-GENERIC-HEAT-CURVE-PERSISTENT]`.', 'R10-COP-GATE-E, R10-GENERIC-HEAT-CURVE-PERSISTENT (stage carries-open)` with no `->`']
-10 R10-HOTFIX-FLOW-SETPOINT-STUCK <- R10-RCA-SETPOINT-LATCH-DEADLOCK | ['This is the root-cause seat for R10-HOTFIX-FLOW-SETPOINT-STUCK. It follows', 'For the fixer of R10-HOTFIX-FLOW-SETPOINT-STUCK, or main:']

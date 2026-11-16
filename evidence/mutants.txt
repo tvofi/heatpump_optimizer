@@ -1,0 +1,13 @@
+whole-text KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+all-paras KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+always-two KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+no-table-filter KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+title-multiline KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+title-hash KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+title-never KILLED rc 1 ['FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+split-strict SURVIVED rc 0 []
+table-nolstrip SURVIVED rc 0 []
+no-strip-text SURVIVED rc 0 []
+no-pstrip-filter SURVIVED rc 0 []
+tok-nostrip KILLED rc 1 ['FAIL convergence: caused_by admits a record naming a group with no rca, by whole token only (got: )', 'FAIL convergence: caused_by admits only a group the record declares its subject, never a status row (got: )']
+restored True

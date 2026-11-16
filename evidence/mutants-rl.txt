@@ -1,8 +1,0 @@
-rca-file: KILLED tools/audit/seat/roster_lib.py rc=1: TypeError: argument of type 'NoneType' is not a container or iterable
-rca-id-regex: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: an own rca id whose record file is missing, or a path for an id, is refused (got: )
-rca-own-arm: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: caused_by needs a root-cause record of the group, so the fixer cannot name it (got: )
-rca-name-arm: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: caused_by admits a record naming a group with no rca, by whole token only (got: )
-rca-substring: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: caused_by admits a record naming a group with no rca, by whole token only (got: )
-rca-nostrip: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: caused_by admits a record naming a group with no rca, by whole token only (got: )
-rca-bool-own: KILLED tools/audit/seat/roster_lib.py rc=1: FAIL convergence: an own rca id whose record file is missing, or a path for an id, is refused (got: )
-cw-rca-gate: KILLED tools/audit/seat/roster_lib.py rc=1: TypeError: argument of type 'NoneType' is not a container or iterable
