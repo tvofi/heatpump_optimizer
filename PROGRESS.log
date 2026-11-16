@@ -10,3 +10,4 @@
 1794845783 CKPT BLOCKED.md pushed to handoff-wip at 8b05d67241: class not closable within seam snapshot c570f0418d5f
 1794845787 DONE blocked: step-response repair closes reviewer domain (64-144 cycles) but not the class (fast/daily swings, heat-led 1.3); design change needed; BLOCKED.md at 8b05d67241 on handoff-wip/r11-outside-self-setting-pump
 1794849215 HB alive
+1794849253 CKPT fire 2: setup done, design 0acbbc8b read, worktree at 8b05d67241 snapshot 278e6e43d80e
