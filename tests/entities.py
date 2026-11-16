@@ -41585,7 +41585,7 @@ _egb3_resolve = {
     "self._away_state.as_dict()": ("away", "as_dict"),
     "state.as_dict()": ("away", "as_dict"),
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
-    "rooms.view(rooms.readings_of(self))": ("rooms", "view"),
+    "rooms.published(rooms.readings_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}

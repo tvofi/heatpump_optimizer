@@ -92,7 +92,7 @@ def readings_of(owner: Any) -> tuple[RoomReading, ...]:
     return _READINGS.get(owner, ())
 
 
-def view(readings: Sequence[RoomReading]) -> RoomsView:
+def published(readings: Sequence[RoomReading]) -> RoomsView:
     """The payload's ``rooms`` block; no key at all with no list, so an
     install that configures none publishes exactly what it did before."""
     if not readings:

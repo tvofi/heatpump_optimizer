@@ -8226,7 +8226,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._mixing_valve_view,
         ):
             data = {**data, **view()}
-        data = {**data, **rooms.view(rooms.readings_of(self))}
+        data = {**data, **rooms.published(rooms.readings_of(self))}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}

@@ -93295,6 +93295,46 @@ R.check(
     "rooms" not in _rm_none and "rooms" not in _rm_empty and set(_rm_none) == set(_rm_empty),
     f"{sorted(set(_rm_none) ^ set(_rm_empty))}",
 )
+
+
+def _rm_displace(cmd):
+    """The coordinator's ECL110 displace read after one more state update, the
+    action carrying ``cmd`` as its displace (None: no displace key at all)."""
+    _, coord = _rm_cycle(tag=f"displace_{cmd}")
+    coord._ecl110_current_displace = -1.25
+    action = {k: v for k, v in coord._current_action.items() if k != "displace_value"}
+    coord._current_action = action if cmd is None else {**action, "displace_value": cmd}
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord._ecl110_current_displace, coord._current_state.ecl110_displace_command
+
+
+_rm_disp = {c: _rm_displace(c) for c in (2.0, "2", None)}
+R.check(
+    "an action carrying a displace hands it, as a number, to the ECL110 lag and the coordinator's "
+    "read of it; null control, an action with no displace leaves the read where it was",
+    _rm_disp[2.0] == (2.0, 2.0) and _rm_disp["2"] == (2.0, 2.0) and _rm_disp[None][0] == -1.25,
+    f"{_rm_disp}",
+)
+R.check(
+    "the room read's age limit is the indoor sensor's, the staleness scale applied through the "
+    "same clamp max_age_for applies",
+    inputs_mod.max_age_for("indoor_temp_entity", 2.0) == inputs_mod._scaled(360.0, 2.0) == 720.0
+    and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
+    f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
+)
+_rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
+    str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
+    for v in (-30.0, 60.0, -30.1, 60.1)}
+R.check(
+    "a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible",
+    _rm_edges == {-30.0: None, 60.0: None, -30.1: "implausible", 60.1: "implausible"},
+    f"{_rm_edges}",
+)
+
 R.check(
     "the side table holds plain data only: a tuple of frozen readings",
     all(isinstance(r, _rm.RoomReading) for r in _rm.readings_of(_rm_twenty_coord))

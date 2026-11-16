@@ -1278,7 +1278,7 @@ def read_room(reader: InputReader, entity_id: str) -> RoomReading:
         return RoomReading(entity_id, None, problem=reading.problem)
     attrs = getattr(state, "attributes", None) or {}
     target, calling, mode = None, None, None
-    if entity_id.split(".", 1)[0] == "climate":
+    if entity_id.startswith("climate."):
         unit = _instance_unit(reader.hass)
         value = temperature_c(attrs.get("current_temperature"), unit)
         target = temperature_c(attrs.get("temperature"), unit)

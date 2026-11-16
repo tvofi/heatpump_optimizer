@@ -1536,8 +1536,9 @@ async def options_room_list():
     check(
         "opt_rooms",
         "happy",
-        "the room page renders its one list field",
-        shows(shown, "rooms") and key in {str(k) for k in shown["data_schema"].schema},
+        "the room page renders its one list field, a selector taking several entities",
+        shows(shown, "rooms") and key in {str(k) for k in shown["data_schema"].schema}
+        and next(v for k, v in shown["data_schema"].schema.items() if str(k) == key).config.get("multiple") is True,
         f"{shown.get('step_id')!r}",
     )
     result = await submit(flow, "rooms", {key: ["climate.a", "sensor.c"]})

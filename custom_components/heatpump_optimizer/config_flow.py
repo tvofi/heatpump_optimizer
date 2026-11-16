@@ -2571,9 +2571,8 @@ def _clear_absent(
 
 async def _room_list_errors(submit: dict[str, Any], _current: dict[str, Any]) -> dict[str, str]:
     """A room list is at most ``rooms.ROOMS_MAX`` entities."""
-    if len(submit.get(CONF_ROOM_TEMPERATURE_ENTITIES) or ()) > rooms.ROOMS_MAX:
-        return {CONF_ROOM_TEMPERATURE_ENTITIES: "too_many_rooms"}
-    return {}
+    too_many = len(submit.get(CONF_ROOM_TEMPERATURE_ENTITIES) or ()) > rooms.ROOMS_MAX
+    return {CONF_ROOM_TEMPERATURE_ENTITIES: "too_many_rooms"} if too_many else {}
 
 
 def _setup_overview_form(
@@ -3300,18 +3299,20 @@ class HeatPumpOptimizerConfigFlow(
 
 
 def _registry_step(
-    step_id: str, *, clear: bool = True, check: _PageCheck | None = None
+    step_id: str, check: _PageCheck | None = None
 ) -> Callable[[HeatPumpOptimizerOptionsFlow, dict[str, Any] | None], Awaitable[ConfigFlowResult]]:
     """The step method of a page that is ``_page`` alone: no check bound to
     the flow, nothing shaping what is saved. What the page shows and says is
-    the registry's (``_OPTION_PAGES``, ``_OPTION_FIELDS``) and its translations'."""
+    the registry's (``_OPTION_PAGES``, ``_OPTION_FIELDS``) and its translations',
+    and so is whether a save clears: only a page with a ``_STORED`` row has a
+    slot to null (``_page``)."""
+    clear = any(row.default is _STORED for row in _OPTION_FIELDS if row.step == step_id)
 
     async def step(
         flow: HeatPumpOptimizerOptionsFlow, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         return await flow._page(step_id, user_input, clear=clear, check=check)
 
-    step.__name__ = step.__qualname__ = f"async_step_{step_id}"
     return step
 
 
@@ -3700,7 +3701,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async_step_entities_pump = _registry_step("entities_pump")
 
-    async_step_rooms = _registry_step("rooms", check=_room_list_errors)
+    async_step_rooms = _registry_step("rooms", _room_list_errors)
 
     async def async_step_comfort(
         self, user_input: dict[str, Any] | None = None
@@ -3862,7 +3863,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """Two-zone split and solar orientation."""
         return await self._thermal_model_page("thermal_model_zones", user_input)
 
-    async_step_tuning = _registry_step("tuning", clear=False)
+    async_step_tuning = _registry_step("tuning")
 
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
@@ -3978,7 +3979,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """
         return await self._page("learning", user_input)
 
-    async_step_learning_features = _registry_step("learning_features", clear=False)
+    async_step_learning_features = _registry_step("learning_features")
 
     #: The preview a first submit of the pre-fill page computed: the prefix to
     #: store with the save (None when it found nothing, so nothing is written),
