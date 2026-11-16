@@ -10,9 +10,9 @@ clock advanced SIMULATE_MIN_INTERVAL_SECONDS + 0.05 s between them (each
 passes whatif.limited_answer), all in flight together as a user's nudges
 are when each answer takes longer than the interval. Reported beside it:
 solver thread CPU per what-if in reference solves (contention-robust),
-wall time from the first request to the last answer, and the wait a
-scheduled cycle's solve submitted right after the burst sees before its
-own job enters the worker. Keyed on _run_in_process entries.
+wall time from the first request to the last answer, and the latency of a
+scheduled solve submitted right behind the burst over its latency alone
+(k0, no burst). Keyed on _run_in_process entries.
 
 Command (from the export root):
     PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
@@ -81,10 +81,9 @@ async def burst(k: int, guard: bool):
     inflight = {"n": 0}
     if guard:
         def guarded(held, now):
-            if inflight["n"] and held.answer:
-                return {**held.answer, "rate_limited": True}
-            if inflight["n"]:
-                return {"error": "busy", "rate_limited": True}
+            # the asking call counts itself in inflight["n"]
+            if inflight["n"] > 1:
+                return {**(held.answer or {}), "rate_limited": True}
             return real_limited(held, now)
         whatif.limited_answer = guarded
 
@@ -112,7 +111,6 @@ async def burst(k: int, guard: bool):
         t_last = time.perf_counter()
         await sched
         sched_done = time.perf_counter()
-        sched_entry = [t for n, t in entries if n == "optimize_in_process"][-1]
     finally:
         cm._run_in_process = real_run
         whatif.limited_answer = real_limited
@@ -121,7 +119,6 @@ async def burst(k: int, guard: bool):
     jobs = len(entries) - 1  # minus the scheduled solve's own
     limited = sum(1 for a in answers if isinstance(a, dict) and a.get("rate_limited"))
     return {"jobs": jobs, "limited": limited, "burst_wall": t_last - t0,
-            "sched_wait": sched_entry - solve_start if sched_entry >= solve_start else 0.0,
             "sched_total": sched_done - solve_start, "queued": n_whatif_jobs_queued}
 
 
@@ -130,14 +127,16 @@ def main():
     ap.add_argument("--k", type=int, default=4)
     a = ap.parse_args()
     swap0 = L.swapins()
+    solo = asyncio.run(burst(0, False))
+    L.result("k0.scheduled_solve_total_s", solo["sched_total"], "s")
     for k, guard in ((1, False), (a.k, False), (a.k, True)):
         r = asyncio.run(burst(k, guard))
         tag = f"k{k}" + (".inflight_guard" if guard else "")
         L.result(f"{tag}.worker_jobs_started", r["jobs"], "count")
         L.result(f"{tag}.worker_jobs_per_whatif", r["jobs"] / k, "count")
+        L.result(f"{tag}.scheduled_solve_latency_over_solo", r["sched_total"] / solo["sched_total"], "ratio")
         L.result(f"{tag}.answers_rate_limited", r["limited"], "count")
         L.result(f"{tag}.burst_wall_s", r["burst_wall"], "s")
-        L.result(f"{tag}.scheduled_solve_wait_s", r["sched_wait"], "s")
         L.result(f"{tag}.scheduled_solve_total_s", r["sched_total"], "s")
     rclock = L.Clock()
     L.result("reference_solve_cpu_ms", L.ref_ms(), "ms")
