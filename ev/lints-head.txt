@@ -1,0 +1,9 @@
+== head
+
+FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+tools/audit/briefs/COMMON.md                     114  114     1697  1697 
+corpus:        ~69824 tokens, cap 69333 +band 500 = 69833
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL
+RULES-SYNC ok: every generated rule is the generated form of its source
+brief_lint rc=0
