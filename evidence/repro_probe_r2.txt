@@ -1,0 +1,24 @@
+null control (sound account, real git): probe OK
+control: root inside a git work tree: REFUSED the private root <td>/ingit/root is inside a git work tree
+same root, GIT_DIR names a path that is no repository: probe OK
+same root, GIT_CEILING_DIRECTORIES names the work tree: probe OK
+a second gh on PATH that exits 0 (control): REFUSED a gh on PATH reports a login: <td>/ghbinexits0(/gh
+a second gh on PATH that exits 1: probe OK
+a second gh on PATH that exits 2: probe OK
+a second gh on PATH that is killed by a signal: probe OK
+a second gh on PATH that exits 127 (its interpreter missing a command): probe OK
+variable PUSH_AUTH set: REFUSED the credential variable PUSH_AUTH is set
+variable DEPLOYKEY set: probe OK
+variable SSHKEY set: probe OK
+variable PRIVATEKEY set: probe OK
+variable ACCESS_TOKENS set: probe OK
+variable PUSH_SECRETS set: probe OK
+variable SIGNING_KEYS set: probe OK
+variable GH_PASS set: probe OK
+variable PUSH_BEARER set: probe OK
+variable SESSION_COOKIE set: probe OK
+variable PUSH_JWT set: probe OK
+variable PUSH_AUTHORIZATION set: probe OK
+variable NETRC set: probe OK
+variable GIT_CONFIG_COUNT set: REFUSED `git credential fill` did not answer for github.com (exit 128 is neither answer)
+variable MODEL_KEY set: probe OK
