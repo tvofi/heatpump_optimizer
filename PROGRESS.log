@@ -9,3 +9,4 @@
 1794843336 CKPT mutants M1-M6 killed; notes s2,s3,r1 measured; gate running snapshot dc32b6d81ac7
 1794843588 CKPT stale pins repaired, clamp check added; 5 added sites killed locally snapshot 03044a8a73cc
 1794843873 HB alive
+1794844073 CKPT features.py 5 reds analysed; tests repaired; full features re-run snapshot 1616627222b5
