@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_room_list_errors RETURN_DEL 1575226d",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return {CONF_ROOM_TEMPERATURE_ENTITIES: \"too_many_rooms\"} if too_many else {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

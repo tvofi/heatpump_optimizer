@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:RoomAverageTempSensor.extra_state_attributes RETURN_DEL 4f6e06ae",
+  "killed_by": "tests/entities.py",
+  "old": "        return {key: block.get(key) for key in (\"valid_count\", \"configured_count\", \"per_room\", \"dropped\")}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
