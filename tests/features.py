@@ -93512,6 +93512,35 @@ R.check(
     f"{None if _rl_below is None else np.round(_rl_below[:3], 4).tolist()} {_rm.lift_of(_rl_below_owner)}",
 )
 
+_rl_uneven = np.concatenate(([0.3], np.zeros(_RL_N - 1)))
+_rl_uneven_got, _ = _rl_solve(readings=_rl_e(15.0), house=19.9, base=_rl_uneven)
+R.check(
+    "the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 "
+    "over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up",
+    _rl_uneven_got is not None and np.allclose(_rl_uneven_got[:3], [0.3 + 0.1, 0.1625, 0.225]),
+    f"{None if _rl_uneven_got is None else np.round(_rl_uneven_got[:3], 4).tolist()}",
+)
+_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5)
+_rl_half_got, _ = _rl_solve(house=20.0, cfg=_rl_half_cfg)
+R.check(
+    "the band is read at each step's hour and minute, as the solver's bounds are: a day ending "
+    "21:30 gives the 0.5 K day band through 21:15 and the night band from 21:30",
+    _rl_half_got is not None and np.allclose(_rl_half_got[:38], 0.5)
+    and np.allclose(_rl_half_got[38:], 1.0),
+    f"{None if _rl_half_got is None else np.round(_rl_half_got[36:40], 4).tolist()}",
+)
+_, _rl_first_owner = _rl_solve(readings=_rl_e(19.125), house=20.0)
+_, _rl_edge_owner = _rl_solve(readings=(_rl_room("climate.e", 0.0, 0.2),), house=20.0)
+R.check(
+    "a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking "
+    "the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift "
+    "starts its ramp nowhere",
+    _rm.lift_of(_rl_first_owner).lift_c == 0.875
+    and _rm.lift_of(_rl_edge_owner).lift_c == _rm.ROOM_LIFT_DEADBAND_C == 0.2
+    and _rm.HeldLift().anchor_c == 0.0 and _rm.HeldLift() == _rm.HeldLift(0.0, None, None, 0.0),
+    f"{_rm.lift_of(_rl_first_owner)} {_rm.lift_of(_rl_edge_owner)} {_rm.HeldLift()}",
+)
+
 # -- Hold: the lift moves by the deadband or not at all; a gate zeroes at once --
 _rl_h1, _rl_hold = _rl_solve(readings=_rl_e(19.5), house=20.0)
 _rl_h2, _ = _rl_solve(readings=_rl_e(19.375), house=20.0, owner=_rl_hold)
@@ -93566,11 +93595,16 @@ R.check(
 _rl_pub = _rm.published(_RL_ROOMS, _rm.lift_of(_rl_ramped_owner))["rooms"]["lift"]
 _rl_pub_gate = _rm.published(_RL_ROOMS, _rm.HeldLift(gate="economy"))["rooms"]["lift"]
 R.check(
-    "the rooms block names the lift's size, its room and the gate that zeroed it; None before a "
-    "solve; and no rooms block at all with no list",
+    "the rooms block names the lift's size to a hundredth, its room (none while nothing is "
+    "lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with "
+    "no list",
     _rl_pub == {"size": 1.0, "entity": "climate.a", "gate": None}
     and _rl_pub_gate == {"size": 0.0, "entity": None, "gate": "economy"}
     and _rm.published(_RL_ROOMS)["rooms"]["lift"] is None
+    and _rm.published(_RL_ROOMS, _rm.HeldLift(0.126, "climate.a"))["rooms"]["lift"]["size"] == 0.13
+    and _rm.published(_RL_ROOMS, _rm.lift_of(_rl_same_owner))["rooms"]["lift"]
+    == {"size": 0.0, "entity": None, "gate": None}
+    and _rm.lift_of(_rl_same_owner).entity_id == "climate.e"
     and _rm.published((), _rm.HeldLift(1.0, "climate.a")) == {},
     f"{_rl_pub} {_rl_pub_gate}",
 )
@@ -93618,6 +93652,9 @@ _rl_c_on = _rl_coord()
 _rl_c_none = _t5_run(_t5_solve_spy())
 _rl_c_off = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: False})
 _rl_c_default = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: None})
+_rl_c_absent = _t5_solve_spy(**{_RM_KEY: _RL_LIST})
+_rm.record(_rl_c_absent, _RL_COLD)
+_t5_run(_rl_c_absent)
 _rl_house = _rl_c_on._current_state.room_temperature
 _rl_on_m = _rl_c_on._rl_margins[0]
 R.check(
@@ -93635,6 +93672,8 @@ R.check(
     "the plan is the no-list plan step for step; null control, the lifted plan differs",
     _rl_c_off._rl_margins == [None] and _rl_c_default._rl_margins == [None]
     and _rm.lift_of(_rl_c_off).gate == "disabled"
+    and _rm.lift_of(_rl_c_absent) == _rm.HeldLift(gate="disabled")
+    and _rl_const.DEFAULT_ROOM_LIFT_ENABLED is False
     and _rl_plan(_rl_c_none) is not None
     and _rl_plan(_rl_c_off) == _rl_plan(_rl_c_none) == _rl_plan(_rl_c_default)
     and _rl_plan(_rl_c_on) != _rl_plan(_rl_c_none),
@@ -93673,6 +93712,12 @@ R.check(
     "those two away solves were away, the second one recovering, and the Economy one was not",
     _rl_c_away == {"away": (True, False), "away, recovering": (True, True), "economy": (False, False)},
     f"{_rl_c_away}",
+)
+_rl_c_pub = _rl_c_on._build_data_dict().get("rooms", {}).get("lift")
+R.check(
+    "the coordinator publishes the lift its solve was given in the payload's rooms block",
+    _rl_c_pub == {"size": 1.0, "entity": "climate.a", "gate": None},
+    f"{_rl_c_pub}",
 )
 
 
