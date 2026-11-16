@@ -2,15 +2,18 @@
 """D11-s1 round 11: the structural ratchet's control, driven by hand (D11.md trap 2).
 
 Metric (one line): over every metric of tests/structure_budgets.json (its keys
-less recorded_at), how many the production ratchet REFUSES when that one budget
-is lowered by 1 below the measured value (a one-cap-tighter budget table).
-Count key: tests/structure.py:ratchet's return code per perturbed table.
+less recorded_at), how many the production ratchet REFUSES AS A BREACH (rc 1) when that one
+budget is lowered by 1 below the measured value (a one-cap-tighter table).
+A metric measured at 0 cannot be lowered (caps are non-negative) and is
+reported as floor, not counted. Count key: tests/structure.py:ratchet's
+return code per table; rc 2 is its separate refusal of unrecorded slack.
 
 Run (from the export root):
     PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/structure_control.py
-Expected: RESULT refused=<metrics> of RESULT metrics=18, exact; null control: the
-committed table returns 0. Perturbation: `--perturb` swaps ratchet's comparison
-input (budgets) for the measured values +1 on every key -> refused 0 (down).
+Expected: RESULT refused=15 of RESULT lowerable=15 (metrics=18, floor=3), exact;
+null control: the committed table returns 0. Perturbation: `--perturb` swaps the
+budget table for measured+1 on every key -> refused 0 (down; every table rc 2,
+the slack refusal, which is not a breach).
 Writes only a temp budget file; BUDGET_FILE is swapped in memory.
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692; machine: box B6 (linux, 4 cpu).
 Instrumented symbol: tests/structure.py:ratchet (measure() once, ratchet per table).
@@ -52,7 +55,7 @@ def run(table):
 
 
 null_rc = run(committed)
-refused = 0
+refused = floor = 0
 for k in keys:
     t = dict(committed)
     m = result["metrics"].get(k)
@@ -60,9 +63,13 @@ for k in keys:
     if PERTURB:
         t.update({kk: result["metrics"].get(kk, committed[kk]) + 1 for kk in keys})
     rc = run(t)
-    refused += 1 if rc else 0
+    if not PERTURB and (m or 0) == 0:
+        floor += 1
+    refused += 1 if rc == 1 else 0
     print(f"{k:40s} measured={m} cap={t[k]} rc={rc}")
 print(f"RESULT metrics={len(keys)} metrics")
+print(f"RESULT floor={floor} metrics")
+print(f"RESULT lowerable={len(keys) - floor} metrics")
 print(f"RESULT refused={refused} metrics")
 print(f"RESULT null_rc={null_rc} rc")
 c1, t1 = time.process_time(), time.thread_time()

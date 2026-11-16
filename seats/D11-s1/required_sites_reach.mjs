@@ -14,10 +14,10 @@
 // --perturb is the one-line production edit, made in the temp copy: the
 // REQUIRED_CONTEXT_SITE regex in policy_lint.mjs gains the moved homes
 // (dev/programme/plan-*.md, dev/governance/decisions/NNNN-*.md,
-// dev/programme/HANDOVER.md). Expected: baseline RESULT unreached=3 of 4
-// sites (plan, a decision, the handover; the workflow site is reached),
-// perturbed unreached=0 (down). Null control: the unplanted copy reports 0
-// required-contexts findings.
+// dev/programme/HANDOVER.md). Measured at the baseline: RESULT unreached=0
+// of 4 sites (every moved home is already reached, so this is a
+// NON-FINDING); the perturbed arm also reads 0. Null control: the unplanted
+// copy reports 0 required-contexts findings; each planted site adds 1.
 // Every run is policy_lint.mjs on a temp COPY of the export (its linked .git
 // file kept, read-only use), with `gh` a shim serving api/*.json: no live API
 // call, the export never written.
