@@ -302,10 +302,19 @@ def run_ms(call: MsCall, cands, maxiter=None, eps=None, budget=False):
         patches.append(mock.patch.object(om, "_scoped_minimize", _loose_budget_scoped))
     for p in patches:
         p.start()
+
+    def ms(c, m):
+        # production's continuation moves the start at index len(extra_starts);
+        # a challenger list shorter than that has no such start, so it is left
+        # unmoved (the race's seeds arm can be shorter than production's list)
+        try:
+            return call.move_starts(c, m)
+        except IndexError:
+            return c
     try:
         return ORIG_MS(call.objective, list(cands), call.bounds, call.args,
                        maxiter=maxiter or call.maxiter, batch_objective=call.batch,
-                       move_starts=call.move_starts)
+                       move_starts=ms)
     finally:
         for p in reversed(patches):
             p.stop()
