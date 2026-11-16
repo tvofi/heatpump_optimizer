@@ -1,0 +1,187 @@
+verdicts on the bus: 2868; outside the grammar: 0
+taught real: architecture-unsound, class-open, harness, metric-gamed, mutation-vacuous, product-tradeoff-regression
+taught bookkeeping: carry-missing, claims, conflict, head-moved, null-control, other, preflight-mismatch, root-cause-detectable, root-cause-unanswered, root-cause-unrecorded, version
+untaught real: defect, figures-false, mutant-survives, mutation, mutation-survivor, mutation-untriaged, policy-regression, test-vacuous, vacuous-check, vacuous-test
+## all
+  all                      r10    PRs 909 verdicts 2537 real 394 (0.43/PR) book 637 (0.70/PR) incidence 214/909 (0.24) first-pass 467/909
+## clause
+  (merge)                  r10    PRs 895 verdicts 1506 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/895 (0.00) first-pass 467/467
+  (no clause) conflict     r10    PRs 3 verdicts 4 real 0 (0.00/PR) book 4 (1.33/PR) incidence 0/3 (0.00) first-pass 0/1
+  (no clause) other        r10    PRs 5 verdicts 7 real 0 (0.00/PR) book 7 (1.40/PR) incidence 0/5 (0.00) first-pass 0/5
+  (no clause) preflight-mismatch r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (no clause) product-tradeoff-regression r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  (untaught) beyond-card   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) body          r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) body-carry-missing r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) body-claim-wrong r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) body-figure   r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) body-figures-stale r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) body-head-stale r10    PRs 2 verdicts 5 real 0 (0.00/PR) book 5 (2.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) body-head-unnamed r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) body-not-applied r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) body-stale    r10    PRs 14 verdicts 20 real 0 (0.00/PR) book 20 (1.43/PR) incidence 0/14 (0.00) first-pass 0/5
+  (untaught) brief-lint    r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) budget-exceeded r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-dest-done r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-dismissal-unsupported r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-over-wide r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-scope   r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-stale   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-unanswered r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-undisposed r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) carry-unmet   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-unrouted r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) carry-unsound r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) census-misclassified r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ci-cancelled  r10    PRs 4 verdicts 4 real 0 (0.00/PR) book 4 (1.00/PR) incidence 0/4 (0.00) first-pass 0/2
+  (untaught) ci-deferral-red r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) ci-incomplete r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) ci-pending    r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) ci-red        r10    PRs 57 verdicts 80 real 0 (0.00/PR) book 80 (1.40/PR) incidence 0/57 (0.00) first-pass 0/25
+  (untaught) ci-red-cancelled r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ci-unconcluded r10    PRs 3 verdicts 6 real 0 (0.00/PR) book 6 (2.00/PR) incidence 0/3 (0.00) first-pass 0/2
+  (untaught) ci-unsettled  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) citation-false r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) citation-wrong r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) claim         r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) claim-drift   r10    PRs 1 verdicts 4 real 0 (0.00/PR) book 4 (4.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) claim-false   r10    PRs 7 verdicts 12 real 0 (0.00/PR) book 12 (1.71/PR) incidence 0/7 (0.00) first-pass 0/7
+  (untaught) claim-refuted r10    PRs 6 verdicts 7 real 0 (0.00/PR) book 7 (1.17/PR) incidence 0/6 (0.00) first-pass 0/4
+  (untaught) claim-stronger-than-check r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) class-rule-missing r10    PRs 1 verdicts 4 real 0 (0.00/PR) book 4 (4.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) closures-red  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) closures-regressed r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) comment-claim r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) comment-evidence r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) config-attack r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) contract      r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) contract-incomplete r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) contract-red  r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) control-failed r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) control-missing r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) countermeasure-silenced r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) countermeasure-unsound r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) cutover-unsound r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) dangling-owner r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) darwin-red    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) defect        r10    PRs 6 verdicts 7 real 7 (1.17/PR) book 0 (0.00/PR) incidence 6/6 (1.00) first-pass 0/5
+  (untaught) delivery-row-stale r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) dispatch-mismatch r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) doc-claim-false r10    PRs 2 verdicts 4 real 0 (0.00/PR) book 4 (2.00/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) dropped-entries r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) duplicate-ruling r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) equivalence-refuted r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) evidence-comment r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) evidence-cut  r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) figure        r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) figure-false  r10    PRs 2 verdicts 4 real 0 (0.00/PR) book 4 (2.00/PR) incidence 0/2 (0.00) first-pass 0/1
+  (untaught) figure-mislabelled r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) figure-uncited r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) figure-unverified r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/1
+  (untaught) figure-wrong  r10    PRs 6 verdicts 12 real 0 (0.00/PR) book 12 (2.00/PR) incidence 0/6 (0.00) first-pass 0/4
+  (untaught) figures-false r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/0
+  (untaught) figures-uncited r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) figures-unverified r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) findings-unresolved r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) flaky-arm     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) flaky-harness r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) gate-red      r10    PRs 3 verdicts 5 real 0 (0.00/PR) book 5 (1.67/PR) incidence 0/3 (0.00) first-pass 0/2
+  (untaught) harness-nondeterministic r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) harness-vacuous r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) hold-unrefreshed r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) host-path     r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) instrument-broken r10    PRs 2 verdicts 5 real 0 (0.00/PR) book 5 (2.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) introduced-red r10    PRs 5 verdicts 6 real 0 (0.00/PR) book 6 (1.20/PR) incidence 0/5 (0.00) first-pass 0/2
+  (untaught) main-conflict r10    PRs 2 verdicts 2 real 0 (0.00/PR) book 2 (1.00/PR) incidence 0/2 (0.00) first-pass 0/0
+  (untaught) merge-conflict r10    PRs 10 verdicts 17 real 0 (0.00/PR) book 17 (1.70/PR) incidence 0/10 (0.00) first-pass 0/3
+  (untaught) merge-semantics r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) mutant-committed r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) mutant-survives r10    PRs 5 verdicts 11 real 11 (2.20/PR) book 0 (0.00/PR) incidence 5/5 (1.00) first-pass 0/5
+  (untaught) mutation      r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  (untaught) mutation-survivor r10    PRs 15 verdicts 31 real 31 (2.07/PR) book 0 (0.00/PR) incidence 15/15 (1.00) first-pass 0/13
+  (untaught) mutation-survivors r10    PRs 4 verdicts 6 real 0 (0.00/PR) book 6 (1.50/PR) incidence 0/4 (0.00) first-pass 0/4
+  (untaught) mutation-unpinned r10    PRs 2 verdicts 4 real 0 (0.00/PR) book 4 (2.00/PR) incidence 0/2 (0.00) first-pass 0/1
+  (untaught) mutation-untriaged r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  (untaught) nondeterministic-arm r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) null-control-false r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) null-control-leak r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) over-fire     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) own-row-not-generated r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) owner-ruling-contradicted r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) owner-stale   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) owner-words   r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) part-topic-collision r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) pin-missing   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) pin-wrong     r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) policy-loosened r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) policy-regression r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  (untaught) policy-unapproved r10    PRs 1 verdicts 3 real 0 (0.00/PR) book 3 (3.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) pr-closed     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) pr-contract-red r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) pr-contract-refused r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) predicate-over-fire r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) prior         r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) prior-findings-open r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) raise-unjustified r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) ratchet-grown r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ratchet-unrecorded r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) record-contradicts-diff r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) red-at-head   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) red-checks    r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) red-unanswered r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) reference-basis-unbumped r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) regression    r10    PRs 7 verdicts 10 real 0 (0.00/PR) book 10 (1.43/PR) incidence 0/7 (0.00) first-pass 0/6
+  (untaught) regression-unmeasured r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) released-early r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) requirement-unmet r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) resolution-ungated-step r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) retry-rule-unsound r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) robustness    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) roster-stage-unclassified r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) roster-stale  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) row-format    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) rule-conflict r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) rule-dropped  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) rule-lost     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ruling        r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) ruling-change r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ruling-incomplete r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ruling-misrouted r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ruling-refuted r10    PRs 2 verdicts 4 real 0 (0.00/PR) book 4 (2.00/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) ruling-unmet  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) ruling-unsound r10    PRs 2 verdicts 8 real 0 (0.00/PR) book 8 (4.00/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) scope-incomplete r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) scope-overlap r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) scope-rule-widened r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) self-test-red r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/1
+  (untaught) selftest-red  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) selftest-scope-ungated r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) semantic-conflict r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) settle-unjudged r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) spec-unmet    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) stale-base    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) stale-premise r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) stale-reference r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) structure-breach r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) sufficiency   r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) suite-red     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  (untaught) swap-void-undone r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) test-vacuous  r10    PRs 2 verdicts 3 real 3 (1.50/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2
+  (untaught) tests-red     r10    PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) trace-gap     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) under-scoped  r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  (untaught) unpinned-site r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) vacuous-check r10    PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  (untaught) vacuous-test  r10    PRs 3 verdicts 3 real 3 (1.00/PR) book 0 (0.00/PR) incidence 3/3 (1.00) first-pass 0/1
+  (untaught) verdict-word  r10    PRs 2 verdicts 4 real 0 (0.00/PR) book 4 (2.00/PR) incidence 0/2 (0.00) first-pass 0/2
+  (untaught) wait-cycle    r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  fix-review.md step 1     r10    PRs 81 verdicts 130 real 130 (1.60/PR) book 0 (0.00/PR) incidence 81/81 (1.00) first-pass 0/62
+  fix-review.md step 10    r10    PRs 77 verdicts 130 real 0 (0.00/PR) book 130 (1.69/PR) incidence 0/77 (0.00) first-pass 0/56
+  fix-review.md step 11    r10    PRs 47 verdicts 56 real 0 (0.00/PR) book 56 (1.19/PR) incidence 0/47 (0.00) first-pass 0/22
+  fix-review.md step 12    r10    PRs 9 verdicts 14 real 0 (0.00/PR) book 14 (1.56/PR) incidence 0/9 (0.00) first-pass 0/3
+  fix-review.md step 14    r10    PRs 7 verdicts 11 real 11 (1.57/PR) book 0 (0.00/PR) incidence 7/7 (1.00) first-pass 0/5
+  fix-review.md step 15    r10    PRs 7 verdicts 8 real 8 (1.14/PR) book 0 (0.00/PR) incidence 7/7 (1.00) first-pass 0/5
+  fix-review.md step 2     r10    PRs 32 verdicts 47 real 47 (1.47/PR) book 0 (0.00/PR) incidence 32/32 (1.00) first-pass 0/26
+  fix-review.md step 3     r10    PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  fix-review.md step 4     r10    PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/1
+  fix-review.md step 6     r10    PRs 69 verdicts 137 real 137 (1.99/PR) book 0 (0.00/PR) incidence 69/69 (1.00) first-pass 0/53
