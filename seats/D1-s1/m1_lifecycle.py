@@ -17,10 +17,16 @@ Count key: `async_shutdown` entries counted by a wrapper on the class method
 (production's own body runs); writes = `hass.services.calls` appended during
 the unload; saves = `homeassistant.helpers.storage.SAVE_COUNTS` delta.
 
-Run:   PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py [--unload faithful|harness]
-Expect (faithful): RESULT leaks_total=0, RESULT escaped_exceptions=0,
-       RESULT first_cycle_ok=3 of 3; RESULT shutdown_runs_per_unload=2 (faithful)
-       vs 1 (harness); exact.
+Run:   PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_lifecycle.py [--unload faithful|harness|harness_awaiting]
+       (an export carrying macOS ._* files breaks enumerate.py; then set
+       D1_CENSUS_DIR to a directory holding d1-lifecycle.txt, the enumerator's
+       output on a clean tree)
+Expect (faithful): RESULT census_lines_ran=41, leaks_total=0, escaped_exceptions=0,
+       first_cycle_ok=3 of 3, resolve_after_restore=None, shutdown_runs_per_unload=2,
+       dropped_coroutines=0, unload_saves=12; (harness): shutdown_runs_per_unload=1,
+       dropped_coroutines=3, unload_saves=9; exact.
+Positive control (the leak detector): `--perturb-leak` makes running_signal.detach a
+       no-op; leaks_total 0 -> >0 and the torn-down coordinators stay alive.
 Perturbation (C3): `--unload harness_awaiting` is ha_unload_entry with the one-line
        repair (await a callback's returned awaitable): shutdown_runs_per_unload
        1 -> 2 and dropped_coroutines 3 -> 0 against `--unload harness`.
@@ -129,7 +135,6 @@ async def _counted_shutdown(self):
 
 cm.HeatPumpOptimizerCoordinator.async_shutdown = _counted_shutdown
 
-SOLVES: dict[int, int] = {}
 _orig_file = cm.HeatPumpOptimizerCoordinator._file_lead_predictions
 
 
@@ -492,7 +497,12 @@ async def scenario(unload_mode: str):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--unload", choices=("faithful", "harness", "harness_awaiting"), default="faithful")
+    ap.add_argument("--perturb-leak", action="store_true",
+                    help="positive control: running_signal.detach becomes a no-op, so the "
+                         "signal's listener outlives every teardown (leaks_total must go up)")
     a = ap.parse_args()
+    if a.perturb_leak:
+        running_signal.detach = lambda sig: None
     t0, p0 = time.thread_time(), time.process_time()
     r = asyncio.run(scenario(a.unload))
     sites = set(rl.SITES)

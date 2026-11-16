@@ -129,6 +129,17 @@ def patch_imported(*modules) -> None:
                 setattr(m, name, fn)
 
 
+DELIBERATE = [0.0]  # CPU seconds spent on the executor threads (deliberate second-thread work)
+
+
+def _timed(func, *args):
+    t = time.thread_time()
+    try:
+        return func(*args)
+    finally:
+        DELIBERATE[0] += time.thread_time() - t
+
+
 class RealHass(FakeHass):
     """FakeHass on a real loop: a pooled executor, tasks that run."""
 
@@ -141,6 +152,8 @@ class RealHass(FakeHass):
         self.executor_jobs: list = []  # (fn qualname, site, future, (fn, args))
         self._bus_listen_once = self.bus.async_listen_once
         self.bus.async_listen_once = self._listen_once
+        self.fired: list = []
+        self.bus.async_fire = lambda event_type, data=None, *a, **k: self.fired.append((event_type, data))
 
     def _listen_once(self, event_type, listener):
         SITES.append(("async_listen_once", _site(2)))
@@ -158,7 +171,7 @@ class RealHass(FakeHass):
         return self.async_create_task(coro, name=name)
 
     async def async_add_executor_job(self, func, *args):
-        fut = self.loop.run_in_executor(self.executor, func, *args)
+        fut = self.loop.run_in_executor(self.executor, _timed, func, *args)
         self.executor_futures.add(fut)
         site = _site(2)
         SITES.append(("async_add_executor_job", site))
@@ -208,10 +221,20 @@ async def ha_unload_faithful(integration, hass, entry):
     return ok, scheduled
 
 
-def reaches(root, target, limit: int = 60000) -> bool:
-    """Whether ``target`` is reachable from ``root`` over gc referents (bounded BFS)."""
+def reaches(root, target, limit: int = 60000, skip_ids=()) -> bool:
+    """Whether ``target`` is reachable from ``root`` over gc referents (bounded BFS).
+
+    ``skip_ids`` are never traversed (the hass and the entry: every coordinator
+    is reachable through them, so a path over them says nothing of the holder).
+    """
     tid = id(target)
-    seen = {id(root)}
+    # Module namespaces are not traversed either: a function's __globals__ would
+    # otherwise reach every coordinator a module-level table holds.
+    seen = {id(root), *skip_ids, *(id(vars(m)) for m in list(sys.modules.values()) if m is not None)}
+    try:  # nor the loop, whose ready/scheduled queues hold every instance's callbacks
+        seen.add(id(asyncio.get_running_loop()))
+    except RuntimeError:
+        pass
     q = [root]
     i = 0
     skip = (types.ModuleType, type)
@@ -230,7 +253,9 @@ def reaches(root, target, limit: int = 60000) -> bool:
     return False
 
 
-def env_results(t_cpu0: float, p_cpu0: float, deliberate: float = 0.0) -> None:
+def env_results(t_cpu0: float, p_cpu0: float, deliberate: float | None = None) -> None:
+    if deliberate is None:
+        deliberate = DELIBERATE[0]
     tc = time.thread_time() - t_cpu0
     pc = time.process_time() - p_cpu0
     tf = (pc - deliberate) / tc if tc > 0 else 1.0
