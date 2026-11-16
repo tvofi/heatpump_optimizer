@@ -23,7 +23,7 @@ Each script runs in a temp COPY of the export, with PATH led by shims for gh
 git (logs a push to a github.com remote, then runs the real git, whose
 github.com URLs are rewritten to a dead file:// path): no live call leaves the
 box and the export is never written.
-Expected at the baseline: RESULT github_writes_on_selftest=1 (wt_sync.sh: a
+Expected at the baseline: RESULT real_repo_writes_on_selftest=1 (wt_sync.sh; github_writes_on_selftest=10 counts self-test fixture repos too: a
 force-push of wip-sync/<slug> for every dirty worktree of the shared git dir), exact;
 codeql-triage-poll.sh runs its production poll too (36 gh reads, a 6 h loop) and
 reaches its PATCH dismissals only when alerts exist, which the gh shim never returns.
@@ -143,6 +143,12 @@ print(f"RESULT scripts={len(res)} scripts")
 print(f"RESULT live_on_selftest={len(live)} scripts")
 print(f"RESULT no_selftest={len(unanswered)} scripts")
 print(f"RESULT github_writes_on_selftest={len(writers)} scripts")
+# A push from a repository outside every temp root: the real shared git dir, not a self-test fixture repo.
+_tmp = (tempfile.gettempdir().rstrip("/") + "/", "/tmp/")
+real = [r[0] for r in res if any(not re.search(r"-C (\S+)", w) or not re.search(r"-C (\S+)", w).group(1).startswith(_tmp) for w in r[8])]
+for n in real:
+    print(f"REAL-REPO-WRITE {n}")
+print(f"RESULT real_repo_writes_on_selftest={len(real)} scripts")
 print(f"RESULT nonzero_or_timeout={sum(1 for r in res if r[1] != 0)} scripts")
 print("RESULT thread_factor=1.000")   # the parent only waits; the work is in child processes
 print(f"RESULT load1={os.getloadavg()[0]:.2f}")
