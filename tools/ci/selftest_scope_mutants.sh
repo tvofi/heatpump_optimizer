@@ -112,9 +112,10 @@ scope_mutant "touched_steps takes any path a script name contains or ends" 'rf"(
 scope_mutant "touched_steps forgets what a waiter launcher starts" 'for line in launch.splitlines() for n in s.waits_on()' 'for line in () for n in s.waits_on()'
 scope_mutant "touched_steps passes over a step recorded under another run text" '(held.get(s.id) or {}).get("run_sha") != s.run_sha' 's.id not in held'
 scope_mutant "precheck grades no drift" '    refuse = drift(table, measured, steps, set(want))[0]
-    refuse = broken' '    refuse = []
-    refuse = broken'
-scope_mutant "precheck charges the branch main's own drift" 'refuse = broken + [r for r in refuse if r not in base_drift(root, base, refuse, want)]' 'refuse = broken + refuse'
+    shared = ' '    refuse = []
+    shared = '
+scope_mutant "precheck charges the branch main's own drift" 'refuse = broken + [r for r in refuse if r not in shared]' 'refuse = broken + refuse'
+scope_mutant "precheck traces the merge base once for each refusal" 'refuse = broken + [r for r in refuse if r not in shared]' 'refuse = broken + [r for r in refuse if r not in base_drift(root, base, refuse, want)]'
 scope_mutant "base_drift excuses a refusal the base does not draw" 'measured, was, hit)[0]) & set(refuse)' 'measured, was, hit)[0]) | set(refuse)'
 scope_mutant "base_drift traces the head again" 'measured, _, _ = trace_steps(root, was, hit, mb)' 'measured, _, _ = trace_steps(root, was, hit)'
 scope_mutant "base_drift grades the base against the head's table" 'drift(parse_table(git("show", f"{mb}:{TABLE}")), measured, was, hit)' 'drift(load_table(root / TABLE), measured, was, hit)'

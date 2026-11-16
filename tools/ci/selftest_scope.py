@@ -958,7 +958,8 @@ def precheck(root: Path, base: str) -> int:
         return SKIP_RC
     measured, broken, failed = trace_steps(root, steps, set(want))
     refuse = drift(table, measured, steps, set(want))[0]
-    refuse = broken + [r for r in refuse if r not in base_drift(root, base, refuse, want)]
+    shared = base_drift(root, base, refuse, want)   # one trace of the merge base for all of them
+    refuse = broken + [r for r in refuse if r not in shared]
     for line in refuse:
         print(f"  {line}")
     print(f"selftest_scope precheck: {len(want)} step(s) traced {want}, {len(refuse)} refusal(s)"
@@ -2115,6 +2116,19 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
            rc_i == 0 and "note: the merge base draws it too, main's to absorb: UNDER-SCOPED step a: "
                          "files misses ['tools/x/b.py']" in out_i and "0 refusal(s)" in out_i
            and rc_j == 1 and "files misses ['docs/d.md', 'tools/x/b.py']" in out_j and "note:" not in out_j)
+        # Each trace of the merge base runs the refused steps again (the prepr
+        # step alone is twenty minutes): once for all the head's refusals.
+        asked: list = []
+        real = {k: globals()[k] for k in ("drift", "base_drift")}
+        globals()["drift"] = lambda *a, **k: (["UNDER-SCOPED step a: one", "UNDER-SCOPED step a: two"], [])
+        globals()["base_drift"] = lambda r, b, refuse, want: asked.append(list(refuse)) or {"UNDER-SCOPED step a: one"}
+        try:
+            rc_o, out_o = under(scripted, "", "precheck", "--base", pbase)
+        finally:
+            globals().update(real)
+        ck("precheck: the merge base is traced once for all the head's refusals, not once for each of them",
+           rc_o == 1 and len(asked) == 1 and len(asked[0]) == 2
+           and "step a: two" in out_o and "step a: one" not in out_o and "1 refusal(s)" in out_o)
         (pr / "tools/x/run.sh").write_text("exit 7\n")
         rc_fr, out_fr = under(scripted, "", "precheck", "--base", pbase)
         (pr / "tools/x/run.sh").write_text("cat tools/x/a.py docs/d.md > /dev/null\n")
