@@ -8,3 +8,4 @@
 1794854201 CKPT packet rendered; delta = 95e70c96 (store whole removed + features check) and clean merges of main snapshot 1705ac6ee33b
 1794854745 HB alive
 1794854897 CKPT 6/6 reviewer mutants killed; check fails on previous head store; merge-tree clean; waiting features+CI snapshot 26aad2cc7d67
+1794854986 CKPT verdict drafted (merge), carry_audit rc=0; waiting CI classify and features snapshot c2dce040d3ed
