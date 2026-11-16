@@ -1,0 +1,28 @@
+three-dot name-status 030a4d377f9f26f5b8befe5721d86aea454f29e0...HEAD:
+M	custom_components/heatpump_optimizer/draw_range.py
+A	dev/audit/harnesses/draw_map_linearity.py
+A	dev/programme/delivery/3659.md
+M	tests/closures.json
+M	tests/features.py
+A	tests/mutation_ledger/killed_by/draw_range.py/ask_evidence.BOOLOP.a8271da4.json
+D	tests/mutation_ledger/killed_by/draw_range.py/ask_evidence.CMP_BOUND.9a67d331.json
+A	tests/mutation_ledger/killed_by/draw_range.py/ask_evidence.CMP_BOUND.a8271da4.json
+R061	tests/mutation_ledger/killed_by/draw_range.py/ask_evidence.RETURN_DEL.9a67d331.json	tests/mutation_ledger/killed_by/draw_range.py/ask_evidence.RETURN_DEL.a8271da4.json
+--- version/claims touched:
+(end)
+--- readers:
+custom_components/heatpump_optimizer/accuracy.py:41:from .draw_range import ASK_FOLLOWS, ASK_IGNORED, ASK_PENDING, WINDOW, DrawRange, ask_ev
+custom_components/heatpump_optimizer/accuracy.py:818:#: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
+custom_components/heatpump_optimizer/accuracy.py:915:    #: Departures awaiting ``draw_range.ask_evidence``, oldest first.
+custom_components/heatpump_optimizer/accuracy.py:952:        (``draw_range.ask_evidence``) refuses every interval, within the
+custom_components/heatpump_optimizer/accuracy.py:969:        state = ask_evidence(draw)
+custom_components/heatpump_optimizer/accuracy.py:995:        state, rows = ask_evidence(draw), list(self.held)
+custom_components/heatpump_optimizer/accuracy.py:1067:    ``draw_follows_ask`` is the evidence a departure from the ask is judged on
+custom_components/heatpump_optimizer/accuracy.py:1078:        "draw_follows_ask": follows_ask(draw),
+custom_components/heatpump_optimizer/draw_range.py:65:#: ``follows_ask``: the asked running levels must span this ratio (90th over
+custom_components/heatpump_optimizer/draw_range.py:70:#: least this, and its level holds (``ask_evidence``). A draw proportional
+custom_components/heatpump_optimizer/draw_range.py:75:#: ``ask_evidence``'s four states. ``ASK_FOLLOWS`` and ``ASK_IGNORED`` are the
+custom_components/heatpump_optimizer/draw_range.py:478:def ask_evidence(draw: DrawRange | None) -> str:
+custom_components/heatpump_optimizer/draw_range.py:514:def follows_ask(draw: DrawRange | None) -> bool | None:
+custom_components/heatpump_optimizer/draw_range.py:515:    """``ask_evidence`` as a tri-state: True, False, or ``None`` without it.
+custom_components/heatpump_optimizer/draw_range.py:523:    return {ASK_FOLLOWS: True, ASK_IGNORED: False}.get(ask_evidence(draw))
