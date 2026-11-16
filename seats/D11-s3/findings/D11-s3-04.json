@@ -14,10 +14,10 @@
     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
     "machine": "box B7, 4 vCPU container",
     "cpu_or_wall": "count",
-    "contention_note": "fan-out, other seats running; the tally is a count and contention-immune",
+    "contention_note": "fan-out, other seats running; the tally is a count and contention-immune. thread_factor 1.358 is the residual over about 0.3 s of the harness's own CPU (the arms are subprocesses on deliberate worker threads, whose 0.087 s is subtracted); no BLAS is loaded and no timing is reported",
     "tolerance": "exact",
-    "load1": 9.98,
-    "thread_factor": 1.0
+    "load1": 3.59,
+    "thread_factor": 1.358
   },
   "instrumented_symbol": "tools/pr/prepr.sh:step (the main flow's step 5 call site) and its --self-test",
   "perturbation": {
@@ -38,7 +38,9 @@
     "bash tools/pr/prepr.sh --self-test -> `553 passed, 0 failed`"
   ],
   "proposed_fix_scope": "tools/pr/prepr.sh --self-test: one end-to-end case running the main flow (PREPR_SKIP_CODE, a throwaway repo whose branch moves VERSION) and asserting `REFUSE no version edit`; then the other 23 step call sites measured by the same mutant (seam_rule). Mechanisation (D11.M5): a generic `step` wiring mutant lane, as policy_lint_mutants.mjs does for policy_lint, costs one script and about one self-test run per call site (about 15-25 min each here, provisional), so it fits a nightly lane, not a per-merge one.",
-  "files": ["tools/pr/prepr.sh"],
+  "files": [
+    "tools/pr/prepr.sh"
+  ],
   "stop_rule_class": "bug",
   "class_guess": "I1"
 }
