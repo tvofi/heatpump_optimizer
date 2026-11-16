@@ -89,8 +89,8 @@ drive; a kernel this processor cannot run is printed as such and counted as
 not completed.
 
 ``identity [seed]``: the leaf's identity arms (design note round 3, item a2).
-The design review's leaf generator (``reviewer_leaf_props.py`` on
-``probe/rev-3602``'s round-1 evidence, seed 0 by default), 3000 realizable
+The design review's leaf generator (``ev/reviewer_leaf_props.py`` of the
+round-1 fix verdict at 04e5bcfca3, seed 0 by default), 3000 realizable
 plans, ``runs.commit`` at band 2 with one-step lengths and the cap at p_max:
 per arm, the masks other than the plan's own. Arms: prices and start price as
 generated; start price zero; a flat price of 1.0 and start price zero; price
@@ -101,7 +101,8 @@ moves none.
 ``stage [seed] [cells]``: the candidate stage per call (design note round 3,
 item a2; design verdict item r1), a spy on ``optimizer._commit_runs`` over
 the 12 cells of ``descents`` and over the design review's generated solves
-(``reviewer_solve_props.py``'s generator, seed 1 and 140 cells by default).
+(``ev/reviewer_solve_props.py``'s generator at 04e5bcfca3, seed 1 and 140
+cells by default; 0 cells reads the ``descents`` cells alone).
 Per set: engaged stage calls; of those handed two relaxed plans, the shipped
 score against the same call re-run with the first relaxed plan alone, both
 in their shipped scopes (below, equal, above); and the calls whose first
@@ -478,7 +479,7 @@ _SOLVE_INSTALLS = {"duty1.1": (False, 1.1), "duty0": (False, 0.0), "clamp1.5": (
 
 
 def _generated_cells(seed: int, count: int):
-    """The design review's solve generator (``reviewer_solve_props.py``): each
+    """The design review's solve generator (``ev/reviewer_solve_props.py`` at 04e5bcfca3): each
     cell's installation, price, extras and outdoor mean, with its own draws."""
     import itertools
 
