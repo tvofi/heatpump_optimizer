@@ -6,3 +6,4 @@
 1794846160 HB alive
 1794846803 DONE verdict pushed: blocked mutation-vacuous at 296a0a30d4, probe a17097e07a, pending-ci gate
 1794856680 HB alive
+1794856809 CKPT mutants run: last-opener loop survives; figures 288/48 reproduce snapshot 20afa45a6954
