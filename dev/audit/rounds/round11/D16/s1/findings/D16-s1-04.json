@@ -1,0 +1,47 @@
+{
+ "id": "D16-s1-04",
+ "scope": "D16-s1",
+ "step": "D16.M2",
+ "title": "A plan that goes stale on an idle step leaves the supply switch off: the pump is never handed back",
+ "severity": "high",
+ "claim": "When the last fresh actuation switched the pump off (an idle step) and solves then fail, the power switch still reads off 100 and 130 minutes past the plan's end on 5 of 5 rigs, and the arbiter writes nothing, so the pump is not handed back to its own thermostats; with the switch on at that moment the baseline row holds on 5 of 5.",
+ "mechanism": "coordinator._apply_action returns before the supply write once _plan_is_stale ('the pump's own weather-compensated curve holds comfort'), supply_tick's step_supply answers None on a stale plan, and pump_arbiter._pump_off stops every arbiter write while the switch reads off, so the baseline row (Heating + DHW, configured tank, hold flow) is never written either. Nothing switches the supply on until a solve succeeds.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+  "value": 5,
+  "unit": "rigs whose baseline row reads the supply switch off past the plan",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (two other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_action (stale branch) with pump_arbiter:_pump_off",
+ "perturbation": {
+  "change": "--perturb stale_on: the stale branch of _apply_action also writes the supply on through _write_supply",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Rigs where the configured power switch reads off after the cycle and ticks 100-130 min past the plan's last step, the plan stale since that step.",
+ "phenomenon_property": "Whenever the optimizer stops actuating (stale or missing plan), every entity it switched is returned to the pump's own control: the supply allowed on and both circuits allowed.",
+ "seam_rule": "grep -n '_plan_is_stale()' custom_components/heatpump_optimizer/coordinator.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "value": 0,
+  "note": "baseline-on: the same staleness with the switch on at the last fresh step; the baseline row (switch on, Heating + DHW, configured tank) holds on 5 of 5 (NULL ... ok)"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'baseline'",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb stale_on | grep baseline_switch_off  # 0"
+ ],
+ "proposed_fix_scope": "coordinator._apply_action stale branch: release the supply (write on once, or restore its pre-optimizer state) and let the arbiter write its baseline row; adjacent to D1's staleness ownership.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
