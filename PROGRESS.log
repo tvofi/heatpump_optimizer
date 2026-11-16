@@ -32,3 +32,4 @@
 1794857798 HB alive
 1794858404 HB alive
 1794859009 HB alive
+1794859184 DONE blocked on body push only: code handed off at handoff/r11-pre-security-privacy ccf1c590e7b34f439fedb331570bb6d91dd25bf2 (prepr rc=0 scoped); body kept at handoff-wip/r11-pre-security-privacy-body ac0b453e7799; body_push REFUSED BODY-LINT because its figure-block base (PR recorded base 6f422812) differs from prepr body-check's (origin/main merge base 30f9caac); BLOCKED.md on handoff-wip
