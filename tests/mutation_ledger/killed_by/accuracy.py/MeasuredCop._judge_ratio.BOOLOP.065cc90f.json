@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop._judge_ratio BOOLOP 065cc90f",
-  "killed_by": "tests/features.py",
-  "old": "        if self._admits(state, draw, measured_heat) and (verdict := self._admit(row)) != ASK_PENDING:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self._admits(state, draw, measured_heat) or (verdict := self._admit(row)) != ASK_PENDING:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

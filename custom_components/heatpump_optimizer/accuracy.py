@@ -1312,7 +1312,9 @@ class MeasuredCop:
         if verdict == ASK_PENDING or self.probe.unsettled:
             self.held.append(row)
             return COP_REFUSED_NO_EVIDENCE
-        if verdict == ASK_FOLLOWS or abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
+        if verdict == ASK_FOLLOWS:
+            return None
+        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
         if state == ASK_PENDING:
             self.held.append(row)
