@@ -121,27 +121,31 @@ def arm_asks():
 def arm_valve():
     for label, config in (("weekend comfort set", seams.WEEKEND), ("null, no weekend comfort", {})):
         opt, params = seams.build(two_zone=True, valve=True, **config)
-        moved = pairs = wrong = zero = 0
+        moved = pairs = wrong = zero = idle = 0
         for name, asked, want in seams.asks(opt, seams.WEEKEND_ASKS if config else ()):
-            week = [seams.figure(opt, params, asked, seams.inputs(9, seams.start(), seams.MONDAY + timedelta(days=d)))
-                    for d in range(7)]
+            given = [seams.inputs(9, seams.start(), seams.MONDAY + timedelta(days=d)) for d in range(7)]
+            week = [seams.figure(opt, params, asked, g) for g in given]
             pairs += sum(f is None for f in week)
             moved += len({f for f in week if f is not None}) > 1
             wrong += sum(f is not None and f * want < 0 for f in week)
             zero += sum(f == 0 for f in week)
+            idle += sum(f == 0 and seams.zero_kind(opt, params, asked, g) == "idle" for f, g in zip(week, given))
             print(f"  valve {label}: {name} asked 09:00 Mon..Sun: " + " ".join("pair" if f is None else f"{f:+.1f}" for f in week))
         print(f"RESULT valve {label}: asks whose figure moves with the weekday {moved}, days against the ask {wrong}, "
-              f"days at 0.00 {zero}, days leaving the schedule branch {pairs}")
+              f"days at 0.00 {zero} (of them idle on every step the ask moves {idle}), days leaving the schedule branch {pairs}")
     opt, params = seams.build(two_zone=True, valve=True, **seams.WEEKEND)
-    friday, rows, wrong, pairs, zero = seams.MONDAY + timedelta(days=4), 0, 0, 0, 0
+    friday, rows, wrong, pairs, zero, idle = seams.MONDAY + timedelta(days=4), 0, 0, 0, 0, 0
     for hour in seams.HOURS:
         for _name, asked, want in seams.asks(opt, seams.WEEKEND_ASKS):
-            f = seams.figure(opt, params, asked, seams.inputs(hour, seams.start(), friday))
+            given = seams.inputs(hour, seams.start(), friday)
+            f = seams.figure(opt, params, asked, given)
             rows += 1
             pairs += f is None
             wrong += f is not None and f * want < 0
             zero += f == 0
-    print(f"RESULT valve friday: rows {rows} against the ask {wrong} at 0.00 {zero} reading the pair {pairs}")
+            idle += f == 0 and seams.zero_kind(opt, params, asked, given) == "idle"
+    print(f"RESULT valve friday: rows {rows} against the ask {wrong} at 0.00 {zero} "
+          f"(of them idle on every step the ask moves {idle}) reading the pair {pairs}")
     weather = seams.optimizer._day_mean_weather(seams.optimizer._horizon_weather(seams.inputs(9, seams.start()).forecast, seams.N), seams.N)
     for set_to in (21.0, 22.0, 23.0):
         _, held = opt._compute_baseline_power(weather, seams.start(), DT, np.full(seams.N, set_to))
