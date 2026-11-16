@@ -1,5 +1,0 @@
-blame-precedence: KILLED tools/audit/seat/loop_ledger.py rc=1: FAIL  history: each group's week is its first roster entry, carried into a later roster or not
-kids-every: KILLED tools/audit/seat/loop_ledger.py rc=1: FAIL  k counts a countermeasure's children in every period, not only its own
-refix-recorded: KILLED tools/audit/seat/loop_ledger.py rc=1: FAIL  refix counts only a follows naming a roster group
-week-unentered: KILLED tools/audit/seat/loop_ledger.py rc=1: FAIL  a group with no entry time falls in the week unentered
-entered-setdefault: SURVIVED

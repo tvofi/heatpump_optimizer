@@ -1,10 +1,11 @@
-# escapes
 roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
-round 9 0 0 0
-round 10 48 5 0
-round 11 12 0 0
-# owing caused_by
+round 9 0 0 0 []
+round 10 48 2 0 ['R10-HOTFIX-COP-UNMEASURED', 'R10-HOTFIX-FLOW-SETPOINT-STUCK']
+round 11 13 0 0 []
 roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
 round 9 14 1 0
-round 10 123 27 5
-round 11 18 3 0
+round 10 123 16 5
+round 11 19 0 0
+seat-for 32 of 128
+tick-blind #n lines: 31
+5e4fdcb7cd1d7fe4eeec2b43b23ea69570e78378 roster_edit set-resume R11-INTAKE-R10-RESIDUE (tools/audit/seat/roster_edit.py)

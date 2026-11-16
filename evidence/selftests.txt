@@ -1,12 +1,6 @@
-$ python3 -I tools/audit/seat/loop_ledger.py --self-test
-ok    history: each group's week is its first roster entry, carried into a later roster or not
+roster_lib self-test: 98 checks, 0 failed
+pushed edit-1 at 68c51f8b91b3ea4af7bdcc64258c1813b41b23ad
+roster_edit self-test: 315 checks, 0 failed
 ok    --dir has no history: its weeks are unread
 loop_ledger self-test: 0 failed
-$ python3 tools/audit/seat/roster_lib.py --self-test
-roster_lib self-test: 97 checks, 0 failed
-$ python3 -I tools/audit/seat/roster_edit.py --self-test
-lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
-pushed edit-1 at 906ffa56361ae45a027ee113ed1018bae8fd3ba6
-roster_edit self-test: 315 checks, 0 failed
-$ python3 -I tests/throwaway_git.py --check
 throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
