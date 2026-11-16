@@ -3,3 +3,4 @@
 1794844213 CKPT setup, packet, merge-tree clean snapshot 2c566352f281
 1794844255 CKPT claims 93 links confirmed, closure FULL, null control running snapshot e7d2e6ddf89e
 1794844368 CKPT null control reproduced both ends; awaiting CI snapshot cbcd88b66fac
+1794844704 DONE verdict merge dcac89f0 pushed to probe/rev-3630-c8c69dee (aaae8ff4)
