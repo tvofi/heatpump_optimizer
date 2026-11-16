@@ -793,7 +793,8 @@ def self_test():
             run("d1-inputs", t), [f"input {k}" for k in ("CONF_A_ENTITY", "CONF_B_ENTITY", "CONF_F_SENSOR", "CONF_H1", "CONF_H2", "CONF_W_SENSOR")])
         for label, edit in (("an entity selector outside an `_F` row", cut(CF, "ROWS = (", "LOOSE = _entity_of('x')\nROWS = (")),
                             ("an entity selector row whose key is no name", cut(CF, "_F('s', CONF_A_ENTITY,", "_F('s', 'a_entity',")),
-                            ("a wiring rule holding a test the census cannot read", cut(f"{PKG}/entry_config.py", "key.endswith('_entity')", "key[-7:] == '_entity'"))):
+                            ("a wiring rule holding a test the census cannot read", cut(f"{PKG}/entry_config.py", "key.endswith('_entity')", "key[-7:] == '_entity'")),
+                            ("a FACTORY_KEPT holding a second comprehension", cut(f"{PKG}/entry_config.py", "**_WIRING})", "**_WIRING, **{k: 'other' for k in ()}})"))):
             g = Path(tempfile.mkdtemp())
             try:
                 plant(g)
