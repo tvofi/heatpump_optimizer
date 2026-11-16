@@ -3209,6 +3209,50 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-PRODUCT-TEXT-PINS",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "product",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/narrative.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below verbatim. Fix the docstrings, decide the stray key with a test, and pin the corrected sentences so that reverting them fails tests/entities.py. config_flow.py is shared with R11-OUTSIDE-ROOMS-P1: land after it or rebase onto it.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-product-text-pins",
+    "last_step": null,
+    "next_step": "dispatch fixer; config_flow.py is hot with R11-OUTSIDE-ROOMS-P1",
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-ROOMS-P1 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-DEARER-WORDING shares custom_components/heatpump_optimizer/narrative.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
+   },
+   "source": "programme"
   }
  ]
 }
