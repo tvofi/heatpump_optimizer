@@ -657,14 +657,15 @@ class Stub:
         tag = 'W/"' + hashlib.sha256(path.encode()).hexdigest()[:8] + '"'
         if etag == tag:
             return 1, self.inc(304, [("Etag", tag)], "", "gh: HTTP 304\n")
-        m = re.search(r"[?&]page=(\d+)", path)
+        from urllib.parse import parse_qs, urlsplit
+        page = parse_qs(urlsplit(path).query).get("page")
         if "/check-suites/" in path:
             body = {"check_runs": [{"id": 1, "output": {"annotations_count": 0}}]}
         elif path.count("/") == 2 and "?" not in path:
             body = {"has_wiki": False}
         else:
             rows = self.rows(path)
-            n = int(m.group(1)) if m else 1
+            n = int(page[0]) if page else 1
             cut = lambda xs: xs[(n - 1) * 100:n * 100]  # noqa: E731
             body = {k: cut(v) for k, v in rows.items()} if isinstance(rows, dict) else cut(rows)
         self.fresh.append(path)
