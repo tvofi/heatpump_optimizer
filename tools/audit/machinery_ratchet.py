@@ -47,8 +47,21 @@ in the budgets file's `exemptions` list exempts merge M only when all hold:
     are read from M's tree too.
 An exempted merge leaves the window and the next older merge fills its slot.
 
-Exit 0: inside both caps. 1: a cap exceeded. 2: usage, an unreadable budgets
-file, or a history shorter than the window.
+THE TARGET (tvofi, 2026-11-13, card P2: a target that declines over a round,
+not a record of the status quo). `dev/governance/config/
+machinery_target_budgets.json` holds `anchor` (the commit the cap was recorded
+at), `every_merges` and `step`. With n the first-parent merges after the anchor
+up to the base (PR mode) or the head (push mode), the target is
+  nonproduction_merges - step * floor(n / every_merges), never below 0,
+compared against target plus nonproduction_merges' band, again by merge count,
+never hours. It refuses only a candidate that is not production and not
+exempted: a production candidate cannot raise the metric, and in push mode the
+target is a report line, so the schedule passing the window turns no check on
+main red. The caps above stay the ceiling in both modes. No file, no target.
+
+Exit 0: inside both caps. 1: a cap, or the target on its candidate, exceeded.
+2: usage, an unreadable budgets or target file, or a history shorter than the
+window.
 """
 from __future__ import annotations
 
@@ -63,6 +76,8 @@ from fractions import Fraction
 from pathlib import Path
 
 BUDGETS = "dev/governance/config/machinery_budgets.json"
+TARGET_BUDGETS = "dev/governance/config/machinery_target_budgets.json"
+TARGET_KEYS = ("every_merges", "step")
 PRODUCT_PREFIXES = ("custom_components/", "blueprints/")
 RECORD_PREFIXES = ("dev/programme/",)
 RECORD_FILES = ("RELEASE_NOTES.md", "VERSION")
@@ -308,6 +323,42 @@ def load_budgets(text: str) -> dict:
     return doc
 
 
+def load_target(repo: str, rev: str) -> dict | None:
+    """The target file at `rev`, None when it is absent, refused when it is
+    malformed or its anchor is not an ancestor of `rev`: an unreadable target
+    is never no target."""
+    r = _git(repo, "show", f"{rev}:{TARGET_BUDGETS}", check=False)
+    if r.returncode != 0:
+        return None
+    try:
+        doc = json.loads(r.stdout)
+    except ValueError as e:
+        raise Refusal(f"{TARGET_BUDGETS} does not parse ({e})")
+    if not isinstance(doc, dict):
+        raise Refusal(f"{TARGET_BUDGETS} is not an object")
+    extra = sorted(k for k in doc if not k.startswith("_") and k not in ("anchor", *TARGET_KEYS))
+    if extra:
+        raise Refusal(f"{TARGET_BUDGETS}: {extra} is not a key this ratchet reads")
+    for k in TARGET_KEYS:
+        v = doc.get(k)
+        if isinstance(v, bool) or not isinstance(v, int) or v < (1 if k == "every_merges" else 0):
+            raise Refusal(f"{TARGET_BUDGETS}: {k} is {v!r}")
+    a = doc.get("anchor")
+    if not isinstance(a, str) or not re.fullmatch(r"[0-9a-f]{40}", a):
+        raise Refusal(f"{TARGET_BUDGETS}: anchor is {a!r}, not a full commit sha")
+    return doc
+
+
+def scheduled_target(repo: str, tip: str, cap: int, tdoc: dict) -> tuple[int, int]:
+    """(the target, n merges past the anchor) at `tip`."""
+    a = tdoc["anchor"]
+    if _git(repo, "merge-base", "--is-ancestor", a, tip, check=False).returncode != 0:
+        raise Refusal(f"{TARGET_BUDGETS}: anchor {a[:12]} is not an ancestor of {tip}")
+    n = sum(1 for line in _git(repo, "rev-list", "--first-parent", "--parents", f"{a}..{tip}")
+            .stdout.splitlines() if len(line.split()) == 3)
+    return max(0, cap - tdoc["step"] * (n // tdoc["every_merges"])), n
+
+
 def measure(repo: str, head: str, budgets_doc: dict, base: str | None = None,
             pr: int | None = None, grader: Grader | None = None) -> tuple[dict, list, list]:
     """The window's metrics: push mode without `base`, PR mode with it."""
@@ -369,6 +420,18 @@ def check(repo: str, head: str, base: str | None, pr: int | None, out=print) -> 
     for c in CAPS:
         cap, band = doc[c], doc[c + BAND_SUFFIX]
         out(f"  {'FAIL' if c in bad else 'ok  '} {c} {m[c]} <= {cap} + band {band}")
+    tdoc = load_target(repo, head)
+    if tdoc is not None:
+        c = CAPS[0]
+        t, n = scheduled_target(repo, base or head, doc[c], tdoc)
+        cand = rows[0] if base and rows and rows[0]["sha"] == head else None
+        binds = cand is not None and cand["kind"] != "production"
+        past = m[c] > t + doc[c + BAND_SUFFIX]
+        word = ("FAIL" if past else "ok  ") if binds else "info"
+        out(f"  {word} target {c} {m[c]} <= {t} + band {doc[c + BAND_SUFFIX]} ({n} merge(s) "
+            f"past anchor {tdoc['anchor'][:12]}, {tdoc['step']} down per {tdoc['every_merges']})")
+        if binds and past:
+            bad.append("target")
     if bad:
         out("machinery_ratchet: refused; pay by landing production work, record an exemption "
             "the change earns (ratchet-budgets.md), or ask the owner for a raise")
@@ -679,6 +742,73 @@ def self_test() -> int:
                 got = "refused"
             ok(f"load_budgets refuses {label}", got, "refused")
 
+        # 6. The target: a schedule over merges past its anchor, binding only a
+        # non-production, unexempted candidate. Window 3, cap 2, band 0; the
+        # target falls by 2 every 2 merges past the anchor.
+        r = fresh("target")
+        r.merge(1, PRODM); r.merge(2, MACH); r.merge(3, PRODM); r.merge(4, MACH)
+        anchor = r.tip
+        tgt = lambda **k: [("set", TARGET_BUDGETS, json.dumps(
+            {"_comment": "fixture", "anchor": anchor, "every_merges": 2, "step": 2, **k}))]
+        r.merge(5, PRODM + budgets_ops(caps(m1=2, w=3)) + tgt())
+        # 1 merge past the anchor: the target is still 2. Each candidate is
+        # cut from the base's own tree, so no earlier candidate's lines leak in.
+        at = {"files": dict(r.files)}
+
+        def cand(ops: list, drop: tuple = ()) -> tuple[int, str]:
+            r.files = {k: v for k, v in at["files"].items() if k not in drop}
+            return run_cli(r, "--check", "--base", r.tip, "--head", r.side(ops), "--pr", "9")
+        rc, txt = cand(MACH)
+        ok("target: 1 merge past the anchor is still 2, so a machinery candidate at 2 passes",
+           (rc, "ok   target nonproduction_merges 2 <= 2 + band 0 (1 merge(s) past" in txt), (0, True))
+        r.merge(6, RECM)                              # 2 merges past: target 0
+        at["files"] = dict(r.files)
+        rc, txt = cand(MACH)
+        ok("target: 2 merges past it falls to 0 and refuses the machinery candidate under its cap",
+           (rc, "FAIL target nonproduction_merges 2 <= 0" in txt, "ok   nonproduction_merges 2 <= 2" in txt),
+           (1, True, True))
+        ok("target: a record candidate is not production and is refused too", cand(RECM)[0], 1)
+        rc, txt = cand(PRODM)
+        ok("target: a production candidate is never refused by it (a report line)",
+           (rc, "info target" in txt), (0, True))
+        ok("target: an exempted machinery candidate passes",
+           cand(MACH + budgets_ops(caps(m1=2, w=3, ex=[entry(9)])) + [("set", "ev/proof.txt", "m\n")])[0], 0)
+        rc, txt = run_cli(r, "--check", "--head", r.tip)
+        ok("target: push mode reports it and stays green under the cap", (rc, "info target" in txt), (0, True))
+        ok("target: --measure prints it beside the metrics",
+           {k: json.loads(run_cli(r, "--measure", "--head", r.tip)[1])[k]
+            for k in ("target", "merges_past_anchor")}, {"target": 0, "merges_past_anchor": 2})
+        ok("target: no file, no target: the refused candidate passes (null control)",
+           cand(MACH, drop=(TARGET_BUDGETS,))[0], 0)
+        for label, ops in (("an unread key", tgt(open_groups=1)), ("a zero every_merges", tgt(every_merges=0)),
+                           ("a short anchor", tgt(anchor=anchor[:12])),
+                           ("an anchor off the history", tgt(anchor="0" * 40))):
+            ok(f"target: {label} is refused, never read as no target", cand(MACH + ops)[0], 2)
+        ok("target: a file that is not an object is refused",
+           cand(MACH + [("set", TARGET_BUDGETS, "[]")])[0], 2)
+        ok("target: every_merges 1 and step 0 are the bounds it reads (null control)",
+           [cand(MACH + tgt(every_merges=1, step=s_))[0] for s_ in (0, 2)], [0, 1])
+        ok("target: the band is added to it, at the boundary (2 <= 0 + 2 passes, 2 > 0 + 1 refuses)",
+           [cand(MACH + budgets_ops(caps(m1=2, m1b=b_, w=3)))[0] for b_ in (2, 1)], [0, 1])
+        rc, txt = cand(MACH + budgets_ops(caps(m1=2, m1b=2, w=3)) + tgt(step=5))
+        ok("target: a schedule driven past zero holds at 0, never below it",
+           (rc, "target nonproduction_merges 2 <= 0 + band 2" in txt), (0, True))
+        # A PR head's own first-parent chain is the branch's, and a merge of
+        # main into it is one merge there: the schedule is read on the base.
+        r.files = dict(at["files"])
+        r.change(MACH)
+        head = r._commit([r._commit([anchor], "work"), r.tip], "Merge branch 'main' into b9")
+        rc, txt = run_cli(r, "--check", "--base", r.tip, "--head", head, "--pr", "9")
+        ok("target: a PR head carrying a merge of main is scheduled on the base (2 past, target 0)",
+           (rc, "FAIL target nonproduction_merges 2 <= 0 + band 0 (2 merge(s) past" in txt), (1, True))
+        # A stamp is a first-parent commit that is not a merge: it moves no target.
+        r.files = dict(at["files"])
+        r.change([("set", REC, "stamped\n")])
+        r.tip = r._commit([r.tip], "v1.0.0: stamp")
+        ok("target: a non-merge first-parent commit past the anchor is not counted",
+           {k: json.loads(run_cli(r, "--measure", "--head", r.tip)[1])[k]
+            for k in ("target", "merges_past_anchor")}, {"target": 0, "merges_past_anchor": 2})
+
     ok("--check-event: a base and a PR number select PR mode",
        event_args({"MACHINERY_BASE": "b", "MACHINERY_HEAD": "h", "MACHINERY_PR": "7"}), ("h", "b", 7))
     ok("--check-event: a base with no PR number is push mode at the head",
@@ -717,6 +847,10 @@ def main(argv: list[str]) -> int:
             doc = ({WINDOW_KEY: a.window} if a.window
                    else load_budgets(_budgets_text(a.repo, a.head, BUDGETS)))
             m, _, skipped = measure(a.repo, a.head, doc, a.base, pr)
+            tdoc = None if a.window else load_target(a.repo, a.head)
+            if tdoc is not None:
+                m["target"], m["merges_past_anchor"] = scheduled_target(
+                    a.repo, a.base or a.head, doc[CAPS[0]], tdoc)
             print(json.dumps({"head": _git(a.repo, "rev-parse", a.head).stdout.strip(), **m,
                               "exempted": [s["sha"] for s in skipped]}, sort_keys=True))
             if a.bands:

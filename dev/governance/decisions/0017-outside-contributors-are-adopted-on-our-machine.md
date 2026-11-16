@@ -83,11 +83,21 @@ approvals remain in our machinery even for such PRs."*
    refuses every non-merge commit, whatever its subject or author says, and a
    merge whose merge-driver files are not main's. **No tool of ours pushes a
    fork's head to a branch of this repository**: that test would read it as
-   ours.
+   ours. A tool reading the head fetches `refs/pull/<pr>/head` into a local
+   ref only (the train to `refs/remotes/pull/<pr>/head`, where its recarry
+   worktree is detached).
 7. **Unchanged:** verdicts post as `hpo-approver` (0013); merges with main and
    code-owner approvals stay ours (the train merges main into the fork's
-   branch itself, automatically or not at all: on a conflict it parks naming
-   the fork and never resolves); no secret reaches a fork run (the three
+   branch itself, automatically or not at all: `remerge_main.sh --head-repo`
+   asks GitHub's `update-branch` as the hpo-author App at the expected head
+   and reads the result back as the automatic two-parent merge of that head
+   and main; on a conflict or a refused move it parks naming the fork and
+   never resolves). The train's `[OUTSIDE]` class is that park, and also
+   the contract's refusal, a pull request whose head repository and branch
+   could not be read, a checkout copy of the contract that is not
+   origin/main's, a fork head the train could not check out, and an
+   approval of item 5's verdict-driven writers it would post on a fork
+   head; no secret reaches a fork run (the three
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 

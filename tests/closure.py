@@ -597,6 +597,10 @@ INERT_EXCEPT = (
     # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
     "tools/audit/seat/ci_priority.py",
     "tools/audit/seat/ci_pause.py",
+    # R11-PRE-STANDING-SCRIPTS: the tick loads the owed watch (its fired-ledger,
+    # seat-on and FIRE-OWED reads moved there), so that self-test reads it. Same
+    # route as ci_priority.py: the prefix stays INERT, the file joins the closure.
+    "tools/audit/seat/owed_watch.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
@@ -644,6 +648,9 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R11-PRE-PLAN-RENDER: plan_page.py imports the round's phases section, so
+    # the same self-test opens it; it joins the recorded closure beside it.
+    "tools/audit/seat/plan_phases.py",
     # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
     # the topic grammar's one owner in-process, so tests/entities.py's load of it
     # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
