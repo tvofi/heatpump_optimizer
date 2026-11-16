@@ -152,16 +152,16 @@ def held(read: list[tuple]) -> bool:
     return len(read) >= HELD_RUNS and all(v != gate_py().GREEN for _, v in read[:HELD_RUNS])
 
 
-def promote(git, api, repo: str, sha: str = "", init: bool = False, now=time.time, out=print) -> int:
+def promote(git, api, repo: str, sha: str = "", create: bool = False, now=time.time, out=print) -> int:
     def ok(*args: str) -> bool:
         return git(*args)[0] == 0
     rc, listed = git("ls-remote", "origin", f"refs/heads/{REF}")
     if rc:
         raise Unreadable(f"could not read origin's {REF}: {listed[-200:]}")
     old = listed.split()[0] if listed else ""
-    if not old and not init:
+    if not old and not create:
         raise absent()
-    if old and init:
+    if old and create:
         raise Refused(f"--init only while {REF} is absent; it is at {old[:12]}")
     rc, why = git("fetch", "-q", "origin", BASE, *((f"+refs/heads/{REF}:{TRACKING}",) if old else ()))
     if rc:
@@ -230,7 +230,7 @@ def main(argv: list[str]) -> int:
         if a.verb == "behind":
             print(behind(git_in(a.dir), a.frm, a.every, a.fetch))
             return 0
-        return promote(git_in(a.dir), gh, a.repo, a.sha, a.init)
+        return promote(git_in(a.dir), gh, a.repo, a.sha, create=a.init)
     except Refused as e:
         print(f"toolchain: REFUSED {e}", file=sys.stderr)
         return 1

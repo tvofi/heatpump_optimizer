@@ -89,9 +89,8 @@ class World:
     def api(self, argv: list[str]) -> tuple[int, str]:
         path = argv[2]
         self.calls.append(path)
-        m = re.search(r"/actions/runs/(\d+)/jobs", path)
-        if m:
-            jobs = self.jobs.get(int(m[1]))
+        if "/jobs" in path:
+            jobs = self.jobs.get(int(path.split("/runs/")[1].split("/")[0]))
             if jobs is None:
                 return 1, "gh: HTTP 502"
             return 0, "".join(json.dumps(j) + "\n" for j in jobs) if "page=1" in path else ""
@@ -100,12 +99,12 @@ class World:
         sha = re.search(r"head_sha=([0-9a-f]+)", path)
         return 0, json.dumps([r for r in self.runs if not sha or self.lax or r["head_sha"] == sha[1]])
 
-    def promote(self, sha: str = "", init: bool = False, git=None) -> tuple:
+    def promote(self, sha: str = "", create: bool = False, git=None) -> tuple:
         """(exit code or the exception class's name, what it printed, the ref afterwards)."""
         lines: list[str] = []
         self.calls.clear()
         try:
-            rc = tc.promote(git or self.git, self.api, REPO, sha, init, now=lambda: T0, out=lines.append)
+            rc = tc.promote(git or self.git, self.api, REPO, sha, create, now=lambda: T0, out=lines.append)
         except (tc.Refused, tc.Unreadable) as e:
             rc, lines = type(e).__name__, [str(e)]
         return rc, lines, self.ref()
@@ -168,11 +167,11 @@ def run() -> int:
         w.run(c[1])
         check("promote: an absent ref refuses with the init command and pushes nothing",
               (lambda r: (r[0], tc.INIT in r[1][0], r[2]))(w.promote()), ("Refused", True, ""))
-        rc, lines, ref = w.promote(init=True)
+        rc, lines, ref = w.promote(create=True)
         check("promote --init creates the ref at the newest machinery-green main commit and reads it back",
               (rc, ref, bool(LINE.fullmatch(lines[0])), lines[0].split()[2:]), (0, c[1], True, ["absent", "->", c[1][:12], "run=100"]))
         check("promote --init while the ref exists refuses and leaves it",
-              (lambda r: (r[0], "only while" in r[1][0], r[2]))(w.promote(init=True)), ("Refused", True, c[1]))
+              (lambda r: (r[0], "only while" in r[1][0], r[2]))(w.promote(create=True)), ("Refused", True, c[1]))
 
         # ---- promote: the default walk
         rc, lines, ref = w.promote()
