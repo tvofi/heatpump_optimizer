@@ -1,0 +1,13 @@
+MUTANT NEW step_response on levels (draw_response): NOT-APPLIED (matches=0)
+MUTANT NEW step_response span check dropped: NOT-APPLIED (matches=0)
+MUTANT NEW row priced at the post-release scale: rc=1 KILLED ['5 of 93 FEATURES BLOCK FAILED'] fails=5 first_fail=["FAIL (h) with a window that never reaches evidence every interval base folds is folded where the draw follows the heat ask: a heat-led pump of t
+MUTANT NEW _slope_verdict: >= -> <: NOT-APPLIED (matches=0)
+MUTANT admission state guard: == UNOBTAINABLE -> != IGNORED: rc=1 KILLED ['7 of 93 FEATURES BLOCK FAILED'] fails=7 first_fail=['FAIL a draw that ignores the ask (varying or flat) is refused as off-ask; a matched draw and a 0.7 shift on a draw that follows its 
+MUTANT admission measured-heat guard dropped: rc=1 KILLED ['3 of 93 FEATURES BLOCK FAILED'] fails=3 first_fail=["FAIL (l) with measured heat, or with no window, 60 flat departures under the 4.67 kW third of 14 kW each read base's rule, awaiting_draw_evidence, 
+MUTANT restore statement deleted: rc=1 KILLED ['8 of 93 FEATURES BLOCK FAILED'] fails=8 first_fail=["FAIL (h) with a window that never reaches evidence every interval base folds is folded where the draw follows the heat ask: a heat-led pump of true 0.8 folds 9
+MUTANT restore target: current scale: rc=1 KILLED ['8 of 93 FEATURES BLOCK FAILED'] fails=8 first_fail=["FAIL (h) with a window that never reaches evidence every interval base folds is folded where the draw follows the heat ask: a heat-led pump of true 0.8 fol
+MUTANT judge_ratio latch: ignored folds: rc=1 KILLED ['6 of 93 FEATURES BLOCK FAILED'] fails=6 first_fail=["FAIL (h) with a window that never reaches evidence every interval base folds is folded where the draw follows the heat ask: a heat-led pump of true 0.8 
+MUTANT release: reset dropped: rc=1 KILLED ['3 of 93 FEATURES BLOCK FAILED'] fails=3 first_fail=["FAIL (p) the verdict holds over 200 more flat cycles; a heat-led follows reloads as follows with no restore; a reset by a window with evidence clears the verdict 
+MUTANT from_dict: verdict not read: rc=1 KILLED ['4 of 93 FEATURES BLOCK FAILED'] fails=4 first_fail=["FAIL (p) a reload between the latch and the next cycle keeps ignored and the restore it owes: the next cycle restores the configured scale  [walked 0.723; lo
+MUTANT clamp re-seed dropped: rc=1 KILLED ['1 of 93 FEATURES BLOCK FAILED'] fails=1 first_fail=["FAIL (s) a probe seeded at the clamp re-seeds once and then keeps the clamp's rows; a reset re-arms it; true 0.68 from a persisted 0.500 reaches 0.680  [[(1, False
+MUTANTS DONE
