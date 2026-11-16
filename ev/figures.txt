@@ -1,0 +1,11 @@
+selftest_scope static: 120 gated step(s), 0 problem(s)
+fold_ledger: 0 violation(s)
+249 passed, 0 failed
+own-diff hazard check rc=0
+shadow window ending 98847b99d7bb3238686efd6869f805c89c6d1ff1:
+  a39627da59 11
+  dc46b1222f 1
+  2 of 20
+shadow window ending e352724335c136b65562cd3e71f728549ad04a82:
+  315dda8f62 7
+  1 of 20

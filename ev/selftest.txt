@@ -1,0 +1,3 @@
+# at 296a0a30d41de41aced099d6c16045cbaefaa1d7
+shell_hazard self-test: ok
+rc=0
