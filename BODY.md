@@ -21,7 +21,14 @@ Not yet given. These policy edits are kept minimal and await tvofi's approving r
 
 ## Head
 
-07f969bf3dd434be8663415ff4bbd6a95c89d8bd (handoff/r11-pre-round-check-gate). It is the round-2 repair of fix review 3620 (blocked 6f4b8cd7, tests-gap), two commits on fc369d59 (the round-1 repair, already merged into the PR head 6f4b8cd7). Every figure under `### Repair (fix review 3620, round 2)` was measured at this commit; those under round 1 at fc369d59, and they hold here because the round-2 diff adds self-test code only (`open_cards_cli`, `json_or_none` and two `cov` arms) and changes no production line of `--open-cards`.
+8ad98806e4c824491455b50f05f16eaa09ac7ac9 (handoff/r11-pre-round-check-gate), the merge of the PR branch origin/fix/r11-pre-round-check-gate (691aa86b1e, the relay's tree-neutral merges of 07f969bf3d and fc369d59) into 89f08b6d46; its tree is 89f08b6d46's, byte for byte (`git rev-parse HEAD^{tree}` equal before and after the merge), so every figure taken at 89f08b6d46 describes it. 89f08b6d46 is one commit on 07f969bf3d (the round-2 repair of fix review 3620): the grader stubs part 2 needs, moved here by the orchestrator's route (a) for part 2's bootstrap question. The diff since 07f969bf3d is `tools/policy/check-wave-script.mjs` only, test code, so every figure under the two `### Repair` sections still describes this head: none of them reads that file.
+
+### Delta: the P3 grader stubs for part 2 (#3633)
+
+- **Why**: part 2 (#3633, ec058220b5) restores `audit-plan.js`'s refusal of a plan that leaves an open card or group in no group. main's `check-wave-script.mjs` drives `audit-plan.js` with `plan/read` and `plan/moves` stubs that carry no `--open-cards` listing, so it cannot grade that `audit-plan.js`: `ci_predict.py` reads that as a bootstrap (the base's grader refuses the head's workflow).
+- **What moved**: exactly the stub hunks of `git diff origin/main ec058220b5 -- tools/policy/check-wave-script.mjs` (8 added, 4 removed lines): the `OPEN` listing (`open`: one open card E11-X, one open group R11-G, none unmarked; `open_rc` 0) spread into the default `plan/read` stub and the two triage `pthrows` reads; and `MOVES()`, the default `plan/moves` stub, which accounts for both items (E11-X in group A's `open_items`, R11-G in `dropped` with a reason). The refusal's own tests (the five new `pthrows`, the kept-group null control, the `--open-cards` read-prompt assertion) stay in part 2: they fail against an `audit-plan.js` without the refusal. Compared line for line: the delta's `+`/`-` lines are a subset of that diff's, and the remainder is exactly those seven tests.
+- **Failing first** (the null control): main's grader, unchanged, against ec058220b5's `audit-plan.js` failed 7: the six `pthrows` named `a triage that drops a verified finding stops P3`, `a triage that keeps one finding twice stops P3`, `a group with no move entry stops P3`, `a publish that is not a 40-hex commit stops P3`, `a reviewer answering for another tree stops P3`, `a recorded verdict that is not a 40-hex commit stops P3`, and `the P3 plan workflow threw`, each with `check_scopes.py --open-cards exited undefined, not 0`.
+- **Mutation**: the delta adds no `.py` line, so prepr's step 6d draws no mutant from it. The mutant that matters is the delta's removal, which is the null control above: 7 failures.
 
 ### Repair (fix review 3620, round 2)
 
@@ -89,13 +96,19 @@ The evaluation at origin/eval-review/r11-4 (f6d35cf73f) was run through `evaluat
 
 ## Figures
 
+- Delta, the grader matrix. Command: `node tools/policy/check-wave-script.mjs` from the tree root, with `.claude/workflows/audit-plan.js` replaced by `git show <rev>:.claude/workflows/audit-plan.js` and restored after (`git checkout`); the result line is the script's `N passed, M failed` and its rc. Every run also prints `FAIL (probe, expected) threw: deliberate`, the script's own block-harness probe, counted in neither number.
+  - main 6aa7ddc712 grader, unchanged, x ec058220b5 `audit-plan.js`: `209 passed, 7 failed`, rc 1 (the null control).
+  - main grader unchanged x 416280f5 `audit-plan.js` (blob 0a06aa738b, the same as main's and this head's): `223 passed, 0 failed`, rc 0.
+  - main grader plus these stubs x ec058220b5: `223 passed, 0 failed`, rc 0; x 416280f5: `223 passed, 0 failed`, rc 0.
+  - this head's grader x ec058220b5: `223 passed, 0 failed`, rc 0; x 416280f5: `223 passed, 0 failed`, rc 0.
+  - The brief's 230/230 is part 2's grader: ec058220b5's `check-wave-script.mjs` x ec058220b5's `audit-plan.js`, on main's tree, printed `230 passed, 0 failed`. With the stubs alone the count is 223 at both revisions; the seven tests left in part 2 are the difference.
 - Round 2, at 07f969bf3d: `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` printed `evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']` and `SELF-TEST passed (every perturbed scope refused)`.
 - Round 2 scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, the script `tests/entities.py`, and `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED`, rc 0; `git merge-tree --write-tree origin/main HEAD` reported no conflict; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 
 - `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` at 0d46ea8bd9 printed `evaluation arms: 59/59 held; --round 1 rc=1; --open-cards rc=2` and `SELF-TEST passed (every perturbed scope refused)`, rc 0. The evaluation arms gained 10 (49 at main), plus one subprocess arm for `--open-cards`.
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and the one script is `tests/entities.py`. Locally, `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `1 of 2722 ENTITY CHECKS FAILED`. The one failure is `hb:positive_control`: on a loaded macOS host the py-spy sampler did not name a 600 ms spin in 3 tries (one sample `timed out after 0.5 seconds`). This diff touches neither the heartbeat nor tests/nightly_ha.py, so CI's run is the authority.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-<!-- figure-block: scope-line mb=b880dc914f3ba2590b7ce655d7419678b1c4968e head=07f969bf3dd434be8663415ff4bbd6a95c89d8bd -->
+<!-- figure-block: scope-line mb=b880dc914f3ba2590b7ce655d7419678b1c4968e head=8ad98806e4c824491455b50f05f16eaa09ac7ac9 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
