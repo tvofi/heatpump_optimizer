@@ -760,6 +760,7 @@ class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
 
     A temperature difference: no temperature device class, which Home
     Assistant would convert as a temperature. Unknown under the quorum.
+    ``lift`` is the floor lift the last solve was given (``rooms.HeldLift``).
     """
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -774,7 +775,7 @@ class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         block = _mapping(self._data().get("rooms"))
-        return {key: block.get(key) for key in ("coldest_entity", "warmest_entity")}
+        return {key: block.get(key) for key in ("coldest_entity", "warmest_entity", "lift")}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):

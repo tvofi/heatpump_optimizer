@@ -1256,13 +1256,15 @@
       },
       "rooms": {
         "title": "Room thermometers",
-        "description": "Room thermostats or temperature sensors, one per room. The optimizer publishes their average and the spread between the coldest and the warmest room; the plan does not use them yet. Leave empty if you have none.",
+        "description": "Room thermostats or temperature sensors, one per room. The optimizer publishes their average and the spread between the coldest and the warmest room. Optionally, a room below its own thermostat target can raise the temperature the plan holds. Leave empty if you have none.",
         "data": {
           "room_temperature_entities": "Room thermometers",
+          "room_lift_enabled": "Let a cold room raise the planned minimum",
           "after_save": "After saving"
         },
         "data_description": {
           "room_temperature_entities": "Up to 32 climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
+          "room_lift_enabled": "Off by default. When on, a room thermostat in heat or auto mode that reads further below its own target than the house reads below yours raises the plan's minimum temperature, by at most 1 °C and never above your comfort target, rising gradually. A room that is off or cooling is ignored. It yields to Economy mode, an open window, away, a holiday, a manually planned heating slot and the two-zone model. The Room Temperature Spread sensor shows the room and the size.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },

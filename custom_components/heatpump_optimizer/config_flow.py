@@ -76,6 +76,8 @@ from .const import (
     CONF_BUFFER_MAX_TEMP,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_ROOM_TEMPERATURE_ENTITIES,
+    CONF_ROOM_LIFT_ENABLED,
+    DEFAULT_ROOM_LIFT_ENABLED,
     CONF_MIXING_VALVE_MODE,
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
@@ -1769,6 +1771,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_pump", CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
     # -- rooms: a list, cleared to None like an entity slot when emptied.
     _F("rooms", CONF_ROOM_TEMPERATURE_ENTITIES, _STORED, _room_thermometers()),
+    _F("rooms", CONF_ROOM_LIFT_ENABLED, DEFAULT_ROOM_LIFT_ENABLED, bool),
     # -- comfort
     _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
     _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),

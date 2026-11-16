@@ -6324,7 +6324,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
                 # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
-                min_temp_margins=self._confidence_margins(n),
+                min_temp_margins=rooms.lifted_margins(self, self._confidence_margins(n), config, state.room_temperature, solve_now, n, rooms.gate(enabled=ctx._config.room_lift_enabled, economy=self._mode == MODE_ECONOMY, open_window=self._vent_cusum.tripped, away=self._away_state.active, manual_pin=space_pins is not None, two_zone=params.two_zone_enabled)),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
                 away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
@@ -8226,7 +8226,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._mixing_valve_view,
         ):
             data = {**data, **view()}
-        data = {**data, **rooms.published(rooms.readings_of(self))}
+        data = {**data, **rooms.published(rooms.readings_of(self), rooms.lift_of(self))}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}
@@ -11347,9 +11347,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # except the mold cap follows the SIMULATED target, so
                 # a what-if dragging the target down sees the floor
                 # that choice would actually get.
-                min_temp_margins=self._confidence_margins(
-                    len(horizon.prices)
-                ),
+                min_temp_margins=rooms.held_margins(self, self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),
                 min_temp_floors=self._mold_floor_series(
                     horizon.outdoor_temps,
                     target_cap=float(scratch_config.target_temp),

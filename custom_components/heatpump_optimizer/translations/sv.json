@@ -1256,13 +1256,15 @@
       },
       "rooms": {
         "title": "Rumstermometrar",
-        "description": "Rumstermostater eller temperatursensorer, en per rum. Optimeraren publicerar deras medelvärde och spridningen mellan det kallaste och det varmaste rummet; planen använder dem ännu inte. Lämna tomt om du inte har några.",
+        "description": "Rumstermostater eller temperatursensorer, en per rum. Optimeraren publicerar deras medelvärde och spridningen mellan det kallaste och det varmaste rummet. Om du vill kan ett rum under sitt eget termostatbörvärde höja den temperatur planen håller. Lämna tomt om du inte har några.",
         "data": {
           "room_temperature_entities": "Rumstermometrar",
+          "room_lift_enabled": "Låt ett kallt rum höja planens minimum",
           "after_save": "Efter sparande"
         },
         "data_description": {
           "room_temperature_entities": "Högst 32 klimatentiteter (rumstermostater) eller temperatursensorer. Ett rum som är otillgängligt, inaktuellt eller utanför intervallet lämnas utanför medelvärdet och ger aldrig ett indataproblem.",
+          "room_lift_enabled": "Av som standard. När det är på höjer en rumstermostat i läge heat eller auto, som ligger längre under sitt eget börvärde än huset ligger under ditt, planens minimitemperatur – med högst 1 °C, aldrig över ditt komfortbörvärde och gradvis. Ett rum som är avstängt eller kyler ignoreras. Det ger vika för Ekonomiläge, öppet fönster, borta, helgdag, en manuellt planerad värmeperiod och tvåzonsmodellen. Sensorn för rumstemperaturspridning visar rummet och storleken.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },

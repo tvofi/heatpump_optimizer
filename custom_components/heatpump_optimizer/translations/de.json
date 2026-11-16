@@ -1256,13 +1256,15 @@
       },
       "rooms": {
         "title": "Raumthermometer",
-        "description": "Raumthermostate oder Temperatursensoren, einer je Raum. Der Optimierer veröffentlicht ihren Mittelwert und die Spanne zwischen dem kältesten und dem wärmsten Raum; der Plan nutzt sie noch nicht. Leer lassen, wenn keine vorhanden sind.",
+        "description": "Raumthermostate oder Temperatursensoren, einer pro Raum. Der Optimierer veröffentlicht ihren Mittelwert und die Spreizung zwischen dem kältesten und dem wärmsten Raum. Auf Wunsch kann ein Raum unter seinem eigenen Thermostat-Sollwert die Temperatur anheben, die der Plan hält. Leer lassen, wenn keine vorhanden sind.",
         "data": {
           "room_temperature_entities": "Raumthermometer",
+          "room_lift_enabled": "Kalter Raum darf das geplante Minimum anheben",
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
           "room_temperature_entities": "Bis zu 32 Klima-Entitäten (Raumthermostate) oder Temperatursensoren. Ein Raum, der nicht verfügbar, veraltet oder außerhalb des Bereichs ist, fließt nicht in den Mittelwert ein und meldet nie ein Eingangsproblem.",
+          "room_lift_enabled": "Standardmäßig aus. Wenn aktiv, hebt ein Raumthermostat im Modus heat oder auto, der weiter unter seinem eigenen Sollwert liegt als das Haus unter Ihrem, die Mindesttemperatur des Plans an – um höchstens 1 °C, nie über Ihren Komfort-Sollwert und allmählich. Ein ausgeschalteter oder kühlender Raum wird ignoriert. Es weicht dem Sparmodus, einem offenen Fenster, Abwesenheit, einem Feiertag, einem manuell geplanten Heizfenster und dem Zwei-Zonen-Modell. Der Sensor für die Raumtemperatur-Spreizung zeigt den Raum und die Größe.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
