@@ -6,3 +6,4 @@
 1794842945 CKPT failing tests committed (a,b,d fail at base) snapshot 2697efc6b12e
 1794843103 CKPT p2 fix committed; harnesses at both ends recorded snapshot a2be38ca888b
 1794843268 HB alive
+1794843336 CKPT mutants M1-M6 killed; notes s2,s3,r1 measured; gate running snapshot dc32b6d81ac7
