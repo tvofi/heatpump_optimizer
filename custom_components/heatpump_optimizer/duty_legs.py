@@ -6,13 +6,14 @@ the optimizer prices the switches that serving makes, so two modules need one
 rule and neither may import the other. A leaf: numpy, the plan's running rule
 and the step width, nothing of Home Assistant.
 
-A switch between duties at constant draw is invisible to the cycling term,
-which prices the swing of the combined draw. On an install whose compressor
-stops at such a switch (pull request 3420, Bankaifan: hot water to heating,
-three times out of three) the stop turns the swing ``|a - b|`` into ``a + b``.
-The difference, ``2 * min(a, b)``, is ``min(a, b) / p_max`` cycles in the
-cycling term's own unit, and that is the weight a switch carries here, taken
-with the learned probability that the direction stops the compressor.
+A switch between duties inside a run is invisible to the start term, which
+counts the off-to-on edges of the combined draw (``runs``). On an install
+whose compressor stops at such a switch (pull request 3420, Bankaifan: hot
+water to heating, three times out of three) the stop is a start the plan did
+not count. A switch between the levels ``a`` and ``b`` weighs
+``min(a, b) / p_max`` cycles, taken with the learned probability that the
+direction stops the compressor; weighed at ``p_max`` times the running share
+it is that probability of one start.
 
 A pair of per-direction values is always ``(hot water to heating, heating to
 hot water)``.
@@ -24,7 +25,7 @@ from typing import Any
 
 import numpy as np
 
-from .batchmath import row_sums
+from .batchmath import AFTER as _AFTER, BEFORE as _BEFORE, row_sums
 from .plan_step import PLAN_STEP_MINUTES
 from .thermal_model import MIN_RUNNING_DRAW_KW
 
@@ -148,11 +149,6 @@ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
     return a, b
 
 
-#: A boundary pairs each step but the last with the step after it; the legs
-#: that meet there and the levels they run at are read through the same pair.
-_BEFORE, _AFTER = np.s_[:, :-1], np.s_[:, 1:]
-
-
 def switch_weights_batch(
     space_matrix: np.ndarray,
     dhw_kw: np.ndarray,
@@ -160,21 +156,28 @@ def switch_weights_batch(
     p_max: float,
     floor: float | None = None,
     rule: LegRule = DEFAULT_RULE,
+    *,
+    level: np.ndarray | None = None,
 ) -> np.ndarray:
     """Expected compressor stops at duty switches, in cycles, per row of plans.
 
     Every pair of consecutive legs of different duty with no idle step
     between weighs ``p * level / p_max``, in the direction ``rule`` orders the
     legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
-    of the two levels. ``row_sums`` reduces each row on its own, so a row is
-    :func:`switch_weight` of that plan bit for bit.
+    of the two levels. ``level`` is what the pairs are weighed at, the
+    combined draw unless given: ``p_max`` times the running share
+    (``runs.running_share``) weighs a pair in starts, so a boundary's switch
+    weight and its start share never sum past one start. ``row_sums`` reduces
+    each row on its own, so a row is :func:`switch_weight` of that plan bit
+    for bit.
     """
     space = np.asarray(space_matrix, dtype=float)
     p_ds, p_sd = stop_probability
     if p_max <= 0:
         return np.zeros(space.shape[0])
     first, last, two = leg_ends(space, dhw_kw, floor, rule=rule)
-    level = space + np.asarray(dhw_kw, dtype=float)
+    if level is None:
+        level = space + np.asarray(dhw_kw, dtype=float)
     before, after = last[_BEFORE], first[_AFTER]
     stops = np.where(
         (before == DHW) & (after == SPACE),
@@ -193,10 +196,13 @@ def switch_weight(
     p_max: float,
     floor: float | None = None,
     rule: LegRule = DEFAULT_RULE,
+    *,
+    level: np.ndarray | None = None,
 ) -> float:
     """The one-row case of :func:`switch_weights_batch`."""
     return float(switch_weights_batch(
-        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor, rule
+        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor, rule,
+        level=None if level is None else np.asarray(level, dtype=float)[None, :],
     )[0])
 
 

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_best_runs CLAMP_DROP bef3bfe7",
+  "killed_by": "tests/features.py",
+  "old": "    return min((float(scores[order[0]]), *scoped[order[0]]), resolved, key=lambda c: c[0])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return ((float(scores[order[0]]), *scoped[order[0]]))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

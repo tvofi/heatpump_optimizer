@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/slab_seed.py:refusal RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in refusal, after three `if` arms that each return, so deleting it lets the function fall off its own end and return None -- the same value, on every input, to every reader. Measured by the #3616 fixer's mutant drive (tools/audit/seat/mutant_run.py --diff over the diff's 27 drafted custom_components mutants) against the '# --- #3616: an implausible slab seed' block of tests/features.py, whose null control pins the None arm (a plausible floor-loop return still seeds the slab): SURVIVED alone, every other drafted mutant killed.",
+  "verdict": "equivalent"
+}

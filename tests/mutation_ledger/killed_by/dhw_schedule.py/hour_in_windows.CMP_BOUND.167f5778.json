@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hour_in_windows CMP_BOUND 167f5778",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if start <= h < end:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if start < h < end:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
