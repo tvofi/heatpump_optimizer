@@ -1,0 +1,57 @@
+  asks dhw_setpoint 55 to 50 01:00 by tank:   +29.1 (space   +8.6 hot water  +31.3)    +20.0 (space  +11.0 hot water  +23.0)     +4.9 (space   -0.4 hot water   +5.0)
+  asks dhw_setpoint 55 to 50 05:00 by tank:    -0.5 (space   +3.1 hot water  +24.3)    +20.8 (space   -4.0 hot water  +22.1)     -1.9 (space  -15.2 hot water   +5.1)
+  asks dhw_setpoint 55 to 50 09:00 by tank:   +25.3 (space   -3.6 hot water  +24.6)    +19.8 (space   -5.2 hot water  +19.5)    -12.7 (space  -12.8 hot water  -10.8)
+  asks dhw_setpoint 55 to 50 13:00 by tank:    +9.6 (space   -2.5 hot water  +11.4)    +17.8 (space   +2.3 hot water  +18.2)     -6.1 (space   -7.3 hot water   -6.9)
+  asks dhw_setpoint 55 to 50 17:00 by tank:   -14.4 (space   +3.9 hot water  -17.5)    -17.3 (space   -8.0 hot water  -10.9)     -7.7 (space   +0.3 hot water   -7.7)
+  asks dhw_setpoint 55 to 50 21:00 by tank:    -0.1 (space   -2.8 hot water   +1.1)     -2.8 (space   +4.8 hot water   -4.4)     -9.0 (space   +4.1 hot water   -8.4)
+RESULT asks dhw_setpoint 55 to 50: rows 18 against the ask 8, range -17.3..+29.1, median share of the moved spend that is space heat 0.21
+  asks dhw_setpoint 55 to 60 01:00 by tank:    -8.0 (space  -10.1 hot water  -10.8)    -11.5 (space   -9.0 hot water  -12.2)    -11.5 (space   -6.9 hot water   -9.8)
+  asks dhw_setpoint 55 to 60 05:00 by tank:   -24.6 (space   +9.5 hot water   -4.4)     -9.6 (space  -26.3 hot water   -5.0)    +17.0 (space  -37.6 hot water   -7.3)
+  asks dhw_setpoint 55 to 60 09:00 by tank:    -2.6 (space   -0.1 hot water  -10.1)     -4.7 (space   -3.4 hot water   -7.4)     -8.7 (space   +3.0 hot water   -7.2)
+  asks dhw_setpoint 55 to 60 13:00 by tank:    -6.5 (space   +2.5 hot water   -8.0)     -6.7 (space   +6.0 hot water   -9.0)    +12.1 (space   +2.7 hot water  +10.6)
+  asks dhw_setpoint 55 to 60 17:00 by tank:   +32.2 (space   +1.8 hot water  +30.8)    +26.4 (space   -5.4 hot water  +31.0)    +42.8 (space   +3.6 hot water  +40.1)
+  asks dhw_setpoint 55 to 60 21:00 by tank:    +4.8 (space   -4.7 hot water   +6.4)     +7.6 (space   +1.1 hot water   +7.1)     +8.2 (space   +4.6 hot water   +6.5)
+RESULT asks dhw_setpoint 55 to 60: rows 18 against the ask 10, range -24.6..+42.8, median share of the moved spend that is space heat 0.36
+  asks dhw_min_temperature 45 to 50 01:00 by tank:   +97.5 (space   -0.0 hot water  +97.4)    +94.9 (space   +0.9 hot water  +96.4)    +96.5 (space   -0.0 hot water  +96.5)
+  asks dhw_min_temperature 45 to 50 05:00 by tank:   +64.0 (space   -4.7 hot water  +97.0)    +95.1 (space  -16.1 hot water  +96.7)    +96.7 (space  -37.4 hot water  +94.9)
+  asks dhw_min_temperature 45 to 50 09:00 by tank:  +101.8 (space   -0.0 hot water  +97.6)   +101.1 (space  -19.2 hot water  +98.4)    +96.0 (space   -6.5 hot water  +99.3)
+  asks dhw_min_temperature 45 to 50 13:00 by tank:   +97.9 (space   -3.8 hot water  +99.4)    +95.7 (space   +2.1 hot water  +96.2)    +99.5 (space   -7.2 hot water  +98.6)
+  asks dhw_min_temperature 45 to 50 17:00 by tank:  +102.0 (space   +4.2 hot water  +98.6)   +100.2 (space   -1.2 hot water +101.2)   +101.7 (space   +5.6 hot water  +97.2)
+  asks dhw_min_temperature 45 to 50 21:00 by tank:   +62.6 (space   -0.2 hot water  +62.7)    +74.7 (space   +3.9 hot water  +73.0)    +58.0 (space   +0.0 hot water  +58.0)
+RESULT asks dhw_min_temperature 45 to 50: rows 18 against the ask 0, range +58.0..+102.0, median share of the moved spend that is space heat 0.04
+  asks comfort_weight 5 to 2.5 01:00 by tank:    -3.6 (space   +0.8 hot water   +0.0)     -1.5 (space   +0.6 hot water   +0.0)     -3.4 (space   +0.5 hot water   +0.0) | no tank    -0.5
+  asks comfort_weight 5 to 2.5 05:00 by tank:   -49.7 (space  -50.2 hot water   +0.0)    -70.2 (space -147.3 hot water   +0.0)    -63.1 (space -148.3 hot water   +0.0) | no tank   -41.0
+  asks comfort_weight 5 to 2.5 09:00 by tank:    +2.2 (space   +3.5 hot water   -2.0)     +4.9 (space   -9.3 hot water   +0.0)     -2.9 (space   +4.4 hot water   +0.0) | no tank    +0.1
+  asks comfort_weight 5 to 2.5 13:00 by tank:    +2.0 (space   -6.4 hot water   +0.0)     +1.9 (space   +4.1 hot water   +1.3)     +1.9 (space   -5.7 hot water   +0.0) | no tank    +1.1
+  asks comfort_weight 5 to 2.5 17:00 by tank:    -1.4 (space   -1.7 hot water   +0.0)     -2.3 (space   -3.4 hot water   +0.0)     +2.8 (space   +2.9 hot water   +0.0) | no tank    -1.2
+  asks comfort_weight 5 to 2.5 21:00 by tank:   -13.0 (space  +38.8 hot water   +0.0)    -10.3 (space  +46.5 hot water   +0.0)    -13.9 (space  +45.1 hot water   +0.0) | no tank   -13.7
+RESULT asks comfort_weight 5 to 2.5: rows 18 against the ask 6, range -70.2..+4.9, median share of the moved spend that is space heat 1.00
+  asks comfort_weight 5 to 10 01:00 by tank:    -1.4 (space   -8.4 hot water   +0.0)     -1.7 (space   +1.8 hot water   +0.0)     -0.6 (space  -11.7 hot water   +0.0) | no tank    +1.8
+  asks comfort_weight 5 to 10 05:00 by tank:    -2.7 (space  +69.6 hot water   +0.0)     +5.2 (space   -8.7 hot water   +0.0)    +23.7 (space  +36.2 hot water   +0.0) | no tank   +29.2
+  asks comfort_weight 5 to 10 09:00 by tank:    +3.5 (space   +2.5 hot water   -2.0)    +11.0 (space  -29.4 hot water   +0.0)     +2.3 (space  -16.2 hot water   +0.0) | no tank    +1.0
+  asks comfort_weight 5 to 10 13:00 by tank:    +0.1 (space   -0.6 hot water   +0.0)     -1.4 (space  -10.1 hot water   +0.0)     +0.1 (space   +0.1 hot water   +0.0) | no tank    +0.5
+  asks comfort_weight 5 to 10 17:00 by tank:   +12.9 (space  -47.2 hot water   +0.0)     +8.6 (space  -52.2 hot water   +0.0)    +14.1 (space  -45.3 hot water   +0.0) | no tank   +14.9
+  asks comfort_weight 5 to 10 21:00 by tank:    +3.3 (space  -24.6 hot water   +0.0)     +5.0 (space  -20.3 hot water   +0.0)     +4.7 (space  -21.1 hot water   +0.0) | no tank    +5.2
+RESULT asks comfort_weight 5 to 10: rows 18 against the ask 5, range -2.7..+23.7, median share of the moved spend that is space heat 1.00
+  asks min_temp 17 to 16 01:00 by tank:    -3.4 (space   -0.1 hot water   +0.0)     -1.5 (space   +0.8 hot water   +0.0)     -3.6 (space   +1.3 hot water   +0.0) | no tank    -0.5
+  asks min_temp 17 to 16 05:00 by tank:   -86.2 (space -101.8 hot water   +0.0)    -23.2 (space -110.4 hot water   +0.0)    -52.0 (space -145.9 hot water   +0.0) | no tank   -22.3
+  asks min_temp 17 to 16 09:00 by tank:    +2.6 (space   -3.8 hot water   -2.0)     +4.8 (space   -9.2 hot water   +0.0)     +0.0 (space   +0.0 hot water   +0.0) | no tank    -2.4
+  asks min_temp 17 to 16 13:00 by tank:    +2.2 (space   +3.7 hot water   +0.0)     +3.5 (space   -2.7 hot water   +1.3)     +0.9 (space   -5.6 hot water   +0.0) | no tank    -1.9
+  asks min_temp 17 to 16 17:00 by tank:    +1.6 (space   -1.9 hot water   +0.0)     -2.5 (space   -3.1 hot water   +0.0)     +0.2 (space   +0.4 hot water   +0.0) | no tank    +2.8
+  asks min_temp 17 to 16 21:00 by tank:   -12.2 (space  +27.5 hot water   +0.0)     -9.1 (space  +28.4 hot water   +0.0)    -11.3 (space  +30.3 hot water   +0.0) | no tank   -11.0
+RESULT asks min_temp 17 to 16: rows 18 against the ask 8, range -86.2..+4.8, median share of the moved spend that is space heat 1.00
+  asks min_temp 17 to 18 01:00 by tank:    +3.1 (space   -6.8 hot water   +0.0)     -1.6 (space   +1.0 hot water   +0.0)     +0.1 (space  -14.8 hot water   +0.0) | no tank    +9.1
+  asks min_temp 17 to 18 05:00 by tank:    -3.2 (space  +73.2 hot water   +0.0)     -1.0 (space   -2.5 hot water   +0.0)    +22.7 (space  +43.3 hot water   +0.0) | no tank   +28.8
+  asks min_temp 17 to 18 09:00 by tank:    +5.7 (space  -17.2 hot water   -2.0)     +4.8 (space  -21.1 hot water   +0.0)     +0.3 (space  -12.0 hot water   +0.0) | no tank    +1.0
+  asks min_temp 17 to 18 13:00 by tank:    +0.2 (space   +0.5 hot water   +0.0)     +2.4 (space   -3.5 hot water   +1.3)     +0.9 (space   -7.7 hot water   +0.0) | no tank    -0.8
+  asks min_temp 17 to 18 17:00 by tank:   +15.7 (space  -47.9 hot water   +0.0)    +11.9 (space  -51.3 hot water   +0.0)    +17.1 (space  -47.1 hot water   +0.0) | no tank   +18.2
+  asks min_temp 17 to 18 21:00 by tank:    +4.0 (space  -34.5 hot water   +0.0)     +5.6 (space  -30.1 hot water   +0.0)     +5.3 (space  -31.0 hot water   +0.0) | no tank    +5.8
+RESULT asks min_temp 17 to 18: rows 18 against the ask 3, range -3.2..+22.7, median share of the moved spend that is space heat 1.00
+  asks null: dhw_setpoint 55 to 55.5 01:00 by tank:    -0.1 (space   -0.3 hot water   +3.2)     +5.3 (space   -2.0 hot water   +2.4)     +3.5 (space   -0.0 hot water   +3.5)
+  asks null: dhw_setpoint 55 to 55.5 05:00 by tank:    -4.2 (space  +67.0 hot water   +4.0)     +2.7 (space  -20.9 hot water   +1.9)     +7.1 (space   +7.1 hot water   +3.6)
+  asks null: dhw_setpoint 55 to 55.5 09:00 by tank:    -9.0 (space   +3.5 hot water  -14.0)     +5.7 (space  -22.1 hot water   -1.0)     -1.3 (space   +0.0 hot water   -1.5)
+  asks null: dhw_setpoint 55 to 55.5 13:00 by tank:   -11.2 (space   +0.2 hot water  -11.9)     -2.1 (space   +3.3 hot water   -2.9)     -1.6 (space   -0.4 hot water   -1.8)
+  asks null: dhw_setpoint 55 to 55.5 17:00 by tank:    -6.2 (space   +0.7 hot water   -6.7)     -7.2 (space   -5.4 hot water   -2.6)     -1.2 (space   +2.6 hot water   -3.2)
+  asks null: dhw_setpoint 55 to 55.5 21:00 by tank:    -7.1 (space   +0.1 hot water   -7.3)     +3.6 (space   -0.0 hot water   +3.6)     -7.4 (space   +0.5 hot water   -7.6)
+RESULT asks null: dhw_setpoint 55 to 55.5: rows 18 against the ask 0, range -11.2..+7.1, median share of the moved spend that is space heat 0.18
+EXIT 0

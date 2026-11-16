@@ -1,0 +1,21 @@
+  valve weekend comfort set: day-1 asked 09:00 Mon..Sun: -35.9 -35.9 -35.9 -35.9 -35.9 -35.9 -35.9
+  valve weekend comfort set: day+1 asked 09:00 Mon..Sun: +8.8 +8.8 +8.8 +8.8 +8.8 +8.8 +8.8
+  valve weekend comfort set: night-1 asked 09:00 Mon..Sun: -19.1 -19.1 -19.1 -19.1 -19.1 -19.1 -19.1
+  valve weekend comfort set: night+1 asked 09:00 Mon..Sun: +26.5 +26.5 +26.5 +26.5 +26.5 +26.5 +26.5
+  valve weekend comfort set: daystart-1h asked 09:00 Mon..Sun: +7.2 +7.2 +7.2 +7.2 +7.2 +7.2 +7.2
+  valve weekend comfort set: dayend-1h asked 09:00 Mon..Sun: -6.6 -6.6 -6.6 -6.6 -6.6 -6.6 -6.6
+  valve weekend comfort set: wkday+1 asked 09:00 Mon..Sun: -0.9 -0.9 -0.9 -0.9 -0.9 -0.9 -0.9
+  valve weekend comfort set: wknight-1 asked 09:00 Mon..Sun: -10.7 -10.7 -10.7 -10.7 -10.7 -10.7 -10.7
+RESULT valve weekend comfort set: asks whose figure moves with the weekday 0, days against the ask 7, days at 0.00 0, days leaving the schedule branch 0
+  valve null, no weekend comfort: day-1 asked 09:00 Mon..Sun: -51.6 -51.6 -51.6 -51.6 -51.6 -51.6 -51.6
+  valve null, no weekend comfort: day+1 asked 09:00 Mon..Sun: +10.8 +10.8 +10.8 +10.8 +10.8 +10.8 +10.8
+  valve null, no weekend comfort: night-1 asked 09:00 Mon..Sun: -24.4 -24.4 -24.4 -24.4 -24.4 -24.4 -24.4
+  valve null, no weekend comfort: night+1 asked 09:00 Mon..Sun: +32.9 +32.9 +32.9 +32.9 +32.9 +32.9 +32.9
+  valve null, no weekend comfort: daystart-1h asked 09:00 Mon..Sun: +5.9 +5.9 +5.9 +5.9 +5.9 +5.9 +5.9
+  valve null, no weekend comfort: dayend-1h asked 09:00 Mon..Sun: -6.0 -6.0 -6.0 -6.0 -6.0 -6.0 -6.0
+RESULT valve null, no weekend comfort: asks whose figure moves with the weekday 0, days against the ask 0, days at 0.00 0, days leaving the schedule branch 0
+RESULT valve friday: rows 96 against the ask 8 at 0.00 4 reading the pair 0
+RESULT valve holds: a thermostat set to 21.0 all day ends its second pass with the rooms at 21.02 and 21.00
+RESULT valve holds: a thermostat set to 22.0 all day ends its second pass with the rooms at 22.03 and 21.99
+RESULT valve holds: a thermostat set to 23.0 all day ends its second pass with the rooms at 22.10 and 22.07
+EXIT 0
