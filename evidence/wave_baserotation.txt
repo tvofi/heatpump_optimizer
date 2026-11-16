@@ -1,8 +1,0 @@
--- Provenance and the fail-closed Reconcile gate
-  FAIL every brief numbers its method steps 1..n, and rotation.json carries exactly those steps for every brief gaps: rotation.json D0 lacks D0.M8, which the brief numbers; rotation.json D15 lacks D15.M9, which the brief numbers
-  ok   class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) is refused
-  FAIL every brief has scopes, and every scopes step is exactly a step its brief numbers scopes.json D0 steps ["M1","M2","M3","M4","M5","M6","M7","M8"] != the brief's ["M1","M2","M3","M4","M5","M6","M7"] (rotation.json); a D0 seat names D0.M8, which the brief does not number; scopes.json D15 steps ["M1","M2","M3","M4","M5","M6","M7","M8","M9"] != the brief's ["M1","M2","M3","M4","M5","M6","M7","M8"] (rotation.json); a D15 seat names D15.M9, which the brief does not number
-  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
-  FAIL (probe, expected) threw: deliberate
-  ok   a throwing block is reported as a failure rather than ending the run
-221 passed, 2 failed
