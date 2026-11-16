@@ -375,7 +375,10 @@ def race_call(call: MsCall, prev_plan=None, with_de=True, binding=True) -> Race:
     arm("seeds", run_ms(call, seeds).x)
     if binding:
         arm("budget", run_ms(call, call.candidates, maxiter=3000, budget=True).x)
-    arm("eps", run_ms(call, call.candidates, eps=1e-6).x)
+    if os.environ.get("D0S3_EPS_ARM", "0") == "1":
+        # off by default after the first 71 grid cells (box contention): it won 1
+        # of 18 gaps there, a flat-price cell; the env flag re-enables it
+        arm("eps", run_ms(call, call.candidates, eps=1e-6).x)
     if with_de:
         try:
             g = de_block(call)

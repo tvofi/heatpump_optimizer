@@ -153,6 +153,63 @@ def one(args):
         return {"cell": cell, "error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-1500:]}
 
 
+def mask_one(args):
+    """One re-plan after the first --every steps: is the race gap masked?
+
+    Production's plan is applied for `every` steps on the model (plant ==
+    model); production re-plans from there warm-seeded with its own plan; the
+    race's best challenger from t0 is shifted by `every` steps (its tail padded
+    with the re-plan's last `every` steps) and committed through the re-plan's
+    own captured call. masked = the re-plan scores no worse than the shifted
+    challenger on the re-plan's objective. Only meaningful where the first
+    `every` steps of the two t0 plans agree; where they do not the record says
+    so and the closed loop decides.
+    """
+    cell, every, best_x = args
+    import d0s3_lib as L
+    from golden import START
+    from profiles import solve_inputs
+    from heatpump_optimizer.thermal_model import WeatherSeries
+    t0 = time.process_time(); tt0 = time.thread_time()
+    try:
+        c = L.parse(cell)
+        b = L.build(cell)
+        H = c["hours"] * 4
+        series = _tiled(b, H + DAY + every)
+        r0, calls0, _, _ = L.solve(b)
+        sp = np.asarray(r0.power_schedule, dtype=float)
+        dh = np.asarray(r0.dhw_power_schedule or [], dtype=float)
+        if dh.size != sp.size:
+            dh = np.zeros(sp.size)
+        bx = np.asarray(best_x, dtype=float)
+        head_same = bool(np.allclose(bx[:every], sp[:every], atol=1e-3))
+        m = b["optimizer"].model
+        ws = WeatherSeries(outdoor_temps=series["outdoor"][:every], wind_speeds=series["wind"][:every],
+                           precipitation=series["rain"][:every], solar_radiation=series["solar"][:every])
+        hours = (np.arange(every) * 0.25) % 24
+        end = []
+        m.simulate_trajectory_with_dhw(b["state"], sp[:every], dh[:every], ws, start_hour=0.0, dt_hours=0.25,
+                                       dhw_draw_rates=m.dhw_draw_rates(hours) if c["dhw"] else None, end_state=end)
+        b1 = L.build(cell)
+        opt = b1["optimizer"]; opt._prev_shipped_plan = sp
+        sl = slice(every, every + H)
+        inp = solve_inputs(initial_state=end[-1], prices=series["prices"][sl], outdoor_temps=series["outdoor"][sl],
+                           wind_speeds=series["wind"][sl], precipitation=series["rain"][sl],
+                           solar_radiation=series["solar"][sl], start_time=START + timedelta(hours=0.25 * every))
+        r1, calls1, _, _ = L.solve(None, opt=opt, inputs=inp)
+        ship = [k for k in calls1 if k.commit is not None]
+        call = ship[-1]
+        px, ps = L.shipped_of(call)
+        cand = np.concatenate([bx[every:], px[-every:]])[: px.size]
+        cx, cs = L.committed(call, cand)
+        return {"cell": cell, "every": every, "head_same": head_same, "replan_score": ps,
+                "shifted_challenger_score": cs, "masked": bool(ps <= cs + 1e-9), "residual": ps - cs,
+                "cell_cpu": round(time.process_time() - t0, 3), "cell_thread_cpu": round(time.thread_time() - tt0, 3)}
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        return {"cell": cell, "error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-1500:]}
+
+
 def gap_cells(min_gap):
     out = []
     for line in open(os.path.join(HERE, "race_out", "cells.jsonl")):
@@ -173,7 +230,10 @@ def main():
     ap.add_argument("--cells", default="")
     ap.add_argument("--perturb", default="")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--mask", action="store_true", help="one re-plan masking test on every gap cell")
     a = ap.parse_args()
+    if a.mask:
+        return run_mask(a)
     cells = [l.strip() for l in open(a.cells) if l.strip()] if a.cells else gap_cells(a.min_gap)
     tag = a.tag or f"d{a.days}e{a.every}{('.' + a.perturb) if a.perturb else ''}"
     path = os.path.join(HERE, "loop_out", f"cells.{tag}.jsonl")
@@ -189,6 +249,40 @@ def main():
             print(f"[{i + 1}/{len(todo)}] {rec['cell']} {rec.get('same', {}).get('realised_gap', rec.get('error'))}",
                   flush=True)
     summarize(path, cells)
+
+
+def run_mask(a):
+    best = {}
+    for line in open(os.path.join(HERE, "race_out", "cells.jsonl")):
+        d = json.loads(line)
+        if "error" in d or d["cell"].startswith("coord/") or d["cell_gap"] <= a.min_gap:
+            continue
+        rows = [r for r in d["calls"] if r["ships"] and "best_x" in r]
+        if rows:
+            best[d["cell"]] = rows[-1]["best_x"]
+    path = os.path.join(HERE, "loop_out", f"mask.e{a.every}.jsonl")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    done = set()
+    if os.path.exists(path):
+        done = {json.loads(l)["cell"] for l in open(path) if "error" not in json.loads(l)}
+    todo = [c for c in sorted(best) if c not in done]
+    from multiprocessing import get_context
+    with open(path, "a") as fh, get_context("fork").Pool(a.workers) as pool:
+        for i, rec in enumerate(pool.imap_unordered(mask_one, [(c, a.every, best[c]) for c in todo])):
+            fh.write(json.dumps(rec) + "\n"); fh.flush()
+            print(f"[{i + 1}/{len(todo)}] {rec['cell']} masked={rec.get('masked', rec.get('error'))}", flush=True)
+    R = [json.loads(l) for l in open(path)]
+    R = [r for r in R if "error" not in r and r["cell"] in best]
+    hs = [r for r in R if r["head_same"]]
+    print(f"RESULT gap_cells={len(best)} (cell_gap > {a.min_gap})")
+    print(f"RESULT examined={len(R)}")
+    print(f"RESULT head_same={len(hs)} masked_of_head_same={sum(r['masked'] for r in hs)}")
+    print(f"RESULT head_differs={len(R) - len(hs)}")
+    import d0s3_lib as L
+    pc = sum(r.get("cell_cpu", 0) for r in R); tc = sum(r.get("cell_thread_cpu", 0) for r in R)
+    print(f"RESULT thread_factor={pc / tc if tc else 1.0:.3f}")
+    print(f"RESULT load1={L.load1():.2f}")
+    print(f"RESULT swapins={L.swapins()}")
 
 
 def summarize(path, cells):

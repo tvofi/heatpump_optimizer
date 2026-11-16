@@ -14,24 +14,30 @@ Metrics, per cell (one production solve shared by the three):
       "dumps the last couple of hours" and "breaches the comfort floor at the
       tail". Recorded: tail energy (last 2 h, kWh) with/without, tail
       degree-steps below the per-step floor with/without, end room temp.
-  M8  same-information oracle. The measured house (plant) is the cell's model
-      with house_heat_loss_scale x1.2 and every zone's thermal mass x0.85 (a
-      learned model 20 %/15 % off); exogenous inputs are the cell's forecast as
-      issued (perfect, so the only information gap is the model). C_model =
-      production objective_value on its own model; C_real = the plant's own
-      production objective (captured from a solve built on the plant
-      parameters) at production's (space, dhw) plan; C_same = that plant
-      objective at the plan production's solver ships when given the plant
-      (the same solver, same inputs, the house as measured). regret =
-      C_real - C_same; model_gap = |C_real - C_model|. Null: the flat-price
-      cells (D0.M5).
+  M8  same-information oracle (decision 0018 section 1, open loop: one decision
+      time, the forecast as issued equals the realised series, so C_fore =
+      C_same and the floor is 0). The measured house (plant) is the cell's
+      model with house_heat_loss_scale x1.2 and every zone's thermal mass
+      x0.85 (the learned model 20 %/15 % off). Costs are SEK of energy
+      (price x kWh, space + DHW). C_real = C_model = production's plan (made
+      on its learned model); C_same = the plan production's solver ships on
+      the PLANT with the pull-to-target zeroed (optimizer._COMFORT_PULL_* = 0;
+      least cost inside the bounds: the pull
+      is a preference, the bounds stay priced). Both plans are run on the
+      plant (`ThermalModel.simulate_trajectory[_with_dhw]`): K*h below the
+      per-step floor (`OptimizationConfig.get_temp_bounds`) and above the
+      ceiling, and the end room temperature. regret = C_real - C_same, read
+      only where both plans hold the floor on the plant; a production plan
+      that breaches it on the plant is counted (an `operation` defect, never
+      a saving). Model gap (open loop): |plant end room - model end room| K.
+      Null: the flat-price cells (D0.M5).
 
 Command (from the export root):
   PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py [--workers 2] [--limit N] [--cells FILE] [--perturb single_pass]
 Perturbation: --perturb single_pass caps the iterated arm at the production
 single pass (decomp_delta must read 0 on every cell); M7b's perturbation is the
-arm itself; M8's: --plant-scale 1.0 makes plant == model, so regret and
-model_gap must fall to 0 on every cell.
+arm itself; M8's: --plant-scale 1.0 makes plant == model, so the model gap
+must fall to 0 and prod_plan_breaches_floor_on_plant to 0.
 Output: decomp_out/cells.jsonl (resumable). Machine: box B3 (shared).
 Expected: see REPORT.md; CPU numbers provisional.
 """
@@ -174,24 +180,62 @@ def one(cell, perturb=None, plant_scale=1.2):
     else:
         po = {}
     bp = L.build(cell, param_overrides=po)
+    # least cost inside the bounds: the pull-to-target is a preference, not a
+    # bound, so its two module weights are zeroed for the oracle solve (and for
+    # every evaluation of the objective it captured); the bound penalties and
+    # the terminal settlement stay as production prices them.
+    from heatpump_optimizer import optimizer as om
+    nopull = [mock.patch.object(om, "_COMFORT_PULL_SINGLE_ZONE", 0.0),
+              mock.patch.object(om, "_COMFORT_PULL_TWO_ZONE", 0.0)]
+    for q in nopull:
+        q.start()
     with L.Capture() as capp:
         ro = bp["optimizer"].optimize(inputs=L.inputs_of(bp))
     so = np.asarray(ro.power_schedule, dtype=float)
     do = np.asarray(ro.dhw_power_schedule or [], dtype=float)
+    if do.size != n:
+        do = np.zeros(n)
+    ceils = np.array([opt.config.get_temp_bounds(((START + timedelta(hours=0.25 * (i + 1))).hour
+                                                  + (START + timedelta(hours=0.25 * (i + 1))).minute / 60.0))[1]
+                      for i in range(n)])
+    pm = bp["optimizer"].model
+    from heatpump_optimizer.thermal_model import WeatherSeries
+    ws = WeatherSeries(outdoor_temps=bp["outdoor"], wind_speeds=bp["wind"], precipitation=bp["rain"],
+                       solar_radiation=bp["solar"])
+    hrs = (np.arange(n) * 0.25) % 24.0
+
+    def on_plant(space, hot):
+        if L.parse(cell)["dhw"]:
+            tr = pm.simulate_trajectory_with_dhw(bp["state"], space, hot, ws, start_hour=0.0, dt_hours=0.25,
+                                                 dhw_draw_rates=pm.dhw_draw_rates(hrs))
+        else:
+            tr = pm.simulate_trajectory(bp["state"], space, ws, dt_hours=0.25)
+        zones = [tr[0]] + ([tr[2], tr[3]] if pm.params.two_zone_enabled else [])
+        lo = sum(float(np.maximum(0, floors - z[1:n + 1]).sum()) for z in zones) * 0.25
+        hi = sum(float(np.maximum(0, z[1:n + 1] - ceils).sum()) for z in zones) * 0.25
+        return lo, hi, float(tr[0][n])
+
+    real_lo, real_hi, real_end = on_plant(ship, dhw)
+    same_lo, same_hi, same_end = on_plant(so, do)
+    c_real = rec["prod_energy_cost"]
+    c_same = float(np.sum(pr * (so + do)) * 0.25)
+    room_model = np.asarray(r.room_temp_trajectory, dtype=float)
+    rec.update(C_model=c_real, C_real=c_real, C_same=c_same, regret=c_real - c_same,
+               real_breach_below_Kh=real_lo, real_breach_above_Kh=real_hi, real_end_room=real_end,
+               same_breach_below_Kh=same_lo, same_breach_above_Kh=same_hi, same_end_room=same_end,
+               model_end_room=float(room_model[-1]) if room_model.size else None,
+               model_gap_end_room_K=abs(real_end - float(room_model[-1])) if room_model.size else None,
+               oracle_status=str(ro.status))
     calls = [c for c in capp.calls if c.commit is not None]
     if calls:
-        c = calls[-1]
-        obj = c.commit["out_scope"][1]
-        # the plant objective takes the dhw plan as its argument on the DHW path
-        if c.args:
-            c_real = float(obj(ship, dhw))
-            c_same = float(obj(so, do if do.size == n else np.zeros(n)))
-        else:
-            c_real = float(obj(ship))
-            c_same = float(obj(so))
-        rec.update(C_model=rec["prod_objective"], C_real=c_real, C_same=c_same,
-                   regret=c_real - c_same, model_gap=abs(c_real - rec["prod_objective"]),
-                   oracle_energy_cost=float(np.sum(pr * (so + (do if do.size == n else 0))) * 0.25))
+        obj = calls[-1].commit["out_scope"][1]
+        args_r, args_s = ((dhw,), (do,)) if calls[-1].args else ((), ())
+        jr, js = float(obj(ship, *args_r)), float(obj(so, *args_s))
+        # settled: the plant's own pull-free objective (energy + bound
+        # penalties + the terminal settlement of the heat left at the end)
+        rec.update(J0_real=jr, J0_same=js, regret_settled=jr - js)
+    for q in reversed(nopull):
+        q.stop()
     rec["cell_cpu"] = round(time.process_time() - t0, 3)
     rec["cell_thread_cpu"] = round(time.thread_time() - tt0, 3)
     return rec
@@ -262,9 +306,20 @@ def summarize(path, cells):
     for flat in (False, True):
         sub = [r for r in O if (r["cell"].split("/")[0] == "flat") == flat]
         if sub:
-            rg = np.array([r["regret"] for r in sub]); mg = np.array([r["model_gap"] for r in sub])
-            print(f"RESULT oracle_{'flat' if flat else 'nonflat'}_cells={len(sub)} regret_mean={rg.mean():.4f} "
-                  f"regret_max={rg.max():.4f} regret_neg_cells={(rg < -1e-6).sum()} model_gap_mean={mg.mean():.4f}")
+            ok = [r for r in sub if r["real_breach_below_Kh"] <= 1e-3 and r["same_breach_below_Kh"] <= 1e-3]
+            rg = np.array([r["regret"] for r in ok]) if ok else np.zeros(1)
+            mg = np.array([r["model_gap_end_room_K"] or 0 for r in sub])
+            rb = sum(1 for r in sub if r["real_breach_below_Kh"] > 1e-3)
+            rs = np.array([r.get("regret_settled", np.nan) for r in ok], dtype=float)
+            rs = rs[np.isfinite(rs)]
+            if rs.size:
+                srt = np.sort(rs)
+                print(f"RESULT oracle_{'flat' if flat else 'nonflat'}_regret_settled: n={rs.size} mean={rs.mean():.4f} "
+                      f"min={rs.min():.4f} max={rs.max():.4f} drop_max_mean={(srt[:-1].mean() if rs.size > 1 else float('nan')):.4f} "
+                      f"neg_cells={(rs < -1e-6).sum()} SEK/horizon")
+            print(f"RESULT oracle_{'flat' if flat else 'nonflat'}_cells={len(sub)} both_hold_bounds={len(ok)} "
+                  f"regret_mean_SEK={rg.mean():.4f} regret_max_SEK={rg.max():.4f} regret_neg_cells={(rg < -1e-6).sum()} "
+                  f"prod_plan_breaches_floor_on_plant={rb} model_gap_end_room_K_mean={mg.mean():.3f}")
     pc = sum(r.get("cell_cpu", 0) for r in R); tc = sum(r.get("cell_thread_cpu", 0) for r in R)
     print(f"RESULT cpu_total_s={pc:.1f} provisional")
     print(f"RESULT thread_factor={pc / tc if tc else 1.0:.3f}")

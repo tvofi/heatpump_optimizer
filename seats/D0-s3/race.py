@@ -116,6 +116,9 @@ def one(cell, perturb=None):
             rec["flow_running_steps"] = int(run.sum())
             rec["flow_steps_above_min"] = int((ship > pmin * 1.02).sum())
             rec["flow_steps_sub_min"] = int(((ship > 1e-6) & (ship < pmin - 1e-6)).sum())
+            tot = ship + dhw
+            rec["flow_steps_total_sub_min"] = int(((tot > 1e-6) & (tot < pmin - 1e-6)).sum())
+            rec["flow_steps_total_above_min"] = int((tot > pmin * 1.02).sum())
     rec["cell_cpu"] = round(time.process_time() - t0, 3)
     rec["cell_thread_cpu"] = round(time.thread_time() - tt0, 3)
     return rec
