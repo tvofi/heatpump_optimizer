@@ -1,0 +1,1 @@
+carry_audit check: rc 0 (1 routed, 0 unrouted); body input was the PR body's carry-bearing sections (Red checks, Forward-carry, Friction)

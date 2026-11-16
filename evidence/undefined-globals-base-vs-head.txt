@@ -1,0 +1,2 @@
+UNDEFINED-GLOBALS: ['SEAT_WINDOW_MIN', '__conditional_annotations__']
+UNDEFINED-GLOBALS: ['__conditional_annotations__']
