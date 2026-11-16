@@ -260,6 +260,11 @@ const POLICY_GLOBS = [
   /^dev\/governance\/rules\/[a-z0-9-]+\.md$/,
   /^dev\/governance\/roles\/[A-Za-z0-9_.-]+\.md$/,
   /^dev\/governance\/dimensions\/[A-Za-z0-9_.-]+\.md$/,
+  // The owner's acceptance criteria per dimension, named by
+  // dev/audit/config/objective.json's owner_criteria: what a finder grades
+  // against, so measured like the brief beside it (R11-PRE-OWNER-CRITERIA,
+  // under mandate 6893738184).
+  /^dev\/governance\/dimensions\/criteria\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
   /^dev\/audit\/README\.md$/,
@@ -6147,6 +6152,23 @@ function assertAcceptance(derived) {
   }
   if (covOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported ${covOk.length} finding(s) on a covered file, e.g. ${JSON.stringify(covOk[0].where)}`)
+    return 1
+  }
+  // The owner's per-dimension acceptance criteria live one directory below the
+  // dimension briefs, which `dimensions/[A-Za-z0-9_.-]+\.md` does not reach.
+  // Dropping the `dimensions/criteria/` glob reports the file as uncovered, and
+  // a file two levels down (`criteria/sub/`) stays uncovered under it.
+  const criteriaFile = 'dev/governance/dimensions/criteria/D10-criteria.md'
+  const criteriaDeep = 'dev/governance/dimensions/criteria/sub/D10-criteria.md'
+  const covCriteria = drive([criteriaFile])
+  const covCriteriaDeep = drive([criteriaDeep])
+  pins += 2
+  if (covCriteria.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported ${criteriaFile}: ${JSON.stringify(covCriteria[0].message)}. The criteria directory is a policy directory with its own glob.`)
+    return 1
+  }
+  if (covCriteriaDeep.length !== 1 || covCriteriaDeep[0].where !== criteriaDeep) {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${criteriaDeep}; the criteria glob must cover one directory level, not a subtree`)
     return 1
   }
   // R9-RO-5. A file under dev/governance/ that no glob names is the coverage
