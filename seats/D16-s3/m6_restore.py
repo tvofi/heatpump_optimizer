@@ -11,18 +11,20 @@ Command (from the export root):
     PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py [--perturb P]
     P in arbiter | consumers | both | memo | all (in memory only; see install_perturbation)
 Arms: off / unload / remove / duty_change (Tuya select, a hot-water-only then an idle step); off_modbus (the Modbus
-select, space-only steps: the tank set-point carries the gate); off_disinfecting / unload_disinfecting (the Tuya arm
-with the integration holding the pump's disinfection program on, so the arbiter raised the tank to the cycle target).
+select, space-only steps: the tank set-point carries the gate); *_disinfecting (the Tuya arm with the integration
+holding the pump's disinfection program on, so the arbiter raised the tank to the cycle target 60).
 Expected at baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (exact, counts):
     RESULT unrestored_off=5 (mode, supply, frequency, valve, circulation pump)
     RESULT unrestored_unload=4 / unrestored_remove=4 (supply, frequency, valve, circulation pump)
-    RESULT unrestored_duty_change=6 (those four plus the MQTT and heat-curve arms, re-written by the observe-mode reload)
+    RESULT unrestored_duty_change=7 (those four plus both MQTT topics and the heat-curve entity, restored at the
+           unload and re-written by the observe-mode reload)
     RESULT unrestored_off_modbus=4 (tank set-point at the gate 40, frequency, valve, circulation pump)
-    RESULT unrestored_off_disinfecting=6 / unrestored_unload_disinfecting=5 (tank set-point left at 60 in both)
+    RESULT unrestored_off_disinfecting=6 / unload_disinfecting=5 / remove_disinfecting=5 / duty_change_disinfecting=8
+           (the tank set-point left at 60 in each)
     --perturb arbiter  : off 4, off_modbus 3 (the release() baseline row written on entering Off: mode, tank)
-    --perturb consumers: off 1, unload 0, remove 0, off_modbus 1, unload_disinfecting 1 (supply/freq/valve/pump restored)
-    --perturb memo     : unload_disinfecting 4 (the hold dropped before release(): the tank goes back to 50)
-    --perturb all      : every count 0 but duty_change 6 and off_disinfecting 1 (the hold is still live at Off)
+    --perturb consumers: off 1, unload 0, remove 0, off_modbus 1, unload/remove_disinfecting 1 (supply/freq/valve/pump)
+    --perturb memo     : unload_disinfecting 4, remove_disinfecting 4 (the hold dropped before release(): tank 50)
+    --perturb all      : 0 but duty_change 7, duty_change_disinfecting 7 and off_disinfecting 1 (hold live at Off)
     Per entity: RESULT unrestored_<arm>__<entity>=0|1.
 Null control: RESULT null_unrestored_* = 0 -- the same plant, drive and triggers with a plan that starts two hours
 ahead (the arbiter serves its baseline row) and commands equal to each entity's baseline, so nothing is owed.
@@ -45,6 +47,7 @@ sys.path[:0] = ["tests", "custom_components"]
 import argparse  # noqa: E402
 import asyncio  # noqa: E402
 import itertools  # noqa: E402
+import json  # noqa: E402
 import logging  # noqa: E402
 from dataclasses import replace  # noqa: E402
 from datetime import datetime, timedelta, timezone  # noqa: E402
@@ -79,6 +82,7 @@ BASELINE = {
     "number.offset": "0",              # the heat-curve entity arm (offset kind: neutral 0)
     "switch.dis": "off",               # the pump's own disinfection program switch
     "mqtt:ecl110/displace/set": "0",   # the ECL110 MQTT arm (neutral displace 0)
+    "mqtt:ecl110/command": "0",        # its legacy JSON topic, keyed on the body's command.displace
 }
 
 
@@ -99,6 +103,7 @@ def config(duty="control", windows="08:00-09:00"):
         "vvc_pump_entity": "switch.vvc",
         "heat_curve_displace_entity": "number.offset",
         "ecl110_displace_set_topic": "ecl110/displace/set",
+        "ecl110_command_topic": "ecl110/command",
         "dhw_disinfection_switch_entity": "switch.dis",
         "dhw_disinfection_mode": "control",
         "dhw_windows": windows,  # the null arm's window covers the clock: the circulation pump stays on
@@ -119,6 +124,7 @@ def states(base=BASELINE, options=TUYA):
         "number.offset": FakeState(base["number.offset"], unit="K", attributes={"min": -10, "max": 10, "step": 1}),
         "switch.dis": FakeState(base["switch.dis"]),
         "mqtt:ecl110/displace/set": FakeState(base["mqtt:ecl110/displace/set"]),
+        "mqtt:ecl110/command": FakeState(base["mqtt:ecl110/command"]),
         "sensor.indoor": FakeState("21.0", unit="°C"),
         "sensor.outdoor": FakeState("-5.0", unit="°C"),
     }
@@ -164,7 +170,10 @@ def settle(hass):
         data = data or {}
         ent = key_of(data)
         if service == "publish" and ent is not None:
-            hass.states.get(ent).state = str(data["payload"])
+            payload = str(data["payload"])
+            if payload.startswith("{"):
+                payload = str(json.loads(payload)["command"]["displace"])
+            hass.states.get(ent).state = payload
             continue
         st = hass.states.get(ent) if isinstance(ent, str) else None
         if st is None:
@@ -329,7 +338,8 @@ def install_perturbation(kind):
 
 
 _LIVE: list = []
-TRIGGERS = ("off", "unload", "remove", "duty_change", "off_modbus", "off_disinfecting", "unload_disinfecting")
+TRIGGERS = ("off", "unload", "remove", "duty_change", "off_modbus", "off_disinfecting", "unload_disinfecting",
+            "remove_disinfecting", "duty_change_disinfecting")
 #: The pump arbiter's slots (pump_arbiter._SLOTS' mode and hot water); the rest have no restore owner.
 ARBITER_SLOTS = ("select.pump_mode", "number.dhw_set")
 
