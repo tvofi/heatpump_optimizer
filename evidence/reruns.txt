@@ -1,0 +1,18 @@
+review_strength self-test: 141 checks, 0 failed
+58
+fold_ledger: 0 violation(s)
+RULE AGENTS.md added 2026-09-12T14:45:03Z no-class
+RULE CLAUDE.md added 2026-09-04T12:09:54Z no-class
+RULE dev/governance/rules/brief-citations.md added 2026-09-04T20:13:56Z as .cursor/rules/brief-citations.mdc no-class
+RULE dev/governance/rules/ci-autofix.md added 2026-09-06T10:31:43Z as .cursor/rules/ci-autofix.mdc classes I2: before 0 after 7 undated 0
+RULE dev/governance/rules/claim-files.md added 2026-09-08T10:43:47Z as .claude/rules/claim-files.md no-class
+RULE dev/governance/rules/comment-readback.md added 2026-09-10T23:26:31Z as .claude/rules/comment-readback.md no-class
+RULE dev/governance/rules/defect-root-cause.md added 2026-09-06T20:38:16Z as .cursor/rules/defect-root-cause.mdc classes I3,N-shared-config: before 0 after 58 undated 7
+RULE dev/governance/rules/delivery-status-tracking.md added 2026-09-04T21:12:25Z as .cursor/rules/delivery-status-tracking.mdc no-class
+RULE dev/governance/rules/finding-propagation.md added 2026-09-06T19:55:42Z as .cursor/rules/finding-propagation.mdc classes P11: before 0 after 8 undated 12
+RULE dev/governance/rules/gate-scoping.md added 2026-09-08T10:43:47Z as .claude/rules/gate-scoping.md no-class
+RULE dev/governance/rules/ratchet-budgets.md added 2026-09-08T10:43:47Z as .claude/rules/ratchet-budgets.md no-class
+RULE dev/governance/rules/writing-for-agents.md added 2026-09-08T10:43:47Z as .claude/rules/writing-for-agents.md no-class
+fold_ledger yield at 46ca59a32e3c: 12 rule(s), 3 linked; 825 instance(s), 784 dated, 41 undated
+32a551e51e285bbae3f99ff7929281d55429fe76
+merge-tree rc=0

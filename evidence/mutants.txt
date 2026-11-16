@@ -1,0 +1,29 @@
+M0 tools/audit/fold_ledger.py rc=1 fails=1 KILLED :: 'x is not None and t is not None and x > t)' -> 'x is not None and t is not None and x >= t)'
+    first: FAIL yield: an instance recorded in the commit that adds the rule is before it
+M1 tools/audit/fold_ledger.py rc=1 fails=3 KILLED :: '_git(root, "log", "--follow", "--diff-filter=A"' -> '_git(root, "log", "--diff-filter=A"'
+    first: FAIL yield: an instance recorded after the rule's first add under another directory reads after 1 (the add at the rule's present path, day 5, would read before 1)
+M2 tools/audit/fold_ledger.py rc=1 fails=1 KILLED :: '"--is-shallow-repository").strip() == "true"' -> '"--is-shallow-repository").strip() == "never"'
+    first: FAIL yield on a shallow clone refuses, never a date read off a truncated history
+M3 tools/audit/fold_ledger.py rc=1 fails=1 KILLED :: 'cited + [("rules", r) for r in e.get("rules", [])]' -> 'cited'
+    first: FAIL check: a rules entry that is no file at the root is MISSING-PATH
+M4 tools/audit/fold_ledger.py rc=1 fails=3 KILLED :: 'dates[json.loads(lit)] = int(stamp)' -> 'dates.setdefault(json.loads(lit), int(stamp))'
+    first: FAIL yield: an instance is dated at the first-parent commit that first holds it: the merge (day 3), never the side commit (day 2), and through the ledger's own move
+M5 tools/audit/fold_ledger.py rc=0 fails=0 SURVIVED :: '(int(adds[-2]), adds[-1])' -> '(int(adds[0]), adds[1])'
+M6 tools/audit/fold_ledger.py rc=0 fails=0 SURVIVED :: 'undated = sum(1 for _, x in rows if x is None or t is None)' -> 'undated = sum(1 for _, x in rows if x is None)'
+M7 tools/audit/fold_ledger.py rc=1 fails=1 KILLED :: '"--first-parent", "--diff-merges=first-parent", ' -> ''
+    first: FAIL yield: an instance is dated at the first-parent commit that first holds it: the merge (day 3), never the side commit (day 2), and through the ledger's own move
+M8 tools/audit/fold_ledger.py rc=1 fails=0 KILLED :: 'print(f"{head} no-class")\n            continue' -> 'pass'
+M9 tools/audit/fold_ledger.py rc=0 fails=0 SURVIVED :: 'if line.startswith("+") and not line.startswith("+++")' -> 'if line.startswith("+")'
+M10 tools/audit/seat/review_strength.py rc=1 fails=2 KILLED :: 'if len(keys) != len(set(keys)) or set(keys) != set(taught):' -> 'if set(keys) != set(taught):'
+    first: FAIL: verdict_clauses refuses a class keyed twice
+M11 tools/audit/seat/review_strength.py rc=1 fails=6 KILLED :: 'if len(keys) != len(set(keys)) or set(keys) != set(taught):' -> 'if len(keys) != len(set(keys)):'
+    first: FAIL: verdict_clauses refuses a taught class with no key
+M12 tools/audit/seat/review_strength.py rc=1 fails=3 KILLED :: 'else clause if text and re.search(rf"^{m[2]}\\. ", text, re.M) else' -> 'else clause if text else'
+    first: FAIL: clause_rows: steps 1, 9 and 19 resolve on a line opening `N. `; a leading zero, step 0, `4)`, `5.f`, a role name opening with a bracket and one with no `.md` do not
+M13 tools/audit/seat/review_strength.py rc=1 fails=8 KILLED :: 'return (clause_of or {}).get(v["cls"], f"(untaught) {v[\'cls\']}")' -> 'return v["cls"]'
+    first: FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+M14 tools/audit/seat/review_strength.py rc=1 fails=0 KILLED :: 'pairs = PAIR_RE.findall(re.sub(r"//[^\\n]*", "", m[1]))' -> 'pairs = PAIR_RE.findall(m[1])'
+M15 tools/audit/seat/review_strength.py rc=1 fails=3 KILLED :: 'return "(merge)" if v["kind"] == "merge" else "(no class)"' -> 'return "(no class)"'
+    first: FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+M16 tools/audit/seat/review_strength.py rc=1 fails=6 KILLED :: 'return {k: clause or None for k, clause in pairs}' -> 'return {k: clause for k, clause in pairs}'
+    first: FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
