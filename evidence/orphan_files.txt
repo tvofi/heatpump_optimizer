@@ -1,0 +1,3 @@
+head: []
+mutant -CODE_OF_CONDUCT: ['CODE_OF_CONDUCT.md']
+base INERT, head tree: ['.github/ISSUE_TEMPLATE/1-bug_report.yml', '.github/ISSUE_TEMPLATE/2-feature_request.yml', '.github/ISSUE_TEMPLATE/3-feature_design.yml', '.github/ISSUE_TEMPLATE/4-hardware_support.yml', '.github/ISSUE_TEMPLATE/5-documentation.yml', '.github/ISSUE_TEMPLATE/config.yml', 'CODE_OF_CONDUCT.md']
