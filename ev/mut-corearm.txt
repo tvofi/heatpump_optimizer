@@ -1,0 +1,29 @@
+FAIL a duplicate differing only in markup is refused (got: roster_sync: pull requests: 13 read offline from --pr-state
+roster_sync: RECORD-INVALID R9-DONE bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb does not resolve to a commit
+roster_sync: RECORD-INVALID R9-SIB ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit
+roster_sync: R9-LIVE: stage not-started -> done at aaaaaaaaaaaa (PR #11 MERGED)
+roster_sync: R9-OPEN: stage queued -> in-progress (PR #12 OPEN)
+roster_sync: R9-CARRY: stage in-progress -> done at eeeeeeeeeeee (PR #15 MERGED)
+roster_sync: R9-ARM: stage not-started -> done at 111111111111 (PR #18 MERGED)
+roster_sync: R9-SIB-2: stage not-started -> in-progress (PR #19 OPEN)
+roster_sync: R9-PAIR-2: stage not-started -> done at 222222222222 (PR #20 MERGED)
+roster_sync: R9-HOLD: stage in-progress -> carries-open at 444444444444 (PR #22 MERGED) HELD: owns open #88 with no other live owner; dispose of it, then set done
+roster_sync: R9-FREE: stage in-progress -> done at 555555555555 (PR #23 MERGED)
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #13 MERGED); left alone
+roster_sync: SKIP R9-CO: stage carries-open is a human disposition (PR #21 MERGED); left alone
+roster_sync: carry R9-DEST += 'the widget parser drops a unit. Carry: R9-DEST'
+roster_sync: carry R9-FROM-2 += 'the same finding for a destination naming another pull request. Carry: R9-FROM-2'
+roster_sync: carry R9-FROM-3 += 'the batch loader double-counts; a genuinely distinct finding from #15. Carry: R9-FROM-3'
+roster_sync: carry R9-PROSE += 'the prose control: a distinct finding for a destination that only mentions the number. Carry: R9-PRO'
+roster_sync: carry R9-ECHO += 'the widget parser drops a unit. Carry: R9-ECHO'
+roster_sync: carry R9-QUEUED += 'the queue landed this first. Carry: R9-QUEUED'
+roster_sync: carry R9-QUEUED += 'a distinct finding for the queued group. Carry: R9-QUEUED'
+roster_sync: REFUSED Carry: R9-OVER from #15: the destination is done (resume.stage done); a carry goes to the live group owning the seam, else the producing group keeps the fix
+roster_sync: REFUSED Carry: R9-FROM from #15: already carried (the same finding, from #15): 'From #15 (R9-CARRY): the base-pinned replay, triage P3 (s4).'
+roster_sync: REFUSED Carry: R9-QID from #15: already carried (the same finding, from #15): 'From #15 (r9-carry), body item b1ea5f7d: reworded when the q'
+roster_sync: dry run: 8 stage change(s), 7 carry append(s) would be written to handoff/audit-r9-roster (no --apply)
+)
+FAIL the queue's landing of the same item is not appended again: its prefix, tag and Carry clause stripped, the text is equal (got: ['From #15 (r9-carry), body item 0badc0de: the queue landed this first. Carry: R9-QUEUED (items 0badc0de)', 'the queue landed this first. Carry: R9-QUEUED', 'a distinct finding for the queued group. Carry: R9-QUEUED'])
+FAIL a duplicate differing only in markup is not appended (got: ['the widget parser drops a unit. `Carry: R9-ECHO`', 'the widget parser drops a unit. Carry: R9-ECHO'])
+roster_sync self-test: 98 checks, 3 failed
+rc=1
