@@ -1,0 +1,47 @@
+{
+  "id": "D14-s1-01",
+  "scope": "D14-s1",
+  "step": "D14.M4",
+  "title": "N-step-grid: services.yaml thermal selectors keep the off-grid (min, step) pairs #1679 removed from the config flow",
+  "severity": "medium",
+  "claim": "At 92d38ecb, 6 of 47 services.yaml number selectors (set_thermal_parameters: slab_thermal_mass, slab_heat_transfer, upper/lower_floor_thermal_mass, inter_zone_heat_transfer, window_area) have both their max and their documented example off their own min+k*step grid in HA's default slider mode (12 seams), the same (min, step) pairs the R9 D4-s2-05 fix took off the options flow; and config_flow._widen_to_fit moves a slider's grid base to a stored out-of-range value, putting the field's own default off grid on 28 of 28 slider fields with a constant default.",
+  "mechanism": "The grid base of an HTML number input and ha-slider is min. #1679 set step \"any\" on box fields in config_flow._number only; the service surface declares the same min/step pairs in YAML (0.02 + k*0.1 never reaches 0.8 or 5.0), and _widen_to_fit rewrites min to the stored value without snapping it to the field's step, so every nominal value of a widened slider becomes unreachable.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s1/step_grid.py",
+    "value": 40,
+    "unit": "seams (seams_services=12, seams_widen=28, seams_options=0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other D14 seats on the box; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 5.94,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_widen_to_fit (and config_flow:_OPTION_FIELDS / _number delivered configs; services.yaml selectors as loaded)",
+  "perturbation": {
+    "change": "--perturb-svc: services.yaml number selectors read with step \"any\" (the #1679 fix carried to the service surface); --perturb-widen: _widen_to_fit snaps the widened min onto the field's own grid; --perturb-min: target-temperature slider min 15.2",
+    "expected_direction": "to_zero",
+    "observed_value": "seams_services 12 -> 0; seams_widen 28 -> 0; seams_options 0 -> 2 under --perturb-min (up)"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+    "value": "box_pinned=0, seams_options=0 (49 box fields with step any are guarded)",
+    "note": "the fixed surface reads zero, so the detector is not counting every selector"
+  },
+  "metric_definition": "count of delivered number-selector configs whose max or numeric default/example is not min + k*step (|k-round(k)|>=1e-6), step != any",
+  "phenomenon_property": "Every number selector the integration exposes (options flow, widened options field, service field) admits its own max and its own default/example as reachable values: either step is \"any\" or (value - min) is an integer multiple of step.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py",
+  "reproduction_steps": [
+    "run the command; SEAM lines list services:set_thermal_parameters.* and widen:* seams",
+    "re-find at the R9 pre-fix tree: T=$(mktemp -d); git archive 26704a4e9f custom_components tests/hastub | tar -x -C $T; PYTHONPATH=$T/tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/step_grid.py --tree $T -> box_pinned=43, seams_options=10 (the same slab/inter-zone/window pairs)"
+  ],
+  "proposed_fix_scope": "services.yaml set_thermal_parameters number selectors: mode box + step any (or min on the step grid); config_flow._widen_to_fit: when widening a slider, snap the new min down to old_min - ceil((old_min - v)/step)*step; barrier: this detector as a tests/config_flow_steps.py check over all three surfaces (sub-second)",
+  "files": [
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/config_flow.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-step-grid"
+}
