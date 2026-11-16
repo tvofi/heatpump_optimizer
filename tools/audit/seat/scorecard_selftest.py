@@ -101,6 +101,10 @@ def cases(sc) -> dict[str, bool]:
     e = sc.line_escapes(g)
     r["E planted: one outside, two product hotfix or bug groups, two open"] = "outside reports 1;" in e and "product 2;" in e and "open among both 2" in e
     r["E null: a round with no escape adds none"] = "reports 0; hotfix or bug groups touching the product 0; open among both 0" in sc.line_escapes([{"group": "D"}])
+    r["E split: unread, naming the count, while an escape records no owning dimension"] = "by owning dimension unread (3 of 3 owing groups unrecorded" in e
+    g[0]["owned_by"], g[1]["owned_by"], g[2]["owned_by"] = "D8", "none", "D8"
+    r["E split: by owning dimension once every escape records one"] = "by owning dimension {D8: 2, none: 1}" in sc.line_escapes(g)
+    r["E split null: a round with no escape splits none"] = sc.line_escapes([{"group": "D"}]).endswith("by owning dimension {}")
     # C / K
     cn = sc.line_ck(runs([("success", 1)] * 4), "all fine\n")
     r["C, K null: no cancelled run and no recycle line are both 0"] = "C 0; K 0" in cn
