@@ -49,7 +49,7 @@ if (!scopes || typeof scopes !== 'object') throw new Error('args.scopes is requi
 if (from !== undefined && from !== 'intake') throw new Error(`args.from is "intake" or absent, not ${JSON.stringify(from)}`)
 if (from && box) throw new Error('args.box and args.from are exclusive: a box runs finders, intake gathers every box')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14', 'D15']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17']
 // D11 audits the process itself, so it needs `.git` and the API: a worktree, not
 // an export. D13 reads the same sources and needs the same (dev/governance/dimensions/
 // D13.md), so it is isolated too. DIMS and ISOLATED are the schedule: EVERY brief
@@ -62,7 +62,10 @@ const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
 // An isolated seat gets its OWN worktree: seats of one dimension that share a
 // box would otherwise mutate one tree under each other.
 // D15 is isolated because its perturbations edit production (dev/governance/dimensions/D15.md).
-const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14', 'D15'])
+// D16 is isolated because its two owed perturbations edit the write path, and its upgrade
+// state reads the previous tag's package from `.git` (dev/governance/dimensions/D16.md).
+// D17 perturbs configuration only and runs in the export.
+const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14', 'D15', 'D16'])
 // WHICH FINDERS MAY READ GITHUB, narrower than ISOLATED on purpose: D0, D3 and D9
 // are isolated to MUTATE production, not to read the API, and the wall COMMON.md
 // draws (a finder's verdicts are its population, never its evidence) is what this
@@ -109,7 +112,8 @@ const seatsFromScopes = (table, dim) => {
 // sits alone (dev/audit/README.md, "Resource rules on the audit box"): D4-s1
 // drives the card and D4-s3 renders it for the visual and accessibility pass.
 // The leads seat runs after the fan-out, on the box named by LEADS_BOX.
-// B11-B13 hold the D5 and D6 ledger seats past the third (scopes.json `ledger`).
+// B11-B13 hold the D5 and D6 ledger seats past the third (scopes.json `ledger`);
+// B11 and B13 also the D16 and D17 seats, each driving cycles on a real loop.
 const BOXES = {
   B1: { heavy: ['D0-s1', 'D3-s1', 'D9-s1'], light: ['D5-s1', 'D6-s1', 'D10-s1'] },
   B2: { heavy: ['D0-s2', 'D3-s2', 'D9-s2'], light: ['D5-s2', 'D6-s2', 'D10-s2'] },
@@ -121,9 +125,9 @@ const BOXES = {
   B8: { heavy: ['D15-s2', 'D15-s3'], light: ['D13-s1', 'D13-s2', 'D13-s3', 'D15-s1'] },
   B9: { heavy: [], light: ['D4-s1'] },
   B10: { heavy: [], light: ['D4-s3'] },
-  B11: { heavy: [], light: ['D5-s4', 'D5-s5', 'D5-s6'] },
+  B11: { heavy: ['D16-s1', 'D16-s2', 'D16-s3'], light: ['D5-s4', 'D5-s5', 'D5-s6'] },
   B12: { heavy: [], light: ['D5-s7', 'D5-s8', 'D5-s9', 'D5-s10'] },
-  B13: { heavy: [], light: ['D6-s4', 'D6-s5', 'D6-s6', 'D6-s7'] },
+  B13: { heavy: ['D17-s1', 'D17-s2', 'D17-s3'], light: ['D6-s4', 'D6-s5', 'D6-s6', 'D6-s7'] },
 }
 const CHROMIUM = new Set(['D4-s1', 'D4-s3'])
 const LEADS_BOX = 'B8'
