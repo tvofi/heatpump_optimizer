@@ -9,3 +9,4 @@
 1794870972 CKPT failing test red at base (3 checks): edges 5 vs 2 snapshot 057527779e59
 1794871141 CKPT step 2 built and pushed to wip snapshot f8ebeac6d8a8
 1794871328 HB alive
+1794871371 CKPT harness both ends, mutation proof done; prepr running snapshot 0c0fbc1fb511
