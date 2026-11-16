@@ -3556,6 +3556,52 @@
     "pr": 3684
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-ARCH-OBJECTIVE",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "owner",
+   "severity": "high",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/governance/roles/architect-planner.md",
+    "dev/governance/roles/plan-review.md",
+    "dev/governance/decisions/0018-objective-function.md",
+    "tools/audit/seat/plan_audit.py",
+    ".claude/workflows/audit-plan.js"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "policy",
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "designer": "fable",
+    "design_reviewer": "fable",
+    "fixer": "opus",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner item (tvofi 2026-11-16 ~22:05Z): make decision 0018's objective function one of the round architect's goals beside the architecture score, so P3's plan has a balanced and converging outcome. Design first (decision 0014, L): a designer on Fable studies closely how the architect should plan against both - the objective's reads (escapes, injected, refix, lead time and the rest of 0018 section 2, objective.json's thresholds), the archscore vector and its floor target, and how the two combine without a second target to trade against (the orchestrator's starting position, not binding on the designer: the objective ranks the work, the score is a floor no plan may worsen overall). It names the architect's own goals for the objective function per round (what a plan commits to, how stated, how a lagging read is credited: a predicted effect per group checked at round close against the objective record), what plan-review checks, what plan_audit.py measures, and the null controls that show a plan gaming either number is caught. Then an opus fixer builds it in architect-planner.md, plan-review.md and the measuring instrument, with mutation proof. Policy: merges on the owner's approving review or under mandate 6893738184. Must land before round 11's P3 starts (the judge's output, about 2026-11-17 midday UTC): critical path for planning.",
+   "carry": [],
+   "resume": {
+    "stage": "planned",
+    "commit": null,
+    "branch": "fix/r11-arch-objective",
+    "last_step": null,
+    "next_step": "designer on fable",
+    "note": null
+   },
+   "source": "user"
   }
  ]
 }
