@@ -22,7 +22,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-ROUND-METRICS (stage carries-open, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RULINGS-FILE (stage carries-open, branch `handoff/r11-pre-rulings-file`): `git fetch origin handoff/r11-pre-rulings-file && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-HANDOFF-BOOKKEEPING (stage in-progress, branch `handoff/r11-pre-handoff-bookkeeping`): `git fetch origin handoff/r11-pre-handoff-bookkeeping && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `handoff/r11-pre-handoff-bookkeeping`): `git fetch origin handoff/r11-pre-handoff-bookkeeping && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RELAY-REBUILD (stage carries-open, branch `handoff/r11-pre-relay-rebuild`): `git fetch origin handoff/r11-pre-relay-rebuild && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ACK-COMPLETION (stage carries-open, branch `handoff/r11-pre-ack-completion`): `git fetch origin handoff/r11-pre-ack-completion && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-STANDING-SCRIPTS (stage carries-open, branch `handoff/r11-pre-standing-scripts`): `git fetch origin handoff/r11-pre-standing-scripts && git worktree add --detach $SEAT/wt FETCH_HEAD`
