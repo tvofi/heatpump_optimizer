@@ -19,3 +19,4 @@
 1794854529 DONE returned: M6 pinned and killed; handoff 02ed2f15d8, prepr rc=0
 1794856557 HB alive
 1794856562 INBOX acked through 1
+1794856658 CKPT read brief, body, role pack; PR head checked snapshot dbc3ee66a1b2
