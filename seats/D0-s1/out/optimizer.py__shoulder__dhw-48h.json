@@ -1,0 +1,114 @@
+{
+ "cell": "optimizer.py/shoulder/dhw-48h",
+ "perturb": null,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "n_calls": 1,
+ "status": "optimal",
+ "objective_value": 15.6720455675982,
+ "predicted_cost": 14.486995418756663,
+ "shipped_energy_kwh": 23.369460834115934,
+ "lbfgsb_runs": 8,
+ "lbfgsb_hit_maxiter": 0,
+ "lbfgsb_abnormal": 2,
+ "calls": [
+  {
+   "call": 0,
+   "n": 192,
+   "maxiter": 300,
+   "n_candidates": 4,
+   "batch": true,
+   "has_dhw_arg": true,
+   "f_prod": 15.6720455675982,
+   "prod_feas": {
+    "bound_viol": 0.0,
+    "comfort_lo": 0.0,
+    "comfort_hi": 0.0,
+    "dhw_lo": 0.0
+   },
+   "shipped": true,
+   "energy_cost_prod": 6.806788747479406,
+   "challengers": {
+    "seeds": {
+     "f": 15.66452470234965,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 9.552,
+     "energy_cost": 6.795939035289526
+    },
+    "budget": {
+     "f": 15.6720455675982,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 2.221,
+     "energy_cost": 6.806788747479406
+    },
+    "eps-1e-6": {
+     "f": 15.683175610310421,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 2.079,
+     "energy_cost": 6.566967837104761
+    },
+    "eps-1e-3": {
+     "f": 15.674765233221692,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 2.432,
+     "energy_cost": 6.735899904945396
+    },
+    "global": {
+     "f": 15.682504224606337,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 2.789,
+     "energy_cost": 6.332351362270675
+    },
+    "warm": {
+     "f": 15.664520759570166,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0,
+      "dhw_lo": 0.0
+     },
+     "feasible": true,
+     "from_": "seeds",
+     "energy_cost": 6.795915722181346
+    }
+   },
+   "best": "warm",
+   "f_best": 15.664520759570166,
+   "gap": 0.0075248080280339025,
+   "gap_rel": 0.00048014204626812526,
+   "infeasible_cheaper": {}
+  }
+ ],
+ "wall_s": 51.83,
+ "cpu_s": 22.15,
+ "thread_factor": 1.0
+}
