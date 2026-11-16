@@ -4164,6 +4164,7 @@
    "tools/audit/seat/gh_read_run.py",
    "tools/audit/seat/hooks_setup.py",
    "tools/audit/seat/ledger.py",
+   "tools/audit/seat/loop_ledger.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/moved_paths.py",
    "tools/audit/seat/mutant_run.py",
