@@ -1,0 +1,25 @@
+WINDOW=336 MIN_SAMPLES=48 DISAGREE_FACTOR=1.25
+RESULT range=0.5-4.0 sigma=0.05 uniform judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.05 floorpiled judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.1 uniform judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.1 floorpiled judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.2 uniform judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.2 floorpiled judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.3 uniform judged=100 ignored=0
+RESULT range=0.5-4.0 sigma=0.3 floorpiled judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.05 uniform judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.05 floorpiled judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.1 uniform judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.1 floorpiled judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.2 uniform judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.2 floorpiled judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.3 uniform judged=100 ignored=0
+RESULT range=1.0-14.0 sigma=0.3 floorpiled judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.05 uniform judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.05 floorpiled judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.1 uniform judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.1 floorpiled judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.2 uniform judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.2 floorpiled judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.3 uniform judged=100 ignored=0
+RESULT range=2.0-6.0 sigma=0.3 floorpiled judged=100 ignored=0
