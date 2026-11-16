@@ -49,9 +49,9 @@ from .draw_range import (
     WINDOW,
     DrawRange,
     ask_evidence,
-    draw_response,
     follows_ask,
     power_floor_kw,
+    step_response,
 )
 from .drift import stored_instant, utc_shift
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
@@ -993,7 +993,7 @@ class MeasuredCop:
         where the scale's clip holds the heat ask flat, is kept by none: the
         restore falls due and the probe starts again from the configured
         scale, once per reset. ``MIN_SAMPLES`` rows whose heat asks span
-        judge the verdict by ``draw_range.draw_response``; ``ASK_IGNORED``
+        judge the verdict by ``draw_range.step_response``; ``ASK_IGNORED``
         makes the restore due.
         """
         if self.scale_response != ASK_PENDING or self.restore_due:
@@ -1002,7 +1002,7 @@ class MeasuredCop:
             self.reseeded = self.restore_due = True
             return ASK_PENDING
         self.probe.append((float(row.drawn_kw), float(row.asked_kw) * float(row.cop_scale)))
-        if len(self.probe) >= MIN_SAMPLES and (state := draw_response(self.probe)) != ASK_UNOBTAINABLE:
+        if len(self.probe) >= MIN_SAMPLES and (state := step_response(self.probe)) != ASK_UNOBTAINABLE:
             self.scale_response, self.restore_due = state, state == ASK_IGNORED
         return self.scale_response
 
