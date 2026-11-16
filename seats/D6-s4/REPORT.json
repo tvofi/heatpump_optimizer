@@ -157,13 +157,13 @@
  "non_findings": [
   {
    "claim": "sv.json numbers agree key-for-key with en.json (no translation changed a figure)",
-   "command": "per-key number multiset of sv vs en string leaves (numdiff, recorded in REPORT.md)",
-   "value": "1511 leaves, 0 number differences beyond formatting (1.0 label, kl. 13 vs 13:00)"
+   "command": "python3 dev/audit/rounds/round11/D6/s4/sv_en_numbers.py",
+   "value": "RESULT number_diffs=3, all formatting (1.0 in two sv labels, kl. 13 vs 13:00); 1511 leaves"
   },
   {
    "claim": "sv.json placeholders match en.json at every key, and **, (), [] are balanced",
-   "command": "per-key {name} set comparison sv vs en",
-   "value": "0 mismatches"
+   "command": "python3 dev/audit/rounds/round11/D6/s4/sv_en_numbers.py",
+   "value": "RESULT placeholder_diffs=0 (and **, (), [] balanced in every sv leaf)"
   },
   {
    "claim": "card hours bound 'between 1 and 168' (en/sv/de errors.cfg_hours)",
