@@ -1,0 +1,10 @@
+origin/main 2c911234e1455e819d8ff6cd8e2e0d4216e6b31b
+098e1cd10a853343a88c88cbc3b4e30204ce1aaa
+100644 a27b9517e07f2662dd2e261370e06ec5f03692a6 1	tools/audit/seat/roster_edit.py
+100644 b0e1809b6a81f85cdbc2f9f5d73817a7447ec493 2	tools/audit/seat/roster_edit.py
+100644 9d16a3cf52bf7ebb05946019e03ece3aed4de5f5 3	tools/audit/seat/roster_edit.py
+
+Auto-merging tools/audit/seat/roster_edit.py
+CONFLICT (content): Merge conflict in tools/audit/seat/roster_edit.py
+Auto-merging tools/audit/seat/roster_lib.py
+exit=1

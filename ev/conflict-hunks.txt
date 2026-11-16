@@ -1,0 +1,11 @@
+<<<<<<< origin/main
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class
+                                                         |found_by|owned_by|caused_by|family|cm_kind|parent|follows> <value>
+=======
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class|gates_finders> <value>
+>>>>>>> 2061e87b067922853a5f890dad9ea21d835f593e
+<<<<<<< origin/main
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class") + roster_lib.CONVERGENCE_FIELDS
+=======
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class", "gates_finders")
+>>>>>>> 2061e87b067922853a5f890dad9ea21d835f593e
