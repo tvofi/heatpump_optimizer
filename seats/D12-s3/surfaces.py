@@ -174,7 +174,16 @@ CELLS = {
     "metering:counter_dhw_spans": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_ENERGY_ENTITY: "sensor.hp_energy", c.CONF_HEAT_ENERGY_ENTITY: "sensor.heat_energy"}, {"switch.hp": FakeState("on"), "sensor.hp_energy": FakeState("1000.0", attributes={"unit_of_measurement": "kWh", "device_class": "energy", "state_class": "total_increasing"}), "sensor.heat_energy": FakeState("3000.0", attributes={"unit_of_measurement": "kWh", "device_class": "energy", "state_class": "total_increasing"})}, "switch.hp", None),
     # --- a short boost: shorter than one optimisation interval
     "boost:short_space": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp"}, {"switch.hp": FakeState("off")}, "switch.hp", None),
+    # --- the other switch / number surfaces the tree writes (pump_schedule, quiet_windows silent
+    #     switch, disinfection switch, mixing-valve smart_write)
+    "circulation:space_pump_switch": ({c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", "space_circulation_pump_entity": "switch.circ"}, {"switch.hp": FakeState("on"), "switch.circ": FakeState("off")}, "switch.circ", None),
+    "circulation:vvc_input_boolean": ({c.CONF_VVC_PUMP_ENTITY: "input_boolean.vvc", "dhw_windows": "06:00-08:30, 17:00-22:00"}, {"input_boolean.vvc": FakeState("off")}, "input_boolean.vvc", None),
+    "silent:capacity_switch": ({**CONTROL, c.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp", c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.silent", c.CONF_QUIET_SILENT_WINDOWS: "00:00-23:59", c.CONF_SILENT_MODE_FRACTION: 0.6}, {"switch.hp": FakeState("on"), "switch.silent": FakeState("off")}, "switch.silent", None),
+    "disinfection:switch_control": ({c.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.legionella", c.CONF_DHW_DISINFECTION_MODE: "control"}, {"switch.legionella": FakeState("off")}, None, None),
+    "mixing_valve:smart_write_number": ({c.CONF_MIXING_VALVE_MODE: "smart_write", c.CONF_MIXING_VALVE_WRITE_ENTITY: "number.valve", c.CONF_MIXING_VALVE_TARGET: 22.0}, {"number.valve": T(21, min=15, max=30, step=0.5)}, "number.valve", None),
 }
+#: Home Assistant's generic on/off service domain: it routes to any entity's own domain.
+GENERIC_DOMAINS = {"homeassistant"}
 
 
 def build(cfg, states, entry_id="d12s3"):
@@ -211,7 +220,48 @@ def _planned_sub_min(result):
     return int(np.sum((tot > 1e-3) & (tot < P_MIN - 1e-3)))
 
 
-def run_cell(name, reference=False, drop_pv=False):
+_READ = ("native_value", "extra_state_attributes", "is_on", "available", "current_temperature",
+         "target_temperature", "hvac_mode", "hvac_action", "preset_mode", "min_temp", "max_temp")
+
+
+def setup_stage(hass, coord):
+    """--setup: every platform's real ``async_setup_entry`` on this cycle's
+    coordinator, then every published property read; plus the diagnostics
+    download. Returns the failures (a raise is the observable)."""
+    import importlib
+
+    entry = coord.entry
+    entry.runtime_data = coord
+    why, n = [], 0
+    for plat in ("sensor", "binary_sensor", "button", "climate", "switch", "datetime"):
+        mod = importlib.import_module(f"heatpump_optimizer.{plat}")
+        added = []
+
+        def add(entities, *_a, _sink=added, **_k):
+            for e in entities:
+                e.hass = hass
+            _sink.extend(entities)
+        try:
+            asyncio.run(mod.async_setup_entry(hass, entry, add))
+        except Exception as err:  # noqa: BLE001
+            why.append(f"setup {plat} raised {type(err).__name__}: {err}")
+            continue
+        for e in added:
+            n += 1
+            for attr in _READ:
+                try:
+                    getattr(e, attr, None)
+                except Exception as err:  # noqa: BLE001
+                    why.append(f"{plat} {getattr(e, '_attr_unique_id', e)}.{attr} raised {type(err).__name__}: {err}")
+    try:
+        from heatpump_optimizer import diagnostics
+        asyncio.run(diagnostics.async_get_config_entry_diagnostics(hass, entry))
+    except Exception as err:  # noqa: BLE001
+        why.append(f"diagnostics raised {type(err).__name__}: {err}")
+    return why, n
+
+
+def run_cell(name, reference=False, drop_pv=False, setup=False):
     extra_cfg, extra_states, surface, modulation = CELLS[name]
     base, bstates = (REF_BASE, REF_STATES) if reference else (GEN_BASE, GEN_STATES)
     cfg = {**base, **extra_cfg}
@@ -264,7 +314,7 @@ def run_cell(name, reference=False, drop_pv=False):
         if ent not in configured:
             why.append(f"{domain}.{service} to unconfigured {ent}")
             continue
-        if ent.split(".", 1)[0] != domain:
+        if ent.split(".", 1)[0] != domain and domain not in GENERIC_DOMAINS:
             why.append(f"{domain}.{service} sent to {ent} (domain mismatch)")
         if ent == surface:
             hit = True
@@ -278,8 +328,14 @@ def run_cell(name, reference=False, drop_pv=False):
         if service == "select_option" and st is not None:
             if payload.get("option") not in st.attributes.get("options", ()):
                 why.append(f"{ent} option {payload.get('option')!r} not offered")
-    if surface and not hit:
-        why.append(f"surface {surface} never actuated")
+    # The persistent heat-curve arm writes baseline + displace and skips a
+    # target equal to the reading (heat_curve._write_persistent_target, W1):
+    # a cycle whose displace rounds to 0 owes it no write (a harness gap the
+    # first run of this cell read as a failure).
+    displace = round(float((coord._current_action or {}).get("displace_value", 0.0) or 0.0))
+    owed = surface and not (name == "heat_curve:number_persistent" and displace == 0)
+    if owed and not hit:
+        why.append(f"surface {surface} never actuated (displace {displace})")
     sub_min = None
     if modulation and result is not None:
         sub_min = _planned_sub_min(result)
@@ -291,7 +347,12 @@ def run_cell(name, reference=False, drop_pv=False):
     calls = [(d, s, (p or {}).get("entity_id") or (p or {}).get("topic"),
               (p or {}).get("value", (p or {}).get("temperature", (p or {}).get("option", (p or {}).get("payload")))))
              for d, s, p in hass.services.calls]
-    return {"cell": name, "usable": not why, "why": why, "sub_min": sub_min, "calls": calls}
+    entities = None
+    if setup:
+        setup_why, entities = setup_stage(hass, coord)
+        why.extend(setup_why)
+    return {"cell": name, "usable": not why, "why": why, "sub_min": sub_min, "calls": calls,
+            "entities": entities}
 
 
 def documented_declared_modulation(config):
@@ -311,6 +372,8 @@ def main():
     ap.add_argument("--cell", action="append")
     ap.add_argument("--perturb", choices=["doc-modulation", "drop-pv", "range-keys"])
     ap.add_argument("-v", action="store_true")
+    ap.add_argument("--setup", action="store_true",
+                    help="also set every platform up on the cycle's coordinator, read every entity, download diagnostics")
     a = ap.parse_args()
     if a.list:
         for n in CELLS:
@@ -329,13 +392,16 @@ def main():
     for p in patches:
         p.start()
     try:
-        rows = [run_cell(n, reference=a.reference, drop_pv=a.perturb == "drop-pv") for n in (a.cell or CELLS)]
+        rows = [run_cell(n, reference=a.reference, drop_pv=a.perturb == "drop-pv", setup=a.setup)
+                for n in (a.cell or CELLS)]
     finally:
         for p in patches:
             p.stop()
     fails = [r for r in rows if not r["usable"]]
     for r in rows:
-        print(f"CELL {r['cell']}\t{'ok' if r['usable'] else 'FAIL'}\tsub_min={r['sub_min']}\t{'; '.join(r['why'])}")
+        ents = "" if r["entities"] is None else f"\tentities={r['entities']}"
+        print(f"CELL {r['cell']}\t{'ok' if r['usable'] else 'FAIL'}\tsub_min={r['sub_min']}{ents}"
+              f"\t{'; '.join(r['why'])}")
         if a.v:
             print("   calls:", r["calls"])
     arm = "reference" if a.reference else "generalization"
