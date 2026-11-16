@@ -186,12 +186,14 @@ CELLS = {
 GENERIC_DOMAINS = {"homeassistant"}
 
 
-def build(cfg, states, entry_id="d12s3"):
+def build(cfg, states, entry_id="d12s3", entry_setup=False):
     hass = FakeHass()
     for k, v in states.items():
         hass.states.set(k, v)
-    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(data=cfg, entry_id=entry_id))
     now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    if entry_setup:
+        return hass, _entry_setup(hass, cfg, entry_id, now)
+    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(data=cfg, entry_id=entry_id))
 
     async def prices():
         coord._prices = [{"total": round(0.6 + 0.9 * (h % 12) / 12, 4),
@@ -210,6 +212,56 @@ def build(cfg, states, entry_id="d12s3"):
     coord._fetch_weather_forecast = weather
     coord._fetch_solar_forecast = solar
     return hass, coord
+
+
+def _fake_feeds(now):
+    """The three network fetches, as instance-free callables (class-level patch for --entry)."""
+    async def prices(self):
+        self._prices = [{"total": round(0.6 + 0.9 * (h % 12) / 12, 4),
+                         "starts_at": (now + timedelta(hours=h - 1)).isoformat(), "level": "NORMAL"}
+                        for h in range(48)]
+
+    async def weather(self):
+        self._weather_forecast = [{"datetime": (now + timedelta(hours=h)).isoformat(),
+                                   "temperature": -5 + 3 * (h % 24) / 24, "wind_speed": 3.0,
+                                   "precipitation": 0.0, "humidity": 85.0} for h in range(48)]
+
+    async def solar(self):
+        return None
+    return prices, weather, solar
+
+
+def _entry_setup(hass, cfg, entry_id, now):
+    """--entry: the integration's own ``async_setup_entry`` (first refresh, notifier,
+    debugger, frontend, every platform), the network fetches patched on the class."""
+    import heatpump_optimizer as integ
+    prices, weather, solar = _fake_feeds(now)
+    K = HeatPumpOptimizerCoordinator
+    K._fetch_tibber_prices, K._fetch_weather_forecast, K._fetch_solar_forecast = prices, weather, solar
+    from homeassistant.config_entries import ConfigEntryState
+    entry = FakeEntry(data=cfg, entry_id=entry_id)
+    hass.config_entries.entries.append(entry)
+    if not asyncio.run(integ.async_setup_entry(hass, entry)):
+        raise RuntimeError("async_setup_entry returned False")
+    entry.state = ConfigEntryState.LOADED  # what HA sets once setup returned True
+    return entry.runtime_data
+
+
+def entry_services(hass):
+    """--entry: the services a user drives on the cell's plan; a raise is the observable."""
+    from types import SimpleNamespace
+
+    from heatpump_optimizer import services
+    why = []
+    services.async_register_services(hass)
+    for name, fn, data in (("run_optimization", services.handle_run_optimization, {}),
+                           ("simulate_plan", services.handle_simulate_plan, {"target_temp": 21.5}),
+                           ("diagnose_interval", services.handle_diagnose_interval, {})):
+        try:
+            asyncio.run(fn(hass, SimpleNamespace(data=data, hass=hass, return_response=True)))
+        except Exception as err:  # noqa: BLE001
+            why.append(f"service {name} raised {type(err).__name__}: {err}")
+    return why
 
 
 def _planned_sub_min(result):
@@ -261,7 +313,7 @@ def setup_stage(hass, coord):
     return why, n
 
 
-def run_cell(name, reference=False, drop_pv=False, setup=False):
+def run_cell(name, reference=False, drop_pv=False, setup=False, entry=False):
     extra_cfg, extra_states, surface, modulation = CELLS[name]
     base, bstates = (REF_BASE, REF_STATES) if reference else (GEN_BASE, GEN_STATES)
     cfg = {**base, **extra_cfg}
@@ -270,9 +322,13 @@ def run_cell(name, reference=False, drop_pv=False, setup=False):
                   "peak_tariff_price_per_kw", c.CONF_PV_PRODUCTION_ENTITY):
             cfg.pop(k, None)
     states = {**bstates, **{k: FakeState(v.state, attributes=dict(v.attributes)) for k, v in extra_states.items()}}
-    hass, coord = build(cfg, states, entry_id=f"d12s3_{name}_{int(reference)}")
     why = []
     data = None
+    try:
+        hass, coord = build(cfg, states, entry_id=f"d12s3_{name}_{int(reference)}", entry_setup=entry)
+    except Exception as err:  # noqa: BLE001 -- setup not finishing is the first failing step
+        return {"cell": name, "usable": False, "why": [f"setup raised {type(err).__name__}: {err}"],
+                "sub_min": None, "calls": [], "entities": None}
     try:
         if name == "boost:short_space":
             now = dt_util.now()
@@ -348,6 +404,8 @@ def run_cell(name, reference=False, drop_pv=False, setup=False):
               (p or {}).get("value", (p or {}).get("temperature", (p or {}).get("option", (p or {}).get("payload")))))
              for d, s, p in hass.services.calls]
     entities = None
+    if entry:
+        why.extend(entry_services(hass))
     if setup:
         setup_why, entities = setup_stage(hass, coord)
         why.extend(setup_why)
@@ -372,6 +430,8 @@ def main():
     ap.add_argument("--cell", action="append")
     ap.add_argument("--perturb", choices=["doc-modulation", "drop-pv", "range-keys"])
     ap.add_argument("-v", action="store_true")
+    ap.add_argument("--entry", action="store_true",
+                    help="set each cell up through heatpump_optimizer.async_setup_entry, then drive three services")
     ap.add_argument("--setup", action="store_true",
                     help="also set every platform up on the cycle's coordinator, read every entity, download diagnostics")
     a = ap.parse_args()
@@ -392,7 +452,7 @@ def main():
     for p in patches:
         p.start()
     try:
-        rows = [run_cell(n, reference=a.reference, drop_pv=a.perturb == "drop-pv", setup=a.setup)
+        rows = [run_cell(n, reference=a.reference, drop_pv=a.perturb == "drop-pv", setup=a.setup, entry=a.entry)
                 for n in (a.cell or CELLS)]
     finally:
         for p in patches:

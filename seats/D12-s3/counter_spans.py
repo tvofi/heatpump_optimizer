@@ -20,7 +20,10 @@ thermometer; per cycle the electric counter advances by the plan's commanded
 energy for the half hour, the heat counter by 3x that, the tank rises 4 K in a
 cycle whose plan step charges hot water (else falls 0.5 K).
 
-Run:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py [--sees-dhw] [--perturb no-subtract]
+Cycles 4-6 the pump's own DHW timer charges the tank at 2.5 kW whatever the plan
+asked (FORCED_DHW), so closed spans carry a charge; --plan-only drops the timer.
+
+Run:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py [--sees-dhw] [--no-mode] [--plan-only] [--perturb no-subtract]
 --sees-dhw is the arm where a DHW COP record is allowed (dhw_cop_records counted, not judged).
 --perturb no-subtract: heat_energy.span_heat with its DHW subtraction removed
 (space_heat_kw on the whole span): bad_spans must go UP wherever spans_with_dhw > 0.
@@ -57,13 +60,20 @@ from heatpump_optimizer import accuracy, heat_energy  # noqa: E402
 from heatpump_optimizer import const as c  # noqa: E402
 
 CYCLES = 16
+#: The pump's own hot-water timer: cycles whose half hour it spends charging
+#: the tank whatever the plan asked (a pump-side DHW schedule), so the step's
+#: cell -- spans that hold a hot-water charge -- is exercised however the
+#: plan places DHW. --plan-only drops it (the first run's arm: spans_with_dhw=0).
+FORCED_DHW = range(4, 7)
+FORCED_DHW_KW = 2.5
 KWH = {"unit_of_measurement": "kWh", "device_class": "energy", "state_class": "total_increasing"}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sees-dhw", action="store_true")
-    ap.add_argument("--perturb", choices=["no-subtract"])
+    ap.add_argument("--perturb", choices=["no-subtract", "unobserved-no-space"])
+    ap.add_argument("--plan-only", action="store_true", help="no pump-side DHW timer: DHW only where the plan charges")
     ap.add_argument("--no-mode", action="store_true", help="no mode select: every span unobserved (plan split)")
     a = ap.parse_args()
     t0, c0, th0 = time.time(), time.process_time(), time.thread_time()
@@ -82,6 +92,23 @@ def main():
             got = got._replace(space_kw=heat_energy.space_heat_kw(got.heat_kw, ev.attribution, integrated=True))
         spans.append((ev, got))
         return got
+
+    closes = []
+    real_close_span = heat_energy.close_span
+
+    def close_span(*args, **kw):
+        got = real_close_span(*args, **kw)
+        if got.space_kw is not None:
+            closes.append((got.space_kw, bool(got.house), bool(got.lower)))
+        return got
+
+    def unobserved_no_space(heat_kw, att, integrated):
+        # Perturbation: an unobserved integrated span reads no space figure (one-line
+        # production edit: `if integrated and not a.observed: return None` in space_heat_kw).
+        if integrated and not att.observed:
+            return None
+        return real_space_heat_kw(heat_kw, att, integrated)
+    real_space_heat_kw = heat_energy.space_heat_kw
 
     def record(self, cop, curve_dhw, dhw_temp, at):
         records.append(bool(curve_dhw))
@@ -102,9 +129,14 @@ def main():
     dt_util.freeze(start)
     hass, coord = S.build(cfg, states, entry_id="d12s3_counter")
     ok = published = 0
+    truth = []  # (start, end, space heat kWh, hot-water heat kWh) the plant really put out per half hour
     raised = []
-    patches = [mock.patch.object(heat_energy, "span_heat", no_subtract if a.perturb else span_heat),
-               mock.patch.object(accuracy.MeasuredCop, "record", record)]
+    patches = [mock.patch.object(heat_energy, "span_heat", no_subtract if a.perturb == "no-subtract" else span_heat),
+               mock.patch.object(accuracy.MeasuredCop, "record", record),
+               mock.patch.object(heat_energy, "close_span", close_span)]
+    if a.perturb == "unobserved-no-space":
+        patches[0] = mock.patch.object(heat_energy, "span_heat", span_heat)
+        patches.append(mock.patch.object(heat_energy, "space_heat_kw", unobserved_no_space))
     for p in patches:
         p.start()
     try:
@@ -134,6 +166,9 @@ def main():
             j = max(0, bisect.bisect_right(res.timestamps, now) - 1)
             sp = float(res.power_schedule[j]) if j < len(res.power_schedule) else 0.0
             dh = float((res.dhw_power_schedule or [0.0] * (j + 1))[j]) if res.dhw_power_schedule else 0.0
+            if i in FORCED_DHW and not a.plan_only:
+                dh = max(dh, FORCED_DHW_KW)
+            truth.append((now, now + timedelta(minutes=30), 3.0 * sp * 0.5, 3.0 * dh * 0.5))
             elec += (sp + dh) * 0.5
             heat += 3.0 * (sp + dh) * 0.5
             tank = tank + 4.0 if dh > 0.05 else tank - 0.5
@@ -159,9 +194,23 @@ def main():
         if e.dhw_kwh is None or got.space_kw > (e.heat_kwh - e.dhw_kwh) / e.hours + 1e-6:
             bad += 1
             print(f"BAD span {e.start} {e.hours:.2f} h heat {e.heat_kwh:.2f} dhw {e.dhw_kwh} -> space {got.space_kw:.3f} kW")
+    # Ground truth (the plant's own split, which production never sees): a space
+    # figure above the span's true space heat carries hot water into the house learner.
+    inflated = learned = 0
+    for ev, got in closed:
+        e = ev.energy
+        if got.space_kw is None:
+            continue
+        true_space = sum(s_kwh for t0_, t1_, s_kwh, _d in truth if t0_ >= e.start and t1_ <= e.end)
+        true_dhw = sum(d_kwh for t0_, t1_, _s, d_kwh in truth if t0_ >= e.start and t1_ <= e.end)
+        if true_dhw > 0.0 and got.space_kw > true_space / e.hours + 0.05:
+            inflated += 1
+            folds = [(h, lo) for kw, h, lo in closes if abs(kw - got.space_kw) < 1e-9]
+            learned += bool(folds and (folds[0][0] or folds[0][1]))
+            print(f"INFLATED span {e.start} {e.hours:.2f} h observed={ev.attribution.observed} space {got.space_kw:.3f} kW vs true {true_space / e.hours:.3f} kW (hot water {true_dhw:.2f} kWh)")
     for r in raised:
         print("RAISED", r)
-    print(f"RESULT arm={'sees_dhw' if a.sees_dhw else 'unseen'}{'+no_mode' if a.no_mode else '+tuya_mode'}{'+' + a.perturb if a.perturb else ''}")
+    print(f"RESULT arm={'sees_dhw' if a.sees_dhw else 'unseen'}{'+no_mode' if a.no_mode else '+tuya_mode'}{'+plan_only' if a.plan_only else '+dhw_timer'}{'+' + a.perturb if a.perturb else ''}")
     print(f"RESULT cycles_ok={ok} count (of {CYCLES})")
     print(f"RESULT plans_published={published} count")
     print(f"RESULT spans_closed={len(closed)} count")
@@ -169,6 +218,10 @@ def main():
     print(f"RESULT spans_observed={sum(ev.attribution.observed for ev, _ in closed)} count")
     print(f"RESULT spans_plan_dhw_share={sum((not ev.attribution.observed) and ev.attribution.dhw > 0 for ev, _ in closed)} count")
     print(f"RESULT bad_spans={bad} count")
+    print(f"RESULT spans_true_dhw={sum(any(d > 0 and t0_ >= ev.energy.start and t1_ <= ev.energy.end for t0_, t1_, _s, d in truth) for ev, _ in closed)} count")
+    print(f"RESULT inflated_space_spans={inflated} count")
+    print(f"RESULT inflated_spans_folded={learned} count")
+    print(f"RESULT space_spans_folded={sum(h or lo for _kw, h, lo in closes)} count")
     print(f"RESULT cop_records={len(records)} count")
     print(f"RESULT dhw_cop_records={sum(records)} count")
     print(f"RESULT dhw_cop_records_unseen={0 if a.sees_dhw else sum(records)} count")
