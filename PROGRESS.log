@@ -2,3 +2,4 @@
 1794871537 HB alive
 1794871621 CKPT read brief, p1 #3674 body+verdict, valve-reference s2; plan: classify zeros in fields count, re-run r11 arms at base snapshot ab5406b3d0ec
 1794871731 CKPT harness zero_kind committed, wip pushed snapshot 16400dad9620
+1794871844 CKPT fields before/after measured; loops running at base snapshot 6482b83e5dca
