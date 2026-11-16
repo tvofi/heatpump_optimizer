@@ -68,8 +68,9 @@ SHIM = HERE / "shims" / "seat-gh"
 MIRROR = HERE / "corpus_mirror.py"
 SHIM_MARKER = "# hpo-gh-shim"
 ORIGIN_HOST = "github.com"
-#: What tools/pr/app_mint.sh and its callers read from an identity directory.
-KEY_SUFFIXES = (".pem", ".appid.txt")
+#: What tools/pr/app_mint.sh, app_comment.sh, app_approve.sh and bus.sh read from an identity directory.
+IDENTITY_FILES = ("hpo-author.pem", "hpo-author.appid.txt", "identity-approver.pem", "identity-approver.appid",
+                  "hpo-runs.pem", "hpo-runs.appid.txt", "github_known_hosts")
 TOKEN_VAR = re.compile(r"(?:GH|GITHUB)_(?:[A-Z0-9]+_)*TOKEN|GH_ENTERPRISE_TOKEN|GITHUB_PAT|HPO_PUSH_URL")
 CLOUD_VAR = re.compile(r"CLAUDE_CODE_REMOTE(?:_.*)?|CCR_.*")
 PRIVATE_KEY_NAMES = re.compile(r"id_[a-z0-9_]+|.*\.pem|.*_key")
@@ -129,8 +130,7 @@ def identity_reach(view, directory: str) -> bool:
     names = view.listing(directory)
     if names:
         return True
-    return any(view.readable(os.path.join(directory, f"hpo-{who}{suffix}"))
-               for who in ("author", "approver", "runs") for suffix in KEY_SUFFIXES)
+    return any(view.readable(os.path.join(directory, name)) for name in IDENTITY_FILES)
 
 
 def under(path: str, root: str) -> bool:
@@ -401,7 +401,8 @@ def cases(m) -> dict[str, bool]:
         one = lambda got, word: len(got) == 1 and word in got[0] and secret not in got[0]  # noqa: E731
         r["probe: a readable identity directory is refused by its path"] = one(lines(dirs={os.path.join(root, "identity"): [], owner_id: ["hpo-author.pem"]}), owner_id)
         r["probe: an unlistable identity directory whose key file is readable by name is refused"] = \
-            one(lines(files={os.path.join(owner_id, "hpo-approver.pem")}), owner_id)
+            one(lines(files={os.path.join(owner_id, "identity-approver.pem")}), owner_id) \
+            and one(lines(files={os.path.join(owner_id, "hpo-author.appid.txt")}), owner_id)
         r["probe: a readable deploy key is refused by its path"] = one(lines(files={deploy}), deploy)
         r["probe: a git credential for the origin host is refused, and its value is not printed"] = \
             one(lines(credential="username=x\npassword=" + secret), "git credential fill")
@@ -500,7 +501,7 @@ MUTANTS = {
                    '        identity_dirs, deploy_keys = ["/x"], []', "no probe.json"),
     "no identity named": ("    if not identity_dirs:\n", "    if False:\n", "naming no identity directory"),
     "identity dir": ("        if identity_reach(view, d):\n", "        if False:\n", "readable identity directory"),
-    "identity by name": ("    return any(view.readable(os.path.join(directory,", "    return False and any(view.readable(os.path.join(directory,", "readable by name"),
+    "identity by name": ("    return any(view.readable(os.path.join(directory, name)) for name in IDENTITY_FILES)", "    return False", "readable by name"),
     "deploy key": ("        if view.readable(k):\n", "        if False:\n", "readable deploy key"),
     "identity env": ("if not idir or not under(idir, root) or view.listing(idir) != []:", "if not idir:", "outside the root, absent or not empty"),
     "home": ("    if not home or not under(home, root):\n", "    if not home:\n", "home outside the private root"),

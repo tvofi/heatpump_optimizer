@@ -1442,6 +1442,25 @@ await block('the owner-only dimensions', async () => {
   t('null control: the same dimension with the flag removed is dispatched, and its finding reaches the intake prompt (so these arms can see a leak)',
     open.error === '' && open.labels.includes(`${FX}-s1`) && (open.calls.find((c) => c.label === 'intake')?.prompt ?? '').includes(NONCE) && open.out?.rotation_round?.[FX]?.returned?.s1 === 1, open.error || J(open.labels.filter(fxSeat)))
   const falsy = await driveFind(srcBox, { ...base, scopes: fxScopes(false) })
+  // The public twin of the same canary: a D15 seat's finding rides the box's reply, the collector's push and the return value.
+  const d15 = Object.keys(scopes.D15?.seats ?? {}).map((k) => `D15-${k}`)[0]
+  const d15Box = Object.keys(D.BOXES).find((b) => [...D.BOXES[b].heavy, ...D.BOXES[b].light].includes(d15))
+  const d15Run = await (async () => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      if (o.label === 'prepare') return { exportDir: '/x', worktrees: Object.fromEntries(seatIds(scopes).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+      if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
+      const x = D.seatsFromScopes(scopes, o.label.split('-')[0]).find((y) => y.id === o.label)
+      return { dimension: x.dim, report_path: `/r/${o.label}`, coverage: x.steps.map((m) => ({ step: `${x.dim}.${m}`, enumerator: 'e', universe: 1, examined: 1, not_reached: [], redispatched: [], evidence: 's' })), unfinished: [], non_findings: [], harnesses: [], leads: [], findings: o.label === d15 ? [{ id: `${d15}-01`, scope: d15, title: NONCE }] : [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${bodyOf(rd)} })()`)
+    let out, error = ''
+    try { out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), { round: 1, baseline: 'b', repo: '/r', rotation: ledger, scopes, box: d15Box }) } catch (e) { error = e.message }
+    return { out, error, calls }
+  })()
+  t(`null control: the same canary under a D15 seat (${d15}, box ${d15Box}) reaches the collector's push prompt and the return value`,
+    !!d15 && !!d15Box && d15Run.error === '' && (d15Run.calls.find((c) => c.label === `collect-${d15Box}`)?.prompt ?? '').includes(NONCE) && J(d15Run.out).includes(NONCE), d15Run.error || 'the canary did not reach them')
   t('null control: owner_only false is no declaration', falsy.error === '' && falsy.labels.includes(`${FX}-s1`), falsy.error)
 
   // 4. audit-verify.js, driven with the fixture dimension in its literal set.

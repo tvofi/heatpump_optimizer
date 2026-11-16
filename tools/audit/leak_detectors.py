@@ -167,13 +167,16 @@ def cases(m) -> dict[str, bool]:
         "address": ["10." + "0.0.5", "172." + "16.4.1", "169." + "254.1.1", "aa:bb:" + "cc:dd:ee:ff"],
         "person-entity": ["device_tracker" + "." + "alex_phone", "zone" + "." + "summer_house"],
     }
+    def first(v):
+        """The one candidate of a planted value, or a span that matches nothing."""
+        got = m.scan(f"see {v} here")
+        return got[0] if len(got) == 1 else ("", -1, -1)
     r["scan: a planted twin of every class fires as exactly that class, starting at its own offset"] = all(
-        [(c_, s_) for c_, s_, e_ in m.scan(f"see {v} here")] == [(c, 4)] and m.scan(f"see {v} here")[0][2] <= 4 + len(v)
-        for c, v in twins.items()) and sorted(twins) == sorted(m.CLASSES)
+        first(v)[:2] == (c, 4) and 4 < first(v)[2] <= 4 + len(v) for c, v in twins.items()) and sorted(twins) == sorted(m.CLASSES)
     r["scan: the other spellings of a class fire too"] = all(
         [x[0] for x in m.scan(f"a {v} b")] == [c] for c, vs in more.items() for v in vs)
     r["mask: with the detector's own span masked it is quiet (the perturbation of a leaked-data finding)"] = all(
-        m.scan(m.mask(f"see {v} here", *m.scan(f"see {v} here")[0][1:])) == [] for v in twins.values())
+        first(v)[1] == 4 and m.scan(m.mask(f"see {v} here", *first(v)[1:])) == [] for v in twins.values())
     quiet = ["a12345@" + "users.noreply.github.com", "noreply@" + "github.com", "x@" + "example.com", "dev@" + "sub.example.org", "a@" + "host.invalid",
              "version 1.2.3.4", "8.8." + "8.8", "10.1", "192.168.1", "1.5, 2.5", "59.33, 18.07", "sensor.outdoor_temperature",
              "person" + ".home", "zone" + ".home", "device_tracker" + ".example", "gh" + "p_short", "eyJ.eyJ.x", "/usr/local/bin",
@@ -228,7 +231,7 @@ def cases(m) -> dict[str, bool]:
 
 #: (needle, replacement, the case that must fail). One per predicate.
 MUTANTS = {
-    "host classes ": ('out = [(cls, m.start(), m.end()) for cls, rx in HOST_CLASSES.items() for m in rx.finditer(text)]', "out = []", "planted twin of every class"),
+    "host classes": ('out = [(cls, m.start(), m.end()) for cls, rx in HOST_CLASSES.items() for m in rx.finditer(text)]', "out = []", "planted twin of every class"),
     "token": ('out += [("token", m.start(), m.end()) for m in TOKEN.finditer(text)]', "pass", "planted twin of every class"),
     "pem": (r'    r"|-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----")', r'    r"|-----BEGIN RSA PRIVATE KEY-----")', "other spellings"),
     "public email": ("if not PUBLIC_EMAIL_DOMAINS.fullmatch(m.group(1))]", "]", "noreply and example addresses"),
