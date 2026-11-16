@@ -148,6 +148,52 @@ def main():
         for k, r in sorted(m6.items()):
             print(f"  M6 {k} realised={r.get('realised_gap_pct', 'nan')} dE={r.get('realised_energy_gap_sek', 'nan')} "
                   f"ddef={r.get('deficit_delta', 'nan')} dstarts={r.get('starts_delta', 'nan')} err={r.get('error', '')[:80]}")
+    # flow-setpoint-behind-valve against its flat null: does the plan leave the minimum level more where a
+    # price spread exists?
+    fsp_pairs = []
+    for c, r in ok4.items():
+        if c.startswith("coord/") or c.split("/")[4] != "flow-setpoint-behind-valve":
+            continue
+        f = m5.get(flat_of(c))
+        if not f or "arms" not in f:
+            continue
+        def share(plan):
+            plan = np.asarray(plan)
+            on = plan > 0.05
+            return float((plan[on] > PMIN + 0.05).mean()) if on.any() else float("nan")
+        fsp_pairs.append((share(r["arms"]["prod"]["plan"]), share(f["arms"]["prod"]["plan"])))
+    vs = lambda c: c.replace("flow-setpoint-behind-valve", "valve-storage")  # noqa: E731
+    fpairs = [c for c in ok4 if not c.startswith("coord/") and c.split("/")[4] == "flow-setpoint-behind-valve"
+              and vs(c) in ok4]
+    ident = [c for c in fpairs if ok4[vs(c)]["arms"]["prod"]["plan"] == ok4[c]["arms"]["prod"]["plan"]]
+    print(f"RESULT fsp_plan_identical_to_valve_storage={len(ident)} of {len(fpairs)} pairs")
+    if fsp_pairs:
+        v = np.array(fsp_pairs)
+        ok = np.isfinite(v).all(axis=1)
+        print(f"RESULT fsp_pairs_with_flat={int(ok.sum())} cells")
+        print(f"RESULT fsp_above_min_share_cell_mean={np.mean(v[ok, 0]):.3f} ratio")
+        print(f"RESULT fsp_above_min_share_flat_mean={np.mean(v[ok, 1]):.3f} ratio")
+    # manual-valve-buffer against the same cell with the buffer below the store threshold (mvb_nobuffer.py)
+    mv = load("mvb_cell.jsonl")
+    mvok = [r for r in mv.values() if "l1_kwh" in r]
+    if mvok:
+        l1 = np.array([r["l1_kwh"] for r in mvok])
+        print(f"RESULT mvb_nostore_cells={len(mvok)} cells (errors {len(mv) - len(mvok)})")
+        print(f"RESULT mvb_nostore_identical={int(np.sum(l1 < 1e-3))} cells")
+        heat = [r for r in mvok if r["store_kwh"] > 0.1]
+        print(f"RESULT mvb_nostore_identical_with_heat={sum(1 for r in heat if r['l1_kwh'] < 1e-3)} of {len(heat)} cells")
+        print(f"RESULT mvb_nostore_l1_median={np.median(l1):.3f} kWh")
+    # M6 summary: day-1 realised gap over loops at plant == model, R16, its LOO
+    if m6:
+        base = [r for k, r in m6.items() if k[1] == 1.0 and k[2] == 16 and k[3] == 1.0 and k[4] == "cell"
+                and "realised_gap_pct" in r]
+        if base:
+            v = [r["realised_gap_pct"] for r in base]
+            print(f"RESULT m6_base_loops={len(base)} loops")
+            print(f"RESULT m6_base_realised_gap_loo={json.dumps(loo(v))}")
+            print(f"RESULT m6_base_realised_positive={sum(1 for x in v if x > TOL)} loops")
+            print(f"RESULT m6_base_realised_negative={sum(1 for x in v if x < -TOL)} loops")
+            print(f"RESULT m6_base_realised_energy_sek_sum={sum(r['realised_energy_gap_sek'] for r in base):.3f} SEK")
     missing = [c for c in universe if c not in ok4]
     print(f"RESULT m4_not_reached={len(missing)} cells")
 

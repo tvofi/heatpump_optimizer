@@ -1,0 +1,3 @@
+RESULT gap_pct[flat/shoulder/single-zone/dhw/flow-setpoint-behind-valve/6h|flat]=0.15988259386794698 pct best=warm
+RESULT gap_pct[flat/winter_mild/single-zone/no-dhw/flow-setpoint-behind-valve/6h|flat]=2.2322837601286094e-05 pct best=seeds
+RESULT gap_pct[flat/summer_warm/single-zone/dhw/valve-storage/24h|flat]=0.0 pct best=seeds

@@ -257,12 +257,13 @@ def main():
         for l in open(a.out):
             try:
                 r = json.loads(l)
-                done.add((r["cell"], r["price_arm"]))
+                # a flat line raced with --price flat is the same solve as without it: key on the price used
+                done.add((r["cell"], r["cell"].split("/")[0] if r["price_arm"] == "cell" else r["price_arm"]))
             except Exception:
                 pass
     c0, t0 = time.process_time(), time.thread_time()
     for line in lines:
-        if (line, a.price or "cell") in done:
+        if (line, a.price or line.split("/")[0]) in done:
             continue
         try:
             r = race(line, a.price)
