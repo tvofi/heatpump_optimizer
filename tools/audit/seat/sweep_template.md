@@ -35,6 +35,8 @@ rendered text that no overlay value supplied.
 | `plan_slots` | `replan.py --slots`: concurrent fixer slots the plan schedules (10 unless the owner set another) |
 | `plan_seats` | `replan.py --seats`: seats the plan may use (99 unless the owner set another) |
 | `plan_coordinator_cap` | `replan.py --coordinator-cap`: the plan's coordinator cap (replan's own default when absent) |
+| `plan_live_refs` | `replan.py --live-refs`: a saved `git ls-remote --heads` listing, so the plan prices a group with a fixer, handoff or dispatch ref as working and not by its stage word (absent: the stage word) |
+| `plan_in_flight` | `replan.py --in-flight`: a JSON list of open pull requests (`number`, `headRefOid`, `headRefName`, `isDraft`), the other half of that evidence (absent: the stage word) |
 | `plan_json` | the plan JSON `replan.py --out` writes and `state_docs.py --plan` draws |
 | `plan_page` | the plan page, `PLAN.html` in the state mirror (`state_docs.py --plan` writes it), republished at the same path |
 | `state_mirror` | the directory `state_docs.py --mirror` writes |
