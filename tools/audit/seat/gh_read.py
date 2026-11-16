@@ -247,7 +247,9 @@ def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pag
 # (no module-level re.compile here: ALTERNATIVES() reads those as the bash twin's table)
 #: A conditional read the server answers 304 costs no core-bucket call (P596 measured
 #: five of them moving `used` by 0, five plain reads by 6). The stored ETag and body sit
-#: under the state directory, one file per path, shared by every process of the host.
+#: under the caller's state directory ($HPO_STATE_DIR, default ~/.local/state/hpo), one file
+#: per path, shared by every process reading under that same directory; a process under
+#: another state directory keeps its own store and pays its own first plain read per path.
 
 
 def etag_dir() -> Path:
@@ -803,6 +805,25 @@ def self_test() -> int:
             check("a ruleset by another name is not read",
                   ruleset_checks(srv, "o/r", "other", Path(cd2)) == (False, {}))
             check("an unreadable ruleset is not read", ruleset_checks(lambda a: (1, "HTTP 404"), "o/r", "x", Path(cd2)) == (False, {}))
+        # the store's scope is the caller's $HPO_STATE_DIR (etag_dir), not the host
+        saved = os.environ.get("HPO_STATE_DIR")
+        try:
+            def under(state):
+                os.environ["HPO_STATE_DIR"] = str(state)
+                n0 = len(seen)
+                conditional_get(gh_, P)
+                return any("If-None-Match" in a for a in seen[n0])
+            (cache / "s1").mkdir()
+            (cache / "s2").mkdir()
+            cold1, warm1, other = under(cache / "s1"), under(cache / "s1"), under(cache / "s2")
+            check("the ETag store is $HPO_STATE_DIR/gh-etag: a second read under the same state dir is conditional",
+                  not cold1 and warm1 and etag_dir() == cache / "s2" / "gh-etag")
+            check("and a read under another state dir finds nothing stored: its first read is plain", not other)
+        finally:
+            if saved is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

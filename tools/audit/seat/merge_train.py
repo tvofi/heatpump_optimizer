@@ -4043,7 +4043,8 @@ class Train:
     def _checks_rule(self) -> "tuple[bool, dict]":
         """RULESET's required_status_checks rule's parameters, read live through
         `gh_read.ruleset_checks`: both reads conditional, their ETag and body shared
-        with every other process of the host (a 304 costs no core-bucket call)."""
+        with every process under the same $HPO_STATE_DIR (`gh_read.etag_dir`; a 304
+        costs no core-bucket call)."""
         return gh_read.ruleset_checks(self.run, self.repo, RULESET)
 
     def strict_update(self) -> "bool | None":
