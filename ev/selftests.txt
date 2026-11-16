@@ -1,0 +1,6 @@
+roster_lib self-test: 98 checks, 0 failed
+pushed edit-1 at 68c51f8b91b3ea4af7bdcc64258c1813b41b23ad
+roster_edit self-test: 315 checks, 0 failed
+ok    --dir has no history: its weeks are unread
+loop_ledger self-test: 0 failed
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
