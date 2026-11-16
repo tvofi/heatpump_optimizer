@@ -3165,6 +3165,45 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-SERVICE-SCHEMA",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "product",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/services.yaml"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Service schema and service text disagreements carried below verbatim. Two are buildable now: the simulate_plan selectors that bound nothing the schema enforces, and the apply_manual_plan examples that age into refusals. Two need the owner's decision before any code: whether apply_schedule may reset silent_mode_power_fraction to its default, and whether set_thermal_parameters narrows dhw_legionella_temperature to the disinfection cap or documents the gap. Build the two buildable carries; ask for the other two.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-service-schema",
+    "last_step": null,
+    "next_step": "owner decision on the two behaviour carries, then dispatch fixer",
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
+   },
+   "source": "programme"
   }
  ]
 }
