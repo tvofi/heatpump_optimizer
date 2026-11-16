@@ -5,8 +5,15 @@
     gh_calls.py --coverage [PID ...]
     gh_calls.py --self-test
 
---top ranks callers (the parent command) and endpoints (subcommand + target)
-by call count, over $HPO_STATE_DIR/gh-calls.log and its rotated .1 (default
+--top ranks callers (the parent command), endpoints (subcommand + target) and
+rate-limit buckets by call count. A call's bucket is derived from what the
+shim logged: `api graphql` and the commands gh serves over GraphQL (pr, issue,
+repo, label, project) are `graphql`; `api search/...` and `gh search` are
+`search`; `api rate_limit` is `free`; any other readable `api` path, and
+run, workflow, release, cache, secret, variable and ruleset, are `core`; a
+target the shim could not log, or a subcommand outside these, is
+`unattributed`, never core. It counts calls, not cost: a GraphQL query's cost
+is in its own response. Ranked over $HPO_STATE_DIR/gh-calls.log and its rotated .1 (default
 state root $HOME/.local/state/hpo). `--since` keeps lines whose UTC stamp is
 not before it; a stamp is the shim's `YYYY-MM-DDTHH:MM:SSZ`, and a value that
 is not one is refused, never read as "everything". A line the shim did not
@@ -60,6 +67,40 @@ def read_lines(log: Path):
     return out
 
 
+GRAPHQL_CMDS = frozenset({"pr", "issue", "repo", "label", "project"})
+CORE_CMDS = frozenset({"run", "workflow", "release", "cache", "secret", "variable", "ruleset"})
+
+
+def bucket(sub: str, target: str) -> str:
+    """The rate-limit bucket a logged call draws on: core, graphql, search, free or unattributed."""
+    if sub == "api":
+        path = target.lstrip("/")
+        if path == "graphql":
+            return "graphql"
+        if path == "search" or path.startswith("search/"):
+            return "search"
+        if path == "rate_limit":
+            return "free"
+        return "core" if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_./:-]*", path) else "unattributed"
+    if sub == "search":
+        return "search"
+    if sub in GRAPHQL_CMDS:
+        return "graphql"
+    return "core" if sub in CORE_CMDS else "unattributed"
+
+
+def buckets(lines, since=None) -> Counter:
+    """Calls per bucket over the window `top` reads."""
+    if since is not None and not STAMP.fullmatch(since):
+        raise ValueError(f"--since wants YYYY-MM-DDTHH:MM:SSZ, got {since!r}")
+    out = Counter()
+    for ln in lines:
+        m = LINE.fullmatch(ln)
+        if m and (since is None or m.group(1) >= since):
+            out[bucket(m.group(4), m.group(5))] += 1
+    return out
+
+
 def top(lines, since=None, limit=10):
     """(callers, endpoints, malformed, kept) -- Counter, Counter, int, int."""
     if since is not None and not STAMP.fullmatch(since):
@@ -84,6 +125,8 @@ def render_top(lines, since=None, limit=10):
     for title, c in (("callers", callers), ("endpoints", endpoints)):
         out.append(f"{title}:")
         out += [f"  {n:6d}  {k}" for k, n in c.most_common(limit)] or ["  (none)"]
+    out.append("buckets:")
+    out += [f"  {n:6d}  {k}" for k, n in sorted(buckets(lines, since).items())] or ["  (none)"]
     return "\n".join(out)
 
 
@@ -798,6 +841,19 @@ def self_test():
                            capture_output=True, text=True, env={"PATH": f"{w / 'real'}:{tools}", "HOME": str(w)}, timeout=60)
         check("the CLI exits 3 with the line on an empty window",
               r.returncode == 3 and r.stdout.startswith("gh_calls: UNATTRIBUTED: no call logged since "))
+    stamp = "2026-11-15T00:00:%02dZ 7 scan.py "
+    planted = [stamp % i + tail for i, tail in enumerate(
+        ("api repos/o/r/issues", "api repos/o/r/actions/runs", "api graphql", "pr view", "api search/issues", "search issues",
+         "api rate_limit", "api ?", "api -", "frobnicate -", "run view", "release list"))]
+    b = buckets(planted)
+    check("calls are counted per bucket: REST paths core, graphql and the GraphQL-served commands graphql, search search, rate_limit free",
+          b == Counter({"core": 4, "graphql": 2, "search": 2, "free": 1, "unattributed": 3}))
+    check("null control: a target the shim could not log, or an unknown subcommand, is unattributed and never core",
+          bucket("api", "?") == bucket("api", "-") == bucket("frobnicate", "-") == bucket("api", "") == "unattributed"
+          and bucket("api", "repos/o/r/pulls") == "core" and bucket("api", "/graphql") == "graphql" and bucket("api", "searching") == "core")
+    check("--top prints the bucket table, and --since bounds it like the other two",
+          render_top(planted).endswith("buckets:\n       4  core\n       1  free\n       2  graphql\n       2  search\n       3  unattributed")
+          and buckets(planted, "2026-11-15T00:00:10Z") == Counter({"core": 2}) and "buckets:\n  (none)" in render_top(planted, "2026-11-16T00:00:00Z"))
     print(f"gh_calls self-test: {pass_n + fail_n} checks, {fail_n} failed")
     return 1 if fail_n else 0
 
