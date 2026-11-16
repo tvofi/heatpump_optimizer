@@ -492,7 +492,7 @@ def _stored_floor(data: dict[str, Any], cfg_min: float, rows: int) -> tuple[floa
     raw, since = data.get("floor_kw"), data.get("floor_since")
     floor = float(raw) if isinstance(raw, (int, float)) and not isinstance(raw, bool) else None
     keep = floor is not None and np.isfinite(floor) and floor > cfg_min
-    return (floor if keep else None), (min(since, rows) if type(since) is int and since > 0 else 0)
+    return (floor if keep else None), (min(max(since, 0), rows) if type(since) is int else 0)
 
 
 def _command_cells(entry: Any) -> tuple[float, float] | None:
