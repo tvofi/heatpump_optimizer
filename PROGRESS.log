@@ -4,3 +4,4 @@
 1794841492 CKPT delta scoped: prod own-diff unchanged since 5b33358e80; checking test/pin delta snapshot 6bfc0ffebcda
 1794841742 CKPT rev5 mutants done: guard_pins kills cap guards, typing_ruler kills _run_bounds RETURN_DEL; env_drift next snapshot 75ae593aa68a
 1794841914 HB alive
+1794842089 CKPT verdict pushed f2abdf5fb9 to probe/rev-3602-2ccf0149 snapshot 506daf3f2d86
