@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop._judge_ratio GUARD_OFF 065cc90f",
+  "killed_by": "tests/features.py",
+  "old": "        if self._admits(state, draw, measured_heat) and (verdict := self._admit(row)) != ASK_PENDING:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}
