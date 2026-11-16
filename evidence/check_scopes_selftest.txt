@@ -1,0 +1,5 @@
+usage: check_scopes.py [-h] --repo REPO [--ref REF] [--scopes SCOPES]
+                       [--self-test] [--seat SEAT] [--round ROUND]
+                       [--population] [--open-cards]
+check_scopes.py: error: the following arguments are required: --repo
+rc=2
