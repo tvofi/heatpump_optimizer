@@ -259,10 +259,10 @@
    ],
    "hot_files": [],
    "fixerModel": "sonnet",
-   "reviewerModel": "sonnet",
+   "reviewerModel": "claude-opus-5-5",
    "model": {
     "fixer": "sonnet",
-    "reviewer": "sonnet",
+    "reviewer": "claude-opus-5-5",
     "rca": null,
     "runner": "haiku",
     "record": "sonnet"
