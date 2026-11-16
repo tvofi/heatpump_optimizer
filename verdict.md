@@ -1,0 +1,17 @@
+Fix review: blocked d40c045119e3dd9f00a88ded4ec109e2d617f545 merge-conflict: tests/layout.json conflicts with origin/main 54cb721164, where #3665 adds product_reads.py to the tools/audit glob this branch extends with leak_detectors.py
+
+bus-nonce: 6596e269058f48c91b05bb8dee3cdfe2
+
+## Block
+
+- `git merge-tree --write-tree origin/main d40c045119e3dd9f00a88ded4ec109e2d617f545` exits 1 with `CONFLICT (content): Merge conflict in tests/layout.json` (ev/merge_tree.txt). origin/main is 54cb7211642364d762ba47f42d5f7b8a5953f742; merge base b425502da8.
+- The three sides of line 114, the `tools/audit/{...}` glob (ev/layout_conflict_sides.txt): the base lists neither file; this head appends `leak_detectors.py`; main (fd206bef2c, merged by #3665 at 54cb721164) inserts `product_reads.py` after `enumerate.py`. The head's last merge of main was 27e47beced, before #3665 reached main. The resolution keeps both entries; it is the fixer's to make, and steps 2-8 re-run on the new head (fixer.md).
+- The review packet refuses the same: `REFUSE structure: ... head does not merge cleanly with origin/main` (ev/review_packet_refusals.txt).
+
+## Evidence
+
+- Head reviewed: d40c045119e3dd9f00a88ded4ec109e2d617f545 (ev/HEAD.txt), from a detached worktree.
+- Orchestrator-flagged change, tools/audit/seat/finder_overlap.py (ev/finder_overlap_delta.diff): the owner-only canary moves from D18 to D17, and seat_pair gains a D0..D17 bound placed after the owner-only check. The move is needed: with the canary at D18, deleting the owner-only check still refuses the seat on the new bound, so the canary case could not tell the two predicates apart. At D17 the bound admits the seat, so only the owner-only check refuses it. `python3 -I tools/audit/seat/finder_overlap.py --self-test` at this head: `finder_overlap self-test: ok (with mutants)`, rc=0, with `mutant killed: owner-only seat (by 'canary seat is refused')` and all three bound mutants (D15, D16, D18) killed by the D16/D17/D18 case (ev/finder_overlap_selftest.txt). Sound as resolved.
+- CI: one `merge_train.py classify d40c045119e3dd9f00a88ded4ec109e2d617f545 --pr 3679` read printed `WAIT d40c045119e3dd9f00a88ded4ec109e2d617f545 pending: gate red: none` (rc=3, ev/classify.txt). I did not keep polling: a conflict blocks whatever CI concludes, and the train re-proves CI on the resolved head. The packet also reported `tests / closures` as a concluded red with no `## Red checks` answer. That check is not in the `owed-reds` set (coverage-ratchet, fast (3.14), mutation, typing, validate-hacs), so it is neither owed an answer nor a block.
+- Scope: the packet scopes this round as delta over 681a0d90890c269508924867e0f5f84689ef4ed9, 227 files. Apart from the finder_overlap change above, I did not review the delta or re-check the previous verdict's two findings (corpus_mirror.py safe_extract on three archive shapes and a local write failure; owner_only.py probe accepting a gh that exits non-zero), because the head must move to resolve the conflict. The next round reviews them at the resolved head.
+- Dispatch: the scheduled prompt cited the brief at 535b040ba92d1ce7d207bf8ea94c9200b7b22290, which is a #3639 verdict commit holding no PROMPT.md. This review followed PROMPT.md of dispatch/reviewer-rev-3679 at 588d3b4c87de3fbcd3c004529dfb3190a55285f3 (byte-identical at its tip 064a0677666e), which names this PR, head and nonce and which that branch's PAYLOAD.json pins.
