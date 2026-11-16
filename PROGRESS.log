@@ -3,3 +3,4 @@
 1794870427 CKPT setup done, design worktree open snapshot 95757f7127e1
 1794870490 CKPT note and 0018 read snapshot bbb1f7655177
 1794870600 CKPT seam check: replan.py owns hours, critical path and dispatch order snapshot 4428d00be167
+1794870694 CKPT verdict pushed: revise architecture-unsound at 6ec87d8b snapshot f7e65f3b6ff0
