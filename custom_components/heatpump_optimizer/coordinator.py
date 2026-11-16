@@ -8223,10 +8223,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ecl110_view,
             self._external_heat_view,
             self._input_health_view,
-            functools.partial(rooms.view, self),
             self._mixing_valve_view,
         ):
             data = {**data, **view()}
+        data = {**data, **rooms.view(self)}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}
