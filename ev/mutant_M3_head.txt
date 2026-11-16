@@ -1,0 +1,1 @@
+M3-entry-fn-dropped (ENTRY_FNS anchor): KILLED rc=1 | SELF-TEST FAILED: d1-lifecycle  planted: got 7, want 8; d1-lifecycle  one item deleted: got 6, want 7; d1-lifecycle lines: an async_track_* call, a LIFE_CALLS c

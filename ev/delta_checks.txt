@@ -1,0 +1,10 @@
+## git diff 5267332704 5b2e29e654 --stat
+## git diff 5b2e29e654 8445e36c --stat
+## git diff 6a32d9035a 8445e36c --stat
+ tools/audit/enumerate.py | 152 ++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 130 insertions(+), 22 deletions(-)
+## merge-tree origin/main(f9b680fee4) 8445e36c
+4d4bf6e4fc9014975e0a6473ccae5e3b1794b4d7
+rc=0
+## three-dot paths touching VERSION/custom_components/RELEASE_NOTES/tests/golden
+0

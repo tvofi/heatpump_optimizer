@@ -1,0 +1,6 @@
+## const.py CONF_ names matching ENTITY|SENSOR|ENTITIES (by name or value)
+50
+## in name-shape set, not in universe:
+## in universe, not in name-shape set:
+CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY
+## EntitySelector occurrences in package outside config_flow.py:

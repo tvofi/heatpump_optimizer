@@ -1,0 +1,25 @@
+NULL: SURVIVED rc=0 | SELF-TEST passed (147 arms)
+M1-excepts-always-narrow: KILLED rc=1 | SELF-TEST FAILED: d1-excepts lines carry broad or narrow: got ['narrow', 'narrow'], want ['broad', 'narrow']
+M2-LIFE_CALLS-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-lifecycle  planted: got 7, want 8; d1-lifecycle  one item deleted: got 6, want 7; d1-lifecycle lines: an async_track_* 
+M3-entry-fn-dropped: NOT-APPLIED (count 2)
+M4-STORE_VERSION-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-stores  planted: got 4, want 6; d1-stores  one item deleted: got 3, want 5; d1-stores lines: DOMAINS keys, each earlier
+M5-no-earlier-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-stores  planted: got 5, want 6; d1-stores  one item deleted: got 4, want 5; d1-stores lines: DOMAINS keys, each earlier
+M8-json-with-args: KILLED rc=1 | SELF-TEST FAILED: d1-parsers  planted: got 5, want 4; d1-parsers  one item deleted: got 4, want 3; d1-parsers lines: a parse def, json.loads
+M12-module-level-self: KILLED rc=1 | SELF-TEST FAILED: d9-collections  planted: got 3, want 2; d9-collections  one item deleted: got 2, want 1; d9-collections a module-level fun
+M18-step-shape: KILLED rc=1 | SELF-TEST FAILED: d2 an identity whose step is not M<n> is refused: got 2, want 'Refuse'
+M25-from-package-import-name: KILLED rc=1 | SELF-TEST FAILED: d0-modules  planted: got 7, want 8; d0-modules  one item deleted: got 6, want 7; d0-modules follows `from <package> import
+M27-any-async_call: KILLED rc=1 | SELF-TEST FAILED: d16-writes  planted: got 4, want 3; d16-writes  one item deleted: got 3, want 2; d16-writes {'cells': True} planted: got 3
+N1-flow-factory-ignored: KILLED rc=1 | Refuse: config_flow.py:6: an entity selector outside an `_F` row is in no census
+N2-flow-loop-unrolled-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 5, want 6; d1-inputs  one item deleted: got 4, want 5; d1-inputs lines: a flow key behind an entit
+N3-flow-outside-refusal-off: KILLED rc=1 | SELF-TEST FAILED: d1-inputs an entity selector outside an `_F` row is refused: got 6, want 'Refuse'
+N4-flow-keyname-refusal-off: KILLED rc=1 | SELF-TEST FAILED: d1-inputs an entity selector row whose key is no name is refused: got 6, want 'Refuse'
+N5-wiring-dict-spread-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 5, want 6; d1-inputs  one item deleted: got 4, want 5; d1-inputs lines: a flow key behind an entit
+N6-wiring-tests-dropped: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 8, want 6; d1-inputs  one item deleted: got 8, want 5; d1-inputs lines: a flow key behind an entit
+N7-wiring-unreadable-test-ok: KILLED rc=1 | SELF-TEST FAILED: d1-inputs a wiring rule holding a test the census cannot read is refused: got 7, want 'Refuse'; d1-inputs an isinstance te
+N8-wiring-two-comps-ok: KILLED rc=1 | SELF-TEST FAILED: d1-inputs a FACTORY_KEPT holding a second comprehension is refused: got 6, want 'Refuse'
+N9-wiring-isinstance-on-name-ok: KILLED rc=1 | SELF-TEST FAILED: d1-inputs an isinstance test on the loop's name, not its value is refused: got 6, want 'Refuse'
+N10-flow-set-union-to-flow-only: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 4, want 6; d1-inputs  one item deleted: got 3, want 5; d1-inputs lines: a flow key behind an entit
+N11-wiring-only: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 3, want 6; d1-inputs  one item deleted: got 3, want 5; d1-inputs lines: a flow key behind an entit
+N12-wiring-reason-ignored: KILLED rc=1 | SELF-TEST FAILED: d1-inputs  planted: got 7, want 6; d1-inputs  one item deleted: got 6, want 5; d1-inputs lines: a flow key behind an entit
+
+[exited with code 0]
