@@ -93,8 +93,9 @@ approvals remain in our machinery even for such PRs."*
    and reads the result back as the automatic two-parent merge of that head
    and main; on a conflict or a refused move it parks naming the fork and
    never resolves). The train's `[OUTSIDE]` class is that park, and also
-   the contract's refusal, an unread pull request and a checkout copy of
-   the contract that is not origin/main's; no secret reaches a fork run (the three
+   the contract's refusal, a pull request whose head repository and branch
+   could not be read, a checkout copy of the contract that is not
+   origin/main's, and a fork head the train could not check out; no secret reaches a fork run (the three
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 
