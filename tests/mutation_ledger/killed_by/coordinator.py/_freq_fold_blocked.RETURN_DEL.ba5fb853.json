@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_freq_fold_blocked RETURN_DEL ba5fb853",
-  "killed_by": "tests/features.py",
-  "old": "    return bool(frozen and \":\" in frozen)",
-  "reason": "Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

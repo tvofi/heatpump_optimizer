@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_frame_reader.readline BOOLOP 65afbd87",
-  "killed_by": "tests/features.py",
-  "old": "        while not line.endswith(b\"\\n\") and (byte := read(1)):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`while not line.endswith(b\"\\n\") or (byte := read(1)):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

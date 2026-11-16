@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF 0628b1f6",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "        if not isinstance(learners, dict):  # persisted state: absent, not a raise",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # persisted state: absent, not a raise`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
-}
