@@ -15,9 +15,11 @@ Cards closed, read at eval/r11 `c6ce415b7759b6eb72fc2ffc3fd33ee3aab9fc69`, the t
 
 **The merge of origin/main 921214bf42** (cb52dc931e) conflicted in `CLAUDE.md` against #3626 (R11-PRE-RULINGS-FILE). Main replaced the `## Root-cause remediation` section whole with `## What the repository may carry`; this branch's hunk there only deleted words inside that section (payment 2 below) and added none, so the union of the two edits is main's section verbatim. Every other #3626 line merged clean. This group's own added paragraph, the index line naming the four criteria files, merged clean and was shortened to fit `CLAUDE.md`'s `files_tokens` cap, from three lines to two that open `Finder criteria (` and name `owner_criteria` and the four files; the directory is dropped because each basename is unique in the tree, and `objective.json` because `owner_criteria` is its key. Read back at the head, both sides present (`grep -n` on `CLAUDE.md`): #3626's ``AGENTS.md` binds a harness``, `### The suite, the register, the rulings, the handover`, ``dev/programme/RULINGS.md` — the owner's rulings`` and `## What the repository may carry` with its six lines, and the steward line without its `babysit/` sentence; this group's line opening `Finder criteria (`. `git diff origin/main HEAD -- CLAUDE.md` is that one added paragraph alone.
 
+**The merge of origin/main e30408f788** (92af7f3f9b) conflicted in `policy_budgets.json` on `corpus_tokens` after #3566 re-recorded main's cap to 65926. Resolved to main's value, then re-recorded to the merged tree's `corpus:` measurement; every other cap is main's or this group's rows unchanged.
+
 ## Head
 
-cb52dc931ec43cf6b4f23f975d9d530adf41bc15 on origin/main 921214bf4246 (Mon Nov 16 00:19 UTC 2026). The mutation proof, the null control and the `plants` run were taken at 1fd39aaa87 on 31117b1029de; this merge's delta is `CLAUDE.md` alone, which none of them reads, and the figures below marked as re-taken were re-run at cb52dc931e.
+92af7f3f9b134188e67e8cd6c985b51049a2f43c on origin/main e30408f788 (Mon Nov 16 00:30 UTC 2026). The mutation proof, the null control and the `plants` run were taken at 1fd39aaa87 on 31117b1029de; the two merges' delta is `CLAUDE.md` and `corpus_tokens`, which none of them reads, and the figures below marked as re-taken were re-run at 92af7f3f9b.
 
 ## Mutation proof
 
@@ -35,27 +37,27 @@ Each mutant was run in a scratch worktree of this head, then restored.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=5825e1346c14eecace5c87c046558774145a94dc head=cb52dc931ec43cf6b4f23f975d9d530adf41bc15 -->
+<!-- figure-block: scope-line mb=5825e1346c14eecace5c87c046558774145a94dc head=92af7f3f9b134188e67e8cd6c985b51049a2f43c -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
-`tests/closure.py` is in the diff, so the gate runs everything in CI; locally `tests/entities.py` (the script the closure change and the criteria files select) was run at 1fd39aaa87: `ALL 2723 ENTITY CHECKS PASSED`, rc 0; re-taken at cb52dc931e: `ALL 2723 ENTITY CHECKS PASSED`, rc 0.
+`tests/closure.py` is in the diff, so the gate runs everything in CI; locally `tests/entities.py` (the script the closure change and the criteria files select) was run at 1fd39aaa87: `ALL 2723 ENTITY CHECKS PASSED`, rc 0; re-taken at 92af7f3f9b: `ALL 2723 ENTITY CHECKS PASSED`, rc 0.
 
 - `python3 tools/audit/check_scopes.py --repo . --self-test`: `SELF-TEST passed (every perturbed scope refused)`, `population arms: 13/13 held`.
 - `python3 tools/audit/check_scopes.py --repo . --population`: rc 0; `tank_volume` and `house_size` print `NO-READ` with the declared-levels reason; `NO-READ AXES: 2`, as at main.
 - `python3 tools/audit/check_scopes.py --repo . --ref <ref> --round 11 | grep -c 'still leaves unset'`: 5 at c6ce415b77, 0 at this head merged with it. `grep -c 'is unset and no card'`: 0 at both, so the five deferred thresholds stay carried by their cards.
-- `python3 dev/audit/harnesses/r11_owner_criteria.py plants` (sha1 e3b1350b1f4b5693b38317eaf895ff5cd82e9b82): `plants: 9, wrong: 0`, rc 0, re-taken at cb52dc931e. Per criteria file, a planted finding that meets the statement (FAILS) and one that does not (PASSES):
+- `python3 dev/audit/harnesses/r11_owner_criteria.py plants` (sha1 e3b1350b1f4b5693b38317eaf895ff5cd82e9b82): `plants: 9, wrong: 0`, rc 0, re-taken at 92af7f3f9b. Per criteria file, a planted finding that meets the statement (FAILS) and one that does not (PASSES):
   - D10 Q1: `has-entity-name: todo` FAILS; `async-dependency` exempt with no comment FAILS; the live register PASSES.
   - D4 P2: `#777777` on `#ffffff`, 4.478, FAILS; `#767676`, 4.542, PASSES.
   - D5 C5: a 41-word sentence FAILS; an 11-word one PASSES.
   - D9 B1: 13.0 s host solver CPU × F=5 = 65.0 FAILS; 3.6 s × 5 = 18.0 PASSES.
   - A plant reading the wrong way prints `<-- WRONG` and exits 1.
-- `node tools/policy/policy_lint.mjs`, re-taken at cb52dc931e: `TOTAL: 0 error(s) across 56 policy file(s)`; `FIXTURE ok`. Before the index line was shortened it printed `ERROR [budgets] CLAUDE.md: about 3624 tokens across its lines exceeds its cap of 3605 tokens`, the control that the cap reads this file. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-- Re-taken at cb52dc931e: `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `python3 tools/audit/check_scopes.py --repo .`: rc 0; `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted against 921214bf4246`.
-- `node tools/policy/policy_lint.mjs --budgets` re-taken at cb52dc931e, the row of each policy file this group grows or re-records (columns: lines, cap, ~tokens, cap, always), and the aggregates:
-  - `CLAUDE.md 216 221 3604 3605 yes`
+- `node tools/policy/policy_lint.mjs`, re-taken at 92af7f3f9b: `TOTAL: 0 error(s) across 56 policy file(s)`; `FIXTURE ok`. Before the index line was shortened it printed `ERROR [budgets] CLAUDE.md: about 3624 tokens across its lines exceeds its cap of 3605 tokens`, the control that the cap reads this file. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- Re-taken at 92af7f3f9b: `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `python3 tools/audit/check_scopes.py --repo .`: rc 0; `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted against e30408f788`.
+- `node tools/policy/policy_lint.mjs --budgets` re-taken at 92af7f3f9b, the row of each policy file this group grows or re-records (columns: lines, cap, ~tokens, cap, always), and the aggregates:
+  - `CLAUDE.md 216 221 3598 3605 yes`
   - `tools/audit/briefs/D4.md 53 53 670 678`
   - `tools/audit/briefs/D5.md 48 48 620 624`
   - `tools/audit/briefs/D9.md 62 65 854 857`
@@ -64,14 +66,14 @@ MODE: FULL -- every test script runs, nothing is scoped out.
   - `dev/governance/dimensions/criteria/D5-criteria.md 43 43 546 546`
   - `dev/governance/dimensions/criteria/D9-criteria.md 49 49 641 641`
   - `dev/governance/dimensions/criteria/D10-criteria.md 30 30 425 425`
-  - `always-loaded: ~3604 tokens, cap 3349 +band 500 = 3849`
-  - `corpus: ~71814 tokens, cap 71765 +band 500 = 72265`
+  - `always-loaded: ~3598 tokens, cap 3349 +band 500 = 3849`
+  - `corpus: ~68000 tokens, cap 68000 +band 500 = 68500`
 
   `tools/audit/briefs/D<n>.md` is the move map's name for `dev/governance/dimensions/D<n>.md`. The four criteria files' `files` and `files_tokens` caps are new rows at their measured values; beside them only `corpus_tokens` and `D10.md`'s two caps moved (`git diff origin/main -- dev/governance/config/policy_budgets.json`).
 
 ## Raise justification
 
-`corpus_tokens`, raised to the value `node tools/policy/policy_lint.mjs --budgets` printed on its `corpus:` line at 1fd39aaa87. At cb52dc931e it prints `~71814 tokens, cap 71765 +band 500 = 72265`, and origin/main 921214bf4246 prints `~69748 tokens, cap 69333 +band 500 = 69833`; the cap is not re-recorded, since the measurement sits inside the band. At the merge base origin/main 31117b1029de the same line prints `~69740 tokens, cap 69333 +band 500 = 69833`: main already sits above its own cap, inside the band, and this group's four criteria files are new binding text finders grade against (cards E11-K-*, `gates_finders: true`), which no edit of existing prose can carry.
+`corpus_tokens`, raised to the value `node tools/policy/policy_lint.mjs --budgets` prints on its `corpus:` line at this head, `~68000`. origin/main e30408f788 prints `~65934 tokens, cap 65926 +band 500 = 66426`; the difference is this group's criteria files and brief edits. At the earlier merge base 31117b1029de the same line printed `~69740 tokens, cap 69333 +band 500 = 69833`; this group's four criteria files are new binding text finders grade against (cards E11-K-*, `gates_finders: true`), which no edit of existing prose can carry.
 
 Payments tried: five, each measured by `--budgets` (1 to 3 taken, 4 and 5 not):
 
@@ -81,7 +83,7 @@ Payments tried: five, each measured by `--budgets` (1 to 3 taken, 4 and 5 not):
 4. Shortening the criteria files: not taken. Each statement carries a condition, a procedure, a pass and a fail beside the owner's words; a shorter one loses one of those, which `writing-for-agents.md` ranks below precision.
 5. Excluding the files through `corpus_excluded.json`: refused. They bind finder seats, so they are policy and measured, the escape `checkNamedDocs` exists to close.
 
-Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff origin/main`, a prose and configuration diff). Approved under mandate 6893738184 (scope all, `CLAUDE.md` rule 2's exception, decision 0013) after review. The reason is in the commit messages of 0cea81273b and 1fd39aaa87.
+Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff origin/main`, a prose and configuration diff). Approved under mandate 6893738184 (scope all, `CLAUDE.md` rule 2's exception, decision 0013) after review. The reason is in the commit messages of 0cea81273b, 1fd39aaa87 and 92af7f3f9b.
 
 ## Approval
 
@@ -89,7 +91,7 @@ A policy change: `CLAUDE.md`, four dimension briefs, the four new criteria files
 
 ## Red checks
 
-- `budget-raise-gate`: red by construction until the `corpus_tokens` raise is approved at this head, here under mandate 6893738184 after review (decision 0013). No cheaper detector exists: the gate is the approval itself, and `prepr.sh` already predicts it before the push.
+- `budget-raise-gate / budget-raise-gate`: red by construction until the `corpus_tokens` raise is approved at this head, here under mandate 6893738184 after review (decision 0013). No cheaper detector exists: the gate is the approval itself, and `prepr.sh` already predicts it before the push.
 
 ## Forward-carry
 
