@@ -1,0 +1,5 @@
+NOTE stale tree: 79c54d79eac81ae4ea74e065445dbb5ad11c7633 lacks origin/main b98c78e0f6144a5ea5b48a032e30bf2d085c2d61; roster read at origin/main
+NOTE body item a8bc4e47: dismissed:built on main by #3612 and #3644
+NOTE body item 297e0491: dismissed:built on main in beat_jobs.py
+NOTE review 0 item 44c73d54: dismissed:outside the round-3 delta scope (fix-review.md step 12); left for the orchestrator to route with the body's listed unpinned sites
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
