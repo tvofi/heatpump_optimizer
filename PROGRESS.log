@@ -3,3 +3,4 @@
 1794849297 CKPT setup ok, role pack and packet rendered snapshot 69f2e34ba57e
 1794849496 CKPT self-tests re-run base/head, figures match snapshot ac8b46c424a9
 1794849611 CKPT code read; unbounded-wait probe done; running mutants snapshot cd0d62295ca3
+1794849769 CKPT static checks, class enum, forward-carry verified; mutants running snapshot d6814e3c2931
