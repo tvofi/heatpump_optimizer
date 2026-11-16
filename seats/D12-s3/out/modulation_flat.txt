@@ -1,0 +1,19 @@
+CELL flat winter_cold on_off=4(clamp=0) modulating=4(clamp=0) absent=4(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=4(clamp=0)
+CELL flat winter_mild on_off=31(clamp=0) modulating=31(clamp=0) absent=31(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=31(clamp=0)
+RESULT grid_cells=2 count
+RESULT on_off_sub_min_total=35 count
+RESULT on_off_clamped_cells=0 count
+RESULT modulating_sub_min_total=35 count
+RESULT modulating_clamped_cells=0 count
+RESULT absent_sub_min_total=35 count
+RESULT absent_clamped_cells=0 count
+RESULT switch_setpoint_absent_sub_min_total=0 count
+RESULT switch_setpoint_absent_clamped_cells=2 count
+RESULT switch_setpoint_on_off_sub_min_total=35 count
+RESULT switch_setpoint_on_off_clamped_cells=0 count
+RESULT on_off_cells_failing=2 count
+RESULT switch_setpoint_on_off_cells_failing=2 count
+RESULT wall_s=32.7 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=8.82
+RESULT swapins=0
