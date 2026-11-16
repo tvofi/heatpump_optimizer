@@ -99,6 +99,14 @@ Roster carries of R11-PRE-RELAY-REBUILD, by position. Carries 0-4 are built here
 - Carry 2: built. `HPO_TICK_RELAY_GAP` is the in-sleep relay start.
 - Carry 3: built. Refused or disposed releases. The level names the probe's state.
 - Carry 4: built in the relay, the side that has `gh`. `cloud_dispatch.py` is untouched.
+- Carry 5: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 6: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 7: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 8: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 9: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 10: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 11: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
+- Carry 12: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12).
 
 ## Forward-carry
 
