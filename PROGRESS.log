@@ -16,3 +16,4 @@
 1794850418 CKPT features block ported to the dither design: ALL 108 FEATURES BLOCK PASSED; WIP pushed snapshot fc06db9456a4
 1794850425 HB alive
 1794851044 HB alive
+1794851089 CKPT hold-and-replay design built; block ALL 109 passed; sweep (2760 rows) running at 2a7444a622 snapshot 1256066cfedc
