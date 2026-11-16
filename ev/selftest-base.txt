@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.SZdgOlLMAd/wt/tools/audit/seat/orchestrator_tick.py", line 5812, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/tmp.SZdgOlLMAd/wt/tools/audit/seat/orchestrator_tick.py", line 5791, in main
+    return self_test()
+  File "/tmp/tmp.SZdgOlLMAd/wt/tools/audit/seat/orchestrator_tick.py", line 3483, in self_test
+    t.plan()
+    ~~~~~~^^
+  File "/tmp/tmp.SZdgOlLMAd/wt/tools/audit/seat/orchestrator_tick.py", line 1629, in plan
+    self.outside_chain_idle(S, rl, roster)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/tmp/tmp.SZdgOlLMAd/wt/tools/audit/seat/orchestrator_tick.py", line 1730, in outside_chain_idle
+    window = datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+                                        ^^^^^^^^^^^^^^^
+NameError: name 'SEAT_WINDOW_MIN' is not defined
+rc=1
