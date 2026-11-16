@@ -1,0 +1,5 @@
+RESULT pvloop null day-1: closed-loop steady money -24.9 a month; the estimate asked at 09:00 of each loop day, mean-price -63.2 own-price -26.8
+RESULT pvloop null day+1: closed-loop steady money +19.2 a month; the estimate asked at 09:00 of each loop day, mean-price +73.6 own-price +31.0
+RESULT pvloop pv day-1: closed-loop steady money -25.2 a month; the estimate asked at 09:00 of each loop day, mean-price -63.2 own-price -8.0
+RESULT pvloop pv day+1: closed-loop steady money -10.5 a month; the estimate asked at 09:00 of each loop day, mean-price +73.6 own-price +9.3
+EXIT 0
