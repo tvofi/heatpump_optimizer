@@ -1,0 +1,4 @@
+drop_cpowed_RUN rc=1  first-fail: Traceback (most recent call last):
+drop_ciattempt_RUN rc=1  first-fail: Traceback (most recent call last):
+drop_cpowed_ROWS rc=1 beat_jobs self-test: 161 checks, 3 failed first-fail:   FAIL cp-owed: a CP-OWED line reaches the digest, and the repo, ledger and checkout are handed on
+drop_ciattempt_ROWS rc=1 beat_jobs self-test: 161 checks, 4 failed first-fail:   FAIL ci-attempt: the #3287 window fires once per looping run, naming it and its pull request
