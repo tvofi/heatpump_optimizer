@@ -14487,6 +14487,8 @@ _FR_LISTED = {
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
     "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
     "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
+    # #3616: an entity list, kept as wiring; its name ends in _entities, not _entity.
+    "room_temperature_entities",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
