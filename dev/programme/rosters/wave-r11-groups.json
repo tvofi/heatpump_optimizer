@@ -809,9 +809,9 @@
     "Round-end triage ruling P793 (ACCEPT; dev/programme/triage/r10-round-end.md#P793 on main at 26dbf7c43e), homed here by tvofi 2026-11-15 (\"R11-PRE-MACHINERY-LIMITER (Recommended)\"): the closure runbook scripts get a safe default for their orch-root argument, so a script run without it refuses rather than acting on another session's state directory. Build only that default and its refusal with a null control (a run that names the root behaves as before); the scripts themselves stay deferred to round 11's closeout by triage card C11. Re-measure at this group's own base which scripts take the argument."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-machinery-limiter",
-    "commit": null,
+    "commit": "4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "owner ruling 2026-11-14 about 11:45Z, his words: \"limiter first, write that in\": this group lands before the other R11-PRE instrument groups (ROUND-METRICS, TOKEN-LEDGER, RELAY-REBUILD, ACK-COMPLETION, STANDING-SCRIPTS, PLAN-RENDER), so each is built under one-in-one-out. Orchestrator recommendation, not the owner words: one recorded exemption in the limiter itself for the purely additive items he ordered on 2026-11-13.",
