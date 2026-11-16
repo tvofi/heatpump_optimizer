@@ -1,0 +1,17 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (578 entries)
+  inert_reads.tests/entities.py: merged as a set (87 entries)
+  re-run the gate that owns this file before pushing
+008291abd517df04098dcd569d2bcbfbd37d3363
+100644 62868e3c79ade385b3cdbbebb1f3cbab977f29ab 1	tools/audit/seat/beat_jobs.py
+100644 b6bcc5272eaeee3d82344a130d09511cccc5824f 2	tools/audit/seat/beat_jobs.py
+100644 1e3ec838b9e861cad1c8d1fe03bd70a88e8beb8a 3	tools/audit/seat/beat_jobs.py
+
+Auto-merging .github/workflows/governance.yml
+Auto-merging tests/closure.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/beat_jobs.py
+CONFLICT (content): Merge conflict in tools/audit/seat/beat_jobs.py
+Auto-merging tools/audit/seat/beat_jobs_selftest.py
+Auto-merging tools/audit/seat/beatd.jobs.json
+Auto-merging tools/ci/selftest_closures.json
