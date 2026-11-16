@@ -154,7 +154,7 @@ def launch(spec):
     # As `python3 <script>` would: the script's directory first, never this one's (tools/audit shadows names).
     sys.path[:] = [str((repo / spec["script"]).parent), str(repo / "tests")] + [x for x in sys.path[1:] if x != str(Path(__file__).resolve().parent)]
     rec = {"checks": [], "writes": [], "holds": [], "passes": [], "configs": [], "error": None}
-    seq, open_passes, ordinals = itertools.count(), [], {}
+    seq, open_passes, ordinals, hasses = itertools.count(), [], {}, []
     pert, switch = spec.get("perturb"), spec.get("switch")
     defaults = spec["defaults"]
     import harness
@@ -170,8 +170,7 @@ def launch(spec):
     def call(self, domain, service, data=None, **kw):  # a plain function, so the frame is the caller's (n1)
         site = _site(sys._getframe(1), repo)
         pi = open_passes[-1] if open_passes else None
-        ps = rec["passes"][pi]["state"] if pi is not None else None
-        hass = rec["passes"][pi]["hass"] if pi is not None else None
+        ps, hass = (rec["passes"][pi]["state"], hasses[pi]) if pi is not None else (None, None)
         ent = (data or {}).get("entity_id") if isinstance(data, dict) else None
         st = hass.states.get(ent) if hass is not None and isinstance(ent, str) else None
         w = {"seq": next(seq), "site": site, "pass": pi, "service": f"{domain}.{service}",
@@ -179,7 +178,7 @@ def launch(spec):
              "payload": {k: v for k, v in (data or {}).items() if _num(v) or isinstance(v, str)} if isinstance(data, dict) else {}}
         if (pert and site == pert["site"] and isinstance(data, dict)
                 and all(token_holds(t, ps, w) for t in pert["tokens"])):
-            data, w["perturbed"] = _perturb(data), True
+            data = _perturb(data)
         rec["writes"].append(w)
         return real_call(self, domain, service, data, **kw)
 
@@ -230,7 +229,8 @@ def launch(spec):
                 cfg = getattr(coord, "_config", None) or {}
             ps = plan_state(plan, cfg, t, defaults)
             ps["ordinal"] = ordinal(coord)
-            rec["passes"].append({"state": ps, "hass": getattr(coord, "hass", None)})
+            rec["passes"].append({"state": ps})
+            hasses.append(getattr(coord, "hass", None))
             open_passes.append(len(rec["passes"]) - 1)
             try:
                 return await real_apply(coord, now, *a, **kw)
@@ -289,8 +289,6 @@ def launch(spec):
         pass
     except BaseException as e:  # noqa: BLE001 - recorded: checks after the raise never ran
         rec["error"] = f"{type(e).__name__}: {e}"
-    for p in rec["passes"]:
-        p.pop("hass")
     Path(spec["out"]).write_text(json.dumps(rec, default=str))
 
 
@@ -356,8 +354,9 @@ def run_script(repo, script, defaults, **extra):
 
 
 def moved(base, other, key):
+    """Called only on a check that passed at the head: each read prints `FAIL at the head` first."""
     a, b = base["by_check"].get(key), other["by_check"].get(key)
-    return a is not None and b is not None and a["ok"] and (not b["ok"] or b["detail"] != a["detail"])
+    return a is not None and b is not None and (not b["ok"] or b["detail"] != a["detail"])
 
 
 class Runs:
@@ -556,7 +555,6 @@ def read_generality(repo, ledger, jobs, pairs_out=None):
     for (script, _o), lv in witnessed.items():
         for (a, x, ca), (b, y, _cb) in itertools.combinations(sorted(lv), 2):
             if a != b:
-                (a, x), (b, y) = sorted([(a, x), (b, y)])
                 pair_rows.setdefault(f"pair {a}={x} & {b}={y}", f"simulation\t{script}::{ca}")
     out = []
     for it in items:
@@ -609,24 +607,46 @@ from . import off_restore
 async def apply(coord, now=None):
     p = coord._optimization_result
     if coord.hold:
-        log_held("held") if coord.hold is True else off_restore.arm()
+        log_held("held") if coord.hold is True else off_restore.arm() if coord.hold == "restore" else coord.held()
         return
-    await coord.hass.services.async_call("climate", "set_temperature", {"entity_id": "climate.x", "temperature": p.optimal_setpoints[0]})
+    await coord.hass.services.async_call("climate", "set_temperature", {"entity_id": "climate.x", "temperature": p.optimal_setpoints[0] + coord.offset})
+    if coord.extra:
+        await coord.hass.services.async_call("number", "set_value", {"entity_id": "number.y", "value": 3.0})
+        svc = coord.hass.services
+        await svc.async_call("switch", "turn_on", {"entity_id": "switch.z"})
+async def direct(hass):
+    await hass.services.async_call("light", "turn_on", {"entity_id": "light.q"})
+'''
+FAKE_COORDINATOR = '''from .log_latch import log_held
+class HeatPumpOptimizerCoordinator:
+    def __init__(self, hass, entry, plan):
+        self.hass, self.entry, self._optimization_result = hass, entry, plan
+        self.hold, self.offset, self.extra, self._config = False, 0.0, False, {}
+    @property
+    def effective_config(self):
+        return {"pump_duty_mode": "control"}
+    def held(self):
+        return log_held("coordinator")
 '''
 FAKE_SCRIPT = '''import asyncio, os, sys
 from datetime import datetime, timedelta, timezone
 sys.path.insert(0, "tests"); sys.path.insert(0, "custom_components")
 from types import SimpleNamespace as NS
 from harness import FakeEntry, FakeHass, FakeState, Results
-from heatpump_optimizer import pump_arbiter
+from heatpump_optimizer import pump_arbiter, off_restore
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Real
 import profiles
 T0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
-def coord(hold=False, entry=None, device="heat"):
-    return NS(hass=FakeHass({"climate.x": FakeState(device)}), hold=hold, _config={"pump_duty_mode": "control"}, entry=entry or NS(),
-              _optimization_result=NS(timestamps=[T0, T0 + timedelta(minutes=15)], power_schedule=[0.0, 0.0],
-                                      dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0], duty_floor_kw=None))
-def sent(c):
-    return [d.get("temperature") for _d, _s, d in c.hass.services.calls]
+def plan():
+    return NS(timestamps=[T0, T0 + timedelta(minutes=15)], power_schedule=[0.0, 0.0],
+              dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0], duty_floor_kw=None)
+def hass(device="heat"):
+    return FakeHass({"climate.x": FakeState(device)})
+def coord(hold=False, entry=None, device="heat", offset=0.0, extra=False):
+    return NS(hass=hass(device), hold=hold, _config={"pump_duty_mode": "control"}, entry=entry or NS(), offset=offset, extra=extra,
+              _optimization_result=plan())
+def sent(c, field="temperature"):
+    return [d[field] for _d, _s, d in c.hass.services.calls if field in d]
 r = Results("fake")
 first = coord(); asyncio.run(pump_arbiter.apply(first, T0))
 r.check("payload", sent(first) == [21.0], str(sent(first)))
@@ -648,6 +668,30 @@ r.check("counter", True, str(os.getpid()))
 e2 = FakeEntry({"mode": "m2"})
 r.check("mode-is-m2", e2.data.get("mode") == "m2")
 r.check("price", profiles.prices("p1", 0) == "p1")
+two = coord(extra=True); asyncio.run(pump_arbiter.apply(two, T0))
+r.check("other-payload", sent(two, "value") == [3.0], str(sent(two, "value")))
+off = coord(offset=1.0); asyncio.run(pump_arbiter.apply(off, T0))
+r.check("differs-payload", sent(off) == [22.0], str(sent(off)))
+late = coord(); asyncio.run(pump_arbiter.apply(late))
+r.check("now-none-payload", sent(late) == [21.0], str(sent(late)))
+ent = NS()
+ra, rb = Real(hass(), ent, plan()), Real(hass(), ent, plan())
+asyncio.run(pump_arbiter.apply(rb, T0))
+r.check("built-second-payload", sent(rb) == [21.0], str(sent(rb)))
+rc = Real(hass(), NS(), plan()); rc.hold = "coordinator"; asyncio.run(pump_arbiter.apply(rc, T0))
+r.check("coordinator-held", True)
+asyncio.run(pump_arbiter.direct(FakeHass()))
+r.check("direct-hold", off_restore.arm() == "restore")
+r.check("always-fails", False)
+r.check("argv", sys.argv == ["tests/fake_script.py"], str(sys.argv))
+r.check("check-returns", r.check("inner", True) is True)
+e3 = FakeEntry({})
+profiles.prices("p2", 0)
+r.check("no-c", "c_entity" not in e3.data)
+e4 = FakeEntry({"mode": "m1", "mode2": "m2"})
+r.check("e4-m1", e4.data.get("mode") == "m1")
+r.check("e4-m2", e4.data.get("mode2") == "m2")
+raise RuntimeError("planted")
 '''
 
 
@@ -659,11 +703,13 @@ def plant(root):
     w(f"{PKG}/__init__.py", "")
     w(f"{PKG}/const.py", "PUMP_DUTY_MODES = ('off', 'control')\nCONF_PUMP_DUTY_MODE = 'pump_duty_mode'\nDEFAULT_PUMP_DUTY_MODE = 'off'\n"
       "CONF_A_ENTITY = 'a_entity'\nCONF_B_ENTITY = 'b_entity'\nCONF_C_ENTITY = 'c_entity'\nMODES = ('m1', 'm2')\nGRID = ('g1', 'g2')\n"
-      "CONF_GRID = 'grid'\n")
+      "CONF_GRID = 'grid'\nCONF_MODE = 'mode'\nCONF_MODE2 = 'mode2'\n")
     w(f"{PKG}/config_flow.py", "X = (CONF_A_ENTITY, CONF_B_ENTITY, CONF_C_ENTITY)\n")
     w(f"{PKG}/log_latch.py", "def log_held(key):\n    return key\n")
     w(f"{PKG}/off_restore.py", "from .log_latch import log_held\ndef arm():\n    return log_held('restore')\n")
     w(f"{PKG}/pump_arbiter.py", FAKE_ARBITER)
+    w(f"{PKG}/coordinator.py", FAKE_COORDINATOR)
+    w("tests/dies.py", "import os\nos._exit(3)\n")
     w(f"{PKG}/www/card.js", "")
     w("tests/harness.py", FAKE_HARNESS)
     w("tests/profiles.py", "def prices(profile, s):\n    if profile == 'p1':\n        pass\n    elif profile == 'p2':\n        pass\n    return profile\n")
@@ -693,14 +739,15 @@ def self_test():
         root = Path(d)
         plant(root)
         global OPTION_KEYS
-        saved, OPTION_KEYS = OPTION_KEYS, {"mode": ("CONF_MODE",), "grid": ("CONF_GRID",)}
-        (root / PKG / "const.py").write_text((root / PKG / "const.py").read_text() + "CONF_MODE = 'mode'\n")
+        saved, OPTION_KEYS = OPTION_KEYS, {"mode": ("CONF_MODE", "CONF_MODE2"), "grid": ("CONF_GRID",)}
         try:
             cells = universe(root, "d16-writes", cells=True)
-            W = next(c.split(" |")[0] for c in cells if c.startswith("write "))
+            W, W2, WD = f"write {A}:8 apply", f"write {A}:10 apply", f"write {A}:14 direct"
             H = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {A}"))
-            arm("the fake write site is the arbiter's call line", W, f"write {A}:8 apply")
+            arm("the fake write sites are the arbiter's three `.services.async_call` lines, not the aliased fourth",
+                sorted({c.split(" |")[0] for c in cells if c.startswith("write ")}), sorted([W, W2, WD]))
             R = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {PKG}/off_restore.py"))
+            HC = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {PKG}/coordinator.py"))
             led = root / "op.tsv"
             ops = [(f"{W} | duty=control | running", "payload"), (f"{W} | duty=control | running", "constant"),
                    (f"{W} | duty=control | running", "restart-payload"), (f"{W} | duty=control | restart", "payload"),
@@ -708,10 +755,17 @@ def self_test():
                    (f"{W} | duty=off | running", "payload"), (f"{W} | duty=control | restart", "restart-payload"),
                    (f"{W} | duty=control | running", "nosuch"), (f"{W} | duty=control | unavailable", "unavailable-payload"),
                    (f"{W} | duty=control | running", "unavailable-payload"), (f"{W} | duty=control | running", "counter"),
-                   (f"{R} | duty=control | running", "restored")]
-            led.write_text("".join(f"{c}\t{S}{k}\n" for c, k in ops))
+                   (f"{R} | duty=control | running", "restored"), (f"{W} | duty=control | running", "other-payload"),
+                   (f"{W2} | duty=control | running", "other-payload"), (f"{H} | duty=off | running", "held"),
+                   (f"{W} | duty=control | running", "differs-payload"), (f"{W} | duty=control | running", "now-none-payload"),
+                   (f"{W} | duty=control | restart", "built-second-payload"), (f"{HC} | duty=control | running", "coordinator-held"),
+                   (f"{WD} | duty=control | running", "direct-hold"), (f"{W} | duty=control | running", "always-fails")]
+            led.write_text("# a comment and a blank line are skipped\n\n" + "".join(f"{c}\t{S}{k}\n" for c, k in ops)
+                           + f"{W} | duty=control | running\ttests/dies.py::x\n")
             out = read_operation(root, led, 4)
-            got = {tuple(l.split("\t")[:2]): l.split("\t")[2] for l in out if "\t" in l and "::" in l}
+            base = run_script(root, "tests/fake_script.py", defaults_of(root))
+            full = {tuple(l.split("\t")[:2]): "\t".join(l.split("\t")[2:]) for l in out if "\t" in l and "::" in l}
+            got = {k: x.split("\t")[0] for k, x in full.items()}
             v = lambda i: got[(ops[i][0], S + ops[i][1])]
             arm("null: a check comparing the payload, its running cell: moved", v(0), "moved")
             arm("null: the target half reads the plan's set-point", next(l for l in out if l.startswith(ops[0][0]) and S + "payload" in l).endswith("target=plan"), True)
@@ -723,16 +777,36 @@ def self_test():
             arm("null: a hold under the per-module log_held patch is reached", v(5), "reached")
             arm("planted: another duty mode differs", v(6).startswith("not witnessed: state differs"), True)
             arm("null: a second coordinator on one entry is restart, and moves", v(7), "moved")
-            arm("planted: an unknown check", v(8), "not witnessed: unknown check")
+            arm("planted: an unknown check, the script's own raise printed with it", v(8), "not witnessed: unknown check (RuntimeError: planted)")
             arm("null: a write to an unavailable entity, its unavailable cell: moved", v(9), "moved")
             arm("planted: the unavailable write's check cited for running: only running passes perturbed, it does not move",
                 v(10), "not witnessed: the check does not move")
             arm("planted: a check whose detail embeds a counter is never moved", v(11), "not witnessed: nondeterministic")
             arm("null: a hold in a second importing module (off_restore) is reached", v(12), "reached")
-            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=5 moved=3 reached=2")
+            arm("planted: a check moved only by a second site's write, cited for the first site: only the cited site is perturbed",
+                v(13), "not witnessed: the check does not move")
+            arm("null: the second site's own check moves; a write with no set-point reads no plan value", full[(ops[14][0], S + ops[14][1])],
+                "moved\ttarget=no plan value")
+            arm("planted: a hold whose recorded state differs is not reached", v(15).startswith("not witnessed: state differs (recorded duty=control"), True)
+            arm("planted: a set-point the plan does not hold", full[(ops[16][0], S + ops[16][1])], "moved\ttarget=differs plan=21.0 sent=22.0")
+            arm("null: a pass with no `now` reads the clock", v(17), "moved")
+            arm("null: the real coordinator class built second on one entry and applied first is restart (construction order)", v(18), "moved")
+            arm("null: a hold in the coordinator module is reached", v(19), "reached")
+            arm("planted: a write outside every pass", v(20), "not witnessed: state differs (recorded outside every pass)")
+            arm("planted: a FAIL at the head", v(21), "not witnessed: FAIL at the head")
+            arm("planted: a launcher that dies before writing its record",
+                got[(f"{W} | duty=control | running", "tests/dies.py::x")].startswith("not witnessed: unknown check (launcher: "), True)
+            n_checks = len(base["by_check"])
+            arm("per-script, outside-every-pass and unlisted-writer lines", [l for l in out if not l.startswith(("write ", "hold ", "RESULT"))],
+                ["script tests/dies.py\tchecks=0\twrites outside every pass=0\terror=launcher: " + next(
+                    l for l in out if l.startswith("script tests/dies.py")).split("error=launcher: ")[1],
+                 f"script tests/fake_script.py\tchecks={n_checks}\twrites outside every pass=1\terror=RuntimeError: planted",
+                 f"outside every pass {R.split(' ')[1]}\t1 (never witnessable: no plan)",
+                 f"outside every pass {A}:14\t1 (never witnessable: no plan)", f"unlisted writer {A}:12\t1"])
+            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=7 moved=7 reached=3")
             arm("planted (ii): a site never reached", _never_reached(root, S), "not witnessed: site never reached before the check")
-            base = run_script(root, "tests/fake_script.py", defaults_of(root))
-            arm("null: no site perturbed turns no check", sorted(k for k, c in base["by_check"].items() if not c["ok"]), [])
+            arm("null: no site perturbed turns no check but the planted FAIL (the recorders keep each return value and argv)",
+                sorted(k for k, c in base["by_check"].items() if not c["ok"]), ["always-fails"])
             only_latch = _only_latch(root)
             arm("planted r1: log_held patched only in log_latch reaches nothing", only_latch, 0)
             for name, plan, cfg, want in _plan_cases():
@@ -748,8 +822,9 @@ def self_test():
             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),
                    ("level mode=m1", "const-after-config"), ("level mode=m1", "mode-is-m1"), ("level grid=g1", "has-a"),
                    ("level mode=m2", "mode-is-m2"), ("level CONF_C_ENTITY=absent", "counter"), ("level price_shape=p1", "price"),
-                   ("level mode=m1", "has-a", "bundle"), ("level mode=m2", "mode-is-m1")]
-            gl.write_text("".join(f"{g[0]}\t{g[2] if len(g) > 2 else 'simulation'}\t{S}{g[1]}\n" for g in gen))
+                   ("level mode=m1", "has-a", "bundle"), ("level mode=m2", "mode-is-m1"), ("level CONF_C_ENTITY=absent", "no-c"),
+                   ("level mode=m1", "e4-m1"), ("level mode=m2", "e4-m2"), ("level mode=m1", "nosuch"), ("level mode=m1", "always-fails")]
+            gl.write_text("# a comment\n\n" + "".join(f"{g[0]}\t{g[2] if len(g) > 2 else 'simulation'}\t{S}{g[1]}\n" for g in gen))
             po = root / "pairs.tsv"
             gout = read_generality(root, gl, 4, pairs_out=po)
             gg = {}
@@ -769,8 +844,19 @@ def self_test():
             arm("planted: a configuration built after the check carries nothing for it", g(9),
                 "not witnessed: no recorded configuration carried the level before the check")
             arm("a bundle row is never counted", g(8), "not witnessed: source bundle is never re-run with a level switched")
+            arm("null: an absent level gains its key: witnessed; a profile configuration after it carries no entry level", g(10), "witnessed (configuration 3)")
+            arm("null: two keys of one axis carry two levels in one configuration", (g(11), g(12)), ("witnessed (configuration 5)",) * 2)
+            arm("planted: an unknown check", g(13), "not witnessed: unknown check (RuntimeError: planted)")
+            arm("planted: a FAIL at the head", g(14), "not witnessed: FAIL at the head")
+            arm("a witnessed pair prints its pair row in the universe listing", sorted(l for l in gout if l.startswith("pair ") and l.endswith("one configuration)")),
+                [f"pair CONF_A_ENTITY=present & CONF_B_ENTITY=present\tsimulation\t{S}has-a\twitnessed (both levels, one configuration)",
+                 f"pair CONF_A_ENTITY=present & mode=m1\tsimulation\t{S}has-a\twitnessed (both levels, one configuration)",
+                 f"pair CONF_B_ENTITY=present & mode=m1\tsimulation\t{S}has-b\twitnessed (both levels, one configuration)"])
+            arm("generality per-script line", [l for l in gout if l.startswith("script ")],
+                [f"script tests/fake_script.py\tchecks={n_checks}\tconfigurations=6\tchecks with no recorded configuration=6\terror=RuntimeError: planted"])
             pairs = po.read_text().splitlines()
-            arm("null: two levels witnessed in one configuration make their pairs; planted (iii): m2 in ordinal 1 pairs with nothing",
+            arm("null: two levels witnessed in one configuration make their pairs; planted (iii): m2 in ordinal 1 pairs with nothing;"
+                " planted: two levels of one axis in one configuration are no pair",
                 sorted(p.split("\t")[0] for p in pairs),
                 ["pair CONF_A_ENTITY=present & CONF_B_ENTITY=present", "pair CONF_A_ENTITY=present & mode=m1", "pair CONF_B_ENTITY=present & mode=m1"])
             arm("planted (i): no pair through the constant check", any("const-after-config" in p for p in pairs), False)
@@ -779,18 +865,25 @@ def self_test():
             OPTION_KEYS = {"mode": ("CONF_MODE",)}
             arm("an axis with no table entry prints no witness",
                 next(l for l in read_generality(root, gl, 4) if l.startswith("level grid=g1\t")).endswith("no witness: no observable in the stub"), True)
-            OPTION_KEYS = {"mode": ("CONF_MODE",), "grid": ("CONF_GRID",)}
-            arm("generality RESULT", gout[-1].startswith(f"RESULT read=generality universe={len(universe(root, 'd12-cells', pairs=True))} examined=8 levels=5 pairs=3"), True)
+            OPTION_KEYS = {"mode": ("CONF_MODE", "CONF_MODE2"), "grid": ("CONF_GRID",)}
+            arm("generality RESULT", gout[-1], f"RESULT read=generality universe={len(universe(root, 'd12-cells', pairs=True))} examined=9 levels=6 pairs=3 reached-only=0")
             # refusals
             for name, fn in (("operation", lambda: read_operation(root, led, 1)), ("generality", lambda: read_generality(root, gl, 1))):
-                arm(f"{name}: a ledger row naming no item exits 2", _exit(name, root, "nosuch\tx::y\n" if name == "operation" else "nosuch\tsimulation\tx::y\n"), 2)
-                arm(f"{name}: an empty ledger exits 2", _exit(name, root, "# nothing\n"), 2)
+                arm(f"{name}: a ledger row naming no item exits 2, citing its line",
+                    _refused(name, root, "# c\nnosuch\tx::y\n" if name == "operation" else "# c\nnosuch\tsimulation\tx::y\n", "x.tsv:2: 'nosuch'"), True)
+                arm(f"{name}: an empty ledger exits 2", _exit(name, root, "# nothing\n")[0], 2)
+            item = f"{W} | duty=control | running"
+            for name, text in (("operation", f"{item}\tsimulation\t{S}payload\n"), ("operation", f"{item}\t{S}payload\textra\n"),
+                               ("operation", f"{item}\ttests/fake_script.py payload\n"), ("generality", f"level mode=m1\t{S}payload\n"),
+                               ("generality", f"level mode=m1\tsimulation\ttests/fake_script.py payload\n"),
+                               ("generality", f"level mode=m1\tguesswork\t{S}payload\n")):
+                arm(f"{name}: a malformed row exits 2: {text.strip()!r}", _refused(name, root, text, "x.tsv:1: a row is"), True)
             (root / PKG / "pump_arbiter.py").write_text("x = 1\n")
             (root / PKG / "log_latch.py").write_text("")
             (root / PKG / "off_restore.py").write_text("")
-            arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n"), 2)
+            arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n")[0], 2)
             (root / census.OBJECTIVE).unlink()
-            arm("generality: an emptied universe source exits 2", _exit("generality", root, f"level mode=m1\tsimulation\t{S}payload\n"), 2)
+            arm("generality: an emptied universe source exits 2", _exit("generality", root, f"level mode=m1\tsimulation\t{S}payload\n")[0], 2)
         finally:
             OPTION_KEYS = saved
     if fails:
@@ -837,22 +930,28 @@ def _only_latch(root):
     """The control for the per-module patch: a recorder wrapping log_latch.log_held once the package is imported
     (the obvious recorder) sees no hold, because pump_arbiter bound the name at its own import."""
     probe = root / "tests" / "latch_probe.py"
-    probe.write_text("import sys\nsys.path.insert(0, 'custom_components')\nfrom heatpump_optimizer import pump_arbiter, log_latch\nn = []\n"
+    probe.write_text("import sys\nsys.path.insert(0, 'custom_components')\nfrom heatpump_optimizer import pump_arbiter, log_latch, coordinator\nn = []\n"
                      "real = log_latch.log_held\nlog_latch.log_held = lambda *a: n.append(a) or real(*a)\n"
                      "sys.argv = ['tests/fake_script.py']\nimport runpy, io, contextlib\n"
-                     "with contextlib.redirect_stdout(io.StringIO()):\n    runpy.run_path('tests/fake_script.py', run_name='__main__')\nprint(len(n))\n")
+                     "with contextlib.redirect_stdout(io.StringIO()), contextlib.suppress(RuntimeError):\n"
+                     "    runpy.run_path('tests/fake_script.py', run_name='__main__')\nprint(len(n))\n")
     env = {**os.environ, "PYTHONPATH": str(root / "tests" / "hastub")}
     r = subprocess.run([sys.executable, str(probe)], cwd=root, env=env, capture_output=True, text=True)
     probe.unlink()
     return int(r.stdout.strip() or -1)
 
 
+def _refused(name, root, text, message):
+    rc, err = _exit(name, root, text)
+    return rc == 2 and err.startswith(message)
+
+
 def _exit(name, root, text):
     led = root / "x.tsv"
     led.write_text(text)
-    with contextlib.redirect_stdout(io.StringIO()) as o, contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(io.StringIO()) as o, contextlib.redirect_stderr(io.StringIO()) as e:
         rc = main([name, "--repo", str(root), "--ledger", str(led), "--jobs", "1"])
-    return rc if "RESULT" not in o.getvalue() else "RESULT printed"
+    return (rc, e.getvalue().replace(f"REFUSE: {root}/", "")) if "RESULT" not in o.getvalue() else ("RESULT printed", "")
 
 
 def main(argv=None):
