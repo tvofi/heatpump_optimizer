@@ -72,6 +72,10 @@ before and after.
     walk that follows the ledger's own renames. A `non_round_instances` row
     is dated by the commit its leading SHA names; one naming none is
     `undated`, counted and never dropped.
+    The date is when the ledger RECORDED the instance, not when the defect
+    happened: an instance back-filled by the commit that created the ledger
+    carries that commit's date, so a rule older than the ledger reads
+    before 0 whatever happened before it.
   - A rule's date is its first add under `git log --follow
     --diff-filter=A`, not the add at its present path: a rule moved between
     directories existed before the move. `--follow` traces a copy as well
