@@ -9,3 +9,4 @@
 1794850356 CKPT verdict drafted, carry_audit rc 0; waiting CI snapshot 3a298f1a9765
 1794850418 HB alive
 1794851089 CKPT classify RED: code run 43914056033 cancelled mid-coverage; checking for re-run snapshot e7f42aab311f
+1794851347 DONE returned: Fix review: blocked 2abb0ac ci-red (code run 43914056033 cancelled mid-coverage); no code block; 5 residual survivors + unbounded-wait residual carried; probe c46d346805
