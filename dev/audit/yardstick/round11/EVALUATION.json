@@ -5,66 +5,66 @@
  "reviewer": "r11-evaluation-reviewer (Fable 5.2)",
  "review": {
   "verdict": "approve",
-  "sha": "02a48db212e0e49af62863575cba86bc339d4958",
-  "round": 3,
-  "scope": "Delta only: `git diff 7891b714f8cd02bf9eb472a3ae74a32560843cd2 02a48db212e0e49af62863575cba86bc339d4958` and whether each finding of the second review (on the ref eval-review/r11-2) is resolved. No full re-review was made.",
-  "second_review": [
+  "sha": "83dc9488180379b859042b5f24b87d94a5a02c95",
+  "round": 4,
+  "scope": "Delta only: `git diff c6ce415b7711d76cf6c08f926f30da91f7bda924 83dc9488180379b859042b5f24b87d94a5a02c95`, the `revision_4` block, read against origin/main 030a4d377f9f26f5b8befe5721d86aea454f29e0. No full re-review was made. The round-3 approve of 02a48db212e0e49af62863575cba86bc339d4958 is commit 92991d2a49cf72d182d3a8ac32ca378cca83069b on this line.",
+  "delta": [
    {
-    "id": "S1",
-    "state": "resolved",
-    "measured": "`escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, CAUSES 4, R10-HOTFIX-SAV-ESTIMATE<-#2411,2887; `terms.injected.by_hand` reads 4 causes, 3 named by a root-cause record, 2.47 per 100 over 162; card E11-INJECTED names the tracked record and reads 28 of 31 rows with no cause, which the ledger gives."
+    "id": "R4-1",
+    "state": "confirmed",
+    "measured": "`git merge-base --is-ancestor 1ed1329e41 origin/main` -> rc 0 and its diff deletes dev/governance/roles/nudge.md; the row is dropped and nothing else of `objects` is removed."
    },
    {
-    "id": "S2",
-    "state": "resolved",
-    "measured": "no card names a directory. E11-U1 names dev/governance/dimensions/D17.md and E11-U2, U4 to U10 name D16.md; neither file exists yet and each `paths_note` says the name rests on the coordinator's word and must follow the file that lands. E11-N-GATE-CAUSE names tools/ci/gate.py (tracked). E11-N-INSTRUMENT-YIELD carries an empty `paths` with the reason."
+    "id": "R4-2",
+    "state": "confirmed",
+    "measured": "`python3 -I dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 030a4d377f --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` -> rc 0, OBJECTS 128, rows enumerate.py 956 0 0 0 0, finder_overlap.py 263 0 0 0 0, plant_recall.py 443 0 0 0 0, round_metrics.py 452 0 0 0 0: the four new `keep` rows carry these figures. 267655f306, 2e7bced82e and 6c87325160 each add the guide named and none is an ancestor of v10.0.0 (rc 1). Each row is `keep` on a NO-READ yield with card E11-N-INSTRUMENT-YIELD as the builder; none is a `remove`."
    },
    {
-    "id": "M1",
-    "state": "resolved",
-    "measured": "the four criterion cards read `no as the card stands` with the grep, and their proposal has the brief cite the criteria file; by the record 27 cards begin `yes` and 21 `no`."
+    "id": "R4-3",
+    "state": "confirmed",
+    "measured": "each of the 17 `merged` commits is on origin/main's first-parent line, an ancestor of origin/main (rc 0), no ancestor of 02a48db212, c6ce415b77 or 83dc948818 (rc 1 each), and `git diff --name-only <merged>^1 <merged>` names the card's object or a path: b94425b94f (pull request 3647) COMMON.md; f1520e3539 (3625) D0, D1, D2, D8, D9, D12, D15; 511cf165f7 (3618) D3, D4, D5, D6, D7, D10, D14; 62f6bb2006 (3642) D11; 921214bf42 (3626) orchestrator.md. Both `merged_note's hold: 511cf165f7 also changes D11.md, and 646352ff13 changes dev/audit/yardstick/round10/OBJECTIVE.json."
    },
    {
-    "id": "M2",
-    "state": "resolved",
-    "measured": "R10-OUTSIDE-DHW-START-HYSTERESIS is rowed `in`, owner none, with card E11-U10 arguing D0 and D12 out; R10-SAV-ACTUATION is its own `day0` row; 31 in, 8 day0, 1 unreleased, 36 out, 76 candidates rowed."
+    "id": "R4-4",
+    "state": "confirmed",
+    "measured": "check_scopes.py's own `match(tree, object_globs(spec))` over objective.json and the tree at origin/main 030a4d377f gives 201 objects; the record rows 201; none unrowed, none extra. Tally 176 keep, 23 change, 2 remove; 48 cards, 43 accepted and 5 deferred. A key-by-key comparison of the two records finds no verdict, evidence, `decision`, `ruling` or `gates_finders` moved outside the changes `revision_4` lists."
    },
    {
-    "id": "M3",
-    "state": "resolved",
-    "measured": "the ledger's header says which groups the rule does not select and why R10-FLY-REPLAY-MASK is in."
+    "id": "R4-5",
+    "state": "confirmed",
+    "measured": "both `remove's re-read at origin/main: `git grep -n -o claude/audit-fix-` -> one pattern in each script; `gh pr list --state all --search head:claude/audit-fix-` -> 9 pull requests, 2026-09-02T01:01:32Z to 2026-09-03T06:47:47Z, before v6.6.12 (2026-09-25); `git log -S RETIRED` -> 785963eba4 2026-09-08 for each; 37 and 109 lines at a39627da59 and at v7.0.0; 0 first-parent merges touched either in v7.0.0..v10.0.0 or since."
    },
    {
-    "id": "M4",
-    "state": "resolved",
-    "measured": "R10-SETPOINT-BOOST's second cause is an input of card E11-D2 and named in E11-U9 and the ledger row."
+    "id": "R4-6",
+    "state": "no false move found",
+    "measured": "E11-N-P744-SCOPE's new path, attacked for recording the card merged on a commit that builds neither read (0018 section 5: `defer scope`; a verdict moved with no read behind it). The one merge on main after the review sha that touches a path of the card is d4968fe08b (pull request 3644), and it changes scorecard.py, already a path, as well as round_metrics.py: the added path makes no commit eligible that was not. `merged` stays unset. `git grep -c -i -E closure_slip|unexamined origin/main -- tools/audit/seat/round_metrics.py` -> no match; at pull request 3658's head e91759e2fc -> 17, so the file is where the two reads are built."
    },
    {
-    "id": "M5",
-    "state": "resolved",
-    "measured": "`first_pass.round_9` reads a first read, the baseline, no move."
-   },
-   {
-    "id": "commit",
-    "state": "clean",
-    "measured": "one commit on 7891b714f8cd, three files (escapes.py, escapes_hand.tsv, the record); `ref_privacy.py guard --ref eval/r11 --commits 02a48db212e0e49af62863575cba86bc339d4958 --over 7891b714f8cd02bf9eb472a3ae74a32560843cd2` rc 0; `tests/closure.py select --diff a39627da59` -> MODE: SCOPED -- 0 script(s) run; tally 198 objects, 173 keep, 23 change, 2 remove, 48 cards; no object verdict moved, four evidence strings did (fixer.md, fix-review.md, root-cause.md, defect-root-cause.md)."
+    "id": "R4-7",
+    "state": "as expected",
+    "measured": "`python3 -I tools/audit/check_scopes.py --repo . --ref <a scratch merge of origin/main 030a4d377f and this review commit> --round 11`: the result is in this commit's message, since the commit cannot name its own run."
    }
   ],
   "notes": [
    {
-    "id": "P1",
+    "id": "Q1",
     "touches": "record only, no card's ruling",
-    "note": "E11-N-INSTRUMENT-YIELD has an empty `paths`. If it is accepted, `check_scopes.py` line 380 prints `accepted and names no object or paths` until the file its build adds is written there; the card says so. Deferred or rejected it prints nothing."
+    "note": "check_scopes.py reads only that `merged` touches a path. d4968fe08b would pass that rule for E11-N-P744-SCOPE today, before and after this revision, and builds neither `closure_slip` nor `unexamined`. Whoever records the card's `merged` records the later of pull requests 3657 and 3658 once both are on main, and never 3644."
    },
    {
-    "id": "P2",
+    "id": "Q2",
     "touches": "record only, no card's ruling",
-    "note": "The names D16.md and D17.md are the coordinator's word, on no roster this seat read. If the briefs land under other names the nine unowned cards' `paths` must follow before any is recorded merged, as each `paths_note` says."
+    "note": "The card's `paths_note` says round_metrics.py `is the enumerator that reads` the two terms and that pull request 3658 `changes only it among the tools`. On main it does not read them yet, and 3658 also changes tools/audit/seat/round_metrics_selftest.py and the guide. Neither moves a path or a ruling."
    },
    {
-    "id": "P3",
+    "id": "Q3",
     "touches": "record only, no card's ruling",
-    "note": "The four criterion cards quote a preliminary ruling of tvofi as the coordinator relayed it, inside `finder_critical`. It is no `ruling` field and this seat did not verify it; the orchestrator writes the ruling where tvofi gave it."
+    "note": "The 17 `merged` reads were checked to check_scopes.py's rule and by each merge's file list, not by re-reading each brief against its card's proposal: that is each pull request's own review."
+   },
+   {
+    "id": "Q4",
+    "touches": "record only, no card's ruling",
+    "note": "P1 and P2 of the round-3 review stand: E11-N-INSTRUMENT-YIELD still has an empty `paths`, and D16.md and D17.md are not on main."
    }
   ]
  },
