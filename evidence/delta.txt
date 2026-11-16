@@ -1,0 +1,54 @@
+review_carry: 7b687a481 -> b0f13c832  main=origin/main
+  branch-only commits: 3
+  why: 155036423dab9c6f2724dbfec9df815eb201d7ec is not the automatic merge of its parents
+  155036423  Merge origin/main into R11-PRE-PLAN-RENDER: tests/layout.json resolved as the union of both sides
+  a66553442  Merge commit '155036423dab9c6f2724dbfec9df815eb201d7ec' into fix/r11-pre-plan-render
+  b0f13c832  Merge remote-tracking branch 'origin/main' into fix/r11-pre-plan-render
+review_carry: FRESH-REVIEW
+
+own-diff changed-line comparison (merge-base diffs at 7b687a48 vs b0f13c83):
+266,267c266,267
+< -   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
+< +   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
+---
+> -   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
+> +   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
+
+commit 155036423dab9c6f2724dbfec9df815eb201d7ec
+Merge: c0db6bce48 921214bf42
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Mon Nov 16 00:15:44 2026 +0000
+
+    Merge origin/main into R11-PRE-PLAN-RENDER: tests/layout.json resolved as the union of both sides
+
+diff --cc tests/closures.json
+index f16c5f8215,04c38a5ec2..27ac27ed19
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@@ -4126,8 -4148,8 +4149,9 @@@
+     "tools/audit/seat/owed_unactioned.py",
+     "tools/audit/seat/plan_audit.py",
+     "tools/audit/seat/plan_page.py",
+ +   "tools/audit/seat/plan_phases.py",
+     "tools/audit/seat/plan_public.py",
++    "tools/audit/seat/plant_recall.py",
+     "tools/audit/seat/postmerge.py",
+     "tools/audit/seat/pr_cap.py",
+     "tools/audit/seat/probe_bridge.py",
+diff --cc tests/layout.json
+index 513e005e62,39abcadc04..1286fa068f
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@@ -67,9 -67,10 +67,10 @@@
+    },
+    {
+     "name": "dev/programme",
+-    "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
+ -   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, the register, proposal-triage rulings",
+++   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
+     "globs": [
+      "dev/programme/HANDOVER.md",
++     "dev/programme/RULINGS.md",
+      "dev/programme/plan-*.md",
+      "dev/programme/delivery/*.md",
+      "dev/programme/carries/carry-*.json",
