@@ -1,33 +1,44 @@
-Design review: revise dd3283712b7e924a66ccbead619019c7007f7404 architecture-unsound
+Design review: revise 9cebbb202dc93846f77b12303e5112cdc5727d92 architecture-unsound
 
-Round 2. Reviewed from a detached worktree at dd3283712b (one file, design.md). The base judged is 030a4d377f, not the note's 824a016f75. Between them, R11-PRE-MACHINERY-LIMITER merged (#3627), so its after-edge is met. Of the note's files, only `dev/governance/rules/ratchet-budgets.md` changed (`git diff --stat 824a016f75 030a4d377f -- <the note's files>`). Cards were read as the note states them, at eval/r11 c6ce415b77.
+Round 3. Reviewed from a detached worktree at 9cebbb202d (one file, design.md), judged against base 030a4d377f, the base the note names. Change since round 2: `git diff dd3283712b..9cebbb202d`, design.md only.
 
-## Round-1 points
+## Round-2 point and notes
 
-- R1 (D, the vocabulary): answered. At handoff/r11-pre-round-metrics-p2, now 28c3ba15ee, `roster_lib.CAUSES` is `("external", "original")` plus `#<n>` or a group. D derives only `#<pr>` and `external`, and prints `unread` rather than writing a cause word. Derived rows carry no rca, are never written and never feed `injected`, which settles the rca rule. Product/machinery is taken from R11-PRE-TOOLCHAIN-PIN's gate.py split (design a37706d599, unmoved), not from paths.
-- R3 (B, the rule date): answered. At 030a4d377f, all 10 files under `dev/governance/rules/` have a path add of bc0f17ddb6 (2026-10-06), later than their `--follow` add (2026-09-04 to 09-11). Enumerator: for each file in `git ls-tree --name-only 030a4d377f dev/governance/rules/`, take `git log --diff-filter=A` with and without `--follow`. The fixture at :54 plants the move.
-- R2 (C, the refusal predicate): partly answered. Dropping the single exit code is right, but the replacement marker misses the repository's most common refusal format (point 1).
+- P1 (C, the refusal predicate): answered. The cited sites hold at 030a4d377f: `tools/audit/seat/bus.sh:563` (`BUS refused`, return 1); `tools/audit/seat/roster_edit.py:1345` (`LINT GATE REFUSED`, return 3); `tools/audit/seat/cloud-setup.sh:97` (`cloud-setup check: REFUSE`, return 1); `tools/pr/app_push.sh:159`; `tools/pr/push.sh:636`; `tools/pr/prepr.sh:1824`. A text predicate misses these, so exit status with structural exclusion rows is a sound replacement. The evidence row at :58 plants each refusal format, and each exclusion arm has a mutant.
+- d-p2-head, b-hotfile-head: answered (handoff/r11-pre-round-metrics-p2 at 28c3ba15ee and design/R11-PRE-SECURITY-PRIVACY at 8f52783880, both unmoved at review). siblings: nothing was needed.
+- d-fetcher: the reader is now named, but the answer opens point 1 below.
 
-## Revise points
+## Revise point
 
-1. architecture-unsound, design.md:35 (part C, step 2) and :55 (the C evidence row). The marker `^\s*REFUSE[DS]?\b` / `^\s*refusing\b` is anchored at the start of the line. Most instruments prefix their refusals with their own name. Examples at 030a4d377f:
-   - `tools/pr/app_push.sh:159` `die()` prints `app_push: REFUSE: %s`.
-   - `tools/audit/seat/body_push.sh` prints `body_push: REFUSE head-stale ...` and `body_push: REFUSED <tok>`, and its own self-test greps `^body_push: REFUSED`.
-   - `review_packet.py`, `ref_privacy.py`, `proof_watch.py`, `roster_edit.py`, `role_pack.py`, `state_docs.py` and `bus.sh` do the same.
-
-   Enumerator: `git grep -l -E "(echo|print|printf)[ (]f?[\"'][a-z_.-]+: REFUS" 030a4d377f -- tools .claude/hooks`. The fixer re-derives the count at the part's merge base. All of these files are in the note's marker set (`git grep -l -E '\bREFUSE'`), so they never print `unmarked`/`unread`. Their prefixed refusals would count 0, and that is the "0, not unread" result round 1's R2 refused. The evidence row at :55 plants only an unprefixed `REFUSE pr-body` from prepr.sh, so the test passes while the miss is present.
-
-   Fix wanted: admit an optional `<instrument>:` prefix, with `REFUSE`/`REFUSED`/`refusing` as the first word after it (for example `^\s*(?:[\w./-]+:\s*)?(?:REFUSE[DS]?|refusing)\b`). Add two planted refusals to part C's failing test, one prefixed (`app_push: REFUSE: ...`, exit 1) and one through `push.sh`'s `say REFUSE` column format (`tools/pr/push.sh:636`). Each must read as a refusal with its outcome.
+1. architecture-unsound, design.md:49 ([d-fetcher], "The reader"), and :13 (the part table's D row, "the run fetcher of [d-fetcher]").
+   - The note adds a second fetcher of the CI run listing as a new seat instrument (gate_runs.py, promoted from the eval/r11 prototype). Its output is a jsonl directory that `loop_ledger.py --runs` reads.
+   - That concern already has an owner at 030a4d377f. `tools/audit/seat/round_metrics.py:391` `fetch_runs` (the `produce` subcommand) pages `actions/workflows/ci.yml/runs` for every completed CI run since the round's start. It covers push and pull_request events and records `run_attempt`. It writes `ci_runs.json` and `runs.json`, and caches each run's job listing with `filter=all` under `jobs/jobs_<id>.json`. That listing returns the jobs of every attempt with their `run_attempt`, so attempt 1 red then attempt 2 green is already readable with no `/attempts/<n>` call. The cache is append-and-resume (`JOB_FETCH_MAX`, "job listings left for the next pass"), and the self-test runs on a fake paginator (`round_metrics_selftest.py:203`).
+   - `round_metrics.py`'s `restore` read already computes red spells on main from the same input.
+   - The note never names `round_metrics.py` (`git grep -n round_metrics 9cebbb202d -- design.md` prints nothing).
+   - A second fetcher means two caches of one listing that can disagree, two input registrations in `field_coverage.mjs`, a new closure entry and a new file under one-in-one-out, for a record decision 0018's producer already keeps.
+   - Fix wanted: D reads `round_metrics.py produce`'s directory.
+     - Widen `fetch_runs`'s kept fields by what the clearing-event match needs: `head_sha`, `event`, `head_branch`, and the pull-request number from `pull_requests[]`. Keep the existing keys, so `runner_s`, `product_green` and `restore` are unchanged; their self-test arms prove it.
+     - Point `loop_ledger.py --runs` at that directory.
+     - Drop the new instrument and its `/attempts/<n>` widening.
+   - D's evidence row at :59 keeps its plants, rebuilt as `ci_runs.json` plus `jobs_<id>.json` fixtures. The attempt case is one jobs file whose `gate` job has `run_attempt` 1 failure and 2 success, and it reads `external`. The same run with no jobs file reads `unread`.
+   - If `round_metrics.py` is a hot file of a sibling in flight, the note says so and names the order. No open `design/*` ref names it at review time (`git grep round_metrics` over the 15 `refs/remotes/origin/design/*`).
 
 ## Routed
 
-- decision: orchestrator. The routed edge from round 1 is answered (design.md:17): D builds after R11-PRE-ROUND-METRICS part 2 merges, and C after R11-PRE-TOKEN-LEDGER. The orchestrator adds those two `after` edges. Nothing is carried into part 2.
+- decision: orchestrator. The `after` edges stand as round 2 recorded (D after R11-PRE-ROUND-METRICS part 2 merges, C after R11-PRE-TOKEN-LEDGER). If D extends `round_metrics.py`, check that file against R11-PRE-ROUND-METRICS part 2's diff and add any serial edge it needs.
 
 ## Notes for the fixer
 
-- Part D, design.md:15 and :42: the part-2 head is now 28c3ba15ee, not acf0b72578. Commits 02e54e0082 to 28c3ba15ee change `rca_lists`. Derived rows carry no rca, so D is not affected, but re-read `convergence_why` at part 2's merge commit. Carry: R11-PRE-NO-READ-BUILDERS (item d-p2-head)
-- Part D, design.md:42: "fetched listings in". The note names no file or instrument that fetches the Actions listings (the prototype `gate_reds.py` is on eval/r11). Name the reader in the body and register its input. Carry: R11-PRE-NO-READ-BUILDERS (item d-fetcher)
-- Hot files, design.md:60: design/R11-PRE-SECURITY-PRIVACY is now at 8f52783880, not ba8209b07f. Its section 7 and :201 still name the shared `fold_ledger.py` rebase order with this group, so the serial rule holds. Carry: R11-PRE-NO-READ-BUILDERS (item b-hotfile-head)
-- Sibling designs in flight that touch this note's files: R11-PRE-PARALLEL-PIPELINE, R11-PRE-SHARED-FILES and R11-PRE-TOOLCHAIN-PIN name `gate.py`, which D leaves unchanged. R11-PRE-STANDING-SCRIPTS names `roster_lib.py` for `is_hotfix`/`is_outside`, not `convergence_why`. None of them claims D's seam. Carry: dismissed: no shared seam (item siblings)
+- Part C step 2 (design.md:35): some non-zero exits are deferrals by the instrument's own contract, not refusals.
+  - `tools/audit/seat/merge_pr.sh:533-538`: exit 3 is "the train's WAIT ... never RED, so a caller retries rather than reads a refusal".
+  - `tools/audit/seat/cloud_relay.sh:276-299`: return 75 means "the pending-ci draft is held".
+  - Report-by-exit instruments: `postmerge.py` (exit 1 when something is owed) and `mutant_run.py` (rc non-zero on a survivor).
+  - Add a structural `deferred` scope row (75 EX_TEMPFAIL, plus each instrument-declared wait code, enumerated at the merge base by `git grep -n -E "WAIT|return 75|exit 75" -- tools .claude/hooks`), planted and mutated like `usage`, so a deferral prints in its own row and never counts as a refusal. List the report-by-exit instruments in the body.
+  - Carry: R11-PRE-NO-READ-BUILDERS (item c-deferred)
+- Part D (design.md:44): the [R1] sentence still reads "at acf0b72578" while the table row at :15 reads 28c3ba15ee. Cite part 2's merge commit once D builds. Carry: R11-PRE-NO-READ-BUILDERS (item d-p2-head-text)
+- design/R11-PRE-TOOLCHAIN-PIN:design.md:30 uses `gate_runs` as stamp.py's existing function (`tools/release/stamp.py:774`). If any new file survives point 1, a module named gate_runs.py would collide with that name. Carry: R11-PRE-NO-READ-BUILDERS (item name-collision)
+- design/R11-PRE-SECURITY-PRIVACY:design.md:77 (S5) also lists `actions/runs`, but for text scanning, not for gate status. It is not this concern. Carry: dismissed: different concern, no shared record (item s5-runs)
+
+This is the third note. If it draws `revise` again, the designer re-cuts to the minimal shape (decision 0014; design-review.md "Three notes at most"), and the points above become carries.
 
 Seat token count: not reported by this harness.
