@@ -1,0 +1,6 @@
+== /root/prepr-base.sh
+read1 (head has no run yet) rc=0 calls=4 out=[]
+read2 (a red landed on the head) rc=0 calls=2 out=[closures]
+== /root/prepr-d5ba8b8ce56ba02776b02a1143657a8c98aec4d9.sh
+read1 (head has no run yet) rc=0 calls=2 out=[]
+read2 (a red landed on the head) rc=0 calls=0 out=[]
