@@ -1,0 +1,2 @@
+4d381a338f9bca214ad14c91713b18352da401f1:   ok   ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: D16) 223 passed, 0 failed 
+98847b99d7bb3238686efd6869f805c89c6d1ff1:   ok   ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: none) 223 passed, 0 failed 
