@@ -5,7 +5,7 @@
  "title": "Quick setup's wood furnace and wood-tank probe change nothing in the plan of the plant quick setup creates",
  "severity": "medium",
  "claim": "On an entry made by quick setup with wood furnace and wood buffer tank answered yes and the top probe picked, the planned energy is identical with the furnace on or off and the probe at 85 or 35 C, because the two-tank model also requires a throttling mixing valve the quick path never asks for.",
- "mechanism": "ThermalParameters.topology_layout returns no_valve whenever mixing_valve_mode is not throttling, so wood_tank_configured (the probe) never selects two_tank_4way; the external-heat detector is enabled only by the separate options switch external_heat_detection_enabled (default False), so 'stand the pump down while the fire is lit' never happens either. quick_setup._quick_setup_schema's docstring calls the probes 'the two-tank model's own gate'.",
+ "mechanism": "ThermalParameters.topology_layout returns no_valve whenever mixing_valve_mode is not throttling, so wood_tank_configured (the probe) never selects two_tank_4way; the external-heat detector is enabled only by the separate options switch external_heat_detection_enabled (default False), so 'stand the pump down while the fire is lit' never happens either. quick_setup._quick_setup_schema's docstring calls the probes 'the two-tank model's own gate'. Grid cells (4, printed individually by the harness, below the five-cell leave-one-out threshold): all four 21.6738 kWh; leave-one-out spread 0.0.",
  "evidence": {
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
   "harness_path": "dev/audit/rounds/round11/D17/s2/wood_quick.py",
@@ -32,12 +32,6 @@
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
   "value": "valve_arm_plan_kwh_spread=11.805",
   "note": "the identical harness sees the probe move the plan once a valve exists"
- },
- "leave_one_out": {
-  "cells": 4,
-  "min": 21.6738,
-  "max": 21.6738,
-  "drop_most_favourable": 0.0
  },
  "proposed_fix_scope": "quick_setup (ask for the valve, or enable detection with wood_furnace) or strings.json quick_setup wood_* descriptions naming the valve condition as buffer_tank's already does.",
  "files": [
