@@ -1,0 +1,18 @@
+M1: denominatorGaps renamed (call sites unchanged)
+rc=1 200 passed, 25 failed
+  FAIL ...and the driver enforces it (carryOf, seatCarry, denominatorGaps in the DISPATCH block) exported: carryOf,seatCarry
+  FAIL round 9 dispatches exactly the scopes.json seats, one agent each denominatorGaps is not defined
+  FAIL box B7 runs exactly its seats, collects, and does not run intake ["prepare","D14-s1","D14-s2","D14-s3","D11-s2","D11-s3"]
+M2: denominatorGaps returns no gaps
+  const gaps = []; return gaps
+rc=1 238 passed, 11 failed
+  FAIL denominatorGaps refuses a step with no row []
+  FAIL denominatorGaps refuses two rows for one step []
+  FAIL denominatorGaps refuses an empty enumerator []
+M3: enumerator dropped from coverage required
+ dev/audit/config/finding.schema.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc=1 247 passed, 2 failed
+  FAIL the finder report schema's coverage rows require the denominator (enumerator, universe, examined, not_reached, redispatched) ["step","universe","examined","not_reached","redispatched","evidence"]
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"title":"Audit finder report","type":"object","required":["dimension","baseline_sha","coverage","unfinished","findings","non_findings","harnesses","leads","report_path"],"properties":{"dimension":{"t
+  FAIL (probe, expected) threw: deliberate

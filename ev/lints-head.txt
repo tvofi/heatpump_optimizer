@@ -1,0 +1,26 @@
+== grader
+  ok   a throwing block is reported as a failure rather than ending the run
+
+249 passed, 0 failed
+== planted
+RESULT driver_refuses_bare=1 count
+RESULT driver_passes_full=1 count
+GAPS bare=["M1 names no enumerator", "M1 universe=undefined examined=undefined are not counts with examined <= universe"]
+RESULT reader_rows=2 count
+RESULT reader_counted=1 count
+RESULT reader_counts_bare=0 count
+== policy_lint
+
+FIXTURE ok: 93 error(s) hold 278 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== budgets
+tools/audit/briefs/COMMON.md                     114  114     1697  1697 
+corpus:        ~66241 tokens, cap 66226 +band 500 = 66726
+== structure
+
+STRUCTURE RATCHET PASSED
+== rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+== brief_lint
+rc=0
+TOTAL: 0 error(s) across 51 policy file(s)  (policy_lint.mjs, re-read)
