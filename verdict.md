@@ -1,0 +1,22 @@
+Design review: revise 3c4c236375c7c6b3ee014c00e5ad7f796d0e0aee product-tradeoff-regression
+
+Reviewed design/R11-VALVE-REFERENCE at 3c4c236375c7c6b3ee014c00e5ad7f796d0e0aee, judged against e352724335c136b65562cd3e71f728549ad04a82; the note's base 367c3b9cac is an ancestor of it with no change under custom_components/, tests/features.py or tests/golden.py between the two.
+
+Revise points:
+
+1. design.md "Shape", third bullet (`ThermalModel.flow_target_for_indoor`), and invariant (c) and "Goldens: none expected to move": the single-zone branch is replaced unconditionally, not only behind a throttling valve. At the base, `thermal_model.py:3489` `flow_target_for_indoor` is also the direct plant's priced curve: `flow_lift.py:116` `curve_supply_temp` -> `thermal_model.py:3314` `curve_flow_temp` -> `compute_cop` and the batch COP at `thermal_model.py:4487`, under `flow_curve_cop`, which `thermal_model.py:193` allows only with no valve. It is also the curve `coordinator.py:973` learns the persisted `flow_bias/bias_k` against. So on every single-zone unvalved install with `flow_curve_cop_enabled`, the series conductance, the `internal_gains` subtraction and the switch from `upper_floor_heat_loss + lower_floor_heat_loss_learned` to `heat_loss_coefficient` move the priced COP of every plan. A restored `bias_k`, learned against the old curve, is then spent against the new one, which is the mismatch `flow_lift.py`'s docstring exists to prevent. No finding names this. The note claims the opposite: (c) "every unvalved path is bitwise unchanged", and no golden moves. `tests/golden.py` `direct_flow_carnot` is exactly this path: `make()` defaults `two_zone=False`, no valve, `flow_curve_cop_enabled` True, `upper_floor_heat_loss` / `lower_floor_heat_loss` 0.2 each, and `flow_curve_bias` 5.0. Fix wanted, either of:
+   - (preferred) Gate the new single-zone branch on `mixing_valve.is_throttling(p.mixing_valve_mode)`. That keeps the unvalved single-zone `flow_target_for_indoor` bitwise as it is, and with it the direct-plant price, the bias learner and `direct_flow_carnot`. Add a test that (c) covers that path: an unvalved single-zone `flow_curve_cop` model's `flow_target_for_indoor` and `curve_flow_temp` are equal at base and head.
+   - Or state why the direct-plant curve must move with this group. That means naming `direct_flow_carnot` as claimed under `claim-files.md`, saying what happens to a persisted `bias_k`, and stating the price change as a measured, owner-facing effect.
+
+Checked with no point raised:
+- Owning seam: `_valve_flow_set` (thermal_model.py:2263) is the only curve read on the single-zone valved path. The batch single-zone substep calls `_single_valve_rates` (thermal_model.py:4792). The batch's `ua_valve` (4588) and `_substeps_and_loss`' `ua_valve` (4303) are stiffness reads, not curve reads. `_valve_draw_circuits`' single branch (2340-2343) goes through `_valve_flow_set`. The two-zone direct `mixing_valve.flow_setpoint` calls (2508, 4661) stay out of scope as the finding's control.
+- The closed form k = UA*ks/(UA+ks) with UA 1.4 and ks 0.8 gives 0.509 kW/K, consistent with the cited rows. The "series without free heat" alternative is correctly rejected by invariant (a).
+- No sibling designs in flight overlap: of the open design/* notes, only R11-PRE-SECURITY-PRIVACY names a `ledger` file, and that is `tools/audit/fold_ledger.py`, not `ledger.py`.
+- The dispatch condition (carry 1's diagnostics-bundle precondition) is correctly routed. decision: owner, pending owner confirmation; no revise point.
+- Cost: three production files, `tests/features.py` and the harness, in two commits, which fits the group.
+
+Notes for the fixer (non-blocking):
+- If the gate above is taken, the bias learner still observes against `flow_target_for_indoor` on a valved single-zone install, so a `bias_k` learned there moves with the curve. That install never spends it (`flow_curve_cop` is refused with a valve), but a store restored after the valve is removed would. Measure whether any reader spends it, and route it. Carry: R11-VALVE-REFERENCE (item r1)
+- Invariant (d), "single-zone `flow_target_for_indoor` equals the plant's curve", holds only at the plant's wind and precipitation, because the note's single branch uses U "at no wind". Pin (d) at zero wind, or state the wind it holds at. Carry: R11-VALVE-REFERENCE (item r2)
+
+Seat token count: not reported by this harness.
