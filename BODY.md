@@ -54,7 +54,7 @@ none
 
 ## Forward-carry
 
-The unbuilt items stay on the group's own carries 2, 4 and 5 in `dev/programme/rosters/wave-r10-groups.json`, unchanged by this diff; the orchestrator rules whether a further part is dispatched.
+- Destination file: `dev/programme/rosters/wave-r10-groups.json`; the unbuilt items stay on the group's own carries 2, 4 and 5 there, unchanged by this diff. Carry: dismissed: the orchestrator rules whether a further part is dispatched
 
 - "A serial after-edge prices parallel work as a sum" (PC-1113-05) was not measured or changed here. Carry: dismissed: the next round's plan does not exist to measure against until a round-11 roster does, and the claim has no instance in the tree to re-run.
 - The out-of-tree timeout raise and the round-10 orchestrator's prototype page script (above). Carry: dismissed: both live in `$HPO_STATE_DIR`, which a cloud seat cannot read or write.
