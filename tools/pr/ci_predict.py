@@ -1770,20 +1770,18 @@ def roundfetch_self_test(root: Path) -> int:
         print(f"  {'ok  ' if ok else 'FAIL'} {label}")
         bad += not ok
     try:
-        o = tmp / "o.git"
-        oenv = throwaway_git_init(o, "-q", "--bare", "-b", "main")
-        seed = tmp / "seed"
-        throwaway_git_clone(o, seed, "-q")
+        o = tmp / "o"  # origin: its branches are what pr-contract fetches
+        oenv = throwaway_git_init(o, "-q", "-b", "main")
 
         def sgit(*a):
-            return subprocess.run(a, cwd=seed, env=oenv, capture_output=True, text=True, check=True).stdout.strip()
+            return subprocess.run(a, cwd=o, env=oenv, capture_output=True, text=True, check=True).stdout.strip()
         sgit("git", "commit", "-q", "--allow-empty", "-m", "main")
-        sgit("git", "push", "-q", "origin", "HEAD:refs/heads/main", "HEAD:refs/heads/handoff/audit-r10-roster")
+        sgit("git", "branch", "handoff/audit-r10-roster")
         stale = sgit("git", "rev-parse", "HEAD")
         r = tmp / "seat"
         env = throwaway_git_clone(o, r, "-q")
+        sgit("git", "checkout", "-q", "handoff/audit-r10-roster")
         sgit("git", "commit", "-q", "--allow-empty", "-m", "the roster gains a group")
-        sgit("git", "push", "-q", "origin", "HEAD:refs/heads/handoff/audit-r10-roster")
         newer = sgit("git", "rev-parse", "HEAD")
 
         def got():
