@@ -29,3 +29,8 @@ RESULT role_colour_split=3 count
 RESULT offscale_font_sizes=14 count
 RESULT offscale_spacing=40 count
 == type type_tokens
+RESULT offscale_font_sizes=10 count
+RESULT offscale_spacing=42 count
+== type space_snap
+RESULT offscale_font_sizes=14 count
+RESULT offscale_spacing=39 count

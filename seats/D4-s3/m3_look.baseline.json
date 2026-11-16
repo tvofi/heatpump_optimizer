@@ -1,6 +1,6 @@
 {
  "perturb": null,
- "cells": 738,
+ "cells": 900,
  "states": [
   "status_idle",
   "status_stale",
@@ -42,7 +42,16 @@
   "layout_editing",
   "setup_clear_armed",
   "setup_unset_open",
-  "picker_twins"
+  "picker_twins",
+  "plan_short_window",
+  "custom_title_currency",
+  "setup_single_buffer",
+  "setup_coil",
+  "savings_empty",
+  "setup_not_published",
+  "advisor_empty",
+  "history_unavailable",
+  "history_pending"
  ],
  "missed": [],
  "offscale_fonts": {
@@ -120,7 +129,8 @@
    "div.wi-group-title",
    "button.wi-add",
    "button.wi-add-quiet",
-   "div.savings-wood-note"
+   "div.savings-wood-note",
+   "div.hist-note"
   ],
   "17.5": [
    "span.delta",
@@ -270,7 +280,8 @@
    "div.dlg-head"
   ],
   "8.82": [
-   "div.dlg-head"
+   "div.dlg-head",
+   "div.hist-note"
   ],
   "5.88": [
    "div.dlg-tabs"
@@ -392,7 +403,8 @@
   ],
   "5.67": [
    "button.wi-add",
-   "button.wi-add-quiet"
+   "button.wi-add-quiet",
+   "div.hist-note"
   ],
   "10.71": [
    "button.wi-add",
@@ -452,7 +464,8 @@
    "td.num"
   ],
   "7.56": [
-   "div.savings-wood-note"
+   "div.savings-wood-note",
+   "div.hist-note"
   ],
   "4.48": [
    "div.sp-note"
