@@ -5,3 +5,5 @@
 1794845529 HB alive
 1794845774 CKPT class enumeration closed at head; body checks rc 0; mutants mid-run snapshot 717ed263312c
 1794846135 HB alive
+1794846734 HB alive
+1794846734 CKPT mutants done: body's ten killed; four of mine survive on diff lines; writing verdict snapshot f86f9fbbd95f
