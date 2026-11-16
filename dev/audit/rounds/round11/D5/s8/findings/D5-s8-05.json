@@ -1,0 +1,37 @@
+{
+ "id": "D5-s8-05",
+ "step": "D5.M4",
+ "title": "card.mjs comments cite card_shapes.mjs and DESIGN.md, neither tracked",
+ "severity": "low",
+ "claim": "4 comment units of tests/card.mjs define their rule by reference to card_shapes.mjs (three units: its stripping, `char_width_inline`, `finite_inline`) and to 'DESIGN.md section 4' as the palette of record; neither file is tracked at 92d38ecb and no pin is given.",
+ "mechanism": "The units cite a finder's out-of-tree harness and a design document by bare name (C2).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tests/card.mjs --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 4,
+  "unit": "stale units in the file",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/card.mjs comment units via tools/audit/text_ledger.py:units_of (file lines 501, 3743, 3794, 10605)",
+ "perturbation": {
+  "change": "--drop 'tests/card.mjs#5ae7e6039f' (blank the DESIGN.md unit in memory)",
+  "expected_direction": "down",
+  "observed_value": 3
+ },
+ "metric_definition": "Count of D5 units in the file naming a file that git ls-tree at the ref does not hold, without a pin.",
+ "phenomenon_property": "D5 comment units (text_ledger.py units --dim D5) of a file whose named path does not exist in the tree at the ref, in a present-tense sentence, after the seat's adjudication list (ADJ) of fixtures, history and pinned citations",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show  (every C2 row of the seat's cells; ledger verdict stale)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "tests/card.mjs"
+ ],
+ "proposed_fix_scope": "Pin card_shapes.mjs and DESIGN.md to the SHA/branch holding them, or state the rule inline.",
+ "scope": "D5-s8"
+}

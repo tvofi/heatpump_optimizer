@@ -1,0 +1,11 @@
+RESULT units=4030
+RESULT rows=4030
+RESULT claims=3604
+RESULT false=471
+RESULT stale=0
+RESULT true=3051
+RESULT unverifiable=82
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in tests/features.py

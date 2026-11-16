@@ -1,0 +1,47 @@
+{
+ "scope": "D5-s7",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "seam_rule": "bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4  (then PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv; rows with verdict false are the seams)",
+ "metric_definition": "Per file: D5 units (text_ledger units_of) failing C1 (executed contradiction), C2 (named code absent from the tree's code tokens) or C5 (a sentence over 40 words).",
+ "id": "D5-s7-01",
+ "title": "tests/features.py: 454 comment units fail D5-criteria C1/C2/C5 (3 dead names, 1 false count, 450 over-long)",
+ "claim": "Of tests/features.py's 3863 D5 comment units, 454 are false under D5-criteria.md: 1 contradicts the code (C1), 3 name a path or symbol no tracked file defines (C2), and 450 carry a sentence over 40 words (C5).",
+ "mechanism": "C1: the docstring at features.py:6856 says 'The eight between-run sleep(0.002) calls'; optimizer:_multi_start_minimize makes 3 to 34 such calls per optimize over the 50 golden solves (8 in 2), so the count is a stale snapshot. C2: features.py:57049 names tools/audit/w5-partition/partition.py, moved to tools/coverage/partition.py by 3b0a39216b; features.py:86177 names ``_feedback_sent``, which no tracked file and no production commit (git log -S) ever defined (the record is written by pump_arbiter._feedback via FeedbackRun.sent_c); features.py:54592 names PlantRig, which no tracked file defines. C5: 450 units hold a sentence over 40 words (longest 177, features.py:54710), mostly clauses chained with ';' and ' -- '.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+  "harness_path": "dev/audit/rounds/round11/D5/s7/m4_comments.py",
+  "value": 454,
+  "unit": "count (false ledger rows)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (cloud container, Linux x86_64)",
+  "cpu_or_wall": "count",
+  "contention_note": "count over text; contention-immune",
+  "tolerance": "exact",
+  "load1": 0.87,
+  "thread_factor": 0.997
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over tests/features.py, names resolved against the code tokens of every live tracked file; the C1 row by optimizer:_multi_start_minimize via time.sleep (c1_sleep_count.py)",
+ "perturbation": {
+  "change": "--perturb fix-path: the one-line comment edit at features.py:57049 to tools/coverage/partition.py (in memory); --perturb c2-define defines every unresolved name; --perturb c5-split re-splits sentences at 40 words; c1_sleep_count.py --perturb adds one start per _multi_start_minimize call",
+  "expected_direction": "down",
+  "observed_value": "fix-path: c2_fail 3->2, false_rows 454->453; c2-define: total c2_fail 3->0; c5-split: total false_rows 471->4; c1 --perturb: between-run per solve 3..34 -> 4..41, solves reading eight 2->0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s7/ledger.tsv --plant --seat D5-s7 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "units=4030 rows=4030 unrowed=0 orphan=0 malformed=0 plant_refused=1",
+  "note": "the ledger rows every unit, and a planted unit is refused as unrowed; --perturb plant raises c2_fail by exactly 1"
+ },
+ "phenomenon_property": "Every D5 unit of tests/features.py is true of the code it sits on (C1), names only code the tree defines (C2), and has no sentence over 40 words (C5).",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/m4_comments.py --ledger dev/audit/rounds/round11/D5/s7/ledger.tsv --detail dev/audit/rounds/round11/D5/s7/detail.tsv",
+  "grep -P '\\tC[125]' dev/audit/rounds/round11/D5/s7/detail.tsv",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s7/c1_sleep_count.py"
+ ],
+ "proposed_fix_scope": "Comment-only edits in tests/features.py: state the between-run yield without a count (or 'one per start after the first'); point 57049 at tools/coverage/partition.py; replace ``_feedback_sent`` with pump_arbiter._feedback / FeedbackRun.sent_c; drop or path the PlantRig reference; split the 450 long sentences.",
+ "files": [
+  "tests/features.py"
+ ]
+}

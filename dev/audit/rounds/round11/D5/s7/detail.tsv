@@ -1,0 +1,553 @@
+tests/features.py#fef3bff4ee	6856	C1: eight between-run sleep(0.002) calls (c1_sleep_count.py: _multi_start_minimize makes 3 to 34 such calls per solve over 50 golden solves, 8 in 2)
+tests/features.py#842314e480	31128	C5: 46 words: ``spawn_real`` is off while the coordinator is constructed, so the ten fire-and-forget sto
+tests/features.py#4d946372e0	31164	C5: 44 words: The horizon is anchored on the real clock rather than a fixed day, so the published prices
+tests/features.py#84bfc046ce	31333	C5: 49 words: The caller here is parked on a gate the shutdown does not touch, which is the shape the ni
+tests/features.py#b65bb10fe9	42787	C5: 44 words: ``recorded_at_unreachable`` is stubbed to None for the duration: whether a recorded SHA re
+tests/features.py#00dd67ffef	45408	C5: 50 words: A plan with n_weak weak slots spread over the whole horizon, a tank starting on its ceilin
+tests/features.py#a46a302e4f	50821	C5: 66 words: The third readout is the finding's harm sentence made measurable: the payload snapshots me
+tests/features.py#dff444fb2f	54590	C2: PlantRig
+tests/features.py#5a0e6a13c7	61199	C5: 48 words: Records every call and fails on demand -- and, like Home Assistant core, a failure reaches
+tests/features.py#ace157d248	68862	C5: 46 words: `move_starts` is set to the parameter's own default identity, so the candidates, the itera
+tests/features.py#15178cd7b1	86901	C5: 80 words: The signal reads running ten minutes before the write unless the first reading says otherw
+tests/features.py#01667c0c15	91559	C5: 49 words: Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: on a duty-cycle install the bound, not the obj
+tests/features.py#97ac880cd3	91610	C5: 46 words: Per candidate-stage call of one solve: the score of the plan the stage returned in the sco
+tests/features.py#482289c2d7	326	C5: 43 words: "nan", "inf", "-inf", "1e999" and "Infinity" all float() without raising, so a sensor publ
+tests/features.py#d535a18a43	516	C5: 42 words: Temperature and energy units (#961): Home Assistant converts a device_class:temperature se
+tests/features.py#1ea451196e	1039	C5: 60 words: One fact, one owner (the P2 shape) applied to the cycle itself: the covering quarter is re
+tests/features.py#77c834a394	1335	C1n: 3.12
+tests/features.py#1b5eeeed28	1377	C5: 44 words: The N-debug-swallow sweep named five cycle-path fences that swallowed a persistent failure; C5: 43 words: One fence mechanism owns them all now, and it logs the FIRST occurrence of each (step, cau
+tests/features.py#567976a651	1466	C5: 43 words: Each check below pins the canonical predicate's verdict at a boundary cell the proxy got w
+tests/features.py#37db03e2ac	1984	C5: 55 words: The seed helper's own early-window tolerance, pinned at both ends (the mutation lane's GUA
+tests/features.py#1e04e90f8e	2035	C1n: 47degC
+tests/features.py#1cfbe60f14	2206	C5: 45 words: A pump drawing less leaves the difference in the slab estimate, the house learner replays 
+tests/features.py#49369b5690	2318	C5: 62 words: The draw read at the close is apportioned by the dwell's hours in each duty, not by the li
+tests/features.py#6708641d13	2354	C5: 45 words: A gap of exactly the learners' sample window is still replayed and a minute past it is not
+tests/features.py#b464b02f83	2789	C5: 56 words: One fact, one owner: the price feed denominates every money figure, so the published unit 
+tests/features.py#f77e808184	3329	C5: 41 words: The regression this pair exists to catch. config_flow offers this slot as binary_sensor/sw; C5: 50 words: Under a 60 min horizon the reading went stale an hour later and the override vanished in B
+tests/features.py#debaa8ed2d	3893	C5: 68 words: _async_load_thermal_learning parses each stored scalar with float() under a (TypeError, Va
+tests/features.py#b93c363177	3957	C5: 41 words: The scalar the bad value would have replaced has to SURVIVE, which is a stricter claim tha
+tests/features.py#90cbed5ee2	4154	C5: 66 words: Measured: with a plain ``max`` the tariff had gradient at 1 step in 96 and enabling it *ra
+tests/features.py#431cd31146	4241	C5: 56 words: The clamp states the billed contract -- the count is coerced onto [1, n] windows -- so it 
+tests/features.py#3db7143e10	4281	C5: 61 words: The bisection's logistic temperature is scale = tau*peak, and the tie root sits at peak + ; C5: 49 words: A flat 24 h plan at 12 kW -- the profile a capacity tariff exists to produce -- was charge
+tests/features.py#7b30342b76	4304	C1n: 10.3kW
+tests/features.py#f736167ab3	4332	C5: 50 words: These gradient pins read the SOLVER's term, peak_cost_smooth (#1210): the public peak_cost
+tests/features.py#7fd362215c	4370	C5: 51 words: There the logistic weights still sum to k, but the weight that lands on the lower windows ; C5: 43 words: The pure plateaus above are exact because every weighted window sits AT the tie; the defec
+tests/features.py#3b81a11268	4407	C5: 50 words: The solver's surrogate on the same mixed cell: still smooth (that is its product, #232), a
+tests/features.py#ef3cabe283	4460	C5: 42 words: The import margin is signed: an export price above the import price makes a self-consumed 
+tests/features.py#612853a2e1	4717	C1n: 4.4h
+tests/features.py#cb8e846c6e	5291	C5: 56 words: The factor is a function of two continuous inputs -- outdoor temperature and relative humi
+tests/features.py#49608d4d1e	5332	C5: 71 words: The solver's batched gradient re-walks the same forecast steps for every one of the 544 k 
+tests/features.py#b4ad691ee2	5379	C5: 46 words: Bit-identity, not closeness: a memo hit must equal what the unchanged computation produces
+tests/features.py#2ff670ff6b	5474	C5: 69 words: The uniform-shortcut in the factor's law (all four surrounding buckets agree -> return tha
+tests/features.py#c80ad20a75	5621	C5: 43 words: Both issues are that one fact seen from two sides: `_raw_windows` split the spec on every ; C5: 45 words: So the deliverable is a property, not a patch per corner, and it is enumerated over the WH
+tests/features.py#b42a87bf06	5647	C5: 42 words: : Times chosen for what they do to the GRAMMAR, not for realism: a single : range, two ran
+tests/features.py#5049b51913	5703	C5: 66 words: Two behaviours the shared segmenter and the per-range renderer had to carry across unchang
+tests/features.py#1357139e7d	6263	C5: 51 words: End to end: the plan honours the override on the day it names, beside a FLAT default spec 
+tests/features.py#dac685eed2	6386	C5: 46 words: Its contract is bitwise: every row must equal the scalar path's output to the last bit, be
+tests/features.py#109bb0175a	6421	C5: 60 words: The regime is what the batch and the scalar path disagreed about for as long as this contr
+tests/features.py#c30efed140	6460	C5: 43 words: The gradient contract (D9-01): with the batched jac now serving NON-UNIFORM bounds (any DH
+tests/features.py#788bfc2e9f	6537	C5: 47 words: Run the real multi-start against these bounds and let scipy's own counters name the path -
+tests/features.py#9421507b80	6939	C5: 41 words: Was labelled "stability substeps" and ran at n_sub = 1: `room_thermal_mass` is not a confi
+tests/features.py#3293622c4d	6998	C5: 44 words: Mutation anchor: the batch twin once applied the Carnot lift below the reference flow temp
+tests/features.py#cfe84376af	7003	C5: 59 words: A zero-range entry (lo == hi) used to disqualify the WHOLE solve, because at such a variab; C5: 42 words: One such bound is reachable through four shipped default-config routes (a single-phase 16 
+tests/features.py#a1be914fcd	7066	C5: 43 words: The batch is the free variables' rows, behind x0 itself when the caller asks the batch for
+tests/features.py#a5e8e7b295	7150	C5: 51 words: ``objective_batch`` (both the space-only and the with-DHW twin) vectorized the simulation ; C5: 50 words: The bitwise row-parity checks beside it are the null control every performance change owes
+tests/features.py#fe00008e98	7287	C5: 44 words: Six schedules spanning the shapes the cost terms branch on: random profiles, a flat high p
+tests/features.py#2c9a5ac618	7301	C5: 52 words: The six schedules above can pass a ulp-level divergence by luck, and once did: the termina
+tests/features.py#690d5fd004	7366	C5: 43 words: The same parity on the round-7 detector grid (see _m948t's comment): rows chosen to separa
+tests/features.py#c85bd299d9	7386	C5: 58 words: Three captures spanning both twins and every cost-term branch: the space-only twin with tw
+tests/features.py#fbeecaac42	7412	C5: 48 words: Rule: row b of the batch result must equal the scalar function on row b's plan, exactly, f; C5: 54 words: Since #1210 the twin's scalar is peak_cost_smooth -- the SOLVER's term, whose plateau arm 
+tests/features.py#53ce1720fc	7554	C1n: 0.055
+tests/features.py#5c334e7e40	7650	C5: 41 words: The heated slab *is* the building's heavy floor, and the model already couples it to the l
+tests/features.py#69ee7577f9	8234	C1n: 25%
+tests/features.py#42f2de5711	8301	C1n: 10°C
+tests/features.py#556164561c	8373	C5: 41 words: ``as_measured`` hands the fold's tail an : interval it treats as a measured one, for the c
+tests/features.py#a77c025703	8401	C5: 42 words: A modest gap: v4.0.5's tracking gate discards samples whose commanded-vs-measured mismatch
+tests/features.py#c81a5abcf6	8461	C5: 75 words: D3-02: the trust-region clamp (``max_step``/``np.clip``) around ``_learn_measured_cop``'s 
+tests/features.py#89b801915d	8500	C5: 51 words: The tank cools all the time — about 0.42 °C/h for a 55 °C tank at the default rate — and a
+tests/features.py#4e14918e7e	8896	C5: 47 words: #923 (R4-D1-02): one corrupt scalar inside the accuracy store -- a JSON number where the `
+tests/features.py#43d8cdd476	9128	C5: 52 words: The round-5 store fuzz measured 220 NaN leaf paths published from ONE seeded NaN in the DH
+tests/features.py#9fc7d53769	9372	C5: 42 words: Round 1's theorem, killed by the basis: the law is written on the zone TOTAL, so a single-
+tests/features.py#409b640077	9426	C5: 44 words: The ratio multiplies the lower nameplate the way the scale multiplies the zone total, so a
+tests/features.py#32879c4d64	9563	C5: 41 words: The mirror: a scale that cannot be expressed against the new nameplates resets, so the rat
+tests/features.py#0d6024f0cc	9966	C5: 45 words: This asserts the trajectory shape directly: a step command from rest must land strictly be
+tests/features.py#f6c288339f	10067	C5: 41 words: The optimizer scenarios seed `ThermalState` directly and the coordinator golden captures c
+tests/features.py#aa520d3da7	10108	C5: 45 words: It was the number the card plotted as the house temperature — a floor return of 27.5 °C dr
+tests/features.py#f4e7af94a3	10309	C5: 56 words: The first version of this check mutated `coord._config` in place on the same coordinator a
+tests/features.py#8a4ef1b7be	10385	C5: 80 words: D2-s1-51 (P6, F1.5): the outdoor state write is a producer with ten coordinator readers, a
+tests/features.py#b2b50ac272	10489	C1n: 28C, 21.8kWh
+tests/features.py#4ad353eb96	10544	C5: 51 words: The credit above is undiscounted, so in summer -- when the house coasts six degrees clear 
+tests/features.py#d71992da4f	10609	C1n: 11C
+tests/features.py#2a4a1855ed	10659	C1n: 0.8kWh
+tests/features.py#661a994ae1	10868	C5: 60 words: R4-D2-04 (#928): the Carnot flow term and the DHW setpoint penalty multiply in AFTER that 
+tests/features.py#37a350bf54	10935	C5: 62 words: Pin it as bitwise parity with the scalar path through cells whose raw product sits far bel
+tests/features.py#7f7cf98ca5	10980	C5: 56 words: A tank just above the Carnot reference with enough mass to stay there leaves the raw produ
+tests/features.py#7e249addab	11024	C5: 45 words: A 40-45 C tank dumped 22-26 kW, anything stored was gone within a step or two of the pump 
+tests/features.py#f8a16697e5	11159	C5: 45 words: The behaviour the whole feature exists for: with a valve and a price spread, the optimizer; C5: 43 words: Both are full solves against a tank that starts too cold to coast for free, because a tank
+tests/features.py#cd6bd0c7c7	11395	C5: 41 words: The zoning domain is two_zone_enabled's two values -- complete by construction -- and the 
+tests/features.py#792ff62ea7	11530	C5: 51 words: The issue's MFS 600 S, per the manufacturer manual (carry 4, item 1): 504 l of heating wat
+tests/features.py#e6b05a2b69	11982	C5: 43 words: Off the option it answers from the option's own field and evaluates no combi predicate: wi
+tests/features.py#6209c31094	12055	C1n: 68.3C
+tests/features.py#44ac25e6b2	12197	C5: 44 words: This block pins what PR B adds: the loader, the seed, the learner gate, the 3-litre legion
+tests/features.py#8bedaa3ac6	12428	C5: 45 words: Re-recorded at origin/main b0762725 as 4: R10-GENERIC-HEAT-CURVE added two more, the offse
+tests/features.py#1b1fec1196	12451	C5: 63 words: R10-BUFFER-STORE review 1: the savings reference sized its power from the emitters' need a
+tests/features.py#f1896abbfb	13295	C5: 43 words: The mutant that moved ``len(positives) >= 2`` to ``>= 200`` survived this script's whole c
+tests/features.py#902af0792e	13431	C5: 43 words: With a hold schedule in force the actuator follows *it*, not the fixed recommendation -- o
+tests/features.py#ce414de3c3	13888	C5: 41 words: Capping the emitters at the weather curve (v3.10.0) made discharge physical for any tank a
+tests/features.py#393d761b80	13915	C5: 44 words: Where the valve throttles, every step draws ua*(t_mix - zone) out of the tank with the con
+tests/features.py#31757732ac	13973	C5: 52 words: It used to charge a deficit and pay nothing for a surplus, which made the reported savings
+tests/features.py#ce06bd4af7	14033	C1n: 9.7W
+tests/features.py#5f534aa975	14194	C5: 44 words: A clamp to the fixed global bounds is off-centre — from a ratio of 1.0 the ceiling is +2.0
+tests/features.py#37812c0cea	14509	C5: 55 words: Real coordinators over a two-zone house with its wiring assigned, set up again the way the
+tests/features.py#ab3df17515	14732	C5: 45 words: The void list, key by key, against a list this test owns rather than ``_FACTORY_VOID`` its
+tests/features.py#7ad7837727	14884	C5: 49 words: The undo point holds what the learners know at the reset, not what their stores last held:
+tests/features.py#78de8593d8	15509	C5: 48 words: Nothing here lists a load or a writer: the stores are the ones the constructor builds, the
+tests/features.py#95d56b3754	15768	C5: 52 words: The card's schedule editor edits the CONFIGURED windows, so the coordinator answers them i
+tests/features.py#3979a1c551	15843	C5: 53 words: The abstraction it replaces was not merely coarse: a burn raised the *modelled* HP tank, w
+tests/features.py#67ce47c548	16094	C5: 68 words: The sweep stops 1e-3 short of hp_temp == flow_set and the probe sits 1e-12 below the curve; C5: 46 words: The pre-#927 law glued region 3 to region 1 AT that corner and jumped by up to the whole d
+tests/features.py#b7723fefd1	16124	C5: 43 words: Region 3 meets region 2 at the same curve, from the other side: with the wood tank below f
+tests/features.py#2e5e96afb3	16368	C5: 63 words: A small tank against a sustained burn pins at WOOD_TANK_MAX_TEMP, and the charge the cap c
+tests/features.py#af10b38e51	16490	C5: 63 words: `_simulate_step_two_zone` divided the tank's rate by `max(C_buf, 0.01)` while the same ste
+tests/features.py#1db8caa289	16593	C5: 47 words: The identity that pins it is conservation rather than a temperature -- the heat recovered 
+tests/features.py#95e83e095a	16634	C5: 65 words: At 5 L the availability bound is dT_cap = (70 - 45) / 0.25 = 100 K/h while the net rate is; C5: 44 words: 0.5 kW puts the net rate at ~86 K/h raw against ~50 K/h floored, both under the bound, so 
+tests/features.py#57c94922ad	16709	C5: 42 words: A floor on either does not guard anything, it removes the volume from the quotient -- and ; C5: 56 words: Both floors are measured here: at the merge base the numerator's read 41.333631 h at 5 L a
+tests/features.py#90360bb2a1	16742	C5: 48 words: Every call site in this file passes an explicit array, so the default branch has no driver
+tests/features.py#b3e970ad40	16871	C5: 49 words: The floor each step is judged against is the coldest zone it feeds, or the 20 C room the t
+tests/features.py#cee30cf23d	17054	C5: 54 words: The planner re-derived the coil's drain step by step beside the physics that already coupl; C5: 51 words: The read is mid-step -- after the space update, before the coil's drain -- so it is compar
+tests/features.py#43d764e3ed	17093	C5: 41 words: The draw the physics' coil leaves the tank to cover, per step, spied where the physics cal
+tests/features.py#d93ad123d2	17255	C1n: 0.045K
+tests/features.py#3964920480	17265	C1n: 0.115K, 0.017K
+tests/features.py#0bd727a8f1	17282	C1n: 6.531307
+tests/features.py#be0b5493ee	17441	C5: 52 words: Every catalog entry ships its requirement text (#40 feedback, item 5): the card renders "<
+tests/features.py#035285a4a5	17641	C5: 74 words: The `== 2` this loop carried from #967 was a snapshot of the catalog that branch was cut a; C5: 48 words: The property the loop owns is unchanged: every shipped row parses whole (never rejected, n
+tests/features.py#bcb6018f04	17967	C5: 61 words: Ellevio's effektabonnemang -- HISTORICAL, abolished effective 2026-06-01 ("Den 1 juni 2026; C5: 83 words: Göteborg Energi's ordinarie villa tariff has no time division at all -- "49 kr x snittet a
+tests/features.py#0f6a42c29e	18113	C5: 47 words: PeakTracker kept the k highest metering WINDOWS of the month, while both catalog DSOs bill; C5: 42 words: The oracle below computes the month's bill straight from a CapacityTariff's stated terms -
+tests/features.py#4575568308	18351	C5: 48 words: A month of seven distinct days is kept at k=1, then billed at k=3 and at k=6 with one more
+tests/features.py#a8f20deb47	18382	C5: 50 words: The oracle below prices a plan straight from the stated rule: label every metering window 
+tests/features.py#9b192ef82a	18510	C5: 46 words: A plan whose metering carries a non-finite window below the threshold is therefore charged
+tests/features.py#cece3eb22a	18578	C5: 41 words: The month runs in the configured zone: the production fold stamps each sample with ``dt_ut
+tests/features.py#565ac67c85	18624	C5: 55 words: default_buffer_cooling_rate is surface over capacity, so a smaller tank cools at least as 
+tests/features.py#1b1c253eab	18771	C5: 43 words: Past the ramp the ratio quarter_days / QUARTER_CONFIDENCE_DAYS is already above 1, and an 
+tests/features.py#e14248c032	18863	C5: 55 words: D1-01: a month whose persisted JSON parses but has a wrong-shaped nested "lines"/"meta" fi
+tests/features.py#8596078b9d	18984	C5: 62 words: Measured in kWh per half of the day rather than as a SHARE of the total, which is what thi; C5: 42 words: A share therefore moves even though nothing was shifted — the reason the bar here had alre
+tests/features.py#6930485c78	19287	C1n: 58°C, 55°C, 58°C
+tests/features.py#e1fb907f5d	19370	C1n: 3.68kW
+tests/features.py#f83642db71	19881	C5: 45 words: The old `DrawStats.ready_energy` blend (p90 ramped toward the mean by evidence) was produc
+tests/features.py#abcb39d691	19916	C5: 51 words: Flat prices and a big tank on purpose: on the winter day the planner charges the tank over
+tests/features.py#8fb58fe98c	20523	C5: 53 words: The class D1-02 states, as a rule rather than an instance: every actuation seam the cycle ; C5: 47 words: Design choice, stated: "actuation" is the four verbs this integration drives a plant with ; C5: 49 words: `_command_frequency` is the one seam without a gate, and the reason is D1-02's: its write 
+tests/features.py#334e9b009b	20673	C5: 41 words: Each slot's shared_kwh is the OTHER channel's energy inside the shared steps — by hand: dh
+tests/features.py#4558b274b9	20954	C5: 43 words: The detector reads the heat-loss replay residual, so a model the learners have not yet cor; C5: 44 words: Referenced at zero, the CUSUM read it as a window that never closed, and the freeze it rai
+tests/features.py#c4cb7b3f60	21005	C5: 41 words: The feed's sun regressor, through the real learner: an aperture error reads cold by day in
+tests/features.py#0dc9403d22	21108	C5: 42 words: Each saturates the trust region, which since #2252 is a fraction of the current estimate: 
+tests/features.py#6939d51222	21141	C1n: 1.2
+tests/features.py#608fcb339e	21159	C5: 52 words: A fixed offset is a step of base_u * trust_region in UA, so it grew with learned/prior: th
+tests/features.py#2b4894749d	21178	C5: 52 words: The EWMA moves alpha of the way to a target at most trust_region of the estimate away, so 
+tests/features.py#540353f5df	21310	C1n: 1.20
+tests/features.py#d5764aa757	21441	C5: 52 words: The carve-out is measured over the threshold that tripped the LATCH -- nameplate x IMMERSI
+tests/features.py#d0246e3af3	21462	C1n: 5.75kW
+tests/features.py#c6202a64a2	21578	C5: 47 words: The carve's own contract, at each of its three refusal bounds: the draw AT the threshold, 
+tests/features.py#dcbb74527c	21943	C5: 49 words: D1-05: a snapshot's "accuracy" field can be corrupt to a non-dict, truthy value (partial w
+tests/features.py#ef6581c655	22005	C5: 42 words: R10 D3-s2-01: the two store loaders' quarantine WARNING is the only trace a dropped record
+tests/features.py#d5c0383c13	22262	C5: 45 words: At the accuracy_drift alarm the advisor offers up to two restart points: the last known-go
+tests/features.py#28bba7e765	22771	C1n: 67.7
+tests/features.py#ad5a2eb4d7	23141	C5: 43 words: The mutant that turned the guard into ``if False and (...)`` survived this script's whole ; C5: 54 words: An observed_cop that is NaN (read off a sensor mid-solve) or non-positive reaches thermal_
+tests/features.py#cfe8fa9858	23299	C5: 54 words: Solar gain correlates with the conductive term through the time of day and the outdoor tem
+tests/features.py#e1f2184ea9	23433	C1n: 0.9
+tests/features.py#5cd392a609	23629	C5: 62 words: from_dict clamps what is loaded (pinned above), but nothing pinned that _step_down's np.cl
+tests/features.py#0dc5cd4cfd	23775	C5: 44 words: R9-UX-10: the replay both learners share is a module-level helper, so the profile is pinne
+tests/features.py#6d75b8f417	24256	C5: 59 words: An on-change source held one minute past its polling limit is stale only where the on-chan
+tests/features.py#73565517df	24352	C5: 46 words: The scoring window follows the caller's cadence: an hourly scorer must not discard every p
+tests/features.py#7856463047	24403	C5: 50 words: The same barrier on the KEY side of the same dict. lead_sigma is keyed by lead hours as st
+tests/features.py#0835a757b8	25042	C5: 79 words: The free-price skip has two jobs and the boundary between them is the EMA's own memory hor
+tests/features.py#4ed7a27a90	25402	C5: 47 words: The same sweep through the published sensors, on the payload as the cycle lays it out (the
+tests/features.py#cf536ac3fa	26227	C5: 45 words: #1753: the tile no longer consults the user limiter at all, so there is no "the user dragg
+tests/features.py#1b1eb3d8a0	26955	C5: 42 words: A defrost is the pump working on its own coil, not on the plan's command: a report that di
+tests/features.py#3a03f27734	27249	C5: 52 words: The services belong to the domain (action-setup, #180): async_setup registers every servic
+tests/features.py#ca052e60ab	27383	C5: 50 words: The issue's three driven cases -- run_optimization returning None after a WARNING when no 
+tests/features.py#02a5626102	27694	C5: 43 words: A solve that raises inside async_run_optimization is swallowed by its own except-Exception
+tests/features.py#4bd061afd2	27731	C5: 46 words: #1512: the coordinator hands the tariff's distinct-days rule to the solver with the rest o
+tests/features.py#420d117990	28102	C5: 52 words: A re-record only ever happens on a branch, and a branch commit is rewritten by the next --
+tests/features.py#ecfa51ac44	28380	C1n: 1.5
+tests/features.py#bbc3e9c391	28506	C5: 42 words: D3-07: ``parse_day_range``'s wrap-around branch (``start > end`` -> Fri..Sun..Mon) is only
+tests/features.py#d34be8609f	28671	C5: 63 words: #933 (R4-D3-S4): the horizon clamp in _anticipatory_weights — ``end = min(i + lookahead, n; C5: 43 words: The clamp still states the method's contract — the warm-start nudge must not read forecast
+tests/features.py#d604ce6552	29048	C5: 69 words: This fixture is not itself unthrottled (it has a valve and a 750 L tank, so the tank IS a 
+tests/features.py#a5bfd87789	29241	C5: 61 words: Strictly above, not by a wide margin: the mixed-use draw reference (40 °C) keeps the debit
+tests/features.py#37c9450973	29260	C5: 58 words: The rating is now enforced in the model with refused-heat accounting, the buffer clamp's p
+tests/features.py#757f8bf951	29278	C5: 46 words: The floor is a lower bound, and the tank stands in a room at TANK_ROOM_AMBIENT_TEMP (20 °C
+tests/features.py#22fcecdb3a	29484	C1n: 0.8°C, 0.13
+tests/features.py#2e14f05d2a	30077	C5: 56 words: The stress sweep's winter_mild catch: the LP and greedy passes plan on an affine tank, the
+tests/features.py#6a6bf53603	30463	C5: 65 words: The four in-try failure verdicts (401/403, HTTP != 200, GraphQL errors, no homes) call _ti
+tests/features.py#ee223759bc	30642	C5: 50 words: Through Home Assistant's own refresh (the stub's arm, pinned against upstream in tests/ha_
+tests/features.py#2a5b98b2b6	30751	C5: 48 words: The options flow rewrites the options dict on every page it leaves, so "the listener fired
+tests/features.py#fdb2ddebd4	30832	C5: 48 words: The fetch-free proof therefore has to watch the coordinator CLASS during the second setup 
+tests/features.py#85cc70ef47	30912	C5: 45 words: R5-D12-01: the ECL110 state subscription now exists only when a topic key is stored, so th
+tests/features.py#cc5c4c16a6	30922	C1n: 3.12
+tests/features.py#e3db0456bf	30945	C1n: 3.12
+tests/features.py#c8016a0837	31186	C5: 50 words: R5-D12-01: the cycle's two MQTT actuations are part of what the #237 guards must let throu
+tests/features.py#b8ffe128a8	31451	C5: 55 words: async_run_optimization returned early while a solve was in flight and recorded nothing, so
+tests/features.py#cace7f197f	31673	C5: 59 words: The judge drove the real (unstubbed) path: on this arm 5 calls started 5 solves -- 2,225 m
+tests/features.py#ad5aa763ce	31730	C5: 50 words: The steady figure carries neither: a schedule change is priced by what a thermostat holdin
+tests/features.py#dd1415cad4	32694	C1n: 0.57, 0.3737
+tests/features.py#3d43687e46	32846	C5: 50 words: After a restart or a reload of this integration the first read ran before MQTT discovery h
+tests/features.py#ccf49cf36b	33109	C5: 55 words: A sensor reporting a word (or a fault code, or a unit the reader cannot convert) is presen
+tests/features.py#46a8a5ce69	33194	C1n: 35%
+tests/features.py#d8b6dcd6e4	33215	C1n: 0.08
+tests/features.py#ba4fd4e9ca	33252	C1n: 1.1
+tests/features.py#bd6218544b	33261	C1n: 1.36
+tests/features.py#0e837b7819	33467	C5: 42 words: The bound is not just for the schema minimum: across EVERY coefficient `presets.derive` ca; C5: 51 words: At the default 70 °C plant ceiling the raw worst across that span is ~63 °C, so two checks
+tests/features.py#381fc5724f	33527	C1n: 63°C
+tests/features.py#e63989fc1b	33679	C5: 43 words: The reference integration builds these from the device's : mode enum, and `pump_mode` read
+tests/features.py#14b3963200	34040	C5: 43 words: When the pump is actually in `heat` no hot water was made, the whole reading is space heat
+tests/features.py#27b52b61e6	34110	C5: 54 words: ``_learn_measured_cop`` compared every interval against ``compute_cop`` — the SPACE curve 
+tests/features.py#88ff61ad6f	34220	C5: 71 words: They exist because ``_detect_immersion`` infers a resistive element from a power meter rea
+tests/features.py#0749dabb60	34458	C1n: 5.0kW
+tests/features.py#e3f163a267	34782	C5: 45 words: D2-s2-02 (round 9) moved the hot side's bound from 15 K over the curve to the supply ceili
+tests/features.py#383ee1fd4a	34851	C5: 42 words: These checks drive a pump generated from the model's own Carnot lift under exactly that mo
+tests/features.py#0e0ebe1a82	34984	C5: 43 words: At a fixed 55 degC the residual passed the clamp, the expected value was clipped as well, 
+tests/features.py#87bfbce765	35378	C5: 57 words: The fault issue reports the baseline in the units of the sample that tripped it: a lift-ke
+tests/features.py#28be5f7023	35404	C1n: 21.0
+tests/features.py#02c7d44d8b	35423	C1n: 38%
+tests/features.py#cf84909c70	35928	C1n: 2.1
+tests/features.py#2009134432	36027	C5: 46 words: The off window below covers the horizon's cheapest hour (04:00-05:00 at 0.62 SEK), with th
+tests/features.py#9446c5494b	36156	C5: 41 words: The REAL coordinator accessor, driven directly (#1960 round 2): the harness stub answers f
+tests/features.py#c727b98b73	36353	C5: 42 words: (3.5, 85.5) is the centre of bucket (3, 1), the bucket (2.0, 80.0) lands in; factor() inte
+tests/features.py#a80f804c17	36894	C5: 45 words: On the wood-coil golden scenario with prices shifted down by 2.0 (68 of 96 steps negative)
+tests/features.py#2b877e1618	36944	C1n: 9.22kWh
+tests/features.py#c228e9f584	36972	C5: 82 words: The bug: DefrostDerate.factor branched on "does this bucket have a duty sample" BEFORE con
+tests/features.py#fdf3b6ebd4	36980	C5: 45 words: (3.5, 35.0) is the centre of bucket (3, 0), i.e. the same bucket the old (2.0, 60.0) lande
+tests/features.py#7672792f61	37164	C5: 45 words: DefrostWindow.close carried _observed into the NEXT interval, so exactly one interval afte
+tests/features.py#515ff5e5c7	37228	C5: 42 words: pump_mode's contract is explicit: "Unknown means full capability, never suppress everythin
+tests/features.py#f9a52c32f7	37516	C5: 44 words: Both figures below are chosen so that judging index 0 as if it were planned returns a diff
+tests/features.py#ebc9da6145	37771	C1n: 0.2823906705539359, 55°C
+tests/features.py#85f270e041	37787	C1n: 46.88376455728481
+tests/features.py#39f45c725d	37798	C1n: 0.1479591836734694
+tests/features.py#960e6647e5	38216	C5: 47 words: The optimizer builds one planner per solve from explicit inputs and passes it down; the pl
+tests/features.py#26d16a6976	38357	C5: 43 words: _run_system_identification writes _current_action["power"] AFTER the solve, so it is the o
+tests/features.py#a8ef7dbfa8	38424	C5: 43 words: #2808 (R10-CEILING-PROBE): an armed experiment that has not started is held, not aborted -
+tests/features.py#ae8afee026	38460	C5: 50 words: The stress gate's shipped presets carry (0.24, 0.24), (23.0, 2.0) and (16.5, 1.5), so the 
+tests/features.py#9e2a8d649d	39605	C1n: 0.05kW
+tests/features.py#ec658703c6	39741	C1n: 55.0
+tests/features.py#21fa507f0e	39897	C1n: 30h
+tests/features.py#40578c564b	39936	C5: 42 words: One such fallback reaching this probe would train the record on a constant on a house with
+tests/features.py#cbf65d3896	40013	C5: 44 words: A house whose plan carries no room trajectory at all still has a tank to promise about, an
+tests/features.py#ad0c0fd409	40221	C5: 47 words: The held figure is the thermostat's, which starts held at its own target whatever the live
+tests/features.py#5ea3dcfbe1	40271	C5: 47 words: Until v5.1.10 the disinfection temperature was folded into `dhw_max_temp` permanently, so 
+tests/features.py#f4a2a765bf	40551	C5: 42 words: The last completion is what is overdue, whatever the attempts did: a cycle with a silent p
+tests/features.py#b596887e64	40854	C5: 43 words: The first cut of this release could not buy that run-up: the floor repair bounded its top-; C5: 41 words: The cycle then arrived at whatever the greedy pass happened to leave in the tank — around ; C5: 57 words: The repair has to be able to buy the run-up, and the capacity clamp has to size its allowa
+tests/features.py#b127feb8f4	40996	C5: 45 words: The bars are the shipped repair's OWN peaks, read the same run: the check above pins those; C5: 68 words: The two absolutes this replaced (59.95 and 59.0) were the shipped peaks minus the same mar
+tests/features.py#742313be79	41046	C5: 42 words: Every later step sitting exactly ON the charge limit therefore read as zero room, the suff
+tests/features.py#f629cc7fe2	41220	C5: 50 words: A closed-form lift ÷ rate ignores the draws and the standby losses the charge pays on the 
+tests/features.py#fdde239f6c	41362	C5: 45 words: The boost tracker used to return early at `target - 1.0`, so a cycle peaking in [59.0, 59.
+tests/features.py#ed237934b6	41649	C1n: 41.9%
+tests/features.py#b5a5e0fbad	41685	C5: 51 words: One hostile entry in an otherwise healthy forecast reached the bare float() at the parse s
+tests/features.py#53be780ffe	41751	C5: 56 words: Each of the 13 raise sites is driven with input that reaches it -- through hass.services.a
+tests/features.py#a33fd4e3bd	41881	C5: 46 words: D10-s1-51 (#2238, class P2): _loaded_entries decides which entries a call acts on, and eve; C5: 42 words: Its preconditions: it drives the whole catalog, each action's payload reaches the handler 
+tests/features.py#89dc58d8fe	42282	C5: 56 words: Run directly it therefore always made the strict, bit-exact comparison against fixtures re
+tests/features.py#70b4bbacc1	42320	C5: 54 words: The half that guards the gate rather than the developer. tests/run.sh's strict lane is the
+tests/features.py#d50c5c63e9	42524	C5: 44 words: #369: the line window was 30 against a longest real duplicated run of 19, so the row could
+tests/features.py#75c43b25e7	42761	C5: 44 words: The categories #370's fourth comment asked for -- a tolerance band and a never-re-recorded
+tests/features.py#4a9e9ce549	42903	C5: 61 words: Driven through table_maxima() on rows shaped exactly as measure() builds them, NOT by call
+tests/features.py#c266c51ec5	43033	C5: 41 words: A property is a member like any other (D7-s3-02: skipping it hid eight of the nine dead me; C5: 45 words: The census still cannot see #1395's own shape -- a member CALLED from live code on a path 
+tests/features.py#12cf919ac8	43288	C5: 44 words: Supplied by the test, the key-set check below would pin only that the two literal halves a
+tests/features.py#3da5663e3c	43895	C5: 41 words: The hook's failure edges, each through the production function: a consumer that refuses be
+tests/features.py#3bd0ed1586	45130	C5: 64 words: An install whose config carries no ``ecl110_*`` topic key -- an on/off-only pump whose use
+tests/features.py#a28a129f83	45221	C5: 52 words: The alternative (any stored topic key stands the shipped defaults in for the others) fails
+tests/features.py#4968b62738	45393	C5: 42 words: Both instruments are the production symbols (the finder's #1230 harness counted simulate_d
+tests/features.py#795cfc9e00	45467	C5: 44 words: Scaling pin 1, the finder's own instrument (#1230): doubling the weak slots must not doubl
+tests/features.py#cae8cab169	45506	C5: 41 words: Null control: a single weak slot behaves as before — the joint check decides it in at most
+tests/features.py#be9d8e72ae	45573	C5: 59 words: So a case exists where the branch raises a slot and the loop zeroes it, and this is one, f
+tests/features.py#30499dd835	45909	C5: 43 words: The same control through the harness spelling, whose worker was never broken: it holds at 
+tests/features.py#9be3f80b9f	46039	C5: 66 words: The production solve sets _CURRENT_ENTRY_ID before _await_optimize so the fallback streak/
+tests/features.py#e52f8e0db6	46101	C5: 47 words: Review round 1, item 3: an entry REMOVED while its worker-fallback cause was latched left 
+tests/features.py#b0b2116307	46151	C5: 44 words: Two entries failing with different causes share ONE issue id, so re-raising on every inter
+tests/features.py#88df637806	46185	C5: 41 words: The RESULT side still degraded on ``payload[0]`` generically, so a reply the child could n
+tests/features.py#7765adda98	46617	C5: 55 words: D1-s2-55 (N-late-try): the try that translates a worker fault into `ProcessWorkerUnavailab
+tests/features.py#a03d72eec6	46808	C5: 49 words: A job that will not pickle -- a model carrying a closure, as the learner tests stub in -- 
+tests/features.py#56618a6017	47087	C1n: 0.556K, 118.5°F, 118°F, 47.78°C
+tests/features.py#5d3cd60974	47238	C5: 46 words: #2492: every cell is on the savings lines' one basis -- the row's actual is the metered en
+tests/features.py#4160259f5c	47529	C5: 53 words: The reference is booked as simulated from its held state (R10-SAV-VALUATION- RESIDUE carry
+tests/features.py#c74a88ae28	47758	C1n: 56.99%, 5.88%
+tests/features.py#d32556a7f2	48013	C5: 68 words: Each interval books the plan's stored-heat change (kW_th), its steady COP and the steady t
+tests/features.py#aa0fb06c32	48206	C1n: 20.5, 22.5, 26.5
+tests/features.py#cb9a165933	48237	C1n: 81%
+tests/features.py#ffdc670f6a	48293	C5: 42 words: The plan starts from the measured house and the thermostat held, so the start's stored-hea
+tests/features.py#3bb5245e98	48319	C1n: 0.06K
+tests/features.py#41ea702e6b	48442	C1n: 11.11
+tests/features.py#b527b24541	48474	C5: 56 words: A pre-heated start (24 C room, above the 21 C cap the end settlement uses) carries heat th
+tests/features.py#26b0bb703f	48615	C5: 65 words: #2492 (2): a summer house that starts above its comfort and ends above its caps saves on h
+tests/features.py#239d7b1cd4	48855	C5: 41 words: 6.9 kW × 0.5 h = 3.45 kWh actual; the booster line takes the 1.15 kW over the 5.75 kW latc
+tests/features.py#42e7380dcd	49210	C1n: 8.9%
+tests/features.py#68d8ff7ef2	49707	C5: 41 words: Two sets that must agree, so both directions are asserted, and each side is read off its o; C5: 57 words: Which set is authoritative -- the slot table, or the smaller set of places the card actual
+tests/features.py#93c36d6926	49772	C5: 41 words: So it is floored against the describer rather than against a hand-written list of names --; C5: 47 words: A regex that reads none of the calls fails this, and so does one that reads only some: the
+tests/features.py#08570224f7	49791	C5: 54 words: A check that reads the constant cannot see the schema borrowing something else -- which is
+tests/features.py#8a8a4b79f8	50149	C5: 63 words: -- ECL110 state payloads: four shapes on the wire, and the malformed arm --- The handler i
+tests/features.py#cc63d144c1	50336	C5: 42 words: MEASURED, AND THE MEASUREMENT IS WHY THIS CHECK IS WORDED AS AN OUTCOME AND NOT AS A GUARD
+tests/features.py#eaefff0e59	50378	C5: 45 words: A SPACE-SEPARATED local time is what the frontend's picker posts, and it is not an ISO ins
+tests/features.py#1868f672c6	50480	C5: 42 words: The mode setter's save writes the whole accuracy store from memory, so a tap during startu
+tests/features.py#189e190aea	50537	C5: 62 words: Two routes lose it at a restart: the setter persisting only at the end of a completed cycl
+tests/features.py#706b8d68bd	50775	C5: 51 words: D1-s2-52: the five cycle writers save their whole payload from memory, and a save that run; C5: 50 words: D1-s2-53: set_thermal_parameters changed 24 of its 26 state-changing fields in memory only
+tests/features.py#8c7bf0190b	50840	C5: 43 words: The gate sits in Store.async_load, the PARENT: QuarantiningStore's own async_load creates 
+tests/features.py#e7b909377f	51084	C5: 42 words: A CHEAP-HOUR override is worth half: the spot is 1.0 against a 2.0 mean, so the relative p
+tests/features.py#6f2616a271	51112	C5: 43 words: A ZERO-MEAN curve has no relative price to learn from, so the override is recorded NEUTRAL
+tests/features.py#316773ca78	51212	C1n: 35L
+tests/features.py#b75e1c4680	51449	C5: 66 words: -- `_async_load_thermal_learning`: one corrupt key must not cost the rest -- The store is 
+tests/features.py#6637f4e074	51668	C5: 46 words: This runs on every refresh over the whole price list, so the two seen-sets are the only th
+tests/features.py#0c66f9b09c	51783	C5: 49 words: But counting every quiet stretch as evidence took the weight to its floor over mild spells
+tests/features.py#83a09c7d55	51944	C5: 49 words: The tracker's defect was an ORDERING, not a missing predicate -- called before the cycle r
+tests/features.py#bbe0c1d959	52197	C5: 42 words: The equality below compares two SEPARATE replays, so it needs the same `dt_hours` on both ; C5: 65 words: Unfrozen, the two replays pick up whatever real wall-clock gap the scheduler happens to le; C5: 45 words: Freezing both replays to one instant removes the wall-clock gap and reproduces byte-for-by
+tests/features.py#34d0612224	52274	C5: 42 words: Null controls: the configured indoor entity still learns (its unconfigured *power* slot is
+tests/features.py#bb67e2c0e0	52634	C5: 58 words: -- `_solar_location`: an option that may be absent, half-filled or junk -- The fallback ex
+tests/features.py#f2f31f42fc	52701	C5: 51 words: The client is replaced for these checks because what is under test is when the coordinator
+tests/features.py#ca167aa1f0	52969	C5: 57 words: The check that matters is not that it returns something but that it returns something DIFF
+tests/features.py#2a67760942	53064	C5: 60 words: -- the #13 tariff masks: a user-typed spec, and what a broken one means --- An empty mask 
+tests/features.py#668391bf0c	53367	C5: 48 words: -- `_async_load_ledger`: money state, and the one rider that may be junk -- The ledger is 
+tests/features.py#fe52375397	53491	C5: 64 words: The claim is ONE save carrying every rider, and it is written as a superset for a reason: 
+tests/features.py#31e3b05e6d	53680	C5: 49 words: At tranche 3's head `coordinator.py` held 334 missed statements against 184 allowed at the
+tests/features.py#e6c5fa239f	53901	C5: 44 words: The plant is two-state (heat lands in the slab, the room sees only k_s(T_s - T_r)), and id; C5: 43 words: But the DECLARED-plant experiment is fitted in the TWO-STATE form (identify_slab, the wave
+tests/features.py#9713a8463e	53967	C5: 63 words: R6-D10-01 (#1401): the coverage ratchet's per-module floor (tests/coverage_budgets.json mo
+tests/features.py#8fa346a05a	54066	C1n: 0.333h
+tests/features.py#6c6166eea3	54231	C5: 82 words: Blocker A of the pre-study's frontier: the 0.8 degC comfort bound keeps dT within ~2% of i
+tests/features.py#175e8fce55	54248	C5: 45 words: A preset's own ceiling lets the sizer : target the comfort bound exactly (peak ~0.78 of th
+tests/features.py#fbfb7889fb	54415	C5: 113 words: Where act 1 above landed the ported intercept ridge behind the #991 gate, this act lands t
+tests/features.py#3caa3bc222	54473	C5: 50 words: The round-7 D7 harness measured the consequence -- a noise-free step response whose true f; C5: 51 words: The fixed-width ridge is a deliberate mitigation (-91/+112 % UA bias unridged at sigma=0.0; C5: 49 words: Null control: a result whose intercept-prior term is absent (the fabricated results above,
+tests/features.py#a46c74cbb5	54710	C5: 177 words: Both findings sit downstream of the #1329 arm gate: the two-state fit now RUNS where the g
+tests/features.py#9786766a8b	54915	C5: 57 words: The option is EDITED after construction, which is the only way to see the push happen at a
+tests/features.py#418e4bba89	55051	C5: 41 words: The reported value prefers a separate sensor, because a setpoint register echoes the last 
+tests/features.py#ce0ad1f439	55131	C5: 50 words: The store loader and the snapshot restore both come through here, so the two paths cannot ; C5: 41 words: Nothing here asserts a whole production dict. #851 went red on `main` because an exact-equ
+tests/features.py#84793be6a7	55625	C5: 51 words: The arms below are the ones where degrading wrongly is silent: a valve target read as 0.0 
+tests/features.py#f938b09a5e	55987	C5: 79 words: The five rules the earlier tables cost, applied and not restated: an input makes the guard
+tests/features.py#e6ce09272c	56234	C5: 42 words: The seven are checked together because the claim is identical across them and a check per 
+tests/features.py#e2ffb6d24c	56305	C5: 42 words: -- `_async_load_energy_totals`: accumulators that may not go backwards --- Home Assistant 
+tests/features.py#bb0f33e908	56686	C5: 48 words: The two estimate the same quantity from different evidence, and averaging a measurement wi
+tests/features.py#d27eed8376	56770	C5: 43 words: The defrost fallback infers from that same `delivered_ratio`, so an immersion interval boo
+tests/features.py#775f7ac1d6	56904	C5: 43 words: Chosen by the partition instrument rather than by eye: at 95.91 % these are what stood bet
+tests/features.py#e03d0542b9	57047	C2: tools/audit/w5-partition/partition.py
+tests/features.py#b677126ae9	57337	C5: 54 words: Unlike block A these are not persistence: they are what the integration SAYS to the user -
+tests/features.py#2661e6f94f	57607	C5: 43 words: Between them, a dedicated holiday calendar, the one-shot helper migration, the away set-ba
+tests/features.py#a07dfc53ed	58641	C5: 46 words: R5-D1-06 (#1297): the Tibber path copied `total` raw where the entity path's `_raw_value` 
+tests/features.py#9a3e13220b	58849	C5: 45 words: `dhw_learning.py` and `legionella.py` left `coordinator.py` as classes in #750 and #771, a
+tests/features.py#267c8ffed6	59458	C5: 46 words: `repairs.py` and `datetime.py` are Home Assistant surfaces rather than logic -- a Fix butt
+tests/features.py#7717395928	59688	C5: 41 words: It runs a real experiment on a real house -- it injects power overnight and watches the ro
+tests/features.py#70a3b7dda2	60434	C5: 43 words: Read by name alone, the same records give up the supply slot: the Rotenso file names both 
+tests/features.py#4cbbffd15b	60504	C5: 41 words: The signature: a Tuya heat pump of some other model, carrying none of the pairs unique to 
+tests/features.py#79382ee21d	60534	C1n: 2026.9
+tests/features.py#263ba273bd	60743	C5: 44 words: It guesses, so the acceptance is not how many roles it fills but that it fills none wrongl
+tests/features.py#9e9e47ed2b	60937	C5: 53 words: The same rule biting on a pinned source rather than a synthetic pair: the Rotenso file nam
+tests/features.py#c58c977abc	61911	C5: 43 words: Inside the grace the record is kept (Home Assistant's startup race looks the same); past i
+tests/features.py#dcda559170	62434	C5: 49 words: The repair is the reverse mapping -- what each question's answer looks like once derive ha
+tests/features.py#ff1c2cf0a4	62965	C5: 48 words: The two bounds are exclusive at the floor and inclusive at the minimum on purpose: the flo
+tests/features.py#e156b53516	62987	C5: 42 words: The class D2-01 named and repaired in `thermal_model.py`: a store's capacity floored by `m; C5: 49 words: The floor is a COEFFICIENT wherever it scales a rate, a decay or a loss per hour -- the co; C5: 46 words: Each fixed floor binds only at a tank volume the service call `SERVICE_SCHEMA_SET_THERMAL_
+tests/features.py#49929a5f4e	63072	C5: 43 words: Since R8-P3 round 2 `_dhw_coil_wood_forecast` IS the physics (`simulate_trajectory_with_dh
+tests/features.py#864f391211	63126	C1n: 0.0058, 0.232
+tests/features.py#da6f8f6eff	63140	C5: 43 words: `_plan_dhw_min_cost` is the sharpest witness: the floored capacity is the ONLY way the arg
+tests/features.py#3434fb215e	63177	C5: 49 words: It is the one place the floored capacity reaches the search's SHAPE rather than its scale:; C5: 61 words: At 17.24 L (0.02 kWh/K), 3.0 kWh/h/K, a ceiling of 60 for four steps and 54 for eight, and; C5: 48 words: Its block count is not fixed by that null: it follows the price of a block, and it reads f
+tests/features.py#dc56778df6	63206	C5: 47 words: Floored, a 5 L tank was credited with 8.6 times its own capacity, so the sweep reported a 
+tests/features.py#cef7458c24	63231	C5: 41 words: Pre-fix the folded energy per kWh/K is 30.34 at 5 L against 3.52 at 200 L -- the floor's o
+tests/features.py#15915ffb5c	63540	C5: 43 words: The draw fold persists a tick only above a 1e-4 kWh churn floor, for the energy it folds a
+tests/features.py#0251f60fb8	63751	C5: 44 words: The repair arm's ceiling falls by only half a degree: its decay prices how much of a top-u
+tests/features.py#3945f4ca78	64433	C5: 43 words: A step the plan gives both duties is split, not handed to the pump's own thermostats (tvof
+tests/features.py#5f644ac7f9	64504	C5: 54 words: R10-HOTFIX-BOOST-FLOW-CEILING (tvofi, 2026-11-13: a space boost wrote 41, then 43, not his
+tests/features.py#743763afb8	64799	C1n: 34.2
+tests/features.py#3e4d737ae2	65071	C5: 43 words: The restored value, not only the count: since R10-HOTFIX-FLOW-SETPOINT-STUCK an own write 
+tests/features.py#e33207b100	65709	C1n: 34.2degC
+tests/features.py#12bda849fa	66156	C5: 44 words: D1-s2-54: apply_manual_plan accepted an expires_at as far out as the caller cared to send,; C5: 42 words: The clamp lands in build_override, the one constructor every apply goes through, so no ove; C5: 42 words: D1-s2-03: a stored sample count past int64 parses into the coordinator and then wedges the
+tests/features.py#6ce9a4346b	66421	C5: 44 words: D14-s1-01, the fuse advisor's store read (F1.6): the stored stamp loads through the stored
+tests/features.py#9c7405706b	66453	C5: 56 words: What the arbiter restores is a record it could have written; an apply queued before an unl
+tests/features.py#3453ea8e6d	66697	C5: 50 words: D1-s3-06: a stored bucket outside the domain observe() can fold -- a decile index outside 
+tests/features.py#1acaf40eae	66719	C5: 64 words: A learner store loads into the domain its own update path writes, cell by cell, through th
+tests/features.py#35c6d5ff99	66834	C5: 57 words: F1.6 note: the 1e300 spellings this pin once seeded are the store boundary's now (a magnit
+tests/features.py#43b9092019	67130	C5: 45 words: The invariant is read on the published learning view: a fit that was not adopted is never 
+tests/features.py#f3f76f8afe	67528	C5: 45 words: It reads every slot's accepted domains from both producers (the config and options flows' ; C5: 62 words: Design choices it encodes: `_P6_IMPLEMENTS` is Home Assistant's entity services per domain
+tests/features.py#4260b7f2c9	67569	C5: 62 words: : Slots that accept a commandable domain yet are only read, with the reader. : A slot that
+tests/features.py#eafaf7c5ae	67876	C5: 52 words: The null arm: with the flag off a direct plant prices the buffer at the weather curve's ow
+tests/features.py#d5ee4a789d	67977	C5: 47 words: A per-step planner seam (`_dhw_cop_profile`) prices each step at ITS humidity; a mean-outd
+tests/features.py#36d147faf2	68032	C5: 47 words: The coordinator's capacity envelope (#17) turns each FORECAST step's learned thermal ceili
+tests/features.py#1089ee988d	68067	C5: 44 words: The round-10 I1 sweep (dev/audit/rounds/round10/sweep-I1.md) enumerated the `<seq> and i <
+tests/features.py#f7081fc8a8	68333	C5: 57 words: The callee set is read from the parsed defs themselves (ThermalModel's methods, the optimi; C5: 43 words: It is keyed on the function, the callee AND the source text of the call's first argument (
+tests/features.py#f117a8c80c	68503	C5: 56 words: The away setback used to be written into the LIVE ``_opt_config.target_temp`` for the solv
+tests/features.py#5b2d74a006	68519	C5: 48 words: Aware, so the price and forecast stamps and the frozen clock name one instant in any ``HAS
+tests/features.py#b3d4bd7eda	68806	C5: 60 words: The full-price floor made the two-zone landscape steeper where a descent crosses the floor; C5: 47 words: THE VERDICT KEYS ON THAT CONTINUATION'S OWN GAIN -- this solve against the same solve with; C5: 65 words: That 0.1 was the measuring platform's own margin, not a bound below it: one tree read +0.1; C5: 48 words: Measured at 23d354970 on Apple M1 (numpy 2.4.6/Accelerate, python 3.
+tests/features.py#5360acecfc	68876	C5: 53 words: The seeds anchor on the reference, so each reference change moves which start temperature 
+tests/features.py#351ac14168	69026	C5: 43 words: D2-s3-02 (N-sign-floor): the import margin was floored at zero, so where the import price 
+tests/features.py#afc5cbe5b8	69068	C5: 48 words: The cost pins count what the finding's cost metric counts -- calls made while the solve ru
+tests/features.py#2cfee28061	69273	C5: 43 words: The scenarios step the per-step ceiling down after a boost window, so a chunk that reads t
+tests/features.py#03fa9cfd28	69426	C5: 53 words: The windowed pattern's two fallbacks, now in the memo's compute helper: a learned pattern 
+tests/features.py#386f4aef98	69463	C5: 82 words: The first two are the finder's named single-zone points; the third the two-zone grid point; C5: 64 words: The property is the maximum principle a passive RC network obeys: a zero-input day from st
+tests/features.py#0e43a3c8b6	69587	C5: 56 words: The count reads the step's own clamps: a design delta-T under 1 K, a COP under 1 and an em
+tests/features.py#d8a9fb3351	69622	C5: 47 words: D2-s1-02: across the coil, the heat the wood tank loses equals the heat the DHW tank is sp
+tests/features.py#e727b3105e	69818	C1n: 10.0
+tests/features.py#e9b367f0be	69856	C5: 57 words: Each fix enumerated its siblings with a rule keyed on its own instance's text (a grep for 
+tests/features.py#9abc59c7c6	70135	C5: 47 words: Any binding of a REASON_ name in optimizer.py, at any depth and in any form (plain, annota
+tests/features.py#bf72e6f3bb	70207	C5: 41 words: (b) The floor price of one zone-kelvin below min_temp is the same in every topology and in
+tests/features.py#1b7f323b67	70246	C5: 41 words: One production experiment per preset, in both derivations, on a production ThermalModel of
+tests/features.py#859d177fb1	70434	C5: 41 words: The hidden zones' and slab's derivatives do not read the hold's heat, so one short unpower
+tests/features.py#2efc45153c	70462	C1n: 15%, 0.14%
+tests/features.py#610c06dfb7	70519	C5: 73 words: On a fixed-speed pump -- min == max, which config_flow._power_errors accepts -- the plan-s; C5: 53 words: The plan side now reads the plan's own running rule -- the floor the solve's bounds alread
+tests/features.py#6a86556f4e	70573	C5: 51 words: The plan prices space + dhw (_build_result's total_power) and counts a compressor start on
+tests/features.py#cd58a2e201	70618	C5: 58 words: The grid straddles the floor at 0.0999 / 0.1 / 0.1000001 and carries a two-circuit row, an
+tests/features.py#bc6e67b66b	70675	C5: 57 words: The fallback arm of the published action: a result with no on schedule to read must decide; C5: 42 words: 0.15 kW on a 1.0 kW plant is the row that separates them: the plan books it, so it runs an
+tests/features.py#c55bcad7b7	70696	C5: 61 words: This took the threshold from its caller, which handed it the METER's, and split the two ci
+tests/features.py#7fb5042646	70744	C5: 51 words: The rule is a line reading BOTH the attribute and the 0.5 factor, not a fixed operand orde
+tests/features.py#c1940338a3	70773	C5: 66 words: Two instances the S5 enumerator's qualname keying could not reach: RC-rca1, tariff.peak_co
+tests/features.py#6aad53bb78	70793	C5: 64 words: Seven plans spanning every branch the twin's row body reaches: separated peaks, the full p
+tests/features.py#73b7a3c941	70832	C5: 45 words: Both arms must hold their branch shape at every size: tiled separated rows stay separated,
+tests/features.py#b7e3bb725f	70864	C5: 88 words: RC-rca1's parity pin: every row of the twin is peak_cost_smooth on that row's plan, byte f
+tests/features.py#164297a989	70953	C5: 76 words: RC-rca2's cost pin: the twin must not build a name-keyed ends dict per row and walk the st
+tests/features.py#46819b453a	71025	C5: 73 words: RC-rca2's parity pin: every row of the twin is the scalar closure on the same end temperat
+tests/features.py#ef358068fc	71053	C5: 54 words: The multi-start's own runs take both from one batch (R9 D9-s1-02); the two runs that move ; C5: 44 words: The census asserts its own preconditions -- one solve that runs the continuation, the comm
+tests/features.py#09be2dc22c	71092	C5: 48 words: The reference arm spells L-BFGS-B's step itself (1e-4, the shipped value) rather than read
+tests/features.py#0282a60819	71279	C5: 42 words: The enumerator arm keeps both sides complete: every declared quantity SystemIdentification; C5: 50 words: One night cannot separate unmodelled free heat from heat loss: a fit with the prior loosen; C5: 48 words: Free heat past the band is a wrong PRIOR, so the +0.4/+0.8 kW nights (#1655) arm on the pr
+tests/features.py#4a6929d726	71424	C5: 59 words: On the older derived single-zone presets (four structures x pre-1960 and 1960-1980, floor 
+tests/features.py#c9bb8348bc	71502	C5: 95 words: The barrier the round-10 P5 sweep proposed, as a census: every CUSUM whose trip ``_learnin
+tests/features.py#a0d0331405	71538	C5: 46 words: Three bias shapes, each peaking at the bias: steady; scaling with the interval's heat inpu
+tests/features.py#e480e3392c	71927	C1n: 3.2s
+tests/features.py#90c56045b3	71993	C5: 43 words: The block runs on a frozen clock, and the manual plan's expiry is derived from it: the sto
+tests/features.py#680e50ca38	72444	C5: 54 words: A solve used to write its own effective values into them in place -- this solve's tariff, 
+tests/features.py#c1faa15bf4	72654	C5: 41 words: A record that merely SHARES a container with one is #240's race again -- the worker mutate
+tests/features.py#91ee859577	72833	C5: 60 words: Before #1736 the solve left its values in the hubs and the card agreed with the solve by c
+tests/features.py#2631fbe819	72846	C1n: 0.2, 3.5
+tests/features.py#7a3840414e	72923	C1n: 2.3kW
+tests/features.py#a69f9c60b2	73098	C1n: 3.38kW
+tests/features.py#02a7713b33	73530	C5: 58 words: Driven through the real coordinator's listener API: one row per newly published payload (a
+tests/features.py#069afe82fd	74510	C5: 43 words: Written as a flow set-point is -- the inlet plus the lift at the floor, the ceiling at ful
+tests/features.py#0e6d4aebca	74595	C5: 70 words: The valve was removed when R10-BUFFER-STORE made a valved tank a live store in the single-
+tests/features.py#139287528c	75035	C5: 64 words: A draw departing from its ask by more than 15 % before the meter has shown whether the dra
+tests/features.py#497fc57504	75146	C5: 41 words: A switch-back window -- 0.45 h hot water, then 0.05 h space, under a space-only plan -- bo
+tests/features.py#7e8cf43618	75373	C5: 63 words: The guards' own boundaries, judged on the functions rather than through a cycle: every che
+tests/features.py#a57df644c9	75499	C5: 42 words: The floor the COP fold, the flow-lift fold and the diagnostics read is now draw_range.powe
+tests/features.py#44fb8cb674	75687	C5: 56 words: One install's run-asked window, its shape reproduced synthetically (no row of it): 90 pair
+tests/features.py#15eec5cfb5	75719	C5: 60 words: Each half of the judgement on a window only it refuses: asks spanning 1.2 (under DISAGREE_
+tests/features.py#0018933e42	75733	C1n: 15%
+tests/features.py#6bd64cee95	75754	C1n: 4.2kW
+tests/features.py#4ea8864938	75799	C1n: 4.2kW
+tests/features.py#f15c4b12d8	75850	C5: 45 words: The wait is inclusive at age zero: a row released on the instant it was stamped (a replaye
+tests/features.py#5139f1f18f	75893	C5: 42 words: Released after the live scale has reached 0.72, it must leave the scale where it is; read 
+tests/features.py#7773035af3	75958	C5: 41 words: A release sits behind the learner's freeze gate and its missing-reading guard: a cycle the
+tests/features.py#cfed31f13c	76049	C1n: 4.2kW
+tests/features.py#b037aaced1	76119	C5: 43 words: Once the running-draw window shows it does not (follows_ask False), an interval that lands
+tests/features.py#65c7815266	76133	C1n: 4.8%
+tests/features.py#2805c3c858	76153	C5: 57 words: The observability state the payload publishes: a heat reading (the heat counter, or the th
+tests/features.py#9839135687	76203	C5: 42 words: A measured COP sample, and with it the COP health watch, needs a heat measurement for the 
+tests/features.py#8f67a64535	76333	C5: 49 words: The migration: bands stored before this fix were recorded without a heat measurement on at
+tests/features.py#d28143a9a8	76737	C5: 43 words: The booking guard: the line is restated from live sensor state every settlement, so one no
+tests/features.py#a85c1518f4	77313	C5: 63 words: (A) The flow set-point a step that does not heat writes is the gate (FLOW_GATE_C, or the e; C5: 44 words: (B) On an install the arbiter drives through a flow set-point, the draw is capped by the s
+tests/features.py#beef61b956	77546	C5: 58 words: (C) Set-points are written on the entity's own step, whole degrees where it states none (t
+tests/features.py#5bbc1aaf14	77706	C5: 45 words: "return"): the paths the developer's checks reach only through ``_flow_target``'s heating 
+tests/features.py#eb74af4685	77821	C5: 66 words: The gate is a supply number (25 degC is below any heated supply) and so is moved to return
+tests/features.py#6f113d4f22	77924	C5: 73 words: Every cell drives the production ``desired`` (each duty and the baseline) and ``_flow_comm
+tests/features.py#d7b52eb491	78264	C1n: 30min
+tests/features.py#f3b06ffe83	78291	C5: 75 words: The health record keeps the reason a flow reading was refused, and no value, by the reader
+tests/features.py#f0004d12d3	78534	C5: 72 words: Pinned below, in order: the model's substitution on both zone paths, the value that reache; C5: 49 words: 15 L/min at 0.998 kg/L over the planted 5 K drop is 5.222035 kW: the figure the R9-UX-9 bl
+tests/features.py#6cc8d70262	78576	C5: 50 words: The single-zone step's room rate carries no heat-input term -- `_single_zone_rates` puts `
+tests/features.py#c665e3f8e0	78644	C5: 47 words: The outranked arm configures the pump's power meter, and its learner has to reach the repl
+tests/features.py#8f6974cff1	78727	C5: 55 words: The precedence rule and the refused-reading paths, each at the learner's own input rather 
+tests/features.py#8d346bcd4e	78825	C5: 59 words: One sample's fit cannot show it: `learner_newton_step` moves a single sample HOUSE_LOSS_AL
+tests/features.py#b9c31145ea	78930	C5: 76 words: 251 CMP_BOUND, both bounds of _planned_room's chain, driven DIRECTLY and FIRST in this sec
+tests/features.py#71990efd00	79106	C5: 43 words: An early refresh (a mode change, a manual plan, a button) re-arms and would write the plan
+tests/features.py#b2b94121a9	79260	C5: 73 words: The #2329 release/detach path, asserted DIRECTLY rather than only through the gc/weakref p
+tests/features.py#3ae612c329	79501	C5: 43 words: Every set-point write -- the arbiter's slots and the smart_write valve -- picks the unit b
+tests/features.py#ccb8548e9d	79656	C5: 44 words: A water_heater DHW slot (Luxtronik's domestic_water, for one) carries its target as the ``
+tests/features.py#61b73b1490	79689	C5: 49 words: The same slot in a degF instance: min_temp/max_temp are read in the instance's unit and co
+tests/features.py#6daeb760c9	79710	C1n: 2026.9
+tests/features.py#438c02e5cb	80047	C5: 60 words: R10 round 3 (#2351): the stale-plan hold is reached only while stale, and its text renders
+tests/features.py#a3f284db13	80107	C5: 49 words: R10 round 6 (#2351): a failed solve starts as an ERROR carrying its traceback (the pre-lat
+tests/features.py#67f5d29ef2	80237	C5: 58 words: The oracle is the production symbol `hold_demand_kw` (`_hold_kw` above): its docstring own
+tests/features.py#30723c065a	80279	C5: 51 words: The refuted D-2's residual (catch-up judge, 2026-10-15): the number `SysIdResult.as_dict()
+tests/features.py#03d90ae533	80310	C5: 51 words: It only feeds `solar_fraction`, which shapes the solver's initial guess, so the property p
+tests/features.py#7b6c21951a	80390	C5: 81 words: It says nothing about how hard a hot-water tank is to heat, and it used to pick a second l
+tests/features.py#6dd5457823	80430	C5: 56 words: The one-sided rule, the reason the identity above is the fix and not a relaxation: below t
+tests/features.py#05f9ecc46d	80459	C5: 46 words: No production reader runs off the loop (D7-s3-54, weakened to hygiene), so this is the cha
+tests/features.py#a1c4aacd29	80540	C5: 55 words: The fold is behaviour-preserving by construction (the inline expression and plan_step.plan
+tests/features.py#e0b67e5239	80571	C5: 67 words: The control that the comparison reads the instant it is handed at all: the same drive agai
+tests/features.py#8c6a72e164	80595	C5: 43 words: The solve's anchor and the arbiter's ledger step are the same concern -- the optimizer's p
+tests/features.py#d6e28a36d7	80683	C5: 48 words: At adoption, the boost overlay rewrote the running action's power for its channel and left; C5: 42 words: The seam is reason tagging at booking and at classification: every booked interval names t
+tests/features.py#20726a93e9	80769	C5: 63 words: The rule is the REASON's, not the meter's magnitude: a channel the plan ran explains its w
+tests/features.py#f13fcebf5f	80822	C5: 51 words: The pure partition, pinned arm by arm: a channel whose reason says the plan drew nothing (
+tests/features.py#33d1dd4385	80917	C5: 61 words: The census is the rule, not the sites it happens to find: each dict-literal action handed 
+tests/features.py#d37d24ed37	81009	C5: 52 words: The flat-price control the roster carries: with one price for every hour, a reason's cost 
+tests/features.py#9deb07459f	81623	C5: 54 words: It answers ``read_heat_output_kw`` alone whenever it is configured; with an electrical met
+tests/features.py#25daeb5f73	81725	C5: 44 words: A direct plant whose supply follows the weather curve, whose true COP is 0.9 x the model's
+tests/features.py#a5628f2611	82282	C5: 56 words: R10-COP-PARTLOAD round 2: heat = cop * P * (1 - d * (P - p_min) / band) has slope cop * (1
+tests/features.py#ef67ab399e	82363	C5: 50 words: With a derate the forward relation is quadratic in power, so ``heat / cop`` understates th
+tests/features.py#b2f5488b00	82382	C5: 48 words: The band's edges are taken exactly, not through the root, whose float at the edge can land
+tests/features.py#d3809a4e3b	82720	C5: 51 words: A ``total_increasing`` kWh counter of the heat the pump delivered is read per span (``heat
+tests/features.py#5374b827ee	82822	C5: 47 words: An integer-kWh counter: the span is fixed in time, so its delta is the true heat quantised
+tests/features.py#b22dc93104	83063	C5: 45 words: Per cycle the COP fold on a counter install stops at the span (its gates still run); at th
+tests/features.py#71458287df	83200	C5: 43 words: The per-cycle gate a learner ANDs: a freeze, the boost freeze and ventilation all gate; th
+tests/features.py#dc6baf81a7	83279	C5: 54 words: Three 20-minute presses back to back, each cancelled, added the heat of one hour-long boos
+tests/features.py#6686d290b7	83315	C5: 42 words: (a) The sum clears only once a tail ran out with no boost live: a short press after the se
+tests/features.py#613b9ce7d2	83440	C5: 55 words: (f) Both directions of the boost store, through ``restore`` itself at ``BOOST_STORE_VERSIO
+tests/features.py#38331ac3bc	83668	C5: 78 words: The fixer's own pass over every added line: the tail runs out at its own instant, not a se
+tests/features.py#e87f06382b	83762	C5: 42 words: A hot-water charge inside a counter span (the dwell saw it): the cycle has no space interv
+tests/features.py#1e13a09e15	84444	C5: 41 words: #2968's residue (R10-SAV-COMFORT carry 8): the switch is written off at the step boundary,
+tests/features.py#a5b4f46914	84678	C5: 42 words: Each null control is the same run with ``_lead_mode`` replaced by a no-op (today's order):
+tests/features.py#410032a9dd	84825	C5: 59 words: The same rows with the minimum pause engaged (``supply_hold.hold_supply``, the switch off 
+tests/features.py#fade91f08b	84918	C5: 42 words: The cycle's write lands in the step after the one its action was cut for (a reload's cold 
+tests/features.py#48ecff9b3a	85004	C5: 43 words: Null control: a write landing in the action's own step issues the same calls in the same o
+tests/features.py#7d45d091bf	85039	C5: 46 words: A re-solve, a cycle or a step tick inside a step must neither stop the compressor minutes 
+tests/features.py#8388ac409b	85408	C5: 51 words: Which writes the gate holds, one input changed at a time against a held write: the plan mo
+tests/features.py#6792977575	85922	C5: 42 words: A day of quarter-hour reads of six stops an hour apart, from six hours on: nothing moves; 
+tests/features.py#094db92280	86177	C2: _feedback_sent
+tests/features.py#22e53c2717	86199	C5: 42 words: On the default indoor unit the set-point is the planned room temperature (21), which any r
+tests/features.py#0abf862af7	86820	C5: 56 words: Only the arbiter (which reports and reads the split), the sensor (which publishes) and the
+tests/features.py#be716a7feb	86978	C1n: 2025.2, 3.14
+tests/features.py#159e46ce20	87032	C5: 43 words: The system-identification experiment gains a second kind, the ceiling probe: it commands t
+tests/features.py#46bc710732	87932	C5: 42 words: Item D6: the previous plan handed to the next solve as a start is clipped to that solve's 
+tests/features.py#65ef64d1b6	88240	C5: 41 words: R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30; probe r10-live-away-heating): an away flag fr
+tests/features.py#2e495819ea	88807	C1n: 26.25C, 2.625
+tests/features.py#01e5a9c7d1	88827	C1n: 88.9
+tests/features.py#853ce465a2	88829	C1n: 14.3
+tests/features.py#84d4730c19	88838	C5: 59 words: The other side of each bound (diff mutants at 9cde30560): a 12 h step floors the forecast 
+tests/features.py#83b0c7d450	89393	C5: 41 words: The pump's capacity is the held state's other bound, valved or not: at -25 C a 4 kW pump c
+tests/features.py#0cc501775f	89490	C5: 45 words: Carry 9: on an install's own parameters (the owner replay's entry: two zones, valve ``manu
+tests/features.py#546d788033	89544	C5: 59 words: Where the plant's ceiling is not the bound the held state keeps the level floors part 1 bi
+tests/features.py#2ea17568cb	89570	C5: 43 words: note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b): a water set-point; C5: 65 words: The controller: start when return <= register - hysteresis; a 3-minute start programme at ; C5: 50 words: Draw P = 0.5 kW at 26 Hz rising 0.0269 kW/Hz (1.2 kW at 52 Hz, 1.95 kW at 80 Hz, Run A); t
+tests/features.py#2bcdc97954	89724	C5: 57 words: The wind-down from the 52 Hz start programme (1.2 kW, 2.3x a 0.53 kW plan) is bounded by k
+tests/features.py#2bbbb80a2a	89756	C1n: 31.9degC
+tests/features.py#2a4fe264a8	89771	C5: 45 words: A 0.5 K entity step (Run B's) rounds the target onto a grid as coarse as the 0.5 K the con
+tests/features.py#8ae5c08536	89921	C5: 43 words: The gate is the value that means off, so no controller upper limit may bring a heating wri
+tests/features.py#975bab8122	89982	C5: 41 words: The same property on every sibling of the sensor in the loop's upper bound and at every en
+tests/features.py#912ddef29f	90008	C5: 52 words: The sibling write paths of the space set-point (the indoor target, today's open-loop targe
+tests/features.py#ffe0e167f3	90190	C1n: 0.053kW
+tests/features.py#c7e94be1b9	90356	C1n: 0.125kW
+tests/features.py#a2d50753b4	90399	C5: 60 words: The bounds: a learned 0.4 K stop gap holds the target 0.2 K closer to the inlet (FEEDBACK_
+tests/features.py#1bea03a4a6	90435	C5: 48 words: The off restore's edit adoption (R10-ARBITER-OFF-RESTORE's _edited) reads the space slot b
+tests/features.py#3221068ebf	90457	C5: 41 words: The dropped record is the run's prev_c, kept until a write replaces it, so an unarmed key 
+tests/features.py#83d27dda43	90506	C5: 58 words: Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on paths that are neit
+tests/features.py#d3498916df	90558	C5: 60 words: Where the fact stops mattering or ends: once the person moves the controller (25.0) the ar
+tests/features.py#0ce4340485	90689	C5: 46 words: The design, stated here and not read from the code under test: the house learner freezes o
+tests/features.py#4520811c32	90939	C1n: 8.2, 8.5
+tests/features.py#524125ff2b	90952	C5: 42 words: Equal draw on both sides of the switch: the boundary is inside a run, so its start share i
+tests/features.py#391fb1548f	91013	C5: 50 words: Restated in R11-OUTSIDE-HONEST-STARTS-RUNS: the weight above is what the relaxed descent p
+tests/features.py#2629a4241c	91326	C5: 49 words: The reading takes the start as it comes: the cap, the running threshold and the clamped pr
+tests/features.py#9144b6738b	91495	C5: 62 words: The duty-cycle install's day is 2 K colder since R11-OUTSIDE-HONEST-STARTS-RUNS: with a st
+tests/features.py#95d4f4d3ee	91582	C5: 45 words: That order raced two independent multi-start descents, and nothing in the stage holds it: ; C5: 100 words: What the stage does hold is asked in its place, inside the priced solve alone, where the b
+tests/features.py#79ed788851	92112	C5: 43 words: Item r14, restated in R11-OUTSIDE-HONEST-STARTS-RUNS: no objective rounds the space level 
+tests/features.py#a9858ca528	92268	C5: 43 words: The incumbent handed in asks for the whole compressor in every step, so the re-plan differ
+tests/features.py#e262de14f2	92550	C1n: 0.07, 0.39
+tests/features.py#3762efcd4a	92859	C5: 48 words: Generated relaxed plans (300), caps, forced steps, both step widths: every mask's on steps
+tests/features.py#bf91485a92	92938	C5: 45 words: On a realizable plan the program is the identity only where nothing can be bought (design 
+tests/features.py#bcbf86c10b	92969	C5: 69 words: Each clause below is the boundary a pin drive left alive under this script: the running ru
+tests/features.py#8d39981731	93174	C5: 54 words: The fixture is the plan the same house ships clamped at no price, which already runs, hand
+tests/features.py#ab86292f14	93297	C5: 43 words: Identity on a plan that already runs is the stage's, not the program's: the program buys t
+tests/features.py#580138ee12	93337	C1n: 0.55, 0.83
+tests/features.py#e051fc39e5	93686	C1n: 6.4K
+tests/features.py#cf7c5f208a	94237	C5: 45 words: S7 (owner ruling D1, 2026-11-15): a meter reporting its window's average gives an element ; C5: 51 words: Six offsets inside a 60 s and a 30 s window (offset 0 fills its window and is over from it
+tests/finite_boundary.py#d61b90a11a	1	C5: 61 words: **Arm 2 — the reach sweep.** For every store, the healthy payload's numeric leaves are sub; C5: 50 words: Null controls: the healthy payload through the same loaders reaches nothing non-finite (th; C5: 77 words: **Arm 4 -- the class sweep (round 9, class P1).** Every leaf kind, every container, every ; C5: 86 words: **Arm 5 -- the store version seam (#1740).** Over Arm 1's constructi
+tests/finite_boundary.py#4b3f4deacc	130	C5: 45 words: The enumeration rule: walk the package's AST; a ``Call`` whose callee is the bare name ``Q
+tests/finite_boundary.py#be5695f2cd	549	C5: 50 words: Each row is the smallest input on which one conjunct decides the answer alone, so replacin
+tests/finite_boundary.py#05a011f494	704	C5: 59 words: Three placements of the same NaN-returning ``native_value``: on a mixin whose runtime base
+tests/finite_boundary.py#484e4686a4	752	C5: 41 words: Home Assistant 2026.11 moved the climate temperature API to the native names and made the ; C5: 59 words: One stub entity, defining only the native members, is built against a base class of each s
+tests/finite_boundary.py#31922de8a5	877	C5: 55 words: Every entity whose state is a number publishes None, or the number it published before, wh; C5: 45 words: Its preconditions are asserted, not assumed: a sensor whose state class or unit says it pu
+tests/finite_boundary.py#8b0e1e6bfd	1464	C5: 43 words: ``when`` is aware; each naive leaf is written as its wall time in ``zone``, the zone the s
+tests/finite_boundary.py#df30f06d84	1501	C5: 42 words: What ``QuarantiningStore.async_load`` hands the loader is recorded, and none of its instan
+tests/finite_boundary.py#3eb222d27e	2170	C5: 45 words: The seam rule (D7-s2-58): at most two positional parameters, a return of ``float`` or ``fl
+tests/finite_boundary.py#2574ee4d74	2342	C5: 42 words: Each store is seeded with its healthy payload stamped at its own version (the control: not
+tests/finite_boundary.py#754872d655	1018	C5: 94 words: The class is wider -- "a non-finite OR MALFORMED value crosses a persisted- store boundary; C5: 77 words: * seeding: every store written by its real saver after its sections are populated, at an A; C5: 54 words: * oracle, after the real loaders and the real consumers (publish, the snapshot restore pat; C5: 76 words: Its limits, stated so nobody reads more into a zero: a finite value 
+tests/finite_boundary.py#b78abe74c4	1674	C5: 50 words: A stored key spelled like a trie declaration ("" holds a leaf's Domain, "~" a map key's) i
+tests/finite_boundary.py#58396e5da6	1774	C5: 41 words: Arm 4 refuses poison and magnitude; it cannot refuse a finite value outside the domain onl; C5: 47 words: * out/in: every bounded field (and bounded key) substituted just outside its domain comes 
+tests/finite_boundary.py#0640c5d1cc	2258	C1n: 35.0
+tests/finite_boundary.py#fbef2a9db7	2549	C5: 49 words: The ledger's own hook migrates a v1 document alone: any other major -- a newer one the 202
+tests/frontend.py#847decbfcb	1	C5: 46 words: These paths had no coverage, and a bug in them is unusually hard to diagnose from the outs
+tests/frontend.py#3c17b45b12	43	C5: 52 words: Importing the real package would pull in the solver and its dependencies (see the module d
+tests/frontend.py#4d6bbb0d25	226	C5: 47 words: The fixture carries a STALE entry for our own base URL, so reading `.data` and not reading

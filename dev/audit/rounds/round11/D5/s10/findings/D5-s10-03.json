@@ -1,0 +1,37 @@
+{
+ "id": "D5-s10-03",
+ "scope": "D5-s10",
+ "step": "D5.M4",
+ "title": "session-start.sh header miscounts its own report and cites a 'HANDOVER trap 11' that does not exist",
+ "severity": "low",
+ "claim": "session-start.sh's header says the behind-main lines are 'the fifth and sixth lines' and the trap 'the other three could not see', but report() prints them as lines 4 and 5 and the WHY THESE list carries four other items (mismatches=3). Its 'HANDOVER trap 11' citation resolves to nothing: dev/programme/HANDOVER.md's traps are unnumbered bullets (handover_trap_11_found=0).",
+ "mechanism": "The toolchain item and its line were added after the sentence was written; the ordinals and count were not re-derived.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/session_start_lines.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "harness_path": "dev/audit/rounds/round11/D5/s10/session_start_lines.py",
+  "value": 3,
+  "unit": "mismatches",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.17,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": ".claude/hooks/session-start.sh:report, run in a scratch repository",
+ "perturbation": {
+  "change": "--perturb: insert one printf line in report() before 'behind main:' in the hook copy",
+  "expected_direction": "down",
+  "observed_value": 1
+ },
+ "metric_definition": "mismatches = (behind_pos != 5) + (tip_pos != 6) + (other WHY-THESE items != 3), positions read from report()'s real output",
+ "phenomenon_property": "Every ordinal or count a hook comment states about the hook's own output equals what the hook prints.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/session_start_lines.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "proposed_fix_scope": "session-start.sh lines 36-37: 'The fourth and fifth lines, and the trap the other four could not see' (or drop the ordinals); cite the shallow-clone trap by its words ('A shallow clone turns \"commits ahead\" into fiction') instead of 'trap 11'",
+ "files": [
+  ".claude/hooks/session-start.sh"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5"
+}
