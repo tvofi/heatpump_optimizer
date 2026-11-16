@@ -8,3 +8,4 @@
 1794870233 DONE returned: design/R11-OUTSIDE-HONEST-DHW-RUNS at f7d50191e3bd57b8cac3b68d03ccacb502083618
 1794872215 HB alive
 1794872233 CKPT round 2: verdict and prior note read snapshot e7b09ae97e6a
+1794872385 CKPT point 1 measured: lifted plan vs start rule on 18 cells; reading P2 wip and D7 for point 3 snapshot 1fa289ec5f7b
