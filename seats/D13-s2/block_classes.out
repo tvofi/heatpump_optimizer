@@ -237,3 +237,15 @@ RESULT merge_verdicts=647 verdicts
 RESULT outside_grammar=0 lines
 RESULT engineering_max_class=84 verdicts
 RESULT record_and_body_total=94 verdicts
+
+(c) the same window as fetchWindow reads it (one page of 100 per endpoint)
+  PRs with more than 100 comments or reviews: none
+  calls: 1707
+RESULT fetchwindow_blocked_verdicts=448 verdicts
+RESULT fetchwindow_lost_blocked=0 verdicts
+RESULT fetchwindow_lost_verdicts=0 verdicts
+RESULT prs_over_one_page=0 pull_requests
+  lost by class: none
+RESULT thread_factor=1.00
+RESULT load1=1.07
+RESULT swapins=0

@@ -6,6 +6,7 @@ RESULT one_file=69 entries
 RESULT one_file_share=0.397 ratio
 RESULT ambiguous=0 entries
 RESULT no_file=105 entries
+RESULT no_file_ids=84 ids
 
 per file: entries, distinct PRs, each spelling (count) -- and the production key(s) those entries got
   tools/audit/briefs/fixer.md  38 entries 20 PRs
@@ -152,5 +153,5 @@ RESULT prod_file_rule_none=6 entries (no file by the rule, a --budgets file in p
 RESULT files_at_threshold_split_below=1 files
   tools/audit/briefs/orchestrator.md (3 PRs by the rule, best production key 2)
 RESULT thread_factor=1.00
-RESULT load1=1.27
+RESULT load1=0.83
 RESULT swapins=0

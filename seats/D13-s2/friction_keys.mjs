@@ -86,7 +86,7 @@ if (argv.includes('--list')) {
   for (const e of entries) console.log(`#${e.pr} ${e.id}`)
   process.exit(0)
 }
-const nk = spawnSync(process.execPath, ['tools/policy/policy_lint.mjs', '--normalize-friction-keys'],
+const nk = spawnSync(process.execPath, [path.resolve(HERE, '../../../../../../tools/policy/policy_lint.mjs'), '--normalize-friction-keys'],
   { input: [...new Set(entries.map((e) => e.id))].join('\n') + '\n', encoding: 'utf8' })
 const prodKey = new Map(nk.stdout.split('\n').filter(Boolean).map((l) => l.split('\t')))
 for (const e of entries) e.prod = prodKey.get(e.id)
@@ -134,6 +134,7 @@ console.log(`RESULT one_file=${one} entries`)
 console.log(`RESULT one_file_share=${(one / entries.length).toFixed(3)} ratio`)
 console.log(`RESULT ambiguous=${[...ambiguous.values()].reduce((n, r) => n + r.n, 0)} entries`)
 console.log(`RESULT no_file=${[...none.values()].reduce((n, r) => n + r.n, 0)} entries`)
+console.log(`RESULT no_file_ids=${none.size} ids`)
 console.log('\nper file: entries, distinct PRs, each spelling (count) -- and the production key(s) those entries got')
 for (const [f, r] of [...perFile.entries()].sort((a, b) => b[1].n - a[1].n)) {
   const prodKeys = new Map()
