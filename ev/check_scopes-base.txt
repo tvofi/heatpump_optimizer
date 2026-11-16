@@ -1,0 +1,23 @@
+== base 6f422812d5d8b918beace0283419c153f6df66ce
+ref=6f422812d5d8b918beace0283419c153f6df66ce seats=59
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22959loc, s2:3f/22959loc, s3:3f/22959loc]
+ok D1 mode=cells seats=3 universe=94 [s1:94f/74394loc, s2:94f/74394loc, s3:94f/74394loc]
+ok D2 mode=cells seats=3 universe=94 [s1:94f/74394loc, s2:94f/74394loc, s3:94f/74394loc]
+ok D3 mode=cells seats=3 universe=165 [s1:12f/31631loc, s2:18f/15975loc, s3:135f/43225loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20869loc, s2:15f/20869loc, s3:15f/20869loc]
+ok D5 mode=cells seats=10 universe=885 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37175loc/2853u, s4:50f/53656loc/3339u, s5:73f/0loc/3608u, s6:258f/0loc/3749u, s7:3f/0loc/3975u, s8:44f/0loc/3626u, s9:69f/0loc/3748u, s10:328f/0loc/1786u]
+ok D6 mode=files seats=7 universe=361 [s1:13f/0loc/3948u, s2:109f/0loc/4012u, s3:95f/74394loc/3329u, s4:2f/16437loc/3913u, s5:139f/0loc/3463u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+ok D7 mode=cells seats=3 universe=94 [s1:94f/74394loc, s2:94f/74394loc, s3:94f/74394loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4741loc, s2:6f/4741loc, s3:6f/4741loc]
+ok D9 mode=cells seats=3 universe=95 [s1:95f/90831loc, s2:95f/90831loc, s3:95f/90831loc]
+ok D10 mode=cells seats=3 universe=113 [s1:113f/90831loc, s2:113f/90831loc, s3:113f/90831loc]
+ok D11 mode=cells seats=3 universe=1383 [s1:1383f/0loc, s2:1383f/0loc, s3:1383f/0loc]
+ok D12 mode=cells seats=3 universe=94 [s1:94f/74394loc, s2:94f/74394loc, s3:94f/74394loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok coverage tracked=11435 in_universe=1633 excluded=9802 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 1 gap(s), 0 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json is not in the tree: the start evaluation has not run
+rc=1
