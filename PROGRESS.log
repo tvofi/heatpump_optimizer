@@ -13,3 +13,4 @@
 1794871476 DONE design/R11-ARCH-OBJECTIVE at 4c4835e3c708190f94813ff703ff5c990fdddb0e (round 2, answers verdict 6ec87d8b); open: owner decision on +22.7, orchestrator decision on roster files
 1794873135 HB alive
 1794873146 CKPT setup done; role pack, design and verdict read snapshot 756dc4afa345
+1794873264 CKPT discovery done: plan_audit, replan interface, audit-plan.js, caps, register shape snapshot 3c832abfe1b5
