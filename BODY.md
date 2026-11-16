@@ -40,7 +40,7 @@ Pending. A policy change to `dev/governance/dimensions/D11.md` and `dev/governan
 
 ## Head
 
-`585a879dac8265686cfcabba3da90d298a31b8c0` on `origin/main` `31117b1029de63938d949e78dcbcd8f9451e5e33` (merge base the same commit), taken 2026-11-15 UTC; diff three-dot.
+`4f6b8c57ca90ad987a063a2682a4ab9dc2b4ef00` on `origin/main` `e30408f7881cd5602a2c4d7ea9517b0d765652f6` (merge base the same commit), taken 2026-11-16 UTC; diff three-dot.
 
 ## Mutation proof
 
@@ -54,7 +54,7 @@ Text and data only; the check that pins the diff is `policy_lint.mjs`'s budgets 
 
 ## Figures
 
-<!-- figure-block: scope-line mb=31117b1029de63938d949e78dcbcd8f9451e5e33 head=585a879dac8265686cfcabba3da90d298a31b8c0 -->
+<!-- figure-block: scope-line mb=e30408f7881cd5602a2c4d7ea9517b0d765652f6 head=4f6b8c57ca90ad987a063a2682a4ab9dc2b4ef00 -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -64,8 +64,8 @@ MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 - generated-copy overlap: `awk -F'\t' '{split($1,a,"#"); print a[2]"\t"a[1]}'` over the units, counting ids found under both `.claude/rules/` and `dev/governance/rules/`, printed `376`.
 - exact multi-file sentences: ids over 60 characters found in two or more files outside `.claude/rules/`, by awk over the same units, printed `11`.
 - on #3626's head (`git worktree add --detach <tmp> origin/fix/r11-pre-rulings-file`): the units command printed `189` units under `dev/programme/RULINGS.md#`; the rulings `awk` exited 0 and printed `88`; `wc -c < dev/programme/RULINGS.md` printed `26389`. At this head the `awk` exited 2 (`cannot open`).
-- budgets: `node tools/policy/policy_lint.mjs --budgets` printed `tools/audit/briefs/D11.md 126 126 1939 1939` and `corpus: ~70032 tokens, cap 69625 +band 500 = 70125`; at `origin/main` the same command printed `109 109 1647 1647` and `corpus: ~69740 tokens`.
-- policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 52 policy file(s)`.
+- budgets: `node tools/policy/policy_lint.mjs --budgets` printed `tools/audit/briefs/D11.md 126 126 1939 1939` and `corpus: ~66226 tokens, cap 66218 +band 500 = 66718`; at `origin/main` the same command printed `109 109 1647 1647` and `corpus: ~65934 tokens, cap 65926`; cap = 65926 + 292 growth.
+- policy lint: `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 51 policy file(s)`.
 - `node tools/policy/brief_lint.mjs` exited 0; `node tools/policy/check-wave-script.mjs` printed `223 passed, 0 failed`; `node tools/policy/rules_sync.mjs --check` printed `RULES-SYNC ok`.
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
 - scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 1 script(s) run`, naming `tests/entities.py`; `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2723 ENTITY CHECKS PASSED`.
