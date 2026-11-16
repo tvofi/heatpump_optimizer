@@ -47462,6 +47462,72 @@ R.check(
     _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
     repr(_sb_bare.months),
 )
+# R11-VALVE-REFERENCE (carry 2): the booked reference, pinned. A digest of
+# `_compute_baseline_power`'s day (power to 1e-6 kW, its end room and tank) on
+# three installs at two outdoor levels with a sinusoid on them: the owner's
+# two-zone replay install with its manual valve, a single-zone house behind a
+# manual valve on one tank, and the same house with no valve. A diff that moves
+# the booked reference fails here until it re-records the digest and bumps
+# `REFERENCE_BASIS` and the stamp literal above with it.
+def _vr_one_tank():
+    from profiles import house as _vr_house
+
+    _vr_p = ThermalParameters.from_config(_vr_house(dhw=False))
+    _vr_p.dhw_enabled = False
+    _vr_p.mixing_valve_mode = "manual"
+    _vr_p.wood_tank_configured, _vr_p.wood_tank_volume = True, 500.0
+    return _vr_p
+
+
+def _vr_reference_digests():
+    import hashlib
+
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _VrOpt
+    from heatpump_optimizer.optimizer import OptimizationConfig as _VrCfg
+    from heatpump_optimizer.thermal_model import WeatherSeries as _VrWeather
+    from profiles import house as _vr_house, replay_install as _vr_replay
+
+    _vr_n = 96
+    _vr_installs = {
+        "install": ThermalParameters.from_config(_vr_replay()),
+        "one-tank": _vr_one_tank(),
+        "no valve": ThermalParameters.from_config(_vr_house(dhw=False)),
+    }
+    _vr_out = {}
+    for _vr_name, _vr_p in _vr_installs.items():
+        for _vr_outdoor in (5.0, -15.0):
+            _vr_model = ThermalModel(_vr_p)
+            _vr_opt = _VrOpt(_vr_model, _VrCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+            _vr_w = _VrWeather(
+                outdoor_temps=_vr_outdoor + 3.0 * np.sin(2.0 * np.pi * np.arange(_vr_n) / _vr_n),
+                wind_speeds=np.full(_vr_n, 3.0), precipitation=np.zeros(_vr_n),
+                solar_radiation=np.zeros(_vr_n))
+            _vr_start = ThermalState(
+                room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_vr_outdoor,
+                upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+            _vr_power, _vr_end = _vr_opt._compute_baseline_power(
+                _vr_w, _vr_start, 0.25, np.full(_vr_n, 21.0))
+            _vr_text = ";".join(f"{float(v) + 0.0:.6f}" for v in _vr_power) + (
+                f"|{_vr_end.room_temperature + 0.0:.6f}|{_vr_end.buffer_tank_temperature + 0.0:.6f}")
+            _vr_out[f"{_vr_name} {_vr_outdoor:+.0f}"] = hashlib.sha256(_vr_text.encode()).hexdigest()[:16]
+    return _vr_out
+
+
+_vr_digests = _vr_reference_digests()
+R.check(
+    "the booked reference reproduces its recorded digest on every pinned install "
+    "(a change re-records it and bumps REFERENCE_BASIS)",
+    _vr_digests == {
+        "install +5": "2f088060f8fe63dd",
+        "install -15": "35cc1d0d71a4414b",
+        "one-tank +5": "4d21ffac819044c7",
+        "one-tank -15": "20aaed45bf8568ca",
+        "no valve +5": "514d1532f1b30760",
+        "no valve -15": "0e396b7d1cc59e1a",
+    },
+    repr(_vr_digests),
+)
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
 # At one outdoor the steady demand is flat, so a sound step 0 is the horizon mean;
