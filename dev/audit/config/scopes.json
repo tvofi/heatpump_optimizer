@@ -498,7 +498,7 @@
    "AGENTS.md",
    "SECURITY.md",
    "dev/README.md",
-   "dev/governance/{dimensions,roles,rules}/*.md",
+   "dev/governance/{dimensions,dimensions/criteria,roles,rules}/*.md",
    "dev/programme/HANDOVER.md",
    "dev/programme/RULINGS.md",
    "dev/programme/plan-*.md",
@@ -559,7 +559,7 @@
       "hacs.json",
       "blueprints/**",
       "docs/img/**",
-      "dev/governance/{dimensions,roles}/*.md"
+      "dev/governance/{dimensions,dimensions/criteria,roles}/*.md"
      ],
      "steps": [
       "M1",
