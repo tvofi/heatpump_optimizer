@@ -3548,6 +3548,7 @@
     "dev/audit/rounds/round10/catchup/study",
     "dev/audit/rounds/round10/intake",
     "dev/audit/rounds/round10/intake/out",
+    "dev/audit/rounds/round10/objective",
     "dev/audit/rounds/round10/protection-census",
     "dev/audit/rounds/round10/study-ident",
     "dev/audit/rounds/round10/study-reseed",
@@ -3813,6 +3814,8 @@
     "dev/audit/waves/w5-g5-195-coverage",
     "dev/audit/waves/w5-g5-195-coverage/coverage",
     "dev/audit/waves/w5-g5-195-coverage/coverage/logs",
+    "dev/audit/yardstick",
+    "dev/audit/yardstick/round10",
     "dev/governance",
     "dev/governance/config",
     "dev/governance/decisions",
@@ -4397,6 +4400,25 @@
     "tools/pr/prepr.sh"
    ],
    "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
+  "finder-overlap": {
+   "run_sha": "acc165c99b344a4c6975668d5aca24c15529e9fb81964e9e4b9d0f1fb355786c",
+   "files": [
+    "tools/audit/seat/finder_overlap.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -5821,6 +5843,26 @@
    "objects": false,
    "git": []
   },
+  "plant-recall": {
+   "run_sha": "ffb2f1b4145371bbf55365116879ac7177af381841fa04edd56d0b632b89e150",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/audit/seat/plant_recall.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "policy-lint-mutants": {
    "run_sha": "3e1b10dc363352e2251bc6cdc07107e2356a527ac64ad9c790f61a2c37015d9f",
    "files": [
@@ -6146,6 +6188,7 @@
     "dev/audit/rounds/round10/catchup/study/.gitattributes",
     "dev/audit/rounds/round10/intake/.gitattributes",
     "dev/audit/rounds/round10/intake/out/.gitattributes",
+    "dev/audit/rounds/round10/objective/.gitattributes",
     "dev/audit/rounds/round10/protection-census/.gitattributes",
     "dev/audit/rounds/round10/study-ident/.gitattributes",
     "dev/audit/rounds/round10/study-reseed/.gitattributes",
@@ -6403,6 +6446,8 @@
     "dev/audit/waves/w5-g5-195-coverage/.gitattributes",
     "dev/audit/waves/w5-g5-195-coverage/coverage/.gitattributes",
     "dev/audit/waves/w5-g5-195-coverage/coverage/logs/.gitattributes",
+    "dev/audit/yardstick/.gitattributes",
+    "dev/audit/yardstick/round10/.gitattributes",
     "dev/governance/.gitattributes",
     "dev/governance/config/.gitattributes",
     "dev/governance/config/cfr_exclusions.json",
@@ -7140,6 +7185,7 @@
     "dev/audit/rounds/round10/catchup/study",
     "dev/audit/rounds/round10/intake",
     "dev/audit/rounds/round10/intake/out",
+    "dev/audit/rounds/round10/objective",
     "dev/audit/rounds/round10/protection-census",
     "dev/audit/rounds/round10/study-ident",
     "dev/audit/rounds/round10/study-reseed",
@@ -7405,6 +7451,8 @@
     "dev/audit/waves/w5-g5-195-coverage",
     "dev/audit/waves/w5-g5-195-coverage/coverage",
     "dev/audit/waves/w5-g5-195-coverage/coverage/logs",
+    "dev/audit/yardstick",
+    "dev/audit/yardstick/round10",
     "dev/governance",
     "dev/governance/config",
     "dev/governance/decisions",
@@ -8533,6 +8581,7 @@
     "tools/ci/selftest_step.sh"
    ],
    "probes": [
+    "-c",
     ".",
     ".github",
     ".github/workflows",

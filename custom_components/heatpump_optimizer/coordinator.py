@@ -168,7 +168,6 @@ from .const import (
     VENT_CUSUM_STARVE_HOURS,
     VENT_CUSUM_REFERENCE_HOURS,
     OPEN_WINDOW_RELAX_C,
-    IMMERSION_FACTOR,
     COP_BASELINE_MIN_SAMPLES,
     COP_BASELINE_ALPHA,
     COP_HEALTH_THRESHOLD,
@@ -233,6 +232,7 @@ from . import off_restore
 from . import topology
 from . import pv as pv_model
 from . import presets
+from . import running_signal
 from .accuracy import (
     COP_REFUSED_BLENDED,
     COP_REFUSED_DISTORTED,
@@ -309,7 +309,7 @@ from .ledger import (
     restate_total,
     roll_receipts,
 )
-from .wear import StartCounter, wear_price_per_start
+from .wear import RiseHold, StartCounter, wear_price_per_start
 from . import narrative
 from . import diagnosis
 from .freq_control import (
@@ -353,7 +353,8 @@ from .thermal_model import (
     learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
-    on_threshold_kw,
+    immersion_level_kw,
+    immersion_over,
     plan_step_runs,
     planned_draw_runs,
     probe_install,
@@ -3551,6 +3552,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         on_unload = getattr(entry, "async_on_unload", None)
         if on_unload is not None:
             on_unload(self._release_registrations)
+        # Part D: the running signal is heard from construction to release, in
+        # every duty mode, by the start counter ``_init_grid`` subscribed.
+        running_signal.attach(running_signal.signal_for(self), *running_signal.source(hass, config, lambda: self._ctx._thermal_params, lambda kw: (
+            self._immersion_active or immersion_over(kw, self._ctx._thermal_params, self._commanded_power()))))
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
         # Tracked (D1-02): an untracked task still runs against whatever
@@ -3589,6 +3594,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         also what every actuation point reads to decline (#237).
         """
         self._entry_released = True
+        running_signal.detach(running_signal.signal_for(self))
         # #1755 r1: a released entry drops its worker-fallback latch, so a removed
         # entry cannot hold the shared repair issue or leak a key after it is gone.
         _clear_worker_fallback(self.hass, self.entry.entry_id)
@@ -3885,7 +3891,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #55: the realised compressor-start counter, sharing the ledger's
         # store so counts and the wear SEK they book can never load from
         # different generations of state.
-        self._start_counter = StartCounter()
+        # Part D: it folds the running signal's edges, a meter's rise held for its
+        # refreshes (S7), queued until the ledger restore; ``__init__`` attaches it.
+        self._start_counter = StartCounter(hold=None if self._ctx._config.compressor_freq_sensor else RiseHold())
+        running_signal.subscribe(running_signal.signal_for(self), lambda edge: self._book_starts(
+            self._start_counter.hear(*edge)), lambda read: self._book_starts(self._start_counter.refresh(read)))
         # #40: receipts frozen at month rollover. Frozen rather than
         # recomputed on read, so a receipt never changes after the month it
         # describes has closed.
@@ -6687,6 +6697,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #11: draw beyond what the compressor can pull means the immersion
         # element is running — a different appliance wearing the pump's meter.
         self._detect_immersion()
+        # Part D: the latch and the commanded draw move here with no meter event.
+        running_signal.refresh(running_signal.signal_for(self), dt_util.now())
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
@@ -8280,43 +8292,48 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist price model: %s", err)
 
     async def _async_load_ledger(self) -> None:
-        """Restore the monthly ledger (T1)."""
-        stored = await load_mapping(self._ledger_store, "ledger")
-        if stored is None:
-            return
-        self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
-        # T6, all additive on the same payload: absent keys on a pre-T6
-        # store load as inert defaults.
-        self._start_counter = StartCounter.from_dict(stored.get("starts"))
-        reports = stored.get("month_reports")
-        if isinstance(reports, dict):
-            self._month_reports = {
-                str(key): restate_total(value)
-                for key, value in reports.items()
-                if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
-            }
-        day = stored.get("score_day")
-        if isinstance(day, dict):
-            # Same corruption barrier as the other riders: a book with a
-            # non-numeric field would take the WHOLE update loop down for
-            # the rest of the day; dropping a corrupt day book costs one
-            # operation sample, never the loop.
-            try:
-                # A day-less book is the free-day close's #908 streak alone.
-                keys = ("kwh", "sek", "spot_sum", "spot_h", *driving_grade.book_keys(day)) if "day" in day else ()
-                numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
-                cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
-                if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
-                    self._score_day = cleaned
-            except (TypeError, ValueError, OverflowError):
-                pass
-        score = stored.get("operation_score")
-        if isinstance(score, (int, float)) and np.isfinite(score):
-            self._operation_score = float(np.clip(score, 0.0, 100.0))
-        driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
-            "ledger", {"operation_drivers": drivers}))
-        price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
-            "ledger", {"price_tiles": {name: part}}))
+        """Restore the monthly ledger (T1), then the start counter on every exit.
+
+        The counter queued the edges the running signal confirmed before this
+        read; its restore replays them over the stored count, after the
+        ledger, so the wear lines they book are not overwritten (part D).
+        """
+        stored = await load_mapping(self._ledger_store, "ledger")  # a failed read is None
+        try:
+            if stored is None:
+                return
+            self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
+            reports = stored.get("month_reports")
+            if isinstance(reports, dict):
+                self._month_reports = {
+                    str(key): restate_total(value)
+                    for key, value in reports.items()
+                    if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
+                }
+            day = stored.get("score_day")
+            if isinstance(day, dict):
+                # Same corruption barrier as the other riders: a book with a
+                # non-numeric field would take the WHOLE update loop down for
+                # the rest of the day; dropping a corrupt day book costs one
+                # operation sample, never the loop.
+                try:
+                    # A day-less book is the free-day close's #908 streak alone.
+                    keys = ("kwh", "sek", "spot_sum", "spot_h", *driving_grade.book_keys(day)) if "day" in day else ()
+                    numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
+                    cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
+                    if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
+                        self._score_day = cleaned
+                except (TypeError, ValueError, OverflowError):
+                    pass
+            score = stored.get("operation_score")
+            if isinstance(score, (int, float)) and np.isfinite(score):
+                self._operation_score = float(np.clip(score, 0.0, 100.0))
+            driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
+                "ledger", {"operation_drivers": drivers}))
+            price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
+                "ledger", {"price_tiles": {name: part}}))
+        finally:
+            self._book_starts(self._start_counter.restore(stored.get("starts") if stored else None))
 
     def _schedule_ledger_save(self) -> None:
         """Persist the ledger without blocking the settlement path."""
@@ -9080,22 +9097,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``CONF_IMMERSION_FEEDBACK_ENABLED``, off by default.
         """
         measured = self._measured_power
-        nameplate = float(getattr(self, "_ctx", self)._thermal_params.max_electrical_power)
-        over = (
-            measured is not None
-            and nameplate > 0.1
-            and measured > nameplate * IMMERSION_FACTOR
-            and self._commanded_power() > 0.1
-        )
+        params = getattr(self, "_ctx", self)._thermal_params
         now = dt_util.now()
-        if over:
+        if immersion_over(measured, params, self._commanded_power()):
             self._immersion_over_count += 1
             self._immersion_clear_count = 0
             if not self._immersion_active and self._immersion_over_count >= 2:
                 self._immersion_active = True
                 self._immersion_evidence.append(
                     f"{now.isoformat(timespec='seconds')}: measured "
-                    f"{measured:.1f} kW over {nameplate:.1f} kW nameplate; "
+                    f"{measured:.1f} kW over {params.max_electrical_power:.1f} kW nameplate; "
                     "immersion element running"
                 )
                 del self._immersion_evidence[:-6]
@@ -9105,7 +9116,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "Immersion element detected (%.1f kW measured, %.1f kW "
                     "nameplate)",
                     measured,
-                    nameplate,
+                    params.max_electrical_power,
                 )
         else:
             self._immersion_clear_count += 1
@@ -9990,10 +10001,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Whether the derate is allowed to *learn* from it is decided below.
         defrost_window = self._defrost_window.close(now)
 
-        # T6 #55: every cycle is one power sample for the start counter,
-        # whether or not a prediction pair settles this time.
-        self._observe_compressor_start(now)
-        # T7 #61: and one frequency sample for the kW-per-Hz map (plus the
+        # T7 #61: one frequency sample for the kW-per-Hz map (plus the
         # control watchdog, when that stage is armed).
         self._observe_frequency(now)
         # #1067: and one supply-vs-curve residual, on the same cycle and from
@@ -10361,8 +10369,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             latched=self._immersion_active,
             immersion_element=ctx._config.immersion_feedback_enabled,
             actual_kw=sample.actual_power_kw,
-            threshold_kw=float(ctx._thermal_params.max_electrical_power)
-            * IMMERSION_FACTOR,
+            threshold_kw=immersion_level_kw(ctx._thermal_params),
             hours=elapsed_hours,
         ) or ("", 0.0)
         metered = energy - resistive_kwh
@@ -10462,32 +10469,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if ctx._config.wear_autotune_enabled:
             cost = max(cost, self._wear_price())
         return cost
-    def _observe_compressor_start(self, now: datetime) -> None:
-        """#55: fold one measured-power sample into the start counter.
+    def _book_starts(self, starts: list[datetime]) -> None:
+        """#55: book each counted compressor start's wear price at its edge time, and save.
 
-        The threshold is thermal_model.on_threshold_kw, the rule for whether
-        a MEASURED draw means the compressor ran (half the pump's minimum
-        electrical power). The plan's running rule is a different owner on
-        purpose (planned_draws_run, MIN_RUNNING_DRAW_KW). Immersion intervals
-        are the #11 classifier's, never the compressor's.
-
-        Meter-driven too, deliberately (#1067): this counts COMPRESSOR
-        starts for wear, and a heater flag is no evidence about whether the
-        compressor crossed the threshold — folding it in would book wear
-        against starts that never happened.
+        The counter is ``running_signal``'s subscriber (part D): a start is
+        an edge, timed by its first reading, so its month and its wear line
+        take that one stamp. kWh 0 by design: the wear line is money, not
+        energy, and a receipt that adds wear kWh to metered kWh double-counts.
+        A released entry books and writes nothing.
         """
-        started = self._start_counter.observe(
-            now,
-            self._measured_power,
-            on_threshold_kw(getattr(self, "_ctx", self)._thermal_params),
-            self._immersion_active,
-        )
-        if started:
+        if starts and not self._entry_released:
             wear = self._wear_price()
-            if wear > 0:
-                # kwh 0 by design: the wear line is money, not energy, and
-                # a receipt that adds wear kWh to metered kWh double-counts.
-                self._ledger.add(now, "wear", kwh=0.0, sek=wear)
+            for at in starts if wear > 0 else ():
+                self._ledger.add(at, "wear", kwh=0.0, sek=wear)
             self._schedule_ledger_save()
 
     def _roll_month(self, when: datetime) -> None:
