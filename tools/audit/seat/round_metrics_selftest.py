@@ -357,6 +357,10 @@ def slip_cases(m, r: dict) -> None:
             lambda: m.slip_line(d, rnd(), T0, T0 + 30 * D).startswith(
                 "closure_slip 0.67 days per day (1.00 days later over 1.50 days of plan history after the register, "
                 "3 daily samples of 5 pages; net +1.00 days; 0 pages without a forecast;"))
+        first = [[reg, T0 + 10 * D], [reg + D / 2, T0 + 12 * D], [reg + D + 1, T0 + 13 * D]]
+        (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": first}}))
+        r["closure_slip: the net move is over the daily samples, the first day's last page to the last sample"] = chk(
+            lambda: "2 daily samples of 3 pages; net +1.00 days;" in m.slip_line(d, rnd(), T0, T0 + 30 * D))
         (d / "plans.json").write_text(json.dumps({"2": {"register": reg, "history": hist}, "3": {"register": None, "history": hist}}))
         r["closure_slip: one page, no register, no history and no round are unread"] = chk(
             lambda: [m.slip_line(d, x, T0, b).split(" (")[0] for x, b in
@@ -399,6 +403,8 @@ MUTANTS = {
     "slip blank page": ("hist = [h for h in every if h[1] is not None]", "hist = every", "closure_slip: later moves only"),
     "slip two pages": ("len(daily) < 2", "len(daily) < 1", "closure_slip: one page"),
     "slip daily cadence": ('(h[0] - doc["register"]) // SLIP_SAMPLE_S', "h[0]", "closure_slip: read at a fixed daily cadence"),
+    "slip net daily": ("{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f}", "{(hist[-1][1] - hist[0][1]) / DAY_S:+.2f}",
+                       "closure_slip: the net move is over the daily samples"),
     "ceiling value key": ('.get("closure_slip_ceiling") or {}).get("value")', '.get("closure_slip_ceiling") or {})',
                           "report --round: a null ceiling"),
     "produce prior round": ("for k in (n - 1, n):", "for k in (n,):", "producer: plans.json"),
