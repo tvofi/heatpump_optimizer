@@ -30,6 +30,7 @@ Departures from the note, each a consequence of a measurement below, none a chan
 
 ## Head
 
+prepr: passed rc=0 at 884555c9a64729ef096e1ce84fb5bd3c78dfaf81 (the fixer's PRE-PR line, PREPR_SKIP_CLOSURES=1, quoted in handoff-wip/r11-outside-rooms-p2 BLOCKED.md)
 `884555c9a64729ef096e1ce84fb5bd3c78dfaf81`
 
 ## Mutation proof
