@@ -3079,7 +3079,9 @@
     3643
    ],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R11-OWNER-GENERIC-CONTROL-TEXT"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/strings.json",
     "custom_components/heatpump_optimizer/translations/en.json",
