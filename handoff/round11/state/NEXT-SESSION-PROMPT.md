@@ -16,7 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-GH-READ-RESIDUE-P3 (stage in-progress, branch `handoff/r10-gh-read-residue-p3`): `git fetch origin handoff/r10-gh-read-residue-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-DARWIN-SELFTEST-LANE (stage in-progress, branch `handoff/r10-prepr-darwin-selftest-lane`): `git fetch origin handoff/r10-prepr-darwin-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R11-OUTSIDE-HONEST-STARTS-RUNS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R11-OUTSIDE-HONEST-STARTS-RUNS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-PRE-TOOLCHAIN-PIN (stage in-progress, branch `handoff/r11-pre-toolchain-pin`): `git fetch origin handoff/r11-pre-toolchain-pin && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-MACHINERY-LIMITER (stage carries-open, branch `handoff/r11-pre-machinery-limiter`): `git fetch origin handoff/r11-pre-machinery-limiter && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-METRICS (stage carries-open, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -37,6 +37,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage carries-open, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OWNER-CRITERIA (stage carries-open, branch `handoff/r11-pre-owner-criteria`): `git fetch origin handoff/r11-pre-owner-criteria && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-NO-READ-BUILDERS (stage in-progress, branch `handoff/r11-pre-no-read-builders`): `git fetch origin handoff/r11-pre-no-read-builders && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-GENERIC-CONTROL-TEXT (stage in-progress, branch `handoff/r11-owner-generic-control-text`): `git fetch origin handoff/r11-owner-generic-control-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-CHECK-GATE (stage in-progress, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PRODUCT-READS (stage in-progress, branch `handoff/r11-pre-product-reads`): `git fetch origin handoff/r11-pre-product-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -48,10 +49,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage in-progress, branch `fix/r11-outside-self-setting-pump`): `git fetch origin fix/r11-outside-self-setting-pump && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SERVICE-SCHEMA (stage in-progress, branch `fix/r11-service-schema`): `git fetch origin fix/r11-service-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ADVISOR-MEASURES (stage in-progress, branch `fix/r11-advisor-measures`): `git fetch origin fix/r11-advisor-measures && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-VALVE-REFERENCE (stage in-progress, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-POLICY-TOKEN-CAP (stage in-progress, branch `fix/r11-policy-token-cap`): `git fetch origin fix/r11-policy-token-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-START-EVALUATION-LAND (stage in-progress, branch `handoff/r11-start-evaluation-land`): `git fetch origin handoff/r11-start-evaluation-land && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-RCA-SELFTEST-TABLE-DRIFT (stage in-progress, branch `fix/r11-rca-selftest-table-drift`): `git fetch origin fix/r11-rca-selftest-table-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R11-ADVISOR-MEASURES, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-POLICY-TOKEN-CAP, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN, R11-SERVICE-SCHEMA, R11-START-EVALUATION-LAND, R11-VALVE-REFERENCE
+Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R11-ADVISOR-MEASURES, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-POLICY-TOKEN-CAP, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN, R11-RCA-SELFTEST-TABLE-DRIFT, R11-SERVICE-SCHEMA, R11-VALVE-REFERENCE
 
 ## Resume steps
 

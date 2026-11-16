@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-16T19:35:56+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-16T20:05:23+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 10 / 24.0 |
-| fly-ins closed | 2 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 2 | 26 / 3 / 0 / 7 |
-| first-pass fix-review yield | 3/7 (0.43) | 24/46 (0.52) |
-| blocked-class mix | ci-red:1, class-open:1, merge-conflict:1, mutation-survivor:1, mutation-vacuous:1 | carry-missing:1, caused-by-overbroad:1, caused-by-unwritable:1, ci-red:4, class-open:5, harness:1, introduced-red:1, merge-conflict:2, mutation-survivor:2, mutation-survivors:1, mutation-vacuous:6, test-red:1, tests-gap:1 |
-| lead time per size (h, n/p50/max) | M n=2 p50=11.84 max=17.92 | L n=4 p50=15.93 max=18.64; M n=18 p50=9.40 max=65.34; S n=4 p50=6.57 max=16.51 |
+| roster groups closed vs takt | 0 / 1.0 | 10 / 24.0 |
+| fly-ins closed | 1 | 7 |
+| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 0 / 1 | 28 / 3 / 0 / 7 |
+| first-pass fix-review yield | 4/4 (1.00) | 26/48 (0.54) |
+| blocked-class mix | mutation-vacuous:1 | carry-missing:1, caused-by-overbroad:1, caused-by-unwritable:1, ci-red:4, class-open:5, harness:1, introduced-red:1, merge-conflict:2, mutation-survivor:2, mutation-survivors:1, mutation-vacuous:7, test-red:1, tests-gap:1 |
+| lead time per size (h, n/p50/max) | M n=1 p50=11.84 max=11.84; S n=1 p50=32.24 max=32.24; XL n=1 p50=51.32 max=51.32 | L n=4 p50=15.93 max=18.64; M n=18 p50=9.40 max=65.34; S n=5 p50=6.57 max=32.24; XL n=1 p50=51.32 max=51.32 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 47 | 0 | 0 |
+| 0 | 48 | 0 | 0 |
 
 ## Rules
 
