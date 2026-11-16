@@ -1,0 +1,254 @@
+{
+ "dimension": "D7",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D7/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D7.M2",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m2.py",
+   "universe": 3,
+   "examined": 3,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py: 3 presets x 19 cells (told, slab mass x0.33/0.5/2/3, slab transfer x0.5/2, free heat -0.2/+0.3/+0.5/+0.8 kW, sigma 0.01/0.02 x4 seeds) = 57 cells; light_new refused at arm by name on every cell; two-state (production) and first-order (identify, harness-only) bias and adoption_decision verdict per cell; biased_admitted=3, first-order completes 0/57. Files axis: the step's production seam is sysid.py (+thermal_model.py, presets.py); the other cell files carry no sysid plant."
+  },
+  {
+   "step": "D7.M3",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+   "universe": 21,
+   "examined": 21,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py: every one of the 21 persisted learners driven end to end through its own production entry on a real coordinator under each of window/pumps/external_heat/defrost/away, with a clean null arm that ingests (21/21 non-vacuous); contaminated_ingest=3 (away x internal_gains, dhw_draws, comfort), 0 under --perturb. C1: the 7 previously gate-level learners plus dhw_learning's _frozen (DhwProfileLearner.async_learn_dynamics via the coordinator's frozen partial: frozen by pumps/external heat/defrost, not window by design) and comfort_learner (_record_quiet_comfort_period: frozen by window/pumps/external heat/defrost, not away) are now tabled end to end. Consequence: m3_away_drift.py."
+  },
+  {
+   "step": "D7.M4",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py",
+   "universe": 17,
+   "examined": 17,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py: solve_state (7) by reuse-vs-fresh solves over 5 golden pairs (reuse_divergence=0), terminal-cost second call (0) and reorder (0; seed_binding_scenarios=0 of 9 buffer scenarios); ctx_held (8) by enum_m4.py's AST classification: 0 write back from a pre-await binding; ctx_inplace (2) by the superseded-context probe (holder_torn_fields=2, 0 under --perturb-ctx). last_buffer_trajectory no longer exists at the baseline; its successor is _initial_buffer_temp."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D7-s2-01",
+   "scope": "D7-s2",
+   "step": "D7.M3",
+   "title": "Away is no learner freeze: internal gains, DHW draw statistics and comfort quiet evidence ingest away intervals",
+   "severity": "medium",
+   "claim": "With _away_state.active, three occupancy-borne learners (internal_gains, dhw_draws, comfort) still fold the interval, while the curve learner, the one learner that gates away, takes nothing; 3 of 21 persisted learners x 5 freeze signals are contaminated ingests, and a 14-day absence leaves the internal-gains profile at 0.69 g0 (half the free heat occupant-borne) and 14 of the 40 per-window DHW occurrences as empty-house draws.",
+   "mechanism": "HeatPumpOptimizerCoordinator._learning_frozen answers external heat, pump freeze_reason, defrost, unusable inputs, ventilation, boost and tail freezes, but not away; only _track_curve_comfort checks _away_state itself (its comment: a vacation would read as a comfort miss). _fold_internal_gains (inside _async_learn_house_heat_loss), DhwProfileLearner.async_fold_draw_stats (closes a near-zero occurrence per window per away day) and _record_quiet_comfort_period consult _learning_frozen or nothing, so the absence's missing occupants' heat and draws are learned as the household's normal and applied after return.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+    "value": 3,
+    "unit": "contaminated (learner, signal) ingests of 105 cells",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune; box shared with up to two other seats",
+    "tolerance": "exact",
+    "load1": 1.33,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._learning_frozen (drives _async_learn_house_heat_loss/_fold_internal_gains, DhwProfileLearner.async_learn_dynamics/async_fold_draw_stats, _record_quiet_comfort_period; key: _learner_snapshot_payloads)",
+   "perturbation": {
+    "change": "--perturb: _learning_frozen returns \"away\" while _away_state.active (one-line production edit, applied in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of (learner, signal) cells where a driven sequence with the signal set changes the learner's persisted payload and the signal falsifies that learner's sample; null arm must ingest.",
+   "phenomenon_property": "No learner whose sample carries occupancy (free heat, hot-water draws, the absence of complaints) folds an interval during which the house is away; the away freeze is decided once, in the shared freeze predicate, not per learner.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py --perturb",
+    "value": "gains_profile_mean_over_g0=1.0000 at 50 % and 100 % absent; dhw empty-house occurrences 0 of 26 per window; comfort weight ratio 1.0000",
+    "note": "Consequence harness m3_away_drift.py at baseline: gains profile mean 0.6898 g0 (50 % of free heat occupant-borne) / 0.3796 g0 (100 %) after 14 away days; DHW empty-house occurrences 14/40 per window at 14 d (p90 unchanged 2.066/2.079 kWh) and 28/40 at 28 d (p90 1.832/1.821 kWh, -11 %/-12 %); comfort weight unchanged 1.0000 on a REAL away plan (span 4.90 K, not flat), so the comfort cell is ingestion without measured consequence in this configuration. Home null arm: comfort weight 1.0000."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py  # contaminated_ingest=3",
+    "... m3_learner_freeze.py --perturb  # contaminated_ingest=0",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py  # consequence sizes"
+   ],
+   "proposed_fix_scope": "coordinator.py _learning_frozen (an away reason, room_air-scoped so tank standby and compressor curves keep learning) or an occupancy predicate the three seams share; drop the curve learner's private away check onto it",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-confounded-learner"
+  },
+  {
+   "id": "D7-s2-02",
+   "scope": "D7-s2",
+   "step": "D7.M2",
+   "title": "Sysid gate admits 11-21 % low UA on the configured free-heat prior; its sweep pins only the learned-profile arm",
+   "severity": "medium",
+   "claim": "On the production two-state fit with the configured free-heat prior (internal-gains learning off, the default), sysid.adoption_decision admits heavy_old at +0.8 kW unmodelled free heat (-11.5 % UA) and typical_slab at +0.5/+0.8 kW (-12.9 %/-21.1 %): 3 of 57 cells admitted outside the +-10 % bar, against 0 when the gate prices the free-heat width at 0.3 kW.",
+   "mechanism": "identify_slab ridges the intercept to gains_prior_kw with SLAB_INTERCEPT_PRIOR_SD_KW=0.1 and _slab_ua_prior_halfwidth widens the adoption interval by one prior width only; free heat several widths past the prior moves UA beyond the bar while the interval stays inside it. The design (tests/features.py R9-P5 note) answers this by seeding the prior from the learned internal-gains profile (night_gains_prior_kw), and its sweep asserts the property only with learned=True; but DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED is False, so a default install with sysid on always arms on the configured constant, the arm the property is not held to.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "value": 3,
+    "unit": "two-state fits admitted with |UA bias| > 10 %, of 57 cells (3 presets x 15 truth/noise cells; light_new refused at arm)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune; deterministic at sigma 0, fixed seeds at sigma 0.01/0.02",
+    "tolerance": "exact",
+    "load1": 1.39,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:adoption_decision (on SystemIdentification.identify_slab via arm/step with the declared plant)",
+   "perturbation": {
+    "change": "--perturb: sysid.SLAB_INTERCEPT_PRIOR_SD_KW 0.1 -> 0.3 kW (one production constant, in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Cells whose production two-state fit adoption_decision admits while |fitted UA / true UA - 1| > expm1(UA_ADOPTION_HALFWIDTH_BAR) = 10 %.",
+   "phenomenon_property": "A night whose free heat differs from the prior the fit is told either adopts within the bar of the plant's own heat loss or is refused, on every prior the shipped configuration can produce (configured constant and learned profile alike).",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # rows: every BUILDINGS preset x every told-quantity axis (slab mass, slab transfer, free heat) x noise",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "value": "told cells (plant == declaration): heavy_old +0.65 %, typical_slab +0.78 %, both admitted; slab-pair cells (x0.33..x3) all within the bar or refused; gains-0.2 within the bar",
+    "note": "Liveness: the unperturbed nights still adopt, so the count is not a gate that refuses everything. Blended effect on the house heat-loss scale (weight x bias): heavy_old +0.8 kW -7.06 %, typical_slab +0.5 kW -1.64 %, +0.8 kW -0.66 %. First-order (identify, harness-only) completes on 0 of 57 cells, so it admits nothing."
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": -0.2111,
+    "max": 0.0622,
+    "drop_most_favourable": -0.1287
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # biased_admitted=3",
+    "... m2_sysid_plant.py --perturb  # biased_admitted=0"
+   ],
+   "proposed_fix_scope": "sysid.py: price the configured prior's own uncertainty when no learned night profile seeds it (a wider SLAB_INTERCEPT_PRIOR_SD_KW for the configured arm, or refuse/require the learned profile); tests/features.py R9-P5 sweep gains the learned=False arm",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P5"
+  },
+  {
+   "id": "D7-s2-03",
+   "scope": "D7-s2",
+   "step": "D7.M4",
+   "title": "CoordinatorContext is not write-once: two in-place _opt_config writers reach every superseded context",
+   "severity": "low",
+   "claim": "After async_update_thermal_params supersedes a context, async_set_target_temperature and _apply_comfort_weight still change 2 fields (target_temp, comfort_weight) of the superseded context, because every published context shares one mutable OptimizationConfig; replacing the two writes by a published replace() leaves 0.",
+   "mechanism": "CoordinatorContext is a frozen dataclass whose docstring promises 'a change is published whole by rebinding _ctx ... a holder of the old one keeps a consistent view'. publish/_publish_params/async_update_thermal_params honour it for _current_state, _thermal_params and _config (the old holder keeps heat_loss_coefficient 0.15 while the live one reads 0.2), but coordinator.py:4258 (ctx._opt_config.target_temp = temperature) and :10941 (_opt_config.comfort_weight = ...) edit the member in place, and dataclasses.replace copies the member reference, so every context ever published since the entry was set up sees the edit. Today's holders across an await (enum_m4.py ctx_held: 8 sites) only read; no measured wrong value follows, hence low.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+    "value": 2,
+    "unit": "fields of a superseded context's members changed after supersession",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.79,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_set_target_temperature / _apply_comfort_weight (against CoordinatorContext after async_update_thermal_params)",
+   "perturbation": {
+    "change": "--perturb-ctx: both writers publish self._ctx = replace(ctx, _opt_config=replace(ctx._opt_config, <field>=...)) instead of the in-place assignment",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of fields of _opt_config/_thermal_params/_current_state on a captured context whose value changes after a later publish superseded that context.",
+   "phenomenon_property": "No production statement assigns into a field of a CoordinatorContext member; every change to a hub is a new published context, so a superseded context never changes.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py | grep ctx_inplace",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py  # holder_torn_fields=2",
+    "... m4_order_context.py --perturb-ctx  # holder_torn_fields=0"
+   ],
+   "proposed_fix_scope": "coordinator.py: the two _opt_config writers publish a replaced config (or OptimizationConfig becomes frozen behind the _hub facade)",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "N-shared-config"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Second objective call: HeatPumpOptimizer._terminal_cost's closure is pure; a reused optimizer solves exactly as a fresh one (per-solve state reset on every optimize, _prev_shipped_plan written only by the coordinator's _warm_seeded on a per-solve optimizer).",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+   "value": "second_call_delta=0; reuse_divergence=0 of 5 pairs (valve_storage x2, valve_storage_low_target, winter_two_zone_dhw, shoulder_two_zone)"
+  },
+  {
+   "claim": "Reordering through _initial_buffer_temp (last_buffer_trajectory's successor) cannot move the terminal cost in any shipped buffer scenario: the settlement ceiling already equals buffer_max_temperature. Harness gap: --perturb-stash leaves reuse_divergence at 0, so the coupling is latent, not demonstrated.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py --perturb-stash",
+   "value": "seed_binding_scenarios=0 of 9; reorder_delta=0"
+  },
+  {
+   "claim": "No async holder of a pre-await CoordinatorContext republishes from it (no lost update through a stale context).",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py | grep ctx_held",
+   "value": "8 ctx_held sites, 0 tagged writes_back"
+  },
+  {
+   "claim": "A superseded context keeps a consistent _thermal_params/_current_state/_config snapshot across async_update_thermal_params.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+   "value": "old heat_loss_coefficient 0.15 vs live 0.2; only the 2 _opt_config fields of D7-s2-03 move"
+  },
+  {
+   "claim": "window, pumps, external heat and defrost: no plant learner ingests a contaminated interval (only by-design passes: freq_map and capacity_envelope under external heat, DHW and metered COP under window, the defrost derate under defrost).",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+   "value": "0 contaminated cells in the four columns over 21 learners"
+  },
+  {
+   "claim": "The curve learner freezes on away (the discipline D7-s2-01's three learners lack).",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+   "value": "curve away=0, null=1"
+  },
+  {
+   "claim": "Comfort quiet evidence during away has no measured consequence on a real away plan in the golden-shaped configuration (the plan is not flat).",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py",
+   "value": "comfort_weight_ratio_away_14d=1.0000, real away plan span 4.90 K"
+  },
+  {
+   "claim": "Slab-pair mismatch (mass x0.33..x3, transfer x0.5..x2) is refused or adopted within the +-10 % bar on all three presets; sensor noise 0.01/0.02 C admits nothing outside the bar.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+   "value": "0 biased admissions on those 39 cells"
+  },
+  {
+   "claim": "The first-order regression (identify, harness-only per #1395) admits nothing on the shipped presets.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+   "value": "biased_admitted_first_order=0; completes 0/57 (gains bounds / implausible signs / noise refusals)"
+  },
+  {
+   "claim": "Over-freezes noted (no contamination, a learner pausing on a signal that does not touch its sample): the defrost derate's settlement freezes on ventilation (power_frozen with room_air) and the DHW learner on a space boost.",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+   "value": "defrost window=0 with null=1"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D7/s2/enum_m2.py",
+  "dev/audit/rounds/round11/D7/s2/enum_m3.py",
+  "dev/audit/rounds/round11/D7/s2/enum_m4.py",
+  "dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+  "dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+  "dev/audit/rounds/round11/D7/s2/m3_away_drift.py",
+  "dev/audit/rounds/round11/D7/s2/m4_order_context.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters.from_config (two_zone_mode)",
+   "what": "two_zone_mode 'auto' (DEFAULT_TWO_ZONE_MODE) is tested in the same branch as 'on', so an entry with no zone keys resolves two_zone_enabled=True (from_config({}) -> True); const.py's comment says auto keeps the presence rule, which is now reached only for unknown values"
+  }
+ ]
+}
