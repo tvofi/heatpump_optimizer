@@ -1,0 +1,46 @@
+{
+ "id": "D2-s2-02",
+ "scope": "D2-s2",
+ "step": "D2.M2",
+ "title": "Measured defrost derate never derates: derate_from_duty adds duty x 1.5 and clamps to 1.0",
+ "severity": "high",
+ "claim": "defrost.derate_from_duty returns min(1, max(0.55, 1 + duty*1.5)) instead of the module's documented 1 - duty*DEFROST_LOSS_MULTIPLIER, so every measured duty in (0, 0.30] yields 1.0 and a fully trusted 20 % defrost duty leaves the frost-band COP unchanged (ratio 1.0, documented 0.70).",
+ "mechanism": "Sign error in the measured estimator. Because DERATE_MAX is 1.0 the result is pinned at 1.0; _decide hands the bucket to the measured estimator once duty_counts reaches DERATE_CONFIDENCE_SAMPLES, so on an install with a defrost flag the measured 1.0 also displaces any earned inferred derate: frost-band plans over-promise heat, the failure the module exists to stop.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+  "value": 60,
+  "unit": "count of duty grid points (61 over [0, 0.30]) where derate_from_duty differs from the documented law",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts only; box shared",
+  "tolerance": "exact",
+  "load1": 0.44,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.defrost:derate_from_duty (driven directly and through DefrostDerate.factor -> ThermalModel.compute_cop)",
+ "perturbation": {
+  "change": "defrost.py derate_from_duty: `1.0 + duty * DEFROST_LOSS_MULTIPLIER` -> `1.0 - duty * DEFROST_LOSS_MULTIPLIER` (harness --perturb=defrost, private copy)",
+  "expected_direction": "to_zero",
+  "observed_value": "duty_law_mismatch 60 -> 0; frost_cop_ratio 1.0 -> 0.70 on winter_mild (73 frost steps) and shoulder (41)"
+ },
+ "metric_definition": "Count of duty points d in linspace(0, 0.30, 61) with |derate_from_duty(d) - clip(1 - 1.5 d, 0.55, 1.0)| > 1e-12.",
+ "phenomenon_property": "A measured defrost duty d > 0 derates COP to clip(1 - d*DEFROST_LOSS_MULTIPLIER, DERATE_MIN, DERATE_MAX) < 1 wherever it applies.",
+ "seam_rule": "grep -n 'DEFROST_LOSS_MULTIPLIER\\|derate_from_duty' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+  "value": "winter_cold, summer_warm, summer_cool: frost_steps 0, frost_cop_ratio n/a; duty 0.0 point matches (1.0 both)",
+  "note": "the identity is silent where no frost-band step exists and at zero duty"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=defrost"
+ ],
+ "proposed_fix_scope": "defrost.py derate_from_duty: subtract the duty term.",
+ "files": [
+  "custom_components/heatpump_optimizer/defrost.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
