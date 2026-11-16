@@ -825,17 +825,27 @@ stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SE
 # head (read by HPO_RELAY_PRHEAD, else gh) is still the dispatched head, is owed on the same level. A moved
 # head means the dispatch was superseded, and an unreadable head is silent (unknown is not owed). The
 # ledger's reviewer-fire entry closes at the fire, so nothing else owes a reviewer that never returned.
+# THE NO-BODY LINE (RELAY-NOBODY-OWED, triage P611 arm 2): a fixer whose handoff/ or handoff-wip/<topic> moved
+# after its fire returned code, which is not a return without a body: 124 of 628 fires (2026-11-04..11) pushed
+# code and never handoff-body/<topic>, and the ledger's `no body ref` waits 4 h. Once the newest code commit since
+# the fire is older than HPO_RELAY_NOBODY_SECS (default 3600; a healthy fire's last code reaches its body in a
+# median 10 min, p90 48) with no handoff-body/<topic> commit newer than the fire, it is
+#   OWED <utc> seat-no-body refs/heads/dispatch/fixer-<topic> <sha> NO BODY <topic> <code ref> <tip12> <age>min: <owed>
+# where <owed> is `continuation owed (fire <sha12>)`, or `carry fold pending` when handoff-wip/<topic>'s
+# BLOCKED.md names CARRY-LANDED alone (the carry-fold arm's stop). A body older than the fire is no return.
+blocked_kinds() { # <BLOCKED.md text>: the `body_push: REFUSED <KIND>` kinds it names, sorted, each followed by a space
+  printf '%s\n' "$1" | sed -n 's/^body_push: REFUSED \([A-Z-]*\)[[:space:]]*$/\1/p' | sort -u | tr '\n' ' '; }
 noreturn_arm() {
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} lim=${HPO_RELAY_NORETURN_SECS:-7200} win=${HPO_RELAY_NORETURN_WINDOW_SECS:-172800} rlim=${HPO_RELAY_NORETURN_REVIEWER_SECS:-5400}
-  local now sha ref topic t age r rs moved first rpr rhead rn8 rlive
-  case $lim$win$rlim in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW/REVIEWER_SECS must be seconds; the level stays" >&2; return 0;; esac
+  local blim=${HPO_RELAY_NOBODY_SECS:-3600} now sha ref topic t age r rs rt moved first rpr rhead rn8 rlive cct cref ctip bmoved owed
+  case $lim$win$rlim$blim in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW/REVIEWER_SECS and HPO_RELAY_NOBODY_SECS must be seconds; the level stays" >&2; return 0;; esac
   mkdir -p "$state" || return 0
   # Only the dispatch refs are listed by glob; each candidate's return refs are asked by name, so no
   # glob here lists a handoff-wip step ref (cloud_dispatch.py pins that no handoff arm sees one).
   git ls-remote origin 'refs/heads/dispatch/fixer-*' 'refs/heads/dispatch/reviewer-*' > "$state/cloud-nr.$$" \
     && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' '+refs/heads/dispatch/reviewer-*:refs/hpo-relay/dispatch/reviewer-*' 2>/dev/null \
     || { echo "cloud_relay: the dispatch refs could not be read; the no-return level stays" >&2; rm -f "$state/cloud-nr.$$"; return 0; }
-  now=$(date +%s); : > "$state/cloud-level-nr.$$"
+  now=$(date +%s); : > "$state/cloud-level-nr.$$"; : > "$state/cloud-level-nb.$$"
   while read -r sha ref; do
     case $ref in
       refs/heads/dispatch/reviewer-?*)
@@ -860,16 +870,31 @@ noreturn_arm() {
     esac
     t=$(git log -1 --format=%ct "$sha" 2>/dev/null) || continue
     age=$((now - t))
-    [ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage
-    moved=
+    # code cannot be older than its fire, so a fire younger than both bounds owes neither line
+    { [ "$age" -gt "$lim" ] || [ "$age" -gt "$blim" ]; } && [ "$age" -le "$win" ] || continue  # mut:noreturnage
+    moved= cct=0 cref= ctip= bmoved=
     git ls-remote origin "refs/heads/handoff/$topic" "refs/heads/handoff-wip/$topic" "refs/heads/handoff-body/$topic" \
       "refs/heads/fix/$topic-pr" "refs/heads/fix/$topic" > "$state/cloud-nrr.$$" || { moved=unread; }
     for r in handoff/$topic handoff-wip/$topic handoff-body/$topic fix/$topic-pr fix/$topic; do
       rs=$(awk -v r="refs/heads/$r" '$2 == r { print $1; exit }' "$state/cloud-nrr.$$")
       [ -n "$rs" ] || continue
       git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "refs/heads/$r" 2>/dev/null
-      [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved
+      rt=$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)
+      [ "$rt" -gt "$t" ] || continue
+      moved=1  # mut:noreturnmoved
+      case $r in handoff-body/*) bmoved=1;; handoff/*|handoff-wip/*) [ "$rt" -le "$cct" ] || { cct=$rt; cref=$r; ctip=$rs; };; esac
     done
+    # Code returned since the fire and no body since it: owed once that code is past the bound (RELAY-NOBODY-OWED).
+    if [ "$cct" -gt 0 ] && [ -z "$bmoved" ] && [ $((now - cct)) -gt "$blim" ]; then  # mut:nobodyowed
+      owed="continuation owed (fire ${sha:0:12})"
+      rs=$(awk -v r="refs/heads/handoff-wip/$topic" '$2 == r { print $1; exit }' "$state/cloud-nrr.$$")
+      if [ -n "$rs" ] && [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] \
+        && [ "$(blocked_kinds "$(git show "$rs:BLOCKED.md" 2>/dev/null)")" = "CARRY-LANDED " ]; then owed="carry fold pending"; fi  # mut:nobodyfold
+      echo "cloud_relay: SEAT NO BODY $topic ($cref ${ctip:0:12}, $(((now - cct) / 60))min old, no handoff-body/$topic since dispatch ${sha:0:12}): $owed"
+      level_line seat-no-body "$ref" "$sha" "NO BODY $topic $cref ${ctip:0:12} $(((now - cct) / 60))min: $owed" >> "$state/cloud-level-nb.$$"
+      continue
+    fi
+    [ "$age" -gt "$lim" ] || continue
     if [ -z "$moved" ]; then  # a split seat returns under <base>-p<N>: only a full-matching family member counts
       { git ls-remote origin "refs/heads/handoff/${topic%-p[0-9]*}-p*" "refs/heads/handoff-wip/${topic%-p[0-9]*}-p*" \
           "refs/heads/handoff-body/${topic%-p[0-9]*}-p*" "refs/heads/handoff/${topic%-p[0-9]*}" "refs/heads/handoff-wip/${topic%-p[0-9]*}" \
@@ -884,7 +909,7 @@ noreturn_arm() {
     echo "cloud_relay: SEAT ENDED NO RETURN $topic (dispatch ${sha:0:12}, $((age / 3600))h, no return ref or PR head moved since)"
     level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN $topic $((age / 3600))h" >> "$state/cloud-level-nr.$$"
   done < "$state/cloud-nr.$$"
-  level_set seat-no-return "$state/cloud-level-nr.$$"
+  level_set seat-no-return "$state/cloud-level-nr.$$"; level_set seat-no-body "$state/cloud-level-nb.$$"
   rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
 }
 
@@ -961,7 +986,7 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     blob=-
     [ -f "$state/cloud-folded" ] && grep -qxF "$topic $bsha" "$state/cloud-folded" && continue
     git fetch -q origin "$ref" 2>/dev/null && bw=$(git show "$sha:BLOCKED.md" 2>/dev/null) || continue
-    kinds=$(printf '%s\n' "$bw" | sed -n 's/^body_push: REFUSED \([A-Z-]*\)[[:space:]]*$/\1/p' | sort -u | tr '\n' ' ')
+    kinds=$(blocked_kinds "$bw")
     if [ "$kinds" != "CARRY-LANDED " ] || [ -z "$bsha" ]; then  # mut:foldonly
       why="BLOCKED.md names ${kinds:-no refusal line}${bsha:+; }${bsha:-and no kept body}: not CARRY-LANDED alone, nothing folded"
       case " $kinds" in *" PREDICTOR "*) rt=$(owed_red_text "$topic" "$bw") && [ -n "$rt" ] && why="$why; $rt";; esac  # mut:owedred
@@ -2052,7 +2077,7 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   nrc() { # <ref> <age seconds>: one commit on the scratch origin's <ref>, committed <age> ago
     GIT_COMMITTER_DATE="@$(( $(date +%s) - $2 )) +0000" git -C "$t/nr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"
     git -C "$t/nro.git" fetch -qf "$t/nr" "HEAD:refs/heads/$1"; }
-  nrc dispatch/fixer-nr-a 10800; nrc dispatch/fixer-nr-b 10800; nrc handoff-wip/nr-b 3600
+  nrc dispatch/fixer-nr-a 10800; nrc dispatch/fixer-nr-b 10800; nrc handoff-wip/nr-b 1800
   nrc dispatch/fixer-nr-c 10800; nrc fix/nr-c-pr 1800; nrc dispatch/fixer-nr-young 1800
   nrc dispatch/fixer-nr-old 300000; nrc handoff/nr-e 14400; nrc dispatch/fixer-nr-e 10800
   nro=$(noreturn_arm 2>&1)
@@ -2065,6 +2090,33 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "a dispatch younger than the bound is not reported" 1 grep -q " nr-young " <<< "$nro"
   chk "a dispatch past the window is not reported (its refs may be gone with a merged branch)" 1 grep -q " nr-old " <<< "$nro"
   chk "a return ref older than the dispatch (an earlier round's) does not count as a return" 0 grep -q " nr-e " <<< "$nro"
+  # RELAY-NOBODY-OWED (P611 arm 2): code returned since the fire with no body since it is owed past HPO_RELAY_NOBODY_SECS.
+  chk "a seat whose code moved 30 min ago with no body yet is silent (under the 3600 s bound)" 1 grep -q "NO BODY nr-b " <<< "$nro"
+  nrb() { # <topic> <file> <content> <ref> <age s>: one commit holding <file> on the scratch origin's <ref>
+    printf '%s\n' "$3" > "$t/nr/$2"; git -C "$t/nr" add "$2"; nrc "$4" "$5"; git -C "$t/nr" rm -q --cached "$2"; rm -f "$t/nr/$2"; }
+  nrc dispatch/fixer-nb-body 10800; nrc handoff/nb-body 7200; nrc handoff-body/nb-body 5400
+  nrc dispatch/fixer-nb-61 10800; nrc handoff/nb-61 3660
+  nrc dispatch/fixer-nb-old 10800; nrc handoff-body/nb-old 14400; nrc handoff-wip/nb-old 7200
+  nrc dispatch/fixer-nb-59 10800; nrc handoff/nb-59 3540
+  nrb nb-fold BLOCKED.md "body_push: REFUSED CARRY-LANDED" handoff-wip/nb-fold 7200; nrc dispatch/fixer-nb-fold 10800
+  nrb nb-q BLOCKED.md "Question: which seam?" handoff-wip/nb-q 7200; nrc dispatch/fixer-nb-q 10800
+  nrc dispatch/fixer-nb-young 4000; nrc handoff/nb-young 3700
+  nro=$(noreturn_arm 2>&1)
+  chk "a fire whose body came 30 min after its code is silent (RELAY-NOBODY-OWED)" 1 grep -q " nb-body " <<< "$nro"
+  chk "code without a body at 61 min owes: SEAT NO BODY names the topic, the code tip, its age and the owed fire" 0 \
+    grep -q "^cloud_relay: SEAT NO BODY nb-61 (handoff/nb-61 [0-9a-f]\{12\}, 61min old, no handoff-body/nb-61 since dispatch [0-9a-f]\{12\}): continuation owed (fire [0-9a-f]\{12\})$" <<< "$nro"
+  chk "and it is seat-no-body on the level, where the tick reads it" 0 \
+    grep -qE "^OWED [^ ]+ seat-no-body refs/heads/dispatch/fixer-nb-61 [0-9a-f]{40} NO BODY nb-61 handoff/nb-61 [0-9a-f]{12} 61min: continuation owed \(fire [0-9a-f]{12}\)$" "$LOG.level"
+  chk "a fire whose code returned is no SEAT ENDED NO RETURN beside its no-body line" 1 grep -q "SEAT ENDED NO RETURN nb-61 " <<< "$nro"
+  chk "a body older than the fire is not a return: handoff-wip code with no body since the fire owes" 0 grep -q "^cloud_relay: SEAT NO BODY nb-old (handoff-wip/nb-old " <<< "$nro"
+  chk "null control: code 59 min old with no body is silent" 1 grep -q " nb-59 " <<< "$nro"
+  chk "a CARRY-LANDED-alone BLOCKED.md on handoff-wip names the pending fold, not a continuation" 0 grep -q "^cloud_relay: SEAT NO BODY nb-fold .*: carry fold pending$" <<< "$nro"
+  chk "null control: a BLOCKED.md naming no CARRY-LANDED refusal owes a continuation" 0 grep -q "^cloud_relay: SEAT NO BODY nb-q .*: continuation owed" <<< "$nro"
+  chk "a fire 4000 s old (under the no-return bound) whose code is 61 min old owes its body" 0 grep -q "^cloud_relay: SEAT NO BODY nb-young " <<< "$nro"
+  nro=$(HPO_RELAY_NOBODY_SECS=7300 noreturn_arm 2>&1)
+  chk "HPO_RELAY_NOBODY_SECS moves the bound: at 7300 s the 2 h-old code is silent" 1 grep -q "NO BODY" <<< "$nro"
+  chk "and the no-body level is rewritten, not appended" 1 grep -q " seat-no-body " "$LOG.level"
+  for b in nb-body nb-61 nb-old nb-59 nb-fold nb-q nb-young; do git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-$b; done
   nrc dispatch/fixer-r10-agreement-bootstrap 10800; nrc handoff/r10-agreement-bootstrap-p1 3600
   nrc dispatch/fixer-r10-roster-ops 10800; nrc handoff/r10-roster-ops-2 3600
   nrc dispatch/fixer-r10-deeplink 10800; nrc handoff/r10-deeplink-census 3600
