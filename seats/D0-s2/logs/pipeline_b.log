@@ -1,0 +1,5 @@
+RESULT l1_kwh[winter_extreme/winter_mild/single-zone/dhw/manual-valve-buffer/48h]=16.23898414270339 kWh
+RESULT l1_kwh[winter_extreme/winter_mild/single-zone/dhw/manual-valve-buffer/6h]=4.165635049758242 kWh
+RESULT l1_kwh[winter_extreme/winter_mild/single-zone/no-dhw/manual-valve-buffer/24h]=6.545810206589287 kWh
+RESULT l1_kwh[winter_extreme/winter_mild/single-zone/no-dhw/manual-valve-buffer/48h]=18.530802523293513 kWh
+RESULT l1_kwh[winter_extreme/winter_mild/single-zone/no-dhw/manual-valve-buffer/6h]=8.828357620560872 kWh

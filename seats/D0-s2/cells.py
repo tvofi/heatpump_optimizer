@@ -12,7 +12,9 @@ Plant mapping (config keys only; every key is a production config key in const.p
   plain                      no valve (house() defaults: 200 L buffer as a pass-through)
   valve-storage              mixing_valve_mode=smart_write (throttling, the buffer stores)
   manual-valve-buffer        mixing_valve_mode=manual (throttling, dumb valve, buffer)
-  wood                       mixing_valve_mode=manual + wood furnace on with a top probe (two-tank)
+  wood                       mixing_valve_mode=manual + wood furnace on with a top probe (two-tank), the wood
+                             tank read at WOOD_TANK_C = 65 C at the solve (without a reading the solver runs
+                             the plant as manual-valve-buffer: 59/59 identical plans before this was set)
   flow-setpoint-behind-valve mixing_valve_mode=smart_write, write kind flow, pump duty control,
                              space set-point unit flow, modulating compressor
 Coordinator captures: tests/golden.py:coordinator_scenarios() configs, same horizon injection.
@@ -32,6 +34,7 @@ for _p in (os.path.join(ROOT, "tests"), os.path.join(ROOT, "custom_components"))
 
 import numpy as np  # noqa: E402
 
+WOOD_TANK_C = 65.0
 PRICES = ("winter_typical", "winter_extreme", "winter_narrow", "winter_moderate")
 
 PLANTS = {
@@ -107,6 +110,10 @@ def build_record(config, price, weather, hours, state_over=None, offset=0, state
         st.lower_floor_temperature = 21.0
         st.buffer_tank_temperature = 40.0
         # DHW starts at ThermalState's own default (55 C); the coordinator reads no tank sensor here.
+        if config.get("wood_furnace_enabled"):
+            # The wood plant only exists for the solver with a tank reading (ThermalState.wood_tank_temperature
+            # None = the two-tank model off): a charged tank after a firing, WOOD_TANK_C.
+            st.wood_tank_temperature = WOOD_TANK_C
         if state is not None:
             import copy
             st = copy.deepcopy(state)
