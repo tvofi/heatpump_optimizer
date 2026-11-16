@@ -2903,7 +2903,9 @@
    "architect_note": "",
    "source": "programme",
    "brief": "Round 11's closeout, run at round end after every other round-11 group is closed (owner ruling 2026-11-15: each round owns its own closeout group; round 10's is closed as superseded by this one). Archive, prune and clean up with the closeout instrument: dry plan first, then apply; archive tags before any delete; worktree and seat-scratch collection; the round's state docs and roster land on main first; the report with counts before and after. Inherited from round 10's closeout: the refs its pass 2 left out because their pull requests were open on 2026-11-15 (the review, verdict and handoff refs of 3566, 3598 and 3602; 3551 has since merged) are pruned in this run once those pull requests are merged or closed. The closeout instrument names round 10's group as its own exempt group (SELF_GROUP in tools/audit/seat/closeout.py): make it derive the round's own closeout group from the roster's round, with a self-test arm for a round-11 roster, before the apply run.",
-   "carry": [],
+   "carry": [
+    "From r11-hotfix-tick-seat-window, body item dd8248c8: The merge-time undefined-name detector, lands in the round-end proposal set (`tools/audit/seat/merge_train.py`'s merge step is its candidate site), for the round-end proposal triage. Carry: R11-CLOSEOUT-CLEANUP (items dd8248c8)"
+   ],
    "resume": {
     "stage": "not-started",
     "commit": null,
