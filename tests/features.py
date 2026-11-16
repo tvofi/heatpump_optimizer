@@ -94076,10 +94076,12 @@ R.check(
 
 # The month and the wear line take the edge's one stamp: a start whose first
 # reading is before midnight at a month's end and whose confirmation is after
-# it is January's, in the count and on the ledger.
+# it is February's, in the count and on the ledger. Both key the configured
+# zone's wall clock, so the midnight is that zone's, not UTC's: a UTC literal
+# lands in March under any zone east of UTC (the nightly Asia/Kolkata lane).
 _sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
 _sce_mid.load(None)
-_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=UTC)
+_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=_sce_dt.DEFAULT_TIME_ZONE)
 _sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
 for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
     _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
