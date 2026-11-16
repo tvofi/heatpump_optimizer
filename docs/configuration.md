@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 24 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 25 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -323,7 +323,7 @@ opens this screen. Enter a valid token and price updates resume.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **24 pages**: eight on the first menu, and sixteen more behind
+There are **25 pages**: eight on the first menu, and seventeen more behind
 **Advanced settings**. One of the eight — *Your system, as configured* — is
 read-only, and the last advanced page, *Reset to factory defaults*, is an
 action behind a confirmation rather than settings. Each page saves on its own, so changing one setting never touches
