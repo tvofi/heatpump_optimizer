@@ -1,0 +1,319 @@
+{
+ "dimension": "D16",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D16/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D16.M3",
+   "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+   "universe": 532,
+   "examined": 532,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py --cells-out dev/audit/rounds/round11/D16/s2/cells_verdicts.txt -> RESULT cells_universe=532 cells_examined_m3=532 cells_not_reached=0 unattributed_sites=0; per-cell verdicts in dev/audit/rounds/round11/D16/s2/cells_verdicts.txt; channel timing in dev/audit/rounds/round11/D16/s2/timing.py and dev/audit/rounds/round11/D16/s2/disinfect.py"
+  },
+  {
+   "step": "D16.M4",
+   "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+   "universe": 532,
+   "examined": 532,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py -> RESULT cells_examined_m4=532 (pump model on the null plant per state); plant sweep in dev/audit/rounds/round11/D16/s2/effect.py"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D16-s2-01",
+   "scope": "D16-s2",
+   "step": "D16.M3",
+   "title": "Frequency, ECL110 displace and heat-curve offset hold the cycle's step through the next step",
+   "severity": "medium",
+   "claim": "The writes cut from the cycle's action (compressor frequency, ECL110 MQTT displace on both topics, the heat-curve offset entity) are never re-derived at a plan-step boundary, so with the default 30-min cycle over 15-min steps the command in force is another step's in 45-57 % of graded minutes on the reference plant.",
+   "mechanism": "`_current_action` is cut once per solve (async_run_optimization -> get_current_action) and `_command_frequency` (via `_commanded_split`), `async_publish_current_action` -> `heat_curve.publish` and the valve hold schedule read it only inside `_async_update_data`; the supply (`pump_arbiter.supply_tick`, #2492) and the arbiter's one-minute tick re-derive their step each minute, these do not. A cycle whose tail lands after the boundary (cell 3478) writes the step it was cut for into the next one.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+    "value": 0.5732,
+    "unit": "stale share, mqtt displace (curve 0.4644, frequency 0.4480)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+    "cpu_or_wall": "ratio",
+    "contention_note": "other finder seats on the box; counts are contention-immune",
+    "tolerance": "exact for a given phase set",
+    "load1": 1.8,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._command_frequency; heatpump_optimizer.heat_curve:publish_ecl110_topics; heatpump_optimizer.heat_curve:write_displace (driven through HeatPumpOptimizerCoordinator._apply_action)",
+   "perturbation": {
+    "change": "cycle every 15 min aligned to the step grid (optimization_interval 15, --interval 15 --phases 0): every write re-cut at each boundary",
+    "expected_direction": "to_zero",
+    "observed_value": "mqtt 0.0000, curve 0.0000, frequency 0.0000"
+   },
+   "metric_definition": "minutes >=1 min after a boundary whose in-force value != the step's own (displace_schedule[k] by plain index; frequency the value a same-step cut writes) / graded minutes",
+   "phenomenon_property": "Every actuator write whose value is a function of the plan step is re-derived at each plan-step boundary (within the arbiter's one-minute tick), not only when the cycle runs.",
+   "seam_rule": "grep -nE '_command_frequency|async_publish_current_action|_command_valve_target|_async_drive_pumps|_current_action\\.get\\(\"(valve_target|displace_value|heat_pump_on)\"' custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --interval 15 --phases 0",
+    "value": 0.0,
+    "note": "a cycle on every boundary: all three shares 0, supply/mode/flow 0 in both arms"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 0.4135,
+    "max": 0.7303,
+    "drop_most_favourable": 0.6057
+   },
+   "reproduction_steps": [
+    "run timing.py: RESULT stale_share_mqtt_displace=0.5732, curve_offset=0.4644, frequency=0.4480 over cycle phases 1,6,11,16,21,26",
+    "cell 3478 line: frequency 65.5 Hz (partial's) in force in a full step whose own cut writes 90.0 Hz; mqtt '4' against the step's 6",
+    "--interval 15 --phases 0: all 0"
+   ],
+   "proposed_fix_scope": "coordinator write tail: re-cut the action's step-dependent fields (or the action) at each plan-step boundary from the same one-minute step tick that drives the supply, and run the frequency/MQTT/curve/valve writes from it, keeping their own rate limits.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/heat_curve.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D16-s2-02",
+   "scope": "D16-s2",
+   "step": "D16.M3",
+   "title": "Disinfection switch is commanded from the previous solve's action, one interval late",
+   "severity": "high",
+   "claim": "The pump's disinfection switch turns on one cycle after the steps the plan books the anti-legionella cycle on: for a 06:30-07:00 window it is on 0 of 30 minutes inside the window and 30 minutes after it, and the space-only steps of the window stay in Heating mode (0 of 30 minutes Heating + DHW).",
+   "mechanism": "`LegionellaGuard.async_track_cycle` (reached from `_update_current_state` -> `async_observe`, the first thing `_async_update_data` does) reads `self._action()`, the action the previous solve cut; the solve that adopts this step's legionella action runs after it, so the switch and the arbiter's `inp.disinfecting` (DisinfectionSwitch.memo) follow one interval behind, and the switch is not re-driven between cycles.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s2/disinfect.py",
+    "value": 0,
+    "unit": "minutes the switch reads on inside a 30-min booked window (30 on outside it)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats on the box; counts only",
+    "tolerance": "exact",
+    "load1": 1.35,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.legionella:LegionellaGuard.async_track_cycle (driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state); heatpump_optimizer.disinfection:DisinfectionSwitch.turn_on",
+   "perturbation": {
+    "change": "run LegionellaGuard.async_track_cycle again right after the solve adopts its action (--perturb track-after-adopt)",
+    "expected_direction": "up",
+    "observed_value": "on_in_window 29 of 30, on_outside 1, mode Heating + DHW 29 of 30"
+   },
+   "metric_definition": "minutes the disinfection switch entity reads on inside the steps whose plan dhw_reasons[k] is legionella (plain index), and outside them",
+   "phenomenon_property": "An actuator driven from the action is driven from the action of the step it lands in: no write path reads an action older than the current solve's.",
+   "seam_rule": "grep -nE 'self\\._action\\(\\)|_action=|async_observe|async_track_cycle' custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+    "value": 0,
+    "note": "no step booked legionella: null_on_minutes=0; a 90-min window shows the same 30-min shift (59 of 90 in window, 31 after)"
+   },
+   "reproduction_steps": [
+    "disinfect.py: switch writes turn_on at minute 61, turn_off at 91 for a window 30-60",
+    "the tank set-point does reach 60 C from minute 31 (the arbiter reads the new action), so the set-point and the switch disagree for the whole window"
+   ],
+   "proposed_fix_scope": "legionella/coordinator: drive the disinfection switch from the adopted action (after the solve's adoption, and on the step tick), not from the input read that precedes the solve.",
+   "files": [
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/disinfection.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D16-s2-03",
+   "scope": "D16-s2",
+   "step": "D16.M3",
+   "title": "A switch-on leads no mode when the arbiter's stale record matches the step's mode",
+   "severity": "low",
+   "claim": "When the mode select changes while the supply reads off (the pump's own reset, a person) and the arbiter's record still holds the step's mode, the switch-on of a partial step lands with the hot-water mode in force; Heating follows one tick later.",
+   "mechanism": "`_lead_mode` (#3420) calls `_write`, which returns early when `held.written['mode']` equals the target; `hold()`, which drops a record the entity no longer reads, never runs while the switch reads off (`_arbitrate` returns at `_pump_off`), so the record is stale exactly when the lead is needed.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+    "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+    "value": 1,
+    "unit": "switch-on with the wrong mode in force (cell3530_record_wrong_mode_at_on)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only",
+    "tolerance": "exact",
+    "load1": 1.8,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_lead_mode (through write_supply from supply_tick)",
+   "perturbation": {
+    "change": "hold(coord, now) before the _write in _lead_mode (--perturb lead-hold)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "mode select state in force at the supply switch-on of a heating step, against the step's mode from the plan (Heating where only space is booked)",
+   "phenomenon_property": "A write skipped because the arbiter's record already holds it is skipped only when the entity reads that value.",
+   "seam_rule": "grep -n 'recorded and not _differs' custom_components/heatpump_optimizer/pump_arbiter.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+    "value": 0,
+    "note": "same scenario with no change while off: the mode in force at switch-on is Heating (null arm 0)"
+   },
+   "reproduction_steps": [
+    "partial (mode Heating recorded), idle (switch off), the select moved to DHW (Hot Water) at minute 35, partial at 45: switch_on at 45 with DHW in force, Heating written at 46"
+   ],
+   "proposed_fix_scope": "pump_arbiter._lead_mode: compare against the entity's reading (or run hold) before trusting the record.",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D16-s2-04",
+   "scope": "D16-s2",
+   "step": "D16.M4",
+   "title": "Floor-level space steps short-cycle where the floor lift exceeds min lift plus stop hysteresis",
+   "severity": "medium",
+   "claim": "Under a pump with an integrating speed loop and a 2 K stop hysteresis, a step booked at the modulation floor (min-cold-tank, 1.0 kW) runs 30 starts in 2.5 h at 0.60 kW on a plant lifting 8 K/kW (38 starts, 0.50 kW at 10 K/kW) against the plan's one run at 1.0 kW; the power-feedback loop never corrects it.",
+   "mechanism": "The floor writes inlet + flow_min_lift_k (5 K); a pump whose water at its floor sits higher than that plus its stop hysteresis stops and restarts. `_feedback` resets its run on every stop and folds only running samples, so its windowed error is 0 (running at the floor = the booked floor) and `_nudged` stays in the deadband; the duty-cycle shortfall is never seen.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s2/effect.py",
+    "value": 30,
+    "unit": "compressor starts over 2.5 h of floor steps (plan: 1), k_lift 8",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only",
+    "tolerance": "exact",
+    "load1": 1.44,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_flow_target and _feedback (via pump_arbiter.apply on the one-minute tick)",
+   "perturbation": {
+    "change": "config flow_min_lift_k = 8 (--cfg flow_min_lift_k=8)",
+    "expected_direction": "down",
+    "observed_value": "1 start at k_lift 8 (1.0 kW), 4 at 10 (0.98 kW)"
+   },
+   "metric_definition": "pump-model compressor starts and mean draw over steps 3..10 of a floor-level stretch, against the plan's one run at power_schedule[k]",
+   "phenomenon_property": "A step the plan books at the modulation floor is realized as one continuous run at the floor on any plant the loop can hold there: the set-point loop sees a duty-cycle shortfall, not only running samples.",
+   "seam_rule": "grep -nE 'def (_feedback|_nudged|_flow_target)|modulation_floor_flow_c|start_flow_min_lift_k' custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/thermal_model.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+    "value": 1,
+    "note": "k_lift 2.0-6.5: 1 start at 1.0 kW each (the null plant k 5: power_error 0)"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 0.0,
+    "max": 0.5,
+    "drop_most_favourable": 0.0797
+   },
+   "reproduction_steps": [
+    "effect.py: RESULT min-cold-tank_k8.0_starts=30 measured_kw=0.602; k10.0_starts=38 measured_kw=0.5; k2.0-6.5 starts=1",
+    "--cfg flow_min_lift_k=8: k8.0 starts=1"
+   ],
+   "proposed_fix_scope": "pump_arbiter feedback: count a stopped minute inside a booked heating step as a zero sample (or keep the run across a short stop) so the loop lifts the floor target; or learn the floor lift from the supply-temperature reading.",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Supply, mode and flow class are the step's own command >=1 min after each boundary (M3), and P1 turns them red",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py ; PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --perturb P1",
+   "value": "stale 0/1434, 0/906, 0/906; under P1 0.4561, 0.3510, 0.6364; cell3478_step_k_off_row 0 -> 13/13"
+  },
+  {
+   "claim": "The arbiter's docstring edited alone moves no cell (null control)",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --perturb null-docstring",
+   "value": "identical RESULT lines to the unperturbed run"
+  },
+  {
+   "claim": "Cell 3530: partial entered from idle writes the mode before the switch-on",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+   "value": "cell3530_mode_led=1; switch_on_with_wrong_mode=0 of 60"
+  },
+  {
+   "claim": "Cell 3512: minimum run and pause held across re-solves",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+   "value": "transitions on 30, off 40, on 50: runs [10], pauses [10], short 0/0"
+  },
+  {
+   "claim": "Both steps: hot water asked first, then the house, inside the step",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "mode sequences [DHW, Heating] x2"
+  },
+  {
+   "claim": "Boost-partial: the space target is the band top for the whole boost",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "boost_flow_minutes_below_top=0, top 60 C"
+  },
+  {
+   "claim": "Unavailable written entity: no write made or recorded; partial's row on return",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "calls 0, recorded 0, m3_stale 0/22"
+  },
+  {
+   "claim": "Observe and off duty modes write nothing through the arbiter",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "arbiter_writes 0 and 0"
+  },
+  {
+   "claim": "Baseline row lands within the tick after the plan ends",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "first Heating + DHW at minute 47 (end 45); dhw 50 configured every minute after"
+  },
+  {
+   "claim": "Restart and upgrade (v10.0.1 store) return partial's row at the first solve",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+   "value": "m3_stale 2/42 and 2/38, both the scenario's one-minute solve delay"
+  },
+  {
+   "claim": "Partial effect: measured power within the feedback deadband on plants 2-8 K/kW, one run",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+   "value": "|power_error| max 0.0873 (k 2-8), null k 5: 0.0000; k 10: -0.1848, ceiling-limited (55 C)"
+  },
+  {
+   "claim": "Dhw-only on a tank above set-point less hysteresis: the write is its row (configured 50); nothing starts",
+   "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+   "value": "delivered_share 0.0000, starts 0; ledger not-startable with the hysteresis entity, idle-instead without"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D16/s2/rig.py",
+  "dev/audit/rounds/round11/D16/s2/timing.py",
+  "dev/audit/rounds/round11/D16/s2/disinfect.py",
+  "dev/audit/rounds/round11/D16/s2/effect.py",
+  "dev/audit/rounds/round11/D16/s2/cells.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D16-s1",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "what": "With the clock past the last step the loop's else-branch returns the last step's action (heat_pump_on included); cycle_supply falls back to it where step_supply gives None, so the baseline state's supply value is the last step's, not a handed-back pump (M2 value of the baseline row)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "symbol": "start mask (dhw_start_below_c)",
+   "what": "Without dhw_hysteresis_entity the plan books hot-water charges on a tank inside the pump's start band; the arbiter writes the configured set-point and 0 kWh is delivered (effect.py dhw_only_tank47_ent0), the ledger reading idle-instead rather than not-startable."
+  },
+  {
+   "owner_seat": "D16-s3",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "release / off_restore on unload",
+   "what": "Every reload writes the baseline row (Heating + DHW) and restores the space set-point baseline (35 C), then the new instance rewrites the plan's row at its first solve (cells.py restart: writes at minutes 34-36): a restore per reload, M6's once-rule to check."
+  }
+ ]
+}
