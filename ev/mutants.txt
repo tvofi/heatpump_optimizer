@@ -1,0 +1,1 @@
+M4: delete '(a red UNDER-SCOPED or INHERITED CLAIMS is answered by naming it)' from fixer.md step 5: check-wave-script 223 passed 0 failed; policy_lint 0 errors; review_packet self-test 133 checks 0 failed -> the clause is pinned by no instrument (policy wording)

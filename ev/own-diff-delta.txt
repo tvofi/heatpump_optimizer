@@ -1,0 +1,31 @@
+own diff at reviewed head: git diff 2104e34d8696aaf74d319cb38377c2997d78426c 34466736f2f4e9b7d2e7e448652904c6e9d65d4f
+own diff at head: git diff e30408f7881cd5602a2c4d7ea9517b0d765652f6 82b63f10988b6450c6d0779eb93b07b500bd1cc1
+552c552
+< index b8bcb5c9c0..49abff11dd 100644
+---
+> index 233e6c18dd..611f32c5b2 100644
+555c555
+< @@ -53,7 +53,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
+---
+> @@ -54,7 +54,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
+566a567
+>     run it on a `GRID_SURFACE` diff (recipe: `web-fragments.md`; #2841).
+569,575c570,575
+<     every red `prepr.sh` step 6d predicts is repaired before the handoff
+< -   (`ci-autofix.md`'s wait starts at the PR), and the body passes
+< +   (`ci-autofix.md`'s wait starts at the PR; a red `UNDER-SCOPED` or
+< +   `INHERITED CLAIMS` is answered by naming it), and the body passes
+<     `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
+<     the carry check); the orchestrator opens
+<     the PR (`docs/decisions/0011-app-authored-identity.md`).
+---
+> -   every red `prepr.sh` step 6d predicts is repaired before the handoff, and
+> +   every red `prepr.sh` step 6d predicts is repaired before the handoff
+> +   (a red `UNDER-SCOPED` or `INHERITED CLAIMS` is answered by naming it), and
+>     the body passes `tools/pr/prepr.sh`, run on a committed tree. **Prepr runs scoped** (tvofi, 2026-11-15):
+>     `PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta
+>     since the last clean run; a full run only where the change reaches what
+dev/governance/roles/fix-review.md 60c0c6f94e855b77ef1d3fde0697c6733171bac6 60c0c6f94e855b77ef1d3fde0697c6733171bac6
+dev/governance/roles/fixer.md 49abff11dd4f2fd00c3f93b2ff6b35215e1b5094 611f32c5b2506964c96768304b2abfab72080558
+dev/audit/rca/R10-RCA-SETPOINT-LATCH-DEADLOCK.md bafc5310b99346d998f42f5ee2bf77379605528d bafc5310b99346d998f42f5ee2bf77379605528d
+dev/programme/delivery/3638.md 0474671de2e000e7c7db524d84854c4497f68766 0474671de2e000e7c7db524d84854c4497f68766
