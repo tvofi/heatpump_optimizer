@@ -14,8 +14,9 @@ Run (export root, baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, machine: B1
   --file F            count one file only (and skip the ledger write)
   --edit 'F|OLD|NEW'  the perturbation: a one-line production edit applied in memory to F's text
   --set MOD.ATTR=V    the perturbation: set a production module attribute (int) before the checks
-Expected at baseline (exact, counts): RESULT false_units_total=8, units=3631, unrowed=0,
-plant_refused=1; per file as REPORT.md lists; long_sentences_strict as REPORT.md lists.
+Expected at baseline (exact, counts): false_units_total=8 (prepr.sh 3; gh_comment.py, preflight.sh,
+open_pr.sh, merge_train.py, orchestrator_tick.py 1 each), units_total=3631, units_examined=1385,
+long_sentences_raw=743, long_sentences_strict=483 in 60 files, check_unrowed=0, check_plant_refused=1.
 """
 import os
 for _threads in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
