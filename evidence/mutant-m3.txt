@@ -1,0 +1,55 @@
+
+=== features block ===
+
+-- #3616: a floor-return reading far above the room does not seed the slab
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   #3616: a 38 C heat-pump return in the floor-return field no longer plans zero space heating for a room below its comfort band
+  FAIL and a refused reading leaves the slab to the model exactly as an install with no floor-return sensor does  [refused [33.48, 31.441032525681248, 29.70000085966826, 28.213471644237178, 26.944241938960996, 25.860547095944877] 11.895075694156809 / unconfigured [20.6, 23.46282679140625, 26.104082441491613, 25.79597116842354, 25.47436940544705, 25.344150048545625] 12.68864287516764]
+  ok   and a repair issue names the sensor and the bound
+  ok   null control: a plausible floor-loop return still seeds the slab, to the return + 1 K fixed point, and raises no repair
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  FAIL a hot-water-only run does not seed the slab from the return  [[25.08, 24.268936031181248, 23.576432573135985, 22.985158570293656, 22.480316403260986, 22.04927155368351] vs [20.6, 20.44381790078125, 20.31046634288715, 20.196607980874244, 20.099393319081116, 20.01638939824058]]
+  FAIL nor does a defrost  [[25.08, 26.617690299205385, 26.310661218224734, 25.89520448434067, 25.5185381820064, 25.357778521368626] vs [20.6, 23.46282679140625, 26.10397415747833, 25.892110781910922, 25.51557517400187, 25.356806913913697]]
+  ok   control: a heating mode with the defrost flag off seeds as with no signals
+  ok   the bound: 12 K above the room is a floor loop, anything warmer is not
+  ok   every floor-return option text names the bound the guard applies
+
+-- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges
+  ok   the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop and restart inside one refresh period counts exactly one more
+  ok   the counted starts are what the cycling cost and the plan never read: the effective cycling cost is the same with no start and with every start counted
+  ok   an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the stored count and books its wear, on a fresh install it is the first start, and on a load landing after the release it is counted in memory and books and saves nothing
+  ok   a counted start books money, never energy, and only at a nonzero price: the priced install's wear line carries 0 kWh, and the default install (no replacement cost) counts its starts with no wear line
+  ok   a load that raises still restores the counter and replays the queue
+  ok   the release drops the listener, the timer of a change still pending, the subscribers and their ticks, and a second release is harmless; null control, the change was pending with its timer armed
+  ok   the stored lifetime and month counts continue across the change: a compressor running through the restart is no new start, and the next real start adds one
+  ok   in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer at the debounce, and counted from its first reading
+  ok   a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over it counts one; no timer outlives either
+  ok   an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known class holds across it
+  ok   with neither a frequency sensor nor a meter configured nothing is listened to and the read is None
+  ok   with both a frequency sensor and a meter, the frequency is the source: the meter's rise counts nothing, the frequency's counts one
+  ok   a start straddling a month boundary is counted and billed in the month of its first reading
+  ok   the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and over and back inside one refresh period (S5) count no start; a compressor stopping under the latched element reads no class rather than running (S3); a start under the element counts once, when it releases (S4)
+  ok   the element rule is the meter source's only: a frequency install under a latched element counts its start
+  ok   a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading the element's, a change now pending to no class
+  ok   the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps the timer armed for it, and a revert before the debounce cancels it at once; null control, the rise armed exactly one
+  ok   immersion_over is strict at each bound: a reading at the immersion level, a rated power of 0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is
+  ok   S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real start after it counts at its second refresh; neither the falling average of a short element's cut-out nor a second refresh landing while over is pending counts one; null control, on the same rig and refreshes a real start counts once, from its second refresh, and a run stopping before it counts once, at its stop
+  ok   wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading it running and one reading it unsettled, released by the second running one; a short run is its rise then its stop; null control, a counter with no hold counts the rise at once
+  ok   a refresh whose own re-read moves the class off running (the commanded draw or the element's latch changing, no meter event) while a rise is held counts no start: the tick hears the class this refresh re-reads; null control, the same rig with nothing moving counts the rise once
+
+3 of 30 FEATURES BLOCK FAILED
+rc=1

@@ -1,0 +1,13 @@
+      1 reader.read(CONF_BUFFER_TANK_TEMP_ENTITY
+      1 reader.read(CONF_DHW_TEMP_ENTITY
+      1 reader.read(CONF_ENERGY_ENTITY
+      1 reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY
+      1 reader.read(CONF_INDOOR_TEMP_ENTITY
+      1 reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY
+      1 reader.read(CONF_MIXING_VALVE_TARGET_ENTITY
+      1 reader.read(CONF_OUTDOOR_TEMP_ENTITY
+      1 reader.read(CONF_SOLAR_RADIATION_ENTITY
+      1 reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY
+      1 reader.read(CONF_WOOD_TANK_TOP_ENTITY
+      1 reader.read_power_kw(CONF_HOUSE_POWER_ENTITY
+      1 reader.read_power_kw(CONF_POWER_ENTITY

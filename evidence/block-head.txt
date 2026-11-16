@@ -1,0 +1,32 @@
+
+=== features block ===
+
+-- #3616: a floor-return reading far above the room does not seed the slab
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   #3616: a 38 C heat-pump return in the floor-return field no longer plans zero space heating for a room below its comfort band
+  ok   and a refused reading leaves the slab to the model exactly as an install with no floor-return sensor does
+  ok   and a repair issue names the sensor and the bound
+  ok   null control: a plausible floor-loop return still seeds the slab, to the return + 1 K fixed point, and raises no repair
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   a hot-water-only run does not seed the slab from the return
+  ok   nor does a defrost
+  ok   control: a heating mode with the defrost flag off seeds as with no signals
+  ok   the bound: 12 K above the room is a floor loop, anything warmer is not
+  ok   every floor-return option text names the bound the guard applies
+
+ALL 9 FEATURES BLOCK PASSED
+rc=0
