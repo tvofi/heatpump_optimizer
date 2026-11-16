@@ -35,7 +35,7 @@
  },
  "leave_one_out": {
   "cells": 6,
-  "min": 6,
+  "min": 4,
   "max": 18,
   "drop_most_favourable": 60
  },
