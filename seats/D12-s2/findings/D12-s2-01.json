@@ -25,13 +25,13 @@
     "expected_direction": "to_zero",
     "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py); full M2+M4 grid (cells.py --m4): fail_cells 61 -> 0 (out/grid_baseline.txt vs out/grid_perturbed.txt). All 61 failures are this invention: the 47 one-zone entity 'present' cells plus the 14 building-questionnaire cells (structure/foundation/era/emitter), whose preset_from_config reads the same predicate and then writes zone keys."
   },
-  "metric_definition": "Number of M2 cells with no lower-floor sensor, zone key or explicit mode=on whose coordinator payload says two_zone_enabled=True. Also |planned space kWh at heat loss 0.30 - at 0.10| on the minimal plant.",
+  "metric_definition": "Count of M2 cells with no lower-floor sensor, zone key or mode=on whose cycle publishes two_zone_enabled=True (plus |space kWh at heat loss 0.30 - 0.10| on MIN)",
   "phenomenon_property": "Two-zone modelling turns on only when the config asks for it (mode on, or mode auto/absent with a zone key or lower-floor sensor present). A one-zone install's single-zone heat-loss and mass reach the model.",
   "seam_rule": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|two_zone_mode=)'  # every cell; plus: grep -n 'DEFAULT_TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
   "null_control": {
     "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py [--perturb]",
     "value": "null_ref_two_zone=1 under both arms",
-    "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the 133-61 other cells (all REF-based) pass under both arms."
+    "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the other 133 of 194 cells pass the bar under both arms (6 of them as named refusals)."
   },
   "leave_one_out": {
     "cells": 47,
