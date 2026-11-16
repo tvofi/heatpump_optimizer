@@ -173,10 +173,10 @@ def links(base: str, html: str) -> list[str]:
 
 
 class Mirror:
-    def __init__(self, root, *, run, run_bytes, git, http, sleep=time.sleep, now=time.time, floor=gh_read.FLOOR_SHARED,
+    def __init__(self, root, *, run, run_bytes, git, http, init, sleep=time.sleep, now=time.time, floor=gh_read.FLOOR_SHARED,
                  repo=REPO, site="", say=print):
         self.root, self.dir = Path(root), Path(root) / "corpus"
-        self.run, self.run_bytes, self.git, self.http = run, run_bytes, git, http
+        self.run, self.run_bytes, self.git, self.http, self.init = run, run_bytes, git, http, init
         self.sleep, self.now, self.floor, self.repo, self.site, self.say = sleep, now, floor, repo, site, say
         self.cur = self._load("cursor.json", {"lists": {}, "items": {}, "calls": {}, "pass": 0, "state": "new"})
         self.man = self._load("MANIFEST.json", {"sources": {}})
@@ -343,7 +343,7 @@ class Mirror:
             self.missed("S2", f"unmapped namespace {ns}")
         mirror = str(self.dir / "git")
         if not os.path.isdir(mirror):
-            self.git(["git", "init", "-q", "--bare", mirror], {})
+            self.init(mirror)
         rc, _ = self.git(["git", "-C", mirror, "fetch", "-q", "--no-tags", origin] + [f"+{ns}*:refs/d18/{ns[5:]}*" for ns in NAMESPACES], auth_env)
         if rc != 0:
             self.missed("S2", "the fetch of heads, tags and pull refs failed")
@@ -404,8 +404,9 @@ class Mirror:
         if row.get("has_wiki"):
             wiki = str(self.dir / "wiki.git")
             base = re.sub(r"(\.git)?/*$", "", origin)
-            args = ["git", "clone", "-q", "--mirror", base + ".wiki.git", wiki] if not os.path.isdir(wiki) else ["git", "-C", wiki, "fetch", "-q", "--prune"]
-            if self.git(args, auth_env)[0] != 0:
+            if not os.path.isdir(wiki):
+                self.init(wiki)
+            if self.git(["git", "-C", wiki, "fetch", "-q", "--prune", base + ".wiki.git", "+refs/*:refs/*"], auth_env)[0] != 0:
                 self.missed("S4", "the wiki: the repository row reports one and it has no git repository")
         if row.get("has_discussions"):
             self.missed("S4", "discussions: enabled, and this scan reads none (no list is read yet)")
@@ -567,7 +568,14 @@ def _host(token: str):
                 return r.status, r.headers.get("Content-Type", ""), r.read(MAX_MEMBER)
         except Exception as e:  # noqa: BLE001 -- any failure is one unreached page
             return getattr(e, "code", 0) or 0, "", b""
-    return run, run_bytes, git, http, auth
+    def init(path):
+        """A bare repository built the one way a tracked script builds one (tests/throwaway_git.py): no global
+        config, no auto-maintenance. Not a throwaway: it is the mirror, and it stays."""
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_init
+        os.makedirs(path, mode=0o700, exist_ok=True)
+        throwaway_git_init(path, "-q", "--bare")
+    return run, run_bytes, git, http, init, auth
 
 
 def main(argv: list[str]) -> int:
@@ -600,8 +608,8 @@ def main(argv: list[str]) -> int:
         print("corpus_mirror: REFUSED --only takes S2, S3, S4 and S5")
         return 2
     os.umask(0o077)
-    run, run_bytes, git, http, auth = _host(token)
-    m = Mirror(root, run=run, run_bytes=run_bytes, git=git, http=http, repo=a.repo, site=a.site,
+    run, run_bytes, git, http, init, auth = _host(token)
+    m = Mirror(root, run=run, run_bytes=run_bytes, git=git, http=http, init=init, repo=a.repo, site=a.site,
                floor=gh_read.FLOOR_OWN if a.own_identity else gh_read.FLOOR_SHARED)
     return m.scan(only, f"https://github.com/{a.repo}", auth)
 
@@ -697,6 +705,9 @@ class Stub:
             return 128, ""
         return 0, ""
 
+    def init(self, path):
+        self.calls.append(["init", path])
+
     def http(self, url):
         self.calls.append(["https", url])
         if url.endswith("/site/"):
@@ -726,7 +737,7 @@ def cases(m) -> dict[str, bool]:
     spent = Stub.inc(403, [("X-Ratelimit-Remaining", "0"), ("X-Ratelimit-Reset", "4600")], '{"message": "API rate limit exceeded"}', "gh: (HTTP 403)\n")
 
     def mirror(root, stub, only=("S3",), floor=None, said=None):
-        mm = m.Mirror(root, run=stub.run, run_bytes=stub.run_bytes, git=stub.git, http=stub.http, sleep=stub.sleeps.append,
+        mm = m.Mirror(root, run=stub.run, run_bytes=stub.run_bytes, git=stub.git, http=stub.http, init=stub.init, sleep=stub.sleeps.append,
                       now=lambda: stub.clock, repo="o/r", site=site, say=(said if said is not None else []).append,
                       **({} if floor is None else {"floor": floor}))
         return mm, mm.scan(list(only), "https://example.invalid/o/r", {})
@@ -768,7 +779,7 @@ def cases(m) -> dict[str, bool]:
                 raise KeyboardInterrupt  # the process is killed mid-list: no handler runs
             return boom(argv)
         try:
-            m.Mirror(Path(td) / "crash", run=dying, run_bytes=k.run_bytes, git=k.git, http=k.http, sleep=k.sleeps.append,
+            m.Mirror(Path(td) / "crash", run=dying, run_bytes=k.run_bytes, git=k.git, http=k.http, init=k.init, sleep=k.sleeps.append,
                      repo="o/r", say=lambda s_: None).scan(["S3"], "x", {})
         except KeyboardInterrupt:
             pass
@@ -843,7 +854,7 @@ def cases(m) -> dict[str, bool]:
             and stat.S_IMODE(os.stat(Path(td) / "a" / "corpus" / "MANIFEST.json").st_mode) == 0o600 \
             and stat.S_IMODE(os.stat(Path(td) / "a" / "corpus" / "pages" / "issues" / "1.json").st_mode) == 0o600
         j = Stub()
-        mj = m.Mirror(Path(td) / "gate", run=j.run, run_bytes=j.run_bytes, git=j.git, http=j.http, sleep=j.sleeps.append, repo="o/r")
+        mj = m.Mirror(Path(td) / "gate", run=j.run, run_bytes=j.run_bytes, git=j.git, http=j.http, init=j.init, sleep=j.sleeps.append, repo="o/r")
         blocked = []
         for argv in (["gh", "api", "-i", "search/issues?q=x"], ["gh", "api", "repos/o/r/issues", "-f", "title=x"],
                      ["gh", "api", "graphql", "-f", "query=mutation{x}"], ["gh", "issue", "create"]):
