@@ -3460,9 +3460,9 @@
    "source": "user",
    "brief": "Land the approved round-11 start evaluation (eval/r11, approved at the evaluation review round 4, c04cef7fca) on main so check_scopes.py --round 11 can read it; decision 0018 section 5. Finder critical path.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-start-evaluation-land",
-    "commit": null,
+    "commit": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
     "last_step": null,
     "next_step": "re-cut from eval/r11 c04cef7fca; open the PR",
     "note": null,
