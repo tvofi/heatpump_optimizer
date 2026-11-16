@@ -11,3 +11,4 @@
 1794861333 DONE merge c77e7e8f97 with pending-ci; verdict at probe/rev-3685-daade4ce e187530894
 1794868880 HB alive
 1794868926 CKPT packet rendered, merge-tree checked snapshot bc6b71edfaaa
+1794869075 CKPT mutants M1-M7 + R1-R3 killed; finder harnesses re-taken both ends snapshot 5ed9671de4e5
