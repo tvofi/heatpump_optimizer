@@ -1,0 +1,331 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D5/s9/REPORT.md",
+ "exposure": "Read docs: none. Read dev/governance/roles/COMMON.md, dev/governance/dimensions/D5.md and criteria/D5-criteria.md, dev/audit/README.md. The 69 test files of the cells carry comments citing earlier finding ids and rounds (e.g. D14-s2-01, D7-s2-57, D1-s2-71, D13-03, D11-02, D3-08, R4-D10-01, R9-F10.9b, RCA-BULK-3); read as context only, not re-found.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "The seat's 69 cells are .py/.mjs/.sh; text_ledger outline prints a row only for Markdown/HTML, and printed 0 lines for D5-s9 (3 readers x 0 documents = 0). C4 (reader paths over the code/JS cells) examined: the enumerator was run and its universe is empty. C2 (feature reader paths in docs) lies in D5-s1's M1 cells, not this seat's: left not_reached and sent as a lead."
+  },
+  {
+   "step": "D5.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"'",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "outline printed 0 heading or link rows for the seat's cells. C5 (structure over code/JS cells) examined: universe empty by the enumerator. In-comment path links were checked under M4 instead (stale_paths.py)."
+  },
+  {
+   "step": "D5.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6",
+   "universe": 0,
+   "examined": 0,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "M3's universe is the D6 units of the outline's documents; with 0 documents in the cells it is 0, now recorded with a denominator (C1). C3 (how-it-works.md, configuration.md mechanism paragraphs) is D5-s2's M3 cell: lead. C6 (mechanism docstrings traced against code): every docstring (1021) is rowed under M4 by the executed reference/length checks, but no docstring's mechanism was traced against its code path one by one, so C6 stays not_reached (also in unfinished)."
+  },
+  {
+   "step": "D5.M4",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3748,
+   "examined": 3748,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C7",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "comments.py rows all 3748 units (ledger_D5.tsv); text_ledger check --plant: units=3748 rows=3748 claims=3664 true=3060 false=604 unrowed=0 orphan=0 malformed=0 plant_refused=1. Executed per unit: C2 reference resolution (3642 refs: paths, path:line, path:symbol, backticked identifiers, name() calls, against the tracked tree's code tokens), C1 cited-constant-vs-assigned-value (1 citation), C5 sentence length. C7: the cited-number-vs-constant check is now automated over these cells (comments.py const_check, 1 citation, 0 mismatches), but its www/*.js (D5-s4) and README/docs (D5-s2) parts are outside the seat: not_reached, sent as leads."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M4",
+   "what": "Per-unit semantic C1 (is the mechanism a comment states true of the code beneath it, by an executed check of that code) beyond the mechanical checks, and the C3 (restatement) and C4 (history over reason) judgements, were not executed for the 3664 claim units; largest remainders tests/entities.py 1684 units, tests/stress.py 255, tests/mutation_table.py 204, tests/structure.py 183, tests/replay.py 180, tests/env_drift.py 159, tests/nightly_ha.py 146, tests/ha_contract.py 120."
+  },
+  {
+   "step": "D5.M3",
+   "what": "C6 carried: mechanism docstrings in the cells not traced one by one against their code paths."
+  }
+ ],
+ "findings": [
+  {
+   "scope": "D5-s9",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+   "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+   "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+   "id": "D5-s9-01",
+   "title": "tests/entities.py comments cite 13 repository paths that do not exist at the baseline (12 units)",
+   "claim": "At 92d38ecb, 12 comment units in tests/entities.py cite 13 in-repository paths absent from the tree; 10 of them were moved (same name tracked elsewhere), and 2 are contradicted by the code directly beneath them.",
+   "mechanism": "Files moved in the governance/tooling relocations (docs/HANDOVER.md -> dev/programme/HANDOVER.md, tools/audit/briefs/*.md -> dev/governance/roles/, tools/audit/preflight.sh -> tools/pr/preflight.sh, .claude/workflows/cfr_exclusions.json -> dev/governance/config/, .claude/workflows/check-wave-script.mjs -> tools/policy/, tools/audit/w5-partition/coverage_tree.sh -> tools/coverage/, tools/gen_device_fixtures.py -> tools/devices/) and the code was updated, but the comments above it still name the old path; three cited files (round5 D3 resource_r5.py, round5 D11 ruleset.py, dev/programme/carries/carry-201.json) are absent with no same-named successor. Lines 17345 ('keeps `docs/HANDOVER.md` out of INERT') sits on a check asserting _handovers == ['dev/programme/HANDOVER.md']; line 19807 ('tools/audit/preflight.sh refuses ...') sits on _preflight = Path('tools/pr/preflight.sh'). Criteria C2 (resolvable) and, for the two, C1 (true of the code).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+    "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+    "value": 13,
+    "unit": "stale path refs in tests/entities.py (RESULT stale_refs total 17; FILE tests/entities.py stale_refs=13; contradicted=2)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 container, 4 vCPU",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats on the box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.03,
+    "thread_factor": 1.0
+   },
+   "perturbation": {
+    "change": "--perturb restore: add every cited stale path to the tracked set in memory (the moves undone), equivalently edit each comment to the current path",
+    "expected_direction": "to_zero",
+    "observed_value": "17->0 (all files)"
+   },
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+    "value": "66 of 69 seat files print no FILE line (0 stale refs)",
+    "note": "the same scan over the rest of the seat's files"
+   },
+   "reproduction_steps": [
+    "Run the command; read the STALE lines for tests/entities.py and the two CONTRADICTED lines.",
+    "git -C <repo> cat-file -e 92d38ecb:docs/HANDOVER.md fails; dev/programme/HANDOVER.md exists."
+   ],
+   "proposed_fix_scope": "Edit the 12 comment units in tests/entities.py (lines 1804, 17194, 17345, 17445, 17456, 19807, 22305, 25451, 33848, 34658, 34784, 41019, 41024) to the current paths, or drop the citation where the target no longer exists; no code change.",
+   "files": [
+    "tests/entities.py"
+   ]
+  },
+  {
+   "scope": "D5-s9",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+   "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+   "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+   "id": "D5-s9-02",
+   "title": "tests/run.sh comments cite 3 moved paths (coverage_tree.sh, docs/backlog.md, docs/audit-2026-09.md)",
+   "claim": "At 92d38ecb, 2 comment units in tests/run.sh cite 3 paths absent from the tree, each moved: tools/audit/w5-partition/coverage_tree.sh (now tools/coverage/), docs/backlog.md (now dev/archive/), docs/audit-2026-09.md (now dev/programme/register/).",
+   "mechanism": "run.sh:515 explains the coverage_ratchet.py exemption by the instrument's old path; run.sh:726 explains why claims.py stays run_always by the INERT docs it opens, naming their pre-move paths, so the stated reason now names files no closure or reader can find. Criterion C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+    "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+    "value": 3,
+    "unit": "stale path refs (FILE tests/run.sh stale_refs=3)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 container, 4 vCPU",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats on the box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.03,
+    "thread_factor": 1.0
+   },
+   "perturbation": {
+    "change": "--perturb restore (cited paths tracked again) or the comments edited to the current paths",
+    "expected_direction": "to_zero",
+    "observed_value": "17->0 (all files)"
+   },
+   "proposed_fix_scope": "Edit tests/run.sh lines 515 and 726 to tools/coverage/coverage_tree.sh, dev/archive/backlog.md and dev/programme/register/audit-2026-09.md (re-check that claims.py still opens them).",
+   "files": [
+    "tests/run.sh"
+   ]
+  },
+  {
+   "scope": "D5-s9",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+   "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+   "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+   "id": "D5-s9-03",
+   "title": "tests/structure.py thread-pin comment cites tools/audit/README.md, moved to dev/audit/README.md",
+   "claim": "At 92d38ecb, tests/structure.py:213 cites tools/audit/README.md as the home of the toolkit's thread pin; the path is untracked and the toolkit README is dev/audit/README.md.",
+   "mechanism": "The audit toolkit README moved under dev/audit/; the comment's pointer was not updated. Criterion C2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+    "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+    "value": 1,
+    "unit": "stale path refs (FILE tests/structure.py stale_refs=1)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 container, 4 vCPU",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats on the box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.03,
+    "thread_factor": 1.0
+   },
+   "perturbation": {
+    "change": "--perturb restore, or the comment edited to dev/audit/README.md",
+    "expected_direction": "to_zero",
+    "observed_value": "17->0 (all files)"
+   },
+   "proposed_fix_scope": "One-word comment edit in tests/structure.py:213.",
+   "files": [
+    "tests/structure.py"
+   ]
+  },
+  {
+   "scope": "D5-s9",
+   "step": "D5.M4",
+   "severity": "low",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "id": "D5-s9-04",
+   "title": "820 comment sentences over 40 words in 597 units across 37 test files (C5)",
+   "claim": "At 92d38ecb, 597 of the 3664 claim-bearing D5 units in the seat's cells hold at least one sentence over 40 words (820 such sentences, median 49 words, max 181), against criterion C5's limit of 40.",
+   "mechanism": "Comment blocks in the test suite carry the reasoning and history of each check in long compound sentences joined by dashes, colons and parenthetical asides. The splitter is conservative: blank lines, rule lines, list items, indented lines, a trailing ':' and ';' all close a sentence.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/comments.py --repo /home/user/heatpump_optimizer --show --perturb",
+    "harness_path": "dev/audit/rounds/round11/D5/s9/comments.py",
+    "value": 820,
+    "unit": "sentences over 40 words (RESULT C5-long)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B12 container, 4 vCPU",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats on the box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 2.43,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/text_ledger.py:units_of (D5 units of the seat's cells) measured by comments.py:long_sentences",
+   "perturbation": {
+    "change": "--perturb: the first failing unit (tests/entities.py#bf10514027) rewritten in memory with its long sentence cut into 20-word sentences",
+    "expected_direction": "down",
+    "observed_value": "unit long sentences 1->0"
+   },
+   "metric_definition": "count of sentences over 40 words in D5 comment/docstring units of the seat's cells, sentence closed at . ! ? ; or a structural line break",
+   "phenomenon_property": "No sentence in a comment or docstring of the test suite exceeds 40 words.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/comments.py --repo <repo-with-baseline> --show | grep -P '\\tC5-long\\t'",
+   "leave_one_out": {
+    "cells": 37,
+    "min": 1,
+    "max": 468,
+    "drop_most_favourable": 352
+   },
+   "proposed_fix_scope": "Rewrite the long sentences file by file (entities.py 468, stress.py 112, env_drift.py 34, mutation_table.py 31, replay.py 29, the rest 18 or fewer); text-only.",
+   "files": [
+    "tests/entities.py",
+    "tests/stress.py",
+    "tests/env_drift.py",
+    "tests/mutation_table.py",
+    "tests/replay.py",
+    "tests/optimality.py",
+    "tests/nightly_ha.py",
+    "tests/structure.py",
+    "tests/run.sh"
+   ]
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No comment cites path:line past the cited file's end",
+   "command": "comments.py --show",
+   "value": "RESULT C2-line=0"
+  },
+  {
+   "claim": "Every path:symbol citation names a symbol present in that file's code",
+   "command": "comments.py --show",
+   "value": "RESULT C2-symbol=0"
+  },
+  {
+   "claim": "The one cited constant value holds (``DHW_MIN_TEMP_SETPOINT_MARGIN`` (5.0 C) at tests/entities.py:15241 vs const.py:1401 = 5.0)",
+   "command": "comments.py",
+   "value": "RESULT const_cited=1 C1-const=0"
+  },
+  {
+   "claim": "Of 3642 references checked, all but 17 in-repository paths resolve; 89 unresolved names judged legitimate: upstream Home Assistant/HACS/GitHub paths and identifiers in tests/hastub and lane comments (sensor/__init__.py, async_setup_component, LazyState, _PREVIOUSLY_REPORTED, markdownWithRepositoryContext), commit SHAs, and illustrative fixture names (tests/a.py, X.py, CONF_X)",
+   "command": "comments.py --show | grep ^BENIGN",
+   "value": "RESULT refs_checked=3642 C2-benign=89"
+  },
+  {
+   "claim": "No identifier or call cited in a comment is missing from the tree other than the benign set",
+   "command": "comments.py",
+   "value": "RESULT C2-ident=0 C2-call=0 (after the benign judgement)"
+  },
+  {
+   "claim": "The ledger omits no unit and an omission is visible",
+   "command": "python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s9/ledger_D5.tsv --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --plant",
+   "value": "unrowed=0 orphan=0 malformed=0 plant_refused=1"
+  },
+  {
+   "claim": "The seat's cells hold no Markdown/HTML document, heading or link for M1-M3",
+   "command": "python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "value": "0 lines"
+  },
+  {
+   "claim": "tests/closure.py:is_inert keeps tools/pr/preflight.sh out of INERT via INERT_EXCEPT, so entities.py:19813's reason ('tools/audit/ is INERT' so pinned here) still holds for the moved path's directory tools/pr/ (INERT); only the path is stale (D5-s9-01)",
+   "command": "PYTHONPATH=tests/hastub:tests python3 -c \"import closure as c;print(c.is_inert('tools/pr/preflight.sh'),'tools/pr/' in c.INERT,'tools/pr/preflight.sh' in c.INERT_EXCEPT)\"",
+   "value": "False True True"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D5/s9/comments.py",
+  "dev/audit/rounds/round11/D5/s9/stale_paths.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/entities.py",
+   "symbol": "string at line 1869 ('tools/audit/w5-partition/coverage_tree.sh and ratcheted per pull ...')",
+   "what": "for D6: a user-visible check string names the pre-move path of coverage_tree.sh (now tools/coverage/coverage_tree.sh); no D6 seat's cells list tests/entities.py."
+  },
+  {
+   "owner_seat": "D5-s1",
+   "file": "docs/configuration.md",
+   "symbol": "feature reader paths (two-tank storage, ECL110, capacity tariff)",
+   "what": "Redispatched C2 (round 10 remainder): the paragraph-by-paragraph walk for dead ends and forward references on the three feature paths; outside D5-s9's cells, left not_reached here."
+  },
+  {
+   "owner_seat": "D5-s2",
+   "file": "docs/how-it-works.md",
+   "symbol": "mechanism paragraphs (also docs/configuration.md)",
+   "what": "Redispatched C3: mechanism paragraphs not traced one by one against the code paths; D5-s2's M3 cell. C7's README/docs M4 cell is also D5-s2's."
+  },
+  {
+   "owner_seat": "D5-s4",
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "comments",
+   "what": "Redispatched C7: www/*.js comments not scanned for symbols; D5-s9's comments.py resolver (C2 refs, const_check) can be pointed at those files."
+  }
+ ]
+}
