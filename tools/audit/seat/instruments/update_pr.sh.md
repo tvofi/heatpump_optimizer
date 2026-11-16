@@ -26,9 +26,13 @@
   ancestor of `origin/handoff/<topic>` (the topic `HANDOFF_TOPIC`, else the
   branch less `fix/`, then less `-pr`), naming a `handoff-body/<topic>` tip as
   the BODY sha; a missing `handoff/<topic>`; no body file. The body is a file
-  here, so a missing body ref is no refusal. It detaches another instrument's
-  clean worktree on the branch only when origin has that worktree's HEAD; one
-  holding commits origin lacks (a PR's unpushed row) is refused, naming it.
+  here, so a missing body ref is no refusal. It detaches another clean
+  worktree on the branch anywhere under the state dir (a retired seat's under
+  `<state>/<session>/seat/...` too, R10-UPDATE-PR-SEAT-WORKTREE) only when
+  origin has that worktree's HEAD; one holding commits origin lacks (a PR's
+  unpushed row) is refused, naming it. One outside `<state>/pr/` is detached
+  only when no live process has its cwd inside it (`lsof -a -d cwd`); a live
+  one, or an unreadable lsof, is BUSY (75), naming the worktree.
   Any later stop prints `update_pr: STOPPED: ...`, and a refused push names its log.
   Its lock's holder leaves its own worktree detached once its push has
   ended, a SIGKILLed run's too, so no worktree of it holds the branch.

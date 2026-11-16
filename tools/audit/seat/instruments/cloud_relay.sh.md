@@ -64,7 +64,11 @@
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
   (default every 120 s). A pass takes the one open-PR listing, then runs the relay arm above,
   then with `--confirm` the confirm arm, then the handoff arm (its serial updates
-  come after a returned verdict is posted), then the stuck arm. Stuck arm (a
+  come after a returned verdict is posted), then the stuck arm. While an
+  update runs, every `HPO_RELAY_INFLIGHT_SECS` (default 60) the probe arm runs
+  again, and the confirm arm too under `--confirm`, each run printing
+  `IN-FLIGHT #<pr> ...`: a verdict returned during an update is relayed and
+  posted without waiting behind it (owner card P12). Stuck arm (a
   report-only trial, triage P163): each branch lock held now whose recorded
   start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
   `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is
@@ -197,6 +201,14 @@
   commit newer than it, prints `SEAT ENDED NO RETURN <topic>` and is
   `OWED <utc> seat-no-return <ref> <sha> SEAT ENDED NO RETURN <topic> <age>h`
   in `<log>.level`. Git only; deleting the dispatch ref disposes it.
+  No-body line (RELAY-NOBODY-OWED, triage P611 arm 2): a fixer whose
+  `handoff/` or `handoff-wip/<topic>` moved after its dispatch tip, with no
+  `handoff-body/<topic>` commit newer than that tip, is owed once the newest
+  such code commit is older than `HPO_RELAY_NOBODY_SECS` (default 3600):
+  `SEAT NO BODY <topic> (...)` and `OWED <utc> seat-no-body <ref> <sha> NO BODY
+  <topic> <code ref> <tip12> <age>min: <owed>`, where `<owed>` is a
+  continuation of the named fire, or `carry fold pending` when the wip's
+  BLOCKED.md names CARRY-LANDED alone. A body older than the fire is no return.
   Confirm arm (P332): a relayed `review/<pr>` whose PR is not in the pass's
   open-PR listing prints `confirm skip #<pr>: not open` once and is settled,
   owed nothing; a failed listing skips nothing.
