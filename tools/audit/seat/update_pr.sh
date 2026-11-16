@@ -81,7 +81,7 @@ NOTE=""
 if [ "$C" != "-" ]; then $G merge -q --no-edit $C; NOTE="merges the authored code head \`$C\`"; fi
 OLD=$(git rev-parse HEAD)
 # Ruling R4 (Lean flow K12): origin/main is merged only when the pull request is DIRTY or the merge
-# would conflict; a clean head is not moved to absorb main (fixer.md step 6, nudge.md step 9). An
+# would conflict; a clean head is not moved to absorb main (fixer.md step 6, orchestrator.md section 6). An
 # unread merge state is not DIRTY: the merge-tree reading below is the local proof either way.
 ST=$(gh pr view "$N" -R $R --json mergeStateStatus -q .mergeStateStatus 2>/dev/null) || ST=unread
 MAIN=""
@@ -102,7 +102,9 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 # before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
-  python3 -I "$PRT/figure_block.py" refresh "$B" --base origin/main --head HEAD > $WT.fig.log 2>&1 && return 0
+  local fb=origin/main
+  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
 }
