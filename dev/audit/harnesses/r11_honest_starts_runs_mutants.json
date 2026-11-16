@@ -286,5 +286,41 @@
   "file": "custom_components/heatpump_optimizer/optimizer.py",
   "old": "        [(0.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n",
   "new": "        [(1.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n"
+ },
+ {
+  "name": "REV_HEATS_HALF_FLOOR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    heats = (hi >= floor) & ((other <= 0.0) | (space >= floor / 2.0))\n",
+  "new": "    heats = (hi >= floor) & ((other <= 0.0) | (space >= floor))\n"
+ },
+ {
+  "name": "REV_NO_POLISH",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    x = np.asarray(_lbfgsb_restart(run, scope[1], box, args, maxiter, scope[2]).x, dtype=float)\n",
+  "new": "    x = np.asarray(run.x, dtype=float)\n"
+ },
+ {
+  "name": "REV_STAGE_BOX_TANK_ROOM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        hi = np.minimum(hi, np.maximum(p_max - other, 0.0))\n",
+  "new": "        hi = hi\n"
+ },
+ {
+  "name": "REV_ONE_RESOLVED",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "_RESOLVED_CANDIDATES = 2\n",
+  "new": "_RESOLVED_CANDIDATES = 1\n"
+ },
+ {
+  "name": "REV3_TIE_NOT_ASKED_SIDE_OFF",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "price[k] * level[k] * dt + _TIE_BREAK * (not asked)),\n",
+  "new": "price[k] * level[k] * dt + 0.0 * (not asked)),\n"
+ },
+ {
+  "name": "REV3_TIE_ASKED_SIDE_OFF",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "            (-q[k] * dt, _TIE_BREAK * asked),\n",
+  "new": "            (-q[k] * dt, 0.0 * asked),\n"
  }
 ]

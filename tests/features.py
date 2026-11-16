@@ -92553,7 +92553,10 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Two duty-cycle days, one where each descent supplies the plan that ships:
+# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
+# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
+# descents mode prints, both and each descent alone (design verdict r2).
 # The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
 # margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
@@ -92587,9 +92590,9 @@ _dsp_days = {
 }
 R.check(
     "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day the unpriced descent's plan, which the operand's descent "
-    "alone scores above; on the cold day the operand's, which the unpriced "
-    "descent alone scores above",
+    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
+    "plan, which the operand's descent alone scores above; on the cold day "
+    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
     _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
     and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
     and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
@@ -93607,6 +93610,157 @@ R.check(
     _hsr_humidity(_hsr_rh) is _hsr_rh
     and _hsr_humidity(np.array([], dtype=float)) is None
     and _hsr_humidity(np.full(4, np.nan)) is None,
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P2: the four lines of the candidate stage the
+# fix review's mutants left unread, and the two halves of the commit's tie
+# break (owner ruling 2026-11-15: of two equal-cost masks the one that agrees
+# with the relaxed plan ships). Each check below kills one mutant of
+# dev/audit/harnesses/r11_honest_starts_runs_mutants.json, named in its comment.
+#
+# Beside a hot-water charge a committed space step heats only where the
+# relaxed plan asked for half the floor (REV_HEATS_HALF_FLOOR): 0.6 kW of a
+# 1.1 kW floor is raised to the floor, 0.5 and 0.3 kW idle.
+_hsr_p2_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_p2_space = np.zeros(12)
+_hsr_p2_space[8], _hsr_p2_space[9], _hsr_p2_space[10] = 0.6, 0.5, 0.3
+_hsr_p2_tank = np.where((np.arange(12) >= 8) & (np.arange(12) <= 10), 2.0, 0.0)
+_hsr_p2_box = _hsr_om._stage_box(_hsr_p2_opt, [(0.0, 5.5)] * 12, _hsr_p2_tank)
+_hsr_p2_beside = _hsr_om._run_plans(
+    _hsr_p2_opt, _hsr_h, _hsr_p2_space, _hsr_p2_box[2], _hsr_p2_box[0], _hsr_p2_box[1], _hsr_p2_box[3])
+R.check(
+    "beside a hot-water charge a committed space step heats where the relaxed "
+    "plan asked for half the floor or more: 0.6 kW of a 1.1 kW floor runs at "
+    "the floor in every mask, 0.5 and 0.3 kW idle",
+    len(_hsr_p2_beside) >= 1
+    and all(c[8] == 1.1 and c[9] == 0.0 and c[10] == 0.0 for c in _hsr_p2_beside),
+    f"{[c.tolist() for c in _hsr_p2_beside]}",
+)
+# The stage box leaves space the room the tank does not draw
+# (REV_STAGE_BOX_TANK_ROOM): p_max less the tank's plan on a modulating
+# install, less its projection on a clamped one, a pinned floor lowered to
+# what is left; with no tank the box is the scope's own (the null).
+_hsr_p2_dhw = np.zeros(12)
+_hsr_p2_dhw[2], _hsr_p2_dhw[3], _hsr_p2_dhw[4], _hsr_p2_dhw[6] = 2.0, 5.5, 5.0, 0.5
+_hsr_p2_bounds = [(0.0, 5.5)] * 12
+_hsr_p2_bounds[4] = (1.1, 5.5)
+_hsr_p2_room = {
+    name: _hsr_om._stage_box(_hsr_opt(0.25, clamp, 1.1), _hsr_p2_bounds, tank)[:2]
+    for name, clamp, tank in (
+        ("modulating", False, _hsr_p2_dhw), ("clamped", True, _hsr_p2_dhw), ("no tank", False, None))
+}
+R.check(
+    "the stage box caps space at p_max less what the tank draws: 3.5, 0, 0.5 "
+    "and 5.0 kW beside 2.0, 5.5, 5.0 and 0.5 kW of hot water, 4.4 kW beside the "
+    "clamped projection of 0.5 kW, a pinned floor lowered to the room left, and "
+    "the scope's own box with no tank",
+    _hsr_p2_room["modulating"][1][[2, 3, 4, 6]].tolist() == [3.5, 0.0, 0.5, 5.0]
+    and _hsr_p2_room["modulating"][0][4] == 0.5
+    and abs(float(_hsr_p2_room["clamped"][1][6]) - 4.4) < 1e-12
+    and _hsr_p2_room["clamped"][1][[2, 3, 4]].tolist() == [3.5, 0.0, 0.5]
+    and _hsr_p2_room["no tank"][1].tolist() == [5.5] * 12 and _hsr_p2_room["no tank"][0][4] == 1.1,
+    f"{({k: (v[0].tolist(), v[1].tolist()) for k, v in _hsr_p2_room.items()})}",
+)
+# The re-solved candidate is polished once (REV_NO_POLISH): on an objective
+# whose weights differ by 40x across the steps, one L-BFGS-B iteration
+# stops short and the restart from its point moves on. The plan that ships
+# is the restart's, and it scores below the run it restarted from.
+_hsr_p2_weight = np.linspace(1.0, 40.0, 12)
+_hsr_p2_goal = np.where(_hsr_sel_masks[-1] > 0.0, 2.7, 0.0)
+
+
+def _hsr_p2_weighted(x, *_args, **_kw):
+    return float(np.sum(_hsr_p2_weight * (np.asarray(x, float) - _hsr_p2_goal) ** 2))
+
+
+def _hsr_p2_weighted_batch(rows, *_args, **_kw):
+    return np.sum(_hsr_p2_weight * (np.atleast_2d(rows) - _hsr_p2_goal) ** 2, axis=1)
+
+
+_hsr_p2_polished = []
+_hsr_p2_real_restart = _hsr_om._lbfgsb_restart
+
+
+def _hsr_p2_restart(best, objective, *args, **kwargs):
+    out = _hsr_p2_real_restart(best, objective, *args, **kwargs)
+    _hsr_p2_polished.append((float(objective(best.x)), float(objective(out.x)), np.array(out.x, float)))
+    return out
+
+
+_hsr_om._lbfgsb_restart = _hsr_p2_restart
+try:
+    _hsr_p2_shipped = _hsr_commit(_hsr_sel_opt, _hsr_p2_weighted, _hsr_p2_weighted_batch, _hsr_trickle, 1)
+finally:
+    _hsr_om._lbfgsb_restart = _hsr_p2_real_restart
+R.check(
+    "the best re-solved candidate is polished once from its own point: at one "
+    "iteration the plan that ships is the restart's, scoring below the run it "
+    "restarted from",
+    len(_hsr_p2_polished) == 1
+    and np.array_equal(_hsr_p2_shipped, _hsr_p2_polished[0][2])
+    and _hsr_p2_polished[0][1] < _hsr_p2_polished[0][0] - 0.01,
+    f"{[(round(a, 4), round(b, 4)) for a, b, _ in _hsr_p2_polished]}",
+)
+# Two candidates are re-solved, not one (REV_ONE_RESOLVED). Toward this
+# target the best candidate as it stands is a mask, the projection is
+# second, and only the projection's runs reach the 2.0 and 3.0 kW steps the
+# mask holds shut: re-solved, the second candidate ships.
+_hsr_p2_target = np.array([0.0, 0.0, 1.1, 0.0, 1.1, 0.0, 2.0, 0.3, 0.0, 0.0, 3.0, 0.0])
+_hsr_p2_toward = _hsr_toward(_hsr_p2_target)
+_hsr_p2_as_is = [_hsr_p2_toward[0](c) for c in (_hsr_sel_first, *_hsr_sel_masks)]
+_hsr_p2_second = _hsr_commit(_hsr_sel_opt, *_hsr_p2_toward, _hsr_trickle, 50)
+R.check(
+    "the two best candidates are re-solved: where the best as it stands is a "
+    "mask and the projection second, the projection's runs re-solved ship, "
+    "every step on and scoring below the best mask's",
+    _hsr_om._RESOLVED_CANDIDATES == 2
+    and int(np.argmin(_hsr_p2_as_is)) > 0 and sorted(_hsr_p2_as_is)[1] == _hsr_p2_as_is[0]
+    and bool(np.all(_hsr_p2_second >= 1.1 - 1e-9))
+    and _hsr_p2_toward[0](_hsr_p2_second) < min(_hsr_p2_as_is) - 1.0,
+    f"as it stands {[round(s, 3) for s in _hsr_p2_as_is]}; shipped "
+    f"{_hsr_p2_second.round(3).tolist()} scoring {_hsr_p2_toward[0](_hsr_p2_second):.3f}",
+)
+# The tie break's two halves, each pinned alone (owner ruling 2026-11-15,
+# "Keep as built, pin it"). At a flat price two masks of equal cost exist on
+# each plan below; a price 1e-5 lower on the step the shipped mask leaves
+# out ships the other, a price 1e-5 higher keeps it, so the two tie and only
+# the tie break chooses. A design choice: the mask that agrees with the
+# relaxed plan's own on/off reading ships.
+#
+# The half on a step the plan did not ask for (REV3_TIE_NOT_ASKED_SIDE_OFF):
+# both masks pause one step the plan asked for, and the other one also runs
+# step 0, which the plan leaves off.
+_hsr_p2_na = np.array([0.0, 2.2, 0.5, 0.9, 0.9])
+# The half on a step the plan asked for (REV3_TIE_ASKED_SIDE_OFF): neither
+# mask runs a step the plan leaves off, and the other one pauses two steps
+# the plan asked for where this one pauses one.
+_hsr_p2_as = np.array([0.5, 0.5, 0.5, 2.2, 0.9, 0.9])
+
+
+def _hsr_p2_masks(q, step, nudge):
+    """The stage's masks of ``q`` at a flat 0.2 with ``nudge`` on one step."""
+    prices = np.full(q.size, 0.2)
+    prices[step] += nudge
+    return [m.astype(int).tolist() for m in _hsr_runs.candidates(q, prices, 1.1, 3.0, 0.0, dt=0.25)]
+
+
+_hsr_p2_ties = {
+    name: {nudge: _hsr_p2_masks(q, step, nudge) for nudge in (0.0, -1e-5, 1e-5)}
+    for name, q, step in (("not asked", _hsr_p2_na, 0), ("asked", _hsr_p2_as, 3))
+}
+R.check(
+    "at a flat price, of two equal-cost masks that pause as many steps the "
+    "plan asked for, the one that runs no step the plan left off ships",
+    _hsr_p2_ties["not asked"] == {
+        0.0: [[0, 1, 0, 1, 1]], -1e-5: [[1, 0, 1, 1, 1]], 1e-5: [[0, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['not asked']}",
+)
+R.check(
+    "at a flat price, of two equal-cost masks that run no step the plan left "
+    "off, the one that pauses fewer steps the plan asked for ships",
+    _hsr_p2_ties["asked"] == {
+        0.0: [[1, 1, 1, 0, 1, 1]], -1e-5: [[0, 0, 1, 1, 1, 1]], 1e-5: [[1, 1, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['asked']}",
 )
 
 
