@@ -1,3 +1,4 @@
 1794844458 INIT r11-revt-r11-pre-security-privacy
 1794844468 HB alive
 1794844473 CKPT setup done, head and body fetched snapshot e37226475a76
+1794844520 CKPT body and design read; harness runs started snapshot 2e024e84ce92
