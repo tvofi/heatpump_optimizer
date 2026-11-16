@@ -1,6 +1,6 @@
 # `leak_detectors.py`
 
-- `tools/audit/leak_detectors.py` — candidate spans of data already
+- `leak_detectors.py` — in `tools/audit/`, beside the seat instruments: candidate spans of data already
   published, by class (host path, token, address outside GitHub's noreply
   grammar, coordinates, private network address, person entity), for an
   owner-only seat to judge. The host-path grammar is `ref_privacy.py`'s,

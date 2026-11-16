@@ -70,7 +70,7 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT / "tests"))
-from throwaway_git import throwaway_git_env, throwaway_git_init  # noqa: E402
+from throwaway_git import throwaway_git_init  # noqa: E402
 
 NONCE = secrets.token_hex(16)
 DIM = f"D{200 + secrets.randbelow(700)}"          # the owner-only dimension of this run
@@ -236,7 +236,8 @@ def p7(td: Path) -> None:
     work.mkdir()
     env = throwaway_git_init(str(work), "-q", "-b", "main")
     env = {**env, "GIT_AUTHOR_EMAIL": "70032254+tvofi@users.noreply.github.com", "GIT_COMMITTER_EMAIL": "70032254+tvofi@users.noreply.github.com"}
-    subprocess.run(["git", "init", "-q", "--bare", str(origin)], env=throwaway_git_env(), check=True)
+    origin.mkdir()
+    throwaway_git_init(str(origin), "-q", "--bare")
 
     def guarded_push(branch: str, message: str) -> tuple[bool, str]:
         (work / "f.txt").write_text(branch)
@@ -391,7 +392,8 @@ def w_body_patch(td, rel):
 def w_bus(td, rel):
     td.mkdir(parents=True)
     origin = td / "origin.git"   # the bus's remote for this arm: with a key it fetches, and never from the real origin
-    subprocess.run(["git", "init", "-q", "--bare", str(origin)], env=throwaway_git_env(), check=True)
+    origin.mkdir()
+    throwaway_git_init(str(origin), "-q", "--bare")
     writer(td, rel, ["bash", str(ROOT / rel), "confirm", "1", "a" * 40], "no hpo-approver key on this machine",
            {"identity-approver.pem": "KEY"}, cwd=ROOT, extra={"HPO_BUS_REMOTE": str(origin), "HPO_BUS_STATE": str(td / "bus-state")})
 
