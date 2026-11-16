@@ -597,6 +597,10 @@ INERT_EXCEPT = (
     # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
     "tools/audit/seat/ci_priority.py",
     "tools/audit/seat/ci_pause.py",
+    # R11-PRE-STANDING-SCRIPTS: the tick loads the owed watch (its fired-ledger,
+    # seat-on and FIRE-OWED reads moved there), so that self-test reads it. Same
+    # route as ci_priority.py: the prefix stays INERT, the file joins the closure.
+    "tools/audit/seat/owed_watch.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
@@ -1127,6 +1131,7 @@ _CITATION_POLICY = (
     r"\.claude/rules/[a-z0-9-]+\.md",
     r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
     r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/criteria/[A-Za-z0-9_.-]+\.md",
 )
 
 
