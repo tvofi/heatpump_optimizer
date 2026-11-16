@@ -1183,7 +1183,8 @@ class MeasuredCop:
     entity's attributes.
 
     ``held`` is the departures from the ask waiting for the evidence that
-    judges them: :meth:`judge_ratio` appends, :meth:`release` is the only way
+    judges them, and every interval ``probe`` admitted while its verdict was
+    pending: :meth:`judge_ratio` appends, :meth:`release` is the only way
     out. Neither it nor ``ratio_ewma`` is persisted: a restart drops both.
 
     ``probe`` answers what the window's evidence cannot where it is
@@ -1205,7 +1206,7 @@ class MeasuredCop:
     #: The walking metered/asked ratio (:meth:`walk_ratio`); ``None`` before
     #: the first interval, which is judged against 1.0.
     ratio_ewma: float | None = None
-    #: Departures awaiting ``draw_range.ask_evidence``, oldest first.
+    #: Intervals awaiting ``draw_range.ask_evidence`` or ``probe``'s verdict, oldest first.
     held: Deque[CopInterval] = field(default_factory=deque)
     #: The heat-ask probe: its verdict, and the scale it owes meanwhile.
     probe: ScaleProbe = field(default_factory=ScaleProbe)
