@@ -1,0 +1,4 @@
+SELF-TEST FAILED
+  null: a check that stays ok while only its detail moves under the perturbed payload: moved: got 'not witnessed: the check does not move', want 'moved\ttarget=differs plan=21.0 sent=22.0'
+  RESULT counts distinct cells: got 'RESULT read=operation universe=48 examined=7 moved=7 reached=3', want 'RESULT read=operation universe=48 examined=7 moved=8 reached=3'
+  null: a check that stays ok while only its detail moves with the level switched: witnessed: got 'reached (configuration 0): the check does not move with the level switched', want 'witnessed (configuration 0)'

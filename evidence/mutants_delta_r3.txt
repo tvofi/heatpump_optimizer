@@ -1,0 +1,5 @@
+SURVIVED NULL
+KILLED moved-detail-always
+KILLED carried-profile-kind-inverted
+SURVIVED carried-profile-level-off
+SURVIVED moved-missing-other-counts

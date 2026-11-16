@@ -1,1 +1,0 @@
-cmd: python3 tools/audit/seat/mutant_run.py --diff 367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c...HEAD --cmd 'python3 -I tools/audit/product_reads.py --self-test' --report-only --max-mutants 700 (at 3beb89a81abf8ce618cc96e4458db37e9f186e98)

@@ -1,0 +1,14 @@
+[
+ {
+  "name": "moved-ok-half-dropped",
+  "file": "tools/audit/product_reads.py",
+  "old": "(not b[\"ok\"] or b[\"detail\"] != a[\"detail\"])",
+  "new": "(b[\"detail\"] != a[\"detail\"])"
+ },
+ {
+  "name": "moved-detail-ignored",
+  "file": "tools/audit/product_reads.py",
+  "old": "(not b[\"ok\"] or b[\"detail\"] != a[\"detail\"])",
+  "new": "(not b[\"ok\"])"
+ }
+]
