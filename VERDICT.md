@@ -1,16 +1,18 @@
-Fix review: blocked 5fd0fc537375027f219394c11994cf1239624271 class-open: d1-inputs still omits the configured entity slot CONF_COMPRESSOR_FREQ_SENSOR, and the enumerator survivors of round 1 are unchanged at this head
+Fix review: merge 8445e36cfc6e5d77931f5558efedbe1c4f22db95
 
-bus-nonce: 75a17dda374e864ed799d23892d6727b
+bus-nonce: fe8a730168342a5f454873e11e49a39a
 pending-ci: gate
 
-Round 2 (delta scope over the reviewed head 673af8e9896e4da83ac093b7ac46143d16305a8a). Measured from a detached worktree at 5fd0fc537375027f219394c11994cf1239624271, merge base 6aa7ddc71216c4bc357db0097839ce40ff94e263.
+Round 3 (delta scope over the reviewed head 5fd0fc537375027f219394c11994cf1239624271). Measured from a detached worktree at 8445e36cfc6e5d77931f5558efedbe1c4f22db95, merge base 6aa7ddc71216c4bc357db0097839ce40ff94e263.
 
-## Block
+## Scope
 
-The delta from 673af8e9896e4da83ac093b7ac46143d16305a8a to 5fd0fc537375027f219394c11994cf1239624271 is a merge of origin/main and nothing else. It does not change `tools/audit/enumerate.py` or any dimension brief: `git diff 673af8e9 5fd0fc53 -- tools/audit/enumerate.py dev/governance/dimensions/D1.md` is empty. On this pull request's own paths, the delta touches only `dev/audit/config/scopes.json`, `dev/governance/config/policy_budgets.json`, `tests/layout.json` and `tools/ci/selftest_closures.json`, and each of those is main's side of the merge (`ev/delta_checks.txt`). Neither ground of the previous verdict is resolved. I re-ran both at this head:
+`git diff 5fd0fc53 8445e36c` changes `tools/audit/enumerate.py` alone (130 insertions, 22 deletions). That is the `d1-inputs` rule rewritten as `flow_slots` united with `wiring_slots`, the planted repository widened, and new self-test arms. It is an instrument delta with no production code, so the scope is not widened. Both grounds of the round-2 block are resolved at this head.
 
-1. `d1-inputs` is still one short of its population. `enumerate.py d1-inputs` exits 0 and prints 50 lines (`ev/d1_inputs_head.txt`). `const.py:1265` still declares `CONF_COMPRESSOR_FREQ_SENSOR`, and the universe does not include it. Its only frequency line is `CONF_COMPRESSOR_FREQ_ENTITY`, which is a different slot at `const.py:1260`. What is owed is unchanged from round 1: put the slot in the universe by a rule that does not depend on the name's suffix, and add a self-test arm that fails without it.
-2. The self-test still leaves the round-1 survivors standing. I re-planted M2 (`or k in LIFE_CALLS` removed): `SELF-TEST passed (134 arms)` at rc 0, while `d1-lifecycle` fell from 41 lines to 16 (`ev/mutant_M2_head.txt`). The enumerator is byte-identical to the one round 1 measured, so the other nine survivors named there (M1, M3, M4, M5, M8, M12, M18, M25, M27) stand on the same code. I did not re-run them one by one.
+## Prior findings
+
+1. `d1-inputs` population: resolved. `enumerate.py d1-inputs` exits 0 and prints 51 lines, among them `input CONF_COMPRESSOR_FREQ_SENSOR` beside `input CONF_COMPRESSOR_FREQ_ENTITY`. The round-2 enumerator, run against the same tree, prints the same set less that one key. The new rule does not depend on the name's suffix: it reads `config_flow.py` `_F` rows behind an entity selector, together with the keys `entry_config.py` `FACTORY_KEPT` keeps as an entity assignment. Its arm plants `CONF_F_SENSOR` and `CONF_W_SENSOR` and fails without them (N2, N5, N10 and N11 below). Independent cross-check: every `CONF_*` name or value in `const.py` that matches entity, sensor or entities is in the universe. The only universe line outside that set is `CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY`, a multi-line declaration the grep cannot read (`ev/d1_inputs_crosscheck.txt`). No `EntitySelector` occurs in the package outside `config_flow.py`.
+2. Round-1 survivors: resolved. I re-planted all ten by hand against the self-test at this head (`ev/mutants.py`, `ev/mutants_head.txt`, `ev/mutant_M3_head.txt`). NULL reads `SURVIVED` with `SELF-TEST passed (147 arms)`. M1, M2, M3, M4, M5, M8, M12, M18, M25 and M27 each read `KILLED` rc 1, and each failure names the arm the body cites for it.
 
 ## Findings
 
@@ -18,10 +20,13 @@ The delta from 673af8e9896e4da83ac093b7ac46143d16305a8a to 5fd0fc537375027f21939
 
 ## Evidence
 
-- Head re-read: `git ls-remote origin refs/heads/fix/r11-pre-briefs-census` prints 5fd0fc537375027f219394c11994cf1239624271 (`ev/HEAD.txt`).
-- `git merge-tree --write-tree origin/main 5fd0fc53`: exit 0, tree 09623e578900dd445f1d13185e0aba20c96c76b3, no conflict (`ev/merge_tree.txt`). The merge base equals origin/main 6aa7ddc712.
-- `git diff 6aa7ddc712...origin/main -- dev/governance/roles/` is empty, so the frozen contract is current. The three-dot diff does not touch `VERSION`, `custom_components/`, `RELEASE_NOTES.md` or `tests/golden/` (`ev/delta_checks.txt`). The delta contains no production code, so the scope is not widened.
-- The `policy_budgets.json` delta is the merge resolution: `corpus_tokens` 70678 -> 67155, D11 rows from main's rewrite of D11, and the retired `nudge.md` rows removed. These match the merge commit's stated `--budgets` figures. I did not re-run `policy_lint --budgets` at this head.
-- RESULT self-test at the head: `SELF-TEST passed (134 arms)`.
-- CI: `merge_train.py classify 5fd0fc537375027f219394c11994cf1239624271 --pr 3625` read `WAIT ... pending: gate red: none` (rc 3) on every run from 02:33:34Z to 03:05:13Z (`ev/classify_1.txt`, `ev/classify_poll.txt`). No required check was red, so no `## Red checks` answer is owed at this reading. The block above does not depend on CI.
-- `carry_audit.py check` was run on this verdict as the sole comment, with an empty body file. The packet's own `carry_audit at the head` already reads the body: 9 routed, 0 unrouted.
+- RESULT mutants of the delta's new code, the reviewer's own and not the fixer's N1-N15 (`ev/mutants_head.txt`): 12 mutants, 12 `KILLED`. They cover: the factory widget ignored (N1); the loop expansion dropped (N2); each of the four refusals turned off (N3, N4, N7, N8); the literal wiring entries dropped (N5); the wiring tests dropped (N6); the isinstance skip widened to any argument (N9); each half of the union dropped (N10, N11); the reason not compared (N12). N1 is killed by an uncaught `Refuse` out of the self-test rather than by an arm's comparison. Either way the self-test exits 1.
+- RESULT self-test at the head: `SELF-TEST passed (147 arms)`, rc 0. This matches the body's figure at `5267332704`.
+- Body's head chain: `git diff 5267332704 5b2e29e654` and `git diff 5b2e29e654 8445e36c` are both empty. `git diff 6a32d9035a 8445e36c --stat` names `tools/audit/enumerate.py` alone (`ev/delta_checks.txt`). These match the body.
+- RESULT `--briefs` at the head: rc 0 (`ev/figures_head.txt`).
+- RESULT `score.py --diff 6aa7ddc712`: `Architecture score: dS +0.0000 NULL`, matching the body. Against the current origin/main `f9b680fee4`: `dS +0.0006 IMPROVES` (`coord_footprint 2496 -> 2495`). That comes from main's movement, not this diff.
+- RESULT `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
+- `git merge-tree --write-tree origin/main 8445e36c` with origin/main at `f9b680fee43bb519996fc107c5f1c65df02683d7`: exit 0, tree 4d4bf6e4fc9014975e0a6473ccae5e3b1794b4d7, no conflict. The head is behind main and merges cleanly.
+- `git diff 6aa7ddc712...origin/main -- dev/governance/roles/` is empty. The three-dot diff touches none of `VERSION`, `custom_components/`, `RELEASE_NOTES.md` or `tests/golden/`.
+- Not re-derived: the body's figures for brief prose and budgets taken at `fb9b921b98` and `6a32d9035a` (policy_lint, check-wave-script, closures, prepr). This delta moves no brief or config file, and round 1 checked those figures.
+- CI: `merge_train.py classify 8445e36cfc6e5d77931f5558efedbe1c4f22db95 --pr 3625` read `WAIT 8445e36cfc6e5d77931f5558efedbe1c4f22db95 pending: gate red: none` (rc 3) on every run from 05:46:30Z to 06:16:36Z (`ev/classify_poll.txt`). No required check was red at any reading, so no `## Red checks` answer is owed. This verdict waits on `gate` through `pending-ci`.
