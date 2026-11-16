@@ -3328,7 +3328,7 @@
    "resume": {
     "stage": "carries-open",
     "commit": "c82f014a639954b0f8930f29cf30fed3f0b20a6a",
-    "branch": "fix/r11-advisor-measures",
+    "branch": "fix/r11-advisor-measures-p2",
     "last_step": null,
     "next_step": "dispatch fixer",
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-OUTSIDE-DEARER-WORDING shares docs/dashboard-card.md; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train",
