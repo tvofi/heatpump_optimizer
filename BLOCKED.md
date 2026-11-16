@@ -1,15 +1,26 @@
-# BLOCKED: r11-pre-machinery-limiter (repair round 2, PR #3627)
+# BLOCKED: r11-pre-machinery-limiter, conflict resolution with origin/main
 
-Question: #3566 holds a merge verdict that is not on the train and shares the hot file tools/audit/seat/orchestrator_tick.py with this diff, so review_packet refuses the handoff (hot-file). Should the relay board or merge #3566 first and then re-run body_push.sh for this topic, or is there a different route for this PR?
+Head: 2986495e9cc46e911d37945166c18dd13c60d89a (handoff/r11-pre-machinery-limiter)
+origin/main: e30408f7881cd5602a2c4d7ea9517b0d765652f6
+Conflict (git merge-tree --write-tree origin/main HEAD): dev/governance/roles/proposal-triage.md only; all other files auto-merge.
 
-State at the stop:
-- Code head 2986495e9cc46e911d37945166c18dd13c60d89a is on refs/heads/handoff/r11-pre-machinery-limiter. It adds one commit over the reviewed 3ad61a1f6e: tests that kill the six survivors the review named. The review's driver (evidence/mut.py on review/3627), re-run at this head, kills 19 of 19 mutants.
-- tools/pr/prepr.sh (PREPR_SKIP_CLOSURES=1, MUTANT_CMD set to the two self-tests) at 2986495e: rc=0. Its 6 diff-mutant survivors are the fixture lines 749, 753, 764, 770, 775 and 777, and the body answers them under ## Unpinned sites.
-- `git merge-tree --write-tree origin/main HEAD` reports no conflict against origin/main 5825e1346c.
-- The full body is the one body_push.sh kept at refs/heads/handoff-wip/r11-pre-machinery-limiter-body (07026ad0ca).
+The conflicting hunk is the **Machinery** paragraph's last sentence. Both sides
+rewrote the same base sentence (the `severity` `low`/`normal` rule) into the same
+card-P2 rule, in different words:
 
-body_push.sh output (tail):
-review_packet: REFUSE hot-file: #3566 holds an unboarded merge verdict and shares tools/audit/seat/orchestrator_tick.py
-review-packet handoff: R11-PRE-MACHINERY-LIMITER at 2986495e9cc4, 14 live, 14 dispatched carries, 1 refused
-body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body
-body_push: REFUSED REVIEW-PACKET
+- this PR: "code (outside `custom_components/`) meets both (over 20% to add) at any
+  / roster `severity`; only a red required check on main or a blocked production
+  / pull request skips them (owner card P2), as do a root-cause
+  / countermeasure, closeout and an owner directive."
+- main (#3626/#3566): "... at any / severity; a red required check on `main`, a
+  blocked production pull request, a / root-cause countermeasure, closeout or an
+  owner directive skips them (tvofi, 2026-11-13, card P2)."
+
+Both continue the shared line ending "at any", so a verbatim union of the two
+line sets leaves one side starting mid-sentence ("severity; ...") and states the
+same rule twice in a role contract. No verbatim union reads as one sentence.
+
+Question: may the resolution take main's three lines alone (they carry every
+element of this PR's three: any severity, red required check on main, blocked
+production PR, root-cause countermeasure, closeout, owner directive, card P2),
+instead of the verbatim union of both sides the brief names?
