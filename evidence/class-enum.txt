@@ -1,0 +1,12 @@
+$ git grep -n "run_state(" -- tools/*.py (outside merge_train.py)
+tools/audit/seat/orchestrator_tick.py:442:            by[mt.run_state(c)].append(n)
+$ git grep -n "self.judge(" -- tools/audit/seat/orchestrator_tick.py
+tools/audit/seat/orchestrator_tick.py:1244:            _, run, red = self.judge(latest)
+tools/audit/seat/orchestrator_tick.py:1914:            green, _, red = self.judge(latest)
+$ modules under tools naming merge_train:
+28
+e8a22608613b8af93d0e7a17574c0d594d0e7812 27
+2abb0ac85babec8f3cab4d42d6988d747cfca737 28
+new naming module: tests/closure.py
+new naming module: tests/closures.json
+new naming module: tools/audit/seat/open_driver.py
