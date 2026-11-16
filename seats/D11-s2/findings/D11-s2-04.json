@@ -25,7 +25,7 @@
   "expected_direction": "to_zero",
   "observed_value": "dup_units 16 -> 0, rulings_overlap 1 -> 0"
  },
- "metric_definition": "distinct normalized text_ledger D6 units of >= 8 words present in >= 2 policy files (.claude/rules folded onto dev/governance/rules), plus live RULINGS entries whose >= 6-word quote a corpus file states",
+ "metric_definition": "normalized text_ledger D6 units of >= 8 words present in >= 2 policy files (.claude/rules folded onto source), plus live RULINGS entries a corpus file states",
  "phenomenon_property": "Each mandate is stated once, in the most authoritative policy file owning it, and pointed to elsewhere; no live RULINGS.md entry is stated by a policy file.",
  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list (DUP and OVERLAP lines)",
  "null_control": {
