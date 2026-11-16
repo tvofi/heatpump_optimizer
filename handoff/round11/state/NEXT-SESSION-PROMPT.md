@@ -48,7 +48,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-ROOMS-P3 (stage design, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage in-progress, branch `fix/r11-outside-self-setting-pump`): `git fetch origin fix/r11-outside-self-setting-pump && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SERVICE-SCHEMA (stage in-progress, branch `fix/r11-service-schema`): `git fetch origin fix/r11-service-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-ADVISOR-MEASURES (stage carries-open, branch `fix/r11-advisor-measures`): `git fetch origin fix/r11-advisor-measures && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-ADVISOR-MEASURES (stage carries-open, branch `fix/r11-advisor-measures-p2`): `git fetch origin fix/r11-advisor-measures-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage in-progress, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-POLICY-TOKEN-CAP (stage in-progress, branch `fix/r11-policy-token-cap`): `git fetch origin fix/r11-policy-token-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-RCA-SELFTEST-TABLE-DRIFT (stage in-progress, branch `fix/r11-rca-selftest-table-drift`): `git fetch origin fix/r11-rca-selftest-table-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
