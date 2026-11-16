@@ -1,7 +1,0 @@
-round 9: groups owing caused_by 14, of which with no rca record 0: []
-round 10: groups owing caused_by 123, of which with no rca record 112: ['R10-HOTFIX-BATCH-ERREXIT', 'R10-HOTFIX-AWAY-SETBACK', 'R10-HOTFIX-AWAY-LIVE', 'R10-HOTFIX-LEARNER-INPUTS', 'R10-HOTFIX-PREHEAT-LABEL', 'R10-HOTFIX-AWAY-PRESENCE']
-round 11: groups owing caused_by 17, of which with no rca record 14: ['R10-START-COUNTER-EDGES', 'R11-OUTSIDE-HONEST-STARTS-RUNS', 'R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3', 'R11-OUTSIDE-HONEST-STARTS-RUNS-P2', 'R11-OUTSIDE-HONEST-STARTS-RUNS-P3', 'R11-OUTSIDE-HONEST-DHW-RUNS']
--- escapes only (injected's owing set)
-round 9: escapes 0, with no rca record 0
-round 10: escapes 48, with no rca record 48
-round 11: escapes 12, with no rca record 12

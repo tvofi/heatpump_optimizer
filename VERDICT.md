@@ -1,52 +1,55 @@
-Fix review: blocked 95da81dcf729e71bcb6d105fe82caa24a8352a1d caused-by-unwritable: injected and refix can never read for rounds 10 and 11, because set-field refuses caused_by on any group without its own rca record and no roster op adds one
+Fix review: blocked 3868879d094dcebd146ddd49e7b5b551b7a7618e caused-by-overbroad: rca_lists admits any record that mentions a group, so a process RCA that lists defect groups only as dispatch-status rows is accepted as their root-cause record
 
-bus-nonce: aae61a2d80c6a924d17e019c7b081600
+bus-nonce: ca319a630aa24823a8f2825508669c7f
 
-Round 1 (first review of this PR), a full review at head 95da81dcf729e71bcb6d105fe82caa24a8352a1d, merge base d4968fe08ba0b18f9d96f6ca308edf45f35ca469.
+Round 2, a delta review over the reviewed head 95da81dcf729e71bcb6d105fe82caa24a8352a1d (the packet's `## Review scope: delta`). The delta is instrument and test only (`tools/audit/seat/`, `tools/ci/selftest_closures.json`, the delivery row); no `custom_components/` path, so nothing widens.
 
 ## Block
 
-`loop_ledger.owed` says every escape owes `caused_by`, and so does every other hotfix group (card P7: "every hotfix group and every outside group records what caused the defect"). `roster_lib.convergence_why` admits `caused_by` only when its `rca` id is already in the group's own `rca` list (`roster_lib.py`, the `if rca not in (group.get("rca") or [])` arm). `roster_edit.py` has no op that adds an `rca` entry to an existing group. Only `append-group` writes `rca`, and `set-field` refuses `rca`, because it is not in `SET_FIELDS`. Hand-splicing the roster is ruled out. So for a group that has no `rca`, the only sanctioned writer refuses `caused_by` permanently. The PR's own self-test pins exactly that refusal (`set-field caused_by is refused without the group's own rca record`, on R9-S3).
+The previous block (`caused-by-unwritable`) is resolved in mechanism: `roster_lib.rca_lists` admits `caused_by` on a group with no `rca` of its own, and `roster_edit`'s new check writes `caused_by` on such a group, `R9-ESC`, then shows `injected` and `refix` turn from `unread` to values. But the predicate that does it is wider than the invariant it guards. The docstring says a record that names the group is one where "the group is the defect it analyses", and the body says "a record under `dev/audit/rca/` naming the group is that seat's record". The code only checks that the group's name appears somewhere in the file as a whole token.
 
-Measured on the real record at the reader ref, `origin/handoff/audit-r10-roster` (`ev/norca.py`, `ev/norca.txt`):
-- round 10: 112 of the 123 groups that owe `caused_by` have no `rca`, and so do all 48 of its 48 escapes;
-- round 11: 14 of 17 owing groups have none, and so do all 12 of its 12 escapes.
+On the real record this admits records that do not analyse the defect. `dev/audit/rca/R10-RCA-TICK-BLIND.md` is a process RCA about why the tick board did not prevent dispatch stalls. It names `R10-COMBI-TANK`, `R10-GENERIC-HEAT-CURVE`, `R10-GENERIC-HEAT-CURVE-PERSISTENT` and `R10-HOTFIX-COP-UNMEASURED` only as dispatch-status table rows and board lines. At this head, `convergence_why("caused_by", {"cause": "original", "rca": "R10-RCA-TICK-BLIND"}, <R10-COMBI-TANK>, names)` returns `None`, and so does the same call for `R10-GENERIC-HEAT-CURVE` (`ev/overbroad.txt`). So `set-field` accepts a cause for those defects that rests on a record never written about them. `injected` then prints a value where 0018's rule ("the cause recorded by the root-cause seat") says it should print NO-READ. This breaks the property the first review credited the ledger with: it prints `unread`, never a wrong value.
 
-So `injected`, which every escape's `caused_by` decides, and `refix`, which needs the whole ledger, can never print a value for round 10 or round 11. The same holds for every ISO week that contains one of those groups. These two reads are half of what the ledger is built to print. That contradicts two statements in the body: "Carry 8: built (found_by and caused_by on every hotfix and outside group)", and C5's "the figures exist once the orchestrator sets the fields". The orchestrator cannot set these fields. The ledger stays honest: it prints `unread` and never a wrong value. But the mechanism cannot be completed on the record it exists to read.
+Scale (`ev/admissions.txt`): of the 5 round-10 escapes that the body's figure counts as admitted (`round 10 48 5 0`), 3 are admitted only through `R10-RCA-TICK-BLIND`'s status rows: `R10-COMBI-TANK`, `R10-GENERIC-HEAT-CURVE` and `R10-GENERIC-HEAT-CURVE-PERSISTENT`. Only 2 are admitted by a record that says it is the root-cause seat for that group: `R10-HOTFIX-COP-UNMEASURED` by `R10-RCA-COP-UNMEASURED`, and `R10-HOTFIX-FLOW-SETPOINT-STUCK` by `R10-RCA-SETPOINT-LATCH-DEADLOCK`. The body's `5` and `27` therefore overstate where `caused_by` can honestly be written.
 
-The fixer chooses the repair. Options include: a sanctioned way to attach a group's RCA record (an `rca` set-field arm, validated against `dev/audit/rca/`); admitting a `caused_by` whose `rca` names any root-cause record that lists the group; or narrowing `owed` so a group the root-cause rule does not reach (`defect-root-cause.md`'s two triggers) does not owe `caused_by`. Whichever is chosen, the repair needs a check showing `caused_by` written on a group that started with no `rca`.
+The self-test does not reach this domain. Its planted record `R10-RCA-NAMED` ("Cause of R10-D, found again in R10-E-2.") admits both groups it mentions, and no case plants a record that mentions a group without analysing it.
+
+The fixer chooses the repair. Options include:
+- a declared subject in the record, such as a front-matter line or the existing "This is the root-cause seat for <group>" sentence, made a parsed field, and admit only the groups it lists;
+- requiring the `cause` to be stated in the same record;
+- confining the token match to a heading or subject block.
+
+Whichever is chosen, it needs a self-test case where a record mentions a group (for example in a status table) without being its root-cause record, refused. The body's admission figures then need to be re-derived under the new rule.
 
 ## Findings
 
-- Surviving mutant: `loop_ledger.load_ref`'s precedence `{**entered(b.stdout), **when}` swapped to `{**when, **entered(b.stdout)}`. With the swap, the week of a group carried from one roster into a later one is taken from the later roster, which contradicts the docstring's rule that a group's week is its roster entry. No self-test fails, because the history case uses one roster file. On today's record the output is byte-identical (`ev/ledger-blame-mutant.diff` is empty), so it is a test gap rather than a live misread. Carry: R11-PRE-ROUND-METRICS
-- Surviving mutant: `roster_lib.convergence_why`'s `or not (root / "dev/audit/rca" / f"{rca}.md").is_file()` deleted. No case gives a group an `rca` id whose file is missing, so the file-existence arm of the refusal is not pinned. Carry: R11-PRE-ROUND-METRICS
-- Surviving mutant: `loop_ledger.reads`'s `refix` count changed from `roster_lib.recorded(g, ("follows",), names)` to `g.get("follows")`. A `follows` naming no roster group would then be counted as a refix, and no case catches it. Carry: R11-PRE-ROUND-METRICS
-- Surviving mutant: `loop_ledger.reads`'s `kids = sum(1 for g in every ...)` changed to `groups`. In a weekly split this would drop a child that falls in a different week from its countermeasure. The fixture puts every group in one period, so the two choices cannot be told apart. Carry: R11-PRE-ROUND-METRICS
-- Surviving mutants that are near-equivalent or cosmetic: `entered`'s `setdefault` changed to plain assignment (a group's `"group":` line appears once per file), and the `"unentered"` week label. Both are unpinned; a case is optional. Carry: R11-PRE-ROUND-METRICS
-- Note: figure: the body says the head ledger "prints every round's escapes, injected, refix and loop as unread". At this head, round 9 prints `escapes 0` and `injected 0` as values, and week 2026-W43 prints all four reads as values (`ev/ledger-head.txt`). Carry: R11-PRE-ROUND-METRICS
-- Note: stale-body: the `## Head` section repeats the same recarry paragraph four times. Carry: R11-PRE-ROUND-METRICS
+- Surviving mutant, equivalent: `loop_ledger.entered`'s `out[m.group(1)] = t` reverted to `out.setdefault(m.group(1), t)` survives. This is equivalent on today's record, where each roster file holds a group's `"group":` line once (the body's per-file counts). No case is owed. Carry: dismissed: equivalent on a file that holds each group line once, as the body measures
+- Note: figure: the body's `round 11 17 3 0` (groups owing `caused_by`) reads `round 11 18 3 0` at review time. The reader ref `origin/handoff/audit-r10-roster` is live, and roster_lib warns that origin/main carries roster changes it has not merged (`ev/figures.txt`). The escape rows (`round 9 0 0 0`, `round 10 48 5 0`, `round 11 12 0 0`) and the other owing rows re-derive exactly. Carry: R11-PRE-ROUND-METRICS
 
 ## Evidence
 
-- Head: `refs/pull/3657/head` and `fix/r11-pre-round-metrics-p2` both read back 95da81dcf729e71bcb6d105fe82caa24a8352a1d at the end of the review (`ev/HEAD.txt`).
-- CI: `merge_train.py classify 95da81dc... --pr 3657` prints `GREEN 95da81dcf729e71bcb6d105fe82caa24a8352a1d pending: none red: none`, both at the start and before the verdict (`ev/classify.txt`). The only red in the packet digest is `tests / nightly-status`. It is not in `merge_train.py owed-reds`, so no `## Red checks` answer is owed.
-- Merge: `git merge-tree --write-tree origin/main 95da81dc...` exits 0, printing `LEDGER-MERGE: resolved tests/closures.json`. No conflict.
-- Role contract: `git diff <mb>...origin/main -- dev/governance/roles/` touches only `architect-planner.md` and `orchestrator.md`, so `fix-review.md` is current.
-- Self-tests at the head (`ev/selftests.txt`):
+- Previous verdict's findings at this head (`ev/mutants-ll.txt`, `ev/mutants-rl.txt`; reviewer-built driver `ev/mut.py`, one exact-string swap per mutant, the owning self-test run, the file restored):
+  - These are now killed: `blame-precedence` (`FAIL history: each group's week is its first roster entry, carried into a later roster or not`), `kids-every`, `refix-recorded`, `week-unentered` and `rca-file`.
+  - `blame-setdefault` survives as above.
+  - The `figure` note on "every round prints unread" is resolved: the body now states round 9's and week 2026-W43's values.
+  - The `stale-body` note on the repeated recarry paragraph is resolved.
+- Mutants over the delta's `rca_lists` / `convergence_why`, all killed:
+  - `rca-id-regex`
+  - `rca-own-arm`
+  - `rca-name-arm`
+  - `rca-substring` (`me in text`)
+  - `rca-nostrip`
+  - `rca-bool-own`
+  - `cw-rca-gate` (the gate replaced by `if False`)
+- Self-tests at the head (`ev/selftests.txt`). These match the body's figures:
   - `loop_ledger self-test: 0 failed`
-  - `roster_lib self-test: 95 checks, 0 failed`
-  - `roster_edit self-test: 314 checks, 0 failed`
-  - `scorecard self-test: ok (without mutants)`
+  - `roster_lib self-test: 97 checks, 0 failed`
+  - `roster_edit self-test: 315 checks, 0 failed`
   - `throwaway_git: 0 raw git init or clone site(s) refused`
-
-  These match the body.
-- Mutation (`ev/mutants.txt`, reviewer-built driver `mut.sh` at the head; 17 mutants, 11 killed, 6 survived):
-  - Killed, re-running the body's named mutants: `replan-path`, `rca-arm`, `owed-hotfix`, `sc-split`. Also killed: `latest-dedupe`, `injected-merged`, `ratio`, `gen-cycle` (timeout), `dim-file`, `self-cause`, `owed-rca`.
-  - Survived: `rca-file`, `blame-precedence`, `blame-setdefault`, `kids-every`, `refix-recorded`, `week-unentered`. Each is listed under `## Findings`.
-
-  The CI mutation table was not re-run; its lane is green.
-- The `_replan_production` fix is confirmed. The old path `parents[2] / "tools"` resolves to `tools/tools/plan/replan.py`, which does not exist. The lane-less `group_class({"group": "X"})` reads `instrument` with the base's roster_lib and `production` at the head. On the real rosters, 3 of 10 class-less round-10 groups flip (R10-CARD-VOICE, R10-ROSTER-PUSH-RACE, R10-STORE-RACES), and round 11 has no class-less group (`ev/gclass.py`, `ev/gclass.txt`).
-- Null control: `--dir` on an empty directory prints `loop_ledger unread` (self-test case, passing).
-- Finder's harness: none is named. This is an instrument build, not a finding fix. The instruments here (`mut.sh`, `norca.py`, `gclass.py`) are the reviewer's.
-- Version: `VERSION`, the manifest version and the release notes are untouched by the diff (13 files, none of them).
-- Figures not re-derived: `Architecture score: dS +0.0000 NULL` and `STRUCTURE RATCHET PASSED` are cited from CI's green `arch-score` and `gate`, not re-run. The equivalent-survivor claim for `loop_ledger.py:59 CONST_SWAP` was judged by reading the code, not by re-running it.
+- Merge: `git merge-tree --write-tree origin/main 3868879d...` exits 0, printing `LEDGER-MERGE: resolved tests/closures.json`. No conflict.
+- Role contract: `git diff <mb>...origin/main -- dev/governance/roles/` touches `COMMON.md`, `architect-planner.md` and `orchestrator.md`. `fix-review.md` is current.
+- Version: no `VERSION`, manifest or `RELEASE_NOTES.md` path is in the three-dot diff.
+- Head: `refs/pull/3657/head` reads 3868879d094dcebd146ddd49e7b5b551b7a7618e at the verdict (`ev/HEAD.txt`).
+- CI: `merge_train.py classify 3868879d... --pr 3657` printed `WAIT 3868879d094dcebd146ddd49e7b5b551b7a7618e pending: gate red: none` on every poll from 10:08Z to 10:12Z (`ev/classify.txt`). The poll was stopped because the block is on code and does not depend on CI. The only red in the packet digest, `tests / nightly-status`, is not in `owed-reds`, so no `## Red checks` answer is owed. The packet's `introduced-red: unreadable` refusal came from `instrument-self-tests` still being `in_progress` when the packet was rendered.
+- Finder's harness: none is named. This is an instrument build. The instruments used here (`mut.py` and the `admissions` and `overbroad` probes) are the reviewer's.
+- Figures not re-derived: `Architecture score: dS +0.0000 NULL`, `STRUCTURE RATCHET PASSED` and the `selftest_scope record` line are cited from the body and CI, not re-run.

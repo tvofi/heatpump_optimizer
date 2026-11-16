@@ -1,0 +1,14 @@
+R10-COMBI-TANK own rca: [] | convergence_why(caused_by original, R10-RCA-TICK-BLIND): None
+R10-GENERIC-HEAT-CURVE own rca: [] | convergence_why(caused_by original, R10-RCA-TICK-BLIND): None
+# R10-RCA-TICK-BLIND: the tick board was present and stalls happened anyway
+
+Owner's question (tvofi, 2026-11-08): the tick board (`tools/audit/seat/orchestrator_tick.py`
+via `tick_loop.sh`, written to the session's `tick.txt`) exists so that stalls cannot
+happen, so why did these sit for hours? This file covers five cases, (a) to (e). The
+16:### (a) Outside request #3225 (R10-COMBI-TANK) sat with no live seat
+23:(`git log -S R10-COMBI-TANK` on the roster file, then `after` read per commit):
+27:  R10-GENERIC-HEAT-CURVE-PERSISTENT]`.
+30:At 19:11Z the board printed `R10-COMBI-TANK: blocked by R10-ADVISOR-WHATIF,
+31:R10-COP-GATE-E, R10-GENERIC-HEAT-CURVE-PERSISTENT (stage carries-open)` with no `->`
+39:| R10-GENERIC-HEAT-CURVE-PERSISTENT | `blocked by R10-GENERIC-HEAT-CURVE` | none | not started |
+40:| R10-GENERIC-HEAT-CURVE | `in progress` | handoff-wip 2026-11-08T17:38Z | 1.5 h (live) |
