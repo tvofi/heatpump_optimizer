@@ -1,0 +1,26 @@
+NO-SCHEMA set_thermal_parameters
+OPEN simulate_plan.target_temp accepts 4.5 (selector 5..30)
+OPEN simulate_plan.target_temp accepts 30.5 (selector 5..30)
+OPEN simulate_plan.min_temp accepts 13.5 (selector 14..25)
+OPEN simulate_plan.min_temp accepts 25.5 (selector 14..25)
+OPEN simulate_plan.max_temp accepts 17.5 (selector 18..28)
+OPEN simulate_plan.max_temp accepts 28.5 (selector 18..28)
+OPEN simulate_plan.comfort_weight accepts 0.0 (selector 0.1..20)
+OPEN simulate_plan.comfort_weight accepts 20.1 (selector 0.1..20)
+OPEN simulate_plan.comfort_temp_day accepts 4.5 (selector 5..30)
+OPEN simulate_plan.comfort_temp_day accepts 30.5 (selector 5..30)
+OPEN simulate_plan.comfort_temp_night accepts 14.5 (selector 15..24)
+OPEN simulate_plan.comfort_temp_night accepts 24.5 (selector 15..24)
+OPEN simulate_plan.dhw_setpoint accepts 29 (selector 30..75)
+OPEN simulate_plan.dhw_setpoint accepts 76 (selector 30..75)
+OPEN simulate_plan.dhw_min_temperature accepts 34 (selector 35..55)
+OPEN simulate_plan.dhw_min_temperature accepts 56 (selector 35..55)
+OPEN simulate_plan.silent_mode_power_fraction accepts 0.5499999999999999 (selector 0.6..1.0)
+OPEN simulate_plan.wood_price_sek_m3 accepts 0 (selector 1..10000)
+OPEN simulate_plan.wood_price_sek_m3 accepts 10001 (selector 1..10000)
+OPEN simulate_plan.wood_furnace_efficiency accepts 9 (selector 10..95)
+OPEN simulate_plan.wood_furnace_efficiency accepts 96 (selector 10..95)
+OPEN apply_schedule.silent_mode_power_fraction accepts 0.5499999999999999 (selector 0.6..1.0)
+NO-SCHEMA restore_learned_snapshot
+NO-SCHEMA reset_heat_loss_learners
+open probes: 22

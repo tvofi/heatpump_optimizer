@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index 972b4196d8..609e45859e 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -142,7 +142,7 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
+             vol.Coerce(int), vol.Range(min=0, max=24)
+         ),
+         vol.Optional("dhw_setpoint"): _DHW_SETPOINT_C,
+-        vol.Optional("dhw_min_temperature"): _DHW_MIN_TEMP_C,
++        vol.Optional("dhw_min_temperature"): _float_range(20, 70),
+         # An empty string is meaningful here: it simulates having no demand
+         # windows at all, so it must survive the "drop empty values" filter in
+         # the handler below.
