@@ -1,0 +1,5 @@
+wrote /tmp/tmprllfzl4u/page.html: 8 groups, closure 2026-01-06T22:04:00Z
+plan_page self-test: 136 checks, 0 failed
+check_rc=0
+plan_public self-test: all checks passed
+state_docs self-test: all checks passed
