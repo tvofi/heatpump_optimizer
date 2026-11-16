@@ -2252,6 +2252,12 @@ def _self_test() -> int:
           all(edit("set-field", "R9-S3", f, rest=(v,)) == 0 and grp("R9-S3")[f] == v for f, v in (
               ("found_by", "owner"), ("owned_by", "D8"), ("family", "N-log-flood"),
               ("cm_kind", "narrow"), ("parent", "R9-S2"), ("follows", "R9-S1"))))
+    # Both sides of the #3633/#3657 merge: a resolution dropping either SET_FIELDS half or its usage words fails here.
+    check("set-field gates_finders and a convergence field in one run: both read back, both in the usage line",
+          edit("set-field", "R9-S3", "gates_finders", rest=("true",)) == 0
+          and edit("set-field", "R9-S3", "found_by", rest=("reviewer",)) == 0
+          and grp("R9-S3")["gates_finders"] is True and grp("R9-S3")["found_by"] == "reviewer"
+          and all(f"|{f}" in __doc__ for f in ("gates_finders",) + roster_lib.CONVERGENCE_FIELDS))
     t0 = tip()
     check("set-field refuses a word outside each vocabulary and an unknown group, moving nothing",
           refuses("finder dimension", "set-field", "R9-S3", "found_by", rest=("ci",))
