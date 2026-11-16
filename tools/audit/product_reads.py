@@ -884,6 +884,7 @@ def self_test():
             arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n")[0], 2)
             (root / census.OBJECTIVE).unlink()
             arm("generality: an emptied universe source exits 2", _exit("generality", root, f"level mode=m1\tsimulation\t{S}payload\n")[0], 2)
+            arm("a read with no --ledger exits 2 before reading", _usage_exit(["operation", "--repo", str(root)]), 2)
         finally:
             OPTION_KEYS = saved
     if fails:
@@ -944,6 +945,14 @@ def _only_latch(root):
 def _refused(name, root, text, message):
     rc, err = _exit(name, root, text)
     return rc == 2 and err.startswith(message)
+
+
+def _usage_exit(argv):
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            return f"returned {main(argv)}"
+    except SystemExit as stop:
+        return stop.code
 
 
 def _exit(name, root, text):
