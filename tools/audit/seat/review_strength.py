@@ -142,7 +142,7 @@ WAVE_SCRIPT = ".claude/workflows/web-fix-wave.js"
 CLASSES_RE = re.compile(r"const VERDICT_CLASSES = \[([^\]]*)\]")
 WORD_RE = re.compile(r"'([a-z][a-z0-9-]*)'")
 ROLES_DIR = "dev/governance/roles"
-CLAUSES_RE = re.compile(r"const VERDICT_CLAUSES = \{([^}]*)\}")
+CLAUSES_RE = re.compile(r"const VERDICT_CLAUSES = [{]([^}]*)[}]")
 PAIR_RE = re.compile(r"'([a-z][a-z0-9-]*)':\s*(?:'([^']*)'|null)")
 CLAUSE_RE = re.compile(r"([a-z][a-z-]*\.md) step ([1-9][0-9]*)")
 FACT_STRATA = {"origin", "fixer", "size", "product"}
@@ -230,16 +230,20 @@ def verdict_clauses(text: str, taught: tuple[str, ...]) -> dict[str, str | None]
 
 def clause_rows(clauses: dict[str, str | None], role_text) -> dict[str, str]:
     """Each taught class's `--by clause` row. `role_text(name)` is the text of the role contract
-    `name` under ROLES_DIR, or None when there is no such file."""
+    `name` under ROLES_DIR, empty or None when there is no such file."""
     rows = {}
     for cls, clause in clauses.items():
-        if clause is None:
-            rows[cls] = f"(no clause) {cls}"
-            continue
-        m = CLAUSE_RE.fullmatch(clause)
+        m = CLAUSE_RE.fullmatch(clause or "")
         text = role_text(m[1]) if m else None
-        rows[cls] = clause if text and re.search(rf"^{m[2]}\. ", text, re.M) else f"UNRESOLVED {clause}"
+        rows[cls] = (f"(no clause) {cls}" if clause is None
+                     else clause if text and re.search(rf"^{m[2]}\. ", text, re.M) else f"UNRESOLVED {clause}")
     return rows
+
+
+def tree_clauses(repo: Path, tree: str, taught: tuple[str, ...]) -> dict[str, str]:
+    """clause_rows for the wave script and the role contracts of `tree`."""
+    role = lambda name: git(repo, "show", f"{tree}:{ROLES_DIR}/{name}", check=False)
+    return clause_rows(verdict_clauses(git(repo, "show", f"{tree}:{WAVE_SCRIPT}"), taught), role)
 
 
 def class_sets(taught: tuple[str, ...], real: frozenset) -> dict[str, list[str]]:
@@ -439,14 +443,10 @@ def main(argv: list[str]) -> int:
     taught = verdict_classes(git(repo, "show", f"{a.tree}:{WAVE_SCRIPT}"))
     for k, words in class_sets(taught, REAL_CATCH | extra).items():
         print(f"{k}: {', '.join(words) or '-'}")
-    clause_of = None
-    if "clause" in used:
-        wave = git(repo, "show", f"{a.tree}:{WAVE_SCRIPT}")
-        role = lambda name: git(repo, "show", f"{a.tree}:{ROLES_DIR}/{name}", check=False) or None
-        clause_of = clause_rows(verdict_clauses(wave, taught), role)
-        for cls, row in sorted(clause_of.items()):
-            if row.startswith("UNRESOLVED "):
-                print(f"{row} (class {cls})")
+    clause_of = tree_clauses(repo, a.tree, taught) if "clause" in used else {}
+    for cls, row in sorted(clause_of.items()):
+        if row.startswith("UNRESOLVED "):
+            print(f"{row} (class {cls})")
     for by in ["all", *a.by]:
         print(f"## {by}")
         rows = {name: tally(verdicts, f, u, lambda v: stratum(by, v, facts, taught, clause_of)) for name, f, u in wins}
@@ -744,7 +744,7 @@ def self_test() -> int:
 def _self_test_clause(R: Path, d: str, mk, verdict, check) -> None:
     """--by clause: a block's class reads as the contract clause the wave script's VERDICT_CLAUSES names."""
     H = "c" * 40
-    words = ("harness", "carry-missing", "conflict", "claims", "version", "null-control")
+    words = ("harness", "carry-missing", "conflict", "claims", "version", "null-control", "x0", "b9", "r5")
     lit = "const VERDICT_CLASSES = [\n  " + ", ".join(f"'{w}'" for w in words) + ",\n]\n"
     # Decoys a looser extractor reads: another *_CLAUSES object, the name after a non-`const` word,
     # and a comment's quoted pair inside the literal.
@@ -752,22 +752,48 @@ def _self_test_clause(R: Path, d: str, mk, verdict, check) -> None:
     clauses = (decoy + "const VERDICT_CLAUSES = {\n  // never 'harness': 'fix-review.md step 1'\n"
                "  'harness': 'fix-review.md step 2',\n  'carry-missing': 'fix-review.md step 10',\n"
                "  'conflict': null,\n  'claims': 'fix-review.md step 4',\n"
-               "  'version': 'nobody.md step 5',\n  'null-control': 'fix-review.md Preamble',\n}\n")
-    role = "Preamble\n1. one\n2. two\n10. ten\n   4. an indented four is no step\n"
+               "  'version': 'nobody.md step 5',\n  'null-control': 'fix-review.md Preamble',\n"
+               "  'x0':null,\n  'b9': 'sub/fix-review.md step 2',\n  'r5': null,\n  '9lives': null,\n}\n")
+    role = "Preamble\n1. one\n2. two\n10. ten\n   4. an indented four is no step\n4) nor is this\n"
     t0 = mk(None, {WAVE_SCRIPT: lit + clauses, f"{ROLES_DIR}/fix-review.md": role}, "clause tree", "2026-07-01T00:00:00Z")
     got = verdict_clauses(lit + clauses, words)
     check("verdict_clauses reads only the VERDICT_CLAUSES literal: a decoy object, a non-const name and a comment's pair are not read",
           got == {"harness": "fix-review.md step 2", "carry-missing": "fix-review.md step 10", "conflict": None,
-                  "claims": "fix-review.md step 4", "version": "nobody.md step 5", "null-control": "fix-review.md Preamble"})
+                  "claims": "fix-review.md step 4", "version": "nobody.md step 5", "null-control": "fix-review.md Preamble",
+                  "x0": None, "b9": "sub/fix-review.md step 2", "r5": None})
     for why, text, taught in (("no VERDICT_CLAUSES literal", lit, words),
                               ("a taught class with no key", lit + clauses, (*words, "other")),
                               ("a key no class teaches", lit + clauses, words[:-1]),
-                              ("a class keyed twice", lit + clauses.replace("'conflict': null", "'harness': null, 'conflict': null"), words)):
+                              ("a class keyed twice", lit + clauses.replace("'conflict': null", "'harness': null, 'conflict': null"), words),
+                              ("a key that does not open with a lowercase letter", lit + clauses.replace("'conflict'", "'Xconflict'"), words),
+                              ("a value that is neither a quoted clause nor null", lit + clauses.replace("'r5': null", "'r5': nul"), words)):
         try:
             verdict_clauses(text, taught)
             check(f"verdict_clauses refuses {why}", False)
         except SystemExit as e:
             check(f"verdict_clauses refuses {why}", "VERDICT_CLAUSES" in str(e))
+    six = ("zz", "aa", "mm", "kk", "bb", "yy")
+    twice = "".join(f"  '{w}': null,\n" for w in ("r5", "harness", "x0", "conflict", "b9", "claims"))
+    for why, text, taught, want in (
+            ("each taught class with no key, sorted", lit + clauses, (*words, *six), "missing ['aa', 'bb', 'kk', 'mm', 'yy', 'zz'], untaught [], twice []"),
+            ("each key no class teaches, sorted", lit + clauses.replace("  'x0':null,", "".join(f"  '{w}': null,\n" for w in six) + "  'x0':null,"),
+             words, "missing [], untaught ['aa', 'bb', 'kk', 'mm', 'yy', 'zz'], twice []"),
+            ("each class keyed twice and no other, sorted", lit + clauses.replace("  'x0':null,", twice + "  'x0':null,"), words,
+             "missing [], untaught [], twice ['b9', 'claims', 'conflict', 'harness', 'r5', 'x0']")):
+        try:
+            verdict_clauses(text, taught)
+            check(f"verdict_clauses' refusal names {why}", False)
+        except SystemExit as e:
+            check(f"verdict_clauses' refusal names {why}", str(e).endswith(want))
+    numbered = "1. one\n01. a\n0. b\n9. c\n19. d\n4) e\n5.f\n"
+    got = clause_rows({c: c for c in ("x.md step 1", "x.md step 9", "x.md step 19", "x.md step 01", "x.md step 0", "x.md step 4",
+                                      "x.md step 5", "[.md step 1", "xXmd step 1")}, lambda name: numbered)
+    check("clause_rows: steps 1, 9 and 19 resolve on a line opening `N. `; a leading zero, step 0, `4)`, `5.f`, a role "
+          "name opening with a bracket and one with no `.md` do not",
+          [c for c, row in got.items() if row == c] == ["x.md step 1", "x.md step 9", "x.md step 19"]
+          and all(row in (c, f"UNRESOLVED {c}") for c, row in got.items()))
+    check("stratum: --by clause with no map reads a block's word as untaught, never a crash",
+          stratum("clause", dict(kind="blocked", cls="x"), {}) == "(untaught) x")
     rv = lambda pr: f"refs/remotes/origin/review/{pr}"
     blocks = (("harness", 60), ("harness", 61), ("carry-missing", 60), ("conflict", 62), ("defect", 62),
               ("claims", 63), ("version", 63), ("null-control", 63))
@@ -805,6 +831,10 @@ def _self_test_clause(R: Path, d: str, mk, verdict, check) -> None:
               ("fix-review.md step 4", "nobody.md step 5", "fix-review.md Preamble"))
           and all(f"UNRESOLVED {c} (class {w})\n" in text for c, w in
                   (("fix-review.md step 4", "claims"), ("nobody.md step 5", "version"), ("fix-review.md Preamble", "null-control"))))
+    heads = [f"UNRESOLVED {c} (class {w})\n" for c, w in (("sub/fix-review.md step 2", "b9"), ("fix-review.md step 4", "claims"),
+                                                          ("fix-review.md Preamble", "null-control"), ("nobody.md step 5", "version"))]
+    check("--by clause: each UNRESOLVED clause is printed once, before the first section, in class order",
+          all(text.count(h) == 1 for h in heads) and "".join(heads) in text.split("## all\n")[0])
     check("--by clause, the null control: a merges-only window prints 0 verdicts on every clause row, never a missing row",
           all(v == (0, 0, 0, 0) for (k, w), v in rows.items() if w == "M" and k != "(merge)")
           and sum(1 for (k, w) in rows if w == "M" and "step" in k) == 4)
