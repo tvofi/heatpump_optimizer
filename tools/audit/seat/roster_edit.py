@@ -2255,8 +2255,8 @@ def _self_test() -> int:
           and refuses("no other roster group", "set-field", "R9-S3", "parent", rest=("R9-S3",))
           and refuses("no other roster group", "set-field", "R9-S3", "follows", rest=("R9-ZZ",))
           and tip() == t0)
-    check("set-field caused_by is refused without the group's own rca record, and read back with it",
-          refuses("rca records", "set-field", "R9-S3", "caused_by",
+    check("set-field caused_by is refused with no root-cause record of the group, and read back with its own",
+          refuses("rca record under", "set-field", "R9-S3", "caused_by",
                   rest=('{"cause": "#3520", "rca": "R10-N-log-flood"}',))
           and refuses("{cause, rca}", "set-field", "R9-S3", "caused_by", rest=("#3520",))
           and tip() == t0
@@ -2264,6 +2264,36 @@ def _self_test() -> int:
           and edit("set-field", "R9-S4", "caused_by",
                    rest=('{"cause": "R9-S3", "rca": "R10-N-log-flood"}',)) == 0
           and grp("R9-S4")["caused_by"] == {"cause": "R9-S3", "rca": "R10-N-log-flood"})
+    # An escape that started with no rca: caused_by is written once a planted root-cause
+    # record names it, and the ledger's injected and refix then read values (verdict/3657).
+    import loop_ledger
+    edit("append-group", "R9-ESC", new_group("R9-ESC", source="outside"))
+    vroot = Path(tmp, "vocab")
+    for rel, text in (("dev/governance/dimensions/D8.md", "x\n"), ("dev/audit/rca/R10-N-log-flood.md", "x\n"),
+                      ("dev/audit/rca/R10-RCA-PLANT.md", "Root cause of R9-ESC, merged in #3520.\n"),
+                      ("dev/audit/config/bugclasses.json", '{"N-log-flood": {}}')):
+        (vroot / rel).parent.mkdir(parents=True, exist_ok=True)
+        (vroot / rel).write_text(text, encoding="utf-8")
+    keep_root, roster_lib._ROOT = roster_lib._ROOT, vroot
+    try:
+        def ledger():
+            every = branch_roster()["groups"]
+            return loop_ledger.reads([grp("R9-ESC")], every)
+        set_ok = all(edit("set-field", "R9-ESC", f, rest=(v,)) == 0 for f, v in (("found_by", "owner"),
+                                                                              ("owned_by", "D8")))
+        before = ledger()
+        t0 = tip()
+        refused = refuses("rca record under", "set-field", "R9-ESC", "caused_by",
+                          rest=('{"cause": "#3520", "rca": "R10-N-log-flood"}',)) and tip() == t0
+        wrote = edit("set-field", "R9-ESC", "caused_by", rest=('{"cause": "#3520", "rca": "R10-RCA-PLANT"}',)) == 0
+        after = ledger()
+    finally:
+        roster_lib._ROOT = keep_root
+    check("set-field caused_by on a group with no rca: admitted by a record naming it, and injected and refix read",
+          set_ok and "rca" not in grp("R9-ESC") and refused and wrote
+          and before[1].startswith("injected unread (1 of 1") and before[2].startswith("refix unread (1 of 1")
+          and after[1].startswith("injected 1 (external 0, original 0;") and after[2] == "refix 0",
+          f"{before[1:3]} {after[1:3]}")
 
     # set-size / set-files (R10-ROSTER-OPS-2 part 1): one op pair for the
     # carries that asked for set-size (with and without a cite), set-files

@@ -172,7 +172,7 @@ def entered(blame: str) -> dict:
         if ln.startswith("author-time "):
             t = int(ln.split()[1])
         elif ln.startswith("\t") and (m := _GROUP_LINE.match(ln[1:])) and t is not None:
-            out.setdefault(m.group(1), t)
+            out[m.group(1)] = t  # a roster file holds each group's "group": line once
     return out
 
 
@@ -301,6 +301,14 @@ def self_test() -> int:
               and owned_split(g3[:1] + [{"group": "X", "source": "outside"}], {"X", "R9-OUT"})
               .startswith("by owning dimension unread (1 of 2"))
         x = fx[0]
+        cm, kid = {**fx[0], "group": "R9-CM"}, {"group": "R10-KID", "parent": "R9-CM"}
+        check("k counts a countermeasure's children in every period, not only its own",
+              reads([cm], [cm, kid])[3].endswith("k 1.00; generations g0:1"))
+        stray = [*fx, {"group": "R9-STRAY", "follows": "R9-NO-SUCH-GROUP"}]
+        check("refix counts only a follows naming a roster group",
+              reads(stray, stray)[2] == "refix 1; R9-GRANDKID follows R9-HOTFIX-A")
+        check("a group with no entry time falls in the week unentered",
+              "week unentered" in report([(9, "a", {"groups": [x]})], {}))
         check("a group carried into a later roster is counted once in its week",
               report([(9, "a", {"groups": [x]}), (10, "b", {"groups": [x]})], {"R9-OUT": 0})[-4]
               .startswith("  escapes 1 "))
@@ -322,15 +330,17 @@ def self_test() -> int:
         with throwaway_git_environ():
             throwaway_git_init(repo, "-q")
             rdir.mkdir(parents=True)
-            for groups, stamp in ((fx[:3], "2026-11-02T12:00:00Z"), (fx, "2026-11-10T12:00:00Z")):
-                rf.write_text(json.dumps({"groups": groups}, indent=1))
+            for f, groups, stamp in ((rf, fx[:3], "2026-11-02T12:00:00Z"), (rf, fx, "2026-11-10T12:00:00Z"),
+                                     (rdir / "wave-r10-groups.json", fx[:1], "2026-11-17T12:00:00Z")):
+                f.write_text(json.dumps({"groups": groups}, indent=1))
                 subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
                 subprocess.run(["git", "commit", "-q", "-m", "r"], cwd=repo, check=True, capture_output=True,
                                env={**os.environ, "GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp})
             ros, when = load_ref(str(repo), "HEAD")
         lines = report(ros, when)
-        check("history: each group's week is its roster entry, and both weeks print",
+        check("history: each group's week is its first roster entry, carried into a later roster or not",
               when is not None and week_of(when["R9-OUT"]) == "2026-W45" and week_of(when["R9-KID"]) == "2026-W46"
+              and "week 2026-W47" not in lines
               and "week 2026-W45" in lines and "week 2026-W46" in lines
               and lines[lines.index("week 2026-W46") + 1] == "  escapes 0 by found_by {} by owned_by {}")
         check("--dir has no history: its weeks are unread",
