@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index f04c1430f3..92cdc52694 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -11587,7 +11587,7 @@ class ManualPlan {
+   apply() {
+     if (!this.host.hass || !this.host.hass.callService) return;
+     const lo = this.editFloor();
+-    const hi = this.ceilingParts().applyEnd - APPLY_CLOCK_SKEW_MS;
++    const hi = this.editCeiling() - APPLY_CLOCK_SKEW_MS;
+     const runs = this.draft();
+     const payload = {};
+     for (const spec of this.laneSpecs()) {
