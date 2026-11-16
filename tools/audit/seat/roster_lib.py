@@ -877,8 +877,9 @@ def _bug_families(root) -> set:
 def rca_lists(rca, group: dict, root=None) -> bool:
     """Whether dev/audit/rca/<rca>.md is a root-cause record of `group`: the file
     exists, and its id is one of the group's own `rca` records (the group is its
-    countermeasure; round 9's rosters hold a bool there, which lists no id) or its
-    text names the group as a whole token (the group is the defect it analyses).
+    countermeasure; round 9's rosters hold a bool there, which lists no id) or the
+    group is one of `rca_subjects` of its text (the group is the defect it analyses;
+    a name in the record's body, a status table or a countermeasure line, is not).
     `root` defaults to the repository at call time."""
     if not isinstance(rca, str) or not _RCA_ID.match(rca):
         return False
@@ -887,7 +888,20 @@ def rca_lists(rca, group: dict, root=None) -> bool:
     except (OSError, UnicodeDecodeError):
         return False
     me, own = group.get("group"), group.get("rca")
-    return (isinstance(own, list) and rca in own) or me in {t.strip(".-") for t in re.findall(r"[\w.-]+", text)}
+    return (isinstance(own, list) and rca in own) or me in rca_subjects(text)
+
+
+def rca_subjects(text: str) -> set:
+    r"""The names a root-cause record declares as its subject: the whole tokens
+    (`[\w.-]+` runs, trailing dots and dashes stripped) of its opening block, which
+    is its first paragraph, and the one after it when the first is a one-line `# `
+    title, less any table row. A record states there what it analyses ("This is the root-cause seat for <group>", "beside <group>", a title's
+    "(<group>)"); a group it mentions later is a sibling, a countermeasure or a
+    dispatch-status row, which the record does not analyse (verdict/3657)."""
+    paras = [p for p in re.split(r"\n[ \t]*\n", text.strip()) if p.strip()]
+    title = bool(paras) and paras[0].startswith("# ") and "\n" not in paras[0]
+    block = [ln for p in paras[:2 if title else 1] for ln in p.splitlines() if not ln.lstrip().startswith("|")]
+    return {t.strip(".-") for t in re.findall(r"[\w.-]+", "\n".join(block))}
 
 
 def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
@@ -896,7 +910,7 @@ def convergence_why(field: str, value, group: dict, names, root=None) -> "str | 
     `caused_by` is {cause, rca}: `rca_lists(rca, group)`, so the cause is the
     root-cause seat's record and never the fixer's (decision 0018 section 2,
     `injected`), and a defect group with no `rca` of its own takes one once a
-    record under dev/audit/rca/ names it. `root` defaults to the repository."""
+    record under dev/audit/rca/ declares it as its subject (`rca_subjects`). `root` defaults to the repository."""
     root = root or _ROOT
     me = group.get("group")
     if field == "found_by":
@@ -921,7 +935,7 @@ def convergence_why(field: str, value, group: dict, names, root=None) -> "str | 
         return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
     if not rca_lists(rca, group, root):
         return (f"caused_by rca {rca!r} is no rca record under dev/audit/rca/ that is the group's own"
-                f" or names {me}")
+                f" or declares {me} its subject")
     return None
 
 
@@ -1352,6 +1366,12 @@ def _self_test() -> int:
             (froot / rel).parent.mkdir(parents=True, exist_ok=True)
             (froot / rel).write_text("x\n")
         (froot / "dev/audit/rca/R10-RCA-NAMED.md").write_text("Cause of R10-D, found again in R10-E-2.\n")
+        # A process record (verdict/3657's R10-RCA-TICK-BLIND): its title and opening paragraph
+        # declare R10-S its subject; R10-T is a dispatch-status row and R10-U a later mention.
+        (froot / "dev/audit/rca/R10-RCA-STATUS.md").write_text(
+            "# R10-RCA-STATUS: why the board missed a dispatch\n\nThis is the root-cause seat for R10-S.\n"
+            "| group | state |\n|---|---|\n| R10-T | dispatched |\n\n## 1. Cases\n\n"
+            "| group | state |\n|---|---|\n| R10-T | stalled |\n\nR10-U waited on the same board.\n")
         (froot / "dev/audit/config").mkdir(parents=True)
         (froot / "dev/audit/config/bugclasses.json").write_text('{"N-log-flood": {}}')
         cg = {"group": "R10-C", "rca": ["R10-N-log-flood"]}
@@ -1379,6 +1399,14 @@ def _self_test() -> int:
               and cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"}, {"group": "R10-E-2"}) is None
               and all("rca record under" in (cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"},
                                                 {"group": n}) or "") for n in ("R10", "R10-E", "R10-D-1", "10-D", "G")))
+        check("convergence: caused_by admits only a group the record declares its subject, never a status row",
+              cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"}, {"group": "R10-S"}) is None
+              and all("rca record under" in (cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"},
+                                                {"group": n}) or "") for n in ("R10-T", "R10-U", "R10-RCA-STATUS-X"))
+              and rca_subjects("Cause of R10-D.\n\nR10-T later.\n") == {"Cause", "of", "R10-D"}
+              and rca_subjects("# R10-A\nCause.\n\nR10-T later.\n") == {"R10-A", "Cause"}
+              and rca_subjects("## R10-A\n\nR10-T later.\n") == {"R10-A"}
+              and rca_subjects("") == set())
         check("convergence: an own rca id whose record file is missing, or a path for an id, is refused",
               "rca record under" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-gone"},
                                        {"group": "R10-C", "rca": ["R10-N-gone"]})
