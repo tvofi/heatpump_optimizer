@@ -870,6 +870,17 @@ def self_test():
         arm("d16 --cells a duty mode a state names and production dropped is refused",
             planted(cut(f"{PKG}/const.py", "('off', 'observe', 'control')", "('off', 'control')"), cells=True), "Refuse")
         arm("d17 --kind prints one prefix's lines", planted(u="d17-features", kind="service"), ["service set_a", "service set_b"])
+        def cli(*argv):
+            d = Path(tempfile.mkdtemp())
+            try:
+                plant(d)
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+                    rc = main([*argv, "--repo", str(d)])
+                return rc, buf.getvalue().splitlines()
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+        arm("d17 the command line's --kind reaches the filter", cli("d17-features", "--kind", "service"), (0, ["service set_a", "service set_b"]))
         arm("d17 the kinds partition the universe", sorted(l for k in KINDS for l in (lambda r: [] if r == "Refuse" else r)(planted(u="d17-features", kind=k))), planted(u="d17-features"))
         real_kinds = KINDS
         try:
