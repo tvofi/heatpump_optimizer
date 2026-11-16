@@ -93377,6 +93377,14 @@ _mf_edge = lambda drawn: _mf_run(lambda a, f, i: drawn if 0.6 < a <= 1.3 else a,
                                  d=_mf_dr.DrawRange(floor_kw=1.1, config=(0.53, 5.0)))[0]
 _mf_at_lower = _mf_edge((1.0 - _MF_TOL) * 1.1)
 _mf_at_clear = _mf_edge((1.0 + _MF_TOL) * 0.53)
+_mf_at_upper = _mf_edge((1.0 + _MF_TOL) * 1.1)
+_mf_bounds = _mf_dr.DrawRange(config=(0.53, 5.0), floor_kw=1.1, floor_since=10)
+_mf_bounds.samples.extend([(1.0, (1.0 - _MF_TOL) * 1.1)] * 5 + [(1.0, (1.0 + _MF_TOL) * 1.1)] * 5)
+# The default reader over a window longer than half of WINDOW reads it whole,
+# and never an ask of 0 where no minimum is configured.
+_mf_long = _mf_dr.DrawRange()
+for _k in range(200):
+    _mf_long.observe(1.0 + 0.001 * _k, 0.0 if _k % 10 == 0 else 1.0, 0.0, 5.0)
 _mf_rec1 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.53, "floor_since": 1})
 _mf_rec2 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_kw": 0.5301})
 _mf_rec3 = _mf_dr.DrawRange.from_dict({**_mf_arm_g.as_dict(), "floor_since": -3})
@@ -93387,14 +93395,18 @@ _mf_bare = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe")
 _mf_round = _mf_dr.SolveBand(5.0, 5.0, 1.0, "configured", "awaiting_probe",
                              configured_min_kw=0.12345, learned_min_kw=0.67891).as_dict()
 R.check(
-    "metered floor, edges: a low end exactly (1 - 15 %) of the floor holds it; one exactly "
+    "metered floor, edges: a low end exactly (1 - 15 %) or (1 + 15 %) of the floor holds it, "
+    "and asks exactly at those bounds are its evidence; the default reader reads a 200-sample "
+    "window whole and no ask of 0; a low end exactly "
     "15 % over the configured minimum clears it; a move sets the count to 0; a fresh window "
     "counts 0; a stored floor at the configured minimum reads unset, one just above and a "
     "count of 1 read as written, a negative count reads 0; the COP floor under 47 pairs is the configured figure; an "
     "unkeyed window reports 0 pairs; a band built without the bottom reads configured with "
     "no evidence; the stamp rounds the bottom to 3 decimals",
-    _mf_at_lower.floor_kw == 1.1
+    _mf_at_lower.floor_kw == 1.1 and _mf_at_upper.floor_kw == 1.1
     and _mf_at_clear.floor_kw is None
+    and _mf_dr.floor_evidence(_mf_bounds)[1] == 10
+    and len(_mf_long._run_asked()) == 180
     and _mf_post.floor_since == 0
     and _mf_dr.DrawRange().as_dict()["floor_since"] == 0
     and _mf_rec1.floor_kw is None and _mf_rec1.floor_since == 1 and _mf_rec2.floor_kw == 0.5301 and _mf_rec3.floor_since == 0
