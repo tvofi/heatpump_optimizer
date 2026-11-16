@@ -1,0 +1,57 @@
+{
+  "box": "CAP2",
+  "missing": [],
+  "reports": {
+    "D5-s1": {
+      "dimension": "D5",
+      "baseline_sha": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c",
+      "report_path": "dev/audit/rounds/round11/D5/s1/REPORT.json",
+      "exposure": "capability probe CAP2",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c --seat D5-s1",
+          "universe": 15,
+          "examined": 1,
+          "not_reached": [
+            "docs/CONTRIBUTING.md",
+            "docs/architecture.md",
+            "docs/automations.md",
+            "docs/configuration.md",
+            "docs/dashboard-card.md",
+            "docs/ecl110.md",
+            "docs/how-it-works.md",
+            "docs/img/card/make_card_figures.mjs",
+            "docs/img/model/make_card_weekly_figure.mjs",
+            "docs/img/model/make_model_figures.py",
+            "docs/img/readme/make_readme_figures.py",
+            "docs/img/readme/render.mjs",
+            "docs/img/readme/render_mermaid.mjs",
+            "docs/setup.md"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "not_reached"
+            },
+            {
+              "item": "C2",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "capability probe: one cell read, the rest not reached"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M1",
+          "what": "capability probe: the method was not run"
+        }
+      ],
+      "findings": [],
+      "non_findings": [],
+      "harnesses": [],
+      "leads": []
+    }
+  }
+}
