@@ -1,0 +1,664 @@
+{
+  "box": "B5",
+  "missing": [],
+  "reports": {
+    "D12-s2": {
+      "dimension": "D12",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D12/s2/REPORT.md",
+      "exposure": "While tracing the history of one line (thermal_model.py's two-zone rule, found by the M2 grid first), I diffed that one file against the git object of the baseline SHA in /home/user/heatpump_optimizer. The export differs from the SHA at three lines of thermal_model.py: 1122 (the two-zone rule this finding measures), 1473 (declared_modulation) and 3391 (the Carnot flow factor). I diffed no other file. The finding was measured before the diff, by the grid. The other two lines are in other seats' cells and are passed on as leads only, without numbers. The export also holds macOS AppleDouble files that are not in `git ls-tree` of the SHA (translations/._de.json, www/._heatpump-optimizer-card.js), and enumerate.py lists them as cells.",
+      "coverage": [
+        {
+          "step": "D12.M2",
+          "enumerator": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|layout=|mixing_valve_mode=|valve_write_target=|two_zone_mode=|combi_tank=|space_setpoint_unit=|wood_type=|wood_packing=|pump_duty_mode=|heat_curve_target_kind=|grid_fee_mode=|solar_source=|price_source=)'",
+          "universe": 133,
+          "examined": 131,
+          "not_reached": [
+            "level price_source=tibber",
+            "level solar_source=open_meteo"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> dev/audit/rounds/round11/D12/s2/out/grid_baseline.txt and grid_perturbed.txt. Each entity slot is driven absent (REF less the slot) and present (MIN plus the slot and its feature switch) through the coordinator constructor, one full _async_update_data cycle with the real solver, all six platforms' async_setup_entry and every entity property. C1: layout=valve_upper_direct_slab (no-wood two-zone valve plant) and an explicit layout=two_tank_4way are honoured by describe_setup and the model; slab_shunt falls back to the derived default. mixing_valve_mode=manual and smart_write ran with plans published. All checked by cells.py invented() #6. Not reached (stub gap: tests/hastub has no HTTP session, so the cycle stops at the network fetch with UpdateFailed before the bar's plan step; setup completed): price_source=tibber, solar_source=open_meteo."
+        },
+        {
+          "step": "D12.M4",
+          "enumerator": "python3 tools/audit/enumerate.py d12-cells",
+          "universe": 203,
+          "examined": 199,
+          "not_reached": [
+            "level price_source=tibber",
+            "level solar_source=open_meteo",
+            "level ha_version_floor=2025.2.0",
+            "level ha_version_typed=2026.11.1"
+          ],
+          "redispatched": [],
+          "evidence": "194 level cells through the usable bar (setup, cycle, plan or named refusal, entities, invent) in dev/audit/rounds/round11/D12/s2/cells.py --m4: 61 fail at baseline and 0 under --perturb two_zone, with 6 named refusals in both arms. 7 surface cells (5 blueprints, 2 card files) in dev/audit/rounds/round11/D12/s2/surfaces.py on MIN and REF: 0 dangling blueprint ids, card pages render on both plants, and the AppleDouble ._card.js fails to load (an export artefact, not baseline). Not reached: the tibber and open_meteo cells (stub gap: tests/hastub has no HTTP session, so the cycle stops at the network fetch with UpdateFailed before the bar's plan step; setup completed), and the two ha_version cells (the stub cannot run another Home Assistant version)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D12.M2",
+          "what": "price_source=tibber and solar_source=open_meteo: the usable bar past the network fetch needs an HTTP double (aiohttp session) in tests/hastub or the harness"
+        },
+        {
+          "step": "D12.M4",
+          "what": "the tibber and open_meteo cells (same stub gap); ha_version_floor=2025.2.0 and ha_version_typed=2026.11.1 need a real Home Assistant install of each version, which the stub cannot provide"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D12-s2-01",
+          "scope": "D12-s2",
+          "step": "D12.M2",
+          "title": "two_zone_mode 'auto' (the default) forces the two-zone model on every one-zone install, ignoring its heat-loss figure",
+          "severity": "high",
+          "claim": "On every install that configures no lower-floor sensor, no zone key and no explicit two_zone_mode, ThermalParameters.from_config enables the two-zone model, so the coordinator plans a lower zone the config never gave it and plans the same energy whatever single-zone heat-loss figure the user entered (20.511 kWh at 0.10 and at 0.30 kW/K).",
+          "mechanism": "thermal_model.ThermalParameters.from_config: `if two_zone_mode in (const.TWO_ZONE_MODE_ON, const.DEFAULT_TWO_ZONE_MODE): two_zone_enabled = True`. DEFAULT_TWO_ZONE_MODE is 'auto', and a missing key also defaults to 'auto', so 'auto' is treated as 'on'. The presence rule the comment above it says 'auto' means sits in the else-branch, which only an unknown value can now reach. With two zones on, the options flow hides house_heat_loss_coefficient (it is gated `_single_zone`), and the model uses the upper/lower defaults 0.08 + 0.07 = 0.15 kW/K. The setup diagram (describe_setup) and the card's setup page then draw a 'Lower floor' box (2 on the minimal plant).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+            "harness_path": "dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+            "value": 47,
+            "unit": "cells of 47 one-zone M2 cells publishing two_zone_enabled=True",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5 (shared), Linux x86_64, $HOME/venv-ci CPython",
+            "cpu_or_wall": "count",
+            "contention_note": "two other D12-s2 processes on the box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 2.16,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters.from_config (read through HeatPumpOptimizerCoordinator._async_update_data's published two_zone_enabled and schedule)",
+          "perturbation": {
+            "change": "--perturb: from_config is handed an absent/'auto' two_zone_mode as a value outside (on, auto, off), so its own presence-rule else-branch decides. This is equivalent to the one-line edit `if two_zone_mode == const.TWO_ZONE_MODE_ON:`",
+            "expected_direction": "to_zero",
+            "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py); full M2+M4 grid (cells.py --m4): fail_cells 61 -> 0 (out/grid_baseline.txt vs out/grid_perturbed.txt). All 61 failures are this invention: the 47 one-zone entity 'present' cells plus the 14 building-questionnaire cells (structure/foundation/era/emitter), whose preset_from_config reads the same predicate and then writes zone keys."
+          },
+          "metric_definition": "Count of M2 cells with no lower-floor sensor, zone key or mode=on whose cycle publishes two_zone_enabled=True (plus |space kWh at heat loss 0.30 - 0.10| on MIN)",
+          "phenomenon_property": "Two-zone modelling turns on only when the config asks for it (mode on, or mode auto/absent with a zone key or lower-floor sensor present). A one-zone install's single-zone heat-loss and mass reach the model.",
+          "seam_rule": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|two_zone_mode=)'  # every cell; plus: grep -n 'DEFAULT_TWO_ZONE_MODE' custom_components/heatpump_optimizer/*.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py [--perturb]",
+            "value": "null_ref_two_zone=1 under both arms",
+            "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the other 133 of 194 cells pass the bar under both arms (6 of them as named refusals)."
+          },
+          "leave_one_out": {
+            "cells": 47,
+            "min": 1,
+            "max": 1,
+            "drop_most_favourable": 46
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py  -> invented_zone_cells=47, heat_loss_response_kwh=0.000",
+            "... two_zone_auto.py --perturb -> invented_zone_cells=0, heat_loss_response_kwh=32.794",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py [--perturb two_zone] -> card_lower_zone_min 2 -> 0",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> RESULT fail_cells=61 / 0 of 194"
+          ],
+          "proposed_fix_scope": "thermal_model.ThermalParameters.from_config: let 'auto' and an absent key reach the presence rule (compare with TWO_ZONE_MODE_ON only). Then re-check the options-flow `_single_zone` gate and the golden coord_minimal/coord_dhw fixtures, which were recorded as two-zone.",
+          "files": [
+            "custom_components/heatpump_optimizer/thermal_model.py"
+          ],
+          "expected_golden_drift": [
+            "coord_minimal",
+            "coord_dhw",
+            "coord_grid_fee",
+            "coord_all_features"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "With the two-zone invention removed, every M2 and M4 level cell passes the usable bar: setup, one full cycle, a plan or a named refusal, every entity property evaluating, no actuation of an unconfigured entity, no DHW power without a tank, no PV self-consumption with PV off, no available reading for an unmapped thermometer, and a stored layout honoured",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 --perturb two_zone",
+          "value": "fail_cells=0 of 194; refusal_cells=6"
+        },
+        {
+          "claim": "Every optional entity omitted from the fully mapped plant (48 absent cells) leaves setup, cycle, plan and entities intact. An unmapped buffer, DHW, lower-floor or floor-return probe's sensor reports unavailable (the payload still carries the model state, e.g. buffer 40.0 and DHW 55.0, but the entity is not available)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --cells '*=absent'",
+          "value": "48 of 48 ok (in out/grid_baseline.txt)"
+        },
+        {
+          "claim": "C1: a stored topology_layout is honoured when valid (no_valve, single_tank_valve, two_tank_4way, valve_upper_direct_slab) and slab_shunt falls back to the derived default; mixing_valve_mode none/manual/smart_read/smart_write all publish a plan",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --cells 'level layout=*' ; --cells 'level mixing_valve_mode=*'",
+          "value": "9 of 9 ok"
+        },
+        {
+          "claim": "Fixed operation modes comfort/boost/off publish no schedule but name it (optimization_status='not_run'), and an absent price entity raises a named UpdateFailed ('Price entity is empty'): named refusals, not crashes",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 --cells 'level operation_mode=*'",
+          "value": "3 named refusals, 2 ok"
+        },
+        {
+          "claim": "Unit variants (power 4, energy 3, flow 8, temperature 7), languages en/de/sv and all 8 price shapes and 5 climates pass the usable bar on the reference plant",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4",
+          "value": "38 of 38 ok (out/grid_baseline.txt)"
+        },
+        {
+          "claim": "Every blueprint's default entity id is built on both the minimal and the fully mapped plant, and the card loads and renders inline, plan, savings, advisor, health and setup on both",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py",
+          "value": "blueprint dangling 0/0; card bad_pages [] on min and ref"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D12/s2/cells.py",
+        "dev/audit/rounds/round11/D12/s2/two_zone_auto.py",
+        "dev/audit/rounds/round11/D12/s2/surfaces.py",
+        "dev/audit/rounds/round11/D12/s2/card_surface.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D12-s3",
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "declared_modulation",
+          "what": "Returns True (modulating) for compressor_modulation='on_off', where its docstring says on_off -> False. levels_clamped and duty_cycle_realizable then treat a declared on/off compressor as modulating. On the minimal plant clamp_planned_levels was False for auto, on_off and modulating alike, so a plant where the probe says it cannot duty-cycle is needed to show the effect."
+        },
+        {
+          "owner_seat": "D2-s2",
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "flow-temperature COP factor (return max(0.25, carnot_ref / carnot_flow))",
+          "what": "The factor is the reference Carnot COP over the flow one. If flow > reference that ratio exceeds 1, so a hotter flow would raise COP; D2.M2 asks for COP monotone in flow temperature. Not measured here."
+        },
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/presets.py",
+          "symbol": "_ERA_LOSS_W_PER_M2K",
+          "what": "low_energy is 0.85 W/m2K, above post_2005 (0.55) and 1980_2005 (0.80). derive() gives low_energy house_heat_loss_coefficient 0.119 against post_2005 0.077 (executed in my session, not in a committed harness)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/translations/._de.json",
+          "symbol": "tests/harness.py:SHIPPED_LANGS; tools/audit/enumerate.py:d12",
+          "what": "The seat export carries macOS AppleDouble files not in the baseline's git tree (._de.json, www/._heatpump-optimizer-card.js). SHIPPED_LANGS globs translations/*.json and enumerate.py lists both as cells, so instruments run on the export count a '._de' language and a card file that fails to load ('Invalid or unexpected token')."
+        }
+      ]
+    },
+    "D2-s2": {
+      "dimension": "D2",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D2/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D2.M2",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D2-s2; python3 tools/audit/enumerate.py d2-identities --cells | grep '^M2 '",
+          "universe": 134,
+          "examined": 134,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "95 scope files (check_scopes --seat D2-s2, run against the git repo at the baseline SHA since the export has no .git) each classified by dev/audit/rounds/round11/D2/s2/m2_file_census.py (1 law implementation, 18 files with COP/derate/capacity/priced-input content each driven by an executed harness or inheriting the single-sourced law, 77 with none); 39 M2 identity cells all executed: cop-monotone x5, carnot-band x5, derate-unit-interval x5 (dev/audit/rounds/round11/D2/s2/m2_cop_laws.py), capacity-envelope x15 (dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py, C1), priced-inputs-surface x9 (dev/audit/rounds/round11/D2/s2/m2_priced_surface.py). Added identities: scalar/batch COP parity, measured-defrost duty law."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D2-s2-01",
+          "scope": "D2-s2",
+          "step": "D2.M2",
+          "title": "Scalar flow_lift_factor is inverted: lifting water hotter RAISES COP (up to 2.02x), breaking batch parity",
+          "severity": "critical",
+          "claim": "ThermalModel.flow_lift_factor returns max(0.25, carnot_ref/carnot_flow), which is >1 for every flow above the 35 degC reference, so compute_cop (valve plant, direct-plant curve) and compute_cop_dhw rise with flow/tank temperature on every climate, while the batch twin _batch_cop applies carnot_flow/carnot_ref.",
+          "mechanism": "The ratio of two Carnot COPs is inverted in the scalar law only. carnot_flow < carnot_ref above the reference, so ref/flow > 1: a 55 degC hot-water charge is priced at 1.34-1.61x the space COP instead of 0.62-0.75x, a throttled buffer at the tank temperature likewise, and the Carnot fraction of the priced COP exceeds 1 (a COP above the Carnot limit) on 21320 grid points in four of five climates. _batch_cop uses carnot_flow/carnot_ref, so scalar and batch disagree by up to 8.01 COP units on the same inputs.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "harness_path": "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "value": 156650,
+            "unit": "count of adjacent (flow or tank) grid pairs where COP rises with flow, over 5 climates",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts only; box shared with up to two other seats",
+            "tolerance": "exact",
+            "load1": 0.44,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.flow_lift_factor (driven through ThermalModel.compute_cop, compute_cop_dhw and _batch_cop)",
+          "perturbation": {
+            "change": "thermal_model.py flow_lift_factor: `return max(0.25, carnot_ref / carnot_flow)` -> `return max(0.25, carnot_flow / carnot_ref)` (harness --perturb=lift, private copy)",
+            "expected_direction": "to_zero",
+            "observed_value": "cop_flow_rise 156650 -> 0; lift_over1 84350 -> 0; carnot_frac_over1 21320 -> 0; batch_parity_maxabs 8.009 -> 0.0; dhw55_over_space_cop 1.34-1.61 -> 0.62-0.75"
+          },
+          "metric_definition": "Count of adjacent grid pairs (flow 20-70 degC step 0.5, tank 35-65, outdoor = climate range +-2 K, 241 pts) where compute_cop(valve) or compute_cop_dhw rises as flow rises, tol 1e-12.",
+          "phenomenon_property": "Every flow/tank lift factor that prices COP is a derate in [0.25, 1] that is non-increasing in flow temperature, and scalar and batch COP laws agree bitwise on the same inputs.",
+          "seam_rule": "grep -n 'carnot_ref\\|carnot_flow\\|flow_lift_factor' custom_components/heatpump_optimizer/*.py",
+          "leave_one_out": {
+            "cells": 5,
+            "min": 31330,
+            "max": 31330,
+            "drop_most_favourable": 125320
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=lift"
+          ],
+          "proposed_fix_scope": "thermal_model.py ThermalModel.flow_lift_factor: invert the ratio to carnot_flow/carnot_ref (the batch twin's form); every DHW and valve golden fixture drifts.",
+          "files": [
+            "custom_components/heatpump_optimizer/thermal_model.py"
+          ],
+          "expected_golden_drift": [
+            "every DHW fixture (compute_cop_dhw)",
+            "valve_storage*",
+            "valve_upper_direct_slab",
+            "direct_flow_carnot"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D2-s2-02",
+          "scope": "D2-s2",
+          "step": "D2.M2",
+          "title": "Measured defrost derate never derates: derate_from_duty adds duty x 1.5 and clamps to 1.0",
+          "severity": "high",
+          "claim": "defrost.derate_from_duty returns min(1, max(0.55, 1 + duty*1.5)) instead of the module's documented 1 - duty*DEFROST_LOSS_MULTIPLIER, so every measured duty in (0, 0.30] yields 1.0 and a fully trusted 20 % defrost duty leaves the frost-band COP unchanged (ratio 1.0, documented 0.70).",
+          "mechanism": "Sign error in the measured estimator. Because DERATE_MAX is 1.0 the result is pinned at 1.0; _decide hands the bucket to the measured estimator once duty_counts reaches DERATE_CONFIDENCE_SAMPLES, so on an install with a defrost flag the measured 1.0 also displaces any earned inferred derate: frost-band plans over-promise heat, the failure the module exists to stop.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "harness_path": "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "value": 60,
+            "unit": "count of duty grid points (61 over [0, 0.30]) where derate_from_duty differs from the documented law",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts only; box shared",
+            "tolerance": "exact",
+            "load1": 0.44,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.defrost:derate_from_duty (driven directly and through DefrostDerate.factor -> ThermalModel.compute_cop)",
+          "perturbation": {
+            "change": "defrost.py derate_from_duty: `1.0 + duty * DEFROST_LOSS_MULTIPLIER` -> `1.0 - duty * DEFROST_LOSS_MULTIPLIER` (harness --perturb=defrost, private copy)",
+            "expected_direction": "to_zero",
+            "observed_value": "duty_law_mismatch 60 -> 0; frost_cop_ratio 1.0 -> 0.70 on winter_mild (73 frost steps) and shoulder (41)"
+          },
+          "metric_definition": "Count of duty points d in linspace(0, 0.30, 61) with |derate_from_duty(d) - clip(1 - 1.5 d, 0.55, 1.0)| > 1e-12.",
+          "phenomenon_property": "A measured defrost duty d > 0 derates COP to clip(1 - d*DEFROST_LOSS_MULTIPLIER, DERATE_MIN, DERATE_MAX) < 1 wherever it applies.",
+          "seam_rule": "grep -n 'DEFROST_LOSS_MULTIPLIER\\|derate_from_duty' custom_components/heatpump_optimizer/*.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "value": "winter_cold, summer_warm, summer_cool: frost_steps 0, frost_cop_ratio n/a; duty 0.0 point matches (1.0 both)",
+            "note": "the identity is silent where no frost-band step exists and at zero duty"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=defrost"
+          ],
+          "proposed_fix_scope": "defrost.py derate_from_duty: subtract the duty term.",
+          "files": [
+            "custom_components/heatpump_optimizer/defrost.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D2-s2-03",
+          "scope": "D2-s2",
+          "step": "D2.M2",
+          "title": "compressor_modulation=on_off is read as modulating: the declared on/off pump gets unclamped sub-p_min plans",
+          "severity": "high",
+          "claim": "thermal_model.declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True (modulating) instead of False, so a user declaring an on/off compressor gets clamp_planned_levels False on every set-point unit, and the solve prices 32 of 96 steps at levels in (0, p_min) the pump cannot run; auto on the same surface clamps (0 such steps).",
+          "mechanism": "Both explicit select values return True; the docstring and the options page say on_off -> False. Every reader inherits it: levels_clamped/duty_cycle_realizable (the plan's level law), learner_unmetered (the house learner's freeze) and probe_install(...).on_off. The explicit declaration is therefore weaker than leaving the key on auto.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+            "harness_path": "dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+            "value": 3,
+            "unit": "cells (of 9) whose derived clamp contradicts the declared modulation",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5 (shared compute box, linux x86_64, venv-ci python 3.14)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts only; box shared",
+            "tolerance": "exact",
+            "load1": 0.32,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation (via OptimizationConfig.from_mapping -> levels_clamped, and HeatPumpOptimizer.optimize)",
+          "perturbation": {
+            "change": "thermal_model.py declared_modulation: `True if mode == const.COMPRESSOR_MODULATION_ON_OFF` -> `False if mode == const.COMPRESSOR_MODULATION_ON_OFF` (harness --perturb, private copy)",
+            "expected_direction": "to_zero",
+            "observed_value": "clamp_mismatch 3 -> 0; on_off cells sub_pmin_steps 32 -> 0"
+          },
+          "metric_definition": "Per space_setpoint_unit x compressor_modulation cell, 1 if from_mapping(cfg).clamp_planned_levels != declared (on_off True, modulating False, auto = probe); summed over 9 cells.",
+          "phenomenon_property": "A declared on_off compressor plans every step at 0 or in [p_min, p_max] on every write surface; modulating opts out; auto follows the probe.",
+          "seam_rule": "grep -n 'declared_modulation' custom_components/heatpump_optimizer/*.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+            "value": "auto and modulating cells: clamp_mismatch 0 on all 6",
+            "note": "only the on_off declaration moves"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_priced_surface.py --perturb"
+          ],
+          "proposed_fix_scope": "thermal_model.py declared_modulation: on_off -> False.",
+          "files": [
+            "custom_components/heatpump_optimizer/thermal_model.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "COP never falls as outdoor rises (valve plant over flow 20-70, direct-plant curve, plain curve, DHW over tank 35-65), all 5 climates",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+          "value": "cop_outdoor_fall = 0 in every climate (baseline and --perturb=lift)"
+        },
+        {
+          "claim": "Defrost derate (inferred and measured learners, random grids) stays in [0,1] and is continuous at every temperature bucket edge, both frost-band edges (0, 5 degC) and the humidity edge",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+          "value": "derate_out_of_unit = 0, derate_edge_jumps = 0 (|jump| <= 1e-6 at +-1e-9) in all 5 climates"
+        },
+        {
+          "claim": "partload_factor in [0,1] for derates 0, 0.1, 0.3, 0.45 over 0..1.2 p_max",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+          "value": "0 out-of-interval values (inside derate_out_of_unit = 0)"
+        },
+        {
+          "claim": "Carnot fraction: the tree states no band (C1's second half, re-checked by grep over *.py/*.md/*.json); against the physical bound (0,1] the only violations are D2-s2-01's; with the lift corrected the fraction spans 0.016-0.335 across the 5 climates",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py --perturb=lift",
+          "value": "carnot_frac_over1 = 0; min 0.0162 (summer_warm) max 0.3347"
+        },
+        {
+          "claim": "C1: the learned capacity cap is never below demand-at-derate without the reason figure; capped steps below steady demand (23 of 96 at winter_cold, 0.8 delivered; 47 at 0.6) are pre-heated through and the plan publishes power_cap_breach_c whenever caps are in force, in all 15 climate x compressor_modulation cells",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py; same with --delivered=0.6",
+          "value": "total.below_steps 69 (0.8) / 141 (0.6), total.unexplained 0 in both; --perturb (floor fraction 1.0) below_steps -> 0"
+        },
+        {
+          "claim": "The COP law is single-sourced: only thermal_model.py carries the 0.025 slope or the 273.15 Carnot offset (scalar _cop_law/flow_lift_factor and batch _batch_cop); every other module calls it",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_file_census.py",
+          "value": "law_impl_files = 1 of 95"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D2/s2/m2_cop_laws.py",
+        "dev/audit/rounds/round11/D2/s2/m2_priced_surface.py",
+        "dev/audit/rounds/round11/D2/s2/m2_capacity_envelope.py",
+        "dev/audit/rounds/round11/D2/s2/m2_file_census.py",
+        "dev/audit/rounds/round11/D2/s2/_common.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/sensor.py",
+          "symbol": "predictive_info['power_cap_breach_c']",
+          "what": "The capacity/fuse cap's floor-breach figure is written to predictive_info but no sensor or binary_sensor reads it (grep: 0 hits), so on the live plan it reaches only diagnostics; only the what-if service echoes it. User-visibility question, not D2 arithmetic."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/features.py",
+          "symbol": "declared_modulation check near line 74196; derate_from_duty / flow_lift_factor checks",
+          "what": "features.py asserts declared_modulation(on_off) is False, which the baseline contradicts (D2-s2-03); if the gate is green at this baseline a check is not running or not asserting. Same question for whatever pins derate_from_duty (D2-s2-02) and the scalar/batch COP parity (D2-s2-01). Instrument question for the test-suite / gate seat."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_flow_target / FLOW_HEAT_C vs ThermalModel.compute_cop",
+          "what": "On a flow/return set-point install the arbiter writes 55 degC (flow_heat_c) at full draw, while the priced space COP takes a flow lift only when flow_curve_cop_enabled is set (default off): the priced flow is not derived from the written set-point. The supply settles below the set-point by design (comment), so it is not shown to be wrong; recorded under priced-inputs-surface as 'modelled term, not surface-derived' for a seat measuring realised vs priced COP."
+        }
+      ]
+    },
+    "D7-s2": {
+      "dimension": "D7",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D7/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D7.M2",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m2.py",
+          "universe": 3,
+          "examined": 3,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py: 3 presets x 19 cells (told, slab mass x0.33/0.5/2/3, slab transfer x0.5/2, free heat -0.2/+0.3/+0.5/+0.8 kW, sigma 0.01/0.02 x4 seeds) = 57 cells; light_new refused at arm by name on every cell; two-state (production) and first-order (identify, harness-only) bias and adoption_decision verdict per cell; biased_admitted=3, first-order completes 0/57. Files axis: the step's production seam is sysid.py (+thermal_model.py, presets.py); the other cell files carry no sysid plant."
+        },
+        {
+          "step": "D7.M3",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+          "universe": 21,
+          "examined": 21,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py: every one of the 21 persisted learners driven end to end through its own production entry on a real coordinator under each of window/pumps/external_heat/defrost/away, with a clean null arm that ingests (21/21 non-vacuous); contaminated_ingest=3 (away x internal_gains, dhw_draws, comfort), 0 under --perturb. C1: the 7 previously gate-level learners plus dhw_learning's _frozen (DhwProfileLearner.async_learn_dynamics via the coordinator's frozen partial: frozen by pumps/external heat/defrost, not window by design) and comfort_learner (_record_quiet_comfort_period: frozen by window/pumps/external heat/defrost, not away) are now tabled end to end. Consequence: m3_away_drift.py."
+        },
+        {
+          "step": "D7.M4",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py",
+          "universe": 17,
+          "examined": 17,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py: solve_state (7) by reuse-vs-fresh solves over 5 golden pairs (reuse_divergence=0), terminal-cost second call (0) and reorder (0; seed_binding_scenarios=0 of 9 buffer scenarios); ctx_held (8) by enum_m4.py's AST classification: 0 write back from a pre-await binding; ctx_inplace (2) by the superseded-context probe (holder_torn_fields=2, 0 under --perturb-ctx). last_buffer_trajectory no longer exists at the baseline; its successor is _initial_buffer_temp."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D7-s2-01",
+          "scope": "D7-s2",
+          "step": "D7.M3",
+          "title": "Away is no learner freeze: internal gains, DHW draw statistics and comfort quiet evidence ingest away intervals",
+          "severity": "medium",
+          "claim": "With _away_state.active, three occupancy-borne learners (internal_gains, dhw_draws, comfort) still fold the interval, while the curve learner, the one learner that gates away, takes nothing; 3 of 21 persisted learners x 5 freeze signals are contaminated ingests, and a 14-day absence leaves the internal-gains profile at 0.69 g0 (half the free heat occupant-borne) and 14 of the 40 per-window DHW occurrences as empty-house draws.",
+          "mechanism": "HeatPumpOptimizerCoordinator._learning_frozen answers external heat, pump freeze_reason, defrost, unusable inputs, ventilation, boost and tail freezes, but not away; only _track_curve_comfort checks _away_state itself (its comment: a vacation would read as a comfort miss). _fold_internal_gains (inside _async_learn_house_heat_loss), DhwProfileLearner.async_fold_draw_stats (closes a near-zero occurrence per window per away day) and _record_quiet_comfort_period consult _learning_frozen or nothing, so the absence's missing occupants' heat and draws are learned as the household's normal and applied after return.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+            "harness_path": "dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+            "value": 3,
+            "unit": "contaminated (learner, signal) ingests of 105 cells",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+            "cpu_or_wall": "count",
+            "contention_note": "count, contention-immune; box shared with up to two other seats",
+            "tolerance": "exact",
+            "load1": 1.33,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._learning_frozen (drives _async_learn_house_heat_loss/_fold_internal_gains, DhwProfileLearner.async_learn_dynamics/async_fold_draw_stats, _record_quiet_comfort_period; key: _learner_snapshot_payloads)",
+          "perturbation": {
+            "change": "--perturb: _learning_frozen returns \"away\" while _away_state.active (one-line production edit, applied in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of (learner, signal) cells where a driven sequence with the signal set changes the learner's persisted payload and the signal falsifies that learner's sample; null arm must ingest.",
+          "phenomenon_property": "No learner whose sample carries occupancy (free heat, hot-water draws, the absence of complaints) folds an interval during which the house is away; the away freeze is decided once, in the shared freeze predicate, not per learner.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py --perturb",
+            "value": "gains_profile_mean_over_g0=1.0000 at 50 % and 100 % absent; dhw empty-house occurrences 0 of 26 per window; comfort weight ratio 1.0000",
+            "note": "Consequence harness m3_away_drift.py at baseline: gains profile mean 0.6898 g0 (50 % of free heat occupant-borne) / 0.3796 g0 (100 %) after 14 away days; DHW empty-house occurrences 14/40 per window at 14 d (p90 unchanged 2.066/2.079 kWh) and 28/40 at 28 d (p90 1.832/1.821 kWh, -11 %/-12 %); comfort weight unchanged 1.0000 on a REAL away plan (span 4.90 K, not flat), so the comfort cell is ingestion without measured consequence in this configuration. Home null arm: comfort weight 1.0000."
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py  # contaminated_ingest=3",
+            "... m3_learner_freeze.py --perturb  # contaminated_ingest=0",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py  # consequence sizes"
+          ],
+          "proposed_fix_scope": "coordinator.py _learning_frozen (an away reason, room_air-scoped so tank standby and compressor curves keep learning) or an occupancy predicate the three seams share; drop the curve learner's private away check onto it",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/dhw_learning.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-confounded-learner"
+        },
+        {
+          "id": "D7-s2-02",
+          "scope": "D7-s2",
+          "step": "D7.M2",
+          "title": "Sysid gate admits 11-21 % low UA on the configured free-heat prior; its sweep pins only the learned-profile arm",
+          "severity": "medium",
+          "claim": "On the production two-state fit with the configured free-heat prior (internal-gains learning off, the default), sysid.adoption_decision admits heavy_old at +0.8 kW unmodelled free heat (-11.5 % UA) and typical_slab at +0.5/+0.8 kW (-12.9 %/-21.1 %): 3 of 57 cells admitted outside the +-10 % bar, against 0 when the gate prices the free-heat width at 0.3 kW.",
+          "mechanism": "identify_slab ridges the intercept to gains_prior_kw with SLAB_INTERCEPT_PRIOR_SD_KW=0.1 and _slab_ua_prior_halfwidth widens the adoption interval by one prior width only; free heat several widths past the prior moves UA beyond the bar while the interval stays inside it. The design (tests/features.py R9-P5 note) answers this by seeding the prior from the learned internal-gains profile (night_gains_prior_kw), and its sweep asserts the property only with learned=True; but DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED is False, so a default install with sysid on always arms on the configured constant, the arm the property is not held to.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+            "harness_path": "dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+            "value": 3,
+            "unit": "two-state fits admitted with |UA bias| > 10 %, of 57 cells (3 presets x 15 truth/noise cells; light_new refused at arm)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+            "cpu_or_wall": "count",
+            "contention_note": "count, contention-immune; deterministic at sigma 0, fixed seeds at sigma 0.01/0.02",
+            "tolerance": "exact",
+            "load1": 1.39,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:adoption_decision (on SystemIdentification.identify_slab via arm/step with the declared plant)",
+          "perturbation": {
+            "change": "--perturb: sysid.SLAB_INTERCEPT_PRIOR_SD_KW 0.1 -> 0.3 kW (one production constant, in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Cells whose production two-state fit adoption_decision admits while |fitted UA / true UA - 1| > expm1(UA_ADOPTION_HALFWIDTH_BAR) = 10 %.",
+          "phenomenon_property": "A night whose free heat differs from the prior the fit is told either adopts within the bar of the plant's own heat loss or is refused, on every prior the shipped configuration can produce (configured constant and learned profile alike).",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # rows: every BUILDINGS preset x every told-quantity axis (slab mass, slab transfer, free heat) x noise",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+            "value": "told cells (plant == declaration): heavy_old +0.65 %, typical_slab +0.78 %, both admitted; slab-pair cells (x0.33..x3) all within the bar or refused; gains-0.2 within the bar",
+            "note": "Liveness: the unperturbed nights still adopt, so the count is not a gate that refuses everything. Blended effect on the house heat-loss scale (weight x bias): heavy_old +0.8 kW -7.06 %, typical_slab +0.5 kW -1.64 %, +0.8 kW -0.66 %. First-order (identify, harness-only) completes on 0 of 57 cells, so it admits nothing."
+          },
+          "leave_one_out": {
+            "cells": 8,
+            "min": -0.2111,
+            "max": 0.0622,
+            "drop_most_favourable": -0.1287
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # biased_admitted=3",
+            "... m2_sysid_plant.py --perturb  # biased_admitted=0"
+          ],
+          "proposed_fix_scope": "sysid.py: price the configured prior's own uncertainty when no learned night profile seeds it (a wider SLAB_INTERCEPT_PRIOR_SD_KW for the configured arm, or refuse/require the learned profile); tests/features.py R9-P5 sweep gains the learned=False arm",
+          "files": [
+            "custom_components/heatpump_optimizer/sysid.py",
+            "tests/features.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P5"
+        },
+        {
+          "id": "D7-s2-03",
+          "scope": "D7-s2",
+          "step": "D7.M4",
+          "title": "CoordinatorContext is not write-once: two in-place _opt_config writers reach every superseded context",
+          "severity": "low",
+          "claim": "After async_update_thermal_params supersedes a context, async_set_target_temperature and _apply_comfort_weight still change 2 fields (target_temp, comfort_weight) of the superseded context, because every published context shares one mutable OptimizationConfig; replacing the two writes by a published replace() leaves 0.",
+          "mechanism": "CoordinatorContext is a frozen dataclass whose docstring promises 'a change is published whole by rebinding _ctx ... a holder of the old one keeps a consistent view'. publish/_publish_params/async_update_thermal_params honour it for _current_state, _thermal_params and _config (the old holder keeps heat_loss_coefficient 0.15 while the live one reads 0.2), but coordinator.py:4258 (ctx._opt_config.target_temp = temperature) and :10941 (_opt_config.comfort_weight = ...) edit the member in place, and dataclasses.replace copies the member reference, so every context ever published since the entry was set up sees the edit. Today's holders across an await (enum_m4.py ctx_held: 8 sites) only read; no measured wrong value follows, hence low.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+            "harness_path": "dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+            "value": 2,
+            "unit": "fields of a superseded context's members changed after supersession",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+            "cpu_or_wall": "count",
+            "contention_note": "count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.79,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_set_target_temperature / _apply_comfort_weight (against CoordinatorContext after async_update_thermal_params)",
+          "perturbation": {
+            "change": "--perturb-ctx: both writers publish self._ctx = replace(ctx, _opt_config=replace(ctx._opt_config, <field>=...)) instead of the in-place assignment",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Number of fields of _opt_config/_thermal_params/_current_state on a captured context whose value changes after a later publish superseded that context.",
+          "phenomenon_property": "No production statement assigns into a field of a CoordinatorContext member; every change to a hub is a new published context, so a superseded context never changes.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py | grep ctx_inplace",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py  # holder_torn_fields=2",
+            "... m4_order_context.py --perturb-ctx  # holder_torn_fields=0"
+          ],
+          "proposed_fix_scope": "coordinator.py: the two _opt_config writers publish a replaced config (or OptimizationConfig becomes frozen behind the _hub facade)",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "N-shared-config"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Second objective call: HeatPumpOptimizer._terminal_cost's closure is pure; a reused optimizer solves exactly as a fresh one (per-solve state reset on every optimize, _prev_shipped_plan written only by the coordinator's _warm_seeded on a per-solve optimizer).",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+          "value": "second_call_delta=0; reuse_divergence=0 of 5 pairs (valve_storage x2, valve_storage_low_target, winter_two_zone_dhw, shoulder_two_zone)"
+        },
+        {
+          "claim": "Reordering through _initial_buffer_temp (last_buffer_trajectory's successor) cannot move the terminal cost in any shipped buffer scenario: the settlement ceiling already equals buffer_max_temperature. Harness gap: --perturb-stash leaves reuse_divergence at 0, so the coupling is latent, not demonstrated.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py --perturb-stash",
+          "value": "seed_binding_scenarios=0 of 9; reorder_delta=0"
+        },
+        {
+          "claim": "No async holder of a pre-await CoordinatorContext republishes from it (no lost update through a stale context).",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py | grep ctx_held",
+          "value": "8 ctx_held sites, 0 tagged writes_back"
+        },
+        {
+          "claim": "A superseded context keeps a consistent _thermal_params/_current_state/_config snapshot across async_update_thermal_params.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py",
+          "value": "old heat_loss_coefficient 0.15 vs live 0.2; only the 2 _opt_config fields of D7-s2-03 move"
+        },
+        {
+          "claim": "window, pumps, external heat and defrost: no plant learner ingests a contaminated interval (only by-design passes: freq_map and capacity_envelope under external heat, DHW and metered COP under window, the defrost derate under defrost).",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+          "value": "0 contaminated cells in the four columns over 21 learners"
+        },
+        {
+          "claim": "The curve learner freezes on away (the discipline D7-s2-01's three learners lack).",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+          "value": "curve away=0, null=1"
+        },
+        {
+          "claim": "Comfort quiet evidence during away has no measured consequence on a real away plan in the golden-shaped configuration (the plan is not flat).",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py",
+          "value": "comfort_weight_ratio_away_14d=1.0000, real away plan span 4.90 K"
+        },
+        {
+          "claim": "Slab-pair mismatch (mass x0.33..x3, transfer x0.5..x2) is refused or adopted within the +-10 % bar on all three presets; sensor noise 0.01/0.02 C admits nothing outside the bar.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+          "value": "0 biased admissions on those 39 cells"
+        },
+        {
+          "claim": "The first-order regression (identify, harness-only per #1395) admits nothing on the shipped presets.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+          "value": "biased_admitted_first_order=0; completes 0/57 (gains bounds / implausible signs / noise refusals)"
+        },
+        {
+          "claim": "Over-freezes noted (no contamination, a learner pausing on a signal that does not touch its sample): the defrost derate's settlement freezes on ventilation (power_frozen with room_air) and the DHW learner on a space boost.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+          "value": "defrost window=0 with null=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D7/s2/enum_m2.py",
+        "dev/audit/rounds/round11/D7/s2/enum_m3.py",
+        "dev/audit/rounds/round11/D7/s2/enum_m4.py",
+        "dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+        "dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+        "dev/audit/rounds/round11/D7/s2/m3_away_drift.py",
+        "dev/audit/rounds/round11/D7/s2/m4_order_context.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "ThermalParameters.from_config (two_zone_mode)",
+          "what": "two_zone_mode 'auto' (DEFAULT_TWO_ZONE_MODE) is tested in the same branch as 'on', so an entry with no zone keys resolves two_zone_enabled=True (from_config({}) -> True); const.py's comment says auto keeps the presence rule, which is now reached only for unknown values"
+        }
+      ]
+    }
+  }
+}
