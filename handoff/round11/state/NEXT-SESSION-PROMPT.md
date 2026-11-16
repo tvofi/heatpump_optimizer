@@ -24,6 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RELAY-REBUILD (stage in-progress, branch `handoff/r11-pre-relay-rebuild`): `git fetch origin handoff/r11-pre-relay-rebuild && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ACK-COMPLETION (stage in-progress, branch `handoff/r11-pre-ack-completion`): `git fetch origin handoff/r11-pre-ack-completion && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-STANDING-SCRIPTS (stage in-progress, branch `handoff/r11-pre-standing-scripts`): `git fetch origin handoff/r11-pre-standing-scripts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PLAN-RENDER (stage in-progress, branch `handoff/r11-pre-plan-render`): `git fetch origin handoff/r11-pre-plan-render && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -34,7 +35,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-NEW-DIMENSIONS (stage carries-open, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OWNER-CRITERIA (stage in-progress, branch `handoff/r11-pre-owner-criteria`): `git fetch origin handoff/r11-pre-owner-criteria && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-RCA-LATCH-CLAUSES (stage in-progress, branch `handoff/r11-pre-rca-latch-clauses`): `git fetch origin handoff/r11-pre-rca-latch-clauses && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-GENERIC-CONTROL-TEXT (stage in-progress, branch `handoff/r11-owner-generic-control-text`): `git fetch origin handoff/r11-owner-generic-control-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-CHECK-GATE (stage in-progress, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COMMUNITY-STANDARDS (stage in-progress, branch `handoff/r11-owner-community-standards`): `git fetch origin handoff/r11-owner-community-standards && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -43,7 +43,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-ROOMS-P3 (stage design, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-APPLY-PLAN-CEILING (stage in-progress, branch `fix/r11-outside-apply-plan-ceiling`): `git fetch origin fix/r11-outside-apply-plan-ceiling && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R10-PREPR-DARWIN-SELFTEST-LANE, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-APPLY-PLAN-CEILING, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RCA-LATCH-CLAUSES, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN
+Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R10-PREPR-DARWIN-SELFTEST-LANE, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-APPLY-PLAN-CEILING, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN
 
 ## Resume steps
 
