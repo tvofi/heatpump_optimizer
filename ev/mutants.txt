@@ -1,0 +1,17 @@
+MUTANT replan-path: KILLED rc=1 :: FAIL P268 readers: group_class is the class when present, lane-derived only when absent (got: ) 
+MUTANT rca-arm: KILLED rc=1 :: TypeError: argument of type 'NoneType' is not a container or iterable 
+MUTANT rca-file: SURVIVED
+MUTANT self-cause: KILLED rc=1 :: TypeError: argument of type 'NoneType' is not a container or iterable 
+MUTANT dim-file: KILLED rc=1 :: FAIL convergence: each closed word is admitted, and its neighbour refused (null control) (got: ) 
+MUTANT owed-hotfix: KILLED rc=1 :: FAIL  a non-escape hotfix owes found_by: refix reads unread, escapes stay read FAIL  owed: a plain group owes nothing; a machinery hotfix owes no owned_by 
+MUTANT owed-rca: KILLED rc=1 :: FAIL  ... and refix, which needs the whole ledger, is unread too, the other reads unchanged (family) FAIL  owed: a plain group owes nothing; a machinery hotfix owes no owned_by 
+MUTANT blame-precedence: SURVIVED
+MUTANT blame-setdefault: SURVIVED
+MUTANT latest-dedupe: KILLED rc=1 :: FAIL  a group carried into a later roster is counted once in its week 
+MUTANT injected-merged: KILLED rc=1 :: FAIL  a fully recorded roster reads every line 
+MUTANT kids-every: SURVIVED
+MUTANT ratio: KILLED rc=1 :: FAIL  a fully recorded roster reads every line 
+MUTANT gen-cycle: KILLED rc=124 :: 
+MUTANT refix-recorded: SURVIVED
+MUTANT week-unentered: SURVIVED
+MUTANT sc-split: KILLED rc=1 :: FAIL E split: unread, naming the count, while an escape records no owning dimension FAIL E split: by owning dimension once every escape records one 

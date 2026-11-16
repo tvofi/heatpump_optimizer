@@ -1,0 +1,9 @@
+ok    history: each group's week is its roster entry, and both weeks print
+ok    --dir has no history: its weeks are unread
+loop_ledger self-test: 0 failed
+roster_lib self-test: 95 checks, 0 failed
+pushed edit-1 at 23c644ec46e716a5ef9166db88804825649456f5
+roster_edit self-test: 314 checks, 0 failed
+ok   report: an empty state dir prints unread on every line, none a number
+scorecard self-test: ok (without mutants)
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
