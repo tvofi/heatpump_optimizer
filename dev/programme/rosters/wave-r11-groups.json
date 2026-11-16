@@ -3302,6 +3302,46 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-OUTSIDE-DEARER-WORDING shares docs/dashboard-card.md; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-VALVE-REFERENCE",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, the thermostat reference misses its setpoint behind a throttling valve, and the booked reference has no digest pin. Designer first: the change moves the plant every plan runs on and valved golden fixtures, which are claimed, never re-recorded. The reference carry needs a reproduction on an install's own valve parameters from a diagnostics bundle before any change.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-valve-reference",
+    "last_step": null,
+    "next_step": "designer first (L); the reference carry needs a bundle reproduction",
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-ADVISOR-MEASURES): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares custom_components/heatpump_optimizer/thermal_model.py, tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-ADVISOR-MEASURES shares tests/features.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
+   },
+   "source": "programme"
   }
  ]
 }
