@@ -15,7 +15,8 @@ listener registered by _async_setup_peak_guard after the grid_connection page sa
 peak_guard_enabled.
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_guard.py
-Expected: RESULT guard_wrong_minutes_total=<see REPORT.md> over 5 draws (exact, a count)
+Expected: RESULT guard_wrong_minutes_total=69 over 5 draws, range 3..25, 44 with the most
+          favourable draw dropped (exact); under --perturb-docstring 0
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13
 Perturbation: --perturb-docstring replaces project_window_mean with its docstring's own
 rule ((mean*elapsed + current*remaining)/window): guard_wrong_minutes_total goes down to

@@ -1,0 +1,19 @@
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 52.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 53.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 46.5); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 52.5); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 52.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 54.5); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 53.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 52.5); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.flow: 35.0 (set by the optimizer: 53.5); retrying
+ROW entities_pump.space_hysteresis_entity EFFECT [control flow set-point, return 30 C, 8 cycles (06:00): saved=menu/advanced err=None stored='sensor.sp_hyst' moved=['writes'] [] obs0={} obs1={}] [control flow set-point, return 30 C, 8 cycles (14:00 dear): saved=menu/advanced err=None stored='sensor.sp_hyst' moved=['writes'] [] obs0={} obs1={}]
+RESULT states_examined=1
+RESULT states_noeffect=0
+NOEFFECT 
+RESULT thread_factor=1.0
+RESULT load1=1.34521484375
+RESULT swapins=0

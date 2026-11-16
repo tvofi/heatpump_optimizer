@@ -10,7 +10,8 @@ publish (the data dict less a key named like the option). Count key: NOEFFECT wh
 channel moves in the named state, the state taken from the option's description.
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_states.py [--only step.field ...]
-Expected: RESULT states_examined=<items>, RESULT states_noeffect=<see REPORT.md> (exact, a count)
+Expected: RESULT states_examined=30, RESULT states_noeffect=3 (learning.system_identification_enabled,
+quick_setup.wood_buffer_tank, thermal_model.compressor_modulation) (exact, a count)
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13
 Perturbation: --perturb-ignore drops entry.options before the restart: every option the
 flow stores in options becomes NOEFFECT (states_noeffect goes up).
@@ -62,6 +63,14 @@ def seed_sun(coord):
     now = dt_util.now()
     coord._solar_radiation_forecast = [max(0.0, 450.0 * (1 - abs(12 - ((now.hour + h) % 24)) / 4.0))
                                        for h in range(48)]
+
+
+def learned_day_short_prices(coord):
+    """Two complete published days before today (the learner folds complete days), today to 23:00."""
+    start = THU6.replace(hour=0) - timedelta(days=2)
+    coord._prices = [{"total": round(0.4 + 0.8 * (1 if 7 <= (h % 24) < 20 else 0) + 0.05 * (h % 24) / 24.0, 4),
+                      "starts_at": (start + timedelta(hours=h)).isoformat(), "level": "NORMAL"}
+                     for h in range(48 + 23)]
 
 
 def short_prices(coord):
@@ -144,10 +153,21 @@ ARMS = {
           "sensor.hp_return", same={"pump_duty_mode": "control", "heat_pump_mode_entity": "select.hp_mode"},
           pre={"space_setpoint_entity": "number.flow", "space_setpoint_unit": "flow"},
           states={**MODE_ST, **FLOW_ST, "sensor.hp_return": FakeState("41", unit="°C")})],
+    "entities_pump.space_hysteresis_entity": [
+        A(f"control flow set-point, return {ret} C, 8 cycles ({label})", "sensor.sp_hyst",
+          same={"pump_duty_mode": "control", "heat_pump_mode_entity": "select.hp_mode",
+                "heat_pump_return_temp_entity": "sensor.hp_return"},
+          pre={"space_setpoint_entity": "number.flow", "space_setpoint_unit": "flow"},
+          states={**MODE_ST, **FLOW_ST, "sensor.sp_hyst": FakeState("8", unit="K"),
+                  "sensor.hp_return": FakeState(str(ret), unit="°C")}, now=now, cycles=8)
+        for ret, now, label in ((30, THU6, "06:00"), (30, datetime(2026, 1, 15, 14, 0, tzinfo=UTC), "14:00 dear"))],
     "entities_pump.heat_pump_supply_temp_entity": [
         A("supply lift priced, 6 cycles", "sensor.hp_supply", pre={"flow_curve_cop_enabled": True},
           states={"sensor.hp_supply": FakeState("55", unit="°C")}, cycles=6)],
     "grid.peak_tariff_distinct_days": [A("peaks recorded, two on today", False, same=PEAK, seed=seed_peaks_same_day)],
+    "grid.peak_tariff_weekdays_only": [A("saturday, peaks recorded", True,
+                                         same={**PEAK, "peak_tariff_offpeak_factor": 0.0}, seed=seed_peaks,
+                                         now=datetime(2026, 1, 17, 6, 0, tzinfo=UTC))],
     "grid.peak_tariff_hours": [A("peaks recorded", "07:00-19:00", same={**PEAK, "peak_tariff_offpeak_factor": 0.0},
                                  seed=seed_peaks)],
     "grid.peak_tariff_offpeak_factor": [A("peaks recorded", 0.0, same={**PEAK, "peak_tariff_hours": "07:00-19:00"},
@@ -189,7 +209,9 @@ ARMS = {
     "learning.system_identification_enabled": [
         A("mild cheap night, 8 cycles", True, states={"sensor.outdoor": "6.0"},
           now=datetime(2026, 1, 15, 0, 0, tzinfo=UTC), cycles=8)],
-    "learning.price_prior_enabled": [A("06:00, prices end at 23:00", False, seed=short_prices)],
+    "learning.price_prior_enabled": [A("06:00, prices end at 23:00", False, seed=short_prices),
+                                     A("two complete days published before, today's end at 23:00, 2 cycles", False,
+                                       seed=learned_day_short_prices, cycles=2)],
     "quick_setup.wood_buffer_tank": [A("furnace on, no probe", True, same={"wood_furnace": True})],
     "solar_pv.pv_system_efficiency": [A("sunny noon", 0.3, same={"pv_enabled": True, "pv_peak_kw": 8.0}, seed=seed_sun,
                                         now=datetime(2026, 1, 15, 10, 0, tzinfo=UTC))],

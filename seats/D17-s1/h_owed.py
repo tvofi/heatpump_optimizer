@@ -12,7 +12,8 @@ Each arm's expected target comes from strings.json's description of the field:
   Away setback still wins if away is active."
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_owed.py
-Expected: RESULT owed_checks=<n>, RESULT owed_fail=<see REPORT.md> (exact, a count)
+Expected: RESULT owed_checks=18, RESULT owed_fail=1 (the kept-weekend check, D17-s1-02) (exact);
+          under --perturb-weekend owed_fail=8
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13
 Perturbation: --perturb-weekend wraps OptimizationConfig.get_comfort_temp to hand it
 the Friday before any weekend date (the weekend branch never taken):

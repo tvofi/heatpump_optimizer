@@ -84,5 +84,5 @@ RESULT factory_examined=2
 RESULT after_save_fail=0
 RESULT flow_fail=0
 RESULT thread_factor=1.001
-RESULT load1=4.04443359375
+RESULT load1=5.1337890625
 RESULT swapins=0

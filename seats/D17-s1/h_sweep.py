@@ -17,7 +17,8 @@ moves in any state. Prerequisites and states per option are read from the
 option's own strings.json description, never from the implementation.
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_sweep.py [--only step.field ...]
-Expected: RESULT options_examined=86, RESULT options_noeffect=<see REPORT.md> (exact, a count)
+Expected: RESULT options_examined=88, RESULT options_noeffect=21 (exact, a count; each is re-run
+in its documented state by h_states.py)
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13 (shared container)
 Perturbation: --perturb-ignore makes the coordinator read EntryConfig from entry.data
 only (options dropped), so every option saved to entry.options becomes NOEFFECT:

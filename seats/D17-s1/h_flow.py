@@ -22,7 +22,8 @@ the restarted coordinator's EntryConfig value; never on an input attribute.
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_flow.py
 Expected: RESULT steps_examined=26, RESULT after_save_examined=22,
-          RESULT modbus_examined=18, RESULT factory_examined=2; fails per REPORT.md (exact)
+          RESULT modbus_examined=18, RESULT factory_examined=2, RESULT flow_fail=0 (exact);
+          under --perturb-close after_save_fail=22, flow_fail=61
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13
 Perturbation: --perturb-close swaps const.AFTER_SAVE_CLOSE's routing by patching
 config_flow.AFTER_SAVE_CLOSE to "menu" in memory: after_save_fail goes up.

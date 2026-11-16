@@ -15,5 +15,5 @@ RESULT computed_same_page_numeric=8
 RESULT computed_kept_value_lost=0
 RESULT null_kept_value_lost=0
 RESULT thread_factor=1.0
-RESULT load1=6.3037109375
+RESULT load1=1.7490234375
 RESULT swapins=0

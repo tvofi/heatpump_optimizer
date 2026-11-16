@@ -11,11 +11,13 @@ rendered and saved) and heatpump_optimizer.thermal_model:ThermalParameters
 (room_thermal_mass, read only on the single-zone branch), through the solve.
 
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py
-Expected: RESULT two_zone_rendered=8, RESULT two_zone_rendered_no_effect=1 (house_thermal_mass), exact
+Expected: RESULT two_zone_rendered=8, RESULT two_zone_only_no_effect=1 (house_thermal_mass: inert on two
+          zones, effective on one), exact; two_zone_rendered_no_effect=2 also counts compressor_modulation,
+          inert on both (D17-s1-04)
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, box B13
 Perturbation: --perturb-gate gives the house_thermal_mass row when=_single_zone (as its
 sibling house_heat_loss_coefficient has) in config_flow._OPTION_FIELDS: the page stops
-rendering it on two zones and two_zone_rendered_no_effect goes to 0.
+rendering it on two zones and two_zone_only_no_effect goes to 0.
 Null control: the single-zone arm, where every rendered field moves the plan
 (RESULT single_zone_rendered_no_effect=0).
 """
@@ -86,6 +88,8 @@ def main():
     print(f"RESULT two_zone_rendered_no_effect={len(out['on'][1])} {out['on'][1]}")
     print(f"RESULT single_zone_rendered={len(out['off'][0])}")
     print(f"RESULT single_zone_rendered_no_effect={len(out['off'][1])} {out['off'][1]}")
+    only = [f for f in out["on"][1] if f not in out["off"][1]]
+    print(f"RESULT two_zone_only_no_effect={len(only)} {only}")
     print(f"RESULT thread_factor={rig.thread_factor()}")
     print(f"RESULT load1={rig.load1()}")
     print("RESULT swapins=0")

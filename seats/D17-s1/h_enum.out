@@ -14,5 +14,5 @@ RESULT option_fields_missing=156
 RESULT config_fields_missing=0 []
 RESULT owed_cell_printed=0 of 8
 RESULT thread_factor=1.0
-RESULT load1=5.79052734375
+RESULT load1=1.76953125
 RESULT swapins=0

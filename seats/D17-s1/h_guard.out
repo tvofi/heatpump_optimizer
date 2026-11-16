@@ -8,5 +8,5 @@ RESULT guard_wrong_minutes_range=3..25
 RESULT guard_wrong_minutes_drop_most_favourable=44
 RESULT null_suppressed_minutes=0 (listeners=0)
 RESULT thread_factor=1.0
-RESULT load1=2.240234375
+RESULT load1=5.0234375
 RESULT swapins=0
