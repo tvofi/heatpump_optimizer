@@ -2,3 +2,4 @@
 1794849823 HB alive
 1794850007 CKPT failing test written (declared vs measured floor cell cost), fix applied, block green snapshot 96b9f1c322c2
 1794850054 CKPT fix committed, mutants 3/3 killed, pushed to handoff-wip snapshot d3df6af2a6e2
+1794850311 CKPT BODY drafted, body-check rc=0; scoped prepr and full features running snapshot e08dc57f6bcc
