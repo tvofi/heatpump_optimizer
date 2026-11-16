@@ -1,7 +1,7 @@
 {
  "id": "D2-s3-07",
  "step": "D2.M4",
- "title": "The open month's coverage scale counts 744 h for the 743-hour March: a fully settled spring-DST month is estimated 0.13 % high",
+ "title": "The open month's coverage scale counts 744 h for the 743-hour March: a fully settled DST month reads 0.13 % high",
  "severity": "low",
  "claim": "ledger.coverage_factor divides ledger.month_hours (days x 24, 744 for March 2026) by the settled hours, so a March settled for every one of its 743 real hours scales every estimated row figure by 1.001346 instead of 1.0.",
  "mechanism": "ledger.py month_hours ignores the DST hour (its docstring says so); coverage_factor = max(1, month_hours/settled). October (745 h) clamps to 1.0, so only the spring month is off; it lasts until the month closes.",

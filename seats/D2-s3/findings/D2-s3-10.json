@@ -2,7 +2,7 @@
  "id": "D2-s3-10",
  "scope": "D2-s3",
  "step": "D2.M5",
- "title": "The sysid adoption gate's interval under-covers under 0.1 C quantisation and 0.02-0.05 C noise: 19 of 43 admitted fits miss it",
+ "title": "The sysid adoption interval under-covers under 0.1 C quantisation and 0.02-0.05 C noise: 19 of 43 admitted fits miss it",
  "severity": "medium",
  "claim": "Under reading noise the fit is documented to tolerate (0.05 C white) and the 0.1 C quantisation of common room sensors, sysid.adoption_decision admits slab fits whose UA error exceeds the half-width it admitted them on in 9 of 11 (quantised) and 4 of 4 (white 0.05 C) cases, 19 of 43 over the three noisy arms against a nominal 0.05, all biased high (+7 % to +35 %), and the blend carries up to 11.7 % of UA error into house_heat_loss_scale from a learner sitting at the truth; noise-free windows recover UA to 5e-14.",
  "mechanism": "slab_ua_adoption_halfwidth combines the profile-likelihood and prior widths in quadrature, both conditional on the reading noise being white with the fitted residual scale; a quantised or larger-noise room series leaves the room temperature (a regressor in the slab fit) noisy, which biases UA upward (errors-in-variables) while the profile width shrinks with the residual fit, so the narrowest (admitted) intervals are the biased ones.",
