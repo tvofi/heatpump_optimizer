@@ -5,7 +5,7 @@ R11-OUTSIDE-ROOMS-P1, built to the approved design `design/R11-OUTSIDE-ROOMS-P2`
 What it rests on:
 - **A room never enters `InputHealth`** (note point 2, item s1). `read_room` reuses the reader's entity, availability and age stages (`_begin`, `_age_gate`) and records nothing, on every path; a dead, stale or implausible room is a dropped room, never an input problem or a stale input. Age limit: `QUIET_STORE_MAX_AGE_MINUTES` times the staleness scale, through the clamp `max_age_for` applies, now one helper (`_scaled`). Range: `ROOM_AIR_RANGE_C`.
 - **A `climate`'s state is its HVAC mode**, so temperature and target are the `current_temperature` and `temperature` attributes in the instance's unit system (`setpoint_and_unit`'s rule); calling is `hvac_action == "heating"`, None where the thermostat reports no action.
-- **`rooms` has module state**: the side table (`_READINGS`, a `WeakKeyDictionary` on `boost.py`'s pattern) holding a tuple of frozen `RoomReading`s per coordinator (item r5). `rooms.view` is a pure function of the readings.
+- **`rooms` has module state**: the side table (`_READINGS`, a `WeakKeyDictionary` on `boost.py`'s pattern) holding a tuple of frozen `RoomReading`s per coordinator (item r5). `rooms.published` (named `rooms.view` before `71609de657`) is a pure function of the readings.
 - **No list: byte-identical.** No read runs, the payload has no `rooms` key, no sensor is created and no option is stored (null controls below).
 - **The key joins `_WIRING`**, so a factory reset keeps it (`FACTORY_KEPT` keeps only names ending in `_entity`); an emptied submit stores None, which parses to the empty tuple (item r2).
 
@@ -23,9 +23,13 @@ Payment for the structural ratchet, every row at zero headroom (item 5a1c0e01):
 
 ## Head
 
-71609de6570ef91bcd846caee4158e16e7f1e339, cut from and measured against the merge base 4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc. `origin/main` is at 030a4d377f9f26f5b8befe5721d86aea454f29e0 (2026-11-16T11:08Z); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged in.
+02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8 merges the PR branch's two later commits (`339648c0d0` `ci: pin killed mutants`, the mutation-autofix bot's pins, `git diff --name-only b0c7114dd6 339648c0d0 | grep -c mutation_ledger/killed_by` 24 files and nothing else; `3193a58a41`, the delivery row) into `e874fd394f`, the one new commit (`tests/features.py` only) on `b0c7114dd6ce636514983b1e685c38e46096f35d`, which merges origin/main `367c3b9cac` into the authored code head `71609de6570ef91bcd846caee4158e16e7f1e339` (an automatic merge by the orchestrator's script). Merge base `367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c`; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged in again.
 
-At the head, `PYTHONPATH=tests/hastub`, one box (x86_64, 4 cores, Linux): `tests/features.py` `ALL 5735 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 2728 ENTITY CHECKS PASSED`, `tests/config_flow_steps.py` `ALL 595 checks PASSED`, `tests/golden.py --only config_flow` `ALL 1 GOLDEN SCENARIOS UNCHANGED`, `tests/structure.py` `STRUCTURE RATCHET PASSED`, `tests/typing_ruler.py` `ALL 12 typing-ruler source checks PASSED`. At `802cb17282`, whose production differs from the head only by `71609de657` (the survivor repairs below: `_registry_step`, `_room_list_errors`, `read_room`'s domain test, `rooms.view` renamed), the other 24 scripts the scope names: 22 through `tests/derive_closures.sh --scripts-from` (each `(exit 0)`), `tests/frontend.py`, `tests/open_meteo.py`, `node tests/md_tables.mjs` and `tests/deployment_shape.py` directly, each exit 0; `GOLDEN_MODE=drift` at `ee386a764d`.
+Review round 1 (`Fix review: blocked b0c7114dd6 mutation-vacuous`, verdict at `5eb9d8a0f9`) is answered by the new check below; the review named one survivor (its M6), and its two non-blocking findings stand as it wrote them.
+
+prepr: passed rc=0 at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8
+
+The measurements below this paragraph, unless a line names this head, were taken at `71609de657` (production unchanged since: the new commit touches `tests/features.py` alone): at that head, `PYTHONPATH=tests/hastub`, one box (x86_64, 4 cores, Linux): `tests/features.py` `ALL 5735 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 2728 ENTITY CHECKS PASSED`, `tests/config_flow_steps.py` `ALL 595 checks PASSED`, `tests/golden.py --only config_flow` `ALL 1 GOLDEN SCENARIOS UNCHANGED`, `tests/structure.py` `STRUCTURE RATCHET PASSED`, `tests/typing_ruler.py` `ALL 12 typing-ruler source checks PASSED`. At `802cb17282`, whose production differs from that head only by `71609de657` (the survivor repairs below: `_registry_step`, `_room_list_errors`, `read_room`'s domain test, `rooms.view` renamed), the other 24 scripts the scope names: 22 through `tests/derive_closures.sh --scripts-from` (each `(exit 0)`), `tests/frontend.py`, `tests/open_meteo.py`, `node tests/md_tables.mjs` and `tests/deployment_shape.py` directly, each exit 0; `GOLDEN_MODE=drift` at `ee386a764d`.
 
 ## Mutation proof
 
@@ -59,19 +63,30 @@ Each mutant applied to the working tree at the head's production code, the block
 - The range's lower `<=` to `<`: `a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible`.
 
 
+Review round 1's survivor, at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8: `read_room`'s sensor branch converts by the sensor's own unit, `temperature_c(getattr(state, "state", None), state_unit(state))`. New check `a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null control, a degC sensor at 20.0 reads 20.0`, both sensors on the block's default (Celsius-instance) reader, so the check keys on the sensor's unit and not the instance's. CMD F unmutated: `ALL 17 FEATURES BLOCK PASSED`.
+
+| mutant | command | output |
+|---|---|---|
+| M6: `state_unit(state)` to `None` | F | `FAIL a degF sensor room converts by its own unit ...  [{'°F': RoomReading(... temperature_c=None, ... problem='implausible'), '°C': RoomReading(... temperature_c=20.0, ... problem=None)}]`, `1 of 17 FEATURES BLOCK FAILED` |
+| `state_unit(state)` to `_instance_unit(reader.hass)` | F | the same `FAIL`, `1 of 17 FEATURES BLOCK FAILED` |
+
+The null control holds under both mutants: the `°C` arm reads `temperature_c=20.0, problem=None` in each failing line above, so only the unit conversion separates the two runs.
+
+`prepr.sh`'s diff-mutant draw at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8, `MUTANT_CMD` CMD F then CMD C (one script running both, CMD C only when CMD F passes): `no survivor among the diff's first 40 mutant(s)`. The same draw under CMD F alone left 17 survivors, every one in `config_flow.py`, which CMD C reads: the control that the draw separates a pinning command from one that does not reach the site.
+
 ## Null control
 
 - No list, and an empty list: `no list and an empty list publish no rooms key and the same payload keys` (the production coordinator, one closed-loop cycle on the r9f12 rig); the default `collect(sensor)` roster holds neither room sensor (`a configured room list adds exactly the room average and spread sensors; null control, the default roster with no list holds neither`); an untouched page on an entry with no list leaves the options empty (`an untouched page on an entry with no list stores no key: the options stay empty`); `tests/golden.py` under `GOLDEN_MODE=drift` reads the other 55 fixtures byte-identical to the merge base.
 - Health: twenty rooms with one unavailable leave `input_problems` and `stale_inputs` equal to the no-list run; the same unavailable entity configured as the indoor thermometer does raise a problem (`twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list run; null control, ...`). `no room read records into the reader's input health, on any path` drives every problem path through one reader and reads `health.readings == {}`.
-- Units: the Fahrenheit instance reads 68 / 69.8 as 20.0 / 21.0; the same thermostat on a Celsius instance reads 68 raw, outside a room's range (`implausible`).
+- Units: the Fahrenheit instance reads 68 / 69.8 as 20.0 / 21.0; the same thermostat on a Celsius instance reads 68 raw, outside a room's range (`implausible`). A degF sensor room reads 68 as 20.0 on a Celsius instance; a degC sensor at 20.0 reads 20.0.
 - Stale: the room 7 h old is `stale` under the watchdog and fresh with it off.
 
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc head=71609de6570ef91bcd846caee4158e16e7f1e339 -->
+<!-- figure-block: scope-line mb=367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c head=02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8 -->
 ~~~text
-MODE: FULL -- every test script runs, nothing is scoped out.
+MODE: SCOPED -- 30 script(s) run, 3 scoped out.
 ~~~
 <!-- /figure-block -->
 - The block reads `MODE: FULL` because its registered instrument runs `origin/main`'s `tests/closure.py` (main has moved past the merge base) over the head's tree, and `select` reads that checked-out copy as a change to the gate (`reason: tests/closure.py changes the gate itself, so every closure is suspect`, reproduced in a detached worktree). The head's own `tests/closure.py` prints `MODE: SCOPED -- 30 script(s) run, 3 scoped out.` for the same diff.
@@ -83,7 +98,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 - `GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub python3 tests/golden.py`: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc`, `NO STALE FIXTURE`; before the claim line, `1 UNCLAIMED DRIFT(S)`, `config_flow: 4 leaves moved` (`_menu.advanced: length 16 vs 17`, and `_seed.room_temperature_entities`, `_seeded.rooms`, `rooms` each `present on one side only`).
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` after `--record`; before it, `class_excess_loc 17446 -> 17424 BETTER`, every other row equal to its budget.
 - `python3 tests/typing_ruler.py`: `ALL 12 typing-ruler source checks PASSED` (`errors did not grow`).
-- Seam enumeration, every reader of the list and of a room reading: `git grep -n -E "room_temperature_entities|read_room|rooms\.(record|view|readings_of)" -- custom_components/` returns the const key, `EntryConfig`'s field, the `_WIRING` row, the options row and `_room_list_errors`, `read_room`/`read_rooms`, the coordinator's two calls and the sensor setup's guard. None calls `InputHealth.record`; the one input read that does, `InputReader.read`, is never handed a room.
+- Seam enumeration, every reader of the list and of a room reading, at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8: `git grep -n -E "CONF_ROOM_TEMPERATURE_ENTITIES|room_temperature_entities|read_room|rooms\.(record|published|readings_of)" -- 'custom_components/*.py'`, docstring lines aside, returns the const key, `EntryConfig`'s field, the `_WIRING` row, the options row and `_room_list_errors`, `read_room`/`read_rooms`, the coordinator's two calls (`rooms.record`, `rooms.published`) and the sensor setup's guard. None calls `InputHealth.record`; the one input read that does, `InputReader.read`, is never handed a room. The rule named `rooms\.view` before `71609de657` renamed it to `rooms.published` (the review's stale-body note); at this head `rooms\.view` matches nothing under `custom_components/`.
 - Finder's harness: none. #3616 is an outside report and the design note names none (`No finder harness: owner report.`); the reporter's twenty-thermostat house is the coordinator rig above.
 
 ## Architecture score
@@ -94,37 +109,13 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Unpinned sites
 
-The 25 sites `tools/pr/ci_predict.py` lists as `ADDED UNPINNED` at the head, each under `custom_components/`.
+The one site `tools/pr/ci_predict.py` lists as `ADDED UNPINNED` at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8 (`prepr.sh` step 6d); `mutation-autofix`'s commit `339648c0d0` pinned the other 24 that the head `71609de657` listed.
 
-- custom_components/heatpump_optimizer/config_flow.py:2574 CMP_BOUND: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/config_flow.py:2575 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/config_flow.py:3316 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/coordinator.py:6840 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/entry_config.py:61 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:282 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/inputs.py:287 CLAMP_DROP*2: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:287 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1277 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1281 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1290 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1294 CMP_BOUND*2: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1294 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1297 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/inputs.py:1302 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:28 CONST: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:51 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:70 CMP_BOUND: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:70 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:92 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:98 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:111 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:279 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:755 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:777 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 
 ## Red checks
 
-- `tests / mutation`: predicted red at the head by its 25 unpinned sites (`## Unpinned sites`), which `mutation-autofix` pins once the pull request exists (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh`'s step 6d, which ran before the handoff and named every site, at no standing cost beyond the prepr run; the red is the lane's own pinning step, so none cheaper exists.
+- `tests / mutation`: predicted red at the head by its one unpinned site (`## Unpinned sites`), which `mutation-autofix` pins (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh`'s step 6d, which ran before the handoff and named the site, at no standing cost beyond the prepr run; the red is the lane's own pinning step, so none cheaper exists.
 
 ## Forward-carry
 
