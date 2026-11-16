@@ -68,7 +68,10 @@ Rows, each "folded/intervals scale":
     heat-led one of true scale ``s``. ``_from<s0>`` starts at a persisted
     scale ``s0`` (an install the released learner already walked);
     ``_reload70_400`` round-trips the COP record at ticks 70 and 400,
-    ``_lost`` without its scale-response key. Each line adds the lowest and
+    ``_lost`` without its scale-response key. ``selfset_2.2_swing*`` and
+    ``selfset_2.2_mix*`` (fix review 1 of #3662): the 2.2 kW pump whose draw
+    swings on its own (``swing``), ``swing0_control`` its null control.
+    Each line adds the lowest and
     highest scale, the cycles off 1.000 by more than 5 % and the verdict.
     These runs are open loop: the ask stays fixed whatever the scale, as the
     live plan's does only where the ask is pinned (flat asks are that case).
@@ -85,6 +88,7 @@ The folded column is ``_cop_samples`` at the end of the run, replays included.
 from __future__ import annotations
 
 import itertools
+import math
 import random
 import sys
 from datetime import datetime, timedelta, timezone
@@ -198,6 +202,19 @@ def flat(n: int, drawn=None, seed: int = 7) -> list[tuple[float, float]]:
     for _ in range(n):
         ask = 1.5 * rng.uniform(0.98, 1.02)
         out.append((ask, ask if drawn is None else drawn * rng.uniform(0.97, 1.03)))
+    return out
+
+
+def swing(n: int, kw: float, parts, seed: int, phase: float = 0.0) -> list[tuple[float, float]]:
+    """``n`` flat asks of 1.5 kW +-2 %, each beside a draw of ``kw`` x (1 +
+    sum a sin(2 pi t / p + phase)) +-3 % for each (a, p) of ``parts``: a pump
+    setting its own power, which swings over p cycles whatever is asked."""
+    rng = random.Random(seed)
+    out = []
+    for t in range(n):
+        ask = 1.5 * rng.uniform(0.98, 1.02)
+        f = 1 + sum(a * math.sin(2 * math.pi * t / p + phase) for a, p in parts)
+        out.append((ask, kw * f * rng.uniform(0.97, 1.03)))
     return out
 
 
@@ -315,6 +332,15 @@ def main() -> None:
         flat_row(f"heatled_true_{true:g}_flat_from0.5", flat(672), true=true, scale0=0.5)
     flat_row("selfset_2.2_flat_reload70_400", flat(672, 2.2), reload_cop=(70, 400))
     flat_row("selfset_2.2_flat_reload70_400_lost", flat(672, 2.2), reload_cop=(70, 400), lose_verdict=True)
+    # Fix review 1 of #3662 (the reviewer's rows): the same pump's draw swinging on
+    # its own, whatever is asked; amplitude 0 is the null control.
+    for name, parts, phase in (
+        ("swing0_control", [], 0.0), ("swing0.15_p64", [(0.15, 64)], 0.0), ("swing0.15_p80", [(0.15, 80)], 0.0),
+        ("swing0.3_p96", [(0.3, 96)], 0.0), ("swing0.15_p120", [(0.15, 120)], 0.0),
+        ("mix_daily0.1_5day0.2_phasepi", [(0.1, 48), (0.2, 240)], math.pi),
+        ("mix_daily0.1_5day0.2_phase0", [(0.1, 48), (0.2, 240)], 0.0),
+    ):
+        flat_row(f"selfset_2.2_{name}_s1", swing(672, 2.2, parts, 1, phase))
     # Invariant h's control under the moving held_* rows: heat-led twins of
     # true 0.8 behind the same windows (a fixed 3.2 kW draw is self-setting).
     # Design-verdict item e98d0ab9: the defrost derate's inferred estimator
