@@ -2159,7 +2159,7 @@
     "From r11-pre-new-dimensions, body item d5b80788: R11-PRE-FINDER-CONTRACT's p2 is not on main either (#3621 is its grader alone); this group's p2 was built against main's driver and schema as they are, and its body states the three places that differs from the approved design. decision: orchestrator, which of the two p2s merges last. Carry: R11-PRE-NEW-DIMENSIONS (items d5b80788)"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r11-pre-new-dimensions",
     "commit": "47f0f18a7ecebaa0f6ff0e4948b4f8d82e616e1a",
     "last_step": null,
