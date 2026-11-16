@@ -1185,7 +1185,7 @@ def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
 #: and ``_compute_baseline_power`` says why flooring them would burn
 #: ``min_electrical_power`` around the clock -- so every watt a plan books
 #: above this floor is heat its trajectory, its cost and its published
-#: savings all count as delivered, and it is what ``count_compressor_starts``
+#: savings all count as delivered, and it is what ``runs.edge_count``
 #: counts as a run. No seam that actuates or reports the plan may call such a
 #: step off. Until this owner existed the switch schedule called it off at
 #: half the modulation floor instead (see ``on_threshold_kw``), which on a

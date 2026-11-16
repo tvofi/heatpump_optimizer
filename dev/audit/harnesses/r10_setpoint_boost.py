@@ -20,8 +20,8 @@ harness runs in (a tree without a symbol falls back to what main does):
 3. ``solves`` (skipped with ``--no-solves``): 16 synthetic installs -- UA
    scale 0.6/1.7 x 750 L buffer or none x hot water off/on x set-point-driven
    (levels ship rounded) or duty-cycling -- each solved at one spread price
-   day starting 21:00 and at its flat mean, with and without #2445's relaxed
-   start. Printed per cell and price: the sha1 of the published plan (the
+   day starting 21:00 and at its flat mean, with and without the relaxed
+   descent (#2445's relaxed start until R11-OUTSIDE-HONEST-STARTS-RUNS). Printed per cell and price: the sha1 of the published plan (the
    byte-identity null across trees), the objective delta of the relaxed
    start, the share of space kWh at near-floor levels (<= 1.1 x p_min) in
    steps priced above the day's median, the cheapest quarter's share of
@@ -125,9 +125,15 @@ def solve(cell, prices, relaxed: bool):
     p.min_electrical_power, p.max_electrical_power = CFG_MIN, CFG_MAX
     p.dhw_enabled, p.house_heat_loss_scale = dhw, loss
     opt = HeatPumpOptimizer(ThermalModel(p), OptimizationConfig(clamp_planned_levels=rounded))
-    kept = getattr(opt_mod, "_relaxed_starts", None)
-    if not relaxed and kept is not None:
-        opt_mod._relaxed_starts = lambda _opt, *args: args[-2]
+    # The control arm removes the relaxed descent: the multi-start returns its
+    # first start as it stands and the candidate stage commits that. Ported in
+    # R11-OUTSIDE-HONEST-STARTS-RUNS from ``_relaxed_starts`` as identity, the
+    # function that pull request deleted; a tree before it has no relaxed
+    # descent to remove, so run the harness of that tree there.
+    kept = opt_mod._multi_start_minimize
+    if not relaxed and rounded:
+        opt_mod._multi_start_minimize = lambda _objective, starts, _bounds, **_kw: NS(
+            x=np.asarray(starts[0], float), success=True)
     try:
         return opt.optimize(inputs=solve_inputs(
             initial_state=ThermalState(
@@ -139,8 +145,7 @@ def solve(cell, prices, relaxed: bool):
             prices=prices, outdoor_temps=np.full(96, 5.0), start_time=T0,
         ))
     finally:
-        if kept is not None:
-            opt_mod._relaxed_starts = kept
+        opt_mod._multi_start_minimize = kept
 
 
 def shape(result, prices) -> tuple[float, float]:

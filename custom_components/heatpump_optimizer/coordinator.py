@@ -560,6 +560,12 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
 
 
+def _humidity_with_data(series: np.ndarray) -> np.ndarray | None:
+    """#21: a solve's humidity series only when it carries data, which keeps
+    the solve's inner loop free of dead lookups."""
+    return series if series.size and bool(np.any(np.isfinite(series))) else None
+
+
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     """Parse an entry timestamp so it can be ordered against the step grid.
 
@@ -6297,10 +6303,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if env_caps is not None:
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
         quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
-        humidity = horizon.humidity
         return SolveRecord(config, params, SolveInputs(
             state=state,
             start_time=solve_now,
+            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -6310,12 +6316,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 price_known=horizon.price_known,
                 pv_surplus=horizon.pv_surplus,
                 price_sigma=horizon.price_sigma,
-                # #21: the humidity series only when it carries data, which
-                # keeps the solve's inner loop free of dead lookups.
-                humidity=(
-                    humidity if humidity.size
-                    and bool(np.any(np.isfinite(humidity))) else None
-                ),
+                humidity=_humidity_with_data(horizon.humidity),
                 external_heat_kw=self._external_heat_forecast(n),
             ),
             limits=SolveLimits(
@@ -11311,12 +11312,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if wood_err:
             raise whatif.Refused(wood_err)
-        humidity = horizon.humidity
         return HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config), SolveInputs(
             # Shallow deliberately: ``ThermalState`` is scalars only.
             state=replace(state),
             start_time=solve_at,
             held_start=held_start,
+            compressor_running=duty_switch.record_for(self).solved_running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -11331,10 +11332,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 price_sigma=horizon.price_sigma,
                 # #21: the what-if is compared against a plan that saw
                 # the humidity series, so it must see the same one.
-                humidity=(
-                    humidity if humidity.size
-                    and bool(np.any(np.isfinite(humidity))) else None
-                ),
+                humidity=_humidity_with_data(horizon.humidity),
                 external_heat_kw=(
                     np.asarray(wood_kw, dtype=float)
                     if wood_kw is not None else None
