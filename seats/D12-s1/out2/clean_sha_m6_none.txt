@@ -1,0 +1,27 @@
+FAIL level layout=no_valve	[minimal+prereq] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+PASS level layout=two_tank_4way	
+PASS level two_zone_mode=on	
+FAIL level two_zone_mode=off	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower); [reference] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+FAIL level wood_type=birch	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+FAIL level CONF_DHW_TEMP_ENTITY=present	[minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+FAIL level CONF_PV_PRODUCTION_ENTITY=present	[minimal+entity] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+PASS level CONF_LOWER_FLOOR_TEMP_ENTITY=present	
+FAIL level operation_mode=auto	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+FAIL level grid_fee_mode=rules	[minimal] plan carries a lower-zone trajectory the cell does not have (96/96 published rows carry upper/lower)
+
+failure reasons (pattern -> cells):
+     8  plan carries a lower#zone trajectory the cell does not have (#/# published rows carry upper/lower)
+          e.g. level layout=no_valve [minimal+prereq]
+          e.g. level two_zone_mode=off [minimal]
+          e.g. level two_zone_mode=off [reference]
+RESULT cells_run=10 count
+RESULT cells_skipped=0 count
+RESULT runs=20 count
+RESULT runs_reused=0 count
+RESULT fail_cells=7 count
+RESULT fail_runs=8 count
+RESULT shrink=none invent_zone=0 fix_zone_auto=0 fix_plan_zone=0
+RESULT cpu_s=271.5 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=3.98
+RESULT swapins=0

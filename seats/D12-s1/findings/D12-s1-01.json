@@ -4,7 +4,7 @@
  "step": "D12.M1",
  "title": "A single-zone install publishes an upper and a lower floor in its space plan",
  "severity": "medium",
- "claim": "On every single-zone plant (published two_zone_enabled=False) the published space plan carries non-null upper and lower floor temperatures on all 96 forecast rows, so the plan sensor and the card present two floors the configuration does not have.",
+ "claim": "On every single-zone plant (published two_zone_enabled=False) the published space plan carries non-null upper and lower floor temperatures on all 96 forecast rows, so the plan sensor and the card present two floors the configuration does not have; at a clean archive of 92d38ecb this fails 140 of 193 driven d12-cells level cells.",
  "mechanism": "OptimizationResult always fills upper_temp_trajectory and lower_temp_trajectory (single zone: both equal the room trajectory), and HeatPumpOptimizerCoordinator._build_plan_views decides two_zone from `bool(result.upper_temp_trajectory and result.lower_temp_trajectory)` rather than from the model's params.two_zone_enabled, so the zone columns are published whenever the lists are non-empty, which is always.",
  "evidence": {
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/plan_zone.py",
@@ -43,7 +43,8 @@
   "git archive 92d38ecb into a clean root; copy dev/audit/rounds/round11/D12/s1/{cells.py,plan_zone.py} into it",
   "run the command: zone_plants=8 zone_rows=768",
   "run with --gate: zone_plants=0, control rows unchanged",
-  "cells.py --quiet at the clean root: the cell sweep prints the same check on the single-zone cells (see REPORT.md)"
+  "cells.py --quiet at the clean root: the cell sweep prints the same check on the single-zone cells (see REPORT.md)",
+  "cells.py --quiet at a clean archive of 92d38ecb: fail_cells=140 of 193, all of the pattern 'plan carries a lower-zone trajectory the cell does not have' (out2/clean_sha_arm_none.txt); the export reads the same 140 plus the D12-s1-02 pattern"
  ],
  "proposed_fix_scope": "coordinator.py _build_plan_views: gate the upper/lower columns on the solved model's two_zone_enabled (or have the optimizer leave the zone trajectories empty for a single-zone model); card follows the payload",
  "files": [
