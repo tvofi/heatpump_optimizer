@@ -1,0 +1,50 @@
+{
+  "id": "D14-s3-01",
+  "scope": "D14-s3",
+  "step": "D14.M4",
+  "title": "P8: options-dialog money fields and the grid-fee bound resolve the instance currency while every figure is the feed's",
+  "severity": "medium",
+  "claim": "On a replayed install whose price feed declares HUF on a SEK-configured Home Assistant, 3 of 6 money surfaces resolve the instance currency (the options money-field label and its maximum, and the grid-fee rules bound), so a 20 HUF/kWh grid fee -- which the integration's own price_currency repair issue says must be entered in HUF -- is refused by both the field (max 5) and the rules validator (bound 10), while the entities, the repair issue and the coordinator's fee notice all resolve HUF.",
+  "mechanism": "currency.py's precedence (the feed's declared code first, the instance label only where the feed declares none) is applied by the coordinator (_feed_currency or resolve_currency) for entity units and the runtime fee notice, but config_flow._money, config_flow._fee_placeholders and OptionsFlow._grid_fee_errors call resolve_currency(hass) alone; money_scale/fee_bound therefore scale by the label, not by the currency the entered numbers are in.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/p8_surfaces.py",
+    "value": 3,
+    "unit": "divergent surfaces of 6 (feed HUF, instance SEK)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python",
+    "cpu_or_wall": "count",
+    "contention_note": "two other finder seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 7.56,
+    "thread_factor": 1.033
+  },
+  "instrumented_symbol": "heatpump_optimizer.config_flow:resolve_currency (as called by _money via _OPTION_FIELDS['grid_fee_fixed'].widget.of, _fee_placeholders, HeatPumpOptimizerOptionsFlow._grid_fee_errors); heatpump_optimizer.coordinator:_feed_currency",
+  "perturbation": {
+    "change": "--perturb: config_flow.resolve_currency resolves the price feed's declared code first (currency.declared_currency on the price entity's unit/attributes), as the coordinator does",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Of six money surfaces of one replayed install (feed HUF, instance SEK), how many resolve to SEK or refuse a 20 HUF/kWh fee the HUF bound admits.",
+  "phenomenon_property": "Every surface that labels, bounds or validates a money amount resolves its currency by the same precedence as the published figures (the feed's declared code, then the instance label); no surface asks the user for an amount in one currency and bounds it in another.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py  (prints each surface and its resolved currency; grep -n 'resolve_currency(' custom_components/heatpump_optimizer/*.py lists the call sites that skip the feed)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py --arm huf_instance",
+    "value": 0,
+    "note": "feed and instance both HUF: every surface agrees, field max 250, rules bound 500, 20 HUF/kWh accepted. Pre-fix re-find at 3490cb16 (git archive): 5 divergent (null arm 3, the bounds then unscaled)."
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/p8_surfaces.py   -> huf_feed_sek_instance_divergent_surfaces=3 (S3 'SEK/kWh', S4 'refuses 20: above the maximum 5', S5 error grid_fee_rules_implausible, bound '10'); huf_instance 0",
+    "... --perturb -> 0 and 0",
+    "git archive 3490cb16 | tar -x -C $T; ... --tree $T -> 5 / 3"
+  ],
+  "proposed_fix_scope": "One resolver for a money amount's currency that takes the feed first (currency.py), called by config_flow._money, _fee_placeholders and _grid_fee_errors as by the coordinator; the price_currency_mismatch text then stops contradicting the dialog. Barrier: p8_surfaces' arms as a tests/replay.py control (counts, <10 s).",
+  "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/currency.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P8"
+}

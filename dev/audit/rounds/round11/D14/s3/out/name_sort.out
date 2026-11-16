@@ -1,0 +1,25 @@
+fixture synthetic-dhw-only.json: 76 published keyed entities, 15 families of 2+
+RESULT synthetic_en_split_families=0 count
+RESULT synthetic_sv_split_families=0 count
+RESULT synthetic_de_split_families=0 count
+  entity_id: family 'away' in 3 runs: ['binary_sensor.heat_pump_optimizer_away_mode', 'datetime.heat_pump_optimizer_away_return', 'switch.heat_pump_optimizer_away']
+  entity_id: family 'dhw' in 2 runs: ['sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'switch.heat_pump_optimizer_dhw_boost']
+  entity_id: family 'heat' in 2 runs: ['climate.heat_pump_optimizer', 'sensor.heat_pump_optimizer_heat_pump_action']
+  entity_id: family 'lifetime' in 3 runs: ['sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_total_energy']
+  entity_id: family 'wood' in 2 runs: ['binary_sensor.heat_pump_optimizer_wood_cheaper', 'sensor.heat_pump_optimizer_wood_burn_advisor']
+RESULT synthetic_entity_id_split_families=5 count
+fixture owner-2026-10-30-away.json: 76 published keyed entities, 15 families of 2+
+RESULT owner_en_split_families=0 count
+RESULT owner_sv_split_families=0 count
+RESULT owner_de_split_families=0 count
+  entity_id: family 'away' in 3 runs: ['binary_sensor.heat_pump_optimizer_away_mode', 'datetime.heat_pump_optimizer_away_return', 'switch.heat_pump_optimizer_away']
+  entity_id: family 'dhw' in 2 runs: ['sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'switch.heat_pump_optimizer_dhw_boost']
+  entity_id: family 'heat' in 2 runs: ['climate.heat_pump_optimizer', 'sensor.heat_pump_optimizer_heat_pump_action']
+  entity_id: family 'lifetime' in 3 runs: ['sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_total_energy']
+  entity_id: family 'wood' in 2 runs: ['binary_sensor.heat_pump_optimizer_wood_cheaper', 'sensor.heat_pump_optimizer_wood_burn_advisor']
+RESULT owner_entity_id_split_families=5 count
+RESULT name_split_families_total=0 count
+RESULT wall_s=118.7 s (provisional)
+RESULT thread_factor=1.031
+RESULT load1=9.03
+RESULT swapins=0

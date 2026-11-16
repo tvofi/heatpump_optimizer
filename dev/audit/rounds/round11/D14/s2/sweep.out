@@ -1,0 +1,46 @@
+RESULT classes=36
+RESULT norow=0
+ROW I1 rc=0 wall_s=0.2 cpu_s=0.1 wired=.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=--scope changed needs an origin/main diff; argv parse only
+TAIL I1 pair on a synthetic fixture (selftest_pin_drive) and | exit: no tree, no driver -- the drives are fakes | sleeping the recorded seconds, scaled
+ROW I2 rc=2 wall_s=0.1 cpu_s=0.1 wired=.github/workflows/ci.yml,.github/workflows/governance.yml,.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=check --in-dir needs a strace recording; self-test
+TAIL I2 usage: closure.py [-h] | {record,merge,check,autofix,autofix-report,canonical,prune,select,affected,changed,replay-reach,lane-plan,not-run,coverage-split,coverage-trust,coverage-summary,proof-consume,show,no-copies,selftest} ... | closure.py: error: the following arguments are required: cmd
+ROW I3 rc=0 wall_s=327.1 cpu_s=299.2 wired=.github/workflows/governance.yml,.github/workflows/pr-contract.yml,.github/workflows/tests.yml,tests/entities.py note=
+TAIL I3 pending  registry: DECLARED `pinned tools/audit/seat/gh_read_run.py` awaits its check in the derived set (R10-FLY-GH-READ-RETRY's follow-up adding it to pr-contract.yml's base restore) | RESULT read=61 ignored=29 declared_none=38 blind=0 dead=0 refused=0 runs=162 seconds=327.0 | FIELD COVERAGE ok
+ROW I4 rc=0 wall_s=0.7 cpu_s=0.4 wired=.github/workflows/governance.yml note=
+TAIL I4 ok   null: the same sequence with an entry naming no awaited reader is red at main2 push, and only there | ok   null: the reader PR without the entry on its base is UNREGISTERED | SELF-TEST 233 of 233 probes held
+ROW I5 rc=0 wall_s=14.9 cpu_s=12.8 wired=.github/workflows/governance.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL I5 ALL 410 checks PASSED | /home/user/audit-r11-D14-s2/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument | return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
+ROW N-body-lint-bounce rc=0 wall_s=952.4 cpu_s=529.0 wired=.github/workflows/governance.yml,.github/workflows/pr-contract.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL N-body-lint-bounce [1]-  Done                    "$@" >> "$log" 2>&1 | [1]-  Done                    "$@" >> "$log" 2>&1 | tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file
+ROW N-future-instant rc=shared wired=.github/workflows/nightly.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P1 (instant arm)
+ROW N-livehead-operator-cancel rc=0 wall_s=0.2 cpu_s=0.1 wired=NONE note=--fetch needs the Actions API (gh forbidden to finders)
+TAIL N-livehead-operator-cancel --until UNTIL | --list | --selftest
+ROW N-log-flood rc=shared wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P2
+ROW N-move-stale-path rc=shared wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P2
+ROW N-no-expiry rc=shared wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P2
+ROW N-provisional-gate-red-read-final rc=shared wired=.github/workflows/governance.yml,.github/workflows/nightly.yml,.github/workflows/pr-contract.yml,.github/workflows/tests.yml,tests/entities.py note=same run as R10-SELFTEST-RED-INTRODUCED
+ROW N-relay-handoff-starvation rc=0 wall_s=1.3 cpu_s=0.4 wired=NONE note=
+TAIL N-relay-handoff-starvation self-test ok: fast=2m (green), slow=40m (LATE at 15m), never=uncarried (not scored)
+ROW N-restart rc=shared wired=.github/workflows/codeql.yml,.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P3 (RC2 block)
+ROW N-shared-config rc=0 wall_s=88.3 cpu_s=60.6 wired=.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=
+TAIL N-shared-config ok   ...and a listed case the run did not measure keeps no invented row |  | ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED
+ROW N-silent-stop rc=0 wall_s=3.6 cpu_s=1.7 wired=.github/workflows/governance.yml note=live mode reads origin; self-test
+TAIL N-silent-stop ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board | ok   the summary line counts the arms | pulse self-test: 70 checks, 0 failed
+ROW N-silent-zero rc=0 wall_s=277.9 cpu_s=207.1 wired=.github/workflows/governance.yml,.github/workflows/pr-contract.yml,.github/workflows/tests.yml,tests/entities.py note=
+TAIL N-silent-zero read     census archscore unused_boundary_imports: 0 -> 1 with one planted member, refused on archscore.unused_boundary_imports | RESULT read=8 ignored=0 declared_none=0 blind=0 dead=0 refused=0 runs=0 seconds=277.7 | FIELD COVERAGE ok
+ROW N-solve-recompute rc=skipped-heavy wired=.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py
+ROW N-staleness rc=shared wired=.github/workflows/codeql.yml,.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=same run as P3 (R10 N-staleness block)
+ROW N-structure-blind rc=0 wall_s=33.7 cpu_s=24.5 wired=.github/workflows/arch-score.yml,.github/workflows/governance.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL N-structure-blind ok   seam_cut_total 415 <= 415 |  | STRUCTURE RATCHET PASSED
+ROW N-train-only-predicate rc=0 wall_s=9.4 cpu_s=4.8 wired=.github/workflows/budget-raise-gate.yml,.github/workflows/governance.yml,.github/workflows/pr-contract.yml,tests/entities.py note=
+TAIL N-train-only-predicate ok   e2e: --check-body: a diff that cannot be read exits 2 | ok   e2e: --check-body: --base without --head exits 2 | budget_raise_gate self-test: 290 checks, 0 failed
+ROW N-unmetered-reference rc=0 wall_s=26.1 cpu_s=17.8 wired=NONE note=
+TAIL N-unmetered-reference RESULT census wood-warm: booked over horizon mean 1.00 ok | RESULT census wood-hot: booked over horizon mean 1.00 ok | census: 6 of 6 cells ran, 0 out of band: -
+ROW N-vocabulary-drift rc=0 wall_s=7.5 cpu_s=2.0 wired=.github/workflows/governance.yml note=roster_edit.py --self-test is its second half
+TAIL N-vocabulary-drift roster_sync self-test: 98 checks, 0 failed
+ROW P1 rc=0 wall_s=158.7 cpu_s=100.0 wired=.github/workflows/nightly.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL P1 RESULT store_version_unsurfaced=0 count |  | ALL 114 FINITE BOUNDARY CHECKS PASSED
+ROW P11 rc=0 wall_s=0.3 cpu_s=0.3 wired=.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL P11 Error fetching contract data: source refused | Error fetching contract data: down | Authentication failed while fetching contract data: token refused
+ROW P2 rc=1 wall_s=607.0 cpu_s=505.3 wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=section 'P2: one fact, one owner'
+TAIL P2 reading the recorder: SQLite database /tmp/tmpjxutamzt/home-assistant_v2.db | reading the recorder: SQLite database /tmp/tmp24926xyq/home-assistant_v2.db | Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected

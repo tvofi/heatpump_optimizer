@@ -1,0 +1,12 @@
+# extraction: sed -n '/^# --- 1a3\./,/^# --- 1b0\./p' "tools/pr/prepr.sh" | sed '$d'
+LINES 18
+ARM1 1:STEP pr-body 1 stub-head-line -- refused before any heavy step (P208) 
+ARM0 0:FELL-THROUGH
+# stderr: environment: eval: line 44: syntax error: unexpected end of file
+RESULT block_lines=18
+RESULT syntax_errors=1
+RESULT refuse_pin=1
+RESULT null_pin=1
+RESULT thread_factor=0.999
+RESULT load1=1.21
+RESULT swapins=0

@@ -1,0 +1,49 @@
+{
+ "id": "D11-s2-01",
+ "scope": "D11-s2",
+ "step": "D11.M2",
+ "title": "main admitted a merge while a gate run at the merged head was red by the repository's own platform reader",
+ "severity": "high",
+ "claim": "Of the 52 merges in round 11's window, 1 (#3618) reached main while a check suite at its merged head carried a red latest `gate` run (CI code run 43734029821, gate failed 19:18:44Z, its codeql/Analyze (python) still running and later failed) and 1 (#3644) while a gate re-run was in progress; `merge_train.platform_gate`, documented as GitHub's own required-check evaluation, reads #3618 red, so the ruleset's required `gate` check does not enforce what the train assumes it enforces.",
+ "mechanism": "main-protect-checks requires the context `gate` (integration 15368). Every ci.yml run (edit, review, code, dispatched code) publishes its own `gate` check run in its own check suite at the head. GitHub admitted the merge with four suites' gates green and the dispatched code run's gate red; the train's platform_gate requires every required gate run to pass. The only refusal of a red-gate merge is therefore client-side (merge_train / merge_pr.sh), which a merge under the owner account outside the train does not pass through.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+  "value": 2,
+  "unit": "merges not green at merged_at (1 red, 1 wait)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7 (4 vCPU, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+  "tolerance": "exact",
+  "load1": 4.87,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/merge_train.py:platform_gate",
+ "perturbation": {
+  "change": "--perturb: add FAILURE to merge_train.PLATFORM_PASS (the reader accepts a red gate run)",
+  "expected_direction": "down",
+  "observed_value": "platform_gate_red 1 -> 0 (merged_not_green 2 -> 1, the wait remains)"
+ },
+ "metric_definition": "count of window merges whose merged head, at merged_at, platform_gate reads not green over each check suite's latest gate run completed by then",
+ "phenomenon_property": "No merge reaches main while any check suite at the merged head carries a red or unfinished latest `gate` run; the platform, not only the train, refuses it.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py (one line per merge in the window not green at merged_at)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+  "value": "50 of 52 merges green at merged_at",
+  "note": "the same reader over the same snapshot is green for the other 50, so the reader is not red by construction"
+ },
+ "reproduction_steps": [
+  "python3 dev/audit/rounds/round11/D11/s2/fetch_window.py && python3 dev/audit/rounds/round11/D11/s2/fetch_window.py --gates (refreshes api/)",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/gate_at_merge.py",
+  "api/pr3618_gate_runs.json: suite 118403819214 (run 43734029821, workflow_dispatch 'CI code') latest gate before 19:51:14Z is failure; merged_by tvofi"
+ ],
+ "proposed_fix_scope": "Make the platform refuse it: either one gate per head (the code run's gate the only check run named `gate`, the others renamed), or a required check whose single run reads every suite at the head; and record in decision 0011/0013 that platform_gate is stricter than GitHub so a non-train merge is not covered.",
+ "files": [
+  ".github/workflows/ci.yml",
+  "tools/ci/gate.py",
+  "tools/audit/seat/merge_train.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

@@ -1,0 +1,385 @@
+{
+ "dimension": "D14",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D14/s2/REPORT.json",
+ "exposure": "bugclasses.json (instances/barrier/detector text) and git history of listed instances: pre-fix trees 3e9f1878bd^ (R9 D1-s5-51), 9c988fc580^ (R10 D14-s3-02), d7b1712297^1 (#2336 N-log-flood/N-no-expiry instances), git log -1/show --stat of those commits; this seat's own checkpoint from its killed first run (restored, re-run); sibling seats' checkpoint file names (not contents) visible in the box comms tree",
+ "coverage": [
+  {
+   "step": "D14.M1",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 56,
+   "examined": 56,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "python3 dev/audit/rounds/round11/D14/s2/ledger_check.py: classes=56, counts_fail=0, paths_exist_fail=0, detector_cmd_fail=0, status_vocab_fail=1 (N-orphaned-handoff 'prototype-only', a status D14.md M1 does not define); --plant moves counts_fail +1"
+  },
+  {
+   "step": "D14.M2",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 36,
+   "examined": 36,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "not_reached"
+    },
+    {
+     "item": "C6",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "every detector/barriered class owned by D14-s2 and given a sweep.py row (RESULT classes=36, norow=0). C2 (P8 detector) and C6 (N-name-sort, N-step-grid, N-reap-lock) are open classes outside this seat's M2-M4 axis (detector,barriered): leads to D14-s1"
+  },
+  {
+   "step": "D14.M3",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 36,
+   "examined": 34,
+   "not_reached": [
+    "I1",
+    "N-livehead-operator-cancel"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "not_reached"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "sweep.py ran each class's detector/barrier at the baseline (sweep.out walled, sweep_export.out git-less export, sweep_clean.out clean git worktree; non-zero rows re-run clean: all rc 0 except environmental gaps named in non_findings); P9 via plan_view+card_browser (p9_card_browser.out), N-solve-recompute via GOLDEN_REF=HEAD^1 (stress_goldenref.out: 116 of 116). Pre-fix re-finds: staleness_detector.py --at 3e9f1878bd^ refind_D1_s5_51=1, --at 9c988fc580^ refind_D14_s3_02=1 (C5), mode_quiet.py onchange 0 / --perturb 60 -> 8; barrier_refind.py N-log-flood 6/6 and N-no-expiry 2/2 at d7b1712297^1, 0 at baseline. I1 and N-livehead-operator-cancel: only argv parse (need origin/main diff / Actions API). C1, C3 concern open classes P10/P8: outside the axis, leads to D14-s1"
+  },
+  {
+   "step": "D14.M4",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 36,
+   "examined": 34,
+   "not_reached": [
+    "I1",
+    "N-livehead-operator-cancel"
+   ],
+   "redispatched": [
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "new-seam reach probes: staleness_detector.py (13 q255 seams, D14-s2-01), covering_census.py (20 constant-index candidates vs barrier 6, D14-s2-02), logflood_shape.py (exception/critical/log/alias counted 0, D14-s2-03), prepr_1a3_eval.py (syntax_errors=1, D14-s2-04); the other 30 examined classes' barriers pass at baseline with their planted controls (sweep rows) and no new seam was found"
+  },
+  {
+   "step": "D14.M5",
+   "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json",
+   "universe": 56,
+   "examined": 56,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "python3 dev/audit/rounds/round11/D14/s2/m5_barriers.py: barriered_ci=31 offline=0 none=0 (--plant -> offline 1); detector_ci=2 offline=3; open_none=18 open_offline=1; prototype_only_none=1. Gate seconds (provisional) in the sweep ROW lines: features.py 1023 s, entities.py 641 s, prepr.sh --self-test 548 s, field_coverage.mjs 327 s, card_browser 314 s, stress 210 s, finite_boundary 159 s, optimality 158 s"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D14.M3",
+   "what": "I1 (mutation_table.py --scope changed needs an origin/main diff) and N-livehead-operator-cancel (--fetch needs the Actions API) ran argv parse only; pre-fix re-finds done for N-staleness, N-log-flood, N-no-expiry only, other barriered classes rest on their own in-tree planted controls"
+  },
+  {
+   "step": "D14.M4",
+   "what": "I1 and N-livehead-operator-cancel not swept for new seams; D14-s2-01's 7 non-flag q255 seam keys listed but not driven to their published consequence; D14-s2-02's 20 census candidates not dispositioned; REPORT.md could not be written (the session's tool policy refused a report .md file) -- its content is in the returned report"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D14-s2-01",
+   "scope": "D14-s2",
+   "step": "D14.M3",
+   "title": "Push-mode pump flags quiet past their 30/60 min on-change limit publish Input Problem on a healthy pump",
+   "severity": "medium",
+   "claim": "With the six pump-flag inputs configured as report-on-change sources that legitimately hold their value for 255 min, one real coordinator cycle publishes all six in stale_inputs and turns the Input Problem binary sensor on; the same flags changed 10 min ago, or re-reported 1 min ago, publish none.",
+   "mechanism": "INPUT_ON_CHANGE_MAX_AGE_MINUTES keeps the polling limit (30 min defrost/online/backup/booster/capacity-limited, 60 min fault) for the pump flags, on the barrier's disposition 'fails safe'. That reason covers the control consequence (a stale flag demotes to None). It does not cover the reader's other consequence: InputHealth.stale_keys feeds payload stale_inputs, and InputHealthBinarySensor.is_on reads it. const.py's own comment says the reference integration's MQTT push mode 'does not poll at all -- it pushes on change', and a defrost flag 'off' through a mild day or an online flag 'on' for days is the legitimate quiet interval the class names. The barrier census only drives each key at limit+1 and checks the reader's stale flag against the named list. It never reads what a named-equal key publishes.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+    "value": 6,
+    "unit": "pump-flag keys in stale_inputs (quiet_stale_flags); quiet_input_problem_on=1",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, linux, 4 cpu",
+    "cpu_or_wall": "count",
+    "contention_note": "shared compute box, other finder seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 5.18,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state (via inputs:InputReader.read_bool, inputs:age_limit_for) and binary_sensor:InputHealthBinarySensor.is_on",
+   "perturbation": {
+    "change": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[k] = inf for the six flag keys (harness --perturb inf, in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "quiet_stale_flags 6 -> 0, quiet_input_problem_on 1 -> 0"
+   },
+   "metric_definition": "Count of the six pump-flag keys in the real payload's stale_inputs after one cycle with each flag an on-change source held 255 min; plus InputHealthBinarySensor.is_on.",
+   "phenomenon_property": "No reading of a report-on-change source is published as stale, in stale_inputs, input_problems or the Input Problem sensor, for a quiet interval its source legitimately holds. Where a key keeps a finite on-change limit because staleness is the safe control direction, that limit must not also raise the user-facing problem flag, or the problem must be withheld for on-change sources.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py   (SEAM arm=quiet q=255 lines: every age-limited key InputReader declares stale after a 255 min on-change hold; the 13 at baseline are external_heat, heat_pump_backup_heater, heat_pump_capacity_limited, heat_pump_defrost, heat_pump_dhw_booster, heat_pump_fault, heat_pump_online, outdoor_temp, pv_production, solar_radiation, valve_outlet_temp, wood_tank_bottom, wood_tank_top; the six pump flags are demonstrated through the coordinator here, the other seven are listed and not driven to their published consequence)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+    "value": "null_stale_flags=0, null_input_problem_on=0 (flags changed 10 min ago); polled_stale_flags=0, polled_input_problem_on=0 (same 255 min hold, re-reported 1 min ago)",
+    "note": "The effect needs both an on-change source and a quiet spell longer than the limit"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_flags.py  -> quiet_stale_flags=6, quiet_input_problem_on=1",
+    "... --perturb inf -> quiet_stale_flags=0, quiet_input_problem_on=0",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py -> quiet_stale_q255=13, polled_stale_q255=0"
+   ],
+   "proposed_fix_scope": "inputs.py age gate / const.INPUT_ON_CHANGE_MAX_AGE_MINUTES for the six pump flags (inf, as power and mode already are, since pump_signals reads None and a live value alike for control), or a separate 'acts as absent but is not a problem' disposition for on-change keys kept finite. Barrier: extend tests/features.py's R10 N-staleness census so each named-equal key also asserts what the payload's stale_inputs and InputHealthBinarySensor publish for an on-change hold of the class's quiet spell.",
+   "files": [
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-staleness"
+  },
+  {
+   "id": "D14-s2-02",
+   "scope": "D14-s2",
+   "step": "D14.M3",
+   "title": "_current_weather books forecast row 0's wind as current at any age; the N-no-expiry barrier cannot see an index-0 read",
+   "severity": "medium",
+   "claim": "During a weather-fetch outage of 1 to 72 h, HeatPumpOptimizerCoordinator._current_weather returns the wind of the held forecast's first row, not the row covering now (or none past the horizon), at all 72 of 72 hours. At 30 h the diagnosis record books 10.0 m/s where the covering row says 40.0. The fixed sibling forecast_outdoor_now, over the same rows, mismatches at 0 of 72 hours.",
+   "mechanism": "_current_weather reads self._weather_forecast[0] with no timestamp match and no end bound. The forecast is kept verbatim when a fetch fails or returns empty: _fetch_weather keeps the previous list and only marks _weather_stale_since, and no learner freezes on that. So once the source stops updating, the row booked as 'now' drifts back by the outage length. It feeds the house and lower-floor loss replay (_replay_interval -> _replay_step's weather argument) and the #52 diagnosis capture's planned.wind_speed. forecast_outdoor_now's own docstring names this exact assumption as wrong ('Assuming entry 0 is the current hour ... a stale forecast ... reads hours out of phase'), and #2229 fixed that sibling with _covering_index. The class barrier, tests/entities.py's _r10_covering_lookups, counts only the AST shape `bisect_right(...) - 1`, so a lookup that indexes [0] or walks a loop is invisible to it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s2/current_weather.py",
+    "value": 72,
+    "unit": "outage hours (of 72) at which _current_weather's wind is not the covering row's",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, linux, 4 cpu",
+    "cpu_or_wall": "count",
+    "contention_note": "shared compute box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 8.48,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_weather (and _capture_diagnosis_inputs; sibling control coordinator:forecast_outdoor_now)",
+   "perturbation": {
+    "change": "swap _current_weather in memory for the same body indexed by coordinator._covering_index over the rows' own timestamps (harness --perturb covering)",
+    "expected_direction": "to_zero",
+    "observed_value": "wind_mismatch_hours 72 -> 0; booked_planned_wind_h30 10.0 -> 40.0"
+   },
+   "metric_definition": "Hours H in 1..72 after the last good hourly fetch at which _current_weather()[0] differs from the wind of the row _covering_index picks at now (0 when none covers).",
+   "phenomenon_property": "Every read of a time-indexed series as 'the value now' selects the row covering now with an end bound, and yields nothing past it. A positional read such as entry [0] or [-1], or a loop that falls through to the last row, is a covering lookup too and goes through _covering_index.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/covering_census.py   (lists every read of a forecast/series container by constant index [0]/[-1] and every loop fall-through to the last element in the package, beside the barrier's bisect_right count)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+    "value": "h0_match=1 (fresh fetch: row 0 covers now); outdoor_sibling_mismatch_hours=0 of 72",
+    "note": "The effect needs an outage. The bounded sibling over the same rows shows the rows and clock are honest."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py -> wind_mismatch_hours=72, booked_planned_wind_h30=10.0",
+    "... --perturb covering -> wind_mismatch_hours=0, booked 40.0"
+   ],
+   "proposed_fix_scope": "coordinator._current_weather: match now by row timestamp through _covering_index, as forecast_outdoor_now does, and return the no-wind default past the horizon. Barrier: widen tests/entities.py's _r10_covering_lookups beyond the bisect_right shape to constant-index reads of a timed series attribute (_weather_forecast, _solar_radiation_forecast, price lists), with a reasoned list.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/entities.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-no-expiry"
+  },
+  {
+   "id": "D14-s2-03",
+   "scope": "D14-s2",
+   "step": "D14.M4",
+   "title": "N-log-flood barrier counts only _LOGGER.warning/.error: an unlatched per-cycle .exception or .critical passes it",
+   "severity": "low",
+   "claim": "An unlatched per-cycle _LOGGER.exception or _LOGGER.critical site (or a _LOGGER.log(level, ...) call, or a logger alias) planted in coordinator.py moves tests/entities.py's _r10_unlatched_logs count by 0, where the same site as _LOGGER.warning moves it by 1; widening the barrier's one attribute test makes exception and critical count 1.",
+   "mechanism": "_r10_unlatched_logs matches a Call only when func.attr is in (\"warning\", \"error\") and func.value unparses to exactly \"_LOGGER\". _LOGGER.exception logs at ERROR with a traceback (the heaviest flood shape, and the idiom of an except handler that runs every cycle), _LOGGER.critical logs above it, and _LOGGER.log(logging.WARNING, ...) or a rebinding logs the same records; none is read. The class's RCA countermeasure is that an unlatched per-cycle site off the reasoned list is refused, so the barrier does not make the class impossible, only the two spelled methods. At the baseline the package has one blind-shape site, sysid.py:1850 (_finish's fit-raised handler, once per experiment, not a per-cycle instance), so this is a reach gap with no live instance.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+    "value": 0,
+    "unit": "barrier count delta for a planted unlatched _LOGGER.exception (counted_exception); counted_critical=0, counted_log_level=0, counted_alias=0, control counted_warning=1",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, linux, 4 cpu",
+    "cpu_or_wall": "count",
+    "contention_note": "shared compute box, other finder seats running; AST counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 9.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/entities.py:_r10_unlatched_logs (extracted by AST from the baseline file and run over the package's own sources plus one planted site per shape)",
+   "perturbation": {
+    "change": "the barrier's attribute test widened to (\"warning\", \"error\", \"exception\", \"critical\") in memory (harness --widen)",
+    "expected_direction": "up",
+    "observed_value": "counted_exception 0 -> 1, counted_critical 0 -> 1, barrier_sites_baseline 71 -> 72 (the sysid _finish site)"
+   },
+   "metric_definition": "Change in sum(_r10_unlatched_logs(package).values()) when one unlatched site of a given logging shape is appended to coordinator.py.",
+   "phenomenon_property": "Every logging call in the package that can emit at WARNING or above, whatever method or logger binding spells it, is either latched or on the reasoned list with its exact count.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py   (SITE lines: every live call the barrier cannot see; 1 at baseline, sysid.py:1850 _LOGGER.exception)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py --no-control",
+    "value": "the counted_warning control plant reads 1 when present; the blind shapes read 0 either way",
+    "note": "The plant mechanism is honest: the same site spelled .warning is counted."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py -> counted_warning=1, counted_exception=0, counted_critical=0, counted_log_level=0, counted_alias=0, live_blind_sites=1",
+    "... --widen -> counted_exception=1, counted_critical=1"
+   ],
+   "proposed_fix_scope": "tests/entities.py _r10_unlatched_logs: count exception and critical beside warning/error, and _LOGGER.log with a level >= WARNING; refuse any other logger binding in the package (or resolve aliases of _LOGGER); add sysid.py _finish to the 'once per event' reasoned group. Barrier cost: AST pass already in entities.py, under 1 s.",
+   "files": [
+    "tests/entities.py",
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-log-flood"
+  },
+  {
+   "id": "D14-s2-04",
+   "scope": "D14-s2",
+   "step": "D14.M3",
+   "title": "prepr.sh --self-test evals an unterminated step-1a3 block: every run prints a bash syntax error and its null pin passes through it",
+   "severity": "low",
+   "claim": "The self-test's step-1a3 extraction (sed from '# --- 1a3.' to '# --- 1b0.') now ends inside the open `if [ -n \"$REUSE\" ]; then ... else` that was inserted before 1b0, so the null-control arm's eval raises 1 bash syntax error on every run (the 'eval: syntax error: unexpected end of file' tail of each prepr.sh --self-test), and the pin 'step 1a3 lets a body naming this head run every step' passes on output produced after the parse failure.",
+   "mechanism": "bash's eval runs complete top-level commands as it parses them, so the leading 1a3 `if` executes (the refuse arm exits 1 inside it, the null arm falls past it), then the parser meets the unterminated REUSE `if` and aborts the eval; `echo FELL-THROUGH` after the eval prints regardless. The null pin keys on FELL-THROUGH alone, never on the eval's status or stderr, so it cannot tell 'the arm let the body through' from 'the eval died'. The block also carries the PREPR_RECORDER_CACHE line, so the self-test writes a stray /tmp/prepr-recpy.<pid>. The pins still pass (rc 0), so the defect is silent: the barrier's drive is no longer the code it says it drives.",
+   "evidence": {
+    "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+    "value": 1,
+    "unit": "bash syntax errors raised by the self-test's eval of its extracted step-1a3 block (null arm); refuse_pin=1, null_pin=1, block_lines=18",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, linux, 4 cpu",
+    "cpu_or_wall": "count",
+    "contention_note": "shared compute box; a parse-error count is contention-immune. The same stderr line ends the full prepr.sh --self-test run in sweep.py's N-body-lint-bounce row (rc 0) in a clean git worktree and in the walled export",
+    "tolerance": "exact",
+    "load1": 1.21,
+    "thread_factor": 0.999
+   },
+   "instrumented_symbol": "tools/pr/prepr.sh: the --self-test's blk1a3 extraction and early_head drive (the extraction is read from prepr.sh and run as written)",
+   "perturbation": {
+    "change": "the extraction's end anchor moved from '^# --- 1b0\\.' to '^# One interpreter resolution' (the first line after step 1a3's fi), in memory (harness --anchor)",
+    "expected_direction": "to_zero",
+    "observed_value": "syntax_errors 1 -> 0, block_lines 18 -> 11, refuse_pin and null_pin stay 1"
+   },
+   "metric_definition": "Count of 'syntax error' lines bash writes when the self-test's own blk1a3 extraction is eval'd by its early_head drive with stub arm rc 1 and rc 0.",
+   "phenomenon_property": "Every block a self-test extracts by line range and evals parses on its own (bash -n clean), and a fall-through pin also asserts the eval returned without a parse error.",
+   "seam_rule": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py   (this seam; the other extracted-and-eval'd blocks of tools/pr/prepr.sh -- bcg, blk1a2, blk3, the take_slot and heavy_skip copies -- were bash -n checked by hand at the baseline and parse)",
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py --anchor",
+    "value": "syntax_errors=0 with both pins still 1",
+    "note": "The pins' verdicts are not what is wrong; the drive under them is."
+   },
+   "reproduction_steps": [
+    "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py -> syntax_errors=1, refuse_pin=1, null_pin=1",
+    "... --anchor -> syntax_errors=0",
+    "bash tools/pr/prepr.sh --self-test (clean git worktree) -> rc 0, output tail 'tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file'"
+   ],
+   "proposed_fix_scope": "tools/pr/prepr.sh --self-test: end blk1a3's range at step 1a3's own closing fi (or add a '# --- 1a4.' marker before the REUSE block), and make early_head fail on a non-empty eval stderr. A one-line instrument repair (README: made in place, no issue).",
+   "files": [
+    "tools/pr/prepr.sh"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "N-body-lint-bounce"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every barriered class's barrier is a script a CI entry point runs",
+   "command": "python3 dev/audit/rounds/round11/D14/s2/m5_barriers.py",
+   "value": "barriered_ci=31, barriered_offline=0, barriered_none=0"
+  },
+  {
+   "claim": "N-log-flood and N-no-expiry AST barriers re-find every listed package instance at the pre-fix tree and none at baseline",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/barrier_refind.py",
+   "value": "N_log_flood_prefix_refound=6 of 6, N_no_expiry_prefix_refound=2 of 2, baseline 0 and 0; --plant +1 each"
+  },
+  {
+   "claim": "N-staleness quiet-night detector re-finds R9 D1-s5-51 and R10 D14-s3-02 at their pre-fix trees (C5)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/staleness_detector.py --at 3e9f1878bd^ ; ... --at 9c988fc580^",
+   "value": "refind_D1_s5_51=1 (q255=25 keys); refind_D14_s3_02=1; baseline polled arm 0"
+  },
+  {
+   "claim": "A quiet on-change mode select keeps its live capability through an 8 h night (MODE_LAST_GOOD no longer expires it)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/mode_quiet.py",
+   "value": "onchange_wrong_cycles=0 of 16, polled 0; --perturb 60 -> 8"
+  },
+  {
+   "claim": "Every Store in the package is a QuarantiningStore (P1/N-future-instant store seam)",
+   "command": "grep -n 'QuarantiningStore(\\|\\bStore(' custom_components/heatpump_optimizer/*.py",
+   "value": "17 QuarantiningStore constructions, 0 raw Store("
+  },
+  {
+   "claim": "Space pump drive past the plan horizon is guarded",
+   "command": "read: coordinator._space_pump_to_drive",
+   "value": "returns None on _plan_is_stale in AUTO/ECONOMY (#1449); the clamp in pump_schedule.plan_commands_heat is not reached on a stale plan"
+  },
+  {
+   "claim": "Barrier suites pass at baseline in a clean git worktree",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/sweep.py --only ... (cwd: clean git worktree of the baseline)",
+   "value": "entities.py ALL 2723 passed; features.py rc 0; optimality 84/84; card_browser ALL BROWSER CHECKS PASSED; stress (GOLDEN_REF=HEAD^1) 116/116; closure selftest 118/118; record_row/gh_read self-tests pass"
+  },
+  {
+   "claim": "Harness gap, not a defect: reds in the walled worktree / git-less export",
+   "command": "sweep.py in the walled worktree and in a git archive export",
+   "value": "closure selftest 2/118 FAIL and entities.py rc 1 (walled: deleted round files); entities/features/prepr/record_row rc!=0 (no .git); all pass in a clean git worktree"
+  },
+  {
+   "claim": "Harness gap: stress.py at a baseline equal to origin/main compares a tree against itself",
+   "command": "PYTHONPATH=tests/hastub python3 tests/stress.py",
+   "value": "7 of 113 FAIL ('origin/main IS this commit'); GOLDEN_REF=HEAD^1: 116 of 116 pass"
+  },
+  {
+   "claim": "Harness gap: card_browser.mjs needs plan_view.py first and HPO_PLANDATA as a file path",
+   "command": "node tests/card_browser.mjs",
+   "value": "rc 1 'plan payload not found' alone; rc 0 after plan_view.py"
+  },
+  {
+   "claim": "Other self-test eval extractions in prepr.sh parse",
+   "command": "bash -n on the take_slot, --body-check, bcg, blk1a2, blk3 and body_push prepr_trailer extractions",
+   "value": "all parse; only blk1a3 does not (D14-s2-04)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D14/s2/barrier_refind.py",
+  "dev/audit/rounds/round11/D14/s2/covering_census.py",
+  "dev/audit/rounds/round11/D14/s2/current_weather.py",
+  "dev/audit/rounds/round11/D14/s2/ledger_check.py",
+  "dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+  "dev/audit/rounds/round11/D14/s2/m5_barriers.py",
+  "dev/audit/rounds/round11/D14/s2/mode_quiet.py",
+  "dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+  "dev/audit/rounds/round11/D14/s2/staleness_detector.py",
+  "dev/audit/rounds/round11/D14/s2/staleness_flags.py",
+  "dev/audit/rounds/round11/D14/s2/sweep.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D14-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._replay_interval (P10)",
+   "what": "C1 carried: P10 pre-fix re-find at c4e1e0c07^ and the house/lower-floor loss-learner seam (not driven: DHW-only fixture). Open class, outside D14-s2's detector/barriered M2-M4 axis"
+  },
+  {
+   "owner_seat": "D14-s1",
+   "file": "dev/audit/config/bugclasses.json",
+   "symbol": "P8 (currency precedence)",
+   "what": "C2/C3 carried: P8 has no detector; re-find its instances at pre-fix commits (e.g. 3490cb16) and probe the config_flow fee-bound seams. Open class, outside this seat's axis"
+  },
+  {
+   "owner_seat": "D14-s1",
+   "file": "dev/audit/config/bugclasses.json",
+   "symbol": "N-name-sort, N-step-grid, N-reap-lock",
+   "what": "C6 carried: open classes not picked last round (detectors). Outside this seat's axis"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "dev/audit/config/bugclasses.json",
+   "symbol": "N-orphaned-handoff.status",
+   "what": "status 'prototype-only' is not one of D14.md M1's three statuses (open/detector/barriered) though scopes.json's axis carries it; brief and ledger vocabularies disagree (ledger_check.py status_vocab_fail=1)"
+  }
+ ]
+}

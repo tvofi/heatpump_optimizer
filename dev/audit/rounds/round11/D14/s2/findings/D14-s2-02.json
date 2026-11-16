@@ -1,0 +1,47 @@
+{
+ "id": "D14-s2-02",
+ "scope": "D14-s2",
+ "step": "D14.M3",
+ "title": "_current_weather books forecast row 0's wind as current at any age; the N-no-expiry barrier cannot see an index-0 read",
+ "severity": "medium",
+ "claim": "During a weather-fetch outage of 1 to 72 h, HeatPumpOptimizerCoordinator._current_weather returns the wind of the held forecast's first row, not the row covering now (or none past the horizon), at all 72 of 72 hours. At 30 h the diagnosis record books 10.0 m/s where the covering row says 40.0. The fixed sibling forecast_outdoor_now, over the same rows, mismatches at 0 of 72 hours.",
+ "mechanism": "_current_weather reads self._weather_forecast[0] with no timestamp match and no end bound. The forecast is kept verbatim when a fetch fails or returns empty: _fetch_weather keeps the previous list and only marks _weather_stale_since, and no learner freezes on that. So once the source stops updating, the row booked as 'now' drifts back by the outage length. It feeds the house and lower-floor loss replay (_replay_interval -> _replay_step's weather argument) and the #52 diagnosis capture's planned.wind_speed. forecast_outdoor_now's own docstring names this exact assumption as wrong ('Assuming entry 0 is the current hour ... a stale forecast ... reads hours out of phase'), and #2229 fixed that sibling with _covering_index. The class barrier, tests/entities.py's _r10_covering_lookups, counts only the AST shape `bisect_right(...) - 1`, so a lookup that indexes [0] or walks a loop is invisible to it.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+  "harness_path": "dev/audit/rounds/round11/D14/s2/current_weather.py",
+  "value": 72,
+  "unit": "outage hours (of 72) at which _current_weather's wind is not the covering row's",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7, linux, 4 cpu",
+  "cpu_or_wall": "count",
+  "contention_note": "shared compute box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 8.48,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_weather (and _capture_diagnosis_inputs; sibling control coordinator:forecast_outdoor_now)",
+ "perturbation": {
+  "change": "swap _current_weather in memory for the same body indexed by coordinator._covering_index over the rows' own timestamps (harness --perturb covering)",
+  "expected_direction": "to_zero",
+  "observed_value": "wind_mismatch_hours 72 -> 0; booked_planned_wind_h30 10.0 -> 40.0"
+ },
+ "metric_definition": "Hours H in 1..72 after the last good hourly fetch at which _current_weather()[0] differs from the wind of the row _covering_index picks at now (0 when none covers).",
+ "phenomenon_property": "Every read of a time-indexed series as 'the value now' selects the row covering now with an end bound, and yields nothing past it. A positional read such as entry [0] or [-1], or a loop that falls through to the last row, is a covering lookup too and goes through _covering_index.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/covering_census.py   (lists every read of a forecast/series container by constant index [0]/[-1] and every loop fall-through to the last element in the package, beside the barrier's bisect_right count)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py",
+  "value": "h0_match=1 (fresh fetch: row 0 covers now); outdoor_sibling_mismatch_hours=0 of 72",
+  "note": "The effect needs an outage. The bounded sibling over the same rows shows the rows and clock are honest."
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/current_weather.py -> wind_mismatch_hours=72, booked_planned_wind_h30=10.0",
+  "... --perturb covering -> wind_mismatch_hours=0, booked 40.0"
+ ],
+ "proposed_fix_scope": "coordinator._current_weather: match now by row timestamp through _covering_index, as forecast_outdoor_now does, and return the no-wind default past the horizon. Barrier: widen tests/entities.py's _r10_covering_lookups beyond the bisect_right shape to constant-index reads of a timed series attribute (_weather_forecast, _solar_radiation_forecast, price lists), with a reasoned list.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "tests/entities.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-no-expiry"
+}

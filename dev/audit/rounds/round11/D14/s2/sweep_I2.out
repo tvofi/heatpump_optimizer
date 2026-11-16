@@ -1,0 +1,7 @@
+RESULT classes=36
+RESULT norow=0
+ROW I2 rc=1 wall_s=4.9 cpu_s=1.7 wired=.github/workflows/ci.yml,.github/workflows/governance.yml,.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=check --in-dir needs a strace recording; self-test
+TAIL I2 ok   merge of the same recording writes the excepted file into the closure and only the INERT one under inert_reads |  | 2 of 118 closure shrink pins FAILED
+RESULT thread_factor=1.000
+RESULT load1=5.68
+RESULT swapins=0
