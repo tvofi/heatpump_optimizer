@@ -2,3 +2,4 @@
 1794844480 HB alive
 1794844565 CKPT reproduced reviewer attack rows at head; analysing probe statistic snapshot 895f3021a9c9
 1794844828 CKPT fix candidate: differenced step_response + priced-scale row alignment; attack rows flip, heatled hold; WIP pushed; sweep running snapshot 581a4efab117
+1794845035 CKPT fix committed 0c822e6493+7ff8a7d43c on e78ef18; fail-first at head shown; block rerun snapshot 69b8970a01b9
