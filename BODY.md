@@ -82,13 +82,8 @@ For the four `tick_loop.sh` mutants, the nested self-test rows (branch, detached
 - `python3 tools/audit/archscore/score.py --diff 98847b99d7bb3238686efd6869f805c89c6d1ff1`: `Architecture score: dS +0.0000 NULL`.
 - `python3 tools/pr/ci_predict.py --base origin/main`, after `--apply-inert` registered the new harness as an INERT READ of `tests/harness_headers.py`: `no closures, fast, governance or instrument red predicted`.
 
-- `python3 tests/closure.py select --diff 98847b99d7bb3238686efd6869f805c89c6d1ff1` with the head's own `closure.py`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`tests/entities.py`, `tests/doc_claims.py`). Run at `981cad4189` with `PYTHONPATH=tests/hastub`, with the `run_always` pair and the ratchet: `ALL 2723 ENTITY CHECKS PASSED`, `ALL 410 checks PASSED`, `layout self-test: ok`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `STRUCTURE RATCHET PASSED`. The rendered block below comes from the current `origin/main`'s registered instrument, as `pr-contract` verifies it, and prints `MODE: FULL`; CI's gate is the authority on which mode runs.
+- `python3 tests/closure.py select --diff 98847b99d7bb3238686efd6869f805c89c6d1ff1` with the head's own `closure.py`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`tests/entities.py`, `tests/doc_claims.py`). Run at `981cad4189` with `PYTHONPATH=tests/hastub`, with the `run_always` pair and the ratchet: `ALL 2723 ENTITY CHECKS PASSED`, `ALL 410 checks PASSED`, `layout self-test: ok`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `STRUCTURE RATCHET PASSED`. No rendered `scope-line` block: `body_push.sh` renders it against the pull request's recorded base `921214bf` (`MODE: SCOPED -- 2 script(s) run, 31 scoped out.`) while `prepr.sh --body-check`'s `figure_block_check` verifies it against `origin/main` `47f0f18a` (`MODE: FULL -- every test script runs, nothing is scoped out.`), so a block refuses at one of the two once main has moved past the recorded base.
 
-<!-- figure-block: scope-line mb=98847b99d7bb3238686efd6869f805c89c6d1ff1 head=981cad4189b75d063894454ada80085b872c1b61 -->
-~~~text
-MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Red checks
 
