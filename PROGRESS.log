@@ -5,3 +5,4 @@
 1794857946 CKPT verdict drafted, carry audit run; waiting on CI snapshot 6a6e4aa78b01
 1794858072 HB alive
 1794858676 HB alive
+1794858765 DONE Fix review: merge 375037b7 pending-ci: gate, pushed to probe/rev-3686-bddf5a15 at fe19465c
