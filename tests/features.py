@@ -47607,6 +47607,23 @@ R.check(
 )
 
 
+
+def _vr_mild_curve():
+    from heatpump_optimizer.thermal_model import _valve_flow_set, _valve_ua
+
+    _vr_p = _vr_one_tank()
+    _vr_u = ThermalModel(_vr_p).effective_heat_loss_coefficient(_vr_p.heat_loss_coefficient, 0.0, 0.0)
+    return _vr_p.internal_gains, _vr_u * 0.5, _valve_flow_set(_vr_p, 21.0, 20.5, _vr_u, _valve_ua(_vr_p))
+
+
+_vr_gains, _vr_loss, _vr_mild = _vr_mild_curve()
+R.check(
+    "single-zone valve: where the house's gains cover its loss the curve sits at its target, never below",
+    _vr_gains > _vr_loss and _vr_mild == 21.0,
+    f"gains {_vr_gains:.3f} kW, loss {_vr_loss:.4f} kW, curve {_vr_mild!r} C",
+)
+
+
 def _vr_direct_curve():
     from heatpump_optimizer import mixing_valve as _vr_mv
     from profiles import house as _vr_house
