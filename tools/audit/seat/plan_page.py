@@ -796,7 +796,8 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "next_pane": ('</div>\n<div id="tab-next" class="tabpane" hidden>\n'
                       + next_round_pane(whole, plan, full_snap) + '</div>\n' + _TABS_JS
                       if tabbed else ""),
-        "phases": plan_phases.section(*phases, axis=time_axis(plan)) if phases else "",
+        "phases": plan_phases.section(*phases, axis=time_axis(plan),
+                                                      phase_hours=model.get("phase_hours")) if phases else "",
         "issues_chart": issues_section(roster, plan, snap),
         "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
@@ -1450,6 +1451,14 @@ def _self_test() -> int:
                      for x in (sec, swimlanes(plan, build_rows(roster, plan, snap))[0])]
             check("groups and phases: the phases are drawn on the swimlanes' own time axis",
                   ticks[0] and ticks[0] == ticks[1], ticks)
+            measured = render(roster, src, dict(plan, generated={**plan["generated"], "model": {
+                **plan["generated"]["model"], "phase_hours": {"finders": 7.5}}}), snap, None, fx)
+            check("a phase the model prices prints its figure; one it does not prints "
+                  "'duration unmeasured', never a zero or a typed constant; the rest a dash",
+                  "7.5 h (plan model)" in measured and "duration unmeasured" in measured
+                  and "duration unmeasured" in both and "plan model)" not in both
+                  and measured.count("duration unmeasured") == both.count("duration unmeasured") - 1,
+                  (both.count("duration unmeasured"), measured.count("duration unmeasured")))
             check("null control, groups only: no phases section, nothing of the phases drawn",
                   'id="phases"' not in groups_only and "PHASES UNAVAILABLE" not in groups_only)
             empty = replan.build_plan({"groups": []}, json.loads(
