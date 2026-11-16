@@ -24,14 +24,14 @@ Sections, each measured:
   TRAIN   is `merge_train.py` alive (pgrep, self excluded); the active queue's
           entries vs merged-into-main (an entry whose PR is already MERGED is
           stale, to drop); the log tail (--train-log, last 5 lines) and its
-          sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
+          sibling .rc; prepr.sh slots (gate-scoping.md's heavy-slot cap).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
           a RED in `merge_train.py owed-reds`' set not answered in the body's
           ## Red checks (every RED when that set is unreadable); missing
           delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
-          head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
+          head (the bot-push shape -- approve_held_runs.sh);
           required contexts absent at the head; twin open PRs at one head
           (the shared-head class); a claim-file touch whose `claims-for:` is
           not VERSION; a head left behind main by more than --behind-max
@@ -50,7 +50,7 @@ Sections, each measured:
           40-55 m). No PR yet is OK inside --stall-hours and STALLED?
           beyond it.
   PLAN    roster groups not done whose predecessors are all done (newly
-          unblocked -- start a fixer; nudge.md step 16) and groups blocked,
+          unblocked -- start a fixer; orchestrator.md section 5) and groups blocked,
           naming the blocker. Read through roster_lib, the one schema reader.
   STATE   state-doc staleness, read-only: the handover's updated-for sha vs
           origin/main's tip, and merged PRs since it with no delivery row
@@ -70,7 +70,7 @@ Sections, each measured:
           the tick's roster ref; exit 1 is one dispatch line and the sweep's
           unowned lines, anything else without its summary is UNREADABLE.
   MAIN    main's tip sha; any non-green required context (the ruleset re-read
-          every tick -- nudge.md step 4: never a remembered list); EVERY
+          every tick: never a remembered list); EVERY
           completed-with-failure lane at the tip, required or not, becomes a
           fixer DISPATCH BRIEF (context, job id + error line, suspected class,
           dispatch instruction; bot lanes lead with the ci-autofix rule) --
@@ -83,10 +83,9 @@ Sections, each measured:
           (one action pinned at two refs across the workflow set); how far
           the checkout sits behind origin/main.
 
-Ported from dev/governance/roles/nudge.md (superseded here where mechanical):
-steps 3 (train status, stale queues), 4 (ruleset re-read), 8 (prepr slots),
-11/15 (zero-runs stall, latest-per-name, pending is not a pass), 16 (unblocked
-groups, deferred stays deferred), 17 (an ancestor checkout is not current).
+Mechanical here: train status and stale queues, the ruleset re-read, prepr
+slots, the zero-runs stall, latest-per-name with pending not a pass, unblocked
+groups (deferred stays deferred), and an ancestor checkout not being current.
 Left behind as the orchestrator's judgement, not reportable from tree/API
 reads: verdict-bus watching, reviewer-owed dispatch, the 15-minute
 worktree-recency rules, post-merge duties, stamps, hold overlays.
@@ -437,7 +436,7 @@ class Tick:
     @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
         """(green, running, red) over every lane, each by the train's
-        run_state: latest-run-wins, pending is not a pass (nudge.md step 15)."""
+        run_state: latest-run-wins, pending is not a pass."""
         by = {"green": [], "pending": [], "red": []}
         for n, c in runs_by_name.items():
             by[mt.run_state(c)].append(n)
@@ -624,7 +623,8 @@ class Tick:
         HPO_WIP_CAP -- at the cap a new group is not dispatched, while opening
         and merging are always allowed; and the counted PRs whose three-dot
         diff touches the coordinator, against its cap of 2. A diff one_pr
-        could not read leaves the second count a floor: flagged. A roster or a
+        could not read leaves the second count a floor: flagged. Then the open
+        PRs by class against the machinery slots (`pr_cap.class_line`). A roster or a
         cap it cannot read is UNREADABLE, never a clean zero."""
         cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
         if cap_mod is None:
@@ -648,6 +648,11 @@ class Tick:
         if unread:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
+        rule, slots = cap_mod.product_rule(), cap_mod.open_slots()
+        if rule is None or slots is None:
+            self.unreadable(S, "PR classes", "machinery_ratchet.is_product or replan.DEFAULT_CAPS")
+        else:
+            self.line(S, *cap_mod.class_line(cap_mod.by_class(counted, files, rule), slots))
 
     def _verdict_authors(self, pw) -> "tuple[set, int] | None":
         """The approver App's identity off app_approve.sh, through
@@ -2065,8 +2070,8 @@ class Tick:
                 self.unreadable(S, "policy state file", str(e)[:80])
 
     def required(self, S: str) -> "list[str] | None":
-        """The ruleset's required contexts, re-read every tick (nudge.md step
-        4: never a remembered list); merge_train.required's own route. One
+        """The ruleset's required contexts, re-read every tick (never a
+        remembered list); merge_train.required's own route. One
         read per tick: MAIN and PRS share it."""
         if getattr(self, "_req", None) is not None:
             return self._req
@@ -5070,6 +5075,14 @@ def self_test() -> int:
             ("a diff it cannot read flags the coordinator count as a floor",
              one(unread, "coordinator.py PRs: ")["flag"] is True
              and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
+            ("open PRs by class: the three touching a product path are production",
+             one(at, "open PRs by class: ") == {"flag": False, "text": "open PRs by class: 3 production, "
+                                                "3 machinery; machinery slots 3/10 (10 of 20 reserved for production)"}),
+            ("an unread diff is its own class, counted against the machinery slots",
+             one(unread, "open PRs by class: ")["text"].startswith(
+                 "open PRs by class: 0 production, 1 machinery, 1 unread; machinery slots 2/10")),
+            ("twenty machinery PRs fill the machinery slots: flagged (null: six above are not)",
+             one(board, "open PRs by class: ")["flag"] is True),
             ("an invalid HPO_WIP_CAP is UNREADABLE, never a count",
              any(l["flag"] and "UNREADABLE: WIP cap" in l["text"] for l in badcap)
              and not any(l["text"].startswith("WIP: ") for l in badcap)),

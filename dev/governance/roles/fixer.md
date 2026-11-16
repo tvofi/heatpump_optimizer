@@ -2,7 +2,8 @@
 
 You own one PR group: one subsystem, at most five findings, at most about 400
 production lines. You work in your own worktree branched from `origin/main`.
-Read only your roster group (`jq`). Run a job outliving your turn as a
+Read only your roster group (`jq`). The owner's rulings in
+`dev/programme/RULINGS.md` bind you. Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
 Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
 API floor is theirs), woken by its exit, never polling;
@@ -53,7 +54,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    prints, is stale after you write it: state the rule or name the instrument,
    never the number. A learner or guard change is measured at both ends of its
    input range — an install with zero evidence, and one on the clamp — a fix
-   has been worse than its bug before.
+   has been worse than its bug before. A guard that refuses an actuator write
+   is also driven from the previous release's persisted state, and its release
+   needs no person.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
@@ -73,10 +76,11 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
-   (`ci-autofix.md`'s wait starts at the PR), and the body passes
-   `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
-   the carry check); the orchestrator opens
-   the PR (`docs/decisions/0011-app-authored-identity.md`).
+   (a red `UNDER-SCOPED` or `INHERITED CLAIMS` is answered by naming it), and
+   the body passes `tools/pr/prepr.sh`, run on a committed tree. **Prepr runs scoped** (tvofi, 2026-11-15):
+   `PREPR_SKIP_CLOSURES=1`, plus `PREPR_SKIP_CODE=1` for a text-only delta
+   since the last clean run; a full run only where the change reaches what
+   only it measures, the reason in the body.
 
    **`ci_predict.py` printing `BOOTSTRAP`** (the base's copy of the changed
    grader refuses, the head's passes in `prepr.sh`) is not `BLOCKED`: register
@@ -84,8 +88,6 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    p1 the grader hunks alone, p2 the rest, a WIP handoff until p1 is on main
    (decision 0013, Consequences).
 
-   **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**
-   (`gate-scoping.md`).
    A mutation proof leaves `stress.py` to CI's required mutation check: never
    run it locally per mutant.
 
@@ -98,7 +100,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    false the moment `main` moves; stamp it with that tip and `date -u`. The code
    head goes to `handoff/<topic>`, the body to the orphan `handoff-body/<topic>`
    by `seat/body_push.sh`, whose offline `review_packet.py handoff` refusals you
-   answer first. That push is the handoff; `handoff_push.sh` opens the PR.
+   answer first. That push is the handoff; `handoff_push.sh` opens
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
@@ -212,7 +215,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     its remaining share, not a close.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
-    never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
+    never 0** (#775, #1532).
 17. **Take the fix that yields the better code; it is architecturally sound**
     (tvofi, 2026-10-08). Where one fix satisfies the check and another removes
     the cause or simplifies the design, take the second; the body names the
@@ -292,11 +295,6 @@ your word.
 **A finding in your own group's seam is built in this PR, not carried.**
 `Carry: <own group>` only names a pending owner or orchestrator ruling, or a
 split part the approved plan names.
-
-## Before you hand off: answer any check your branch turned red
-
-`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement section states.
-`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`).
 
 ## Past three rounds, re-cut rather than repair
 

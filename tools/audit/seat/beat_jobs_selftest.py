@@ -489,7 +489,14 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"] = (
         arg(sd, "--train-log") == str(c.state / "train.log") and sd0 and "--train-log" not in sd0)
 
-    # bottleneck
+    # bottleneck: the live merge-wait value survives the digest's norm() (the a7 row's "the digest
+    # line equals the live value"), driven by bottleneck_check's own line, never a copy of it
+    import bottleneck_check as bk
+    live = bk.judge(bk._fixture(merge_wait=(([{"pr": 1, "hours": 4.2}] * 3, 0), "")))
+    c, f = fresh(answers={"bottleneck_check.py": (0, "\n".join(live) + "\n", "")})
+    bj.bottleneck(c)
+    res["bottleneck: a merge-wait line keeps its live hours through the digest"] = (
+        len(live) == 1 and "merge-wait 4.2 hours median" in digest(c))
     c, f = fresh(answers={"bottleneck_check.py": (0, "", "")})
     bj.bottleneck(c)
     bc = next((x for x in f.calls if any(a.endswith("bottleneck_check.py") for a in x)), [])
@@ -538,6 +545,41 @@ def cases(bj) -> dict[str, bool]:
     bj.scorecard(c)
     res["scorecard: an overlay without train_log is UNREADABLE and runs nothing"] = (
         digest(c) == "scorecard: UNREADABLE overlay lacks train_log\n" and f.ran("scorecard.py") == 0)
+    c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    pr = next((x for x in f.calls if any(a.endswith("round_metrics.py") for a in x)), [])
+    res["scorecard: the producer runs first, handed produce, the dir, the checkout and the overlay's repo"] = (
+        f.calls and f.calls[0] == pr and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
+        and arg(pr, "--repo") == str(c.repo) and arg(pr, "--gh-repo") == "o/r")
+    c, f = fresh(answers={"round_metrics.py": (1, "", "Traceback\nApiError: 502\n"), "scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    res["scorecard: a failed producer is UNREADABLE and the report does not run on stale inputs"] = (
+        digest(c) == "scorecard: UNREADABLE produce rc=1: ApiError: 502\n" and f.ran("scorecard.py") == 0
+        and not (c.state / "beatd" / "scorecard.txt").exists())
+
+    # ci-attempt: the #3287 window (dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md: PR #3319's code run
+    # 42469369199 reached attempt 44 and its edit run 42469369682 alternated with it)
+    loop = "42469369199 44 fix/r10-x 3319\n42469369682 43 fix/r10-x 3319\n42469300000 1 main \n"
+    c, f = fresh(answers={"gh": (0, loop, "")})
+    bj.ci_attempt(c)
+    res["ci-attempt: the #3287 window fires once per looping run, naming it and its pull request"] = (
+        digest(c) == "CI-ATTEMPT: run 42469369199 at attempt >= 20 on fix/r10-x (#3319)\n"
+                     "CI-ATTEMPT: run 42469369682 at attempt >= 20 on fix/r10-x (#3319)\n"
+        and len(f.calls) == 1 and "repos/o/r/actions/workflows/ci.yml/runs?per_page=100" in f.calls[0])
+    c, _ = fresh(answers={"gh": (0, "1 1 main \n2 19 fix/y 7\n", "")})
+    bj.ci_attempt(c)
+    res["ci-attempt null: runs at attempt 1 and 19 are silent"] = not digest(c)
+    c, _ = fresh(answers={"gh": (0, "3 20 main \n", "")})
+    bj.ci_attempt(c)
+    res["ci-attempt: attempt 20 exactly fires; a run with no pull request says so"] = (
+        digest(c) == "CI-ATTEMPT: run 3 at attempt >= 20 on main (no pull request)\n")
+    c, _ = fresh(answers={"gh": (1, "", "boom")})
+    bj.ci_attempt(c)
+    res["ci-attempt: an unreadable API is UNREADABLE"] = digest(c) == "ci-attempt: UNREADABLE gh rc=1\n"
+    c, f = fresh(overlay={"train_log": "/x"}, answers={"gh": (0, loop, "")})
+    bj.ci_attempt(c)
+    res["ci-attempt: an overlay without repo is UNREADABLE and calls no API"] = (
+        digest(c) == "ci-attempt: UNREADABLE overlay lacks repo\n" and not f.calls)
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
@@ -1196,6 +1238,15 @@ MUTANTS = {
     "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
                                       'ln.startswith(("BOTTLENECK: ",))',
                                       "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "ci_attempt_cmp": ("int(m[2]) >= CI_ATTEMPT_ALARM", "int(m[2]) > CI_ATTEMPT_ALARM",
+                       "ci-attempt: attempt 20 exactly fires; a run with no pull request says so"),
+    "ci_attempt_off": ("if m and int(m[2])", "if m and 0 * int(m[2])",
+                       "ci-attempt: the #3287 window fires once per looping run, naming it and its pull request"),
+    "ci_attempt_pr": ('or "no pull request"', 'and "no pull request"',
+                      "ci-attempt: the #3287 window fires once per looping run, naming it and its pull request"),
+    "scorecard_produce_rc": ('        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc=',
+                             '        pass  # write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc=',
+                             "scorecard: a failed producer is UNREADABLE and the report does not run on stale inputs"),
     "scorecard_rc_clean": ('    if rc != 0 or not out.strip():\n        return write_job(ctx, "scorecard"',
                            '    if not out.strip():\n        return write_job(ctx, "scorecard"',
                            "scorecard: a failed instrument is UNREADABLE, never written"),
