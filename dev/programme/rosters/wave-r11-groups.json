@@ -3259,6 +3259,46 @@
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-ROOMS-P1 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-DEARER-WORDING shares custom_components/heatpump_optimizer/narrative.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-ADVISOR-MEASURES",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "product",
+   "severity": "low",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/price_tiles.py",
+    "docs/dashboard-card.md",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null
+   },
+   "carry": [],
+   "brief": "Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked fixture, and the schedule figure on a throttling-valve two-tank fixture, across a weekday-to-weekend change and on a PV house. Measure each; where the sign or the figure is wrong, fix it and the card text together.",
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r11-advisor-measures",
+    "last_step": null,
+    "next_step": "dispatch fixer",
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P2 shares tests/features.py; R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares tests/features.py; R11-OUTSIDE-HONEST-DHW-RUNS shares tests/features.py; R11-OUTSIDE-HONEST-METERED-FLOOR shares tests/features.py; R11-OUTSIDE-DEARER-WORDING shares docs/dashboard-card.md; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
+   },
+   "source": "programme"
   }
  ]
 }
