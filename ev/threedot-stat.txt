@@ -1,0 +1,5 @@
+ dev/programme/delivery/3658.md                   |   1 +
+ tools/audit/seat/instruments/round_metrics.py.md |  16 ++
+ tools/audit/seat/round_metrics.py                | 164 +++++++++++++++++--
+ tools/audit/seat/round_metrics_selftest.py       | 197 ++++++++++++++++++++++-
+ 4 files changed, 365 insertions(+), 13 deletions(-)

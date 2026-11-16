@@ -1,0 +1,7 @@
+SURVIVED NULL
+KILLED net-all-pages rc=1 :: ok   product_green: a run failing outside its gate counts green (null) FAIL closure_slip: the net move is over the daily samples, the first day's last page to the last sample 
+KILLED net-first-hist rc=1 :: ok   product_green: a run failing outside its gate counts green (null) FAIL closure_slip: the net move is over the daily samples, the first day's last page to the last sample 
+KILLED net-sign rc=1 :: ok   product_green: a run failing outside its gate counts green (null) FAIL closure_slip: later moves only, over the plan-history days after the register 
+KILLED net-second-sample rc=1 :: ok   product_green: a run failing outside its gate counts green (null) FAIL closure_slip: later moves only, over the plan-history days after the register 
+SURVIVED net-abs
+KILLED net-no-day rc=1 :: ok   product_green: a run failing outside its gate counts green (null) FAIL closure_slip: later moves only, over the plan-history days after the register 
