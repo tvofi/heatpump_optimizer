@@ -549,17 +549,35 @@ def names_changed(root: Path, run: str, changed: set[str]) -> bool:
     return False
 
 
+# A replay that ran out of time measured nothing about the tree: a loaded host
+# (load average 100+) timed out clean branches at 180 s while CI was green.
+STEP_REPLAY_TIMEOUT_ENV = "HPO_STEP_REPLAY_TIMEOUT_S"
+TIMED_OUT = -124  # never a bash rc: bash exits 0..255
+
+
+def step_replay_timeout() -> float:
+    """The replay bound in seconds: the environment's, else SELF_TEST_TIMEOUT."""
+    import os
+    try:
+        v = float(os.environ.get(STEP_REPLAY_TIMEOUT_ENV, ""))
+    except ValueError:
+        return SELF_TEST_TIMEOUT
+    return v if v > 0 else SELF_TEST_TIMEOUT
+
+
 def replay_step(tree: Path, run: str) -> int:
-    """The step's rc as a GitHub runner runs a `run:` block (bash -eo pipefail)."""
+    """The step's rc as a GitHub runner runs a `run:` block (bash -eo pipefail),
+    or TIMED_OUT when it outlived `step_replay_timeout()`."""
     import os
     import tempfile
     with tempfile.TemporaryDirectory() as t:
         env = dict(os.environ, RUNNER_TEMP=t)
         try:
             return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", run],
-                                  cwd=tree, env=env, capture_output=True, timeout=SELF_TEST_TIMEOUT).returncode
+                                  cwd=tree, env=env, capture_output=True,
+                                  timeout=step_replay_timeout()).returncode
         except subprocess.TimeoutExpired:
-            return 124
+            return TIMED_OUT
 
 
 def step_replay_preds(root: Path, base: str, changed: set[str],
@@ -572,7 +590,12 @@ def step_replay_preds(root: Path, base: str, changed: set[str],
     import tempfile
     head = instrument_steps(root)
     hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}
-    reds = {n: rc for n, r in hit.items() if (rc := replay_step(root, r))}
+    ran = {n: replay_step(root, r) for n, r in hit.items()}
+    for n, rc in ran.items():
+        if rc == TIMED_OUT:
+            (notes if notes is not None else []).append(
+                f"UNMEASURED {n}: timed out at {step_replay_timeout():g} s on this host")
+    reds = {n: rc for n, rc in ran.items() if rc and rc != TIMED_OUT}
     if not reds:
         return []
     out = []
@@ -637,6 +660,29 @@ def step_replay_self_test(root: Path) -> int:
         good = got == 0 and len(notes) == 1
         print(f"  {'ok  ' if good else 'FAIL'} a step red at the base too is a note, not this branch's red")
         bad += not good
+        import os
+        (t / "tools" / "a.sh").write_text("sleep 5\n" + ok.format(n="a"))
+        (t / "tools" / "b.sh").write_text("exit 1\n")
+        was = os.environ.get(STEP_REPLAY_TIMEOUT_ENV)
+        os.environ[STEP_REPLAY_TIMEOUT_ENV] = "0.5"
+        try:
+            notes = []
+            got = len(step_replay_preds(t, base, {"tools/a.sh"}, notes))
+            good = got == 0 and len(notes) == 2 and all(x.startswith("UNMEASURED ") for x in notes)
+            print(f"  {'ok  ' if good else 'FAIL'} a step that outlives the bound at the head is UNMEASURED, not a red")
+            bad += not good
+            # null control: rc 1 at the head, 0 at the base, under the same tiny bound, is still predicted
+            (t / "tools" / "a.sh").write_text("exit 1\n")
+            notes = []
+            got = len(step_replay_preds(t, base, {"tools/a.sh"}, notes))
+            good = got == 2 and not any(x.startswith("UNMEASURED") for x in notes)
+            print(f"  {'ok  ' if good else 'FAIL'} null control: rc 1 at the head and 0 at the base is still predicted")
+            bad += not good
+        finally:
+            if was is None:
+                os.environ.pop(STEP_REPLAY_TIMEOUT_ENV, None)
+            else:
+                os.environ[STEP_REPLAY_TIMEOUT_ENV] = was
     g = globals()
     real = g["step_replay_preds"]
     g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]

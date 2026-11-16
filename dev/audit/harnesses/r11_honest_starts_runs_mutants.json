@@ -206,7 +206,7 @@
  {
   "name": "SETTLED_CLASS",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    running = rec.tracker.settled if rec.unsub is not None else None\n",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
   "new": "    running = None\n"
  },
  {
@@ -274,5 +274,17 @@
   "file": "custom_components/heatpump_optimizer/optimizer.py",
   "old": "        dt=h.dt, running=h.compressor_running,\n",
   "new": "        dt=h.dt, running=False,\n"
+ },
+ {
+  "name": "OUT_OF_BAND_CLAMP",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        outside = np.maximum(np.abs(b) - half * quantum, 0.0)\n",
+  "new": "        outside = np.maximum(np.abs(b) - half * quantum, 1.0)\n"
+ },
+ {
+  "name": "SPACE_SCOPE_LOWER_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        [(0.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n",
+  "new": "        [(1.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n"
  }
 ]

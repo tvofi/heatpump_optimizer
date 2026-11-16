@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient|stress
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|gradient|stress|kernels
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -67,13 +67,35 @@ against each other, the noise this box puts on such a difference. Runs on a
 tree without ``_relaxed_plans`` too: there each pair has the one arm. Exits
 1 when a null solve descends twice, the null's two forms ship different
 plans, or the pair's solve never descends twice on a tree that can.
+
+``kernels``: the acceptance checks of the two ``tests/features.py`` blocks
+that solve this group's fixtures, once per OpenBLAS kernel (``tests/README.md``,
+"A knife-edge optimizer comparison must be measured across BLAS kernels").
+Per kernel (``OPENBLAS_CORETYPE``; SkylakeX, Haswell, Sandybridge and Nehalem,
+or those named after the mode) both blocks run through
+``tools/audit/seat/features_block.py`` in the checkout this is run from, one thread,
+and each check whose name starts ``acceptance`` is printed with its verdict
+and its detail string. Beside them, on the same solves, the two clauses the
+round-4 repair replaced: the order of the two switch weights in starts on
+the modulating clamped install, and the shipped energy within one floor step
+of the relaxed plan's, with the figures each reads, and the two start counts
+of the kept clause. The replaced clauses are
+the null control of the restated ones: they read False under the kernels the
+restated checks read True on. Runs on a tree before the restatement too,
+where the checks printed are the replaced clauses themselves. Exits 1 when
+a block fails a check or does not complete under any kernel, so the mode
+with one kernel named is a command ``tools/audit/seat/mutant_run.py`` can
+drive; a kernel this processor cannot run is printed as such and counted as
+not completed.
 """
 from __future__ import annotations
 
 import hashlib
 import os
+import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import numpy as np
@@ -388,6 +410,79 @@ def stress_cost() -> int:
     return 1 if bad else 0
 
 
+KERNELS = ("SkylakeX", "Haswell", "Sandybridge", "Nehalem")
+_BLOCK = 'R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")'
+# The block that follows this group's in tests/features.py; the block runs up to it.
+_NEXT = "# --- R10-START-COUNTER-EDGES: the start counter fed from running-signal edges ---"
+_BLOCKS = (
+    ("duty-switch block", ("from types import SimpleNamespace as _DspNS", _BLOCK)),
+    ("starts-and-runs block", (_BLOCK, _NEXT)),
+)
+# Run as a prelude inside the features namespace: wraps ``R.check``.
+_KERNEL_PROBE = r'''
+import sys as _kp_sys
+_kp_check = R.check
+def _kp_probe(name, cond, detail="", _real=_kp_check):
+    g = _kp_sys._getframe(1).f_globals
+    if name.startswith("acceptance"):
+        print("ACCEPT", bool(cond), "|", name, "|", detail, flush=True)
+    if name.startswith("acceptance: priced on the contributor's table"):
+        old_w, new_w = g["_dsp_accept_starts"]["modulating clamped"]
+        print("REPLACED", bool(new_w <= old_w + 1e-9), "| modulating clamped, switch weight in starts,"
+              " priced no higher than unpriced |", f"unpriced {old_w:g}, priced {new_w:g}", flush=True)
+    if name.startswith("acceptance: a priced plan holds no more starts"):
+        cells = {k: v for k, v in g["_hsr_engaged"].items() if k[0] > 0 and not k[1]}
+        kwh = {k: float(g["np"].sum(v.space - v.relaxed[-1])) * 0.25 for k, v in cells.items()}
+        step = {k: g["_hsr_runs"].floor_kw(k[2]) * 0.25 for k in cells}
+        count, free = g["_hsr_count"], {k: g["_hsr_solve"](0.0, False, k[2]).space for k in cells}
+        print("KEPT", all(count(v.space, k[2]) <= count(free[k], k[2]) + 1e-9 for k, v in cells.items()),
+              "| priced starts no higher than the unpriced plan's by the same count |",
+              "; ".join(f"floor {k[2]} kW: {count(v.space, k[2]):g} against {count(free[k], k[2]):.2f}"
+                        for k, v in cells.items()), flush=True)
+        print("REPLACED", all(abs(kwh[k]) <= step[k] + 1e-9 for k in cells),
+              "| shipped energy within one floor step of the relaxed plan's |",
+              "; ".join(f"floor {k[2]} kW: {kwh[k]:+.4f} kWh against a step of {step[k]:.4f}" for k in cells),
+              flush=True)
+    return _real(name, cond, detail)
+R.check = _kp_probe
+'''
+
+
+def _kernel_blocks(kernel: str) -> list[tuple[str, int, list[str]]]:
+    env = dict(os.environ, PYTHONPATH="tests/hastub", OPENBLAS_CORETYPE=kernel, R11_HSR_KERNEL_PROBE=_KERNEL_PROBE,
+               OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
+    out = []
+    with open("tests/features.py", encoding="utf-8") as fh:
+        present = fh.read()
+    for label, markers in _BLOCKS:
+        markers = tuple(m for m in markers if m in present)  # a tree before the next block holds no _NEXT
+        run = subprocess.run(
+            [sys.executable, "tools/audit/seat/features_block.py",
+             "--prelude", 'import os as _kp_os; exec(_kp_os.environ["R11_HSR_KERNEL_PROBE"])', *markers],
+            env=env, capture_output=True, text=True)
+        lines = (run.stdout + run.stderr).splitlines()
+        out.append((label, run.returncode, [
+            ln for ln in lines if ln.startswith(("ACCEPT ", "KEPT ", "REPLACED ")) or "FEATURES BLOCK" in ln]))
+    return out
+
+
+def kernels() -> int:
+    names = tuple(sys.argv[2:]) or KERNELS
+    with ThreadPoolExecutor(max(1, min(len(names), os.cpu_count() or 1))) as pool:
+        results = list(pool.map(_kernel_blocks, names))
+    bad = 0
+    for kernel, blocks in zip(names, results):
+        for label, rc, lines in blocks:
+            done = any("FEATURES BLOCK" in ln for ln in lines)
+            print(f"{kernel}, {label}: " + (
+                f"exit {rc}" if done else f"did not complete (exit {rc}): not runnable on this processor, or the block raised"))
+            for ln in lines:
+                print("  " + ln)
+            bad += not done or rc != 0
+    print(f"kernels {', '.join(names)}: blocks that failed a check or did not complete {bad}")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
     sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "gradient": gradient,
-              "stress": stress_cost}[sys.argv[1]]())
+              "stress": stress_cost, "kernels": kernels}[sys.argv[1]]())
