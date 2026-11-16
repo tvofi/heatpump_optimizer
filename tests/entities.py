@@ -573,7 +573,7 @@ R.check(
 R.check(
     "the room sensors read the payload's rooms block: average in degC, spread in K, the dropped "
     "room and the coldest and warmest as attributes",
-    _room_by_key["room_average_temperature"].native_value == 19.9
+    _room_by_key["room_average_temperature"].native_value == 19.85
     and _room_by_key["room_temperature_spread"].native_value == 0.7
     and _room_by_key["room_temperature_spread"].native_unit_of_measurement == "K"
     and getattr(_room_by_key["room_temperature_spread"], "_attr_device_class", None) is None
@@ -41585,7 +41585,7 @@ _egb3_resolve = {
     "self._away_state.as_dict()": ("away", "as_dict"),
     "state.as_dict()": ("away", "as_dict"),
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
-    "rooms.view(self)": ("rooms", "view"),
+    "rooms.view(rooms.readings_of(self))": ("rooms", "view"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
