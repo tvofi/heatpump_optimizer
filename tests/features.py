@@ -93345,7 +93345,7 @@ R.check(
 
 R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
 
-# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.lifted_margins adds a lift to the
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
 # floor-margin array the solver already takes. The fixture is the design
 # note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
 # colder than A but switched off; the house reads 19.6 under a 20.0 target on
@@ -93380,8 +93380,10 @@ def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None
     """One scheduled solve's margins: (array or base, owner)."""
     owner = owner or _RlOwner()
     _rm.record(owner, readings)
-    gated = _rm.gate(**dict(_RL_OPEN, **signals))
-    return _rm.lifted_margins(owner, base, cfg, house, start, n, gated), owner
+    held = _rm.hold(owner, _rm.resolve(
+        _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
+        cfg, house, start))
+    return _rm.lifted(held, base, cfg, start, n), owner
 
 
 _rl_ramped, _rl_ramped_owner = _rl_solve()
@@ -93503,10 +93505,10 @@ R.check(
 )
 _rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
 R.check(
-    "a house under its floor anchors the ramp at zero, never below: step 0 takes no lift and "
+    "a house under its floor starts the ramp at zero, never below: step 0 takes no lift and "
     "step 1 one step of the rate",
     _rl_below is not None and np.allclose(_rl_below[:3], [0.0, 0.0625, 0.125])
-    and _rm.lift_of(_rl_below_owner).anchor_c == 0.0,
+    and _rm.lift_of(_rl_below_owner).anchor_c == 19.0 - 19.5,
     f"{None if _rl_below is None else np.round(_rl_below[:3], 4).tolist()} {_rm.lift_of(_rl_below_owner)}",
 )
 
@@ -93543,11 +93545,11 @@ R.check(
 
 # -- The what-if: the baseline's held lift and anchor, its own configuration ----
 _rl_wi_base, _rl_wi = _rl_solve()
-_rl_wi_same = _rm.held_margins(_rl_wi, None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
 _rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
-_rl_wi_after = _rm.held_margins(_rl_wi, None, _rl_cfg, _RM_NOW, _RL_N)
-_rl_wi_low = _rm.held_margins(_rl_wi, None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
-_rl_wi_fresh = _rm.held_margins(_RlOwner(), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
+_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
 _rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
 R.check(
     "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
@@ -93622,7 +93624,7 @@ R.check(
     "the scheduled solve is given the lift: held at the 1.0 K cap for room A, starting from the "
     "house's own margin over the 19.0 floor and never above 1.0",
     _rl_c_on._t5_escaped is None and len(_rl_c_on._rl_margins) == 1 and _rl_on_m is not None
-    and _rm.lift_of(_rl_c_on) == _rm.HeldLift(1.0, "climate.a", None, max(_rl_house - 19.0, 0.0))
+    and _rm.lift_of(_rl_c_on) == _rm.HeldLift(1.0, "climate.a", None, _rl_house - 19.0)
     and float(_rl_on_m[0]) == min(1.0, max(_rl_house - 19.0, 0.0))
     and float(np.max(_rl_on_m)) == 1.0,
     f"escaped={_rl_c_on._t5_escaped!r} house={_rl_house} held={_rm.lift_of(_rl_c_on)} "

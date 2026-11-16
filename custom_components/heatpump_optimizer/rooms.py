@@ -8,7 +8,7 @@ block the room sensors publish. The read itself is ``inputs.read_room``'s.
 
 Phase 2 adds the floor lift: a room short of its own target raises the
 solve's comfort floor, through the margin array the solver already takes, by
-no more than the house's own band (:func:`lifted_margins`).
+no more than the house's own band (:func:`resolve`, :func:`lifted`).
 
 Module state: two per-coordinator side tables, the last cycle's readings and
 the lift the last solve was given, ``boost.py``'s ``WeakKeyDictionary``
@@ -23,13 +23,13 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from weakref import WeakKeyDictionary
 
 import numpy as np
 
-from .optimizer import _padded_nonneg, _step_clock
+from .drift import utc_step_starts
 from .payload import Room, RoomLift, Rooms, RoomsView
 
 if TYPE_CHECKING:
@@ -168,7 +168,8 @@ TARGET_COUNTS_IN = frozenset({"heat", "auto"})
 class HeldLift:
     """What one solve was given: the lift, K, before its per-step clip; the
     room that set it; the gate that zeroed it; and the house's margin over
-    its floor at that solve, K, where the ramp starts."""
+    its comfort floor at that solve, K (negative under it), which the ramp
+    starts from."""
 
     lift_c: float = 0.0
     entity_id: str | None = None
@@ -182,6 +183,12 @@ _LIFTS: WeakKeyDictionary[Any, HeldLift] = WeakKeyDictionary()
 def lift_of(owner: Any) -> HeldLift | None:
     """The lift ``owner``'s last solve was given; None before the first."""
     return _LIFTS.get(owner)
+
+
+def hold(owner: Any, held: HeldLift) -> HeldLift:
+    """Keep ``held`` as the lift ``owner``'s (a coordinator's) solve is given."""
+    _LIFTS[owner] = held
+    return held
 
 
 def gate(
@@ -215,87 +222,91 @@ def largest_shortfall(readings: Sequence[RoomReading]) -> tuple[float, str] | No
     return max(short) if short else None
 
 
-def _held(
-    readings: Sequence[RoomReading], gated: str | None, house_short_c: float,
-    anchor_c: float, previous: HeldLift | None,
+def _comfort_steps(
+    config: OptimizationConfig, start_time: datetime, n_steps: int
+) -> list[tuple[bool, float, float]]:
+    """Per step of a solve starting at ``start_time``: whether it falls on a
+    holiday date, its comfort target and its comfort floor, degC.
+
+    Read from ``config``'s own two methods at the horizon's step starts
+    (``drift.utc_step_starts``, the one horizon clock), the calls the solver's
+    bound build makes: the day and night rule is not restated here.
+    """
+    return [
+        (
+            t.date() in config.holiday_dates,
+            config.get_comfort_temp(t.hour + t.minute / 60.0, when=t),
+            config.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0],
+        )
+        for t in utc_step_starts(start_time, n_steps, timedelta(hours=config.dt_hours))
+    ]
+
+
+def _margins(base: np.ndarray | None, n_steps: int) -> np.ndarray:
+    """``base`` as the solver reads it: clipped at zero, fitted to the horizon."""
+    fitted = np.zeros(n_steps)
+    if base is not None:
+        head = np.clip(np.asarray(base, dtype=float)[:n_steps], 0.0, None)
+        fitted[:head.size] = head
+    return fitted
+
+
+def resolve(
+    readings: Sequence[RoomReading], previous: HeldLift | None, gated: str | None,
+    config: OptimizationConfig, house_c: float, start_time: datetime,
 ) -> HeldLift:
-    """This solve's lift: zero under a gate, else the largest room shortfall
-    less the house's own, clipped to the cap and held inside the deadband."""
+    """The lift a scheduled solve starting at ``start_time`` is given.
+
+    Zero under ``gated`` (:func:`gate`'s word), on a holiday date, and where
+    the list has no rooms, no quorum, or no target that counts. Else the
+    largest room shortfall less the house's own against step 0's comfort
+    target of ``config``, clipped to the cap; ``previous``'s lift is kept
+    while the two differ by less than the deadband.
+    """
+    holiday, target_c, floor_c = _comfort_steps(config, start_time, 1)[0]
     worst = largest_shortfall(readings)
     if gated is None:
         gated = (
-            "no_rooms" if not readings
+            "holiday" if holiday
+            else "no_rooms" if not readings
             else "quorum" if summarize(readings) is None
             else "no_target" if worst is None
-            else None if math.isfinite(house_short_c) else "house_unknown"
+            else None if math.isfinite(house_c) else "house_unknown"
         )
     if gated is not None or worst is None:
         return HeldLift(gate=gated)
-    raw_c = min(max(worst[0] - house_short_c, 0.0), ROOM_LIFT_CAP_C)
+    raw_c = min(max(worst[0] - (target_c - house_c), 0.0), ROOM_LIFT_CAP_C)
     kept_c = 0.0 if previous is None else previous.lift_c
     lift_c = raw_c if abs(raw_c - kept_c) >= ROOM_LIFT_DEADBAND_C else kept_c
-    return HeldLift(lift_c, worst[1], None, max(anchor_c, 0.0))
+    return HeldLift(lift_c, worst[1], None, house_c - floor_c)
 
 
-def _lifted(
+def lifted(
     held: HeldLift | None, base: np.ndarray | None, config: OptimizationConfig,
     start_time: datetime, n_steps: int,
 ) -> np.ndarray | None:
-    """``base`` plus the held lift, per step the smallest of the lift, the
-    ramp from the anchor, and what the step's band leaves under its comfort
-    target; ``base`` itself where no step is lifted.
+    """A solve's floor margins: ``base`` (the confidence margins, or None)
+    plus ``held``, and ``base`` itself where no step is lifted.
 
-    The band is read from ``config``'s own two methods at the solve's step
-    times, the calls ``_build_comfort_bounds`` makes, so the lifted floor
-    never passes the target the same solve pulls towards. A step on a
-    holiday date takes no lift, as a house that is away takes none.
+    Per step the lift is the smallest of the held lift, the ramp, and what
+    the step's band leaves over ``base`` under its comfort target, so the
+    lifted floor never passes the target the same solve pulls towards. The
+    ramp starts at the house's margin over the floor ``base`` already
+    raised, never under zero. A step on a holiday date takes no lift, as a
+    house that is away takes none.
+
+    A what-if passes the lift its baseline was given (:func:`lift_of`) with
+    its own ``config``: a lift resolved afresh would put the rooms' drift
+    since the baseline into the difference the what-if reports.
     """
     if held is None or held.lift_c <= 0.0:
         return base
-    times, hours = _step_clock(start_time, n_steps, config.dt_hours)
-    margins = _padded_nonneg(() if base is None else base, n_steps)
+    margins = _margins(base, n_steps)
     band = np.array([
-        0.0 if t.date() in config.holiday_dates
-        else config.get_comfort_temp(h, when=t) - config.get_temp_bounds(h, when=t)[0]
-        for h, t in zip(hours, times)
+        0.0 if holiday else target_c - floor_c
+        for holiday, target_c, floor_c in _comfort_steps(config, start_time, n_steps)
     ]) - margins
-    ramp = held.anchor_c + ROOM_LIFT_RAMP_C_PER_H * config.dt_hours * np.arange(n_steps)
+    ramp = max(held.anchor_c - float(margins[0]), 0.0) \
+        + ROOM_LIFT_RAMP_C_PER_H * config.dt_hours * np.arange(n_steps)
     lift = np.clip(np.minimum(np.minimum(band, ramp), held.lift_c), 0.0, None)
     return margins + lift if lift.any() else base
-
-
-def lifted_margins(
-    owner: Any, base: np.ndarray | None, config: OptimizationConfig,
-    house_c: float, start_time: datetime, n_steps: int, gated: str | None,
-) -> np.ndarray | None:
-    """The scheduled solve's floor margins: ``base`` (the confidence margins,
-    or None) plus the room lift, and ``base`` itself under any gate.
-
-    Resolves and keeps ``owner``'s lift for this solve from its last
-    readings. ``gated`` is :func:`gate`'s word; a solve starting on a holiday
-    date is gated too. The house's shortfall is against step 0's comfort
-    target of ``config``, and the ramp's anchor is the house's margin over
-    step 0's floor with ``base`` on it.
-    """
-    times, hours = _step_clock(start_time, 1, config.dt_hours)
-    if gated is None and times[0].date() in config.holiday_dates:
-        gated = "holiday"
-    floor_c = config.get_temp_bounds(hours[0], when=times[0])[0] + float(_padded_nonneg(() if base is None else base, 1)[0])
-    held = _held(
-        readings_of(owner), gated,
-        config.get_comfort_temp(hours[0], when=times[0]) - house_c,
-        house_c - floor_c, _LIFTS.get(owner),
-    )
-    _LIFTS[owner] = held
-    return _lifted(held, base, config, start_time, n_steps)
-
-
-def held_margins(
-    owner: Any, base: np.ndarray | None, config: OptimizationConfig,
-    start_time: datetime, n_steps: int,
-) -> np.ndarray | None:
-    """A what-if's floor margins: the lift and anchor ``owner``'s last
-    scheduled solve was given, never a recomputed one, clipped to the band of
-    the what-if's own ``config``. A lift resolved afresh would put the rooms'
-    drift since the baseline into the difference the what-if reports."""
-    return _lifted(_LIFTS.get(owner), base, config, start_time, n_steps)

@@ -141,7 +141,7 @@ except Exception as e:
     print(f"  FAIL two-tank nulls {type(e).__name__}: {e}")
 
 # -- #3616 R11-OUTSIDE-ROOMS-P2: the room lift through the production solve ----
-# rooms.lifted_margins' own array as SolveLimits.min_temp_margins, on the mild
+# rooms.lifted's own array as SolveLimits.min_temp_margins, on the mild
 # day of dev/audit/harnesses/room_lift_solve.py: floor 19.5, target 20.0, the
 # house at 19.6, room A three kelvin under its target.
 from datetime import UTC  # noqa: E402
@@ -164,7 +164,8 @@ def _rl_margins(**signals):
         _rooms.RoomReading("climate.d", 17.0, target_c=22.0, hvac_mode="off")))
     gated = _rooms.gate(**dict(dict(enabled=True, economy=False, open_window=False, away=False,
                                     manual_pin=False, two_zone=False), **signals))
-    return _rooms.lifted_margins(owner, None, _RL_OC, 19.6, _RL_START, N, gated)
+    held = _rooms.resolve(_rooms.readings_of(owner), None, gated, _RL_OC, 19.6, _RL_START)
+    return _rooms.lifted(held, None, _RL_OC, _RL_START, N)
 
 
 def _rl_run(margins, pins=None):
