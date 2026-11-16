@@ -1,0 +1,4 @@
+    return v if isinstance(v, int) else None
+pr_cap self-test: 32 checks, 1 failed
+    return cap - tdoc["step"] * (n // tdoc["every_merges"]), n
+machinery_ratchet self-test: 72 checks, 1 failed
