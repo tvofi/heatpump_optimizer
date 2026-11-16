@@ -8,3 +8,4 @@
 1794843797 HB alive
 1794844478 HB alive
 1794844579 CKPT verdict pushed: blocked mutation-vacuous (probe cc9b7738a1) snapshot 0f65994f671b
+1794844584 DONE rev-3667: Fix review: blocked b0c7114dd6 mutation-vacuous (read_room sensor unit); probe/rev-3667-fea91490 at cc9b7738a1
