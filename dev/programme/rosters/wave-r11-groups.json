@@ -3193,7 +3193,9 @@
     "reviewer": "opus",
     "rca": null
    },
-   "carry": [],
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 84 (0-based at 572d7d4c86) by the round-11 orchestrator's INTAKE re-scope (2026-11-16, an approved stop: split by seam, no re-cut). Text verbatim:\n\nFrom r10-user-text-verify-strings, body item 5375ae6f: simulate_plan's `min_temp`, `max_temp`, `comfort_weight`, `comfort_temp_night` and `dhw_min_temperature` selectors bound nothing the schema enforces, and disagree with the config flow's ranges for the same settings (RECORD.md, Unverifiable). Carry: R11-INTAKE-R10-RESIDUE (items 5375ae6f)"
+   ],
    "brief": "Service schema and service text disagreements carried below verbatim. Two are buildable now: the simulate_plan selectors that bound nothing the schema enforces, and the apply_manual_plan examples that age into refusals. Two need the owner's decision before any code: whether apply_schedule may reset silent_mode_power_fraction to its default, and whether set_thermal_parameters narrows dhw_legionella_temperature to the disinfection cap or documents the gap. Build the two buildable carries; ask for the other two.",
    "resume": {
     "stage": "not-started",
