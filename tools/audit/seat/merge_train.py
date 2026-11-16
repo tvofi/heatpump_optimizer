@@ -3556,28 +3556,61 @@ class Train:
         except (Stop, ValueError):
             return False
 
+    def actions_mark(self) -> "str | None":
+        """The newest `updated_at` among the completed runs of the repository's 30
+        newest-created workflow runs: one listing. The reading after a poll that
+        equals the one before it means no run in the repository completed between
+        them -- Actions measurably stalled (TRAIN-WAIT-CAP-OUTAGE; 2026-11-11
+        20:12-21:09Z, 218 jobs queued). "" when none of the 30 has completed; None
+        when the listing is unreadable."""
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/actions/runs?per_page=30", "--jq",
+                            '[.workflow_runs[] | select(.status == "completed") | .updated_at] | max // ""'])
+        return o.strip() if code == 0 else None
+
+    def counted_poll(self, readable: bool, mark: list) -> bool:
+        """Whether a wait's poll counts toward `wait_cap_s`: it read its own
+        listing, and `actions_mark` read a value other than the previous poll's
+        (`mark`, [] before the first reading, updated in place; a first reading
+        has nothing to equal, so it counts). An unread poll adds no GitHub call."""
+        if not readable:
+            return False
+        now = self.actions_mark()
+        if now is None:
+            return False
+        moved = not mark or mark[0] != now  # mut:stalled
+        mark[:] = [now]
+        return moved
+
     def review_settle(self, pr: int, h: str) -> None:
         """Before the FIRST merge attempt (P86, P331): the approval's `CI review`
         run at <h> must conclude, or base-branch policy refuses the merge. It is
-        bounded by TIME, not by the fast poll count: the 5-s grain for `polls`
-        reads, then POLL_SECONDS while a run at <h> is unfinished, `polls` more
-        times (the CI-wait budget, polls x POLL_SECONDS; measured p50 91 s, p90
-        2388 s, p95 5549 s). The still-running line is logged at most once per
-        POLL_SECONDS. At the budget's end the merge proceeds as before; an
-        unreadable listing is not a wait."""
+        bounded by `wait_cap_s` of COUNTED wait: the 5-s grain for the first
+        `polls` reads, then POLL_SECONDS (the CI-wait budget; measured p50 91 s,
+        p90 2388 s, p95 5549 s). A poll that cannot read the listing, or reads
+        while Actions is stalled (`counted_poll`), adds nothing and neither ends
+        the wait nor counts toward the cap (TRAIN-WAIT-CAP-OUTAGE). The
+        still-running line is logged at most once per POLL_SECONDS of counted
+        wait. At the cap the merge proceeds as before."""
         waited = last_logged = 0.0
-        for n in range(self.polls * 2):
+        cap, mark, n = self.wait_cap_s(), [], 0
+        while waited < cap:
             grain = REVIEW_POLL_SECONDS if n < self.polls else POLL_SECONDS
+            n += 1
             self.sleep(grain)
-            waited += grain
             runs = self.review_runs(h)
             open_ = [r[0] for r in runs or () if r[1] != "completed"]
-            if not open_:
+            if runs is not None and not open_:
                 return
+            if not self.counted_poll(runs is not None, mark):
+                self.log(f"#{pr} review-run wait at {h[:8]}: " + (
+                    "the listing is unreadable" if runs is None else "no run in the repository completed "
+                    "since the previous poll (Actions stalled)") + f"; not counted ({int(waited)} s of {cap} s)")
+                continue
+            waited += grain
             if not last_logged or waited - last_logged >= POLL_SECONDS:
                 last_logged = waited
                 self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits "
-                         f"({int(waited)} s of {self.wait_cap_s()} s)")
+                         f"({int(waited)} s of {cap} s)")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -4528,9 +4561,9 @@ class Train:
         moved off (a new head owes a new verdict). It runs after the batch's own
         merges, so no wait here holds one; a rejoin refused again is skipped
         again, its earlier row replaced."""
-        cap = self.wait_cap_s()
+        cap, mark, idle, seen = self.wait_cap_s(), [], {}, {}
         while waiting:
-            later = []
+            later, counted = [], None  # one `actions_mark` read per round, shared by its entries
             for item, h, since in waiting:
                 pr = int(item["pr"])
                 if self.head(pr) != h:
@@ -4538,6 +4571,8 @@ class Train:
                     continue
                 runs = self._check_runs(h)
                 state = "wait" if runs is None else self.classify_at(h, runs, req)[0]
+                if state == "wait" and runs is not None and counted is None:
+                    counted = self.counted_poll(True, mark)
                 if state == "green":
                     self.log(f"REJOIN #{pr}: GREEN at {h[:8]}, {int(self.clock() - since)} s after its skip; "
                              "it rejoins this train")
@@ -4550,10 +4585,17 @@ class Train:
                         self.skip(pr, "post-merge" if self.is_merged(pr) else s.step, f"#{pr} {s.why}", s.cls)
                 elif state == "red":
                     self.log(f"REJOIN #{pr}: RED at {h[:8]}; stays skipped (a real red never rejoins)")
-                elif self.clock() - since >= cap:
-                    self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
                 else:
-                    later.append((item, h, since))
+                    # TRAIN-WAIT-CAP-OUTAGE: the time since this entry's previous read counts toward
+                    # the cap only when this read read its runs and Actions moved since the last.
+                    now = self.clock()
+                    if runs is None or not counted:
+                        idle[pr] = idle.get(pr, 0.0) + now - seen.get(pr, since)
+                    seen[pr] = now
+                    if now - since - idle.get(pr, 0.0) >= cap:
+                        self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
+                    else:
+                        later.append((item, h, since))
             waiting = later
             if waiting:
                 self.hold_refresh()  # the rejoin's wait is a train wait: the record beat stays held
@@ -5147,6 +5189,9 @@ def _self_test() -> int:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
+            if argv[:2] == ["gh", "api"] and "actions/runs?per_page=30" in a:  # `actions_mark`
+                n = world["mark_reads"] = world.get("mark_reads", 0) + 1
+                return world.get("marks", lambda n: (0, f"2026-11-11T20:{n:02d}:00Z"))(n)
             if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
                 world.get("on_rerun", lambda: None)()
                 return 0, ""
@@ -8079,10 +8124,16 @@ def _review_settle_self_test(check) -> None:
     iso = lambda ago: datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
 
     def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0, ci=(), every=(),
-              req=("gate",)):
-        sleeps, lines, reads = [], [], [0]
+              req=("gate",), unread=(), marks=None):
+        sleeps, lines, reads, mk = [], [], [0], [0]
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "actions/runs?per_page=30" in a:  # `actions_mark`: by default a run completes between polls
+                mk[0] += 1
+                return (0, f"2026-11-11T20:{mk[0]:02d}:00Z") if marks is None else marks(mk[0])
+            if "actions/runs?event=pull_request_review" in a and reads[0] + 1 in unread:
+                reads[0] += 1
+                return 1, "HTTP 502"
             if "workflows/ci.yml/runs?head_sha=" in a:  # the ci.yml runs `_gate_busy` reads
                 return 0, _jl(list(ci))
             if "actions/runs?head_sha=" in a:  # EVERY workflow's runs: not the deferral's reading
@@ -8102,8 +8153,42 @@ def _review_settle_self_test(check) -> None:
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
                   polls=3, wall=lambda: NOW)
         t.required = lambda pr_head=False: list(req)
+        t.mk = mk
         return t, sleeps, lines, reads
     appr = {"state": "APPROVED", "commit_id": H, "user": {"login": APPROVER_LOGIN}}
+    # TRAIN-WAIT-CAP-OUTAGE (2026-11-11 20:12-21:09Z, #3455): an unread or stalled poll counts nothing
+    t, sleeps, lines, reads = world([], open_reads=8, unread=range(1, 6))
+    t.review_settle(3455, H)
+    counted = [ln for ln in lines if "still running" in ln]
+    check("TRAIN-WAIT-CAP-OUTAGE (1): five polls that cannot read the listing leave `waited` at its start "
+          "value -- the wait neither ends nor counts them (the first counted line reads one grain), and no "
+          "`actions_mark` read rides an unread poll",
+          reads[0] == 9 and sum("the listing is unreadable; not counted (0 s of" in ln for ln in lines) == 5
+          and bool(counted) and f"({POLL_SECONDS} s of" in counted[0] and t.mk[0] == 3)
+    t, sleeps, lines, reads = world([("77", "queued", 5)], marks=lambda n: (0, "2026-11-11T20:12:00Z"))
+    stop = [0]
+
+    def outage(sec, _s=sleeps):
+        _s.append(sec)
+        if len(_s) >= 40:
+            stop[0] = 1
+            raise Stop("probe", "the stalled wait did not end on its own")
+    t.sleep = outage
+    try:
+        t.review_settle(3455, H)
+    except Stop:
+        pass
+    check("TRAIN-WAIT-CAP-OUTAGE (2): while no run in the repository completes between polls, a queued "
+          "review run's wait counts only its first poll and never reaches the cap (39 polls before the "
+          "probe stops it, one GitHub listing added per poll)",
+          stop[0] == 1 and sum("Actions stalled" in ln for ln in lines) == 38
+          and t.mk[0] == reads[0] == 39)
+    t, sleeps, lines, reads = world([("77", "queued", 5)])
+    t.review_settle(3455, H)
+    check("TRAIN-WAIT-CAP-OUTAGE null: reads succeeding and Actions moving, a run still queued: the cap still "
+          "expires as before (polls fast + polls slow reads, no line not counted)",
+          sleeps == [REVIEW_POLL_SECONDS] * 3 + [POLL_SECONDS] * 3 and reads[0] == 6
+          and not any("not counted" in ln for ln in lines))
     # (1) the wait is time-bounded: 3 fast polls, then POLL_SECONDS ones, then the merge proceeds
     t, sleeps, lines, reads = world([], open_reads=5)
     t.review_settle(3039, H)
@@ -9581,6 +9666,9 @@ def _batch_self_test(check) -> None:
                 if "state,mergeCommit" in a:
                     return 0, f"MERGED {w['merged'][n]}" if n in w["merged"] else "OPEN None"
                 return 0, "fix: x"
+            if "actions/runs?per_page=30" in a:  # `actions_mark`: a run completes between polls unless stalled
+                k = w["mark_reads"] = w.get("mark_reads", 0) + 1
+                return 0, "2026-11-11T20:12:00Z" if k in w.get("stalled", ()) else f"2026-11-11T{k // 60:02d}:{k % 60:02d}:00Z"
             if "actions/runs?event=pull_request_review" in a:  # P86: the approval's review run,
                 w["review_reads"] = w.get("review_reads", 0) + 1  # running for its first `review_pending` reads
                 return 0, "77 completed" if w["review_reads"] > w.get("review_pending", 0) else "77 in_progress"
@@ -10323,6 +10411,15 @@ def _batch_self_test(check) -> None:
           and w["cr_reads"].get(w["h2"], 0) <= 3 + 2 * (2 * (REVIEW_POLL_SECONDS + POLL_SECONDS)) // 60
           and w["slept"].count(min(POLL_SECONDS, HEARTBEAT_SECONDS)) == w["cr_reads"].get(w["h2"], 0) - 2
           and w["lines"][-1] == "TRAIN DONE" and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    cr0 = w["cr_reads"].get(w["h2"], 0)
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "wait"])(w), w.update(stalled=range(2, 30))),
+           clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("TRAIN-WAIT-CAP-OUTAGE, the rejoin: rounds read while Actions is stalled (no run completed since the "
+          "previous read) add nothing toward the cap -- the 27 stalled rounds are 27 more reads than the null "
+          "control above before the same cap line",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and bool(rj) and "cap" in rj[-1]
+          and w["cr_reads"].get(w["h2"], 0) - cr0 == 27)
     w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "green", "red"])(w), w.update(strict="false")),
            clock=ticking())
     check("REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, "
