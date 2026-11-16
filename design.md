@@ -1,95 +1,69 @@
-# Design: R11-PRE-NO-READ-BUILDERS (size L, decision 0014)
+# Design: R11-PRE-NO-READ-BUILDERS (size L, decision 0014), round 2
 
-- Base (code read at): 31117b1029de63938d949e78dcbcd8f9451e5e33 (`origin/main`).
-- Predecessor R11-PRE-MACHINERY-LIMITER handoff head: 3ad61a1f6e (PR #3627, open). It moves nothing this note relies on. Its "one in, one out" clause (`dev/governance/rules/ratchet-budgets.md`, the machinery section) binds every part: **no part adds a required check.** Every read below is a report-only enumerator, and each self-test arm goes into the instrument's existing `--self-test`.
-- Cards, re-read at the eval/r11 tip c6ce415b77, whose `review.verdict` is `approve` (round 3, at 02a48db212): E11-N-ROLE-CLAUSE, E11-N-RULE-YIELD, E11-N-INSTRUMENT-YIELD and E11-N-GATE-CAUSE are each `decision: accepted`, ruled ("Build all four reads"), and `gates_finders: false`. No card is dropped or unruled, so nothing is held back.
-- Finder harness: none. These are owner-directed instrument cards, so the evidence is each card's `null_control` field at c6ce415b77.
+- Base: 824a016f7562c307b81b30a3c39e3844b1b4b630 (`origin/main` at dispatch). Answers `Design review: revise dcf02aadcf524e8a6ec7fa673ba53d44ba28b3e6 architecture-unsound` (f6b5c4fcbe); revise points R1-R3, the routed edge and the four notes are answered below by their tags.
+- Predecessor R11-PRE-MACHINERY-LIMITER: handoff head 363f3e7df7, unmerged at the base. `git diff --stat $(git merge-base 824a016f75 363f3e7df7) 363f3e7df7` touches none of this note's files. Its one-in-one-out clause binds every part: no part adds a required check; every read is report-only and its arms go in the owning instrument's existing `--self-test`.
+- Cards re-read at eval/r11 tip c6ce415b77 (`review.verdict` approve, round 3, at 02a48db212): the four are `decision: accepted`, ruled ("Build all four reads"), `gates_finders: false`; none rewritten or dropped, none held out.
+- Finder harness: none (owner-directed instrument cards). Evidence: each card's `null_control` at c6ce415b77.
 
-## Parts, by owning seam (four PRs, one concern each)
+## Parts, by owning seam
 
-| part | card | owning module | callers / readers | after |
-|---|---|---|---|---|
-| A | ROLE-CLAUSE | `.claude/workflows/web-fix-wave.js` (owns the vocabulary) | `tools/audit/seat/review_strength.py` | the limiter |
-| B | RULE-YIELD, instance dates and yield | `tools/audit/fold_ledger.py` | (none new) | the limiter |
-| C | RULE-YIELD load count; INSTRUMENT-YIELD; GATE-CAUSE's workflow run line | the session-transcript reader R11-PRE-TOKEN-LEDGER lands | a new subcommand beside it | R11-PRE-TOKEN-LEDGER |
-| D | GATE-CAUSE, a cause per red run | card P7's cause record (R11-PRE-ROUND-METRICS) | `tools/ci/gate.py` is **unchanged** | the R11-PRE-ROUND-METRICS part that builds P7 |
+| part | card | owning module | after |
+|---|---|---|---|
+| A | ROLE-CLAUSE | `.claude/workflows/web-fix-wave.js` (the vocabulary); `tools/audit/seat/review_strength.py` reads it | the limiter |
+| B | RULE-YIELD (dates, yield) | `tools/audit/fold_ledger.py` | the limiter; serial with R11-PRE-SECURITY-PRIVACY [b-hotfile] |
+| C | RULE-YIELD loads; INSTRUMENT-YIELD; GATE-CAUSE's workflow run line | a new session-yield seat instrument under `tools/audit/seat/` (the fixer names the file in the body), importing R11-PRE-TOKEN-LEDGER's per-session iterator | R11-PRE-TOKEN-LEDGER's merge |
+| D | GATE-CAUSE (a cause per red run) | `roster_lib.convergence_why`'s vocabulary and `loop_ledger.py` (both at acf0b72578, handoff/r11-pre-round-metrics-p2) | R11-PRE-ROUND-METRICS part 2's merge; R11-PRE-TOOLCHAIN-PIN for one column |
 
-C and D each sit behind a group outside this roster's `after` edges. I could split the concern there instead (a second transcript reader, a second cause record), but the brief refuses a second mechanism, so the edges are added instead. The orchestrator adds `R11-PRE-TOKEN-LEDGER` and `R11-PRE-ROUND-METRICS` to this group's `after`, or dispatches C and D as separate parts.
+[routed] D builds on part 2's merged code and carries nothing into it: the vocabulary change of R1 is D's own diff, made after that merge. So the orchestrator adds two `after` edges (part 2's merge for D, R11-PRE-TOKEN-LEDGER for C) or dispatches C and D as separate parts with those edges. A and B need neither.
 
 ### A. A block's class names its clause
-**Shape.** Next to the `VERDICT_CLASSES` literal, `web-fix-wave.js` gains one object literal that maps each taught class to the contract clause it enforces: `"fix-review.md step N"`, or a role file plus a section, or `null` where no clause exists (for example `other` and `conflict`). `review_strength.py` reads that literal the way its `verdict_classes()` reads the class list: from the `--tree` text, never copied. It gains a `--by clause` stratum.
-- An untaught word, a `null` and a merge verdict each keep their own row. This is the card's null control.
-- A clause string that does not resolve prints `UNRESOLVED <clause>`. It resolves when the file exists under `dev/governance/roles/` and holds a line `^N\. `. This is a report row, not a refusal.
-- Because the map is keyed on the class word, it applies to past verdicts too. The r10 window then reads by clause with no re-review.
+**Shape.** Next to the `VERDICT_CLASSES` literal (`web-fix-wave.js:175`), one object literal maps each taught class to `"<role>.md step N"` or `null` (`other`, `conflict`, any class no step enforces). `review_strength.py` reads it from the `--tree` text as `verdict_classes()` reads the list, never copied, and gains `--by clause`. [a-resolver] Only the step form is admitted: a clause resolves when `dev/governance/roles/<role>.md` exists and holds a line `^N\. `; anything else, a section name included, prints `UNRESOLVED <clause>`, a report row. An untaught word, a `null` and a merge verdict keep their own rows (the card's null control). Keyed on the class word, so the r10 window reads by clause with no re-review.
+**Invariants.** `CLASSES_RE`, `policy_lint.mjs`'s `blockClasses`, `check-wave-script.mjs`'s `matchAll` and `agreement.mjs`'s identical-extractor entry still match only the list; the new literal's name does not match `const VERDICT_CLASSES = \[`. Every taught class has one key; the self-test asserts it and that a decoy literal is not read.
+**Lost:** the clause in the verdict subject (three subject parsers change; the history carries no clause, so the card's window stays unread); a map typed in `review_strength.py` (a second copy, which its docstring forbids).
 
-**Invariants.**
-- The regex `CLASSES_RE` and `policy_lint.mjs:blockClasses` still match only `VERDICT_CLASSES`. The new literal's name must not match `const VERDICT_CLASSES = \[`.
-- Every taught class has exactly one key. The self-test asserts this, and also that a decoy literal is not read.
+### B. Instance dates and rule yield, derived
+**Shape.** `fold_ledger.py yield`:
+- Instance date: committer time of the first first-parent commit of `--ref` whose `dev/audit/config/bugclasses.json` holds the instance string, from one `git log --reverse -p` walk. A `non_round_instances` row is dated by its own SHA.
+- [R3] Rule date: the first add **following renames** (`git log --follow --diff-filter=A`, rename detection only, no copy detection), never the add at the current path. Measured at the base: for every file of `git ls-tree --name-only 824a016f75 dev/governance/rules/` the add at its path (bc0f17ddb6 for all of them) is later than the add under `--follow`, so the path date would count every instance between the two "before" a rule that existed.
+- Rule to class: a new `rules` list on each class (empty is a value), resolved by `check` as `MISSING-PATH` through the existing path resolver. Measured: no class `barrier` names a `dev/governance/(rules|roles)/` path, so the fixer writes each link from the class's `rca` document, one cited line per link.
+- Output: one row per rule: classes, instances before and after its date; `no-class` when no class names it, never 0 (a 0 feeds 0018's "remove").
+**Lost:** a stored date per instance as the card words it: it changes the `R<n> <id>` grammar `check`'s UNPARSED rule enforces and every reader `git grep -l bugclasses.json -- '*.py' '*.mjs' '*.js' '*.sh'` lists (`tools/merge/ledger_merge.py`, `.claude/workflows/audit-find.js`, `.claude/workflows/audit-verify.js`, `tools/policy/agreement.mjs`, `tools/policy/check-wave-script.mjs`, `tests/entities.py`), and back-fills by hand. Derived, `check` reads the same before and after: the card's null control holds by construction.
 
-**Alternatives that lost.**
-- The reviewer writes the clause in the verdict subject. This lost because the subject grammar has three parsers (parseVerdict, `blockClasses`, `review_strength.py`) and the history carries no clause. The card's 2537-verdict window would stay unread.
-- A map typed inside `review_strength.py`. This lost because it would be a second copy of the vocabulary, which that file's docstring forbids ("never copied here").
+### C. Session reads: loads, refusals with outcome, workflow runs
+Measured in a designer transcript: a rule load is a line with `attachment.type` `nested_memory` and the `.claude/rules/<rule>.md` path (a Read under `dev/governance/` produced one; a Bash `sed` of the same file produced none); a Bash exit is a `tool_result` with `is_error: true` beginning `Exit code N`.
+1. **Loads per rule:** `nested_memory` lines per path.
+2. **[R2] Refusal, by the instrument's own marker, never one exit code.** Exit 2 is a refusal in `tools/pr/prepr.sh:1824` ("REFUSE pr-body"), `tools/pr/push.sh` and others, so an exit-code rule would read 0 refusals for the instruments that refuse most. A refusal is a run of a tracked file under `tools/` or `.claude/hooks/` whose result holds a line matching `^\s*REFUSE[DS]?\b` or `^\s*refusing\b`, at any exit code, or a PreToolUse hook denial. The refusing set is enumerated, not declared: `git grep -l -E '\bREFUSE' -- tools .claude/hooks` (the marker set). A file the reviewer's exit-2 enumerator returns outside the marker set prints in an `unmarked` scope row with its non-zero exits, and its yield reads `unread`, never 0; the fixer lists those files at the part's merge base and classifies each (usage-only: no row) in the body. No instrument is edited by this part. A call whose instrument is not the last simple command prints `masked`.
+3. **Outcome** of each refusal, from the next run of the same instrument in the session: `fix` (it passes, with an Edit, Write or commit between); `override` (it or a following `git push` carries a token of one literal OVERRIDES list, seeded by `git grep -n -E "ALLOW_|--force|--no-verify" -- .claude/hooks tools/pr`); `nothing` otherwise.
+4. **Workflow runs:** one line per Workflow call: script, UTC time, notified status.
+[c-subagent] The iterator walks each session's subagent transcript files as well as the session file, and prints `subagent files read k` beside `sessions read n` (local and cloud apart); a seat class it cannot read prints `NO-READ`. A subagent's refusal is its own row, outcome read within its own file.
+**Lost:** a PostToolUse logging hook (a standing cost on every Bash call; a second record of the transcript; dies with a cloud container); a subcommand inside the token ledger's file (couples C's hot file to that group's; the card needs a nameable path [paths]).
 
-### B. Instance dates and rule yield, derived and never stored
-**Shape.** `fold_ledger.py` gains a `yield` subcommand.
-- **Instance date:** the committer time of the first commit, on the first-parent history of `--ref`, whose version of `dev/audit/config/bugclasses.json` contains the instance string. It is computed in one `git log --reverse -p` walk of that file. A `non_round_instances` row is dated by its own SHA.
-- **Rule merge date:** the first commit that adds the rule's file.
-- **Rule → class link:** a new `rules` list on each class (rule paths; empty is a value). `check` gains a `MISSING-PATH` resolution of this field, which reuses the existing path resolver.
-- **Output:** one row per rule: classes, instances before and after the merge, and `no-class` when no class names the rule. `no-class` is never printed as 0, because a 0 would feed 0018's "remove" verdict.
+### D. A cause per red run, in P7's vocabulary
+[R1] The record is `roster_lib.convergence_why` and `loop_ledger.py` at acf0b72578; D owns its change there after part 2 merges. A red is a run whose required set (gate.py's `REQUIRED`) failed, on a pull-request head or on main's push (card E11-GATE-REDS asks the same record). Its cause is a `caused_by.cause` word already admitted, derived from the clearing event (prototype `dev/audit/rounds/round11/evaluation/gate_reds.py` on eval/r11; fetched listings in, no API read in `loop_ledger.py`):
+- the PR's own later commit cleared it: `#<that PR>`;
+- red at the merge base on main too: `#<n>`, the PR merged at main's first red push run of that context after its last green (merge-subject parse); unparsed: `unread`;
+- a re-run at the same head went green: `external`.
+No new cause word; `original` is not used by a derived row. **The one vocabulary change:** `convergence_why`'s cause test becomes a function the derived row calls too, and the rca rule is settled as: a derived row carries no `rca`, is never written to the roster, and never feeds `injected` (which stays the written, rca-backed rows), so the root-cause seat still owns every cause that counts as injected. `found_by`: `ci-main` on main rows; absent on PR-head rows, since a pre-merge red is no escape and P7's `found_by` counts escapes.
+**Product/machinery** is not re-defined by paths: the column is R11-PRE-TOOLCHAIN-PIN's gate.py function (design/R11-PRE-TOOLCHAIN-PIN a37706d599, section 2) on the run's listing; until it merges the column prints `unread`, and the failed job set prints as `machinery_line()` (`tools/ci/gate.py:293`) splits it today. `gate.py` is unchanged by D.
+**Lost:** gate.py stamping a cause at run time (the clearing event does not exist yet; a guess and a second mechanism); four new cause words (a second vocabulary, R1).
 
-**Measured at the base:** no class `barrier` names a rule or role path (a `json.dumps` scan of `barrier` for `dev/governance/(rules|roles)/`), so the link must be written. The fixer fills it from each class's `rca` document and cites one line per mapping.
-
-**Alternative that lost:** a stored date per instance, as the card words it. It changes the `R<n> <id>` instance grammar that `check`'s UNPARSED rule enforces. That grammar is read by every reader `git grep -l bugclasses.json -- '*.py' '*.mjs' '*.js' '*.sh'` lists outside the dated round folders: `tools/merge/ledger_merge.py`, `.claude/workflows/audit-find.js`, `.claude/workflows/audit-verify.js`, `tools/policy/agreement.mjs`, `tools/policy/check-wave-script.mjs` and `tests/entities.py`. It would also mean back-filling every instance by hand, against the file's own rule ("derived, never carried"). Under derivation, the card's null control holds by construction: `check` reads the same before and after.
-
-### C. Session reads: rule loads, refusals with their outcome, workflow runs
-Measured in this seat's own transcript:
-- A rule load is a line whose `attachment.type` is `nested_memory` and whose `path` is the `.claude/rules/<rule>.md` file. A Read of `dev/governance/roles/design-review.md` produced one for `brief-citations.md`. A Bash `sed` of the same tree produced none.
-- A Bash command that exits non-zero gives a `tool_result` with `is_error: true` whose content begins `Exit code N`. A planted `exit 1` showed this.
-
-The part therefore reads, through the token ledger's per-session iterator (no second transcript walk), three things:
-1. **Loads per rule:** a count of `nested_memory` lines per path.
-2. **Refusals:** a Bash call whose **last** simple command runs a tracked file under `tools/` or `.claude/hooks/` and exits with a code other than 0 or 2. Code 2 is the usage error by this repository's convention and prints its own `usage` row. A call where the instrument is not last prints a `masked` row: its exit code was not observed. A PreToolUse hook denial is a refusal by that hook.
-3. **Outcome of each refusal,** decided by the next run of the same instrument in the same session:
-   - `fix`: the next run passes and an Edit, Write or commit came in between.
-   - `override`: the next run, or a following `git push`, carries a token from one literal OVERRIDES list. The list starts with the bypass variables and flags the fixer enumerates with `git grep -n -E "ALLOW_|--force|--no-verify" -- .claude/hooks tools/pr`.
-   - `nothing`: neither of the above.
-4. **Workflow runs:** one line per Workflow call, giving the script, the UTC time and the notified status.
-
-Scope line: sessions read, local and cloud apart. A seat class the ledger cannot read prints `NO-READ`, never a partial (0018 section 2).
-
-**Alternative that lost:** a PostToolUse logging hook. It adds seconds to every Bash call of every session (a standing cost). It would also be a second record of what the transcript already holds, and its log dies with a cloud container.
-
-### D. A cause per red run, in P7's record
-A red gate run on a pull-request head gets a cause derived from the event that cleared it, using the Actions API and git (prototype: `gate_reds.py` on eval/r11):
-- `inherited`: the same context was red on main at the merge base.
-- `external`: a re-run at the same head went green.
-- `product`: the clearing commit's diff touches `custom_components/` or `blueprints/`.
-- `machinery`: anything else.
-
-A red that got a hotfix group takes that group's P7 `caused_by` and `found_by` by a join, never re-derived. The rows are added to P7's enumerator as a second subject kind. There is one record and one vocabulary.
-
-`gate.py` stays unchanged. It runs before the clearing event exists, so it cannot know the cause, which is the gap 0018 section 3 names.
-
-**Alternative that lost:** gate.py stamps a cause at run time. That cause would be a guess, and it would be a second mechanism.
-
-## Evidence plan (`fixer.md` steps 2–4, per part)
-| part | failing test first (planted event prints its row) | null control (no event prints 0) | mutation target |
+## Evidence plan (`fixer.md` steps 2-4)
+| part | failing test first: a planted event prints its row | null control | mutation target |
 |---|---|---|---|
-| A | fixture wave script with `harness → fix-review.md step 2`; a blocked verdict shows on the `fix-review.md step 2` row | a window of merges only gives clause rows of 0 | the clause lookup in `stratum` |
-| B | fixture history adds `R9 X-1` to class `C` after rule `r.md`'s add commit; output `after 1` | a rule linked to a class with no later instance gives `after 0` | the first-seen walk's comparison |
-| C | synthetic jsonl: one `nested_memory`, one exit 1 → edit → exit 0, one Workflow call; output load 1, refusal 1 `fix`, run 1 | a transcript with none gives 0 / 0 / 0 | the outcome classifier |
-| D | fixture runs: red then green at the same head gives `external`; red then a product commit gives `product` | a green-only window gives 0 reds | the clearing-event match |
+| A | fixture wave script mapping `harness` to `fix-review.md step 2`; a blocked verdict counts on that row | a merges-only window: clause rows 0 | the clause lookup in `stratum` |
+| B | fixture history: a rule file added under one directory, then class `C` gains `R9 X-1`, then the rule moves into the rules directory: reads `after 1` (the path date would read `before 1`) | a linked rule with no later instance: `after 0` | the walk's comparison; the `--follow` flag |
+| C | synthetic jsonl: one `nested_memory`; `prepr.sh --body-check` exit 2 with `REFUSE pr-body`, an edit, exit 0 (`fix`); one subagent file holding an exit-1 `REFUSE`; one Workflow call | none of these: 0 / 0 / 0, and an unmarked exit-2 tool reads `unread` | the marker match; the outcome classifier |
+| D | fixture listings: red then green at one head is `external`; red cleared by the PR's commit is `#<pr>`; red inherited from main is main's PR | a green-only window: 0 reds; a success run carries no cause | the clearing-event match; the cause call into `convergence_why` |
+No golden moves; neither claim file is touched.
 
-No golden moves. Neither claim file is touched.
-
-## Hot files and serial order
-- A and B: no shared file, so either order.
-- `review_strength.py` is also read by `dev/audit/harnesses/r10_review_strength_mutants.py`. Re-run that harness after A.
-- Each part enters `tests/closures.json` or `tests/closure.py`'s INERT list, and is added to `.github/CODEOWNERS` as an enumerator (the R11-PRE-ROUND-METRICS carry, item 0df1ac6e).
-- Each part is a non-production merge under the target in `dev/governance/config/machinery_target_budgets.json` (at the limiter head 3ad61a1f6e).
+## Hot files and serial position
+- B and R11-PRE-SECURITY-PRIVACY (design ba8209b07f) both change `fold_ledger.py check`: serial, whichever merges first, the other rebases and re-runs steps 2-8. [b-hotfile]
+- D and R11-PRE-ROUND-METRICS part 2 share `roster_lib.py` and `loop_ledger.py`: D after its merge. D and R11-PRE-TOOLCHAIN-PIN do not share a file.
+- After A, re-run `dev/audit/harnesses/r10_review_strength_mutants.py`.
+- Each new file enters `tests/closures.json` or `tests/closure.py`'s INERT list, and `.github/CODEOWNERS` as an enumerator.
 
 ## Notes for the fixer
-- Sibling readers of the verdict literal: run `git grep -l VERDICT_CLASSES -- tools tests .claude`, and confirm that `check-wave-script.mjs`, `agreement.mjs` and `tests/entities.py` still pass with the new literal present. Carry: R11-PRE-NO-READ-BUILDERS
-- Owed to R11-PRE-TOKEN-LEDGER: expose the per-session transcript iteration as an importable function, not inline in the daily job, so part C reads the same walk. The orchestrator routes this to that group's brief. Carry: R11-PRE-TOKEN-LEDGER
-- Owed to R11-PRE-ROUND-METRICS: P7's record keys a row by subject (a group, or a red run), with `caused_by` admitting `inherited`/`external`, so part D adds a source and not a record. Carry: R11-PRE-ROUND-METRICS
-- Re-derive every count at the part's own merge base. The figures above name their commands only.
+- [paths] E11-N-INSTRUMENT-YIELD's `paths` becomes C's new file; E11-N-GATE-CAUSE's becomes `tools/audit/seat/roster_lib.py` and `tools/audit/seat/loop_ledger.py` in place of `tools/ci/gate.py`, plus C's file for the run line; each is written in the evaluation before the card is recorded merged. Carry: R11-PRE-NO-READ-BUILDERS
+- Readers of the verdict literal: `git grep -l VERDICT_CLASSES -- tools tests .claude`; `check-wave-script.mjs`, `agreement.mjs` and `tests/entities.py` still pass with the second literal present. Carry: R11-PRE-NO-READ-BUILDERS
+- Owed to R11-PRE-TOKEN-LEDGER: the per-session iteration is an importable function that also yields each session's subagent transcript files. Carry: R11-PRE-TOKEN-LEDGER
+- Re-derive every count at the part's own merge base; the figures above name their commands only. Carry: R11-PRE-NO-READ-BUILDERS
