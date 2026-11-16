@@ -1324,9 +1324,18 @@ def _self_test() -> int:
               and group_class({"group": "X", "class": "production"}) == "production"
               and group_class({"group": "X"}) == "production"
               and group_class({"group": "X", "files": ["tools/audit/seat/x.py"]}) == "instrument")
+        # a fixture root, so the vocabulary is read from planted files and never the tree's
+        froot = Path(td) / "vocab"
+        for rel in ("dev/governance/dimensions/D3.md", "dev/governance/dimensions/D8.md",
+                    "dev/governance/dimensions/D12.md", "dev/audit/rca/R10-N-log-flood.md",
+                    "dev/audit/rca/R10-N-staleness.md"):
+            (froot / rel).parent.mkdir(parents=True, exist_ok=True)
+            (froot / rel).write_text("x\n")
+        (froot / "dev/audit/config").mkdir(parents=True)
+        (froot / "dev/audit/config/bugclasses.json").write_text('{"N-log-flood": {}}')
         cg = {"group": "R10-C", "rca": ["R10-N-log-flood"]}
         cn = {"R10-C", "R10-P"}
-        cw = lambda f, v, g=cg: convergence_why(f, v, g, cn)  # noqa: E731
+        cw = lambda f, v, g=cg: convergence_why(f, v, g, cn, froot)  # noqa: E731
         check("convergence: each closed word is admitted, and its neighbour refused (null control)",
               all(cw(f, ok) is None and cw(f, bad) for f, ok, bad in (
                   ("found_by", "D3", "D99"), ("found_by", "ci-main", "ci"), ("owned_by", "none", "None"),
@@ -1344,9 +1353,9 @@ def _self_test() -> int:
               and "{cause, rca}" in cw("caused_by", "#3520")
               and "no convergence field" in cw("source", "user"))
         check("convergence: recorded needs every named field present and admissible",
-              recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn)
-              and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn)
-              and not recorded({**cg, "found_by": "nobody", "owned_by": "none"}, ("found_by", "owned_by"), cn))
+              recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "nobody", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot))
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))
