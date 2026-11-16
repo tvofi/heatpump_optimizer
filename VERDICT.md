@@ -1,0 +1,31 @@
+Fix review: merge bca2e138252ed1176e517aca6f3bcb47588cd2af
+
+bus-nonce: 2ccf0149a24cbde36e4435cc3e39f213
+
+## Scope
+
+Round 5. The last `merge` verdict was round 4's, at `5b33358e80` (`probe/rev-3602-c4782836`). `tools/audit/seat/review_carry.py 5b33358e80 bca2e13825` prints `FRESH-REVIEW`, because `67e6e16e1e` is not the automatic merge of its parents (`ev/review_carry.txt`). So this round reviews the delta (fix-review.md step 12). The production own-diff did not change. I took each side three-dot against its own merge base and stripped the index and hunk lines, and `diff` exits 0 (`ev/production_delta_since_5b33358.txt`). The delta has five parts: `tests/guard_pins.py` (`_space_scope`'s two cap guards), seven `killed_by` rows (`_run_bounds` RETURN_DEL, `_space_scope` GUARD_OFF, and `0260dd241d`'s autofix rows for `runs.candidates` and `runs.commit`), `tests/deployment_shape.py`'s pair count (163 to 164), and two main merges. The hand resolution in `67e6e16e1e` touches no production file. It changes `dev/audit/rounds/round4/D6/claims.*`, `docs/architecture.md` (94 to 95 modules, 60 to 61 free of Home Assistant, after #3616's `slab_seed.py`), `tests/deployment_shape.py`, and the placement of #3616's block in `tests/features.py` (`ev/remerge_67e6e16e1e.txt`). Under step 12, instrument, test and body deltas do not widen the review.
+
+## Findings
+
+- Note: recut-missing: this is the fifth round. `fixer.md` ("Past three rounds, re-cut rather than repair") asks for the body to be replaced under a `## Re-cut` note. The body still has no such heading and keeps the round history. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS
+- Note: stale-body: some figures and statements in the body no longer match this head. It says "94 modules, 60 free of Home Assistant" and "94 modules, 33 importing", but after `67e6e16e1e`'s resolution `docs/architecture.md` says 95 and 61. Its `## Red checks` line on `budget-raise-gate` answers "the structure-budget raise this branch records", but `tests/structure_budgets.json` only lowers three budgets (`class_excess_loc`, `duplication_copies`, `max_class_loc`) and raises none. The gate is green at this head. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS
+- Round 1's four reviewer mutants (`REV_HEATS_HALF_FLOOR`, `REV_NO_POLISH`, `REV_STAGE_BOX_TANK_ROOM`, `REV_ONE_RESOLVED`) still have no killing check. The delta adds none, and the body still routes them under a pending orchestrator ruling. Carried unchanged from rounds 3 and 4, and not re-run here. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS
+- Two round-4 findings stand unchanged because the delta does not touch them. `SPACE_SCOPE_LOWER_BOUND` is killed only through an `IndexError` under CMD B, with no value clause. The restated energy half of test 6 repeats the predicate of `selection: the shipped plan never scores above the projection (candidate 1)`. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS
+
+## Evidence
+
+- Head: `refs/pull/3602/head` was re-read at `bca2e138252ed1176e517aca6f3bcb47588cd2af` just before return (`ev/HEAD.txt`). The body's `## Head` names this SHA (step 7).
+- Merge with main: `git merge-tree --write-tree origin/main bca2e13825` at `origin/main` `e352724335` exits 0. Its stderr reads `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge_tree.stderr`). GitHub's `dirty` state is not a conflict (step 13).
+- Role contract: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- Mutation proof (step 1), on the delta's new pins. I ran `tools/audit/seat/mutant_run.py --spec ev/rev5_spec.json` (copy-tree) at the head with five mutants, all written by me (`ev/rev5_mutants.txt`).
+  - Under `tests/guard_pins.py`: `SURVIVED NULL`, then KILLED for `REV5_SPACE_CAPS_OFF`, `REV5_TOTAL_CAP_OFF` and `REV5_TOTAL_CAP_NO_DHW` (the total cap without the hot-water subtraction). SURVIVED for `REV5_TOTAL_CAP_NO_FLOOR0` and `REV5_RUN_BOUNDS_RETURN_DEL`.
+  - Under `tests/typing_ruler.py`: `SURVIVED NULL`, then KILLED for `REV5_RUN_BOUNDS_RETURN_DEL`. The four `_space_scope` mutants survive, as expected, since this script is not their driver.
+  - This matches the two new `killed_by` rows (`_space_scope GUARD_OFF 0429ccf6` by `tests/guard_pins.py`; `_run_bounds RETURN_DEL 12b1b723` by `tests/typing_ruler.py`).
+  - `REV5_TOTAL_CAP_NO_FLOOR0` drops `np.maximum(0.0, ...)` on a line that is at the base too (base `optimizer.py:4750`). `guard_pins`'s fixture never has hot water above the total cap, so it cannot reach that clamp. The ledger row `_space_scope CLAMP_DROP 11d6f2e0` records `tests/features.py` killing "each of the 2 sites under this anchor". I did not re-run `tests/features.py` under this mutant, so that kill is cited, not verified.
+- Claims (step 4): `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 367c3b9cac` at the head exits 0 (`ev/env_drift_all.txt`). It prints `CLAIMED cycling_cost: 421 leaves`, `CLAIMED everything_on: 741 leaves`, `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`. `claims-for: 10.0.2` in both claim files equals `VERSION` after main's stamp. The claim notes merged with `MERGE-CLAIM: resolved`.
+- Step 5: `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched, checked three-dot.
+- Step 14: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (`ev/structure.txt`). The budget file only moves down, and the delta does not touch it.
+- CI (step 11): `merge_train.py classify bca2e13825 --pr 3602` printed `GREEN bca2e138252ed1176e517aca6f3bcb47588cd2af pending: none red: none` on its first run and again just before return (`ev/classify.txt`). The head shows two reds, `tests / replay` and `tests / nightly-status`. Neither is in `merge_train.py owed-reds` (`ev/owed_reds.txt`), so neither is owed an answer. The body's `## Red checks` answers the owed reds in the range: `tests / mutation`, `tests / fast (3.14)` and `budget-raise-gate` (the last on a stale premise, noted above).
+- Finder's harness: `review_packet` names none. The group's committed harness `dev/audit/harnesses/r11_honest_starts_runs.py` reads production that is unchanged since round 4, so I did not re-run it. The kernels, descents, grid, gradient, stress and solve-time figures are cited from the body and from round 4's verdict.
+- Carry audit at the head: `CARRY-AUDIT: 19 finding item(s): 19 routed, 0 unrouted, 0 bad destination(s)` (`ev/review-packet.md`).
