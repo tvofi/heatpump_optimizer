@@ -876,13 +876,15 @@ def _bug_families(root) -> set:
 
 #: A root-cause record declares itself in its opening paragraph ("This is the
 #: root-cause seat for <subject>", "Root-cause seat, run beside the fixer of <group>":
-#: dev/governance/roles/root-cause.md's records), and names its subject there.
+#: dev/governance/roles/root-cause.md's records), and names its subject there or in
+#: its title ("# RCA-1736: solve-scoped hub writes (R9-EG-B0)").
 _RCA_SEAT = re.compile(r"\broot-cause seat\b", re.IGNORECASE)
 
 
 def rca_subject(text: str) -> "str | None":
-    """The record's subject block: its opening paragraph (the first block of lines
-    that is no heading or HTML comment), when that paragraph declares the record a
+    """The record's subject block: its title (the `# ` heading its text opens with,
+    HTML comments skipped) and its opening paragraph (the first block of lines that
+    is no heading or HTML comment), when that paragraph declares the record a
     root-cause seat; else None. A group the record names anywhere else (a status row,
     a later paragraph, a quoted seat) is not its subject (verdict/3657 caused-by-overbroad)."""
     para = []
@@ -893,7 +895,10 @@ def rca_subject(text: str) -> "str | None":
         elif para:
             break
     block = "\n".join(para)
-    return block if _RCA_SEAT.search(block) else None
+    if not _RCA_SEAT.search(block):
+        return None
+    lines = [ln for ln in text.splitlines() if ln.strip() and not ln.lstrip().startswith("<!--")]
+    return f"{lines[0]}\n{block}" if lines[0].startswith("# ") else block
 
 
 def rca_lists(rca, group: dict, root=None) -> bool:
@@ -1379,6 +1384,8 @@ def _self_test() -> int:
         (froot / "dev/audit/rca/R10-RCA-NAMED.md").write_text(
             "# R10-RCA-NAMED: a record whose subject is two groups\n\nThis is the root-cause seat for R10-D,\n"
             "found again in R10-E-2.\n\nA later paragraph names R10-S.\n\n| R10-T | in progress |\n")
+        (froot / "dev/audit/rca/R10-RCA-TITLED.md").write_text(
+            "<!-- landed by R10-L -->\n# R10-RCA-TITLED: hub writes (R10-W)\n\nRoot-cause seat for issue #1.\n\nR10-Z.\n")
         # A process record: groups in its title, opening paragraph, status table and a quoted
         # seat, and no root-cause seat declared in its opening paragraph.
         (froot / "dev/audit/rca/R10-RCA-BOARD.md").write_text(
@@ -1418,9 +1425,13 @@ def _self_test() -> int:
               all("rca record under" in (cw("caused_by", {"cause": "original", "rca": r}, {"group": n}) or "")
                   for r, n in (("R10-RCA-NAMED", "R10-S"), ("R10-RCA-NAMED", "R10-T"),
                                ("R10-RCA-BOARD", "R10-D"), ("R10-RCA-BOARD", "R10-U"),
-                               ("R10-RCA-BOARD", "R10-V")))
+                               ("R10-RCA-BOARD", "R10-V"), ("R10-RCA-TITLED", "R10-L"),
+                               ("R10-RCA-TITLED", "R10-Z")))
+              and cw("caused_by", {"cause": "original", "rca": "R10-RCA-TITLED"}, {"group": "R10-W"}) is None
               and rca_subject("# T\n\n<!-- note -->\nRoot-cause seat, run beside\nthe fixer of R10-X.\n\nR10-Y.\n")
-              == "Root-cause seat, run beside\nthe fixer of R10-X."
+              == "# T\nRoot-cause seat, run beside\nthe fixer of R10-X."
+              and rca_subject("Root-cause seat for R10-X.\n\n# R10-Y\n") == "Root-cause seat for R10-X."
+              and rca_subject("## 1. R10-Y\n\nRoot-cause seat for R10-X.\n") == "Root-cause seat for R10-X."
               and rca_subject("# T\n\nOwner's question: R10-X.\n\nThe root-cause seat for R10-X.\n") is None
               and rca_subject("# T\n\nA root-cause seating of R10-X.\n") is None
               and rca_subject("") is None)
