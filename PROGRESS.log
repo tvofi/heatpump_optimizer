@@ -4,3 +4,4 @@
 1794853043 CKPT part2 wording committed (pushed wip); scoped lanes running; probe ready snapshot f5a19d2877f4
 1794853318 HB alive
 1794853366 CKPT card drift claimed (3 states); 375px dialog hover keeps the Because block snapshot 75b48599794b
+1794853802 CKPT lanes green (23); harness r11_why_hover_fit landed; ci_predict clean; writing body snapshot 5ac1bbd8e8a9
