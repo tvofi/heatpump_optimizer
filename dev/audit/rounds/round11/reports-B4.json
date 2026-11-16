@@ -772,6 +772,1180 @@
           "what": "behind a valve the one-step replay of the elapsed interval cannot move the slab (it is fed from the tank's opening temperature) and the replayed tank is discarded, so the #2499 metered-heat slab correction is inert on single_tank_valve and two_tank_4way installs (0, 2 and 4 kW give the same slab)"
         }
       ]
+    },
+    "D1-s2": {
+      "dimension": "D1",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D1/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D1.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d1-stores",
+          "universe": 41,
+          "examined": 41,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "17 store lines: store_fuzz.py 200 seeded mutants each (boost/manual_plan/away populated), nan_boundary.py every numeric leaf, clock_save.py (writer clock +48 h across a restart; save during the load), hold_restore.py (expired/running holds to the first cycle), off_restore_race.py, boost_settle.py. 24 upgrade lines: CONFIG_ENTRY_VERSION v1..v6 by config_fuzz.py (200 each), LEDGER v1->2 and defrost v1->2 by upgrade_fuzz.py (healthy old record + 200 mutants), the 16 'v1 (no earlier version)' lines as the v1 record loaded by this release = that store's healthy control and fuzz in store_fuzz.py. C1: manual_plan, dhw profile/draws, boost, pump_arbiter, notifier and debug all fuzzed with populated payloads; positive control --control; healthy-restart WARNINGs subtracted per store."
+        },
+        {
+          "step": "D1.M3",
+          "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d1-inputs",
+          "universe": 51,
+          "examined": 51,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "staleness.py over all 51 (24 reach the coordinator watchdog: h/u/r/k/f/j/s phases); staleness_unread.py over the other 27 through their own consumers (consumers.py names them); pv_stale.py, weather_stuck.py, price_weather.py (price fetch raising with covering prices, price list stopping, empty forecast), presence_dst.py (presence between updates, DST spring/autumn, host clock -2 h/+3 h), booked.py (published and booked value). C2: DST via dt DEFAULT_TIME_ZONE Europe/Stockholm with dt.freeze across both 2026 changes, and the backward host-clock jump on the watchdog (staleness.py phase j, 24 slots) and the age readings (presence_dst.py)."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D1-s2-01",
+          "scope": "D1-s2",
+          "step": "D1.M2",
+          "title": "Store-load boundary passes NaN: a \"NaN\" leaf reaches the live model and makes the next save undecodable",
+          "severity": "high",
+          "claim": "store._poisoned returns False for float('nan') and for the string \"NaN\" (abs(nan) >= ABSURD is False), so QuarantiningStore.async_load hands those leaves to the loaders; in 3 of 515 single-leaf \"NaN\" substitutions over every d1-stores healthy payload the NaN reaches the live thermal model or the published payload, and in the same 3 the next save writes a bare NaN token that the following restart's orjson load refuses, dropping the whole accuracy and snapshots documents.",
+          "mechanism": "_poisoned's float branch is `abs(value) >= ABSURD`; NaN compares False, so _sanitize keeps it although the module and _poisoned's own docstring say non-finite is quarantined. comfort_learning's from_dict reads `float(np.clip(float('NaN'), lo, hi))` = nan (np.clip propagates NaN) into learned_weight/evidence, published as data['comfort_learning']; DhwProfileLearner.apply_cooling_rate does the same into ThermalParameters.dhw_cooling_rate (the solver's input). The accuracy and snapshot savers then json.dumps the NaN as a bare token; Home Assistant's orjson load refuses it and moves the whole file aside, so the learned accuracy history and the snapshots are lost at the next restart. tests/finite_boundary.py's own module-level checks 'the boundary quarantines nan at every depth' and 'str-nan' print FAIL on this tree.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/nan_boundary.py",
+            "value": 3,
+            "unit": "leaves (of 515) whose NaN reaches the live model/published payload; same 3 make a stored document undecodable",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out: other finder seats and this seat's fuzz shards running; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 30.7,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/store.py:_poisoned (via QuarantiningStore.async_load, the real loaders, HeatPumpOptimizerCoordinator._async_update_data)",
+          "perturbation": {
+            "change": "--fix: store._poisoned also returns True for a non-finite float or a string whose float() is non-finite (one line: `return not math.isfinite(value) or abs(value) >= ABSURD`), patched in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "leaves_reaching_live=0, leaves_making_disk_undecodable=0, nan_boundary_passes=0 (accuracy+dhw_profile, 148 leaves)"
+          },
+          "metric_definition": "Count of single numeric leaves which, set to the string \"NaN\" and loaded through the real loaders plus one cycle, leave a non-finite value live/published or an undecodable store document.",
+          "phenomenon_property": "No store load hands a loader a non-finite number in any spelling (float NaN/inf, or a string float() turns into one); every non-finite leaf is quarantined at QuarantiningStore.async_load, so nothing non-finite is installed live or re-saved.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py  (every numeric leaf of every d1-stores payload; the seam is store._poisoned, one function)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile --sub Infinity",
+            "value": 0,
+            "note": "the spelling the boundary does scrub (\"Infinity\") over the same 148 leaves reaches nothing; the effect is NaN-specific"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile   -> leaves_reaching_live=3, leaves_making_disk_undecodable=3",
+            "... --sub Infinity -> 0 (null control); ... --fix -> 0 (perturbation)"
+          ],
+          "proposed_fix_scope": "store.py:_poisoned refuses non-finite floats (math.isfinite); add a NaN arm to tests/finite_boundary.py's run (its own module-level check already fails).",
+          "files": [
+            "custom_components/heatpump_optimizer/store.py",
+            "custom_components/heatpump_optimizer/comfort_learning.py",
+            "custom_components/heatpump_optimizer/dhw_learning.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        },
+        {
+          "id": "D1-s2-02",
+          "scope": "D1-s2",
+          "step": "D1.M3",
+          "title": "PV production is read with no age check: a silent or future-stamped meter still seeds step 0 and is published",
+          "severity": "high",
+          "claim": "HeatPumpOptimizerCoordinator._pv_measured_production reads CONF_PV_PRODUCTION_ENTITY through hass.states.get + state_power_kw, never through InputReader, so the 30-minute limit const.INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] declares is never applied: in 6 of 6 report ages past the limit (31 min to 24 h) and for a report stamped 90 min in the future, the real cycle publishes data['pv']['measured_production_kw']=5.0 and overwrites step 0 of the PV forecast with it.",
+          "mechanism": "_pv_forecast sets production[0] = min(self._pv_production, peak_kw) from _pv_measured_production, which is `state_power_kw(self.hass.states.get(entity_id), sign='clamp')`. state_power_kw's own docstring calls itself 'the one parse of a power state outside InputReader (which adds the staleness of a configured input)'; the slot has a declared limit (const.py: INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0, INPUT_ON_CHANGE_MAX_AGE_MINUTES pv_production_entity 30.0) that no reader of it applies, and the slot never appears in the input watchdog (staleness.py: 'unread'). An inverter whose integration drops off mid-afternoon keeps the planner believing in its last output (here 5 kW) for the current step indefinitely, and a host clock stepped back makes the same reading look fresh.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/pv_stale.py",
+            "value": 6,
+            "unit": "report ages past the 30-min limit (of 6) at which the stale reading is published and used; plus future_published=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; a count",
+            "tolerance": "exact",
+            "load1": 186.49,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_measured_production (driven through _async_update_data -> _pv_forecast; published data['pv'])",
+          "perturbation": {
+            "change": "--fix: _pv_measured_production first reads the slot through InputReader(hass, {}).read(CONF_PV_PRODUCTION_ENTITY, entity_id=...) and returns None unless the reading is ok (the declared age limit applies), then state_power_kw as before; patched in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "stale_cells_published=0, future_published=0; ages 5 and 20 min still publish 5.0"
+          },
+          "metric_definition": "Of 6 report ages beyond INPUT_MAX_AGE_MINUTES[pv_production] (31,45,90,180,420,1440 min), how many cycles still publish pv.measured_production_kw from the stale state.",
+          "phenomenon_property": "Every configured input with a declared age limit is read under that limit by every consumer; a reading past its limit (or stamped ahead of the clock) is not used as a measurement and not published as one.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/consumers.py  (per d1-inputs slot, the production functions calling hass.states.get on it; a slot listed in const.INPUT_MAX_AGE_MINUTES whose getters bypass InputReader/age_of is a seam)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py --fresh",
+            "value": 0,
+            "note": "the same cells with the meter re-reporting at each cycle: the reading is legitimately used, no stale cell counted"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 1,
+            "max": 1,
+            "drop_most_favourable": 5
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/pv_stale.py           -> stale_cells_published=6, future_published=1",
+            "... --fresh -> 0 (null control); ... --fix -> 0 (perturbation)"
+          ],
+          "proposed_fix_scope": "coordinator.py:_pv_measured_production reads through InputReader (age_limit_for) so the declared 30-min limit and the future-stamp refusal apply; the slot then shows in the input watchdog.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/const.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D1-s2-03",
+          "scope": "D1-s2",
+          "step": "D1.M3",
+          "title": "A weather forecast that stopped advancing is read as a recovery: published fresh while every row lies in the past",
+          "severity": "high",
+          "claim": "_fetch_weather treats any non-empty plausible get_forecasts reply as a successful fetch (_weather_fetch_recovered clears _weather_stale_since) without checking that its rows reach now, so in 5 of 5 cells where the provider keeps returning the same 48 rows and the clock is 1 to 48 h past the last row, the real cycle publishes weather_forecast_stale_hours=None (fresh) while the plan's outdoor array is the last row's 0.7 C held flat (the live weather entity says -3.0 C).",
+          "mechanism": "coordinator._plausible_forecast_rows filters non-dict rows and out-of-window field values only; a stale-but-well-formed forecast passes, `if forecast_data:` takes the success branch and calls _weather_fetch_recovered, which sets _weather_stale_since=None. _forecast_arrays then extrapolates the last row across the horizon. The empty-forecast and exception branches do mark the data stale (price_weather.py: weather_empty_hidden=0), so the staleness signal exists and only this branch skips it. A weather integration that stops refreshing its forecast (a cached provider, an expired API key that keeps serving the last answer) leaves the plan on a days-old trajectory while the published freshness says nothing is wrong.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/weather_stuck.py",
+            "value": 5,
+            "unit": "cells (of 5) with every forecast row in the past published as fresh (stale_hours None)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; a count",
+            "tolerance": "exact",
+            "load1": 218.38,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather (via _async_update_data; _plausible_forecast_rows, _weather_fetch_recovered; published weather_forecast_stale_hours)",
+          "perturbation": {
+            "change": "--fix: coordinator._plausible_forecast_rows also drops a row whose hour (datetime + 1 h) has ended, patched in memory, so an all-past reply is an empty one and takes the existing stale branch",
+            "expected_direction": "to_zero",
+            "observed_value": "stuck_published_fresh=0; stale_hours 0.0, 5.0, 11.0, 23.0, 47.0 across the cells"
+          },
+          "metric_definition": "Of 5 cells 1/6/12/24/48 h past the last row of a non-advancing forecast, cycles publishing weather_forecast_stale_hours None.",
+          "phenomenon_property": "A feed reply that does not cover now is not a fresh fetch: the forecast's staleness (weather_forecast_stale_hours) is set whenever the forecast the plan stands on no longer reaches the current step, whatever branch delivered it.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/price_weather.py  (each external feed's success branch -- weather, Tibber, price entity -- driven with a reply that no longer covers now; the price feeds hold, weather does not)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py --advancing",
+            "value": 0,
+            "note": "the provider's rows start at the current hour at the same five instants: no cell has every row in the past, stale_hours None is right, outdoor array -4.0 from the live rows"
+          },
+          "leave_one_out": {
+            "cells": 5,
+            "min": 1,
+            "max": 1,
+            "drop_most_favourable": 4
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/weather_stuck.py            -> stuck_published_fresh=5",
+            "... --advancing -> 0 (null control); ... --fix -> 0 (perturbation)"
+          ],
+          "proposed_fix_scope": "coordinator.py:_fetch_weather: a reply whose rows end before the current step is a failed fetch (_weather_fetch_failed), so stale_hours and the plan's stale marking apply.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D1-s2-04",
+          "scope": "D1-s2",
+          "step": "D1.M2",
+          "title": "off_restore._armed_record marks loaded before its read lands: a concurrent caller sees no hold and saves that",
+          "severity": "medium",
+          "claim": "off_restore._armed_record sets held.loaded = True before awaiting load_mapping and takes no lock, so a second caller while the first read is in flight gets an empty armed set: with the persisted record holding the heat curve's baseline (3.0) and async_armed_entry's read pending, async_restore (entering MODE_OFF, or unload) sends 0 restore writes instead of 1 and saves {\"armed\": {}}, which QuarantiningStore.async_save writes after the read lands -- so the hold is not released now and the baseline is gone from disk for the next restart (2 of 2 consequences; 0 when the two calls are serial).",
+          "mechanism": "QuarantiningStore.async_save waits for the read in flight, but _save(held) builds its payload from held.armed before calling it, so the store-level wait cannot help: the payload is the pre-read empty set. The sibling with the same 'loaded before the await' shape, pump_arbiter._load, is safe because both its callers (apply, the switch-on pass) hold held.lock; off_restore has no lock and five public entry points (async_arm, async_restore, async_armed_entry, async_rebaseline, async_consumer_state) reach _armed_record from the heat-curve publish, the pump arbiter, set_mode and unload, which run as separate loop tasks. The exposure is the first read of an entry's record after a start: a set_mode('off')/unload, or a second consumer, landing while the first cycle's heat-curve arm is reading.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/off_restore_race.py",
+            "value": 2,
+            "unit": "consequences of 2 (restore not sent; armed baseline missing from the saved document)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; a count (the read suspension is a fixed 10 ms sleep, the ordering is deterministic)",
+            "tolerance": "exact",
+            "load1": 225.41,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/off_restore.py:_armed_record (driven through off_restore.async_armed_entry and off_restore.async_restore on one entry, real QuarantiningStore)",
+          "perturbation": {
+            "change": "--fix: _armed_record wrapped so one read per record is shared and every concurrent caller awaits it (loaded only after the read), patched in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "consequences=0: restore_writes_sent=1 (set_value 3 on number.curve), as in the serial control"
+          },
+          "metric_definition": "Count of {restore write not sent, armed baseline absent from the saved document} when async_restore runs while another caller's first read of the off-restore record is pending.",
+          "phenomenon_property": "No caller of a lazily loaded persisted record observes it before its read lands, and no save of that record can carry a payload built before the read: the first read is shared and awaited by every caller.",
+          "seam_rule": "grep -nE '\\.loaded = True|_loaded = True' custom_components/heatpump_optimizer/*.py  (each lazy-load flag set before its await; safe only where every caller holds one lock, as pump_arbiter's held.lock does)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py --serial",
+            "value": 0,
+            "note": "the same two calls, the second after the first returns: the hold is restored (set_value 3) and the record released"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py          -> consequences=2",
+            "... --serial -> 0 (null control); ... --fix -> 0 (perturbation)",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/clock_save.py               -> SAVE stores_clobbered includes off_restore (the same mechanism, reached by the store-wide save-during-load sweep)"
+          ],
+          "proposed_fix_scope": "off_restore.py:_armed_record shares one in-flight read per entry (a future or an asyncio.Lock on _Held) and sets loaded after it lands.",
+          "files": [
+            "custom_components/heatpump_optimizer/off_restore.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-restore-race"
+        },
+        {
+          "id": "D1-s2-05",
+          "scope": "D1-s2",
+          "step": "D1.M2",
+          "title": "One wrong-typed numeric option in an earlier-version config entry fails setup or every cycle, with no quarantine",
+          "severity": "medium",
+          "claim": "async_migrate_entry only stamps the version, and ThermalParameters.from_config / _tabled_values / _flow_curve_values and comfort_band.effective read numeric options raw (no coercion, or a bare float()), so of 1200 seeded single-option mutants of a healthy all-features entry stamped v1..v6, 54 make the coordinator constructor raise (setup fails) and 88 make both cycles raise UpdateFailed (every update fails) -- 142 permanent failures, 21 to 26 per version -- with nothing logged as a quarantined option and no reset.",
+          "mechanism": "_tabled_values copies ~50 numeric options straight from the entry (`config.get(KEY, DEFAULT)`, no float()), with the comment 'Booleans are coerced because a config entry may carry a string' -- numbers are not; a string or null dhw_tank_volume then raises in dhw_tank_thermal_mass on every cycle ('can't multiply sequence by non-int of type float'). from_config's own float(config.get(CONF_MAX_TEMP ...)) and _flow_curve_values' float(config.get(CONF_TARGET_TEMP ...)) raise in the constructor on '', 'abc', None, a list or a dict; comfort_band.effective's float(candidate.get(...)) raises on every cycle for min_temperature. An entity slot holding a list/dict raises as an unhashable key in InputReader._begin on every cycle. Because the migration validates nothing, an entry written by an older release (or a hand-edited core.config_entries) with one such value never loads until the user edits the option.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/config_fuzz.py",
+            "value": 142,
+            "unit": "mutants (of 1200 over v1..v6) whose setup or every cycle fails",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, run as two shards beside this seat's other harnesses; a count",
+            "tolerance": "exact (seeded)",
+            "load1": 170.16,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/__init__.py:async_migrate_entry -> coordinator.py:HeatPumpOptimizerCoordinator.__init__ (thermal_model.py:ThermalParameters.from_config) -> HeatPumpOptimizerCoordinator._async_update_data",
+          "perturbation": {
+            "change": "--fix: async_migrate_entry additionally drops every option whose JSON type differs from the type the config flow writes for it (the healthy record's), so the reader falls back to its default; patched in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "v1: build_fail=0, permanent_cycle_fail=0 (from 8 and 17)"
+          },
+          "metric_definition": "Seeded single-option mutants of a healthy entry at vN whose constructor raises or whose two cycles both raise, summed over v1..v6.",
+          "phenomenon_property": "A config-entry option of the wrong type or an empty value is coerced or reset to its default (and named once) at the entry's migration/parse boundary; no option value can make setup or every cycle fail.",
+          "seam_rule": "grep -nE 'float\\((config|candidate)\\.get\\(|config\\.get\\(\\s*$' custom_components/heatpump_optimizer/thermal_model.py custom_components/heatpump_optimizer/comfort_band.py  (plus the numeric rows of ThermalParameters._tabled_values' table)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --n 0",
+            "value": 0,
+            "note": "the healthy entry at every version v1..v6 (the CTRL lines): migrate ok, construct ok, both cycles ok"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 21,
+            "max": 26,
+            "drop_most_favourable": 23.2
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --versions 1   -> build_fail=8, permanent_cycle_fail=17",
+            "... --versions 1 --fix -> 0, 0 (perturbation)"
+          ],
+          "proposed_fix_scope": "Coerce numeric options once (EntryConfig or _tabled_values: finite_float with the default), drop/repair a wrong-typed option at async_migrate_entry with one log line; entity slots accept only str.",
+          "files": [
+            "custom_components/heatpump_optimizer/__init__.py",
+            "custom_components/heatpump_optimizer/thermal_model.py",
+            "custom_components/heatpump_optimizer/comfort_band.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        },
+        {
+          "id": "D1-s2-06",
+          "scope": "D1-s2",
+          "step": "D1.M2",
+          "title": "A stored boosted_h past timedelta's range raises in the boost restore task on every restart",
+          "severity": "medium",
+          "claim": "boost._restore_settle builds timedelta(hours=boosted_h) for any finite non-negative boosted_h, and store.ABSURD (1e15) admits values far past timedelta's range, so for 4 of 5 stored values (3e10, 1e11, 1e12, 1e14 h) the restore task the coordinator spawns raises OverflowError on both of two restarts (8 of 10), leaving the running space overlay's start (space_since) unrestored and the boosted time at timedelta(0) instead of the 'unknown' (None) the loader's own comment prescribes; the fifth (1e10 h) loads as ~47 000 years.",
+          "mechanism": "The guard `isinstance(hours, (int, float)) and 0.0 <= hours < math.inf` accepts any finite hours; held.space_settle_until is set before the timedelta call, so the raise leaves a half-applied restore and skips the space since/end handling below it; the exception escapes the spawned restore_session task (Home Assistant logs 'Task exception was never retrieved' each start). The document is not rewritten by the failed restore, so the same failure recurs at every restart until a later boost overwrites the store. DOMAINS declares the field `space_settle/boosted_h: _Z0`, which only the debug-level off-domain diagnostic reads.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s2/boost_settle.py",
+            "value": 8,
+            "unit": "restarts (of 10: 5 values x 2 restarts on the same document) whose boost restore task raises",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64 (orchestrator box B4, shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, other seats running; a count",
+            "tolerance": "exact",
+            "load1": 56.3,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/boost.py:_restore_settle (via the coordinator constructor's spawn_restore_session -> restore_session -> restore, on a real loop; boost.held_for state read back)",
+          "perturbation": {
+            "change": "--fix: _restore_settle treats a boosted_h at or past timedelta.max in hours as unreadable (None), its docstring's rule for an unreadable value; patched in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "restarts_raising=0; space_since restored, space_boosted None"
+          },
+          "metric_definition": "Restarts whose spawned boost restore task raises, over 5 out-of-range boosted_h values x 2 restarts on an unchanged document.",
+          "phenomenon_property": "Every stored duration a loader turns into a timedelta is bounded to what its writer can produce (or read as unknown) before conversion, so no stored number below store.ABSURD can raise out of a restore.",
+          "seam_rule": "grep -nE 'timedelta\\((hours|minutes|seconds|days)=' custom_components/heatpump_optimizer/*.py  (those whose argument comes from a stored document; store_fuzz.py's 'huge' operator drives them per store)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py",
+            "value": 0,
+            "note": "RESULT control_restarts_raising: the same record with boosted_h=1.5 restores space_since and 1:30:00 on both restarts"
+          },
+          "leave_one_out": {
+            "cells": 5,
+            "min": 0,
+            "max": 2,
+            "drop_most_favourable": 1.5
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py        -> restarts_raising=8, per_cell=[0, 2, 2, 2, 2]",
+            "... --fix -> 0 (perturbation)",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/store_fuzz.py --stores boost   -> boost_task_raise=3 (op=huge on space_settle/boosted_h)"
+          ],
+          "proposed_fix_scope": "boost.py:_restore_settle bounds boosted_h (e.g. to the settle tail's own maximum) before timedelta(); a corrupt value reads as unknown.",
+          "files": [
+            "custom_components/heatpump_optimizer/boost.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Store fuzz: 200 seeded structural mutants per d1-stores store (17 stores, 3400 mutants; boost, manual_plan and away populated with a running hold each) loaded through the real loaders on a real asyncio loop: no loader raise, no cycle failure, no best-effort step failing on both cycles, no non-finite value live, against the healthy control per store",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/store_fuzz.py --n 200 --real-solve 5",
+          "value": "loader_raise=0, cycle_fail=0, repeat_fence=0, log_repeat=0, nonfinite_live=0 for all 17; task_raise=3 (boost, reported as D1-s2-06); log_multi 1-2 per store in ledger/manual_plan/price_model/thermal_learning (see below)"
+        },
+        {
+          "claim": "Positive control: the fuzz harness counts a cycle failure and a repeated best-effort failure (round-10 C1's missing control)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/store_fuzz.py --stores ledger,away --control",
+          "value": "control_ledger_kinds=cycle_fail,repeat_fence; control_away_kinds=cycle_fail,repeat_fence"
+        },
+        {
+          "claim": "The one-log-line check is taken against each store's healthy-restart control (templates a healthy load already logs are subtracted -- round-10 C1's confound); the only multi-line case is a far-future ISO string planted in a NON-instant field, which store._bound_instants rewrites and logs as 'stored instant ... ahead of the clock' beside the loader's own quarantine warning: two lines for one leaf, the cycle completes",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/store_fuzz.py --n 200",
+          "value": "log_multi: ledger 1, manual_plan 2 (+2 populated), price_model 2, thermal_learning 1 of 200 each; 0 elsewhere"
+        },
+        {
+          "claim": "Previous-version records load and migrate: LEDGER v1->2 and defrost v1->2, healthy and 200 seeded mutants each, no loader raise, cycle failure or repeat",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/upgrade_fuzz.py",
+          "value": "ledger: all kinds 0 except log_multi=1 (the instant_far case above); defrost: all 0"
+        },
+        {
+          "claim": "A writer clock 48 h ahead across a full restart (every store at once): both cycles complete and no instant beyond now+1h is published that the true-clock control does not publish",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/clock_save.py",
+          "value": "clock_ahead_cycle_fail=0, clock_ahead_extra_future_published=0"
+        },
+        {
+          "claim": "Save during the learners' load: the coordinator's savers wait for their read (their documents equal the race-free control); disabling QuarantiningStore.async_wait_for_read raises the clobber set from 5 to 7 (accuracy, ledger join), so the wait is load-bearing. Of the 5 that differ at baseline: dhw_legionella differs only in the instant's +00:00 suffix; duty_switch and pump_duty were persisted by the harness calling their private _persist before their lazy _load, which production never does (both load first, pump_arbiter under held.lock); dhw_draws' saver (DhwLearner.async_save_draws) builds its payload before the store's wait and its read is not awaited by DhwLearner.async_wait_for_read (profile store only), but no production path folds a draw before the first interval has passed; off_restore is D1-s2-04",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/clock_save.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/clock_save.py --no-wait",
+          "value": "save_during_load_clobbered=5 (dhw_draws, dhw_legionella, duty_switch, off_restore, pump_duty); --no-wait: 7"
+        },
+        {
+          "claim": "A previous run's hold whose expiry passed during the downtime is released at restart (away override, DHW/space boost, DHW block); the same holds still running survive, read at the first cycle, whose first actuator write (switch.turn_on on the configured heat-pump switch) is made with no expired hold in force",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/hold_restore.py",
+          "value": "expired_hold_in_force=0, running_hold_lost=0 (9 scenarios)"
+        },
+        {
+          "claim": "Config-entry migration v1..v6->7 with a healthy entry: migrate, construct and two cycles complete at every version",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/config_fuzz.py --n 0",
+          "value": "CTRL v1..v6 all ok"
+        },
+        {
+          "claim": "Watchdog staleness for the 24 d1-inputs slots the coordinator's InputHealth reads: unavailable/unknown flagged, the value returned inside one interval is read fresh, a last_reported 90 min ahead is refused (problem stale), a host clock stepped back 2 h publishes no negative age, and a reading past its own max_age is flagged",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/staleness.py",
+          "value": "stale_after_return=0, missing_not_flagged=0, future_accepted=0, neg_age_after_jump=0, stale_not_flagged=0, cycle_fail=0 over 51 slots (27 'unread' handed to staleness_unread.py)"
+        },
+        {
+          "claim": "The 27 slots outside that watchdog, through their own consumer: none uses a dead (unavailable/unknown) reading or a stale value after return; past-limit use only for PV production (D1-s2-02); external heat's numeric arm is held to its 60 min limit and its flag arm is unbounded by design (const.py comment); MIXING_VALVE_WRITE, SPACE_PUMP and VVC_PUMP are write-only (no read path, consumers.py shows no getter); AWAY_RETURN has no reader (away.py pops it at migration); PRICE and WEATHER are driven by price_weather.py",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/staleness_unread.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/consumers.py",
+          "value": "dead_used=0, stale_after_return=0, past_limit_used=1 (PV), cycle_fail=0"
+        },
+        {
+          "claim": "A price fetch that raises (ClientError, RuntimeError, TimeoutError) while the last prices still cover now is bridged: the cycle completes on the last prices with one WARNING; a price entity that stops updating publishes current_price None and plan_stale True once its rows no longer cover now; an unavailable price entity whose rows still cover now keeps planning",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/price_weather.py",
+          "value": "price_stuck_hidden=0; weather_empty_hidden=0 (an empty forecast marks stale_hours)"
+        },
+        {
+          "claim": "A presence entity changing between two scheduled updates requests one refresh per change through away.watch_away_inputs and the next cycle publishes the new away state; the holiday calendar's change requests one refresh",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/presence_dst.py",
+          "value": "presence_missed=0 of 3"
+        },
+        {
+          "claim": "Age readings across DST (Europe/Stockholm spring and autumn, +20/+70 min across the change) and host-clock jumps (-2 h, +3 h): the probe's published age equals true elapsed time, none negative; a stamp ahead of a stepped-back clock is flagged stale, not aged negative",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/presence_dst.py",
+          "value": "age_cells_wrong=0 of 6"
+        },
+        {
+          "claim": "While the power and energy meters are unavailable no measured value is published (measured_power None, available False); the energy totals keep integrating the modelled draw (0.34, 0.40 kWh per cycle) and the 45-minute total (1.12 kWh) matches the meter's own delta over the outage (1.1 kWh)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/booked.py",
+          "value": "unavailable_cycles_claiming_measurement=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D1/s2/d1s2_lib.py",
+        "dev/audit/rounds/round11/D1/s2/store_fuzz.py",
+        "dev/audit/rounds/round11/D1/s2/nan_boundary.py",
+        "dev/audit/rounds/round11/D1/s2/config_fuzz.py",
+        "dev/audit/rounds/round11/D1/s2/upgrade_fuzz.py",
+        "dev/audit/rounds/round11/D1/s2/clock_save.py",
+        "dev/audit/rounds/round11/D1/s2/hold_restore.py",
+        "dev/audit/rounds/round11/D1/s2/off_restore_race.py",
+        "dev/audit/rounds/round11/D1/s2/boost_settle.py",
+        "dev/audit/rounds/round11/D1/s2/staleness.py",
+        "dev/audit/rounds/round11/D1/s2/consumers.py",
+        "dev/audit/rounds/round11/D1/s2/staleness_unread.py",
+        "dev/audit/rounds/round11/D1/s2/pv_stale.py",
+        "dev/audit/rounds/round11/D1/s2/price_weather.py",
+        "dev/audit/rounds/round11/D1/s2/weather_stuck.py",
+        "dev/audit/rounds/round11/D1/s2/presence_dst.py",
+        "dev/audit/rounds/round11/D1/s2/booked.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D1-s3",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._spawn",
+          "what": "A spawned store-load/restore task that raises is never awaited or logged by the integration (boost restore_session's OverflowError surfaces only as asyncio's 'Task exception was never retrieved'); whether every spawned load owns its failure is M5's handler question."
+        },
+        {
+          "owner_seat": "D1-s3",
+          "file": "custom_components/heatpump_optimizer/store.py",
+          "symbol": "_bound_instants",
+          "what": "Rewrites any ISO-looking string in any stored field (not only declared instants) and logs it as 'stored instant ... ahead of the clock'; for a corrupt non-instant field that is a misleading second WARNING beside the loader's quarantine line (store_fuzz.py log_multi cases)."
+        }
+      ]
+    },
+    "D1-s3": {
+      "dimension": "D1",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D1/s3/REPORT.md (returned as the seat's final message; the harness refuses sub-seat .md files)",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D1.M5",
+          "enumerator": "python3 tools/audit/enumerate.py d1-excepts",
+          "universe": 257,
+          "examined": 227,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/climate.py:300 HeatPumpOptimizerClimate._async_publish_displace_from_current_action",
+            "custom_components/heatpump_optimizer/coordinator.py:10876 HeatPumpOptimizerCoordinator._command_frequency",
+            "custom_components/heatpump_optimizer/coordinator.py:11230 HeatPumpOptimizerCoordinator.async_simulate",
+            "custom_components/heatpump_optimizer/coordinator.py:11237 HeatPumpOptimizerCoordinator.async_simulate",
+            "custom_components/heatpump_optimizer/coordinator.py:1919 _shutdown_process_pool",
+            "custom_components/heatpump_optimizer/coordinator.py:2107 _run_in_process",
+            "custom_components/heatpump_optimizer/coordinator.py:4173 HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription",
+            "custom_components/heatpump_optimizer/coordinator.py:5992 HeatPumpOptimizerCoordinator._check_pump_mode_expired",
+            "custom_components/heatpump_optimizer/coordinator.py:7113 HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+            "custom_components/heatpump_optimizer/diagnosis.py:103 attribute",
+            "custom_components/heatpump_optimizer/diagnosis.py:114 attribute",
+            "custom_components/heatpump_optimizer/diagnosis.py:151 diagnose_record",
+            "custom_components/heatpump_optimizer/diagnosis.py:93 attribute",
+            "custom_components/heatpump_optimizer/disinfection.py:225 DisinfectionSwitch._write",
+            "custom_components/heatpump_optimizer/draw_range.py:388 DrawRange.from_dict",
+            "custom_components/heatpump_optimizer/draw_range.py:456 _stored_ceiling",
+            "custom_components/heatpump_optimizer/heat_curve.py:397 _send",
+            "custom_components/heatpump_optimizer/off_restore.py:218 _restore_baseline",
+            "custom_components/heatpump_optimizer/off_restore.py:252 async_restore",
+            "custom_components/heatpump_optimizer/optimizer.py:496 _avoid_priced_switches",
+            "custom_components/heatpump_optimizer/repairs.py:54 DhwSetpointRepairFlow.async_step_confirm",
+            "custom_components/heatpump_optimizer/services.py:1144 handle_apply_manual_plan",
+            "custom_components/heatpump_optimizer/services.py:1265 handle_diagnose_interval",
+            "custom_components/heatpump_optimizer/services.py:657 handle_set_thermal_params",
+            "custom_components/heatpump_optimizer/services.py:991 handle_apply_schedule",
+            "custom_components/heatpump_optimizer/whatif.py:127 scratch_copies",
+            "custom_components/heatpump_optimizer/whatif.py:213 steady_pair",
+            "custom_components/heatpump_optimizer/wood_fuel.py:129 wood_fuel_ready",
+            "custom_components/heatpump_optimizer/wood_fuel.py:369 _wood_override_fuel",
+            "custom_components/heatpump_optimizer/wood_fuel.py:501 build_wood_fuel_view"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Two injection arms over the d1-excepts universe, both through d1s3hook.py (an import-time AST rewrite that compiles a raise of the handler's own caught type -- RuntimeError for a broad one -- at the top of each try body, one guard per listed handler, and an entry/exit probe in each handler body; a settrace raise was tried first and is unusable: CPython unsets the tracer after a trace function raises). Arm 1, lifecycle (excepts_inject.py; per handler a persistent fault across setup A, refresh A1, A2, diagnostics, unload, restart setup B, refresh B1, then a disarmed refresh B2 as the recovery check, on a real asyncio loop with a ThreadPoolExecutor and scheduled tasks; process-worker and in-process solve modes), classified by classify.py: logs (records added over a fault-free control, by level), last_update_success per refresh, escape, flood, recovery. Arm 2, local (local_inject.py; one-shot injection the first time a test script's own call reaches each handler: tests/features.py, entities.py, config_flow_steps.py, debug_collect.py, finite_boundary.py, guard_pins.py, manual_plan.py, open_meteo.py, replay.py, dst_checks.py, block_duty.py, and drivers_misc.py for the process worker, store loaders and parse guards) records whether the handler caught it, re-raised, and its static log level. Per-handler verdicts: out/m5_table.tsv (m5_table.py). Peer waits: dev/audit/harnesses/silent_peer_waits.py --scan (6 sites) and --drive, plus peer_wait.py. Findings D1-s3-04..07; all other examined handlers held (contained and logged, by-design re-raisers, narrow parse fallbacks, or the documented per-cycle worker-fallback warning). tests/entities.py aborts at its own line 9634 (KeyError, also without any injection) and tests/features.py stops at injected keystone failures, which bounds arm 2's reach."
+        },
+        {
+          "step": "D1.M6",
+          "enumerator": "python3 tools/audit/enumerate.py d1-parsers",
+          "universe": 31,
+          "examined": 31,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "examined"
+            }
+          ],
+          "evidence": "parsers_fuzz.py drives every d1-parsers line: unit arm (914 drives over 26 call sites: None, empty, garbage, NUL/bytes, nan/inf/1e309 text and floats, 10**400, bools, nested and wrong containers, a 2 MB string, 100k-deep JSON, 50k-item lists, year-1 and year-9999 instants, out-of-range clock text) for the 21 def lines, the 6 json sites (_parse_ecl110_state, debugger._read_stores/_parsed, SnapshotRing.take) and the 3 response sites (validate_tibber_token, OpenMeteoSolar._get_json, _tibber_post via pull_prices, with 14 hostile bodies); cycle arms through DataUpdateCoordinator.async_refresh for the weather forecast (10 variants x 3 hostile cycles), Tibber (14 bodies x 3 cycles), Open-Meteo (8 bodies x 3 cycles), ECL110 (16 MQTT payloads + the subscribe site: broker refusal, None unsub, delivered callback) and pump_signals (10 states on fault and defrost entities). Findings D1-s3-01, -02, -03."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D1.M5",
+          "what": "the handlers listed under not_reached: no lifecycle phase, no test script before its abort point, and no drivers_misc.py call reached their try bodies (services handlers, sysid, async_simulate, climate/disinfection/heat_curve writes, repairs, off_restore restore paths, diagnosis, wood-fuel view, and the rest named). Each needs a direct driver of its own; tests/entities.py's own KeyError at line 9634 and features.py's keystone exits cut the test-script arm short."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D1-s3-01",
+          "scope": "D1-s3",
+          "step": "D1.M6",
+          "title": "Pump flag slots read a non-finite state (nan, inf, 1e309) as True: fault and defrost fabricated",
+          "severity": "medium",
+          "claim": "inputs.parse_bool reads the states 'nan', 'NaN', 'inf', '-inf' and '1e309' as True (float(token) != 0.0), so a heat-pump fault or defrost entity reporting a non-finite number publishes fault=True and defrosting=True and freezes learning with freeze_reason 'pump_fault', where the numeric reader refuses the same state.",
+          "mechanism": "pump_signals.read -> InputReader.read_bool -> inputs.parse_bool: the numeric arm `return float(token) != 0.0` is reached for any token outside BOOL_TRUE/BOOL_FALSE, and float('nan') != 0.0 and float('inf') != 0.0 are both True. No finiteness test precedes it (const.finite_float, the integration's own number rule, refuses non-finite values), so an unreadable numeric state becomes a positive flag rather than `not_boolean`. The fabricated fault freezes every learner (`_learning_frozen`); the fabricated defrost feeds the defrost window/duty fold and blocks the COP fold.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+            "value": 10,
+            "unit": "flag readings published True from a non-finite state (5 tokens x {fault, defrost})",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 171.66,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.inputs:parse_bool (driven through heatpump_optimizer.pump_signals:read in a full HeatPumpOptimizerCoordinator.async_refresh; read off coordinator.data['heat_pump_signals'])",
+          "perturbation": {
+            "change": "parse_bool's numeric arm refuses a non-finite number (return None when not math.isfinite(float(token))): `--perturb parse_bool_finite`, applied in memory with mock.patch.object",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of {fault, defrosting} published True in heat_pump_signals over one refresh each for states nan, NaN, inf, -inf, 1e309 on sensor-domain fault and defrost entities.",
+          "phenomenon_property": "A flag read from an entity state is never True (or False) on a non-finite numeric state: such a state is unreadable (problem not_boolean), as the numeric reader and const.finite_float already rule.",
+          "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'parse_bool|_parse_ecl110_state'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+            "value": "RESULT pump_null_control_zero_flag_true=0 readings",
+            "note": "state '0' publishes fault=False, defrosting=False, freeze_reason None; 'garbage', '' and 'unknown' publish None (not_boolean) in the same run"
+          },
+          "reproduction_steps": [
+            "Configure heat_pump_fault_entity=sensor.hp_fault and heat_pump_defrost_entity=sensor.hp_defrost (sensor domain, so strict parsing applies)",
+            "Set both states to 'nan' with a fresh last_updated",
+            "Run one coordinator refresh; read coordinator.data['heat_pump_signals']: fault True, defrosting True, freeze_reason 'pump_fault'"
+          ],
+          "proposed_fix_scope": "inputs.parse_bool: test finiteness before the numeric arm (reuse const.finite_float or math.isfinite); a non-finite token returns None. One function; inputs.py.",
+          "files": [
+            "custom_components/heatpump_optimizer/inputs.py",
+            "custom_components/heatpump_optimizer/pump_signals.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        },
+        {
+          "id": "D1-s3-02",
+          "scope": "D1-s3",
+          "step": "D1.M6",
+          "title": "ECL110 MQTT state parser takes a JSON boolean as a displacement (true -> 1.0, false -> 0.0)",
+          "severity": "low",
+          "claim": "_parse_ecl110_state accepts the payloads 'true', 'false' and '{\"displace\": true}' as displacements 1.0, 0.0 and 1.0, and _async_handle_ecl110_state_message stores and publishes them as the measured ECL110 displacement, where const.finite_float refuses a bool as 'a guess, not a reading'.",
+          "mechanism": "json.loads('true') is the bool True; `isinstance(data, (int, float))` admits it (bool subclasses int) and `float(raw)` turns True into 1.0, so a state topic pointed at a switch/flag topic (ON/true) or a hostile publisher sets _ecl110_current_displace and the published ecl110_displace_command/ecl110_effective_displace to a value no ECL110 reported. The plausibility window (round-9 D1-s2-02) does not catch it: 0 and 1 are inside every window.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+            "value": 3,
+            "unit": "boolean payloads stored as a displacement (of 3 sent)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 268.58,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message (-> heatpump_optimizer.coordinator:_parse_ecl110_state); read off coordinator._ecl110_current_displace",
+          "perturbation": {
+            "change": "_parse_ecl110_state refuses a bool: `elif isinstance(data, (int, float)) and not isinstance(data, bool)` and `None if raw is None or isinstance(raw, bool) else float(raw)` (`--perturb ecl110_refuse_bool`, recompiled in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of the payloads 'true', 'false', '{\"displace\": true}' after which the handler holds a non-None _ecl110_current_displace (reset to None before each message).",
+          "phenomenon_property": "An external-input parser hands on only a finite real number as a measurement: a bool is never a displacement, a temperature or a power (const.finite_float's rule), at every external parser seam.",
+          "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E '_parse_ecl110_state|parse_bool'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110 --perturb ecl110_refuse_bool",
+            "value": "RESULT ecl110_numeric_null_control=2 messages",
+            "note": "the numeric payloads 7 and '{\"displace\": \"3\"}' are still accepted (2 of 2) under the perturbation: the fix refuses bools only"
+          },
+          "proposed_fix_scope": "coordinator._parse_ecl110_state: refuse bool at both the bare-number and the dict-member arm (or route through const.finite_float); coordinator.py only.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        },
+        {
+          "id": "D1-s3-03",
+          "scope": "D1-s3",
+          "step": "D1.M6",
+          "title": "An Open-Meteo sample stamped 0001-01-01 fails every solve: IrradianceSeries.mean_over overflows outside the fence",
+          "severity": "medium",
+          "claim": "_parse_block keeps a sample stamped '0001-01-01T00:00', and IrradianceSeries.mean_over then raises OverflowError on `t - self.resolution` for every plan step, so every solve fails ('Optimization failed: date value out of range') for as long as the series is held, with last_update_success staying True.",
+          "mechanism": "OpenMeteoSolar.async_refresh fences only the fetch+parse (`_fenced`, #1519: 'never raises ... by construction'); the parsed series is stored, and the read side (`irradiance_for` -> `mean_over`, called per step by `_apply_open_meteo` inside the solve-input build) computes `sample_start = t - self.resolution` for every sample. datetime.min - 1 h raises OverflowError; async_run_optimization's broad handler books it as a solve failure (logged once by log_held, counted in _solve_failures), the last plan stays published and the update reports success. The series is replaced only by a later non-empty forecast, so a feed that keeps the stamp fails every cycle.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+            "value": 3,
+            "unit": "failed solves over 3 refreshes (coordinator._solve_failures)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 190.32,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.open_meteo:IrradianceSeries.mean_over (driven through OpenMeteoSolar.async_refresh -> _parse_block and HeatPumpOptimizerCoordinator.async_refresh; read off coordinator._solve_failures)",
+          "perturbation": {
+            "change": "mean_over returns None (not covered) instead of raising OverflowError on an out-of-range sample (`--perturb openmeteo_overflow_guard`, mock.patch.object wrapper)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "coordinator._solve_failures after 3 refreshes with solar_forecast_source=open_meteo and a forecast body whose hourly block carries two 0001-01-01 samples before 72 valid ones.",
+          "phenomenon_property": "A parsed external series never raises on read: every instant kept by an external-feed parser is one the read-side arithmetic (t - resolution, t + step) can carry, or the sample is dropped at parse.",
+          "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'open_meteo|_fetch_weather|_parse_block'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+            "value": "RESULT openmeteo_healthy_solve_failures=0 solves",
+            "note": "the same 72 valid samples without the two year-1 stamps: 0 failed solves; nan, string, unsorted/duplicate, non-dict and error bodies also 0"
+          },
+          "proposed_fix_scope": "open_meteo._parse_block: drop a sample whose stamp minus one resolution (or minus the plan step) is out of datetime range, or bound stamps to a plausible window around now; open_meteo.py only.",
+          "files": [
+            "custom_components/heatpump_optimizer/open_meteo.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P1"
+        },
+        {
+          "id": "D1-s3-04",
+          "scope": "D1-s3",
+          "step": "D1.M5",
+          "title": "_run_in_process's transport-failure arm waits unbounded on a killed worker while holding _PROCESS_LOCK",
+          "severity": "medium",
+          "claim": "When the job write or reply read fails with a transport error (BrokenPipeError and kin), _run_in_process calls worker.kill() then worker.wait() with no timeout inside `with _PROCESS_LOCK`, so a child the kill does not end at once never returns and the lock stays held, while the sibling ProcessWorkerTimeout arm bounds the same wait with _SHUTDOWN_LOCK_TIMEOUT_S for exactly that child.",
+          "mechanism": "coordinator.py `_run_in_process`: the `except Exception as err` arm (transport, never the job) does `worker.kill(); worker.wait()`; the `except ProcessWorkerTimeout` arm above it does `worker.kill(); worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` with the comment 'a child the kill does not end at once (one stuck in the kernel) must not turn this into the same unbounded wait'. One fact (how long to wait for a killed child) decided twice. Held, the lock wedges every later solve, replay and sensor-advisor job behind it (each parks an executor thread in `with _PROCESS_LOCK`), and the awaiting refresh never completes, so last_update_success never turns False. The same unbounded wait sits in _shutdown_process_pool's at_exit arm (coordinator.py ~1917).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/peer_wait.py",
+            "value": 1,
+            "unit": "RESULT transport_lock_held_after (1 = _PROCESS_LOCK still held after the 8 s cap; transport_returned_within_cap=0)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running; the cap is a deadline 160x the bounded arm's return, not a timing RESULT",
+            "tolerance": "exact",
+            "load1": 185.84,
+            "thread_factor": 1.553
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:_run_in_process (and the module lock heatpump_optimizer.coordinator:_PROCESS_LOCK), with _ensure_worker returning a stuck child",
+          "perturbation": {
+            "change": "the transport arm's `worker.wait()` becomes `worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` (`--perturb`, the function recompiled in memory from its own source)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Whether _PROCESS_LOCK is still held 8 s after _run_in_process starts, when the job write raises BrokenPipeError and the worker's kill() does not end it (wait() with no timeout never returns).",
+          "phenomenon_property": "Every wait on a killed or exiting process worker is bounded, so no failure route can hold _PROCESS_LOCK (or the stop) past a deadline.",
+          "seam_rule": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/silent_peer_waits.py --scan custom_components/heatpump_optimizer | grep 'wait() with no timeout'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+            "value": "RESULT timeout_returned_within_cap=1, RESULT timeout_lock_held_after=0",
+            "note": "the same stuck child on the ProcessWorkerTimeout arm: returns (ProcessWorkerTimeout) and frees the lock -- the bounded sibling"
+          },
+          "reproduction_steps": [
+            "A worker whose pipe breaks mid-job (BrokenPipeError on write) and which the SIGKILL does not end at once (uninterruptible sleep on I/O, e.g. a stalled SD card)",
+            "_run_in_process enters the transport arm and blocks in worker.wait() holding _PROCESS_LOCK"
+          ],
+          "proposed_fix_scope": "coordinator._run_in_process transport arm and _shutdown_process_pool's at_exit arm: bound the post-kill wait as the timeout arm does; coordinator.py only.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D1-s3-05",
+          "scope": "D1-s3",
+          "step": "D1.M5",
+          "title": "A persistently failing store save is logged only at DEBUG at all 17 persist handlers; state stops persisting",
+          "severity": "medium",
+          "claim": "Every persist handler (17, persist_seams.py) catches any exception from building and saving its store payload and logs it only at DEBUG; with the save body forced to fail on every pass across setup, two refreshes, unload, restart and a refresh, each of the 10 handlers the lifecycle reaches added zero WARNING-or-higher records, so a payload-builder bug or a failing save silently stops the ledger, accuracy, thermal-learning, price-model, snapshot, away, legionella, notifier, off-restore and energy stores from persisting until a restart loses the unsaved state.",
+          "mechanism": "Pattern `try: await store.async_save(<payload built inline>) except Exception as err: _LOGGER.debug('Could not persist ...: %s', err)` in coordinator._async_save_{thermal_learning,price_model,ledger,accuracy,energy_totals,manual_plan,snapshots}, away.persist_override, boost.persist, dhw_learning.async_save_{profile,draws}, duty_switch._persist, legionella.async_save, notifier._async_save, off_restore._save, pump_arbiter._persist, debugger.DebugCollector.async_save. The payload is built inside the try, so a programming error in any learner's as_dict (an AttributeError, a non-serialisable value) is caught with the transport failures and logged below Home Assistant's default level on every cycle; nothing latches it (log_held exists for exactly this) and no repair issue is raised.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/persist_family.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/persist_family.py",
+            "value": 10,
+            "unit": "persist handlers (of 10 reached) whose persistent save failure added no WARNING+ record",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running (load1 ~180); count is contention-immune",
+            "tolerance": "exact",
+            "load1": 181.27,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_save_ledger (and the 9 sibling persist handlers), each try body forced to raise by d1s3hook.py's import-time rewrite, driven through async_setup_entry / async_refresh / async_unload_entry on a real asyncio loop",
+          "perturbation": {
+            "change": "coordinator.py: `_LOGGER.debug(\"Could not persist ledger: %s\", err)` -> `_LOGGER.warning(...)` (`--perturb`, applied in memory at import via excepts_inject.py --edit)",
+            "expected_direction": "down",
+            "observed_value": 9
+          },
+          "metric_definition": "Persist handlers reached by the lifecycle whose save body, raising on every pass (setup, 2 refreshes, unload, restart, refresh), added 0 WARNING+ integration records over the control.",
+          "phenomenon_property": "A persistent store-save failure is visible above DEBUG once per outage (a held warning that says Resolved on the first save that lands), at every persist seam.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/persist_seams.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --reach",
+            "value": "control_proc_phases_ok=9/9, control_inproc_phases_ok=9/9",
+            "note": "the fault-free control run is the baseline every added-record count is taken over; the same harness counts WARNING+ for the weather fetch handler (coordinator.py:7103) at 1 per outage, so the count is able to see a warning"
+          },
+          "proposed_fix_scope": "One held-warning helper (log_latch.log_held) across the 17 persist handlers, keyed per store; optionally build the payload outside the try so a builder bug is not filed as a save failure.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/away.py",
+            "custom_components/heatpump_optimizer/boost.py",
+            "custom_components/heatpump_optimizer/dhw_learning.py",
+            "custom_components/heatpump_optimizer/duty_switch.py",
+            "custom_components/heatpump_optimizer/legionella.py",
+            "custom_components/heatpump_optimizer/notifier.py",
+            "custom_components/heatpump_optimizer/off_restore.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/debugger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D1-s3-06",
+          "scope": "D1-s3",
+          "step": "D1.M5",
+          "title": "_async_update_data's generic arm logs ERROR with a traceback on every cycle of a persisting failure",
+          "severity": "low",
+          "claim": "A persisting unexpected exception in the update cycle is logged by the integration as ERROR 'Error updating Heat Pump Optimizer' with exc_info on every refresh (3 of 3 refreshes that follow an already-failed update), while the UpdateFailed arm beside it was fixed (#216, D10-09) precisely so a day-long outage would not print the same ERROR every cycle.",
+          "mechanism": "coordinator.py `_async_update_data`: `except (UpdateFailed, ConfigEntryAuthFailed): raise` (the raiser's latch already logged once) then `except Exception as err: _LOGGER.error(..., exc_info=True); _raise_update_failed(...)` with no latch. Home Assistant's DataUpdateCoordinator already logs the failure on the transition ('Error fetching ... data'), so each later cycle adds one ERROR with a full traceback: at the default 15-minute interval about 96 tracebacks a day for one stuck fault, on Raspberry-Pi-class storage. `_async_first_refresh_light` repeats the arm on every setup retry (coordinator.py:6195).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/log_flood.py",
+            "value": 3,
+            "unit": "integration ERROR records added in refreshes A1, A2, B1 (each follows an already-failed update)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running (load1 ~107); count is contention-immune",
+            "tolerance": "exact",
+            "load1": 107.15,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (the `except Exception` handler at coordinator.py:6148; its try body forced to raise by d1s3hook.py), driven through DataUpdateCoordinator.async_refresh on a real asyncio loop",
+          "perturbation": {
+            "change": "the generic arm logs ERROR only on the transition: `(_LOGGER.error if self.last_update_success else _LOGGER.debug)(...)` (`--perturb`, in memory at import via excepts_inject.py --edit)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of the armed refreshes A1, A2, B1 (each preceded by a failed update) whose added records include the integration's ERROR 'Error updating Heat Pump Optimizer: %s'.",
+          "phenomenon_property": "A persisting failure is logged above DEBUG once per outage (on the transition), never on every cycle, at every update-wrapper arm.",
+          "seam_rule": "python3 tools/audit/enumerate.py d1-excepts | grep -E '_async_update_data|_async_first_refresh_light'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+            "value": "RESULT recovered=1",
+            "note": "the disarmed refresh B2 succeeds and adds no such record (only the base class's 'recovered' INFO); the transition ERROR in setup A and setup B is kept under the perturbation"
+          },
+          "proposed_fix_scope": "coordinator._async_update_data and _async_first_refresh_light generic arms: log ERROR on the transition (last_update_success) or through log_held, DEBUG after; coordinator.py only.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-log-flood"
+        },
+        {
+          "id": "D1-s3-07",
+          "scope": "D1-s3",
+          "step": "D1.M5",
+          "title": "Broad handlers swallow any exception with no record at any level (7 of 11 reached)",
+          "severity": "low",
+          "claim": "Seven `except Exception` handlers the lifecycle reaches leave no log record at any level, DEBUG included, when their try body fails on every pass, so a programming error behind them is invisible: _record_accuracy's COP-residual tag, both _capture_diagnosis_inputs arms, CoordinatorDiagnostics.of, diagnostics._coordinator_snapshot and _never_breaks, and optimizer._lbfgsb_restart.",
+          "mechanism": "Handler bodies are a bare fallback (`sample.cop_residual = None`, `return None`, `planned_wind = 0.0`, `'summary unavailable'`, `state = None`, `return 'unavailable'`, `return best`). The diagnostics three leave a visible marker in the downloaded diagnostics; the other four do not: a broken MeasuredCop.residual silently drops the COP tag from every accuracy sample, and a broken _current_weather silently records wind 0.0 as the plan's assumption in the diagnosis evidence (#52).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+            "harness_path": "dev/audit/rounds/round11/D1/s3/silent_broad.py",
+            "value": 7,
+            "unit": "broad handlers (of 11 reached non-logging, non-reraising broad handlers) adding zero records at any level under a persistent fault",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out running (load1 ~108); count is contention-immune",
+            "tolerance": "exact",
+            "load1": 108.43,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_accuracy (handler coordinator.py:10082) and the six sibling handlers, try bodies forced to raise by d1s3hook.py, driven through setup/refresh/diagnostics/unload/restart on a real asyncio loop",
+          "perturbation": {
+            "change": "coordinator.py:10083 `sample.cop_residual = None` -> `sample.cop_residual = _LOGGER.debug(\"COP residual tag skipped\")` (still None; `--perturb`, in memory at import)",
+            "expected_direction": "down",
+            "observed_value": 6
+          },
+          "metric_definition": "Reached broad handlers with no log call and no re-raise whose persistently raising try body added 0 integration log records at any level over the fault-free control.",
+          "phenomenon_property": "No broad handler hides an exception: each one leaves at least a DEBUG record (or a held warning) naming what it swallowed.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/silent_broad.py --seams",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+            "value": "coordinator.py:6507 added_records=10, coordinator.py:7103 added_records=14, optimizer.py:1944 added_records=10, optimizer.py:1970 added_records=20",
+            "note": "four handlers of the same static seam list log through a helper and are counted as recorded by the same run: the count separates them"
+          },
+          "proposed_fix_scope": "A DEBUG record (exc_info) in each of the seven handlers; no behaviour change. coordinator.py, diagnostics.py, optimizer.py.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/diagnostics.py",
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The weather-entity forecast through _fetch_weather_forecast survives hostile rows: non-dict rows, NaN/inf/string fields, garbage/year-1/year-9999/missing datetimes, 1e308 magnitudes, 96k rows and a non-list -- no failed update, no non-finite forecast_outdoor, at most one WARNING per outage",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm weather",
+          "value": "RESULT weather_failed_hostile_cycles=0 cycles (10 variants x 3 hostile cycles)"
+        },
+        {
+          "claim": "Hostile Tibber bodies (None, list, str, number, NaN, data:null, viewer:null, homes [None]/'x', today 'abc', NaN/overflow/year-1 rows, errors, json ValueError/RecursionError) never fail an update while the last prices cover now, and warn once per outage",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm tibber",
+          "value": "RESULT tibber_warn_after_first=0 records; 14 x 4 cycles all last_update_success True"
+        },
+        {
+          "claim": "Open-Meteo bodies other than out-of-range stamps (NaN values, strings, unsorted+duplicate stamps, a list, hourly as a list, an error body) cost no solve and warn once",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+          "value": "solve_failures 0 for each of the 7 other variants; one WARNING on the first failing cycle"
+        },
+        {
+          "claim": "The ECL110 state handler drops 13 of 16 hostile payloads (NaN, 1e400, 100k-deep JSON, 2 MB string, invalid UTF-8, list, nested dict, 5000-digit int, Infinity member, None, float nan) without raising, and a broker that refuses the subscription is contained",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm ecl110",
+          "value": "RESULT ecl110_raised=0 messages; RESULT ecl110_subscribe_raised=0 cases; RESULT ecl110_cycle_after_ok=1"
+        },
+        {
+          "claim": "The 121 undeclared raises of the unit arm are all non-str input to config-text tokenizers (dhw_schedule._parse_time/_parse_one_range/_parse_day_selector, grid_fee._parse_cyclic_range/parse_month_range/parse_day_range/_parse_rule) whose callers pass validated str, pull_prices' AttributeError on hostile Tibber JSON (contained by _fetch_tibber_prices' broad arm, tibber arm above), and debugger._read_stores/_parsed RecursionError on a 100k-deep document (the integration's own store files, outside M6's 'input the integration did not produce')",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm unit",
+          "value": "RESULT unit_undeclared_raises=121 drives of 914; 0 reach a cycle"
+        },
+        {
+          "claim": "A live, silent process worker is timed out at PROCESS_REPLY_TIMEOUT_S and the stop path frees it at once",
+          "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/silent_peer_waits.py --drive --cap 6 --silent 20 [--reply-timeout 2]",
+          "value": "default: reply_returned_within_cap=0, stop_returned_within_cap=1, reply_released_after_stop=1; --reply-timeout 2: reply_returned_within_cap=1 (2.01 s, ProcessWorkerTimeout)"
+        },
+        {
+          "claim": "Every lifecycle-injected handler recovers: the disarmed refresh B2 (or the setup retry after a failed setup) succeeds",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/classify.py",
+          "value": "no-recovery=0 after the setup-retry rerun (out/inj_z_rerun.jsonl, out/inj_z_multi*.jsonl)"
+        },
+        {
+          "claim": "The per-cycle WARNING of the process-worker fallback (coordinator.py:2069/2093/2097/2328 under a persistent fault) is the documented design of _note_worker_fallback ('The warning repeats every cycle because the log is where the cause is read'; the repair notice is raised once per cause), not a flood finding",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/classify.py",
+          "value": "flood tag on 2069, 2093, 2097, 2328: one 'Process-solve worker unusable' WARNING per refresh"
+        },
+        {
+          "claim": "Narrow pass-through handlers (`except (UpdateFailed, ConfigEntryAuthFailed): raise` at 6141, 6189, 6976) re-raise by design; setup then fails with ConfigEntryNotReady and the retry recovers",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/excepts_inject.py --only custom_components/heatpump_optimizer/coordinator.py:6189 custom_components/heatpump_optimizer/coordinator.py:6976",
+          "value": "refreshB2 True after setup retry for both"
+        },
+        {
+          "claim": "The flood tag on 6976/6978/6980, const.py:1491 and price_model.py:749 is the setup retry: a persistent fault there leaves no usable price, setup raises ConfigEntryNotReady on each retry with one record per retry (Home Assistant backs the retries off), and the disarmed retry recovers",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/classify.py dev/audit/rounds/round11/D1/s3/out/inj_z_rerun.jsonl dev/audit/rounds/round11/D1/s3/out/inj_z_multi2.jsonl",
+          "value": "every armed setup/refresh: ConfigEntryNotReady; refreshB2 (retry) True"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D1/s3/classify.py",
+        "dev/audit/rounds/round11/D1/s3/d1s3hook.py",
+        "dev/audit/rounds/round11/D1/s3/drivers_misc.py",
+        "dev/audit/rounds/round11/D1/s3/excepts_inject.py",
+        "dev/audit/rounds/round11/D1/s3/local_inject.py",
+        "dev/audit/rounds/round11/D1/s3/log_flood.py",
+        "dev/audit/rounds/round11/D1/s3/m5_table.py",
+        "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+        "dev/audit/rounds/round11/D1/s3/peer_wait.py",
+        "dev/audit/rounds/round11/D1/s3/persist_family.py",
+        "dev/audit/rounds/round11/D1/s3/persist_seams.py",
+        "dev/audit/rounds/round11/D1/s3/run_features.sh",
+        "dev/audit/rounds/round11/D1/s3/run_local.sh",
+        "dev/audit/rounds/round11/D1/s3/silent_broad.py",
+        "dev/audit/rounds/round11/D1/s3/wl.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D1-s2",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_plausible_forecast_rows / _fetch_weather_forecast",
+          "what": "A weather forecast whose rows carry garbage, year-1 or year-9999 datetimes is accepted as a fresh fetch (weather_forecast_stale_hours stays None) and aligned by position; staleness of the forecast itself is never judged from its own stamps (parsers_fuzz.py --arm weather: 0 warnings for bad_datetime/year1/year9999)."
+        },
+        {
+          "owner_seat": "D1-s2",
+          "file": "custom_components/heatpump_optimizer/accuracy.py",
+          "symbol": "AccuracyTracker.from_dict / MeasuredCop.from_dict / CurveLearner.from_dict / ComfortLearner.from_dict",
+          "what": "Narrow per-field parse fallbacks in the store loaders reset a corrupt field with no log line at any level (classify.py 'silent' on accuracy.py:514/563/617/1050, comfort_learning.py:243/254, curve_learning.py:162/171/175, dhw_learning.py:234/355): D1.M2's 'reset with one log line'."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/entities.py",
+          "symbol": "module level, line 9634 (_NOMINAL[_key])",
+          "what": "At this baseline tests/entities.py exits with KeyError 'house_heat_loss_coefficient' at line 9634 and prints 32 FAIL lines before it, with no injection (plain PYTHONPATH=tests/hastub run, venv-ci python 3.14.7)."
+        }
+      ]
+    },
+    "D8-s1": {
+      "dimension": "D8",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D8/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D8.M1",
+          "enumerator": "python3 tools/audit/enumerate.py d8-cells",
+          "universe": 396,
+          "examined": 393,
+          "not_reached": [
+            "de datetime.away_return name",
+            "en datetime.away_return name",
+            "sv datetime.away_return name"
+          ],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/cells.py -v: d8_cells=396, built_translation_keys=81, missing=3 (climate preset_mode attribute NAME, which Home Assistant core translates; non-finding), same_as_en=1 (de 'Auto', a German word), unbuilt=3 (the datetime.away_return lines: datetime.py is outside D8's file universe, so not examined), option_gap=0, unreached=29 informational state cells no matrix cell published. Matrix: 18 topology x feature cells built through the real async_setup_entry of the five platforms."
+        },
+        {
+          "step": "D8.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py --list",
+          "universe": 1458,
+          "examined": 1458,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "matrix.py -v: 1458 (cell, entity) pairs x 2 cycles, raise/numeric/timestamp/enum/unit/serial/state_len/attr_bytes/unknown_src all 0; follows.py: all 298 static sensor pairs resolved per traced payload leaf (203 source static, 95 categorical or count states whose read leaves moved without crossing a category; 0 stale); opstate.py: 114 cycles over 19 cells incl. the Tuya DHW-only overlay (6 space-blocked cycles) and minimum modulation, 0 contradictions against current_action power+dhw_power and heat_pump_on (perturbation --perturb moves hvac_action 0 -> 5); extras.py: preheat_weather under flat weather at scale 1.3 = 0 (perturbation 0 -> 10, null at scale 1.0 = 0), merged-slot avg power on a non-modulating 2 kW pump 0 of 15 mismatches (perturbation 0 -> 15); monthly.py and gapdhw.py: findings D8-s1-01..03. C1: the static keys resolved per key by follows.py; MonthlySavingsSensor available-but-None measured by monthly.py (D8-s1-03)."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D8-s1-01",
+          "scope": "D8-s1",
+          "step": "D8.M2",
+          "title": "Sensor Gap Advisor prices a hot-water tank thermometer as the top gap on installs with no hot water",
+          "severity": "medium",
+          "claim": "On every matrix cell whose payload says dhw_enabled is False, once a power series exists SensorGapAdvisorSensor publishes dhw_temp_entity as its top gap with a positive monthly cost (12 of 22 no-DHW cell-cycles), because _gap_probe_terms prices a month of the default tank volume whether or not hot water is configured.",
+          "mechanism": "sensor._gap_probe_terms sets dhw_extra_kwh from EntryConfig.dhw_tank_volume, which falls back to DEFAULT_DHW_TANK_VOLUME when no tank is configured; topology.rank_sensor_gaps prices the dhw_temp_entity row whenever that key is unset, with no DHW-enabled gate. The plan sensors gate their DHW attributes on the payload's dhw_enabled (round-5 D12-01, #1237); the gap advisor decides the same fact without it. The entity is enabled by default and the card's advisor page reads it (heatpump-optimizer-card.js advisorRow(plan, \"gap\", ...)).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py -v",
+            "harness_path": "dev/audit/rounds/round11/D8/s1/gapdhw.py",
+            "value": 12,
+            "unit": "cell-cycles (of 22 no-DHW cell-cycles) publishing a priced dhw_temp_entity gap; all 12 have it as top_slot and state",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B4 orchestrator macOS (darwin), /Users/timmalmstrom/.local/state/hpo/venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box with other finder seats running; the count is deterministic (frozen clock, injected prices, no network); this run's load1 line was filtered, nearest run 207.89",
+            "tolerance": "exact",
+            "load1": 207.89,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor (native_value, extra_state_attributes), through heatpump_optimizer.sensor:_gap_probe_terms and heatpump_optimizer.topology:rank_sensor_gaps",
+          "perturbation": {
+            "change": "--fix: _gap_probe_terms returns dhw_extra_kwh 0.0 when thermal_model._dhw_enabled_from_config(config) is false (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of (cell, cycle) pairs with payload dhw_enabled False where SensorGapAdvisorSensor publishes a dhw_temp_entity gap with sek_per_month > 0",
+          "phenomenon_property": "An advisor gap is priced only for a slot whose feature is configured: no slot of a disabled feature carries a positive monthly cost or becomes the advisor's state.",
+          "seam_rule": "dev/audit/rounds/round11/D8/s1/gapdhw.py -v (and every row of topology.rank_sensor_gaps whose feature can be unconfigured; at baseline only dhw_temp_entity)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py --fix",
+            "value": "dhw_null=4 of 6 in both arms",
+            "note": "DHW-enabled cells without a tank probe keep their priced gap under the fix: there the gap is real"
+          },
+          "reproduction_steps": [
+            "run the command: 12 lines print, e.g. coord_minimal|c1|state=59.32|top=dhw_temp_entity|dhw_sek=59.32",
+            "run with --fix: no_dhw_priced=0 and no_dhw_top=0, dhw_null unchanged"
+          ],
+          "proposed_fix_scope": "gate the DHW coast term on the install's DHW status (sensor._gap_probe_terms or the dhw row of topology.rank_sensor_gaps)",
+          "files": [
+            "custom_components/heatpump_optimizer/sensor.py",
+            "custom_components/heatpump_optimizer/topology.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D8-s1-02",
+          "scope": "D8-s1",
+          "step": "D8.M2",
+          "title": "Plan Monthly Savings publishes the open month extrapolated from one settled interval (x2688 to x2976)",
+          "severity": "high",
+          "claim": "Through the production cycle, the first numeric state Plan Monthly Savings publishes in a new month is one settled 15-minute interval's saving multiplied by the coverage factor 2688 (Feb) / 2976 (Jan, install month), and the state swings by over 1700 in currency within the first hour (-1728.39, -1232.94, -1398.17, then 18.44).",
+          "mechanism": "ledger.MonthlyLedger.savings_months scales every open-month figure by ledger.coverage_factor = month_hours / settled_hours with no floor on settled hours; MonthlySavingsSensor._waiting_for only asks for a row to exist, so the sensor publishes the estimate from the first booked interval. The sensor is enabled by default and is the card's savings headline (statEntity(\"_plan_monthly_savings\")).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+            "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+            "value": 2688.0,
+            "unit": "coverage factor applied to the first numeric state of the new month (ratio); swing over the first four numeric states 1728.39 currency",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B4 orchestrator macOS (darwin), /Users/timmalmstrom/.local/state/hpo/venv-ci python3",
+            "cpu_or_wall": "ratio",
+            "contention_note": "shared box with other finder seats running; deterministic (frozen clock, injected prices and inputs, no network)",
+            "tolerance": "exact",
+            "load1": 212.99,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (native_value, available, _waiting_for); heatpump_optimizer.ledger:MonthlyLedger.savings_months and coverage_factor",
+          "perturbation": {
+            "change": "--min-hours 24: MonthlySavingsSensor._waiting_for also waits until the open month has 24 settled hours (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0.0
+          },
+          "metric_definition": "ledger.coverage_factor of the open month on the first cycle of the month whose MonthlySavingsSensor state is a number",
+          "phenomenon_property": "A published open-month money estimate is not extrapolated from a settled span too short to bound it: the multiplier applied to the settled figures stays bounded (no estimate before a minimum settled coverage).",
+          "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (every published reader of ledger.coverage_factor-scaled open-month figures: grep -n coverage_factor custom_components/heatpump_optimizer/*.py)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py --gate-waiting",
+            "value": "first_scale=2688.0, swing=1728.39",
+            "note": "the availability-only gate (finding D8-s1-03's fix) leaves the extrapolation unchanged; only the coverage floor moves it"
+          },
+          "reproduction_steps": [
+            "run the command: 2026-01-31T22:15 state -2040.75 at factor 2976.0; 2026-02-01T00:15 state -1728.39 at factor 2688.0; 01:00 state 18.44",
+            "run with --min-hours 24: no numeric state in the window, first_scale=0.0"
+          ],
+          "proposed_fix_scope": "a minimum settled coverage before the open month's estimate is published (sensor-side waiting_for or ledger-side), so the published multiplier is bounded",
+          "files": [
+            "custom_components/heatpump_optimizer/sensor.py",
+            "custom_components/heatpump_optimizer/ledger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D8-s1-03",
+          "scope": "D8-s1",
+          "step": "D8.M2",
+          "title": "Plan Monthly Savings is available with state unknown at a month rollover while settled months exist",
+          "severity": "low",
+          "claim": "At the first cycle of a new month (2026-02-01T00:00), MonthlySavingsSensor is available and publishes None (Home Assistant 'unknown') while savings_months carries the settled January row: 1 of 17 cycles across the rollover.",
+          "mechanism": "MonthlySavingsSensor._waiting_for returns None whenever any row exists, but native_value is a number only for the open month's estimated row with a non-None savings_sek. The two predicates disagree whenever the open month has no row yet (rollover, measured) or its row is withheld (old_basis / below_meter_floor, read from code, not measured). The _WaitsForEvidenceMixin's own contract is that 'not measured yet' is unavailable, never unknown.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+            "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+            "value": 1,
+            "unit": "cycles (of 17, 2026-01-31T22:00 to 2026-02-01T02:00 UTC) with the sensor available and its state None",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B4 orchestrator macOS (darwin), /Users/timmalmstrom/.local/state/hpo/venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box with other finder seats running; deterministic",
+            "tolerance": "exact",
+            "load1": 212.99,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (available, _waiting_for, native_value)",
+          "perturbation": {
+            "change": "--gate-waiting: _waiting_for answers settled_savings_month unless an estimated row with a numeric savings_sek exists (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of cycles where MonthlySavingsSensor.available is True and native_value is None",
+          "phenomenon_property": "MonthlySavingsSensor is available exactly when its native_value can be a number: availability and value read the same row.",
+          "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (seams: no open-month row; open-month row withheld by old_basis or below_meter_floor)",
+          "reproduction_steps": [
+            "run the command: the 2026-02-01T00:00:00 line reads avail True state None rows ['2026-01']",
+            "run with --gate-waiting: avail_none_cycles=0"
+          ],
+          "proposed_fix_scope": "key MonthlySavingsSensor._waiting_for on the open month's estimated row with a numeric saving, the row native_value reads",
+          "files": [
+            "custom_components/heatpump_optimizer/sensor.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No entity of the five platforms raises, publishes a non-number under a unit/state_class, a naive or non-datetime TIMESTAMP, an ENUM value outside options, a unit foreign to its device_class, a numpy scalar/NaN/inf or foreign object, a string state over 255 chars, or recorded attributes over 16 KB, in 18 cells x 2 cycles",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py -v",
+          "value": "raise=0 numeric=0 timestamp=0 enum=0 unit=0 serial=0 state_len=0 attr_bytes=0 over entity_cell_pairs=1458; no perturbation run for these classes (harness gap: a judge re-take should swap one native_value for np.float64 to show serial moves)"
+        },
+        {
+          "claim": "No sensor is available with state None while the payload key it is named for is non-None",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py -v",
+          "value": "unknown_src=0 (heuristic key: _payload_path or _key; MonthlySavingsSensor's case is D8-s1-03, found by monthly.py)"
+        },
+        {
+          "claim": "C1 value-follows-payload: every sensor state static between cycles A and B is explained by its own traced payload reads",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/follows.py -v",
+          "value": "static_src_static=203, static_src_moved=95 (all categorical/count states: ScheduleSensor/ScheduleStepsSensor 96 steps, PredictiveInsight 'normal' with urgency 0.10->0.13, PlanNarrative top reason, plan sensors' slot counts, DHW plan 'heating now', ModelRestartAdvisor 1.0 with model_restart unchanged, SensorGapAdvisor whose rate recent_kwh_price(B)=current_price(A)=0.85), static_no_payload_read=0"
+        },
+        {
+          "claim": "Operating-state entities agree with the plan's own draw (current_action power + dhw_power, heat_pump_on) incl. the Tuya DHW-only overlay and minimum modulation",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/opstate.py -v",
+          "value": "checked_cycles=114, space_blocked_cycles=6, hpa_state=hpa_power=rec_power=hvac_action=climate_kw=plan_now=narr_idle=0; --perturb (hvac_action without the heat_pump_on clause) -> hvac_action=5 in the DHW-only cell"
+        },
+        {
+          "claim": "A house with heat-loss scale 1.3 under a flat forecast publishes no preheat_weather reason",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/extras.py",
+          "value": "weather_reason_steps=0, null at scale 1.0 = 0; --unscaled-divisor -> 10"
+        },
+        {
+          "claim": "Merged plan slots' avg_power_kw and energy match the plan's own step draws on a non-modulating pump with a minimum power",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/extras.py",
+          "value": "slot_avg_mismatch=0 of 15; --slot-halve -> 15"
+        },
+        {
+          "claim": "Every ENUM option and climate preset an entity can publish has a strings.json state (or a Home Assistant built-in preset name), and every d8-cell string exists in de/en/sv",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/cells.py -v",
+          "value": "option_gap=0; missing=3 are the climate preset_mode attribute name, translated by Home Assistant core; same_as_en=1 is de 'Auto'"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D8/s1/rig.py",
+        "dev/audit/rounds/round11/D8/s1/matrix.py",
+        "dev/audit/rounds/round11/D8/s1/cells.py",
+        "dev/audit/rounds/round11/D8/s1/follows.py",
+        "dev/audit/rounds/round11/D8/s1/opstate.py",
+        "dev/audit/rounds/round11/D8/s1/monthly.py",
+        "dev/audit/rounds/round11/D8/s1/gapdhw.py",
+        "dev/audit/rounds/round11/D8/s1/extras.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/README.md",
+          "symbol": "What to reuse, and what will trip you",
+          "what": "Trap not listed: HeatPumpOptimizerCoordinator._async_update_data solves in the process worker (coordinator._run_in_process), so an in-memory perturbation of optimizer.py moves nothing; extras.py had to route coordinator._run_in_process inline (lambda fn, args: fn(*args)) before --unscaled-divisor moved 0 -> 10."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/ledger.py",
+          "symbol": "coverage_factor / MonthlyLedger.savings_months",
+          "what": "The receipt/notifier readers of the open month (notifier.py reads savings_months) inherit the same unbounded month_hours/settled_hours multiplier D8-s1-02 measures on the sensor; owner of the ledger maths to confirm the floor belongs there."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/topology.py",
+          "symbol": "rank_sensor_gaps",
+          "what": "The dhw_temp_entity row is priced with no DHW-enabled gate (D8-s1-01's seam on the topology side); the plan sensors' setup_topology/sensor_advisor attribute (_sensor_advisor_attribute) was not checked for the same gap."
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,44 @@
+{
+  "id": "D1-s3-04",
+  "scope": "D1-s3",
+  "step": "D1.M5",
+  "title": "_run_in_process's transport-failure arm waits unbounded on a killed worker while holding _PROCESS_LOCK",
+  "severity": "medium",
+  "claim": "When the job write or reply read fails with a transport error (BrokenPipeError and kin), _run_in_process calls worker.kill() then worker.wait() with no timeout inside `with _PROCESS_LOCK`, so a child the kill does not end at once never returns and the lock stays held, while the sibling ProcessWorkerTimeout arm bounds the same wait with _SHUTDOWN_LOCK_TIMEOUT_S for exactly that child.",
+  "mechanism": "coordinator.py `_run_in_process`: the `except Exception as err` arm (transport, never the job) does `worker.kill(); worker.wait()`; the `except ProcessWorkerTimeout` arm above it does `worker.kill(); worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` with the comment 'a child the kill does not end at once (one stuck in the kernel) must not turn this into the same unbounded wait'. One fact (how long to wait for a killed child) decided twice. Held, the lock wedges every later solve, replay and sensor-advisor job behind it (each parks an executor thread in `with _PROCESS_LOCK`), and the awaiting refresh never completes, so last_update_success never turns False. The same unbounded wait sits in _shutdown_process_pool's at_exit arm (coordinator.py ~1917).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/peer_wait.py",
+    "value": 1,
+    "unit": "RESULT transport_lock_held_after (1 = _PROCESS_LOCK still held after the 8 s cap; transport_returned_within_cap=0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running; the cap is a deadline 160x the bounded arm's return, not a timing RESULT",
+    "tolerance": "exact",
+    "load1": 185.84,
+    "thread_factor": 1.553
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:_run_in_process (and the module lock heatpump_optimizer.coordinator:_PROCESS_LOCK), with _ensure_worker returning a stuck child",
+  "perturbation": {
+    "change": "the transport arm's `worker.wait()` becomes `worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)` (`--perturb`, the function recompiled in memory from its own source)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Whether _PROCESS_LOCK is still held 8 s after _run_in_process starts, when the job write raises BrokenPipeError and the worker's kill() does not end it (wait() with no timeout never returns).",
+  "phenomenon_property": "Every wait on a killed or exiting process worker is bounded, so no failure route can hold _PROCESS_LOCK (or the stop) past a deadline.",
+  "seam_rule": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/silent_peer_waits.py --scan custom_components/heatpump_optimizer | grep 'wait() with no timeout'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/peer_wait.py",
+    "value": "RESULT timeout_returned_within_cap=1, RESULT timeout_lock_held_after=0",
+    "note": "the same stuck child on the ProcessWorkerTimeout arm: returns (ProcessWorkerTimeout) and frees the lock -- the bounded sibling"
+  },
+  "reproduction_steps": [
+    "A worker whose pipe breaks mid-job (BrokenPipeError on write) and which the SIGKILL does not end at once (uninterruptible sleep on I/O, e.g. a stalled SD card)",
+    "_run_in_process enters the transport arm and blocks in worker.wait() holding _PROCESS_LOCK"
+  ],
+  "proposed_fix_scope": "coordinator._run_in_process transport arm and _shutdown_process_pool's at_exit arm: bound the post-kill wait as the timeout arm does; coordinator.py only.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

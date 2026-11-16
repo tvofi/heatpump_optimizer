@@ -1,0 +1,15 @@
+  custom_components/heatpump_optimizer/away.py:439 fired=2 added_warning=0 added_any=3
+  custom_components/heatpump_optimizer/coordinator.py:4779 fired=2 added_warning=0 added_any=3
+  custom_components/heatpump_optimizer/coordinator.py:8293 fired=2 added_warning=0 added_any=3
+  custom_components/heatpump_optimizer/coordinator.py:8365 fired=3 added_warning=0 added_any=4
+  custom_components/heatpump_optimizer/coordinator.py:8403 fired=5 added_warning=0 added_any=6
+  custom_components/heatpump_optimizer/coordinator.py:8445 fired=5 added_warning=0 added_any=6
+  custom_components/heatpump_optimizer/coordinator.py:9773 fired=4 added_warning=0 added_any=5
+  custom_components/heatpump_optimizer/legionella.py:262 fired=2 added_warning=0 added_any=3
+  custom_components/heatpump_optimizer/notifier.py:289 fired=2 added_warning=0 added_any=3
+  custom_components/heatpump_optimizer/off_restore.py:152 fired=1 added_warning=0 added_any=2
+RESULT persist_reached=10 handlers
+RESULT persist_silent_at_warning=10 handlers
+RESULT thread_factor=1.0 (no timing RESULT)
+RESULT load1=181.27
+RESULT swapins=0

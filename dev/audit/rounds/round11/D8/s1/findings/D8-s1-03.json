@@ -1,0 +1,39 @@
+{
+  "id": "D8-s1-03",
+  "scope": "D8-s1",
+  "step": "D8.M2",
+  "title": "Plan Monthly Savings is available with state unknown at a month rollover while settled months exist",
+  "severity": "low",
+  "claim": "At the first cycle of a new month (2026-02-01T00:00), MonthlySavingsSensor is available and publishes None (Home Assistant 'unknown') while savings_months carries the settled January row: 1 of 17 cycles across the rollover.",
+  "mechanism": "MonthlySavingsSensor._waiting_for returns None whenever any row exists, but native_value is a number only for the open month's estimated row with a non-None savings_sek. The two predicates disagree whenever the open month has no row yet (rollover, measured) or its row is withheld (old_basis / below_meter_floor, read from code, not measured). The _WaitsForEvidenceMixin's own contract is that 'not measured yet' is unavailable, never unknown.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+    "value": 1,
+    "unit": "cycles (of 17, 2026-01-31T22:00 to 2026-02-01T02:00 UTC) with the sensor available and its state None",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), /Users/timmalmstrom/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box with other finder seats running; deterministic",
+    "tolerance": "exact",
+    "load1": 212.99,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (available, _waiting_for, native_value)",
+  "perturbation": {
+    "change": "--gate-waiting: _waiting_for answers settled_savings_month unless an estimated row with a numeric savings_sek exists (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "count of cycles where MonthlySavingsSensor.available is True and native_value is None",
+  "phenomenon_property": "MonthlySavingsSensor is available exactly when its native_value can be a number: availability and value read the same row.",
+  "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (seams: no open-month row; open-month row withheld by old_basis or below_meter_floor)",
+  "reproduction_steps": [
+    "run the command: the 2026-02-01T00:00:00 line reads avail True state None rows ['2026-01']",
+    "run with --gate-waiting: avail_none_cycles=0"
+  ],
+  "proposed_fix_scope": "key MonthlySavingsSensor._waiting_for on the open month's estimated row with a numeric saving, the row native_value reads",
+  "files": ["custom_components/heatpump_optimizer/sensor.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

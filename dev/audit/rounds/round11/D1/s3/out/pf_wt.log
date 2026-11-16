@@ -1,0 +1,29 @@
+RESULT weather_failed_hostile_cycles=0 cycles
+   rows_not_dicts [(True, 0, False, 'None'), (True, 1, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   nan_fields [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   string_fields [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   bad_datetime [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   year1_datetime [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   year9999_datetime [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   huge_magnitudes [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   oversized_rows [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   not_a_list [(True, 0, False, 'None'), (True, 1, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   missing_datetime [(True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None'), (True, 0, False, 'None')]
+   0:None [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   1:[] [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   2:'str' [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   3:5 [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   4:nan [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   5:{'data': None} [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   6:{'data': {'viewer': None}} [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   7:{'data': {'viewer': {'homes': [None]}}} [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   8:{'data': {'viewer': {'homes': 'x'}}} [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   9:{'data': {'viewer': {'homes': [{'curr... [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   10:{'data': {'viewer': {'homes': [{'curr... [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   11:{'errors': [{'message': 'x'}]} [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   12:ValueError('not json') [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+   13:RecursionError('deep') [(True, 0, 'None'), (True, 1, 'None'), (True, 0, 'None'), (True, 0, 'None')]
+RESULT tibber_warn_after_first=0 records
+RESULT thread_factor=1.000
+RESULT load1=291.28
+RESULT swapins=0

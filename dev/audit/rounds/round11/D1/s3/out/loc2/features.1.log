@@ -1,0 +1,10 @@
+
+=== Feature modules ===
+  FAIL keystone: _expire_away_override returns the live override's (True, return time) and a lapsed one's (False, None), saving only the lapse  [((True, None), (False, None), ['persist_override'])]
+
+1 of 1 FEATURE CHECKS FAILED
+STATUS finished
+RESULT fired=5 handlers
+RESULT load1=174.87
+RESULT thread_factor=1.0 (no timing RESULT; not measured)
+RESULT swapins=0
