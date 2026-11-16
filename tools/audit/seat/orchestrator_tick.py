@@ -4125,6 +4125,9 @@ def self_test() -> int:
             "2026-11-15T01:02:00Z RESULT r10-live-0 bbbbbbbb rc=1 REFUSE: merge conflicts\n"
             "2026-11-15T01:03:00Z NEEDS-TITLE r10-live-1 bbbbbbbb\n")
         (op_dir / "fails.json").write_text(json.dumps({f"r10-live-0 {'b' * 40}": {"n": 3, "rc": 1, "why": "x"}}))
+        stk = tmp / "state-stuck"
+        stk.mkdir()
+        (stk / "fails.json").write_text(json.dumps({f"r10-t{n} {'b' * 40}": {"n": n, "rc": 1, "why": "x"} for n in (1, 2, 3)}))
         mk = lambda sd, refs: (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
             tick(bus_refs=refs + [summ25.replace("25", str(len(refs)))], bus_rc=1, state_dir=str(sd)))
         two = [live11[0], live11[1], held14[0]]
@@ -4141,6 +4144,9 @@ def self_test() -> int:
              "held by ruling" in ow_op[2] and "repair=opener" not in ow_op[2]),
             ("a topic the opener never touched carries no opener clause",
              "opener last" not in ow_op[2]),
+            ("below three failures there is no STUCK (n=1 and n=2); at three there is",
+             not any("STUCK" in t_op._opener_last(stk, f"r10-t{n}") for n in (1, 2))
+             and "STUCK after 3" in t_op._opener_last(stk, "r10-t3")),
             ("with the state directory present no OPENER ABSENT prints",
              not any(x["text"].startswith("OPENER ABSENT") for x in t_op.findings)),
             ("null control: with no open-driver directory, one flagged OPENER ABSENT line prints and the owed lines still do",
@@ -5508,8 +5514,8 @@ def self_test() -> int:
         def rboard(verdict_text, reviewer_at=hr - 3600, stage="not-started", gid="R10-G1", disp=None):
             hd = tmp / f"rb{len(list(tmp.glob('rb*')))}"
             hd.mkdir()
-            if disp:
-                (hd / "dispositions.tsv").write_text("".join(f"{r}\t{v[0]}\t{v[1]}\t{v[2]}\n" for r, v in disp.items()))
+            for r, v in (disp or {}).items():  # through ledger.dispose, so a ref of no ledger arm is refused here too
+                _module("ledger_tick", "tools/audit/seat/ledger.py").dispose(hd, r, v[0])
             t = tick(relay_log=str(hd / "relay.log"))
             ls = f"{A40}\trefs/heads/design/{gid}\n"
             if verdict_text is not None:
@@ -5531,7 +5537,42 @@ def self_test() -> int:
         r_done, r_disp = rboard(f"Design review: revise {OLD40}\n", stage="done"), \
             rboard(f"Design review: revise {OLD40}\n", disp={"refs/heads/design/r10-g1": (A40, "t", "h")})
         r_dr = rboard(f"Design review: revise {OLD40}\n", stage="design-review")
+        def unread(**extra):  # raw PLAN lines of a board whose design-ref fetch or a commit-time read fails
+            hd = tmp / f"rbu{len(list(tmp.glob('rbu*')))}"
+            hd.mkdir()
+            t = tick(relay_log=str(hd / "relay.log"))
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0, f"{A40}\trefs/heads/design/R10-G1\n"))
+            t._git.h.insert(0, (("log", "-1", "--format=%ct", A40), 0, str(hr)))
+            for m, rc2 in extra.items():
+                t._git.h.insert(0, (tuple(m.split("|")), rc2, "fatal: unreadable"))
+            t.design_builds("PLAN", rlm, {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}}]})
+            return flagged(t.sections.get("PLAN", []))
+        r_ok0 = unread()
+        r_fetch = unread(**{"fetch|-q|origin|refs/heads/design/R10-G1": 1})
+        r_time = unread(**{f"log|-1|--format=%ct|{A40}": 1})
+        cproster = {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}},
+                               {"group": "R10-G2", "after": ["R10-G1"], "resume": {"stage": "not-started"}},
+                               {"group": "R10-G3", "resume": {"stage": "not-started"}}]}
+        cpt = tick(relay_log=str(tmp / "cprb.log"))
+        cpt._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0,
+                              f"{A40}\trefs/heads/design/R10-G2\n{C40}\trefs/heads/design/R10-G3\n"))
+        for sha_ in (A40, C40):
+            cpt._git.h.insert(0, (("log", "-1", "--format=%ct", sha_), 0, str(hr)))
+        cpt.design_builds("PLAN", rlm, cproster)
+        cp_lines = [x for x in flagged(cpt.sections.get("PLAN", [])) if x.startswith("DESIGN-REVIEW OWED:")]
         a, f = check("DESIGN-REVIEW OWED", [
+            ("a critical-path group's line carries the CP mark, as DESIGN OWED does",
+             any(x.startswith("DESIGN-REVIEW OWED: CP R10-G2 design/r10-g2 ") for x in cp_lines)),
+            ("null control: a group off the critical path prints no CP mark",
+             any(x.startswith("DESIGN-REVIEW OWED: R10-G3 design/r10-g3 ") for x in cp_lines) and len(cp_lines) == 2),
+            ("null control: with both reads answering the tip is owed and nothing is UNREADABLE",
+             any(x.startswith("DESIGN-REVIEW OWED:") for x in r_ok0) and not any("UNREADABLE" in x for x in r_ok0)),
+            ("a failed fetch of the design refs is UNREADABLE and owes no line",
+             any(x.startswith("UNREADABLE: design reviews owed") and "fetch the design refs" in x for x in r_fetch)
+             and not any(x.startswith("DESIGN-REVIEW OWED:") for x in r_fetch)),
+            ("a failed commit-time read is UNREADABLE naming the sha, and owes no line",
+             any(x.startswith("UNREADABLE: design reviews owed") and f"no commit time for {A40[:12]}" in x for x in r_time)
+             and not any(x.startswith("DESIGN-REVIEW OWED:") for x in r_time)),
             ("a revise verdict naming an older sha, a newer tip and an older reviewer dispatch give exactly one line",
              len(r_rev) == 1 and f" R10-G1 design/r10-g1 {A40[:12]} " in r_rev[0]
              and f"verdict revise {OLD40[:12]}" in r_rev[0] and "(3.0h)" in r_rev[0]),
@@ -5572,15 +5613,46 @@ def self_test() -> int:
         u_live = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=1))
         u_old = uboard(f"{A40}\trefs/heads/dispatch/fixer-r10-oi\n", ref_at=NOW - datetime.timedelta(hours=20))
         u_un = uboard(ls_rc=1)
+
+        class SeatStub(Stub):  # ls-remote answers only the planted refs the argv's patterns match, as origin does
+            planted = ""
+
+            def __call__(self, argv):
+                if argv[:2] == ["ls-remote", "origin"] and any("fixer-" in a for a in argv):
+                    self.calls.append(list(argv))
+                    rows = [l for l in self.planted.splitlines()
+                            if any(fnmatch.fnmatch(l.split()[1], pat) for pat in argv[2:])]
+                    return 0, "".join(r + "\n" for r in rows)
+                return super().__call__(argv)
+
+        def sboard(ref):  # one planted ref, a minute old, for R10-OI's topic
+            t = tick()
+            st = SeatStub()
+            st.h, st.planted = t._git.h, f"{A40}\t{ref}\n"
+            t._git = st
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "e" * 40), 0, iso(ud_at) + "\n"))
+            t._git.h.insert(0, (("log", "-1", "--format=%cI", "origin/"), 0, iso(NOW - datetime.timedelta(hours=1)) + "\n"))
+            ro = json.loads(json.dumps(udr))
+            t.undispatched("PLAN", rlm, ro)
+            return [x for x in flagged(t.sections.get("PLAN", [])) if x.startswith(("UNDISPATCHED", "UNREADABLE"))]
+        seat_fams = ("dispatch/fixer-", "handoff/", "handoff-wip/", "handoff-body/", "fix/")
+        seat_lines = {fam: sboard(f"refs/heads/{fam}r10-oi") for fam in seat_fams}
+        u_probe = sboard("refs/heads/probe/r10-oi")
         a, f = check("UNDISPATCHED", [
             ("a carries-open group whose gate is open and that has no seat ref prints the line with its age",
-             any(x.startswith("UNDISPATCHED: CP R10-OI 8.0h") or x.startswith("UNDISPATCHED: R10-OI 8.0h") for x in u_none)),
+             any(x.startswith("UNDISPATCHED: CP R10-OI 8.0h") for x in u_none)),
+            ("null control: a group off the critical path prints no CP mark",
+             any(x.startswith("UNDISPATCHED: R10-LATE 8.0h") for x in u_none)),
             ("a `start after #N` carry whose #N merged prints it too", any(" R10-LATE 8.0h" in x for x in u_none)),
             ("null control: a group held behind an unfinished after-group prints nothing",
              not any("R10-HELD" in x for x in u_none)),
             ("null control: a dispatch ref newer than the gate opening prints nothing for that group",
              not any("R10-OI" in x for x in u_live) and any("R10-LATE" in x for x in u_live)),
             ("a dispatch ref older than the gate opening is no seat", any("R10-OI" in x for x in u_old)),
+            ("every SEAT_REFS family is a seat: a fresh ref of each alone silences its group",
+             all(not any("R10-OI" in x for x in ls_) for ls_ in seat_lines.values())),
+            ("null control: a fresh ref of a family that is no seat leaves the group listed",
+             any("R10-OI" in x for x in u_probe)),
             ("a group at stage `in-progress` with no start-after carry prints nothing",
              not any("R10-NEW" in x for x in u_none) and not any("R10-DONE" in x for x in u_none)),
             ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: undispatched groups" in x for x in u_un)

@@ -884,6 +884,8 @@ def self_test() -> int:
         check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
               ("probe", "handoff", "handoff-body", "design-verdict", "review")]
               == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build", "confirm-owed"])
+        check("a design tip classifies as design-review, beside the verdict arm's design-build",
+              classify("refs/heads/design/x") == "design-review" and classify("refs/heads/design-verdict/x") == "design-build")
         check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
         h = D / "imp"
         h.mkdir()
@@ -918,6 +920,16 @@ def self_test() -> int:
             del os.environ["HPO_STATE_DIR"]
         check("null control: dispose into the default home prints nothing and writes",
               rc_d == 0 and err.getvalue() == "" and dispositions(dflt)["refs/heads/probe/n"][0] == C)
+        dispose(h, "refs/heads/design/g1", C, "test")
+        check("dispose records a design tip, and a disposition at its sha silences DESIGN-REVIEW OWED",
+              design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0) != []
+              and design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"),
+                                      dispositions(h), 3600.0) == [])
+        dro = lambda crit: design_reviews_owed({"g1": C}, {}, {"g1": 0}, {}, lambda t: ("R10-G1", "not-started"), {}, 3600.0, crit)
+        check("DESIGN-REVIEW OWED carries the CP mark for a critical group, as DESIGN OWED does",
+              [x.startswith("DESIGN-REVIEW OWED: CP R10-G1 ") for x in dro({"R10-G1"})] == [True])
+        check("null control: a group off the critical path prints no CP mark",
+              [x.startswith("DESIGN-REVIEW OWED: R10-G1 ") for x in dro(set())] == [True])
         check("dispose refuses a ref of no arm", refuses(lambda: dispose(h, "refs/heads/main", A)) == "Refused")
         check("a missing store with no legacy file is first run: empty", dispositions(D / "none") == {})
         (D / "bad").mkdir()
