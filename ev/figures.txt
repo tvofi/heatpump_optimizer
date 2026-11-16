@@ -1,0 +1,13 @@
+== norm figure (head)
+BOTTLENECK: merge-wait <age> median (3 PRs, <age>; worst #1 <age>) vs <age>
+BOTTLENECK: merge-wait 4.2 hours median (3 PRs, 24 hours; worst #1 4.2 hours) vs 2 hours
+== null control
+6 of 6
+merges unread (merges.tsv)
+lead_time unread (merges.tsv)
+product_green unread (runs.json)
+restore unread (runs.json)
+runner_s unread (ci_runs.json or merges.tsv)
+tokens unread (no token ledger tokens.tsv; R11-PRE-TOKEN-LEDGER builds it)
+== gate_checks v7..v10
+unread at the window's start, 17 at its end
