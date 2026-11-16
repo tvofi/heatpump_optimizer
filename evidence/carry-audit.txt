@@ -1,0 +1,3 @@
+NOTE review 0 item e5308626: dismissed:pre-existing coverage gap outside this hotfix's scope, recorded here for the next test-gap round
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0

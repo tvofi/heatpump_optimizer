@@ -1,0 +1,39 @@
+M1 GATE rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02': 1}]
+M1 Asia/Kolkata rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02': 1}]
+M1 America/New_York rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02': 1}]
+emit-prelude rc=1
+M2 GATE rc=1 ok=0 FAIL=0
+                                           ~~~~~~~~~^^^^^^^
+  File "/tmp/tmp.nmumecwW8W/wt/custom_components/heatpump_optimizer/wear.py", line 191, in fold
+    key = (since + timedelta(seconds=EDGE_DEBOUNCE_S)).strftime("%Y-%m")
+                   ^^^^^^^^^
+NameError: name 'timedelta' is not defined
+M2 Asia/Kolkata rc=1 ok=0 FAIL=0
+                                           ~~~~~~~~~^^^^^^^
+  File "/tmp/tmp.nmumecwW8W/wt/custom_components/heatpump_optimizer/wear.py", line 191, in fold
+    key = (since + timedelta(seconds=EDGE_DEBOUNCE_S)).strftime("%Y-%m")
+                   ^^^^^^^^^
+NameError: name 'timedelta' is not defined
+M2 America/New_York rc=1 ok=0 FAIL=0
+                                           ~~~~~~~~~^^^^^^^
+  File "/tmp/tmp.nmumecwW8W/wt/custom_components/heatpump_optimizer/wear.py", line 191, in fold
+    key = (since + timedelta(seconds=EDGE_DEBOUNCE_S)).strftime("%Y-%m")
+                   ^^^^^^^^^
+NameError: name 'timedelta' is not defined
+M3-utc-month GATE rc=0 ok=21 FAIL=0
+M3-utc-month Asia/Kolkata rc=0 ok=21 FAIL=0
+M3-utc-month America/New_York rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+M4-ledger-utc GATE rc=0 ok=21 FAIL=0
+M4-ledger-utc Asia/Kolkata rc=0 ok=21 FAIL=0
+M4-ledger-utc America/New_York rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02': 1}]
+M2 GATE rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+M2 Asia/Kolkata rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
+M2 America/New_York rc=1 ok=20 FAIL=1
+      FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-03': 1}]
