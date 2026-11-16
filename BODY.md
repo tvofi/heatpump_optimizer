@@ -50,7 +50,17 @@ Classification: `plan_phases.py` joins `tests/entities.py`'s recorded closure be
 
 ## Head
 
-8f53d88d7a5ca99d6b205c93adb5bbb599b43962, branched from origin/main 26dbf7c43e; `git merge-tree --write-tree origin/main HEAD` reported no conflict. Delta from the prior head a0d587549a: two lines of `dev/audit/config/scopes.json` (the round-notes glob in `_coverage_excluded` and in the D5/D6 `static` list gains `round11`); no other file. The mutant run and page comparisons describe code this delta does not touch.
+155036423dab9c6f2724dbfec9df815eb201d7ec, the reviewed repair head c0db6bce48 merged with origin/main (921214bf42). The only content conflict was `tests/layout.json` (the `dev/programme` entry's `why`), resolved as the union of both sides; the resolution delta is that file alone, plus main's own files. `python3 tests/layout.py` and `tests/entities.py` (2723 checks) pass; `tools/pr/prepr.sh` rc=0 at this head.
+
+## Class repair: a file `--check` accepts is a file the page draws
+
+Defect (reviewer): `plan_phases.violations` left text fields untyped, so a phases file `--check` accepts crashed `plan_phases.section` (reached from `plan_page.render`, `plan_page.py:710`). The instance was `entry: 5`. Measured at the prior head, driving the old validator over every node of a full file with junk values: `entry`, `exit`, `detail`, `note`, `basis` and `waiting_on`/`name` as numbers or lists crashed `html.escape` (AttributeError), and a list, dict or `{}` as `status` or `phase` crashed `violations` itself (TypeError: unhashable), as did `items` not a list (not iterable).
+
+Fix, one owner: `plan_phases.violations` types every text field the section prints (`_TEXT_DOC`, `_TEXT_PHASE`, `_TEXT_ITEM`; a forecast's `basis` and an item's `name` with their presence checks), `items` as a list and `status` as a string before it is a dictionary key. Alternative not taken: `str()` or `html.escape(str(x))` at the draw sites. It would turn a number into text silently and leave `violations` crashing on an unhashable status; refusing at the file is the one place the contract lives.
+
+Enumeration rule (fixer.md step 8): the census `_census` in `plan_phases.fixture_checks` takes every node of a fully populated phases file (`_nodes`, not a list of field names) and replaces it with each of the ten junk values `_JUNK`; each result either earns a violation or draws in `section` (with the plan page's axis and without), and `violations` never raises. It asserts that the fixture populates every field the section reads, so a field the section starts reading has to be in the fixture. Every node the rule returns is closed: the count is asserted equal to `len(_JUNK) * (nodes - 1)` in the check "phases census: null control" (the number it ran is in its `got`, not carried here).
+
+`as_of` in `dev/programme/round11/phases.json` is not refreshed: it records the orchestrator's state as of 2026-11-15T13:00Z (items such as the pull request and card counts), and a seat refreshing the date without re-measuring each item would make the file say something unmeasured. Carry: dismissed: the phases file is the orchestrator's record step, as stated above.
 
 ## Mutation proof
 
@@ -103,7 +113,18 @@ RESULT survived=0
 - `python3 tools/audit/seat/state_docs.py --self-test`: `state_docs self-test: all checks passed`
 - `python3 dev/audit/harnesses/r10_plan_page_mutants.py M0 <the phases-* names>`: `RESULT survived=0`: 23 mutants killed, M0 null
 
-<!-- figure-block: scope-line mb=26dbf7c43ec3742101398b098dbdcc61bbee8f19 head=8f53d88d7a5ca99d6b205c93adb5bbb599b43962 -->
+Class-repair proofs, drivers in the same directory. Failing first: the census ran against the prior head's `violations` (new census, old validator, in place) and failed with `no accepted file crashes the section, no check crashes`, first cases `(('phases', 0, 'status'), [], 'TypeError')` and `(('phases', 0, 'entry'), 5, 'AttributeError')`; with the fix `plan_page self-test` reads 0 failed.
+
+```
+RESULT mutant=phases-unknown-status verdict=killed   (isinstance guard removed with the membership test)
+RESULT mutant=phases-status-unhashable verdict=killed (the isinstance(st, str) guard alone)
+RESULT mutant=phases-text-typed verdict=killed       (_text_violations predicate)
+RESULT mutant=phases-items-list verdict=killed       (items not a list)
+RESULT mutant=phases-item-name-text verdict=killed   (name typed)
+```
+The first run of `phases-item-name-text` SURVIVED because `name` was typed twice (in `_TEXT_ITEM` and in the presence check); `name` left `_TEXT_ITEM` and the mutant is then killed. `phases-waiting-named` and `phases-forecast-basis` were re-anchored to the new text and are killed.
+
+<!-- figure-block: scope-line mb=755b7f57675b2a56d8bf674b9b6846bdb184eb11 head=155036423dab9c6f2724dbfec9df815eb201d7ec -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -116,6 +137,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
   - Fix: `phases.json` is round-state data of the same kind as `round9/` and `round10/` state notes, so `round11` joins their glob in both lists; no self-test was changed.
   - Runs, `python3 -I tools/audit/check_scopes.py --repo .` (coverage line) and `--self-test --repo .`: prior head a0d587549a `FAIL coverage tracked=11256 ... unclassified=1`, `in no universe and not excluded: dev/programme/round11/phases.json`, self-test rc 1 (`SELF-TEST FAILED`); merge base 26dbf7c43e `ok coverage ... unclassified=0`, rc 0; head 8f53d88d7a `ok coverage tracked=11256 ... unclassified=0`, `SELF-TEST passed (every perturbed scope refused)`.
   - Process state: (c). The prior handoff's prepr and its `ci_predict` ran and passed, but `ci_predict` reads a data file only when a changed file's own self-test reads it (its own line says so), and `check_scopes.py` was not in this diff's closure. Cheaper detector: `check_scopes.py --repo .` runs in seconds and is not in prepr. Recording no countermeasure here: a prepr step is a policy-adjacent change owed an owner's decision, and one instance does not meet the class threshold.
+- `tests / fast (3.14)`: named because the body lint lists it red among the PR's checks; the check run at the pull request's head 0b9f5cbf24 (job 132899195719, run 43742580872) concluded success, so no failure of it is attributable to this branch's commits. Cheaper detector: none needed; it is the gate itself (a pass is the standing result).
 
 ## Forward-carry
 
