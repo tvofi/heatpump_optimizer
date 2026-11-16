@@ -5,3 +5,4 @@
 1794841742 CKPT rev5 mutants done: guard_pins kills cap guards, typing_ruler kills _run_bounds RETURN_DEL; env_drift next snapshot 75ae593aa68a
 1794841914 HB alive
 1794842089 CKPT verdict pushed f2abdf5fb9 to probe/rev-3602-2ccf0149 snapshot 506daf3f2d86
+1794842093 DONE Fix review: merge bca2e13825 (round 5, delta review); probe/rev-3602-2ccf0149 at f2abdf5fb9
