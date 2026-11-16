@@ -13,7 +13,7 @@ Alternatives not taken, and why each lost:
 
 ## Head
 
-`e9c80fbad11d02cb66f3129bf04a48030ef6bfe1`, measured 2026-11-15 20:20Z to 22:10Z against `origin/main` `98847b99d7bb3238686efd6869f805c89c6d1ff1` (the dispatch base, 0 commits behind at measurement).
+`981cad4189b75d063894454ada80085b872c1b61`. It is `e9c80fbad11d02cb66f3129bf04a48030ef6bfe1` plus one repair commit for the red `tests / fast (3.14)` at #3648's head `16945f40` (see `## Red checks`): `dev/audit/harnesses/r11_relay_3358_skip.py` finds its root with the canonical `repo_root` walk in place of `Path(__file__).resolve().parents[3]`. The carries' figures below were measured 2026-11-15 20:20Z to 22:10Z at `e9c80fba` against `origin/main` `98847b99d7bb3238686efd6869f805c89c6d1ff1`; the repair touches only the harness's root line, and its harness figure is re-taken at this head. Merge base unchanged; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
 
@@ -50,6 +50,8 @@ For the four `tick_loop.sh` mutants, the nested self-test rows (branch, detached
 
 - `python3 dev/audit/harnesses/r11_relay_3358_skip.py --seat <base worktree>/tools/audit/seat`, with the base worktree at `98847b99d7`: `RESULT defect_updated=0 defect_owed=0` and `RESULT null_updated=0 null_owed=0`. This is #3358's silent skip, replayed on its real commits.
 - `python3 dev/audit/harnesses/r11_relay_3358_skip.py` at the head: `RESULT defect_updated=1 defect_owed=0` and `RESULT null_updated=0 null_owed=0`.
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: at `e9c80fba` `1 of 115 HARNESS HEADER CHECKS FAILED` (`FAIL every inlined walk matches the canonical helper and no depth root remains [FAIL depth seams: dev/audit/harnesses/r11_relay_3358_skip.py:34: ROOT = Path(__file__).resolve().parents[3]]`), the `tests / fast (3.14)` failure; at `981cad4189` `ALL 115 HARNESS HEADER CHECKS PASSED`.
+- `python3 -c "import sys;sys.path[:0]=['tests'];import harness_headers as h;print(h.depth_root_seams())"`, the depth-seam arm alone: one seam (`r11_relay_3358_skip.py:34`) at `e9c80fba`, `[]` at `981cad4189`, 0.54 s and 0.51 s wall.
 - `bash tools/audit/seat/cloud_relay.sh --self-test`: `cloud_relay self-test: 515 checks, 0 failed` (at `1325b217e0`; the commit after it changes `ledger.py` and `tick_loop.sh` only).
 - `python3 -I tools/audit/seat/ledger.py --self-test`: `ledger self-test: 104 checks, 0 failed`. Its census `every kind cloud_relay.sh writes is a ledger kind` failed at `1325b217e0` until `handoff-skipped` was registered as a derived kind.
 - Wall time for `bash tools/audit/seat/tick_loop.sh --self-test`, measured with `time` on one host under the same load: 1m47s at the base and 2m00s at the head. The step replay's bound is `SELF_TEST_TIMEOUT` (180 s). The two relay-gap rows (about 10 s of wall clock) run in the outer run only, as the nesting block already does. The base copy runs itself nested about nine times, and left ungated the rows timed out the replay (rc 124 at `1325b217e0`).
@@ -80,15 +82,13 @@ For the four `tick_loop.sh` mutants, the nested self-test rows (branch, detached
 - `python3 tools/audit/archscore/score.py --diff 98847b99d7bb3238686efd6869f805c89c6d1ff1`: `Architecture score: dS +0.0000 NULL`.
 - `python3 tools/pr/ci_predict.py --base origin/main`, after `--apply-inert` registered the new harness as an INERT READ of `tests/harness_headers.py`: `no closures, fast, governance or instrument red predicted`.
 
-<!-- figure-block: scope-line mb=98847b99d7bb3238686efd6869f805c89c6d1ff1 head=e9c80fbad11d02cb66f3129bf04a48030ef6bfe1 -->
-~~~text
-MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-~~~
-<!-- /figure-block -->
+- `python3 tests/closure.py select --diff 98847b99d7bb3238686efd6869f805c89c6d1ff1` with the head's own `closure.py`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`tests/entities.py`, `tests/doc_claims.py`). Run at `981cad4189` with `PYTHONPATH=tests/hastub`, with the `run_always` pair and the ratchet: `ALL 2723 ENTITY CHECKS PASSED`, `ALL 410 checks PASSED`, `layout self-test: ok`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `STRUCTURE RATCHET PASSED`. No rendered `scope-line` block: `body_push.sh` renders it against the pull request's recorded base `921214bf` (`MODE: SCOPED -- 2 script(s) run, 31 scoped out.`) while `prepr.sh --body-check`'s `figure_block_check` verifies it against `origin/main` `47f0f18a` (`MODE: FULL -- every test script runs, nothing is scoped out.`), so a block refuses at one of the two once main has moved past the recorded base.
+
 
 ## Red checks
 
-none
+- `tests / fast (3.14)` at `16945f40` (run 43777623561, job 133008866653): `tests/harness_headers.py` refused the new harness's depth-counted root (`ROOT = Path(__file__).resolve().parents[3]`, added at `bc727cfd5b`), a check already on `98847b99d7`. Fixed in this diff (the harness inlines `tools/audit/repo_root.py`'s `repo_root`); the before/after is in `## Figures`. Cheaper detector: exists. `tests/harness_headers.py` is `run_always`, which `fixer.md` step 5 already requires running locally before the handoff, and its depth-seam arm alone (`harness_headers.depth_root_seams()`) reads the defect in about half a second (`## Figures`). Standing cost of a new detector: none built, because the existing one was owed at the final head and not run there; `prepr.sh` leaves `harness_headers.py` to CI deliberately (it takes the EXCLUSIVE lease). Process state (b).
+- `pr-contract / pr-contract` and `gate` at `16945f40`: downstream of the red above. `pr-contract` refused the body for not naming `tests / fast (3.14)` under `## Red checks` (answered above); `gate` aggregates the required checks.
 
 ## Brief carries
 
@@ -99,6 +99,14 @@ Roster carries of R11-PRE-RELAY-REBUILD, by position. Carries 0-4 are built here
 - Carry 2: built. `HPO_TICK_RELAY_GAP` is the in-sleep relay start.
 - Carry 3: built. Refused or disposed releases. The level names the probe's state.
 - Carry 4: built in the relay, the side that has `gh`. `cloud_dispatch.py` is untouched.
+- Carry 5: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 6: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 7: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 8: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 9: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 10: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 11: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
+- Carry 12: not built here; a later part of R11-PRE-RELAY-REBUILD (owner card P12). Carry: R11-PRE-RELAY-REBUILD
 
 ## Forward-carry
 
