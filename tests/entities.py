@@ -42682,7 +42682,7 @@ R.check(
     "naming the old-path key its caps sit under; an unmoved file names no key",
     len(_BR("dev/audit/README.md")) == 1
     and _BR("dev/audit/README.md")[0].endswith("key tools/audit/README.md")
-    and _BR("tools/audit/README.md") == []
+    and _BR("tools/audit/README.md") == []  # layout:old=tools/audit/README.md
     and len(_BR("tests/README.md")) == 1
     and " key " not in _BR("tests/README.md")[0],
     f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
