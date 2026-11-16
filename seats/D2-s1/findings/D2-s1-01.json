@@ -4,7 +4,7 @@
  "step": "D2.M1",
  "title": "Scalar Carnot flow-lift factor is inverted: a hotter flow raises COP, and the batch twin disagrees",
  "severity": "critical",
- "claim": "ThermalModel.flow_lift_factor returns carnot_ref/carnot_flow (>1 above the 35 C reference, 1.586 at a 60 C flow and 0 C outdoor) while _batch_cop multiplies by carnot_flow/carnot_ref (<1), so every scalar COP priced at a flow above the reference (valved buffer, every DHW charge, a direct plant's curve) is boosted instead of derated and simulate_trajectory_batch disagrees with simulate_trajectory on 14 897 trajectory elements over the valved/combi/wood/coil arms.",
+ "claim": "ThermalModel.flow_lift_factor returns carnot_ref/carnot_flow (>1 above the 35 C reference, 1.586 at a 60 C flow and 0 C outdoor) while _batch_cop multiplies by carnot_flow/carnot_ref (<1), so every scalar COP priced at a flow above the reference (valved buffer, every DHW charge, a direct plant's curve) is boosted instead of derated and simulate_trajectory_batch disagrees with simulate_trajectory on 14 897 trajectory elements over the valved/combi/wood/coil arms. On the 50 published golden plans flow_lift_factor returned >1 on 1268 calls.",
  "mechanism": "thermal_model.py:3391 `return max(0.25, carnot_ref / carnot_flow)` against thermal_model.py:4483 `np.maximum(0.25, carnot_flow / carnot_ref)`. compute_cop (valve: flow_temp = tank), compute_cop_dhw (flow = tank water) and the curve-flow lift all route through flow_lift_factor; the batch twin, used for the solver's finite-difference gradient, carries the physical ratio. Consequences: the scalar objective prices hot storage cheaper the hotter it is (DHW COP 2.89 at 35 C, 4.26 at 55 C, 4.58 at 60 C at 0 C outdoor), and the gradient the solver follows is of a different physics than the objective it scores.",
  "evidence": {
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
@@ -42,7 +42,8 @@
  "reproduction_steps": [
   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
   "... --fix-lift (single-zone valve arms and dhw/wood/coil go to 0)",
-  "... --fix-lift --fix-emitter (total 0)"
+  "... --fix-lift --fix-emitter (total 0)",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/golden_identities.py  -> RESULT flow_lift_factor_gt1_calls=1268 on the 50 published golden plans (direct_flow_carnot 192/192 steps); with --fix-lift --fix-emitter: 0"
  ],
  "proposed_fix_scope": "thermal_model.py ThermalModel.flow_lift_factor: return carnot_flow / carnot_ref (one line); re-claim the golden fixtures that price a flow above 35 C (every DHW scenario, valve_*, wood_*, direct_flow_carnot).",
  "files": [

@@ -4,7 +4,7 @@
  "step": "D2.M1",
  "title": "mixing_valve.emitter_delivery returns negative heat: a cold tank behind the valve cools the zones",
  "severity": "high",
- "claim": "mixing_valve.emitter_delivery returns ua*(mix-zone) without its documented max(0, .) floor, so in the scalar two-zone throttled step a tank colder than a zone draws heat back out of the slab/upper floor into the tank, while the batch twin floors it at 0: 3674 two-zone valve trajectory elements differ even with D2-s1-01 corrected.",
+ "claim": "mixing_valve.emitter_delivery returns ua*(mix-zone) without its documented max(0, .) floor, so in the scalar two-zone throttled step a tank colder than a zone draws heat back out of the slab/upper floor into the tank, while the batch twin floors it at 0: 3674 two-zone valve trajectory elements differ even with D2-s1-01 corrected. On the 9 valved golden plans the scalar step booked 496 negative deliveries moving 87.52 kWh from the zones back into the tank (valve_storage_small_tank alone 57.3 kWh).",
  "mechanism": "mixing_valve.py:138 `return ua * (mix_temp - zone_temp)` under a docstring 'Never negative: a valve can shut, but it cannot cool a house'. _valve_two_zone_delivery uses it for q_rad and q_floor; simulate_trajectory_batch writes np.maximum(0.0, ...) for the same terms. Below the zone temperature the scalar model runs the emitters as a heat pump in reverse, booking zone heat into the tank (balance still closes, so conservation does not see it).",
  "evidence": {
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py --fix-lift",
@@ -23,7 +23,7 @@
  "perturbation": {
   "change": "--fix-emitter: mixing_valve.emitter_delivery swapped in memory for max(0.0, ua*(mix_temp-zone_temp))",
   "expected_direction": "to_zero",
-  "observed_value": "with --fix-lift: 3674 -> 0"
+  "observed_value": "batch_parity --fix-lift: 3674 -> 0 with --fix-emitter; golden_identities valve_reverse_kwh 87.52 -> 0 under --fix-lift --fix-emitter"
  },
  "metric_definition": "Count of trajectory elements where the two-zone valved batch twin differs by any bit from the scalar path, with the lift factor corrected in both runs.",
  "phenomenon_property": "No emitter circuit delivers negative heat: behind a valve the zones are never cooled by the tank, in the scalar step and the batch twin alike.",
@@ -54,5 +54,11 @@
   "valve_upper_direct_slab"
  ],
  "stop_rule_class": "bug",
- "class_guess": "new"
+ "class_guess": "new",
+ "leave_one_out": {
+  "cells": 9,
+  "min": 0.604,
+  "max": 57.3,
+  "drop_most_favourable": 30.22
+ }
 }

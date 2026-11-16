@@ -9,11 +9,10 @@ plan the golden fixture pins), and that call is replayed under instrumentation. 
                        over every (sub)step of ThermalModel._simulate_step_single/_two_zone, kWh;
                        the DHW tank's store_step balance and the refill coil's wood debit alike.
                        Tolerance 1e-9 kWh.
-  dt-invariance        from each hour's replayed state, 4 x 15 min against 1 x 1 h against a
-                       256-sub-step reference with the hour's inputs held: first order means the error
-                       scales with the step simulate_step actually integrates (dt / n_sub); reported
-                       as the worst (e(15 min)/e(1 h)) / (h_15/h_60), a cell failing above 1.6, and
-                       max |4x15 - 1x60| in K.
+  dt-invariance        from each hour's replayed state with the hour's inputs held: max |4 x 15 min -
+                       1 x 1 h| in K, and the integrator's order on the 2/4/8/16-steps-per-hour
+                       sequence against a 256-step reference (first order: error halves with the
+                       effective step dt/n_sub); a pair fails above 1.5x the effective-step ratio.
   power-monotone       at every step, +1 kW of space power (or -1 kW at the cap) re-simulated to the
                        horizon end through simulate_trajectory_with_dhw: count of (step, store, later
                        step) cells where the higher-power walk is colder by more than 1e-9 K; DHW
@@ -316,13 +315,18 @@ def per_step_states(model, a):
 
 
 def dt_invariance(model, states, inputs):
-    """4 x 15 min against 1 x 1 h against a 256-sub-step reference, with the hour's inputs held.
+    """4 x 15 min against 1 x 1 h, and the integrator's order, with the hour's inputs held.
 
-    simulate_step subdivides a step for stability (_substeps_and_loss), so the step it actually
-    integrates is h = dt / n_sub; first order means the error scales with h. A cell fails when
-    e(15 min) / e(1 h) exceeds 1.6x the ratio of the two effective steps (a cell where e(1 h)
-    is under 1e-6 K is not judged)."""
+    Reports max |4x15 min - 1x1 h| per store. The order is judged on the refinement sequence
+    1, 2, 4, 8, 16 steps per hour against a 256-step reference: simulate_step subdivides a step
+    for stability (_substeps_and_loss), so each level's effective step is (1/n)/n_sub, and first
+    order means e(fine)/e(coarse) equals the ratio of effective steps. A pair fails when its
+    normalised ratio exceeds 1.5; the error is the stores' heat-capacity-weighted
+    sum sum_i C_i |x_i - x_ref| in kWh (judged where the coarse level's is over 1e-6 kWh), so one
+    store's error crossing zero does not read as a lost order. A single 1 h step is not judged
+    against 15 min alone: there the error can cross zero (seen at 1.6e-5 K against 6e-4 K)."""
     worst_ratio, worst_d, nonconv, blocks = 0.0, 0.0, 0, 0
+    levels = (1, 2, 4, 8, 16)
     for k in range(0, len(states) - 3, 4):
         s0, inp = states[k], dict(inputs[k])
         inp.pop("state")
@@ -333,21 +337,31 @@ def dt_invariance(model, states, inputs):
             for _ in range(n):
                 s = model.simulate_step(s, dt_hours=1.0 / n, **inp)
             return s
-        n1 = model._substeps_and_loss(inp["wind_speed"], inp["precipitation"], 1.0)[0]
-        n4 = model._substeps_and_loss(inp["wind_speed"], inp["precipitation"], 0.25)[0]
-        r_exp = (0.25 / n4) / (1.0 / n1)
-        a4, a1, ref = walk(4), walk(1), walk(256)
+        h = {n: (1.0 / n) / model._substeps_and_loss(inp["wind_speed"], inp["precipitation"], 1.0 / n)[0]
+             for n in levels}
+        w = {n: walk(n) for n in levels + (256,)}
         blocks += 1
+        pp = model.params
+        cap = {"room_temperature": pp.room_thermal_mass, "slab_temperature": pp.slab_thermal_mass,
+               "upper_floor_temperature": pp.upper_floor_thermal_mass,
+               "lower_floor_temperature": pp.lower_floor_thermal_mass,
+               "buffer_tank_temperature": TM._buffer_capacity(pp),
+               "wood_tank_temperature": pp.wood_tank_thermal_mass}
+        if not pp.two_zone_enabled:
+            cap["upper_floor_temperature"] = cap["lower_floor_temperature"] = 0.0
+        e = {n: 0.0 for n in levels}
         for f in STORES:
-            x4, x1, xr = getattr(a4, f), getattr(a1, f), getattr(ref, f)
-            if x4 is None:
+            if getattr(w[1], f) is None:
                 continue
-            e1, e4 = abs(x1 - xr), abs(x4 - xr)
-            worst_d = max(worst_d, abs(x4 - x1))
-            if e1 > 1e-6:
-                ratio = (e4 / e1) / r_exp
+            xr = getattr(w[256], f)
+            worst_d = max(worst_d, abs(getattr(w[4], f) - getattr(w[1], f)))
+            for n in levels:
+                e[n] += cap[f] * abs(getattr(w[n], f) - xr)
+        for c, fi in zip(levels[1:-1], levels[2:]):
+            if e[c] > 1e-6:
+                ratio = (e[fi] / e[c]) / (h[fi] / h[c])
                 worst_ratio = max(worst_ratio, ratio)
-                if ratio > 1.6:
+                if ratio > 1.5:
                     nonconv += 1
     return blocks, worst_ratio, worst_d, nonconv
 
