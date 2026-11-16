@@ -50,7 +50,10 @@ is not comparable across candidates) and the lowest room temperature. Null
 controls, solved with no default and with the ladder's highest: the same
 three installs at their own configured price (clamped), and the same three
 unclamped at price zero; each pair must ship array-equal plans. Exits 1 when
-a null pair differs.
+a null pair differs. On a tree that ships the default
+(``om.CLAMPED_DEFAULT_START_PRICE``) each candidate patches it and the tree's
+own rule applies it, so the nulls test that rule; on a tree without it the
+rule is applied by the harness and the nulls hold by construction.
 
 ``gradient``: what the batched finite-difference gradient simulates
 (``optimizer._batch_fd_gradient``, design note n6). Four goldens that fix
@@ -302,6 +305,23 @@ def _effective(clamp: bool, configured: float, default: float) -> float:
     return default if clamp and configured == 0 else configured
 
 
+def _at_default(solve, clamp: bool, configured: float, default: float):
+    """``solve`` with ``default`` as the clamped default start price.
+
+    Where the tree ships the default (``om.CLAMPED_DEFAULT_START_PRICE``),
+    the tree's own rule applies it, patched to the candidate; on a tree
+    without it, the measured rule above is applied here.
+    """
+    if not hasattr(om, "CLAMPED_DEFAULT_START_PRICE"):
+        return solve(clamp, _effective(clamp, configured, default))
+    kept = om.CLAMPED_DEFAULT_START_PRICE
+    om.CLAMPED_DEFAULT_START_PRICE = default
+    try:
+        return solve(clamp, configured)
+    finally:
+        om.CLAMPED_DEFAULT_START_PRICE = kept
+
+
 def defaults() -> int:
     def line(plan, cost, room):
         return (f"starts {edges(plan)}, energy_kwh {float(np.sum(plan)) * 0.25:.2f},"
@@ -310,12 +330,12 @@ def defaults() -> int:
     bad = 0
     for label, priced, solve in _default_installs():
         for default in DEFAULT_LADDER:
-            plan, cost, room = solve(True, _effective(True, 0.0, default))
+            plan, cost, room = _at_default(solve, True, 0.0, default)
             print(f"{label}, clamped, configured 0, default {default}: {line(plan, cost, room)}")
         top = DEFAULT_LADDER[-1]
         for arm, clamp, configured in (("priced clamped", True, priced), ("unpriced unclamped", False, 0.0)):
-            without = solve(clamp, configured)
-            with_ = solve(clamp, _effective(clamp, configured, top))
+            without = _at_default(solve, clamp, configured, 0.0)
+            with_ = _at_default(solve, clamp, configured, top)
             same = np.array_equal(without[0], with_[0])
             print(f"{label}, null {arm} (configured {configured}): without default {line(*without)};"
                   f" default {top}: {line(*with_)}; array-equal {same}")

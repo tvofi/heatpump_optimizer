@@ -93174,13 +93174,19 @@ R.check(
 # A realizable relaxed plan is a candidate, never a result the stage is held
 # to (design note round 3, test 4): the relaxed descent prices no start, so
 # such a plan carries starts nobody priced. The fixture is the plan the same
-# house ships clamped at no price, which already runs, handed as the relaxed
-# plan to the stage of the priced solve, in that solve's own scope: the stage
+# house ships clamped at a start price of zero, which already runs; since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 a clamped install plans at the clamped
+# default, so only a default patched to zero reaches that plan. It is handed as
+# the relaxed plan to the stage of the priced solve, in that solve's own scope: the stage
 # ships another plan, with fewer starts, that the scope it ships in scores
 # strictly below the plan handed in. One non-convex stage per arm
 # (``fixer.md`` step 15): the margin measured on x86_64 is 0.70, the check
 # asks for 0.01.
-_hsr_ran = _hsr_cells[(0.0, True, 1.1)].space
+from unittest import mock as _hsr_mock  # noqa: E402
+
+with _hsr_mock.patch.object(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _hsr_zero_clamped = _hsr_solve(0.0, True, 1.1)
+_hsr_ran = _hsr_zero_clamped.space
 _hsr_ran_stage = _hsr_cells[(0.25, False, 1.1)].stages[-1]
 _hsr_ran_shipped, _hsr_ran_scope = _hsr_om._commit_runs(
     *_hsr_ran_stage[:3], [_hsr_ran], *_hsr_ran_stage[4:])
@@ -93265,8 +93271,9 @@ R.check(
     _hsr_run_on.result.objective_value != _hsr_run_off.result.objective_value,
     f"{_hsr_run_on.result.objective_value} vs {_hsr_run_off.result.objective_value}",
 )
-# A realizable relaxed plan on a clamped install that prices no start ships
-# as it stands: the stage is the identity, the objective never called.
+# An unengaged solve ships its relaxed plan as it stands: the stage is the
+# identity, the objective never called. An engaged solve always prices a
+# start (R11-OUTSIDE-HONEST-STARTS-RUNS-P3), so it has no such identity.
 
 
 def _hsr_never(*_args, **_kw):
@@ -93283,10 +93290,10 @@ def _hsr_commit(opt, objective, batch, space, maxiter=5):
 
 
 R.check(
-    "null control, a realizable relaxed plan: a clamped install that prices no "
-    "start ships it unchanged, the very array, and an unengaged solve any plan",
-    _hsr_commit(_hsr_opt(0.0, True, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real
-    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle,
+    "null control: an unengaged solve ships any relaxed plan unchanged, the very array, "
+    "the objective never consulted",
+    _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_trickle) is _hsr_trickle
+    and _hsr_commit(_hsr_opt(0.0, False, 1.1), _hsr_never, _hsr_never, _hsr_real) is _hsr_real,
 )
 R.check(
     "and with a plan that is not realizable the same call ships the projection "
@@ -93596,6 +93603,51 @@ R.check(
     == [0.25 * _hsr_count(_hsr_trickle, 1.1), 0.25 * _hsr_count(_hsr_real, 1.1)]
     and _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), True)(_hsr_real, None)
     == 0.25 * _hsr_count(_hsr_real, 1.1, True),
+)
+
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (owner ruling Q2): a clamped install that
+# prices no start plans at the clamped default start price, 0.1. Without it
+# the grid cell clamped at no price ships 5 starts where the tree before pull
+# request 3602 shipped 2 (dev/audit/harnesses/r11_honest_starts_runs.py,
+# ``grid`` and ``defaults``). The rule: the default replaces a configured
+# price of zero on a clamped install and nothing else. Nulls: a priced install
+# keeps its price below and above the default, an unclamped one keeps zero.
+import inspect as _hsr_inspect  # noqa: E402
+import re as _hsr_re  # noqa: E402
+
+_hsr_sp = {
+    (cost, clamp): getattr(
+        _hsr_om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost), "start_price", None)
+    for cost in (0.0, 0.05, 0.25) for clamp in (False, True)
+}
+R.check(
+    "the start price a solve plans with: the configured price, except that a clamped install "
+    "configured at zero plans at the clamped default 0.1; a priced install keeps its own price "
+    "below and above the default, and an unclamped install keeps zero",
+    getattr(_hsr_om, "CLAMPED_DEFAULT_START_PRICE", None) == 0.1
+    and _hsr_sp == {(0.0, False): 0.0, (0.0, True): 0.1, (0.05, False): 0.05,
+                    (0.05, True): 0.05, (0.25, False): 0.25, (0.25, True): 0.25},
+    f"{_hsr_sp}",
+)
+_hsr_at_default = _hsr_solve(0.1, True, 1.1)
+R.check(
+    "failing case: the grid cell clamped at no configured price ships the plan it ships "
+    "configured at the clamped default, with no more than the 2 starts the tree before "
+    "pull request 3602 shipped (5 without the default) and fewer than the same install "
+    "ships with the default patched to zero",
+    np.array_equal(_hsr_cells[(0.0, True, 1.1)].space, _hsr_at_default.space)
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) <= 2
+    and _hsr_edges(_hsr_cells[(0.0, True, 1.1)].space) < _hsr_edges(_hsr_zero_clamped.space),
+    f"edges {_hsr_edges(_hsr_cells[(0.0, True, 1.1)].space)}, "
+    f"at the default {_hsr_edges(_hsr_at_default.space)}, "
+    f"default patched to zero {_hsr_edges(_hsr_zero_clamped.space)}",
+)
+_hsr_cost_readers = _hsr_re.findall(r"\.config\.cycling_cost\b", _hsr_inspect.getsource(_hsr_om))
+R.check(
+    "every optimizer reader of the start price reads start_price, never the raw "
+    "configured cycling_cost, which only the property reads",
+    not _hsr_cost_readers,
+    f"{len(_hsr_cost_readers)} raw readers",
 )
 # The humidity guard the two SolveInputs sites share.
 from heatpump_optimizer.coordinator import _humidity_with_data as _hsr_humidity  # noqa: E402
