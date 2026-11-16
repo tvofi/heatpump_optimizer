@@ -1,3 +1,4 @@
 1794844826 INIT r11-rev-3668
 1794844836 HB alive
 1794844896 CKPT setup done; merge-tree clean; starting CI poll snapshot 772548c58ba1
+1794845088 CKPT mutation, null controls, figures re-derived; waiting CI snapshot 74d8d39b35ec
