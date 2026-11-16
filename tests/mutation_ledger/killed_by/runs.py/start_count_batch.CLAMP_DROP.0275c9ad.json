@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:start_count_batch CLAMP_DROP 0275c9ad",
+  "killed_by": "tests/features.py",
+  "old": "    needs = np.clip(rows / MIN_RUNNING_DRAW_KW, 0.0, 1.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`needs = (rows / MIN_RUNNING_DRAW_KW)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=18."
+}

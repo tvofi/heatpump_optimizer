@@ -47,7 +47,7 @@ TWIN_FROM = 71
 
 
 def seat_pair(scopes: dict, seat: str, model_a: str, model_b: str, rnd: int) -> tuple[dict | None, str]:
-    m = re.fullmatch(r"(D(?:1[0-5]|[0-9]))-(s[0-9]+)", seat)
+    m = re.fullmatch(r"(D(?:1[0-7]|[0-9]))-(s[0-9]+)", seat)
     if not m or m.group(2) not in ((scopes.get(m.group(1)) or {}).get("seats") or {}):
         return None, f"{seat!r} is no seat of scopes.json"
     if not model_a.strip() or not model_b.strip():
@@ -160,6 +160,11 @@ def cases(m) -> dict[str, bool]:
     r["seat: a seat scopes.json does not hold is refused"] = m.seat_pair(scopes, "D1-s2", "a", "b", 11)[0] is None and \
         m.seat_pair(scopes, "D2-s1", "a", "b", 11)[0] is None
     r["seat: a missing model is refused"] = m.seat_pair(scopes, "D1-s1", "a", " ", 11)[0] is None
+    hi = {"D16": {"seats": {"s1": []}}, "D17": {"seats": {"s3": []}}, "D18": {"seats": {"s1": []}}}
+    r["seat: a D16 and a D17 seat are seated, a D18 one refused"] = \
+        (m.seat_pair(hi, "D16-s1", "a", "b", 11)[0] or {}).get("universe") == "D16-s1" and \
+        (m.seat_pair(hi, "D17-s3", "a", "b", 11)[0] or {}).get("universe") == "D17-s3" and \
+        m.seat_pair(hi, "D18-s1", "a", "b", 11)[0] is None
     rep = lambda *ids: {"findings": [{"id": i} for i in ids]}
     A, B = m.report_ids(rep("D1-s1-01", "D1-s1-02", "D1-s1-03"), "x"), m.report_ids(rep("D1-s1-71", "D1-s1-72"), "x")
     r["report: a box file is read under the seat's name"] = \
@@ -212,6 +217,9 @@ def cases(m) -> dict[str, bool]:
 #: (needle, replacement, the case that must fail). One per predicate.
 MUTANTS = {
     "seat in scopes": ('m.group(2) not in ((scopes.get(m.group(1)) or {}).get("seats") or {})', "False", "does not hold"),
+    "seat bound D15": ("1[0-7]|[0-9]", "1[0-5]|[0-9]", "D17 seat are seated"),
+    "seat bound D16": ("1[0-7]|[0-9]", "1[0-6]|[0-9]", "D17 seat are seated"),
+    "seat bound D18": ("1[0-7]|[0-9]", "1[0-8]|[0-9]", "D17 seat are seated"),
     "seat models": ("if not model_a.strip() or not model_b.strip():", "if False:", "missing model"),
     "box key": ('rep = (rep.get("reports") or {}).get(name)', "rep = rep", "box file"),
     "shared": ("m = len(bugs_a), len(bugs_b), len(bugs_a & bugs_b)", "m = len(bugs_a), len(bugs_b), 0", "Chapman"),

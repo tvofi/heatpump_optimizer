@@ -319,6 +319,9 @@ installing rather than discover it after:
   by name where it does not. The slab constants themselves are always
   trusted from configuration.
 
+Where the integration is heading, by what it will do, is in
+[ROADMAP.md](./ROADMAP.md).
+
 ## Installation
 
 > [!IMPORTANT]
