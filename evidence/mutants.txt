@@ -1,38 +1,15 @@
-# mutants of tools/audit/seat/shell_hazard.py at 296a0a30d41de41aced099d6c16045cbaefaa1d7; each sed on the file, --self-test, restore
-== STRING_CMP: rc=1 FAIL-rows=4
-FAIL the raw wc string compare #3455 added is refused: got [], want ['wc-compare']
-FAIL a bracket string compare of a raw wc is refused: got [], want ['wc-compare']
-FAIL a wc-raw marker with no reason does not excuse: got [], want ['wc-compare']
-FAIL --check names the added hazards in nested tools/**/*.sh only: not the old line, a .py or a root .sh: got (1, ['tools/a.sh:4: early-pipe: new | grep -q y']), want (1, ['tools/a.sh:4: early-pipe: n
-== EARLY: rc=1 FAIL-rows=6
-FAIL printf | grep -q under pipefail is refused: got [], want ['early-pipe']
-FAIL a marker with no reason does not excuse: got [], want ['early-pipe']
-FAIL head is an early-exit reader: got [], want ['early-pipe']
-FAIL grep -m is an early-exit reader: got [], want ['early-pipe']
-FAIL long-form pipefail counts: got [], want ['early-pipe']
-FAIL --check names the added hazards in nested tools/**/*.sh only: not the old line, a .py or a root .sh: got (1, ['tools/sub/b.sh:3: wc-compare: st "$(mg status --porcelain | wc -l)" 0 "and the in-pl
-== STUB_WC: rc=1 FAIL-rows=1
-FAIL the stub that pads a host wc's already padded count is refused: got [], want ['wc-stub']
-== RAW: rc=1 FAIL-rows=1
-FAIL a wc-raw reason passes (null): got ['wc-compare'], want []
-== DRAINED: rc=1 FAIL-rows=1
-FAIL a drained pipe passes (null): got ['early-pipe'], want []
-== SMALL: rc=1 FAIL-rows=1
-FAIL a pipe-small reason passes (null): got ['early-pipe'], want []
-== NUMERIC: rc=0 FAIL-rows=0
-== NORMALISE: rc=1 FAIL-rows=3
-FAIL the stripped compare passes (null): got ['wc-compare'], want []
-FAIL a stripped bracket compare passes (null): got ['wc-compare'], want []
-FAIL an awk-normalised count passes (null): got ['wc-compare'], want []
-== COMMENT: rc=1 FAIL-rows=2
-FAIL a comment line is skipped (null): got ['wc-compare'], want []
-FAIL a comment passes (null): got ['early-pipe'], want []
-== LINES: rc=1 FAIL-rows=2
-FAIL --check names the added hazards in nested tools/**/*.sh only: not the old line, a .py or a root .sh: got (1, ['tools/a.sh:3: early-pipe: old | grep -q y', 'tools/a.sh:4: early-pipe: new | grep -q
-FAIL --check on a branch adding no hazard passes (null): got (1, 'tools/a.sh:3: early-pipe: old | grep -q y -- feed the reader a here-string (`grep -q PAT <<<"$x"`), or mark `# pipe-small: <why>`\n'),
-== STUBTR: rc=1 FAIL-rows=1
-FAIL c8780ea33d's stub, which strips before it pads, passes (null): got ['wc-stub'], want []
-== PIPEFAIL: rc=1 FAIL-rows=1
-FAIL a file without pipefail has no SIGPIPE status (null): got ['early-pipe'], want []
-== DIFFFILTER: rc=1 FAIL-rows=1
-FAIL --check names the added hazards in nested tools/**/*.sh only: not the old line, a .py or a root .sh: got (1, ['d.sh:3: early-pipe: x | grep -q y', 'tools/a.sh:4: early-pipe: new | grep -q y', 'to
+KILLED rc=1 fail_lines=6 STR_SUBJECT always False
+KILLED rc=1 fail_lines=2 STR_SUBJECT drop case
+KILLED rc=1 fail_lines=5 STR_SUBJECT drop st
+KILLED rc=1 fail_lines=2 closing ] check removed
+KILLED rc=1 fail_lines=0 opener None check -> any
+KILLED rc=1 fail_lines=54 STR_OP_AFTER removed
+KILLED rc=1 fail_lines=51 STR_OP_BEFORE removed
+NOAPPLY STR_OP_AFTER no !=
+NOAPPLY STR_OP_BEFORE no !=
+SURVIVED rc=0 fail_lines=0 first opener not last
+KILLED rc=1 fail_lines=51 TEST_OPEN only [
+KILLED rc=1 fail_lines=4 NORMALISE exemption removed
+KILLED rc=1 fail_lines=2 RAW exemption removed
+KILLED rc=1 fail_lines=200 string_compared always True
+SURVIVED rc=0 fail_lines=0 break removed
