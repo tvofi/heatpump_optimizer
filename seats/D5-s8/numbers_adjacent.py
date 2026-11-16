@@ -8,11 +8,11 @@ Count key: the literal the production assignment carries, parsed from the line a
 Command (export root): PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
     dev/audit/rounds/round11/D5/s8/numbers_adjacent.py [--perturb FILE:OLD=>NEW]
 Expected at 92d38ecb: RESULT pairs=28, RESULT candidates=8 exactly (each read: no contradiction).
-Perturbation: --perturb 'tests/gate_lock.py:LEASE_SECONDS = 1800=>LEASE_SECONDS = 1801' leaves
-candidates unchanged (735/560 bound it, not equal it); --perturb 'tests/closure.py:LANE_CAP_CI = 3=>LANE_CAP_CI = 5'
-leaves it at 8 too (the comment spells 'three'), so the null arm is a numeric plant:
---perturb 'tests/closure.py:SECONDS_BAND = 2.0=>SECONDS_BAND = 2.5' keeps 8 and
---perturb 'tests/coverage_ratchet.py:TOLERANCE = 0.1=>TOLERANCE = 95.0' drops it to 7 (up/down both seen).
+Perturbation: set a constant to a number its comment names, e.g.
+--perturb 'tests/gate_lock.py:LEASE_SECONDS = 1800=>LEASE_SECONDS = 735' or
+--perturb 'tests/coverage_ratchet.py:TOLERANCE = 0.1=>TOLERANCE = 95.0': candidates 8 -> 7 (down).
+Each of the 8 baseline candidates was read: the comment bounds or motivates the constant (LEASE_SECONDS 1800
+'above 735 s'; STALE_AFTER_COMMITS 12 'room over the worst case 8'), none contradicts it.
 Machine: box B12, Linux x86_64. Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
 """
 import os
