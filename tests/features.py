@@ -93093,4 +93093,202 @@ R.check(
 _sce_dt.freeze(None)
 
 
+R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
+
+# Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
+# thermometers, read through inputs.read_room and summarised by rooms. A
+# climate's state is its HVAC mode, so the temperature and target come from
+# its attributes in the instance's unit system.
+from types import SimpleNamespace as _rm_ns  # noqa: E402
+from heatpump_optimizer import rooms as _rm  # noqa: E402
+from heatpump_optimizer.const import CONF_ROOM_TEMPERATURE_ENTITIES as _RM_KEY  # noqa: E402
+from heatpump_optimizer import entry_config as _rm_ec  # noqa: E402
+
+_RM_NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+
+
+def _rm_climate(current, target, action="heating", mode="heat", age_min=5.0):
+    attrs = {"temperature": target, "hvac_action": action}
+    if current is not None:
+        attrs["current_temperature"] = current
+    if action is None:
+        del attrs["hvac_action"]
+    return FakeState(mode, last_updated=_RM_NOW - timedelta(minutes=age_min), attributes=attrs)
+
+
+def _rm_reader(states, unit=None, enabled=True):
+    hass = FakeHass(states)
+    if unit is not None:
+        hass.config.units = _rm_ns(temperature_unit=unit)
+    return InputReader(hass, {}, enabled=enabled, now=lambda: _RM_NOW)
+
+
+_rm_r = _rm_reader({
+    "climate.a": _rm_climate(18.0, 21.0),
+    "climate.b": _rm_climate(20.4, 20.0, action="idle"),
+    "climate.noattr": _rm_climate(None, 20.0, action=None),
+    "climate.off": _rm_climate(17.0, 22.0, action="off", mode="off"),
+    "sensor.c": FakeState("19.5", unit="°C", last_updated=_RM_NOW - timedelta(minutes=3)),
+    "sensor.down": FakeState("unavailable"),
+    "sensor.old": FakeState("19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7)),
+    "sensor.fault": FakeState("85.0", unit="°C", last_updated=_RM_NOW - timedelta(minutes=1)),
+})
+_rm_a = inputs_mod.read_room(_rm_r, "climate.a")
+_rm_b = inputs_mod.read_room(_rm_r, "climate.b")
+R.check(
+    "a climate room reads current_temperature and its target from attributes, calling from hvac_action",
+    (_rm_a.temperature_c, _rm_a.target_c, _rm_a.calling, _rm_a.hvac_mode, _rm_a.problem)
+    == (18.0, 21.0, True, "heat", None)
+    and (_rm_b.calling, _rm.usable_c(_rm_b)) == (False, 20.4),
+    f"{_rm_a} {_rm_b}",
+)
+_rm_noattr = inputs_mod.read_room(_rm_r, "climate.noattr")
+_rm_sensor = inputs_mod.read_room(_rm_r, "sensor.c")
+R.check(
+    "a climate with no current_temperature is not_numeric; a sensor room reads its state, no target",
+    _rm_noattr.problem == "not_numeric" and _rm_noattr.temperature_c is None
+    and (_rm_sensor.temperature_c, _rm_sensor.target_c, _rm_sensor.calling, _rm_sensor.problem)
+    == (19.5, None, None, None),
+    f"{_rm_noattr} {_rm_sensor}",
+)
+_rm_f = inputs_mod.read_room(
+    _rm_reader({"climate.f": _rm_climate(68.0, 69.8)}, unit="°F"), "climate.f")
+_rm_f_null = inputs_mod.read_room(_rm_reader({"climate.f": _rm_climate(68.0, 69.8)}), "climate.f")
+R.check(
+    "a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance "
+    "reads the same 68 raw, outside a room's range",
+    round(_rm_f.temperature_c, 6) == 20.0 and round(_rm_f.target_c, 6) == 21.0
+    and _rm_f_null.problem == "implausible" and _rm_f_null.target_c == 69.8,
+    f"{_rm_f} {_rm_f_null}",
+)
+_rm_bad = {e: inputs_mod.read_room(_rm_r, e).problem
+           for e in ("sensor.down", "sensor.none", "sensor.old", "sensor.fault")}
+_rm_fault = inputs_mod.read_room(_rm_r, "sensor.fault")
+_rm_old_off = inputs_mod.read_room(_rm_reader({"sensor.old": FakeState(
+    "19.0", unit="°C", last_updated=_RM_NOW - timedelta(hours=7))}, enabled=False), "sensor.old")
+R.check(
+    "an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry "
+    "their problem word, the implausible one no temperature; null control, the watchdog off reads the "
+    "old room fresh",
+    _rm_bad == {"sensor.down": "unavailable", "sensor.none": "missing_entity",
+                "sensor.old": "stale", "sensor.fault": "implausible"}
+    and _rm_fault.temperature_c is None and _rm_old_off.problem is None,
+    f"{_rm_bad} {_rm_fault} {_rm_old_off}",
+)
+R.check(
+    "no room read records into the reader's input health, on any path",
+    _rm_r.health.readings == {},
+    f"{sorted(_rm_r.health.readings)}",
+)
+
+
+def _rm_ok(entity, temp):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp)
+
+
+_rm_s = _rm.summarize((_rm_ok("climate.a", 18.0), _rm_ok("climate.b", 20.4),
+                       _rm_ok("sensor.c", 19.5), _rm_noattr))
+R.check(
+    "the summary is the mean and the warmest less the coldest over the readable rooms, naming "
+    "the coldest and the warmest",
+    _rm_s is not None and round(_rm_s.mean_c, 6) == round((18.0 + 20.4 + 19.5) / 3, 6)
+    and round(_rm_s.spread_c, 6) == 2.4
+    and (_rm_s.coldest_entity, _rm_s.warmest_entity, _rm_s.valid_count) == ("climate.a", "climate.b", 3),
+    f"{_rm_s}",
+)
+_rm_down = _rm.RoomReading(entity_id="x", temperature_c=None, problem="unavailable")
+_rm_q = {
+    (n, ok): _rm.summarize(tuple(_rm_ok(f"s.{i}", 20.0) for i in range(ok))
+                           + tuple(_rm_down for _ in range(n - ok))) is not None
+    for n, ok in ((20, 10), (20, 9), (1, 1), (1, 0), (3, 2), (3, 1), (0, 0))
+}
+R.check(
+    "the quorum is half the list, minimum one: 10 of 20 and 2 of 3 summarise, 9 of 20, 1 of 3, "
+    "0 of 1 and an empty list do not",
+    _rm_q == {(20, 10): True, (20, 9): False, (1, 1): True, (1, 0): False,
+              (3, 2): True, (3, 1): False, (0, 0): False},
+    f"{_rm_q}",
+)
+_rm_stale_kept = _rm.RoomReading(entity_id="s.old", temperature_c=19.0, problem="stale")
+R.check(
+    "a stale room's kept temperature never reaches the summary",
+    _rm.summarize((_rm_ok("s.a", 20.0), _rm_stale_kept)).mean_c == 20.0,
+    f"{_rm.summarize((_rm_ok('s.a', 20.0), _rm_stale_kept))}",
+)
+
+R.check(
+    "the room list parses absent, None and empty to the empty tuple, a list to a tuple, and survives "
+    "a factory reset as wiring",
+    _rm_ec.EntryConfig.from_mapping({}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: None}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: []}).room_temperature_entities == ()
+    and _rm_ec.EntryConfig.from_mapping({_RM_KEY: ["climate.a", "sensor.c"]}).room_temperature_entities
+    == ("climate.a", "sensor.c")
+    and _RM_KEY in _rm_ec.FACTORY_KEPT,
+    f"{_rm_ec.EntryConfig.from_mapping({_RM_KEY: ['climate.a']}).room_temperature_entities}",
+)
+
+
+def _rm_cycle(rooms=None, indoor_entity="sensor.indoor", tag=""):
+    """One closed-loop cycle on the r9f12 rig: (payload, coordinator)."""
+    cfg = dict(_r9f12_seed_cfg, indoor_temp_entity=indoor_entity)
+    hass = FakeHass()
+    hass.bus.async_fire = lambda *_a, **_k: None
+    hass.states.set("sensor.indoor", FakeState("19.6", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("6.0", unit="°C"))
+    hass.states.set("climate.dead", FakeState("unavailable"))
+    for i in range(19):
+        hass.states.set(f"climate.r{i}", FakeState("heat", attributes={
+            "current_temperature": 19.0 + 0.1 * i, "temperature": 20.0, "hvac_action": "idle"}))
+    if rooms is not None:
+        cfg[_RM_KEY] = rooms
+    entry = _r9f12_entry(data=cfg, entry_id=f"rm_{tag}")
+    _r9f12_dt.freeze(_RM_NOW)
+    try:
+        _r9f12_seed_prices(hass, _RM_NOW)
+        _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
+        coord = entry.runtime_data
+        _r9f12_aio.run(coord.async_refresh())
+    finally:
+        _r9f12_dt.freeze(None)
+    return coord.data, coord
+
+
+_RM_TWENTY = ["climate.dead"] + [f"climate.r{i}" for i in range(19)]
+_rm_none, _ = _rm_cycle(tag="none")
+_rm_empty, _ = _rm_cycle(rooms=[], tag="empty")
+_rm_twenty, _rm_twenty_coord = _rm_cycle(rooms=_RM_TWENTY, tag="twenty")
+_rm_indoor_dead, _ = _rm_cycle(indoor_entity="climate.dead", tag="dead_indoor")
+R.check(
+    "twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list "
+    "run; null control, the same unavailable entity as the indoor thermometer raises a problem",
+    _rm_twenty["input_problems"] == _rm_none["input_problems"]
+    and _rm_twenty["stale_inputs"] == _rm_none["stale_inputs"]
+    and any(p.get("entity_id") == "climate.dead" for p in _rm_indoor_dead["input_problems"]),
+    f"twenty={_rm_twenty['input_problems']} none={_rm_none['input_problems']} "
+    f"dead={_rm_indoor_dead['input_problems']}",
+)
+_rm_pub = _rm_twenty.get("rooms") or {}
+R.check(
+    "the payload's rooms block carries the average, spread, valid count and the dropped room",
+    _rm_pub.get("valid_count") == 19 and _rm_pub.get("configured_count") == 20
+    and round(_rm_pub.get("average"), 6) == round(sum(19.0 + 0.1 * i for i in range(19)) / 19, 6)
+    and round(_rm_pub.get("spread"), 6) == 1.8
+    and _rm_pub.get("dropped") == {"climate.dead": "unavailable"}
+    and _rm_pub.get("coldest_entity") == "climate.r0",
+    f"{_rm_pub}",
+)
+R.check(
+    "no list and an empty list publish no rooms key and the same payload keys",
+    "rooms" not in _rm_none and "rooms" not in _rm_empty and set(_rm_none) == set(_rm_empty),
+    f"{sorted(set(_rm_none) ^ set(_rm_empty))}",
+)
+R.check(
+    "the side table holds plain data only: a tuple of frozen readings",
+    all(isinstance(r, _rm.RoomReading) for r in _rm.readings_of(_rm_twenty_coord))
+    and len(_rm.readings_of(_rm_twenty_coord)) == 20,
+    f"{_rm.readings_of(_rm_twenty_coord)[:2]}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

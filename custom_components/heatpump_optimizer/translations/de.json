@@ -528,6 +528,7 @@
           "entities": "Sensoren und Entitäten",
           "entities_metering": "Leistungs- und Solarsensoren",
           "entities_pump": "Wärmepumpen-Telemetrie",
+          "rooms": "Raumthermometer",
           "building": "Heizsystem und Wärmespeicher",
           "building_preset": "Gebäudetyp und Heizflächen",
           "thermal_model": "Thermisches Modell (Experten)",
@@ -1253,6 +1254,18 @@
           }
         }
       },
+      "rooms": {
+        "title": "Raumthermometer",
+        "description": "Raumthermostate oder Temperatursensoren, einer je Raum. Der Optimierer veröffentlicht ihren Mittelwert und die Spanne zwischen dem kältesten und dem wärmsten Raum; der Plan nutzt sie noch nicht. Leer lassen, wenn keine vorhanden sind.",
+        "data": {
+          "room_temperature_entities": "Raumthermometer (bis zu 32)",
+          "after_save": "Nach dem Speichern"
+        },
+        "data_description": {
+          "room_temperature_entities": "Klima-Entitäten (Raumthermostate) oder Temperatursensoren. Ein Raum, der nicht verfügbar, veraltet oder außerhalb des Bereichs ist, fließt nicht in den Mittelwert ein und meldet nie ein Eingangsproblem.",
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
+        }
+      },
       "entities_pump": {
         "title": "Wärmepumpen-Telemetrie",
         "description": "Was die Wärmepumpe über sich selbst meldet.",
@@ -1608,7 +1621,8 @@
       "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
       "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
       "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
-      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
+      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität.",
+      "too_many_rooms": "Es können höchstens 32 Raumthermometer angegeben werden."
     },
     "abort": {
       "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
@@ -2010,6 +2024,12 @@
           "system_identification": "Systemidentifikation",
           "unknown": "Unbekannt"
         }
+      },
+      "room_average_temperature": {
+        "name": "Raum-Durchschnittstemperatur"
+      },
+      "room_temperature_spread": {
+        "name": "Raumtemperatur-Spanne"
       },
       "indoor_temperature_optimizer": {
         "name": "Innentemperatur (Optimierer)"

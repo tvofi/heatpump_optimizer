@@ -56,6 +56,11 @@ def _entity(value: Any, default: None) -> str | None:
     return str(value) if value else None
 
 
+def _entities(value: Any, default: tuple[str, ...]) -> tuple[str, ...]:
+    """A list of entity ids as a tuple; absent, None and empty all read ()."""
+    return tuple(str(item) for item in value if item) if isinstance(value, (list, tuple)) else ()
+
+
 def _spec(value: Any, default: str) -> str:
     """A window spec as text, "" where none is stored: blank is unset."""
     return str(value) if value else ""
@@ -120,6 +125,8 @@ class EntryConfig(Mapping[str, Any]):
     space_setpoint_entity: str | None = _entity_slot()
     vvc_pump_entity: str | None = _entity_slot()
     weather_entity: str | None = _entity_slot()
+    # The room thermometers (#3616): an entity list, not a slot.
+    room_temperature_entities: tuple[str, ...] = _key((), _entities)
 
     # Switches.
     capacity_curve_enabled: bool = _key(const.DEFAULT_CAPACITY_CURVE_ENABLED, _flag)
@@ -297,6 +304,7 @@ def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
 _WIRING: dict[str, str] = {
     "name": "the entry's name (Home Assistant's CONF_NAME), not a setting",
     const.CONF_COMPRESSOR_FREQ_SENSOR: "an entity assignment",
+    const.CONF_ROOM_TEMPERATURE_ENTITIES: "entity assignments: the room thermometers",
     const.CONF_PRICE_SOURCE: "the price source",
     const.CONF_TIBBER_TOKEN: "the price source's credential",
     const.CONF_SOLAR_FORECAST_SOURCE: "the solar feed, the price source's sibling: "

@@ -944,6 +944,27 @@ class InputHealthView(TypedDict, total=False):
     learner_freeze_reason: str | None
 
 
+class Rooms(TypedDict, total=False):
+    """The room list's summary (#3616); None leaves under its quorum.
+
+    ``temperatures`` holds each readable room, ``dropped`` each other room's
+    problem word, both keyed by entity id: no room name is stored.
+    """
+
+    configured_count: int
+    valid_count: int
+    average: float | None
+    spread: float | None
+    coldest_entity: str | None
+    warmest_entity: str | None
+    temperatures: dict[str, float]
+    dropped: dict[str, str]
+
+
+class RoomsView(TypedDict, total=False):
+    rooms: Rooms
+
+
 class MixingValveView(TypedDict, total=False):
     mixing_valve_mode: str
     valve_target_recommendation: MixingValveRecommendation
@@ -1017,6 +1038,7 @@ class Payload(
     Ecl110View,
     ExternalHeatView,
     InputHealthView,
+    RoomsView,
     MixingValveView,
     AwayView,
     EnergyTotals,

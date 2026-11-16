@@ -205,6 +205,7 @@ from .inputs import (
     age_of,
     normalize_price_per_kwh,
     parse_bool,
+    read_rooms,
     read_start_hysteresis,
     price_per_kwh,
     stale_summary,
@@ -261,7 +262,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
-from . import slab_seed
+from . import rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -6764,6 +6765,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
         observe_water(self._flow_bias, reader, self.effective_config)
+        rooms.record(self, read_rooms(reader, ctx._config.room_temperature_entities))
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -6835,10 +6837,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
-        if "displace_value" in self._current_action:
-            displace_cmd = float(self._current_action.get("displace_value", 0.0))
-            dt_h = _ctx_of(self)._opt_config.dt_hours
-            self._thermal_model.update_ecl110_displace_state(state, displace_cmd, dt_h)
+        if (displace_cmd := self._current_action.get("displace_value")) is not None:
+            self._thermal_model.update_ecl110_displace_state(state, float(displace_cmd), _ctx_of(self)._opt_config.dt_hours)
             self._ecl110_current_displace = state.ecl110_displace_command
 
         # Last resort: seed the slab, and the lower zone if nothing better
@@ -8223,6 +8223,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ecl110_view,
             self._external_heat_view,
             self._input_health_view,
+            functools.partial(rooms.view, self),
             self._mixing_valve_view,
         ):
             data = {**data, **view()}

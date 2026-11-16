@@ -1527,6 +1527,64 @@ def fresh_options(pre_options=None, entry_id="opts-1"):
     return flow, entry, hass
 
 
+async def options_room_list():
+    """#3616 R11-OUTSIDE-ROOMS-P1: the room-thermometer page, a list of entities."""
+    R.section("options: the room list page saves, clears, and stores nothing untouched")
+    key = const.CONF_ROOM_TEMPERATURE_ENTITIES
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_rooms(None)
+    check(
+        "opt_rooms",
+        "happy",
+        "the room page renders its one list field",
+        shows(shown, "rooms") and key in {str(k) for k in shown["data_schema"].schema},
+        f"{shown.get('step_id')!r}",
+    )
+    result = await submit(flow, "rooms", {key: ["climate.a", "sensor.c"]})
+    saved = entry.options.get(key)
+    check(
+        "opt_rooms",
+        "happy",
+        "a submitted list saves as the list",
+        shows_menu(result, "advanced") and saved == ["climate.a", "sensor.c"],
+        f"saved={saved!r}",
+    )
+    flow2, entry2, _ = fresh_options(pre_options={key: ["climate.a"]})
+    await flow2.async_step_rooms(None)
+    await submit(flow2, "rooms", {})
+    check(
+        "opt_rooms",
+        "happy",
+        "an emptied submit clears the stored list (null control: the list was stored)",
+        key in entry2.options and entry2.options[key] is None,
+        f"options={entry2.options.get(key, 'absent')!r}",
+    )
+    flow3, entry3, _ = fresh_options()
+    await flow3.async_step_rooms(None)
+    await submit(flow3, "rooms", {})
+    check(
+        "opt_rooms",
+        "happy",
+        "an untouched page on an entry with no list stores no key: the options stay empty",
+        dict(entry3.options) == {},
+        f"options={dict(entry3.options)!r}",
+    )
+    flow4, entry4, _ = fresh_options()
+    await flow4.async_step_rooms(None)
+    too_many = [f"climate.r{i}" for i in range(33)]
+    refused = await submit(flow4, "rooms", {key: too_many})
+    check(
+        "opt_rooms",
+        "error",
+        "a list longer than 32 rooms is refused; null control, 32 saves",
+        shows(refused, "rooms") and refused.get("errors", {}).get(key) == "too_many_rooms"
+        and key not in entry4.options
+        and shows_menu(await submit(flow4, "rooms", {key: too_many[:32]}), "advanced")
+        and entry4.options.get(key) == too_many[:32],
+        f"errors={refused.get('errors')!r}",
+    )
+
+
 async def options_menus():
     R.section("options: the two menus")
     flow, entry, _ = fresh_options()
@@ -1561,6 +1619,7 @@ async def options_menus():
             "entities",
             "entities_metering",
             "entities_pump",
+            "rooms",
             "building",
             "building_preset",
             "thermal_model",
@@ -8015,6 +8074,7 @@ async def main() -> int:
     await setup_widgets_are_the_registry_rows()
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
+    await options_room_list()
 
     print()
     LEDGER.print_result_lines()

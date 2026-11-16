@@ -51,6 +51,8 @@ CONF_FLOOR_RETURN_TEMP_ENTITY: Final = "floor_return_temp_entity"
 # comfort bounds as the upper floor, so the zone reads as permanently
 # overshooting and the optimizer under-heats the one room it cannot see.
 CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
+# A list of room thermometers, climate or sensor entities (#3616); optional.
+CONF_ROOM_TEMPERATURE_ENTITIES: Final = "room_temperature_entities"
 
 # Solar irradiance forecast source.
 #
