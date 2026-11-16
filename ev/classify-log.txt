@@ -1,0 +1,52 @@
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:01:45
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:02:57
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:04:09
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:05:21
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:06:34
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:07:46
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:08:58
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:10:10
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:11:22
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:12:35
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:13:47
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:14:59
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:16:11
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:17:24
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:18:36
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:19:48
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:21:01
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:22:13
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:23:25
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:24:37
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:25:49
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:27:01
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:28:13
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:29:24
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:30:36
+WAIT 86a88d394c61d615dcc0107a6189e45ca7b4d219 pending: gate red: none
+rc=3 04:31:48
