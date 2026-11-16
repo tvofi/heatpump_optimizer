@@ -1,0 +1,63 @@
+{
+ "id": "D2-s1-01",
+ "scope": "D2-s1",
+ "step": "D2.M1",
+ "title": "Scalar Carnot flow-lift factor is inverted: a hotter flow raises COP, and the batch twin disagrees",
+ "severity": "critical",
+ "claim": "ThermalModel.flow_lift_factor returns carnot_ref/carnot_flow (>1 above the 35 C reference, 1.586 at a 60 C flow and 0 C outdoor) while _batch_cop multiplies by carnot_flow/carnot_ref (<1), so every scalar COP priced at a flow above the reference (valved buffer, every DHW charge, a direct plant's curve) is boosted instead of derated and simulate_trajectory_batch disagrees with simulate_trajectory on 14 897 trajectory elements over the valved/combi/wood/coil arms. On the 50 published golden plans flow_lift_factor returned >1 on 1268 calls.",
+ "mechanism": "thermal_model.py:3391 `return max(0.25, carnot_ref / carnot_flow)` against thermal_model.py:4483 `np.maximum(0.25, carnot_flow / carnot_ref)`. compute_cop (valve: flow_temp = tank), compute_cop_dhw (flow = tank water) and the curve-flow lift all route through flow_lift_factor; the batch twin, used for the solver's finite-difference gradient, carries the physical ratio. Consequences: the scalar objective prices hot storage cheaper the hotter it is (DHW COP 2.89 at 35 C, 4.26 at 55 C, 4.58 at 60 C at 0 C outdoor), and the gradient the solver follows is of a different physics than the objective it scores.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "value": 14897,
+  "unit": "mismatched trajectory elements (all arms)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B4, 4 vCPU container, py3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "two other seats on the box; counts are contention-immune",
+  "tolerance": "exact (bitwise)",
+  "load1": 0.26,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.flow_lift_factor (via ThermalModel.simulate_trajectory vs ThermalModel.simulate_trajectory_batch)",
+ "perturbation": {
+  "change": "--fix-lift: ThermalModel.flow_lift_factor swapped in memory for the same expression returning max(0.25, carnot_flow / carnot_ref)",
+  "expected_direction": "down",
+  "observed_value": "14897 -> 3674 total; single-zone valve arms 3139 -> 0; dhw[combi], wood, coil, external_heat[valve] all -> 0 (the 3674 left are D2-s1-02's two-zone arms; both perturbations together: 0)"
+ },
+ "metric_definition": "Count of room/slab/upper/lower/buffer/wood/refused elements over 6 random rows x 96 steps where simulate_trajectory_batch differs by any bit from simulate_trajectory.",
+ "phenomenon_property": "The scalar COP law and the batch COP law price the same flow temperature identically, and a flow above the reference never raises COP (the lift factor is <= 1).",
+ "seam_rule": "grep -n 'flow_lift_factor\\|carnot_ref\\|carnot_flow' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "value": "space_only arms (no flow passed): 0 mismatches at baseline",
+  "note": "unvalved space-only plants never pass a flow temperature, and stay bitwise in parity"
+ },
+ "leave_one_out": {
+  "cells": 7,
+  "min": 0,
+  "max": 6599,
+  "drop_most_favourable": 8298
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "... --fix-lift (single-zone valve arms and dhw/wood/coil go to 0)",
+  "... --fix-lift --fix-emitter (total 0)",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s1/golden_identities.py  -> RESULT flow_lift_factor_gt1_calls=1268 on the 50 published golden plans (direct_flow_carnot 192/192 steps); with --fix-lift --fix-emitter: 0"
+ ],
+ "proposed_fix_scope": "thermal_model.py ThermalModel.flow_lift_factor: return carnot_flow / carnot_ref (one line); re-claim the golden fixtures that price a flow above 35 C (every DHW scenario, valve_*, wood_*, direct_flow_carnot).",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "expected_golden_drift": [
+  "every scenario with dhw on",
+  "valve_storage*",
+  "wood_*",
+  "valve_upper_direct_slab",
+  "direct_flow_carnot",
+  "tariff_plus_two_zone",
+  "everything_on"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

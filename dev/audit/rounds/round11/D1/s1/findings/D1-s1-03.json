@@ -1,0 +1,54 @@
+{
+ "id": "D1-s1-03",
+ "scope": "D1-s1",
+ "step": "D1.M4",
+ "title": "A user write landing during a debounced in-flight solve is dropped: plan ignores it until the next interval",
+ "severity": "medium",
+ "claim": "When away, economy mode, a manual plan, a comfort-weight reset or a holiday-calendar change is written while a solve started through async_request_refresh (setup's first solve, a button, a service, any state listener) is in flight, the write's re-plan request is dropped by the refresh debouncer and the published plan stays built on the pre-write value until the next scheduled update: 7 of 8 request-refresh census rows stale, 0 of 8 when the in-flight solve came from async_refresh.",
+ "mechanism": "DataUpdateCoordinator.async_request_refresh goes through Debouncer.async_call, which returns without arming a trailing run while a call is executing (upstream: 'Locked means a call is in progress. Any call is good, so abort.'; the stub mirrors it). The in-flight call is the refresh carrying the solve, so the writer's request never reaches async_run_optimization, whose #1754 re-run latch (_optimization_rerun_requested) only catches calls that arrive there. The scheduled interval refresh bypasses the debouncer, so the same write during a scheduled solve IS re-planned (null control). The stale window is up to one optimization_interval (default 30 min, DEFAULT_OPTIMIZATION_INTERVAL); _mode_superseded covers only the fixed modes.",
+ "evidence": {
+  "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin debounced",
+  "harness_path": "dev/audit/rounds/round11/D1/s1/m4_race.py",
+  "value": 7,
+  "unit": "request-refresh census rows (of 8) whose write is not re-planned",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "two arms of this harness and other finder seats running; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 3.54,
+  "thread_factor": 1.015
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._solve_record (entries counted after the write; the builder's output compared before/after), driven through HeatPumpOptimizerCoordinator.async_request_refresh / async_run_optimization on a real loop",
+ "perturbation": {
+  "change": "async_request_refresh records the #1754 re-run (self._optimization_rerun_requested = True) when self._optimization_running before deferring to the debouncer (harness flag --perturb-rerun)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Per d1-solve-state line whose writer re-plans via async_request_refresh: builder output changed by the write AND no _solve_record built after it before the loop settles.",
+ "phenomenon_property": "Every re-plan request issued while a solve is in flight is honoured by one solve after that solve completes, whatever path (debounced or scheduled) started the in-flight solve.",
+ "seam_rule": "grep -n 'async_request_refresh()' custom_components/heatpump_optimizer/*.py  (each caller that can run while a debounced refresh executes)",
+ "null_control": {
+  "command": "D1_CENSUS_DIR=dev/audit/rounds/round11/D1/s1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m4_race.py --part B --origin direct",
+  "value": 0,
+  "note": "in-flight solve started by async_refresh (the scheduled interval's path): 0 of 8 stale; the 3 stale_plan_rows left in every arm are _peak_guard/_peak_tracker (power event) and _pv_export_price (no listener), which no writer re-plans by design and are picked up next cycle"
+ },
+ "leave_one_out": {
+  "cells": 8,
+  "min": 0,
+  "max": 1,
+  "drop_most_favourable": 6
+ },
+ "reproduction_steps": [
+  "set up on rl.RealHass, wait for the first solve",
+  "hold a solve in flight (gate on _run_in_process) started via async_request_refresh",
+  "run the row's writer (async_set_away, async_set_mode economy, async_apply_manual_plan, reset comfort + request refresh, holiday calendar state event)",
+  "release, settle: no _solve_record after the write; the plan is the pre-write one"
+ ],
+ "proposed_fix_scope": "coordinator.py: override async_request_refresh (or the shared request path) to set _optimization_rerun_requested when a solve is in flight, so the in-flight solve's finally re-runs once (the perturbation).",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

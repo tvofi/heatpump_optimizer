@@ -1,0 +1,56 @@
+{
+ "id": "D12-s1-01",
+ "scope": "D12-s1",
+ "step": "D12.M1",
+ "title": "A single-zone install publishes an upper and a lower floor in its space plan",
+ "severity": "medium",
+ "claim": "On every single-zone plant (published two_zone_enabled=False) the published space plan carries non-null upper and lower floor temperatures on all 96 forecast rows, so the plan sensor and the card present two floors the configuration does not have; at a clean archive of 92d38ecb this fails 140 of 193 driven d12-cells level cells.",
+ "mechanism": "OptimizationResult always fills upper_temp_trajectory and lower_temp_trajectory (single zone: both equal the room trajectory), and HeatPumpOptimizerCoordinator._build_plan_views decides two_zone from `bool(result.upper_temp_trajectory and result.lower_temp_trajectory)` rather than from the model's params.two_zone_enabled, so the zone columns are published whenever the lists are non-empty, which is always.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/plan_zone.py",
+  "harness_path": "dev/audit/rounds/round11/D12/s1/plan_zone.py",
+  "value": 8,
+  "unit": "single-zone plants publishing zone rows (of 8); zone_rows=768",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (clean git archive; the export handed to the seat gives zone_plants=2 of 2 single-zone plants, its other 6 plants are two-zone there, see D12-s1-02)",
+  "machine": "box B4, 4 vCPU shared container, Python 3.14, numpy/scipy per tests/requirements-ci.txt",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; box shared with other finder seats (load1 4-5)",
+  "tolerance": "exact",
+  "load1": 4.02,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views (driven through _async_update_data after the real async_setup_entry)",
+ "perturbation": {
+  "change": "--gate: _build_plan_views decides two_zone from the model's _thermal_params.two_zone_enabled (in memory, mock.patch.object on the method)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "zone_plants = single-zone plants (published two_zone_enabled False) whose published space_plan forecast carries a non-null upper or lower on any row",
+ "phenomenon_property": "The published plan names a floor (upper/lower zone column) only where the model the plan was solved with has two zones; a single-zone install publishes neither.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s1/cells.py --quiet (every d12-cells level; the check 'plan carries a lower-zone trajectory the cell does not have' lists each cell where a published plan carries a zone column the model lacks)",
+ "null_control": {
+  "command": "same command; the CONTROL two-zone plant line",
+  "value": "control_two_zone_rows=96, control_split_rows=96 on both arms",
+  "note": "the two-zone plant keeps its rows with upper != lower under --gate, so the gate removes only the invented columns"
+ },
+ "leave_one_out": {
+  "cells": 8,
+  "min": 96,
+  "max": 96,
+  "drop_most_favourable": 672
+ },
+ "reproduction_steps": [
+  "git archive 92d38ecb into a clean root; copy dev/audit/rounds/round11/D12/s1/{cells.py,plan_zone.py} into it",
+  "run the command: zone_plants=8 zone_rows=768",
+  "run with --gate: zone_plants=0, control rows unchanged",
+  "cells.py --quiet at the clean root: the cell sweep prints the same check on the single-zone cells (see REPORT.md)",
+  "cells.py --quiet at a clean archive of 92d38ecb: fail_cells=140 of 193, all of the pattern 'plan carries a lower-zone trajectory the cell does not have' (out2/clean_sha_arm_none.txt); the export reads the same 140 plus the D12-s1-02 pattern"
+ ],
+ "proposed_fix_scope": "coordinator.py _build_plan_views: gate the upper/lower columns on the solved model's two_zone_enabled (or have the optimizer leave the zone trajectories empty for a single-zone model); card follows the payload",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}

@@ -1,0 +1,1579 @@
+{
+"level CONF_AWAY_PRESENCE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_AWAY_PRESENCE_ENTITY=present [minimal+entity]": [],
+"level CONF_AWAY_PRESENCE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_BUFFER_TANK_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_BUFFER_TANK_TEMP_ENTITY=present [minimal+entity]": [],
+"level CONF_BUFFER_TANK_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_COMPRESSOR_FREQ_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_COMPRESSOR_FREQ_ENTITY=present [minimal+entity]": [],
+"level CONF_COMPRESSOR_FREQ_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_DISINFECTION_SWITCH_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_DISINFECTION_SWITCH_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_DHW_DISINFECTION_SWITCH_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_HYSTERESIS_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_HYSTERESIS_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_DHW_HYSTERESIS_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_INLET_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_INLET_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_DHW_INLET_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_SETPOINT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_SETPOINT_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_DHW_SETPOINT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_DHW_TEMP_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_DHW_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_ENERGY_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_ENERGY_ENTITY=present [minimal+entity]": [],
+"level CONF_ENERGY_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_EXTERNAL_HEAT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_EXTERNAL_HEAT_ENTITY=present [minimal+entity]": [
+"wood"
+],
+"level CONF_EXTERNAL_HEAT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_FLOOR_RETURN_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_FLOOR_RETURN_TEMP_ENTITY=present [minimal+entity]": [
+"zone"
+],
+"level CONF_FLOOR_RETURN_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_FLOW_METER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_FLOW_METER_ENTITY=present [minimal+entity]": [],
+"level CONF_FLOW_METER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_GRID_FEE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_GRID_FEE_ENTITY=present [minimal+entity]": [],
+"level CONF_GRID_FEE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_CURVE_DISPLACE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_CURVE_DISPLACE_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_CURVE_DISPLACE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_ENERGY_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_ENERGY_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_ENERGY_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_DEFROST_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_DEFROST_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_DEFROST_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_FAULT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_FAULT_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_FAULT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_MODE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_MODE_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_MODE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_ONLINE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_ONLINE_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_ONLINE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_RETURN_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_RETURN_TEMP_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_RETURN_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_SWITCH_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HEAT_PUMP_SWITCH_ENTITY=present [minimal+entity]": [],
+"level CONF_HEAT_PUMP_SWITCH_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HOLIDAY_CALENDAR_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HOLIDAY_CALENDAR_ENTITY=present [minimal+entity]": [],
+"level CONF_HOLIDAY_CALENDAR_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HOUSE_POWER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_HOUSE_POWER_ENTITY=present [minimal+entity]": [],
+"level CONF_HOUSE_POWER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_INDOOR_HUMIDITY_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_INDOOR_HUMIDITY_ENTITY=present [minimal+entity]": [],
+"level CONF_INDOOR_HUMIDITY_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_INDOOR_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_INDOOR_TEMP_ENTITY=present [minimal+entity]": [],
+"level CONF_INDOOR_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_LOWER_FLOOR_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_LOWER_FLOOR_TEMP_ENTITY=present [minimal+entity]": [
+"zone"
+],
+"level CONF_LOWER_FLOOR_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_MIXING_VALVE_TARGET_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_MIXING_VALVE_TARGET_ENTITY=present [minimal+entity]": [
+"valve"
+],
+"level CONF_MIXING_VALVE_TARGET_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_MIXING_VALVE_WRITE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_MIXING_VALVE_WRITE_ENTITY=present [minimal+entity]": [
+"valve"
+],
+"level CONF_MIXING_VALVE_WRITE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_OUTDOOR_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_OUTDOOR_TEMP_ENTITY=present [minimal+entity]": [],
+"level CONF_OUTDOOR_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_POWER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_POWER_ENTITY=present [minimal+entity]": [],
+"level CONF_POWER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PRICE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PRICE_ENTITY=present [minimal+entity]": [],
+"level CONF_PRICE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PV_EXPORT_PRICE_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PV_EXPORT_PRICE_ENTITY=present [minimal+entity]": [
+"pv"
+],
+"level CONF_PV_EXPORT_PRICE_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PV_PRODUCTION_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_PV_PRODUCTION_ENTITY=present [minimal+entity]": [
+"pv"
+],
+"level CONF_PV_PRODUCTION_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SOLAR_RADIATION_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SOLAR_RADIATION_ENTITY=present [minimal+entity]": [],
+"level CONF_SOLAR_RADIATION_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_HYSTERESIS_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_HYSTERESIS_ENTITY=present [minimal+entity]": [],
+"level CONF_SPACE_HYSTERESIS_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_PUMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_PUMP_ENTITY=present [minimal+entity]": [],
+"level CONF_SPACE_PUMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_ENTITY=present [minimal+entity]": [],
+"level CONF_SPACE_SETPOINT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY=present [minimal+entity]": [],
+"level CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY=present [minimal+entity]": [],
+"level CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_THERMAL_POWER_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_THERMAL_POWER_ENTITY=present [minimal+entity]": [],
+"level CONF_THERMAL_POWER_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_VALVE_OUTLET_TEMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_VALVE_OUTLET_TEMP_ENTITY=present [minimal+entity]": [
+"wood"
+],
+"level CONF_VALVE_OUTLET_TEMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_VVC_PUMP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_VVC_PUMP_ENTITY=present [minimal+entity]": [
+"dhw"
+],
+"level CONF_VVC_PUMP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_WOOD_TANK_BOTTOM_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_WOOD_TANK_BOTTOM_ENTITY=present [minimal+entity]": [
+"wood"
+],
+"level CONF_WOOD_TANK_BOTTOM_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_WOOD_TANK_TOP_ENTITY=absent [reference-entity]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level CONF_WOOD_TANK_TOP_ENTITY=present [minimal+entity]": [
+"wood"
+],
+"level CONF_WOOD_TANK_TOP_ENTITY=present [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level climate=shoulder [minimal]": [],
+"level climate=shoulder [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level climate=summer_cool [minimal]": [],
+"level climate=summer_cool [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level climate=summer_warm [minimal]": [],
+"level climate=summer_warm [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level climate=winter_cold [minimal]": [],
+"level climate=winter_cold [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level climate=winter_mild [minimal]": [],
+"level climate=winter_mild [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level combi_tank=external_station [minimal]": [
+"dhw"
+],
+"level combi_tank=external_station [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level combi_tank=internal_coil [minimal]": [
+"dhw"
+],
+"level combi_tank=internal_coil [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level combi_tank=tank_in_tank [minimal]": [
+"dhw"
+],
+"level combi_tank=tank_in_tank [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level compressor_modulation=auto [minimal]": [],
+"level compressor_modulation=auto [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level compressor_modulation=modulating [minimal]": [],
+"level compressor_modulation=modulating [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level compressor_modulation=on_off [minimal]": [],
+"level compressor_modulation=on_off [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level emitter=floor [minimal]": [],
+"level emitter=floor [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level emitter=radiators [minimal]": [],
+"level emitter=radiators [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level energy_unit=MWh [minimal]": [],
+"level energy_unit=MWh [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level energy_unit=Wh [minimal]": [],
+"level energy_unit=Wh [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level energy_unit=kWh [minimal]": [],
+"level energy_unit=kWh [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level era=1960_1980 [minimal]": [],
+"level era=1960_1980 [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level era=1980_2005 [minimal]": [],
+"level era=1980_2005 [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level era=low_energy [minimal]": [],
+"level era=low_energy [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level era=post_2005 [minimal]": [],
+"level era=post_2005 [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level era=pre_1960 [minimal]": [],
+"level era=pre_1960 [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=L/h [minimal]": [],
+"level flow_unit=L/h [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=L/min [minimal]": [],
+"level flow_unit=L/min [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=L/s [minimal]": [],
+"level flow_unit=L/s [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=kg/h [minimal]": [],
+"level flow_unit=kg/h [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=kg/min [minimal]": [],
+"level flow_unit=kg/min [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=kg/s [minimal]": [],
+"level flow_unit=kg/s [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=m\u00b3/h [minimal]": [],
+"level flow_unit=m\u00b3/h [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level flow_unit=m\u00b3/s [minimal]": [],
+"level flow_unit=m\u00b3/s [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level foundation=crawlspace [minimal]": [],
+"level foundation=crawlspace [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level foundation=heated_basement [minimal]": [],
+"level foundation=heated_basement [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level foundation=none [minimal]": [],
+"level foundation=none [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level grid_fee_mode=entity [minimal]": [],
+"level grid_fee_mode=entity [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level grid_fee_mode=none [minimal]": [],
+"level grid_fee_mode=none [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level grid_fee_mode=rules [minimal]": [],
+"level grid_fee_mode=rules [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level heat_curve_target_kind=offset [minimal]": [],
+"level heat_curve_target_kind=offset [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level heat_curve_target_kind=persistent [minimal]": [],
+"level heat_curve_target_kind=persistent [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level language=._de [minimal]": [],
+"level language=._de [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level language=de [minimal]": [],
+"level language=de [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level language=en [minimal]": [],
+"level language=en [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level language=sv [minimal]": [],
+"level language=sv [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level layout=no_valve [minimal+prereq]": [
+"dhw"
+],
+"level layout=no_valve [reference]": [
+"dhw",
+"pv",
+"wood",
+"zone"
+],
+"level layout=single_tank_valve [minimal+prereq]": [
+"valve"
+],
+"level layout=single_tank_valve [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level layout=slab_shunt [minimal+prereq]": [
+"valve",
+"zone"
+],
+"level layout=slab_shunt [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level layout=two_tank_4way [minimal+prereq]": [
+"valve",
+"wood",
+"zone"
+],
+"level layout=two_tank_4way [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level layout=valve_upper_direct_slab [minimal+prereq]": [
+"valve",
+"zone"
+],
+"level layout=valve_upper_direct_slab [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level mixing_valve_mode=manual [minimal]": [
+"valve"
+],
+"level mixing_valve_mode=manual [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level mixing_valve_mode=none [minimal]": [],
+"level mixing_valve_mode=none [reference]": [
+"dhw",
+"pv",
+"wood",
+"zone"
+],
+"level mixing_valve_mode=smart_read [minimal]": [
+"valve"
+],
+"level mixing_valve_mode=smart_read [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level mixing_valve_mode=smart_write [minimal]": [
+"valve"
+],
+"level mixing_valve_mode=smart_write [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level operation_mode=auto [minimal]": [],
+"level operation_mode=auto [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level operation_mode=boost [minimal]": [],
+"level operation_mode=boost [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level operation_mode=comfort [minimal]": [],
+"level operation_mode=comfort [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level operation_mode=economy [minimal]": [],
+"level operation_mode=economy [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level operation_mode=off [minimal]": [],
+"level operation_mode=off [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level power_unit=MW [minimal]": [],
+"level power_unit=MW [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level power_unit=W [minimal]": [],
+"level power_unit=W [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level power_unit=kW [minimal]": [],
+"level power_unit=kW [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level power_unit=mW [minimal]": [],
+"level power_unit=mW [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=flat [minimal]": [],
+"level price_shape=flat [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=shoulder [minimal]": [],
+"level price_shape=shoulder [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=summer_negative [minimal]": [],
+"level price_shape=summer_negative [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=summer_typical [minimal]": [],
+"level price_shape=summer_typical [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=winter_extreme [minimal]": [],
+"level price_shape=winter_extreme [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=winter_moderate [minimal]": [],
+"level price_shape=winter_moderate [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=winter_narrow [minimal]": [],
+"level price_shape=winter_narrow [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_shape=winter_typical [minimal]": [],
+"level price_shape=winter_typical [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_source=entity [minimal]": [],
+"level price_source=entity [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level price_source=tibber [minimal]": [],
+"level price_source=tibber [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level pump_duty_mode=control [minimal]": [],
+"level pump_duty_mode=control [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level pump_duty_mode=observe [minimal]": [],
+"level pump_duty_mode=observe [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level pump_duty_mode=off [minimal]": [],
+"level pump_duty_mode=off [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level solar_source=open_meteo [minimal]": [],
+"level solar_source=open_meteo [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level solar_source=weather [minimal]": [],
+"level solar_source=weather [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level space_setpoint_unit=flow [minimal]": [],
+"level space_setpoint_unit=flow [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level space_setpoint_unit=indoor [minimal]": [],
+"level space_setpoint_unit=indoor [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level space_setpoint_unit=return [minimal]": [],
+"level space_setpoint_unit=return [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level structure=concrete_slab [minimal]": [],
+"level structure=concrete_slab [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level structure=masonry [minimal]": [],
+"level structure=masonry [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level structure=timber_crawlspace [minimal]": [],
+"level structure=timber_crawlspace [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level structure=timber_slab [minimal]": [],
+"level structure=timber_slab [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=C [minimal]": [],
+"level temperature_unit=C [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=F [minimal]": [],
+"level temperature_unit=F [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=K [minimal]": [],
+"level temperature_unit=K [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=degC [minimal]": [],
+"level temperature_unit=degC [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=degF [minimal]": [],
+"level temperature_unit=degF [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=\u00b0C [minimal]": [],
+"level temperature_unit=\u00b0C [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level temperature_unit=\u00b0F [minimal]": [],
+"level temperature_unit=\u00b0F [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level two_zone_mode=auto [minimal]": [],
+"level two_zone_mode=auto [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level two_zone_mode=off [minimal]": [],
+"level two_zone_mode=off [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood"
+],
+"level two_zone_mode=on [minimal]": [
+"zone"
+],
+"level two_zone_mode=on [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level valve_write_target=flow [minimal]": [
+"valve"
+],
+"level valve_write_target=flow [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level valve_write_target=indoor [minimal]": [
+"valve"
+],
+"level valve_write_target=indoor [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level wood_packing=loose [minimal]": [
+"wood"
+],
+"level wood_packing=loose [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level wood_packing=packed [minimal]": [
+"wood"
+],
+"level wood_packing=packed [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level wood_type=birch [minimal]": [
+"wood"
+],
+"level wood_type=birch [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level wood_type=mixed [minimal]": [
+"wood"
+],
+"level wood_type=mixed [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+],
+"level wood_type=pine [minimal]": [
+"wood"
+],
+"level wood_type=pine [reference]": [
+"dhw",
+"pv",
+"valve",
+"wood",
+"zone"
+]
+}
