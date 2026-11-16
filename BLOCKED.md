@@ -1,0 +1,3 @@
+Question: body_push.sh for r11-pre-plan-render refuses with BODY-LINT [figure-block]: it refreshes the scope-line block against the open PR's recorded base.sha (755b7f57675b, #3622), but prepr.sh --body-check verifies the same block against origin/main, whose merge-base with the merged head 155036423dab is 921214bf4246. The two bases cannot both match, so no body passes.
+State: code head 155036423dab (origin/main 921214bf42 merged; tests/layout.json resolved as the union; layout.py, entities.py 2723 checks, prepr.sh rc=0) is pushed to handoff/r11-pre-plan-render. Body is kept at handoff-wip/r11-pre-plan-render-body.
+Needed: the relay re-runs body_push.sh once the PR's recorded base is updated to the new main, or rules which base the block uses.
