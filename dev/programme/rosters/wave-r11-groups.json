@@ -2470,7 +2470,7 @@
    "source": "programme",
    "resume": {
     "stage": "carries-open",
-    "branch": "handoff/r11-pre-product-reads",
+    "branch": "fix/r11-pre-product-reads-p2",
     "commit": "54cb7211642364d762ba47f42d5f7b8a5953f742",
     "last_step": null,
     "next_step": "designer first (decision 0014), then design review; fixer on Design review: approve; beside the finders",
