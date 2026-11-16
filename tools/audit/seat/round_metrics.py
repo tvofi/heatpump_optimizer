@@ -46,14 +46,16 @@ input is absent, and a partial ledger is a NO-READ, never a partial value):
                   class of SEAT_CLASSES with no row in the window makes it unread.
   closure_slip    a round's read (`--round`): over the round's plan pages after its
                   register (the commit first adding dev/audit/rounds/round<N>/JUDGE.json
-                  to main), in the window, the days the forecast closure moved later
-                  between consecutive pages (an earlier move pays nothing back),
-                  over the days between the first and last page; beside it the net
-                  move, pages with no forecast (an UNAVAILABLE page), the threshold
+                  to main), in the window, sampled once a day (each day's last page with
+                  a forecast, days counted from the register; SLIP_SAMPLE_S), the days the
+                  forecast closure moved later between consecutive samples (an earlier
+                  move pays nothing back), over the days between the first and last
+                  sample; beside it the samples and pages read, the net move, pages
+                  with no forecast (an UNAVAILABLE page), the threshold
                   `closure_slip_ceiling` of dev/audit/config/objective.json (null is
                   undecided), round start to closure in days (the vN.0.0 tag, else the
                   newest forecast) and the round's groups at stage `deferred`. Fewer
-                  than two pages at distinct times read no slope: unread.
+                  than two daily samples read no slope: unread.
   unexamined      a round's read: production merges in the window that are no ancestor
                   of any finder baseline the round recorded (every `"baseline_sha"`
                   under dev/audit/rounds/round<N>/ on origin/main), over the window's
@@ -104,6 +106,10 @@ SUBJECT = re.compile(r"^Merge pull request #(\d+) from [^/\s]+/(\S+)")
 ADDED = re.compile(r'^\+\s*"group":\s*"([^"]+)"')
 TSV = ("sha", "pr", "ct", "class", "tokens", "group", "entered")
 DAY_S = 86400
+# closure_slip samples the plan history once a day (each day's last page, days counted from the register): summing
+# the later moves of every page makes the read a function of how often the page is committed (round 10's history:
+# 2.57 days per day over all 563 forecast pages, 1.27 over its 15 daily samples), so only a fixed cadence compares rounds.
+SLIP_SAMPLE_S = DAY_S
 PLAN_REF = "origin/handoff/audit-r{n}-plan"
 PLAN_PAGE = "handoff/round{n}/state/PLAN.html"
 REGISTER = "dev/audit/rounds/round{n}/JUDGE.json"
@@ -288,11 +294,12 @@ def slip_line(d: Path, rnd: dict | None, a: float, b: float) -> str:
         return f"closure_slip unread (round {n}: {why})"
     every = sorted(h for h in doc["history"] if h[0] >= doc["register"] and a <= h[0] < b)
     hist = [h for h in every if h[1] is not None]
-    if len({h[0] for h in hist}) < 2:
-        return (f"closure_slip unread ({len(hist)} plan pages with a forecast closure after the register in the "
-                f"window; a slope needs two at distinct times)")
-    later = sum(max(0.0, q[1] - p[1]) for p, q in zip(hist, hist[1:])) / DAY_S
-    span = (hist[-1][0] - hist[0][0]) / DAY_S
+    daily = list({(h[0] - doc["register"]) // SLIP_SAMPLE_S: h for h in hist}.values())  # each day's last page
+    if len(daily) < 2:
+        return (f"closure_slip unread ({len(daily)} daily samples of plan pages with a forecast closure after the "
+                f"register in the window; a slope needs two)")
+    later = sum(max(0.0, q[1] - p[1]) for p, q in zip(daily, daily[1:])) / DAY_S
+    span = (daily[-1][0] - daily[0][0]) / DAY_S
     slip, cap = later / span, rnd.get("ceiling")
     held = ("ceiling unread (objective.json)" if cap == "unread" else "ceiling unset, undecided" if cap is None
             else f"{'within' if slip <= cap else 'over'} the ceiling {cap:g}")
@@ -302,8 +309,9 @@ def slip_line(d: Path, rnd: dict | None, a: float, b: float) -> str:
     deferred = ("deferred unread (groups.json)" if groups is None else
                 f"{sum(g.get('round') == n and g.get('stage') == 'deferred' for g in groups.values())} groups deferred out")
     return (f"closure_slip {slip:.2f} days per day ({later:.2f} days later over {span:.2f} days of plan history "
-            f"after the register; net {(hist[-1][1] - hist[0][1]) / DAY_S:+.2f} days; {len(hist)} pages, "
-            f"{len(every) - len(hist)} without a forecast; {held}; round start to closure "
+            f"after the register, {len(daily)} daily samples of {len(every)} pages; net "
+            f"{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f} days; {len(every) - len(hist)} pages without a forecast; "
+            f"{held}; round start to closure "
             f"{(close[0] - rnd['start']) / DAY_S:.1f} days ({close[1]}); {deferred})")
 
 
