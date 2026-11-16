@@ -1,0 +1,19 @@
+== rename first denominatorGaps (definition)
+rc=1 223 passed, 2 failed
+  FAIL ...and the driver enforces it (carryOf, seatCarry, denominatorGaps in the DISPATCH block) exported: carryOf,seatCarry
+  FAIL the denominator threw: D.denominatorGaps is not a function
+  FAIL (probe, expected) threw: deliberate
+const denominatorGaps = (seat, rep, carry) => {
+  return []
+== denominatorGaps returns []
+rc=1 238 passed, 11 failed
+  FAIL denominatorGaps refuses a step with no row []
+  FAIL denominatorGaps refuses two rows for one step []
+  FAIL denominatorGaps refuses an empty enumerator []
+ dev/audit/config/finding.schema.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== enumerator dropped from required
+rc=1 247 passed, 2 failed
+  FAIL the finder report schema's coverage rows require the denominator (enumerator, universe, examined, not_reached, redispatched) ["step","universe","examined","not_reached","redispatched","evidence"]
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"title":"Audit finder report","type":"object","required":["dimension","baseline_sha","coverage","unfinished","findings","non_findings","harnesses","leads","report_path"],"properties":{"dimension":{"t
+  FAIL (probe, expected) threw: deliberate
