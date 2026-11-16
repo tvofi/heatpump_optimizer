@@ -154,6 +154,9 @@ individually, because a range reads as complete while covering a fraction:
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
 
+Finder criteria (`owner_criteria`): `D4-criteria.md`,
+`D5-criteria.md`, `D9-criteria.md`, `D10-criteria.md`.
+
 ### Instruments
 
 `tools/audit/seat/` is the instrument inventory, listed in its
