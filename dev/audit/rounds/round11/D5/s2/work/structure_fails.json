@@ -1,0 +1,26 @@
+{
+ "wall_removed": [
+  "docs/how-it-works.md:1454 ../dev/archive/backlog.md"
+ ],
+ "dup_paragraph": [
+  "d821794dcc docs/configuration.md:171 docs/configuration.md:384",
+  "b85d1fdc08 docs/configuration.md:277 docs/configuration.md:1092",
+  "cf29f1b49d docs/configuration.md:278 docs/configuration.md:474",
+  "eb37fd5e29 docs/configuration.md:280 docs/configuration.md:1093",
+  "1c5c0e6182 docs/configuration.md:281 docs/configuration.md:1094",
+  "f07b73e63e docs/configuration.md:282 docs/configuration.md:417",
+  "e21c7b1b5a docs/configuration.md:284 docs/configuration.md:473",
+  "8842b8be33 docs/configuration.md:285 docs/configuration.md:476",
+  "f452785306 docs/configuration.md:287 docs/configuration.md:478"
+ ],
+ "dup_fence": [
+  "README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0",
+  "README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0",
+  "README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18",
+  "docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0"
+ ],
+ "orphan_doc": [
+  "docs/CONTRIBUTING.md"
+ ],
+ "menu_twin_drift": []
+}
