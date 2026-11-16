@@ -4,6 +4,7 @@
     python3 -I tools/pr/cancel_superseded.py run --repo OWNER/REPO --workflow tests.yml \
         --pr N --head-sha SHA --branch BRANCH --run-id ID --sender LOGIN [--dry-run]
     python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]
+    python3 -I tools/pr/cancel_superseded.py main --repo OWNER/REPO --workflow ci.yml [--workflow ...] [--dry-run]
     python3 tools/pr/cancel_superseded.py --self-test
 
 R10-CI-CONCURRENCY. A workflow's `concurrency:` group cancels a pull request's
@@ -65,6 +66,17 @@ summary line). On, each cancel is recorded in `priority-held.json` and re-run (P
 .../rerun) once no priority run is queued; one line per cancel and per re-run naming the
 PR, the run and the priority PR that caused it.
 
+MAIN (`main --workflow W`, MAIN-CANCEL-BOUNDED, P658) is the one sanctioned path for cancelling
+superseded `push` runs on main, run by hand; `run` and `sweep` still never touch one. Per workflow
+it reads one listing of that workflow's main push runs (newest PAGE) and cancels each active run
+that is not the newest, oldest first, unless the cancel would leave more than MAIN_ROW_MAX
+consecutive main runs of that workflow with no concluded one. A run counts as concluded only when
+completed with a conclusion in VERDICTS; a run still active is not in a row, so a kept one must be
+left to conclude. A row that reaches the old end of a full listing cannot be counted and is
+refused. One `CANCEL-MAIN: <workflow>: kept <id>: <why>` line per refusal, then
+`CANCEL-MAIN: <workflow>: cancelled n, kept m`. API cost: one listing per workflow + one POST per
+cancel.
+
 `concurrency:` is unchanged and still models the bot rule (`tests/entities.py`).
 The workflow job runs the BASE's copy of this program with `actions: write`.
 """
@@ -84,6 +96,8 @@ BOT = "github-actions[bot]"
 ACTIVE = ("queued", "in_progress", "waiting", "pending", "requested")
 EVENTS = ("pull_request", "workflow_dispatch")
 PAGE, MAX_PAGES = 100, 10
+MAIN_ROW_MAX = 3  # the longest row of consecutive main runs of one workflow the `main` arm may leave with no verdict
+VERDICTS = ("success", "failure", "timed_out")  # the conclusions that say what main is
 
 
 def candidates(runs: list[dict], *, live_sha: str, branch: str, run_id: int) -> list[int]:
@@ -418,6 +432,60 @@ def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: 
             continue
         cancel += ids
     return {"cancel": sorted(cancel), "kept": kept, "skipped": skipped, "ghosts": sorted(ghosts)}
+
+
+def main_plan(runs: list[dict], *, full: bool = False) -> dict:
+    """Pure part of `main`: {"cancel": ids, "refused": [(id, why)]} over ONE workflow's runs.
+
+    Only `push` runs on main are read. Every active one but the newest is superseded and is
+    cancelled, oldest first, unless it and the verdict-less completed runs around it (the cancels
+    planned here included) would make a row longer than MAIN_ROW_MAX. `full` says the listing may
+    go on past its oldest run: a row reaching that end is refused, not guessed."""
+    rs = sorted((r for r in runs if r.get("head_branch") == "main" and r.get("event") == "push"),
+                key=lambda r: int(r["id"]))
+    empty = [r.get("status") == "completed" and r.get("conclusion") not in VERDICTS for r in rs]
+    out: dict = {"cancel": [], "refused": []}
+    for i, r in enumerate(rs):
+        if r.get("status") not in ACTIVE:
+            continue
+        lo = hi = i
+        while lo > 0 and empty[lo - 1]:
+            lo -= 1
+        while hi < len(rs) - 1 and empty[hi + 1]:
+            hi += 1
+        if i == len(rs) - 1:
+            why = "it is the newest main run of its workflow"
+        elif hi - lo + 1 > MAIN_ROW_MAX:
+            why = (f"cancelling it would leave {hi - lo + 1} consecutive main runs with no concluded one "
+                   f"(the bound is {MAIN_ROW_MAX})")
+        elif lo == 0 and full:
+            why = "the listing ends inside its row of runs with no concluded one, so the row cannot be counted"
+        else:
+            empty[i] = True
+            out["cancel"].append(int(r["id"]))
+            continue
+        out["refused"].append((int(r["id"]), why))
+    return out
+
+
+def main_arm(a: argparse.Namespace, api=gh) -> int:
+    for wf in a.workflow:
+        got = api([f"repos/{a.repo}/actions/workflows/{wf}/runs", "-f", "branch=main", "-f", "event=push",
+                   "-f", f"per_page={PAGE}"])
+        runs = got.get("workflow_runs") if isinstance(got, dict) else None
+        if not isinstance(runs, list):
+            print(f"CANCEL-MAIN: {wf}: unreadable answer; cancelling nothing")
+            continue
+        p = main_plan(runs, full=len(runs) >= PAGE)
+        for rid, why in p["refused"]:
+            print(f"CANCEL-MAIN: {wf}: kept {rid}: {why}")
+        for rid in p["cancel"]:
+            if a.dry_run:
+                print(f"cancel_superseded: would cancel {rid}")
+            else:
+                post_cancel(api, a.repo, rid, {}, time.time())
+        print(f"CANCEL-MAIN: {wf}: {'would cancel' if a.dry_run else 'cancelled'} {len(p['cancel'])}, kept {len(p['refused'])}")
+    return 0
 
 
 def listing(api, path: str, query: dict, key: str | None = None) -> "tuple[list | None, bool]":
@@ -823,6 +891,83 @@ def self_test() -> int:
         check("train pins: spool lines and queue entries are read, junk is skipped",
               train_pinned(td2), {21, 22, 23})
     check("train pins: no state dir pins nothing", train_pinned(None), set())
+
+    # --- the `main` arm (MAIN-CANCEL-BOUNDED, P658): superseded main push runs of ONE workflow, bounded.
+    def m(i, status="completed", conclusion="success", event="push", branch="main"):
+        return {"id": i, "head_branch": branch, "event": event, "status": status,
+                "conclusion": conclusion if status == "completed" else None}
+
+    def mp(runs, **kw):
+        got = main_plan(runs, **kw)
+        return got["cancel"], [i for i, _ in got["refused"]]
+
+    def row(runs, cancel):  # the longest row of consecutive runs with no verdict once `cancel` is applied
+        best = cur = 0
+        for r in sorted(runs, key=lambda r: r["id"]):
+            empty = r["id"] in cancel or (r["status"] == "completed" and r["conclusion"] not in VERDICTS)
+            cur = cur + 1 if empty else 0
+            best = max(best, cur)
+        return best
+
+    check("main: the newest main run, queued, is never cancelled", mp([m(1), m(2, "queued")]), ([], [2]))
+    check("main: the newest main run is kept though older runs are active (they are the superseded ones)",
+          mp([m(1, "in_progress"), m(2, "queued")]), ([1], [2]))
+    three = [m(1), m(2, conclusion="cancelled"), m(3, conclusion="cancelled"), m(4, conclusion="cancelled")]
+    check("main: with three cancelled in a row the fourth is refused",
+          mp(three + [m(5, "in_progress"), m(6, "queued")]), ([], [5, 6]))
+    check("main null: an older superseded run with a concluded run inside its last three is cancelled",
+          mp([m(1, conclusion="cancelled"), m(2, conclusion="failure"), m(3, conclusion="cancelled"),
+              m(4, conclusion="cancelled"), m(5, "in_progress"), m(6, "queued")]), ([5], [6]))
+    check("main: the row is counted on the newer side too",
+          mp([m(1), m(2, "in_progress")] + [m(i, conclusion="cancelled") for i in (3, 4, 5)] + [m(6, "queued")]), ([], [2, 6]))
+    seven = [m(1)] + [m(i, "in_progress") for i in range(2, 9)] + [m(9, "queued")]  # the shape after #3315: seven superseded
+    got7 = main_plan(seven)
+    check("main: of seven superseded runs every fourth is kept, so no row passes three",
+          (got7["cancel"], [i for i, _ in got7["refused"]], row(seven, set(got7["cancel"]))), ([2, 3, 4, 6, 7, 8], [5, 9], 3))
+    check("main: a second pass over the same listing, the cancels landed, cancels nothing more",
+          mp([m(1)] + [m(i, conclusion="cancelled") for i in (2, 3, 4)] + [m(5, "in_progress")]
+             + [m(i, conclusion="cancelled") for i in (6, 7, 8)] + [m(9, "queued")]), ([], [5, 9]))
+    check("main: each refusal says why",
+          [w for _, w in main_plan(three + [m(5, "in_progress"), m(6, "queued")])["refused"]],
+          ["cancelling it would leave 4 consecutive main runs with no concluded one (the bound is 3)",
+           "it is the newest main run of its workflow"])
+    check("main: a run that completed skipped, stale or with no conclusion is no verdict; success, failure and timed_out are",
+          [mp([m(1, conclusion=c), m(2, conclusion="cancelled"), m(3, conclusion="cancelled"), m(4, "in_progress"), m(5, "queued")])[0]
+           for c in ("skipped", "stale", None, "success", "failure", "timed_out")], [[], [], [], [4], [4], [4]])
+    check("main: a run of a pull request, on another branch or of a non-push event is neither cancelled nor counted",
+          mp([m(1), m(2, "in_progress", event="pull_request"), m(3, "in_progress", branch="fix/x"),
+              m(4, "in_progress", event="schedule"), m(5, "in_progress"), m(6, "queued")]), ([5], [6]))
+    check("main: a full listing that ends inside the row is refused, a short one is the whole history",
+          (mp([m(1, conclusion="cancelled"), m(2, "in_progress"), m(3, "queued")], full=True),
+           mp([m(1, conclusion="cancelled"), m(2, "in_progress"), m(3, "queued")])), (([], [2, 3]), ([2], [3])))
+    mposts, mseen = [], []
+
+    def mstub(args, method="GET", runs=seven):
+        if method == "POST":
+            mposts.append(int(args[0].split("/")[-2]))
+            return {}
+        mseen.append(args)
+        return {"workflow_runs": runs} if "/workflows/ci.yml/runs" in args[0] else None
+
+    ma = argparse.Namespace(repo=REPO, workflow=["ci.yml"], dry_run=False)
+    with contextlib.redirect_stdout(io.StringIO()) as mbuf:
+        mrc = main_arm(ma, mstub)
+    check("main end to end: one listing of the workflow's main push runs, POSTs exactly the planned cancels",
+          (mrc, mposts, mseen), (0, [2, 3, 4, 6, 7, 8],
+                                 [[f"repos/{REPO}/actions/workflows/ci.yml/runs", "-f", "branch=main", "-f", "event=push", "-f", f"per_page={PAGE}"]]))
+    check("main end to end: one kept line per refusal and one summary line",
+          [l for l in mbuf.getvalue().splitlines() if l.startswith("CANCEL-MAIN")],
+          ["CANCEL-MAIN: ci.yml: kept 5: cancelling it would leave 4 consecutive main runs with no concluded one (the bound is 3)",
+           "CANCEL-MAIN: ci.yml: kept 9: it is the newest main run of its workflow",
+           "CANCEL-MAIN: ci.yml: cancelled 6, kept 2"])
+    mposts.clear()
+    with contextlib.redirect_stdout(io.StringIO()) as mbuf:
+        main_arm(argparse.Namespace(repo=REPO, workflow=["ci.yml", "tests.yml"], dry_run=True), mstub)
+    check("main --dry-run posts nothing; an unreadable workflow listing cancels nothing and says so",
+          (mposts, "CANCEL-MAIN: tests.yml: unreadable answer; cancelling nothing" in mbuf.getvalue(),
+           mbuf.getvalue().count("cancel_superseded: would cancel ")), ([], True, 6))
+    check("null: `run` and `sweep` still never cancel a main run",
+          (plan(**{**base, "branch": "main", "runs": seven})[0], sweep_plan([], seven, set(), repo=REPO)["cancel"]), ([], []))
     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -845,8 +990,12 @@ def main(argv: list[str]) -> int:
     w.add_argument("--priority", action="store_true",
                    help="apply the CI-priority rule (ci_priority.py): hold or cancel queued non-priority runs")
     w.add_argument("--train-state", help="the merge train's state dir: its queue and spool pin PRs")
+    mn = sub.add_parser("main")
+    mn.add_argument("--repo", required=True)
+    mn.add_argument("--workflow", action="append", required=True, help="a workflow file name, e.g. ci.yml; repeatable")
+    mn.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv[1:])
-    return sweep(a) if a.cmd == "sweep" else run(a)
+    return {"sweep": sweep, "main": main_arm}.get(a.cmd, run)(a)
 
 
 if __name__ == "__main__":
