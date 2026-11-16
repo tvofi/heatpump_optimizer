@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:flow_setpoint CLAMP_DROP 68a59fb2",
+  "killed_by": "tests/features.py",
+  "old": "        0.0, heat_loss_coefficient * max(0.0, target_temp - outdoor_temp) - free_heat_kw",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`0.0, heat_loss_coefficient * (0.0) - free_heat_kw`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}
