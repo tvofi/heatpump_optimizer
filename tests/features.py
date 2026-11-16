@@ -76272,6 +76272,49 @@ R.check(
     (_ss_release("does_not_follow"), _ss_release("follows"), _ss_release("pending")) == ([], [6.0, 2.6], [6.0]),
     f"{(_ss_release('does_not_follow'), _ss_release('follows'), _ss_release('pending'))}",
 )
+# The verdict latches on the MIN_SAMPLES-th admitted row, not one later:
+# rows whose heat asks span (scales 0.6-0.9) and whose draw is flat.
+def _ss_latch_at(n):
+    rec = _cf_MC()
+    for i in range(n):
+        rec.judge_ratio(2.2 / 1.5, _cf_row(1.5, 2.2, scale=0.6 + 0.3 * (i % 4) / 3), _cf_both, _ss_unob)
+    return rec.scale_response
+
+
+R.check(
+    "the heat-ask verdict waits for 48 admitted rows (draw_range.MIN_SAMPLES) "
+    "and latches on the 48th",
+    (_ss_latch_at(47), _ss_latch_at(48)) == ("pending", "does_not_follow"),
+    f"{(_ss_latch_at(47), _ss_latch_at(48))}",
+)
+# The ratio refusal is logged where it is decided (moved from the
+# coordinator): a refusal logs its code, a fold logs nothing.
+import logging as _ss_logging  # noqa: E402
+
+
+class _SsLog(_ss_logging.Handler):
+    def __init__(self):
+        super().__init__(_ss_logging.DEBUG)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+_ss_log, _ss_lg = _SsLog(), _ss_logging.getLogger(_df_acc.__name__)
+_ss_lg.addHandler(_ss_log)
+_ss_lv = _ss_lg.level
+_ss_lg.setLevel(_ss_logging.DEBUG)
+_cf_MC().judge_ratio(1.0, _cf_row(2.0, 2.0), _cf_both, None)
+_ss_log_fold = list(_ss_log.lines)
+_cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None)
+_ss_lg.removeHandler(_ss_log)
+_ss_lg.setLevel(_ss_lv)
+R.check(
+    "judge_ratio logs a refusal with its code and the interval, and a fold not at all",
+    _ss_log_fold == [] and len(_ss_log.lines) == 1 and _ss_log.lines[0].startswith("Skipping COP sample (tracking_gate)"),
+    f"{_ss_log.lines}",
+)
 R.check(
     "the diagnostics publish the verdict beside the window's evidence",
     _cf_diag._coordinator_snapshot(_ss_beyond)["cop_learner"]["scale_response"] == "does_not_follow"

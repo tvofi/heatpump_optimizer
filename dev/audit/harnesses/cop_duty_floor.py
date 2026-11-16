@@ -72,6 +72,10 @@ Rows, each "folded/intervals scale":
     highest scale, the cycles off 1.000 by more than 5 % and the verdict.
     These runs are open loop: the ask stays fixed whatever the scale, as the
     live plan's does only where the ask is pinned (flat asks are that case).
+  * ``defrost_inferred_<pump>_<t>C`` -- design-verdict item e98d0ab9: the
+    defrost derate's inferred factor after 96 flat-ask intervals with no
+    defrost flag, at 2 °C (frost band) and 8 °C; ``selfset_2.2`` against
+    ``matched`` (draw equal to the ask) as its control.
   * ``held_<fill>_heatled_true_0.8`` -- the ``held_*`` windows behind a
     heat-led pump of true scale 0.8: the control for the ``held_*`` rows,
     whose fixed 3.2 kW draw is a self-setting pump's.
@@ -83,11 +87,13 @@ from __future__ import annotations
 import itertools
 import random
 import sys
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, "tests")
 from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
 
 from heatpump_optimizer import draw_range  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.thermal_model import on_threshold_kw  # noqa: E402
 
@@ -195,6 +201,18 @@ def flat(n: int, drawn=None, seed: int = 7) -> list[tuple[float, float]]:
     return out
 
 
+def derate(pairs, outdoor: float) -> str:
+    """The defrost derate's inferred factor at ``outdoor`` °C after ``pairs``
+    (asked, drawn) intervals settle with no defrost flag, and its count."""
+    c = coord(p_max=4.0)
+    t0 = datetime(2026, 1, 10, tzinfo=timezone.utc)
+    for i, (ask, kw) in enumerate(pairs):
+        window = c._defrost_window.close(t0 + timedelta(minutes=30 * i))
+        c._settle_defrost(AccuracySample(when=t0, predicted_power_kw=ask, actual_power_kw=kw, outdoor_temp=outdoor), window)
+    t, h = c._defrost._bucket(outdoor, None)
+    return f"factor={c._defrost.factors[t][h]:.3f}_count={c._defrost.counts[t][h]}"
+
+
 def flat_row(name: str, pairs, **kw) -> None:
     """One flat-ask row on the 4 kW nameplate: "folded/intervals scale", then
     the lowest and highest scale, the cycles off 1.000 by more than 5 %, and
@@ -299,6 +317,12 @@ def main() -> None:
     flat_row("selfset_2.2_flat_reload70_400_lost", flat(672, 2.2), reload_cop=(70, 400), lose_verdict=True)
     # Invariant h's control under the moving held_* rows: heat-led twins of
     # true 0.8 behind the same windows (a fixed 3.2 kW draw is self-setting).
+    # Design-verdict item e98d0ab9: the defrost derate's inferred estimator
+    # (``_settle_defrost`` with no defrost flag) reads ask over draw, the same
+    # mechanism, in the frost band; this diff leaves it alone.
+    for outdoor in (2.0, 8.0):
+        for name, kw in (("selfset_2.2", 2.2), ("matched", None)):
+            print(f"RESULT defrost_inferred_{name}_{outdoor:g}C={derate(flat(96, kw), outdoor)}")
     for name, n in (("full", draw_range.WINDOW), ("filling", draw_range.WINDOW - 48)):
         print(f"RESULT held_{name}_heatled_true_0.8={run(depart, p_max=4.0, p_min=3.0, true=0.8, warm=[(2.6, 3.2)] * n).replace(' ', '_scale=')}")
 
