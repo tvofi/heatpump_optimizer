@@ -9,8 +9,21 @@ NO-READ; and the cards by what each answers. Exit 1 if an object of objective.js
 import collections, json, re, subprocess, sys
 from pathlib import Path
 
-here = Path(__file__).resolve()
-repo = here.parents[5]
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+repo = repo_root(__file__)
 path = Path(sys.argv[1]) if len(sys.argv) > 1 else repo / "dev/audit/yardstick/round11/EVALUATION.json"
 ev = json.loads(path.read_text())
 sys.path.insert(0, str(repo / "tools/audit"))
