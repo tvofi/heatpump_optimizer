@@ -13,3 +13,4 @@
 1794849253 CKPT fire 2: setup done, design 0acbbc8b read, worktree at 8b05d67241 snapshot 278e6e43d80e
 1794849804 CKPT dither probe (a2) written in accuracy.py; smoke rows: selfset->does_not_follow 1.000, heatled->follows; WIP pushed snapshot ed0b0c036872
 1794849820 HB alive
+1794850418 CKPT features block ported to the dither design: ALL 108 FEATURES BLOCK PASSED; WIP pushed snapshot fc06db9456a4
