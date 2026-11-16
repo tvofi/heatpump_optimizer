@@ -67,9 +67,10 @@
   },
   {
    "name": "dev/programme",
-   "why": "the fix programme record: the living handover, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
+   "why": "the fix programme record: the living handover, the owner's standing rulings, the plan of record, delivery rows, live carries, rosters, each round's phases file, the register, proposal-triage rulings",
    "globs": [
     "dev/programme/HANDOVER.md",
+    "dev/programme/RULINGS.md",
     "dev/programme/plan-*.md",
     "dev/programme/delivery/*.md",
     "dev/programme/carries/carry-*.json",
@@ -90,7 +91,8 @@
     "dev/audit/rounds/**",
     "dev/audit/rca/**",
     "dev/audit/harnesses/**",
-    "dev/audit/waves/**"
+    "dev/audit/waves/**",
+    "dev/audit/yardstick/**"
    ]
   },
   {
