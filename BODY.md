@@ -8,6 +8,8 @@ Verdict: `keep`. The yield is NO-READ, as for every sibling instrument page, bec
 
 bb917b8a997519ee240d9f47b11f93ccad99c549
 
+prepr: passed rc=0 at bb917b8a997519ee240d9f47b11f93ccad99c549
+
 Measurement: `python3 -I tools/audit/check_scopes.py --repo . --ref HEAD --round 11`.
 - At 92d38ecb64 (before): FAIL, 11 gaps. The missing-verdict line, then the ten `accepted and not merged` lines (E11-N-P744-SCOPE, E11-U1, U2, U4 to U10).
 - At bb917b8a99 (after): FAIL, 11 gaps. The missing-verdict line is gone. The ten `accepted and not merged` lines are byte-identical. One line is new: `at review sha 83dc948818... is missing or graded other objects than this record`. check_scopes.py compares the record's `objects` with those at the review sha, so any added row raises this line until a reviewer approves at a commit that holds the row. That delta review is owed (`revision_5.review_owed`). The evaluator cannot clear it.
