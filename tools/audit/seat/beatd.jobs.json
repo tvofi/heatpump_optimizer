@@ -310,9 +310,31 @@
       ],
       "cwd": "orch",
       "interval_s": 86400,
-      "timeout_s": 600,
+      "timeout_s": 1800,
       "heartbeat_s": null,
-      "env_pass": [],
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
+      "name": "ci-attempt",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "ci-attempt",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 120,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
       "class": null,
       "kind": "periodic"
     },
