@@ -24,11 +24,23 @@ Not yet given. The architect-planner.md edit awaits tvofi's approving review at 
 
 ## Head
 
-81119045726e9b1dfeff11c0029ae789e9af3f61: a merge of origin/main 030a4d377f into the previous head a59eafe204 (merge base with main: 030a4d377f). Two files conflicted and are resolved by union, each read back against both parents:
-- `tools/audit/check_scopes.py`: this branch's `architect_groups_report` and `p3_input` are kept beside main's `open_cards_cli` and `json_or_none`. Main's CLI arm runs `--open-cards` on a scratch repository with no roster, and this branch's group half reads one, so both of the arm's runs failed with `RosterNotFound` (`marked rc=1, unmarked rc=1 []`). The arm's two commits now carry one roster whose open group G1 is marked non-gating, and the runs pass `--roster-ref`. The arm still measures the card half's exit code and UNMARKED lines alone, and its null control also asserts `open_groups == ["G1"]`. This changes a self-test fixture only, no production line.
-- `tools/policy/check-wave-script.mjs`: this branch's comment on the OPEN/MOVES stubs is kept above main's OPEN stub.
+2cb653f2dddc258386bddd7dc097bb9c0e323c17. Fix review 3633 blocked 2061e87b06 as merge-conflict (verdict ba10e32638): tools/audit/seat/roster_edit.py conflicted with origin/main (#3657's CONVERGENCE_FIELDS against this part's gates_finders in set-field). Answered: this head is 2061e87b06 with origin/main 30f9caac90 merged in (merge 26b20a7faa), plus one self-test commit 2cb653f2dd. Merge base with main: 30f9caac90. Every figure below was measured at this head.
 
-The previous head a59eafe204 repaired fix review 3633's block at 416280f5c2. It added 1 and ["x"] to the self-test arm for the evaluator and reviewer (C7, below). The mutation figures below were measured at the heads they name. Each self-test figure under Figures was measured at 8111904572.
+prepr: passed rc=0 at 2cb653f2dddc258386bddd7dc097bb9c0e323c17
+
+### The merge resolution, by side
+
+Read back from the merged `tools/audit/seat/roster_edit.py`:
+- This part contributes `"gates_finders"` inside the `SET_FIELDS` tuple, `|gates_finders` on the `set-field` usage line, and the `op_set_field` branch `elif field in ("hotfix", "gates_finders")`.
+- Main (#3657) contributes `+ roster_lib.CONVERGENCE_FIELDS` after the tuple, the usage continuation line `|found_by|owned_by|caused_by|family|cm_kind|parent|follows`, and the `op_set_field` branch `elif field in roster_lib.CONVERGENCE_FIELDS`.
+- `grep -c` finds each of the two `op_set_field` branches exactly once (1 and 1). No other file conflicted; `roster_lib.py` auto-merged.
+
+New self-test row "set-field gates_finders and a convergence field in one run: both read back, both in the usage line" sets `gates_finders true` and `found_by reviewer` on one group in the same self-test run, reads both back, and checks every field of `("gates_finders",) + roster_lib.CONVERGENCE_FIELDS` appears as `|<field>` in the module usage text. Each mutant applied alone to the merged file and restored (`cmp` against the saved copy matched):
+- M1, main's side dropped (`+ roster_lib.CONVERGENCE_FIELDS` removed): `318 checks, 5 failed`, the new row among them.
+- M2, this part's side dropped (`"gates_finders"` removed from the tuple): `318 checks, 3 failed`, the new row among them.
+- M3, `|gates_finders` removed from the usage line: `318 checks, 1 failed`, the new row.
+- M4, main's usage continuation line removed: `318 checks, 1 failed`, the new row.
+- NULL, the merged file unchanged: `318 checks, 0 failed`.
 
 ## Mutation proof
 
@@ -57,6 +69,8 @@ Fix review 3633's mutants C7 and C7b, run with the reviewer's driver (verdict/36
 
 prepr's diff-mutants step skipped because MUTANT_CMD was unset. This delta adds no production line, only two values in a self-test arm. The C7/C7b runs above are its mutation proof.
 
+At this head prepr's diff-mutants step again skipped (MUTANT_CMD unset). The repair delta adds no production line of its own: the merged `SET_FIELDS` and usage line are the union of two already-reviewed lines, and the rest is one self-test row. Its mutation proof is M1-M4 under `## Head`.
+
 brief_lint's rule is pinned by the red run above.
 
 ## Null control
@@ -68,13 +82,13 @@ brief_lint's rule is pinned by the red run above.
 
 ## Figures
 
-- `python3 tools/audit/seat/roster_lib.py --self-test`: `roster_lib self-test: 95 checks, 0 failed`.
-- `python3 tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 313 checks, 0 failed`.
-- `node tools/policy/check-wave-script.mjs` at 8111904572: `249 passed, 0 failed` (main's grader arms added since a59eafe204 included). At a59eafe204 it printed `223 passed, 0 failed`, and the same against part 3's audit-plan.js.
-- `node tools/policy/brief_lint.mjs`: rc 0 at the head; rc 1 with the vacuous pin before the rule.
-- `python3 tools/audit/check_scopes.py --repo . --self-test` at 8111904572: rc 0, `SELF-TEST passed`, `evaluation arms: 66/66 held; ... --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']`. Without the merge's roster fixture, main's two `--open-cards` CLI arms fail (rc 1, shown above): that is this fixture's null control.
-- `tools/pr/prepr.sh` self-test step at 8111904572: `553 passed, 0 failed`.
-<!-- figure-block: scope-line mb=98847b99d7bb3238686efd6869f805c89c6d1ff1 head=81119045726e9b1dfeff11c0029ae789e9af3f61 -->
+All at 2cb653f2dddc258386bddd7dc097bb9c0e323c17:
+- `python3 tools/audit/seat/roster_lib.py --self-test`: `roster_lib self-test: 101 checks, 0 failed` (95 at the previous head; main's #3657 brought the rest).
+- `python3 tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 318 checks, 0 failed` (313 at the previous head, plus main's arms and the new row).
+- `node tools/policy/check-wave-script.mjs`: `249 passed, 0 failed`. With part 3's `.claude/workflows/audit-plan.js` (from 9fb327ecb3) copied over this head's and restored afterwards, it printed `249 passed, 0 failed` too. The earlier body's 223 was measured at a59eafe204, before the main merges.
+- `node tools/policy/brief_lint.mjs`: rc 0.
+- `python3 tools/audit/check_scopes.py --repo . --self-test`: rc 0, `evaluation arms: 66/66 held`.
+<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=2cb653f2dddc258386bddd7dc097bb9c0e323c17 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -82,7 +96,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-Inherited from main, not caused by this diff: `orchestrator_tick.py` raises NameError `SEAT_WINDOW_MIN` on main, and hotfix #3661 repairs it. This applies only if that check is red at 8111904572. No other red is predicted. CI's runner is the authority.
+none. Fix review 3633 read CI at 2061e87b06 as `WAIT ... pending: gate red: none` (`merge_train.py classify`), with no owed red. At this head, `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` exited rc 0. Its ci predict step (`ci_predict.py --record-self-tests`) predicted no closures, fast, governance or instrument red. CI's runner is the authority.
 
 ## Forward-carry
 
