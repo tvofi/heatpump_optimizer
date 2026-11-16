@@ -1,5 +1,5 @@
 {
- "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
+ "_rule": "The objective function's machine-read half: dev/governance/decisions/0018-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0018 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it; levels and basis on one are the owner's declared levels and the tracked rows they were taken from, which nothing reads yet. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
  "terms": [
   "regret",
   "operation",
@@ -32,7 +32,7 @@
  },
  "thresholds": {
   "product_green_floor": {
-   "value": null,
+   "value": 0.9,
    "proposed": 0.9,
    "unit": "share of concluded runs"
   },
@@ -62,15 +62,15 @@
   }
  },
  "owner_criteria": {
-  "D4": null,
-  "D5": null,
+  "D4": "dev/governance/dimensions/criteria/D4-criteria.md",
+  "D5": "dev/governance/dimensions/criteria/D5-criteria.md",
   "D7": "dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md",
-  "D9": null,
-  "D10": null
+  "D9": "dev/governance/dimensions/criteria/D9-criteria.md",
+  "D10": "dev/governance/dimensions/criteria/D10-criteria.md"
  },
  "seats": {
-  "evaluator_model": null,
-  "reviewer_model": null
+  "evaluator_model": "claude-fable-5-2",
+  "reviewer_model": "claude-fable-5-2"
  },
  "population": [
   {
@@ -252,13 +252,35 @@
   {
    "axis": "tank_volume",
    "kind": null,
-   "no_read": "a continuous option with no tracked levels: its flow row's minimum, default and maximum, once D12's brief declares them as the levels",
+   "levels": {
+    "min": 50,
+    "default": 200,
+    "max": 1500
+   },
+   "unit": "L",
+   "basis": "the hot-water tank row of the options flow: config_flow.py's CONF_DHW_TANK_VOLUME field, _number(50, 1500, 10, 'L'), its default const.py's DEFAULT_DHW_TANK_VOLUME (200.0). The buffer and wood tank rows are other options, not this axis.",
+   "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow row they were taken from, so a moved row leaves them stale",
    "builder": "R11-INTAKE-R10-RESIDUE"
   },
   {
    "axis": "house_size",
    "kind": null,
-   "no_read": "a continuous option with no tracked levels: the heated area and heat-loss rows' minimum, default and maximum, once D12's brief declares them as the levels",
+   "levels": {
+    "min": {
+     "heated_area_m2": 20,
+     "heat_loss_kw_per_c": 0.01
+    },
+    "default": {
+     "heated_area_m2": 140,
+     "heat_loss_kw_per_c": 0.15
+    },
+    "max": {
+     "heated_area_m2": 1000,
+     "heat_loss_kw_per_c": 1.0
+    }
+   },
+   "basis": "the heated-area row of the building questionnaire (config_flow.py's CONF_HEATED_AREA field, _number(20, 1000, 5, 'm²'), default const.py's DEFAULT_HEATED_AREA 140.0) and the heat-loss row (CONF_HOUSE_HEAT_LOSS_COEFFICIENT over RANGE_HOUSE_HEAT_LOSS (0.01, 1.0) kW/°C, default DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT 0.15; a two-zone install splits it over the upper and lower rows, defaults 0.08 + 0.07). Each level pairs the two rows' minimum, default or maximum: a declaration, since the flow lets them vary apart.",
+   "no_read": "the levels are declared here and nothing reads them: no reader compares them with the flow rows they were taken from, so a moved row leaves them stale",
    "builder": "R11-INTAKE-R10-RESIDUE"
   }
  ],

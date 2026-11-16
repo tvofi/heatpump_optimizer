@@ -1,0 +1,7 @@
+{
+  "_comment": "The declining target on machinery_budgets.json's nonproduction_merges (tvofi, 2026-11-13, card P2), graded by tools/audit/machinery_ratchet.py (THE TARGET in its docstring): the cap less `step` for every `every_merges` first-parent merges past `anchor`, binding a non-production candidate only. Policy: dev/governance/rules/ratchet-budgets.md, the machinery section.",
+  "_recorded": "Anchor: the commit nonproduction_merges was recorded at, by `python3 tools/audit/machinery_ratchet.py --measure --head origin/main`. every_merges is half the frozen window_merges (the owner's seven days of merges); step is 10% of the recorded cap, rounded half up (process convergence audit d5d7ff8187, section 6 row a2).",
+  "anchor": "b3831ff64eca1936f0b618193ee86c3e337b51a9",
+  "every_merges": 290,
+  "step": 48
+}
