@@ -49,6 +49,14 @@ sys.argv = sys.argv[:1]
 sys.path.insert(0, "dev/audit/harnesses")
 
 N = 672
+NULL = False
+
+
+def _worker(null: bool) -> None:
+    """A pool worker's start: it does not inherit the parent's arguments
+    under every start method, so the null control is handed to it."""
+    global NULL
+    NULL = null
 
 
 def jobs() -> list[tuple]:
@@ -76,7 +84,7 @@ def one(job: tuple) -> str:
     import cop_duty_floor as h
 
     kind, kw, amp, per, seed, phase, s0, noise = job
-    if "--null" in ARGS:
+    if NULL:
         dither = sys.modules[h.HeatPumpOptimizerCoordinator.__module__.rsplit(".", 1)[0] + ".accuracy"].ScaleDither
         dither.levels = staticmethod(lambda base: (base, base))
     kwargs: dict = {} if s0 is None else {"scale0": s0}
@@ -122,6 +130,6 @@ if __name__ == "__main__":
             summarize(name)
     else:
         nproc = next((int(a) for a in ARGS if a.isdigit()), 4)
-        with Pool(nproc) as pool:
+        with Pool(nproc, initializer=_worker, initargs=("--null" in ARGS,)) as pool:
             for line in pool.imap(one, jobs(), chunksize=4):
                 print(line, flush=True)
