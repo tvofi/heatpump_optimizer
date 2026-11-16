@@ -579,8 +579,21 @@ R.check(
     and getattr(_room_by_key["room_temperature_spread"], "_attr_device_class", None) is None
     and _room_by_key["room_average_temperature"].extra_state_attributes["dropped"] == {"climate.c": "unavailable"}
     and _room_by_key["room_temperature_spread"].extra_state_attributes
-    == {"coldest_entity": "climate.a", "warmest_entity": "sensor.b"},
+    == {"coldest_entity": "climate.a", "warmest_entity": "sensor.b", "lift": None},
     f"{[(e._attr_translation_key, e.native_value) for e in room_sensors]}",
+)
+# R11-OUTSIDE-ROOMS-P2: the floor lift the last solve was given rides the spread sensor.
+_ROOM_LIFT = {"size": 0.5, "entity": "climate.a", "gate": None}
+_room_lift_coord = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "lift": _ROOM_LIFT}})
+_room_lift_coord._config = _room_coord._config
+_room_lifted = {e._attr_translation_key: e for e in collect(sensor, coordinator=_room_lift_coord)
+                if e._attr_translation_key in _room_keys}
+R.check(
+    "the spread sensor's lift attribute is the rooms block's lift: its size, room and gate; the "
+    "average sensor carries none",
+    _room_lifted["room_temperature_spread"].extra_state_attributes["lift"] == _ROOM_LIFT
+    and "lift" not in _room_lifted["room_average_temperature"].extra_state_attributes,
+    f"{_room_lifted['room_temperature_spread'].extra_state_attributes}",
 )
 _room_quorum = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "average": None, "spread": None}})
 _room_quorum._config = _room_coord._config

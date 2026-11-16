@@ -299,7 +299,7 @@ def lifted(
     its own ``config``: a lift resolved afresh would put the rooms' drift
     since the baseline into the difference the what-if reports.
     """
-    if held is None or held.lift_c <= 0.0:
+    if held is None or not held.lift_c:
         return base
     margins = _margins(base, n_steps)
     band = np.array([
