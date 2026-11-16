@@ -1,0 +1,13 @@
+SkylakeX, duty-switch block: exit 0
+  ACCEPT True | acceptance: priced on the contributor's table the duty-cycle plan carries no higher a switch weight in starts and a lower one at the combined draw, and the unpriced plan of both installs carries a switch to price | {'duty-cycle': (0.9973017575063263, 0.4425919435719761, 29.289706672833002, 29.222288550613438), 'modulating clamped': (0.7598932751633637, 0.8181818181818182, 27.018009810668392, 26.93712581714785)} {'duty-cycle': (1.0, 1.0), 'modulating clamped': (1.0, 2.0)}
+  REPLACED False | modulating clamped, switch weight in starts, priced no higher than unpriced | unpriced 1, priced 2
+  ACCEPT True | acceptance: on both installs every candidate stage of the priced solve returns a plan that scores no higher under the priced objective of the scope it ships in than the projection of the relaxed plan it was handed, and strictly lower in at least one call; the plan that publishes is one a stage returned, at that score | {'duty-cycle': [(29.274314047829723, 29.70666482095819, False), (29.222288550613438, 29.334436085492985, True)], 'modulating clamped': [(26.970271753519537, 27.57708235996468, False), (26.93712581714785, 26.968456643629917, True)]} {'duty-cycle': 29.222288550613438, 'modulating clamped': 26.93712581714785}
+  ALL 103 FEATURES BLOCK PASSED
+SkylakeX, starts-and-runs block: exit 0
+  ACCEPT True | acceptance: an engaged plan ships no step between the running rule and the floor, on a priced modulating install at both floors and on a clamped one | {(0.25, False, 1.1): 0, (0.25, False, 0.53): 0, (0.0, True, 1.1): 0, (0.25, True, 1.1): 0}
+  ACCEPT True | acceptance: a priced plan holds no more starts than the unpriced plan of the same install by the same count, and scores no higher on its own objective than the projection of the relaxed plan it was committed from | starts, scores (shipped, projection), kWh against the relaxed plan: {(0.25, False, 1.1): (1.0, (8.0828, 9.2028), -0.482), (0.25, False, 0.53): (2.0, (8.1223, 8.3763), -0.029), (0.0, True, 1.1): (3.0, (7.6915, 8.7028), 0.0), (0.25, True, 1.1): (1.0, (8.0828, 9.2028), -0.482)}
+  KEPT True | priced starts no higher than the unpriced plan's by the same count | floor 1.1 kW: 1 against 10.07; floor 0.53 kW: 2 against 6.59
+  REPLACED False | shipped energy within one floor step of the relaxed plan's | floor 1.1 kW: -0.4817 kWh against a step of 0.2750; floor 0.53 kW: -0.0287 kWh against a step of 0.1325
+  ALL 51 FEATURES BLOCK PASSED
+kernels SkylakeX: blocks that failed a check or did not complete 0
+EXIT 0

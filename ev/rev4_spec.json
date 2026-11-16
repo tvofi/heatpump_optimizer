@@ -1,0 +1,74 @@
+[
+ {
+  "name": "CANDIDATE_1_LEFT_OUT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    plans = [first, *_run_plans(opt, h, space, other, lo, hi, cycled)]\n",
+  "new": "    plans = [*_run_plans(opt, h, space, other, lo, hi, cycled)]\n"
+ },
+ {
+  "name": "MASK_TO_BOUNDS",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        list(zip(lo.tolist(), hi.tolist())), np.where(on, 1.0, np.where(off, 0.0, np.nan)), floor)\n",
+  "new": "        list(zip(lo.tolist(), hi.tolist())), None, floor)\n"
+ },
+ {
+  "name": "OUT_OF_BAND_PENALTY",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
+  "new": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs])\n"
+ },
+ {
+  "name": "START_COST_EDGE",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
+  "new": "        c = np.concatenate([cost[s] + paid for s, starts in srcs]) + fine * outside\n"
+ },
+ {
+  "name": "SETTLED_CLASS",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
+  "new": "    running = None\n"
+ },
+ {
+  "name": "LATCH_READING",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    rec.solved_running = running\n",
+  "new": "    pass\n"
+ },
+ {
+  "name": "N6_ROW_PER_VARIABLE",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    stepped = np.flatnonzero(free)\n",
+  "new": "    stepped = np.arange(x0.size)\n"
+ },
+ {
+  "name": "TIE_BREAK_ZERO",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "_TIE_BREAK = 1e-9\n",
+  "new": "_TIE_BREAK = 0.0\n"
+ },
+ {
+  "name": "OUT_OF_BAND_CLAMP",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        outside = np.maximum(np.abs(b) - half * quantum, 0.0)\n",
+  "new": "        outside = np.maximum(np.abs(b) - half * quantum, 1.0)\n"
+ },
+ {
+  "name": "SPACE_SCOPE_LOWER_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        [(0.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n",
+  "new": "        [(1.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n"
+ },
+ {
+  "name": "REV4_SETTLED_STOPPED",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
+  "new": "    running = False\n"
+ },
+ {
+  "name": "REV4_SETTLED_RUNNING",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
+  "new": "    running = True\n"
+ }
+]
