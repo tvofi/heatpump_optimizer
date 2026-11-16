@@ -1,0 +1,30 @@
+/root/rv/base_table.json refusals= 27 notes= 0 stale= ''
+   UNDER-SCOPED step policy-lint-mutants: files misses ['dev/governance/config/machinery_target_budgets.json', 'dev/programme/round11/phases.json']
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/programme/round11/.gitattributes']
+   UNDER-SCOPED step field-coverage: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py']
+   UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/governance/dimensions/criteria', 'dev/programme/round11', 'tests/mutation_ledger/killed_by/slab_seed.py', 'tests/mutation_ledger/survivor_t
+   UNDER-SCOPED step budget-raise-gate: files misses ['dev/governance/config/machinery_target_budgets.json']
+   UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/slab_seed.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/slab_seed.py/.gitattributes']
+   UNDER-SCOPED step orchestrator-tick: files misses ['tools/audit/machinery_ratchet.py', 'tools/audit/seat/owed_unactioned.py', 'tools/plan/replan.py', 'tools/release/stamp.py']
+   UNDER-SCOPED step orchestrator-tick: probes misses ['tools/plan', 'tools/release']
+   UNDER-SCOPED step orchestrator-tick: dirs misses ['tools/release']
+   UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py']
+   UNDER-SCOPED step self-tests-outside-seat: files misses ['dev/governance/config/machinery_target_budgets.json', 'dev/programme/round11/phases.json']
+   UNDER-SCOPED step self-tests-outside-seat: dirs misses ['tests/mutation_ledger/killed_by/running_signal.py', 'tests/mutation_ledger/killed_by/slab_seed.py', 'tests/mutation_ledger/survivor_triage/slab
+   UNDER-SCOPED step plan-page: files misses ['tools/audit/carry_audit.py', 'tools/audit/seat/plan_phases.py', 'tools/audit/seat/plan_public.py', 'tools/audit/seat/ref_privacy.py', 'tools/audit/seat/rost
+   UNDER-SCOPED step review-packet: files misses ['tools/audit/seat/topic_grammar.py']
+   UNDER-SCOPED step state-doc-writer: files misses ['tools/audit/seat/plan_phases.py']
+   UNDER-SCOPED step outside-contract: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py', 'tools/audit/seat/round_metrics.py', 'tools/audit/seat/round_metrics_selftest.py']
+   UNDER-SCOPED step beat-job-rows: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py']
+   UNDER-SCOPED step hooks-setup: files misses ['tools/audit/seat/plan_phases.py']
+   UNDER-SCOPED step merge-train: files misses ['tools/audit/seat/topic_grammar.py']
+   UNDER-SCOPED step gantt-and-verdict-audit: files misses ['tests/throwaway_git.py']
+   UNDER-SCOPED step gantt-and-verdict-audit: probes misses ['config', 'objects', 'refs', 'tests']
+   UNDER-SCOPED step gantt-and-verdict-audit: dirs misses ['tests']
+   UNDER-SCOPED step prepr: files misses ['tools/audit/seat/topic_grammar.py']
+   UNDER-SCOPED step prepr: dirs misses ['dev/governance/dimensions/criteria', 'dev/programme/round11', 'tests/mutation_ledger/killed_by/slab_seed.py', 'tests/mutation_ledger/survivor_triage/slab_seed.py
+   UNDER-SCOPED step open-pr: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py', 'tools/audit/seat/round_metrics.py', 'tools/audit/seat/round_metrics_selftest.py']
+   UNDER-SCOPED step pr-args: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py', 'tools/audit/seat/round_metrics.py', 'tools/audit/seat/round_metrics_selftest.py']
+   UNDER-SCOPED step update-pr: files misses ['tools/audit/enumerate.py', 'tools/audit/seat/plan_phases.py', 'tools/audit/seat/round_metrics.py', 'tools/audit/seat/round_metrics_selftest.py']
+/root/rv/head_table.json refusals= 0 notes= 0 stale= ''
+entries lost base->head: 0 entries added: 67 steps base/head: 120 120

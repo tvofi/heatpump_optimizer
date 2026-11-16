@@ -1,0 +1,8 @@
+head: 17c9dd0672322c18c03a0cd6781310d6596a6327
+selftest_scope static: 120 gated step(s), 0 problem(s)
+merge-tree origin/main (6f422812d5d8b918beace0283419c153f6df66ce):
+1307f21a9a56f8892b03ca13ac0d75f52bef6eb8
+rc=0
+673bed46e2fec2188d56105e9feba83a43775ea64942bb716fb7274949dfcdd7  /root/art/a.zip
+55243ff5dc7f05b51d3cc60d356ce16b0b6ae668811825513cd21e1f5ae0a55a  /root/art/selftest_closures.json
+55243ff5dc7f05b51d3cc60d356ce16b0b6ae668811825513cd21e1f5ae0a55a  /root/rv/head_table.json
