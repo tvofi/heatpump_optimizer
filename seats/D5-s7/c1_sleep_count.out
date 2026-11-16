@@ -29,3 +29,5 @@ SCEN capacity_tariff_15min between_run=3 total=8 by_caller={'_optimize_with_dhw'
 SCEN cycling_cost between_run=3 total=11 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 7, '_multi_start_minimize': 3}
 SCEN external_heat_active between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
 SCEN cop_scale_learned between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN away_setback between_run=3 total=8 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 4, '_multi_start_minimize': 3}
+SCEN building_preset between_run=3 total=9 by_caller={'_optimize_with_dhw': 1, '_lbfgsb_restart': 5, '_multi_start_minimize': 3}
