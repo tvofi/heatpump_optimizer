@@ -1,0 +1,16 @@
+RESULT birch_packed_kwh_m3=1140 kWh/m3
+RESULT birch_loose_kwh_m3=1900 kWh/m3
+RESULT birch_ratio=1.667
+RESULT mixed_packed_kwh_m3=1700 kWh/m3
+RESULT mixed_loose_kwh_m3=1020 kWh/m3
+RESULT mixed_ratio=0.600
+RESULT pine_packed_kwh_m3=1500 kWh/m3
+RESULT pine_loose_kwh_m3=900 kWh/m3
+RESULT pine_ratio=0.600
+RESULT claimed_ratio=0.6
+RESULT types_off_claim=1 count
+RESULT packed_birch_sek_per_kwh=1.4035 SEK/kWh
+RESULT perturbed=0
+RESULT thread_factor=1.001
+RESULT load1=11.46
+RESULT swapins=0
