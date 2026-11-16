@@ -406,6 +406,11 @@ def bar(cfg: dict, res: dict) -> str:
     sched = data.get("schedule")
     if not sched:
         status = data.get("optimization_status")
+        coord = res.get("coord")
+        if getattr(coord, "_mode", None) in ("comfort", "boost", "off") and status:
+            # A fixed mode adopts its own action and names the unrun solve: the brief's
+            # "a named refusal explains why not".
+            return f"refusal plan: fixed mode {coord._mode}, status={status!r}"
         return f"FAIL plan: no schedule, status={status!r}"
     if res["entities"]:
         return f"FAIL entities: {len(res['entities'])} raise; first {res['entities'][0][:200]}"
@@ -560,6 +565,12 @@ async def main_async(args) -> int:
     dt_util.now = lambda *a, **k: NOW
     dt_util.utcnow = lambda *a, **k: NOW
     logging.disable(logging.CRITICAL)
+    # The perturbation goes in BEFORE the table is built: the questionnaire cells derive their
+    # config through presets.preset_from_config, which reads ThermalParameters.from_config.
+    for p in (args.perturb or "").split(","):
+        if p:
+            PERTURB[p](True)
+            print(f"perturbation {p} on")
     table = all_cells() if args.m4 else cells()
     names = sorted(table)
     if args.cells:
@@ -567,10 +578,6 @@ async def main_async(args) -> int:
     if args.list:
         print("\n".join(names))
         return 0
-    for p in (args.perturb or "").split(","):
-        if p:
-            PERTURB[p](True)
-            print(f"perturbation {p} on")
     fails, rows = 0, []
     t0p, t0t = time.process_time(), time.thread_time()
     for n in names:

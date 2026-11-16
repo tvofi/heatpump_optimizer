@@ -23,7 +23,7 @@
   "perturbation": {
     "change": "--perturb: from_config is handed an absent/'auto' two_zone_mode as a value outside (on, auto, off), so its own presence-rule else-branch decides. This is equivalent to the one-line edit `if two_zone_mode == const.TWO_ZONE_MODE_ON:`",
     "expected_direction": "to_zero",
-    "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py)"
+    "observed_value": "invented_zone_cells 47 -> 0; heat_loss_response_kwh 0.000 -> 32.794 (12.008 vs 44.802 kWh); published heat loss 0.15/0.15 -> 0.10/0.30; card setup page Lower-floor boxes on the minimal plant 2 -> 0 (surfaces.py); full M2+M4 grid (cells.py --m4): fail_cells 61 -> 0 (out/grid_baseline.txt vs out/grid_perturbed.txt). All 61 failures are this invention: the 47 one-zone entity 'present' cells plus the 14 building-questionnaire cells (structure/foundation/era/emitter), whose preset_from_config reads the same predicate and then writes zone keys."
   },
   "metric_definition": "Number of M2 cells with no lower-floor sensor, zone key or explicit mode=on whose coordinator payload says two_zone_enabled=True. Also |planned space kWh at heat loss 0.30 - at 0.10| on the minimal plant.",
   "phenomenon_property": "Two-zone modelling turns on only when the config asks for it (mode on, or mode auto/absent with a zone key or lower-floor sensor present). A one-zone install's single-zone heat-loss and mass reach the model.",
@@ -31,17 +31,30 @@
   "null_control": {
     "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py [--perturb]",
     "value": "null_ref_two_zone=1 under both arms",
-    "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms."
+    "note": "The fully mapped reference plant (lower-floor sensor, zone keys, mode on) is two-zone under both arms, so the perturbation removes only invented zones. The surfaces.py reference card draws 5 Lower-floor boxes under both arms. On the grid, the 133-61 other cells (all REF-based) pass under both arms."
   },
-  "leave_one_out": {"cells": 47, "min": 1, "max": 1, "drop_most_favourable": 46},
+  "leave_one_out": {
+    "cells": 47,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 46
+  },
   "reproduction_steps": [
     "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/two_zone_auto.py  -> invented_zone_cells=47, heat_loss_response_kwh=0.000",
     "... two_zone_auto.py --perturb -> invented_zone_cells=0, heat_loss_response_kwh=32.794",
-    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py [--perturb two_zone] -> card_lower_zone_min 2 -> 0"
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/surfaces.py [--perturb two_zone] -> card_lower_zone_min 2 -> 0",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s2/cells.py --m4 [--perturb two_zone] -> RESULT fail_cells=61 / 0 of 194"
   ],
   "proposed_fix_scope": "thermal_model.ThermalParameters.from_config: let 'auto' and an absent key reach the presence rule (compare with TWO_ZONE_MODE_ON only). Then re-check the options-flow `_single_zone` gate and the golden coord_minimal/coord_dhw fixtures, which were recorded as two-zone.",
-  "files": ["custom_components/heatpump_optimizer/thermal_model.py"],
-  "expected_golden_drift": ["coord_minimal", "coord_dhw", "coord_grid_fee", "coord_all_features"],
+  "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+  ],
+  "expected_golden_drift": [
+    "coord_minimal",
+    "coord_dhw",
+    "coord_grid_fee",
+    "coord_all_features"
+  ],
   "stop_rule_class": "bug",
   "class_guess": "new"
 }
