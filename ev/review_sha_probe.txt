@@ -1,0 +1,25 @@
+### A: review.sha = PR head 375037b736ccac76242b76c8d2c0dc4af9806605 (local probe commit on top of the head, never pushed)
+A  FAIL start evaluation round=11: 31 gap(s), 12 card(s) beside the finders
+A     dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON merged b94425b94f0d25a02576e98fa10a8ff324974a0c is not after the review at 375037b736ccac76242b76c8d2c0dc4af9806605
+A     dev/audit/yardstick/round11/EVALUATION.json card E11-D0 merged f1520e3539b82407e56be9fe915d8a57ad6aedef is not after the review at 375037b736ccac76242b76c8d2c0dc4af9806605
+A  'not after the review' lines: 21
+A  rc=1
+### A2: review.sha = bb917b8a (the row's own commit)
+FAIL start evaluation round=11: 31 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json card E11-COMMON merged b94425b94f0d25a02576e98fa10a8ff324974a0c is not after the review at bb917b8a997519ee240d9f47b11f93ccad99c549
+A2 'not after the review' lines: 21
+rc=1
+### B: a commit X on the evaluation line (child of c04cef7fca) holding the head's record, merged into the head; review.sha = X
+X=a15f602596d38f645ec27e763b24b9a2fa8a81d1 parent=c04cef7fca50e00fa23466dab28f941a4d5034af
+FAIL start evaluation round=11: 10 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 is accepted and not merged at this ref
+rc=1
