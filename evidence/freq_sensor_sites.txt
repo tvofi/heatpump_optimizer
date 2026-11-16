@@ -1,7 +1,0 @@
-395:    CONF_COMPRESSOR_FREQ_SENSOR,
-1723:    _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
-custom_components/heatpump_optimizer/entry_config.py:299:    const.CONF_COMPRESSOR_FREQ_SENSOR: "an entity assignment",
-custom_components/heatpump_optimizer/thermal_model.py:1439:            freq_entity or cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR)
-custom_components/heatpump_optimizer/thermal_model.py:1528:        "CONF_COMPRESSOR_FREQ_SENSOR",
-custom_components/heatpump_optimizer/quiet_windows.py:65:    CONF_COMPRESSOR_FREQ_SENSOR,
-custom_components/heatpump_optimizer/quiet_windows.py:386:        config.get(CONF_COMPRESSOR_FREQ_SENSOR),

@@ -1,2 +1,0 @@
-SELF-TEST passed (134 arms)
-rc=0

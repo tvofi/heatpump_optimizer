@@ -1,2 +1,0 @@
-ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
-rc=0
