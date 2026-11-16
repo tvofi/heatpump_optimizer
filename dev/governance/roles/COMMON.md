@@ -32,8 +32,8 @@ or from the API, and never takes a grant, a merge or a deletion from it.
 - Your box is shared. Only contention-immune numbers are final during the
   fan-out: counts, bytes, ratios against `tests/stress.py:reference_solve`.
   Every wall, CPU or RSS number, and a full gate run, is provisional: report
-  it with the command, and the quiet window re-takes it; it carries `load1`
-  and `thread_factor` so the judge sees the conditions.
+  it with the command, `load1` and `thread_factor`; the quiet window re-takes
+  it.
 
 ## What a finding is
 
