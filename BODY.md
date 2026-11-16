@@ -55,8 +55,8 @@ none
 ## Forward-carry
 
 - "A serial after-edge prices parallel work as a sum" (PC-1113-05) was not measured or changed here. Carry: dismissed: the next round's plan does not exist to measure against until a round-11 roster does, and the claim has no instance in the tree to re-run.
-- The out-of-tree timeout raise and `build_tabs.py` (above). Carry: dismissed: both live in `$HPO_STATE_DIR`, which a cloud seat cannot read or write.
-- A measured `phase_hours` for finders, verify and judge, and the plan, from round 10's record. Carry: R11-PRE-ROUND-METRICS
+- The out-of-tree timeout raise and the round-10 orchestrator's prototype page script (above). Carry: dismissed: both live in `$HPO_STATE_DIR`, which a cloud seat cannot read or write.
+- A measured `phase_hours` for finders, verify and judge, and the plan, from round 10's record. Carry: dismissed: R11-PRE-ROUND-METRICS is carries-open and receives none; the page prints the phases unmeasured until a measurement lands in the durations file
 
 ## Friction
 
