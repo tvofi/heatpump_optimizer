@@ -1,0 +1,5 @@
+gh_calls.py UNDEFINED-GLOBALS: ['bad', 'callers', 'endpoints', 'kept', 'limit', 'lines', 'ln', 'm', 'since']
+merge_train.py UNDEFINED-GLOBALS: ['__conditional_annotations__']
+mutant_run.py UNDEFINED-GLOBALS: ['__conditional_annotations__']
+orchestrator_tick.py UNDEFINED-GLOBALS: ['__conditional_annotations__']
+review_packet.py UNDEFINED-GLOBALS: ['__conditional_annotations__']

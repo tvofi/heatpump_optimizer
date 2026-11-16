@@ -1,0 +1,3 @@
+  FAIL OUTSIDE-CHAIN-IDLE: null control: a path ending in a seat ref inside the window prints nothing
+orchestrator_tick self-test: 368 checks, 1 failed
+rc=1

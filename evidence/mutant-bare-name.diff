@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index f52fe8d93b..1bd6757634 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -1727,7 +1727,7 @@ class Tick:
+         seats = self._seats(S, rl, roster, "outside chains") if outside else {}
+         if seats is None:
+             return
+-        window = datetime.timedelta(minutes=owatch.SEAT_WINDOW_MIN)
++        window = datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+ 
+         def idle(gid):
+             at = [self._commit_at("origin/" + r) for r in seats.get(gid, [])]
