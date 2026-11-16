@@ -1,0 +1,3 @@
+FAIL a reworded queue landing tagged with the item's own id is not appended again (got: ['From #15 (r9-carry), body item b1ea5f7d: reworded when the queue landed it. Carry: R9-QID (items b1ea5f7d)', "the sync's words for the queued item. Carry: R9-QID"])
+roster_sync self-test: 98 checks, 1 failed
+rc=1

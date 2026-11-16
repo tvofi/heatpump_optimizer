@@ -1,0 +1,4 @@
+NOTE stale tree: 4f3aa7edb38f9818e7ddb5ce2d411c67a35fe8db lacks origin/main e352724335c136b65562cd3e71f728549ad04a82; roster read at origin/main
+PREDICT pr-contract / pr-contract CARRY BAD item 3744c4b2 (R11-OUTSIDE-SELF-SETTING-PUMP: R11-OUTSIDE-SELF-SETTING-PUMP is not a group of the roster or of origin/handoff/audit-r10-roster): '- one item for the check. Carry: R11-OUTSIDE-SELF-SETTING-PUMP'
+CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 367c3b9cac0f -- repair before the handoff; the lines above name each arm's repair
+rc=1 wall=1s ref-after=f20f8b13a7
