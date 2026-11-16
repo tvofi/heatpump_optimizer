@@ -794,7 +794,7 @@ def _self_test_yield(expect):
             put(path, json.dumps({**cls, "_rca": {}}, indent=2))
 
         R = RULES_DIR
-        old = "tools/audit/bugclasses.json"
+        old = "first/ledger.json"
         # day 1: the rule under another directory, the copy decoy's source, the ledger at its first path.
         put("notes/rule.md", body("rule"))
         put("old/twin-src.md", body("twin"))
