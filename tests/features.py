@@ -95047,4 +95047,32 @@ R.check(
 )
 
 
+# The build hands the suppression its mask through whole_charges, with the
+# planner's own ChargeRuns: the external-heat golden, its planner told the
+# solve plans runs.
+def _hdr_suppressed():
+    real, runs_arg, seen = _hdr_dp.whole_charges, _hdr_om._charge_runs, []
+
+    def spy(charge_runs, plan, mask):
+        out = real(charge_runs, plan, mask)
+        seen.append((charge_runs, bool(np.all(out <= mask))))
+        return out
+
+    _hdr_dp.whole_charges, _hdr_om._charge_runs = spy, lambda _o, running: _hdr_dp.ChargeRuns(0.5, running, False)
+    try:
+        _hdr_golden.capture("external_heat_active", _hdr_golden.SCENARIOS["external_heat_active"])
+    finally:
+        _hdr_dp.whole_charges, _hdr_om._charge_runs = real, runs_arg
+    return seen
+
+
+_hdr_w = _hdr_suppressed()
+R.check(
+    "a build under external heat passes its suppression mask through whole_charges with the planner's "
+    "ChargeRuns, and what comes back suppresses no step the mask did not",
+    len(_hdr_w) >= 1 and all(c == (0.5, False, False) and within for c, within in _hdr_w),
+    f"{len(_hdr_w)} call(s)",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
