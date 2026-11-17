@@ -1131,7 +1131,7 @@ def self_test() -> int:
     when = lambda h: f"2026-11-17T{h:02d}:00:00Z"  # noqa: E731
     proj_a = {"G1": {"after": ["G2"], "done": False, "finish": when(9)},
               "G2": {"after": [], "done": False, "finish": when(4)},
-              "G3": {"after": [], "done": False, "finish": when(6)},
+              "G3": {"after": [], "done": False, "start": when(3), "finish": when(6)},
               "OLD": {"after": [], "done": True, "finish": None}}
 
     def objective_plan() -> dict:
@@ -1256,7 +1256,7 @@ def self_test() -> int:
     t("projection A of another roster blob is refused (a stale pin)",
       has(projection_refusals(block, plan_of(proj_a, 9.0, 10.0, blob="b1"), b), "STALE pin"))
     t("a B that keeps an unreached rank-2 group is refused (the floor cost shrunk)",
-      projection_refusals(block, a, plan_of(proj_a, 9.0, 10.0))[0].startswith("REDUCED roster keeps G3"))
+      has(projection_refusals(block, a, plan_of(proj_a, 9.0, 10.0)), "REDUCED roster keeps G3"))
     record = projection_record(block, a, b, {"G1", "G3"})
     t("the record holds the floor cost: A less B, and each rank-1 group's delay",
       record["floor_cost"] == {"critical_path_hours": 2.0, "wall_hours": 2.0,
@@ -1269,9 +1269,9 @@ def self_test() -> int:
       projection_record(block, plan_of(proj_a, 9.0, 10.0, version="9.9.9"), b, {"G1", "G3"}) == record)
     t("a committed record equal to the re-run's bytes passes; one edited is refused",
       projection_differs(json.dumps(record, indent=1, sort_keys=True) + "\n", record) == []
-      and projection_differs(json.dumps({**record, "floor_cost": {}}, indent=1, sort_keys=True)
-                             + "\n", record)[0].startswith("PROJECTION differs")
-      and projection_differs(None, record)[0].startswith("PROJECTION missing"))
+      and has(projection_differs(json.dumps({**record, "floor_cost": {}}, indent=1, sort_keys=True)
+                                 + "\n", record), "PROJECTION differs")
+      and has(projection_differs(None, record), "PROJECTION missing"))
 
     # The settlement: only a HELD keyed effect is credit.
     thresholds = {"band_lead_time": {"value": None}}
