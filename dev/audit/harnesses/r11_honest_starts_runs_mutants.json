@@ -1,0 +1,290 @@
+[
+ {
+  "name": "R_MINUS_1",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    through[:, 0] = 1.0 if running else 0.0\n",
+  "new": "    through[:, 0] = 0.0\n"
+ },
+ {
+  "name": "ONE_MINUS_R",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    count: np.ndarray = row_sums(needs * (1.0 - through))\n",
+  "new": "    count: np.ndarray = row_sums(needs)\n"
+ },
+ {
+  "name": "A_AGAINST_FLOOR",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    needs = np.clip(rows / MIN_RUNNING_DRAW_KW, 0.0, 1.0)\n",
+  "new": "    needs = np.clip(rows / floor_kw(floor), 0.0, 1.0)\n"
+ },
+ {
+  "name": "FLOOR_ZERO_GUARD",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    return max(float(floor), MIN_RUNNING_DRAW_KW)\n",
+  "new": "    return max(float(floor), 1e-12)\n"
+ },
+ {
+  "name": "EDGE_RUNNING",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    return int(np.sum(on & ~np.r_[bool(running), on[:-1]]))\n",
+  "new": "    return int(np.sum(on & ~np.r_[False, on[:-1]]))\n"
+ },
+ {
+  "name": "LEVEL_DEFAULT",
+  "file": "custom_components/heatpump_optimizer/duty_legs.py",
+  "old": "    if level is None:\n        level = space + np.asarray(dhw_kw, dtype=float)\n",
+  "new": "    if True:\n        level = space + np.asarray(dhw_kw, dtype=float)\n"
+ },
+ {
+  "name": "MIN_R_BEFORE_AFTER",
+  "file": "custom_components/heatpump_optimizer/duty_legs.py",
+  "old": "    across = stops * np.minimum(level[_BEFORE], level[_AFTER])\n",
+  "new": "    across = stops * level[_BEFORE]\n"
+ },
+ {
+  "name": "RELAXED_SWITCH_OPERAND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        if stops is None or dhw is None or not cost > 0 or descent == _UNPRICED:\n",
+  "new": "        if stops is None or dhw is None or not cost > 0 or descent:\n"
+ },
+ {
+  "name": "TRUE_SWITCH_LEVEL",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            level=None if descent else p_max * runs.running_share(rows + dhw, p_min))\n",
+  "new": "            level=None)\n"
+ },
+ {
+  "name": "START_TERM_IN_DESCENT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        if descent or not cost > 0:\n            return None\n        count =",
+  "new": "        if not cost > 0:\n            return None\n        count ="
+ },
+ {
+  "name": "ENGAGED_COST_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return opt.config.cycling_cost > 0 or opt.config.clamp_planned_levels\n",
+  "new": "    return opt.config.clamp_planned_levels\n"
+ },
+ {
+  "name": "ENGAGED_CLAMP_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return opt.config.cycling_cost > 0 or opt.config.clamp_planned_levels\n",
+  "new": "    return opt.config.cycling_cost > 0\n"
+ },
+ {
+  "name": "CANDIDATE_1_LEFT_OUT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    plans = [first, *_run_plans(opt, h, space, other, lo, hi, cycled)]\n",
+  "new": "    plans = [*_run_plans(opt, h, space, other, lo, hi, cycled)]\n"
+ },
+ {
+  "name": "LOWEST_SCORE_CHOICE",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return min((float(scores[order[0]]), *scoped[order[0]]), resolved, key=lambda c: c[0])\n",
+  "new": "    return max((float(scores[order[0]]), *scoped[order[0]]), resolved, key=lambda c: c[0])\n"
+ },
+ {
+  "name": "LOWEST_RELAXED_PLAN",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            for space in relaxed\n        ), key=lambda c: c[0])[1:]\n",
+  "new": "            for space in relaxed[:1]\n        ), key=lambda c: c[0])[1:]\n"
+ },
+ {
+  "name": "MASK_TO_BOUNDS",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        list(zip(lo.tolist(), hi.tolist())), np.where(on, 1.0, np.where(off, 0.0, np.nan)), floor)\n",
+  "new": "        list(zip(lo.tolist(), hi.tolist())), None, floor)\n"
+ },
+ {
+  "name": "HELD_AS_IT_STANDS",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    return [b if on[i] or off[i] else (float(plan[i]), float(plan[i])) for i, b in enumerate(pinned)]\n",
+  "new": "    return pinned\n"
+ },
+ {
+  "name": "FALLBACK",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        _LOGGER.debug(\"Committing runs failed, the projection ships: %s\", err)\n        return first, scope\n",
+  "new": "        _LOGGER.debug(\"Committing runs failed, the projection ships: %s\", err)\n        return relaxed[0], scope\n"
+ },
+ {
+  "name": "IDENTITY_GUARD",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if not opt.config.cycling_cost > 0 and np.array_equal(first, relaxed[0]):\n        return relaxed[0], scope\n",
+  "new": "    if np.array_equal(first, relaxed[0]):\n        return relaxed[0], scope\n"
+ },
+ {
+  "name": "UNPRICED_DESCENT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "new": "    if False:\n        free_room, free = rescope(None)\n"
+ },
+ {
+  "name": "RESCOPE_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "                (lambda start: rescope(start)[1]) if _priced_stops(self) else None,\n",
+  "new": "                None,\n"
+ },
+ {
+  "name": "CYCLED_KEPT",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    idle = np.where(cycled, space, lo)\n",
+  "new": "    idle = lo\n"
+ },
+ {
+  "name": "FORCED_PINS",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        forced=np.where((other > 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),\n",
+  "new": "        forced=None,\n"
+ },
+ {
+  "name": "RELAXED_AS_CANDIDATE",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if runs.realizable(np.where(cycled, 0.0, space), floor):\n        plans.append(space)\n",
+  "new": "    if False:\n        plans.append(space)\n"
+ },
+ {
+  "name": "OUT_OF_BAND_PENALTY",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
+  "new": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs])\n"
+ },
+ {
+  "name": "END_BALANCE_HALF_STEP",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    ending = cost + fine * np.maximum(np.abs(bal) - f * dt / 2.0, 0.0)\n",
+  "new": "    ending = cost + fine * np.maximum(np.abs(bal) - f * dt * 8.0, 0.0)\n"
+ },
+ {
+  "name": "TRACKED_HALF_STEP",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        np.all(np.abs(walk) <= half * quantum + _SLACK) and abs(walk[-1]) <= f * dt / 2.0 + _SLACK)\n",
+  "new": "        np.all(np.abs(walk) <= half * quantum + _SLACK))\n"
+ },
+ {
+  "name": "START_COST_EDGE",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
+  "new": "        c = np.concatenate([cost[s] + paid for s, starts in srcs]) + fine * outside\n"
+ },
+ {
+  "name": "RUN_PAUSE_COUNTS",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    lengths = (steps_at_least(MIN_RUN, dt), steps_at_least(MIN_PAUSE, dt))\n",
+  "new": "    lengths = (1, 1)\n"
+ },
+ {
+  "name": "CAP_UNDER_FLOOR_OFF",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    want = np.where(np.isnan(want) & (cap < f - _SLACK), 0.0, want)\n",
+  "new": "    want = want\n"
+ },
+ {
+  "name": "COORD_ARGUMENT",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),\n",
+  "new": ""
+ },
+ {
+  "name": "WHATIF_ARGUMENT",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "            compressor_running=duty_switch.record_for(self).solved_running,\n",
+  "new": ""
+ },
+ {
+  "name": "HORIZON_RUNNING",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "                compressor_running=inputs.compressor_running,\n",
+  "new": ""
+ },
+ {
+  "name": "PUBLISHED_RUNNING",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            \"starts\": runs.edge_count(total_power, running),",
+  "new": "            \"starts\": runs.edge_count(total_power),"
+ },
+ {
+  "name": "SETTLED_CLASS",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    running = running_signal.running_now(rec.signal)\n",
+  "new": "    running = None\n"
+ },
+ {
+  "name": "LATCH_READING",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    rec.solved_running = running\n",
+  "new": "    pass\n"
+ },
+ {
+  "name": "UNPRICED_DESCENT_COST_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "new": "    if _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n"
+ },
+ {
+  "name": "CANDIDATE_OWN_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        scoped = [(np.clip(x, *_stage_box(opt, sc[0], dhw)[:2]), sc) for x, sc in zip(plans, scopes)]\n",
+  "new": "        scoped = [(x, sc) for x, sc in zip(plans, scopes)]\n"
+ },
+ {
+  "name": "ADOPTED_VECTOR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            self._space_avail = shipped[3]\n",
+  "new": "            pass\n"
+ },
+ {
+  "name": "N6_ROW_PER_VARIABLE",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    stepped = np.flatnonzero(free)\n",
+  "new": "    stepped = np.arange(x0.size)\n"
+ },
+ {
+  "name": "N6_EMPTY_BATCH_SIMULATED",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if False:\n"
+ },
+ {
+  "name": "N6_FIXED_ENTRY_WRITTEN",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    grad[free] = (f - f0) / dx[free]\n",
+  "new": "    grad[:] = np.resize((f - f0) / dx[free], x0.size)\n"
+ },
+ {
+  "name": "N6_EMPTY_GUARD_OR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if lead == 0 or not free.any():\n"
+ },
+ {
+  "name": "TIE_BREAK_ZERO",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "_TIE_BREAK = 1e-9\n",
+  "new": "_TIE_BREAK = 0.0\n"
+ },
+ {
+  "name": "COMMIT_INITIAL_STATE",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "    cost[min_on - 1 if running else sum(lengths) - 1, half] = 0.0\n",
+  "new": "    cost[sum(lengths) - 1, half] = 0.0\n"
+ },
+ {
+  "name": "COMMIT_RUNNING",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        dt=h.dt, running=h.compressor_running,\n",
+  "new": "        dt=h.dt, running=False,\n"
+ },
+ {
+  "name": "OUT_OF_BAND_CLAMP",
+  "file": "custom_components/heatpump_optimizer/runs.py",
+  "old": "        outside = np.maximum(np.abs(b) - half * quantum, 0.0)\n",
+  "new": "        outside = np.maximum(np.abs(b) - half * quantum, 1.0)\n"
+ },
+ {
+  "name": "SPACE_SCOPE_LOWER_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        [(0.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n",
+  "new": "        [(1.0, float(v)) for v in headroom], h.space_pins, opt._pin_on_power(p_max))\n"
+ }
+]

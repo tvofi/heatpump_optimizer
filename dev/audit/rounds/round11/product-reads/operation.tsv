@@ -1,0 +1,7 @@
+# Seed ledger for `product_reads.py operation`: rows are `<d16-writes --cells item>\t<script>::<check>`.
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running	tests/guard_pins.py::#1913 GCHV writes
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running	tests/guard_pins.py::#1913 GCHV daytime
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running	tests/guard_pins.py::#1913 GCHV hold
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running	tests/guard_pins.py::#1913 GCHV write_ints
+write custom_components/heatpump_optimizer/pump_arbiter.py:1610 _write | duty=control | running	tests/guard_pins.py::R9-SW-2 mode writes its option
+hold custom_components/heatpump_optimizer/pump_arbiter.py:630 _space_target | duty=control | running	tests/guard_pins.py::#1913 GCHV hold

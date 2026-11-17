@@ -1119,8 +1119,8 @@ function checkOrphanCaps(budget) {
   // acceptance drives `checkBudgets` with the rot fixtures, and comparing the
   // recorded caps against that list would report all 33 real files as orphans.
   const measured = new Set(policyFiles())
-  // Both per-file tables: a `files_tokens` cap on an unmeasured path is the
-  // same escape as a `files` one, and it once outlived its file for a round.
+  // Both per-file tables: a deletion that drops a file's line cap and keeps
+  // its token cap leaves the second measuring nothing just the same.
   return ['files', 'files_tokens'].flatMap((table) => Object.keys(b[table] ?? {})
     // A rot fixture is an input to the acceptance and never a member of the
     // corpus; `budgets.md` is capped at 1 so the fixture drive can produce an
@@ -5448,7 +5448,7 @@ function assertAcceptance(derived) {
   // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
   // against nothing, which made "give it a cap" a way out of the corpus. False
   // on a healthy tree like every other budget property, so it is driven.
-  pins += 4
+  pins += 3
   const driveOC = (budget) => {
     const prev = orphanCapBudgetSource
     orphanCapBudgetSource = () => budget
@@ -5464,15 +5464,17 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report ${ORPHAN} exactly once (got ${JSON.stringify(ocRot.map((f) => f.where))}); a cap that measures nothing would read exactly like one that holds.`)
     return 1
   }
-  // The token table is the same escape by its other column: a `files_tokens`
-  // cap on a path no glob matches compares nothing, and it outlived the file
-  // it was kept for (the retired orchestrator turn, R11-POLICY-TOKEN-CAP).
-  const ocTok = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])), files_tokens: { [ORPHAN]: 1 } })
+  // The token table is a second door: a file deleted with its `files` cap but
+  // not its `files_tokens` one left a token cap measuring nothing (the retired
+  // orchestrator turn's), which only the line table was checked for.
+  pins += 1
+  const allCaps = Object.fromEntries(policyFiles().map((f) => [f, 1]))
+  const ocTok = driveOC({ files: allCaps, files_tokens: { ...allCaps, [ORPHAN]: 1 } })
   if (ocTok.length !== 1 || ocTok[0].where !== ORPHAN || !/files_tokens/.test(ocTok[0].message)) {
-    console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report the files_tokens cap on ${ORPHAN} exactly once (got ${JSON.stringify(ocTok.map((f) => [f.where, f.message.slice(0, 40)]))}); a token cap that measures nothing would read exactly like one that holds.`)
+    console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report ${ORPHAN}'s files_tokens cap exactly once (got ${JSON.stringify(ocTok.map((f) => f.where))}); a token cap on a deleted file would read exactly like one that holds.`)
     return 1
   }
-  const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])), files_tokens: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
+  const ocOk = driveOC({ files: allCaps, files_tokens: allCaps })
   if (ocOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
     return 1

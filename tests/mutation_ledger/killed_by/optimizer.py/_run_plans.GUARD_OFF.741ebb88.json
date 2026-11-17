@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_run_plans GUARD_OFF 741ebb88",
+  "killed_by": "tests/features.py",
+  "old": "    if runs.realizable(np.where(cycled, 0.0, space), floor):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

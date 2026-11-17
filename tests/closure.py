@@ -362,6 +362,8 @@ INERT = (
     # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
+    # The long-term direction page (#3616): prose linked from README.md, read by no gate script.
+    "ROADMAP.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
     # script read it, so the INERT listing was honest. #951 ended that --
     # tests/entities.py now reads the register to pin its coverage-bearing

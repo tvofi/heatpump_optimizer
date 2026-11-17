@@ -461,6 +461,28 @@ def finding_words(text: str) -> str:
     return " ".join(MARKUP.sub("", str(text)).lower().split())
 
 
+#: The two wrappers a carry's finding is stored in: the queue's landing
+#: (`carry_audit.land_ops`: `From <pr> (<topic>), body item <id>: <text> (items <id>)`)
+#: and the body's own `Carry: <GROUP>` clause, which the sync's derived text ends with.
+QUEUED_PREFIX = re.compile(r"\AFrom [^:]*?, body item [0-9a-f]{8}: ")
+ITEMS_TAG = re.compile(r"\s*\(items? [0-9a-f]{8}(?:[ ,]+[0-9a-f]{8})*\)\s*\Z")
+CARRY_CLAUSE = re.compile(r"\s*Carry:\s*[^\s()]+\s*\Z")
+ITEM_ID = re.compile(r"\bbody item ([0-9a-f]{8})\b|\(items? ([0-9a-f]{8}(?:[ ,]+[0-9a-f]{8})*)\)")
+
+
+def finding_core(text: str) -> str:
+    """`finding_words` of <text> with the queue's `From ..., body item <id>: `
+    prefix, its `(items <id>)` tag and the trailing `Carry: <GROUP>` clause
+    stripped: the finding one body item records, however it was landed."""
+    t = QUEUED_PREFIX.sub("", " ".join(str(text).split()))
+    return finding_words(CARRY_CLAUSE.sub("", ITEMS_TAG.sub("", t)))
+
+
+def item_ids(text: str) -> set[str]:
+    """The carry_audit body-item ids <text> names as a landing's own tag."""
+    return {i for a, b in ITEM_ID.findall(str(text)) for i in (a, *b.replace(",", " ").split()) if i}
+
+
 def rulings(text: str) -> set[tuple[str, str]]:
     """(round, item) for every triage ruling <text> cites, in the resolvable
     form (`triage: <file>#P<n>`) or the routing seat's prose form
@@ -480,7 +502,7 @@ def rulings(text: str) -> set[tuple[str, str]]:
     return out
 
 
-def already_carried(carries: list, text: str) -> str | None:
+def already_carried(carries: list, text: str, item: str | None = None) -> str | None:
     """The destination carry that records this same finding, or None.
 
     The key is the finding, never the pull request (#2889's B1): one pull
@@ -489,16 +511,18 @@ def already_carried(carries: list, text: str) -> str | None:
     a number in prose (`a second instance beside #2447's`) matches it too. Two
     records are the same finding when they cite the same triage ruling, or
     when their substantive text is equal once markup and whitespace are
-    normalised. A derived copy
+    normalised (`finding_core`: the queue's landing and the body's own
+    `Carry:` clause are wrappers, not the finding), or when the carry is tagged
+    with the body item's own carry_audit id `item`. A derived copy
     the destination already holds is refused before the write path's triage
     gate sees it: that gate refuses an unresolvable `triage P<n>` citation,
     and `write_roster` is atomic, so the duplicate would abort the stage
     changes that stop it being re-derived.
     """
-    want = finding_words(text)
+    want = finding_core(text)
     want_rulings = rulings(text)
     for c in carries:
-        if finding_words(c) == want:
+        if (want and finding_core(c) == want) or (item and item in item_ids(c)):  # mut:dupkey
             return str(c)
         if want_rulings & rulings(c):
             return str(c)
@@ -542,7 +566,7 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
                     text = " ".join(BULLET.sub("", row["text"], count=1).split())
                     if text in (g.get("carry") or []) or (dest, text) in appends:
                         continue
-                    held = already_carried(g.get("carry") or [], text)
+                    held = already_carried(g.get("carry") or [], text, row["id"])
                     if held is not None:
                         refusals.append((pr.number, dest,
                                          "already carried (the same finding, "
@@ -1080,6 +1104,18 @@ def self_test() -> int:
          "after": [], "brief": "echo",
          "carry": ["the widget parser drops a unit. `Carry: R9-ECHO`"],
          "resume": {"stage": "not-started"}},
+        # The queue landed #15's item first, wrapped as carry_audit.land_ops
+        # writes it: the sync's own derived text is that finding again.
+        {"group": "R9-QUEUED", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "queued",
+         "carry": ["From #15 (r9-carry), body item 0badc0de: the queue landed "
+                   "this first. Carry: R9-QUEUED (items 0badc0de)"],
+         "resume": {"stage": "not-started"}},
+        # The queue's landing reworded, so only its `(items <id>)` tag, the
+        # body item's carry_audit id (set below, from BODY), names the item.
+        {"group": "R9-QID", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "qid", "carry": [],
+         "resume": {"stage": "not-started"}},
         # The done hold: #88 is open and only R9-HOLD lists it; #89 is closed.
         {"group": "R9-HOLD", "lane": "L1", "issues": [88], "fixes": [],
          "after": [], "brief": "hold",
@@ -1104,7 +1140,15 @@ def self_test() -> int:
             "- the prose control: a distinct finding for a destination that "
             "only mentions the number. Carry: R9-PROSE\n\n"
             "- the widget parser drops a unit. Carry: R9-ECHO\n\n"
+            "- the queue landed this first. Carry: R9-QUEUED\n\n"
+            "- a distinct finding for the queued group. Carry: R9-QUEUED\n\n"
+            "- the sync's words for the queued item. Carry: R9-QID\n\n"
             "- an issue keeps its own record. Carry: #77\n")
+    qid = next(r["id"] for r in carry_audit.audit(BODY, [], carry_audit.Dests(ROSTER_FIXTURE, set()))["rows"]
+               if "R9-QID" in r["dests"])
+    qid_landing = (f"From #15 (r9-carry), body item {qid}: reworded when the queue "
+                   f"landed it. Carry: R9-QID (items {qid})")
+    next(g for g in groups if g["group"] == "R9-QID")["carry"] = [qid_landing]
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
          "mergeCommit": {"oid": "a" * 40}, "body": "## Friction\n\n- none\n"},
@@ -1244,6 +1288,16 @@ def self_test() -> int:
                   "the prose control: a distinct finding for a destination "
                   "that only mentions the number. Carry: R9-PROSE"],
               by["R9-PROSE"].get("carry"))
+        check("the queue's landing of the same item is not appended again: "
+              "its prefix, tag and Carry clause stripped, the text is equal",
+              by["R9-QUEUED"].get("carry")
+              == ["From #15 (r9-carry), body item 0badc0de: the queue landed "
+                  "this first. Carry: R9-QUEUED (items 0badc0de)",
+                  "a distinct finding for the queued group. Carry: R9-QUEUED"],
+              by["R9-QUEUED"].get("carry"))
+        check("a reworded queue landing tagged with the item's own id is not "
+              "appended again", by["R9-QID"].get("carry") == [qid_landing],
+              by["R9-QID"].get("carry"))
         check("a duplicate differing only in markup is not appended",
               by["R9-ECHO"].get("carry")
               == ["the widget parser drops a unit. `Carry: R9-ECHO`"],
