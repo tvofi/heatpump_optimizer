@@ -2,7 +2,7 @@
  "id": "D0-s3-03",
  "scope": "D0-s3",
  "step": "D0.M7",
- "title": "_terminal_cost's docstring says the plan breaches the comfort floor at the tail without it; across the learnable weight range it never does",
+ "title": "_terminal_cost docstring: no credit breaches the tail floor; at any learnable weight it never does",
  "severity": "low",
  "claim": "With HeatPumpOptimizer._terminal_cost zeroed, the shipped plan's last-2-h degree-steps below the per-step comfort floor are no worse than with it on 0 of 40 committed cells at the default comfort_weight (5.0) and 0 of 40 at the comfort learner's minimum (1.0), while tail energy falls on 40/40 and 39/40; the floor-breach half of the docstring holds only at comfort_weight 0.05 (13 of 40), outside what comfort_learning can reach. On every d0-grid line (2400, decomp_oracle.py) zeroing the credit moves 1811 plans and lowers tail energy on 1659, and worsens the tail floor breach on 0.",
  "mechanism": "The comfort floor is held by the objective's own floor terms (_comfort_terms: squared undershoot x10 plus the L1 term _COMFORT_FLOOR_L1 x comfort_weight), which at any learnable weight (comfort_learning.COMFORT_WEIGHT_MIN..MAX = 1..40) already price a tail undershoot above the energy the credit would save. Removing the credit does dump the last hours (tail kWh 3.6-10.7 -> 0), but the room coasts down without crossing the floor inside the horizon. The docstring states the floor breach as the reason the term exists; a reader (or a fixer weighing a change to the credit) is told the credit guards comfort when it guards only the end-state value.",
