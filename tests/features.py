@@ -76647,6 +76647,93 @@ R.check(
     [_ss_rearm(a) for a in _ss_rearm_at] == [(True, 0, 1.0, False), (False, 1, 1.0, False), (False, 6, 1.0, True), (False, 6, 1.0, True)],
     f"{[_ss_rearm(a) for a in _ss_rearm_at]}",
 )
+# The park's two bounds, at their own instants: a clock reading the park
+# itself (0 s waited) and one exactly COP_HOLD_HORIZON_S later both keep it.
+_ss_park_at = (_cf_td(0), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S), _cf_td(seconds=_df_acc.COP_HOLD_HORIZON_S + 1))
+
+
+def _ss_park_edge(after):
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0)
+    owed = probe.owed_scale(lambda: 1.0, _CF_T0 + after, read=False)
+    return owed, probe.parked_at is not None
+
+
+R.check(
+    "a parked probe still holds its base on the instant it parked and on the "
+    "instant COP_HOLD_HORIZON_S has passed, both bounds inclusive; one second "
+    "later it re-arms",
+    [_ss_park_edge(a) for a in _ss_park_at] == [(1.0, True), (1.0, True), (1.0, False)],
+    f"{[_ss_park_edge(a) for a in _ss_park_at]}",
+)
+_ss_edge_scales = (_df_acc.COP_SCALE_MIN, _df_acc.COP_SCALE_MAX, 0.5001, 1.5999)
+
+
+def _ss_first_at(scale):
+    """A fresh probe's first row read at ``scale``: the clamp test is strict at both ends."""
+    probe = _df_acc.ScaleProbe()
+    verdict = probe.admit(_cf_row(1.5, 1.5, scale=scale, at=_CF_T0))
+    return verdict, probe.base, probe.restore_due, probe.reseeded
+
+
+R.check(
+    "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX "
+    "keeps no base and makes the restore due; one a hair inside either "
+    "clamp becomes the base",
+    [_ss_first_at(s) for s in _ss_edge_scales]
+    == [("pending", None, True, True)] * 2 + [("pending", 0.5001, False, False), ("pending", 1.5999, False, False)],
+    f"{[_ss_first_at(s) for s in _ss_edge_scales]}",
+)
+
+
+def _ss_restore_to(configured):
+    probe = _df_acc.ScaleProbe(restore_due=True)
+    return probe.owed_scale(lambda: configured, _CF_T0), probe.base
+
+
+R.check(
+    "a due restore owes the configured scale clamped to [COP_SCALE_MIN, "
+    "COP_SCALE_MAX], and a pending probe takes the clamped value as its base: "
+    "2.0 is owed as 1.6, 0.3 as 0.5, 0.9 as itself",
+    [_ss_restore_to(c) for c in (2.0, 0.3, 0.9)] == [(1.6, 1.6), (0.5, 0.5), (0.9, 0.9)],
+    f"{[_ss_restore_to(c) for c in (2.0, 0.3, 0.9)]}",
+)
+
+
+def _ss_no_base():
+    """A probe with no base, no restore and nothing owed, a row read since the last step."""
+    probe = _df_acc.ScaleProbe(dither=_ss_SD(admitted=True))
+    try:
+        return probe.owed_scale(lambda: 1.0, _CF_T0), probe.dither.reading, probe.dither.ahead
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+
+
+R.check(
+    "where no probe runs (no base, no restore, nothing owed) the probe owes "
+    "no scale and starts no dither, even after a row was read",
+    _ss_no_base() == (None, None, None),
+    f"{_ss_no_base()}",
+)
+
+
+def _ss_take_under(reading):
+    """Rows taken under one ``reading``: two (heat asks 2.0 then 1.5 kW) under
+    a first-of-pair reading, one under a second-of-pair reading."""
+    sd = _ss_SD(reading=reading)
+    try:
+        for asked in ((2.0, 1.5) if not reading[1] else (1.5,)):
+            sd.take(_cf_row(asked, asked, scale=1.0, at=_CF_T0))
+    except Exception as err:  # noqa: BLE001 -- a mutant's failure is its reading
+        return type(err).__name__
+    return sd.contrasts, sd.rows
+
+
+R.check(
+    "two rows taken under one first-of-pair reading make no pair and add no "
+    "contrast, and a second-of-pair row whose first was never taken adds none",
+    [_ss_take_under(r) for r in ((1, False), (1, True))] == [([], 2), ([], 1)],
+    f"{[_ss_take_under(r) for r in ((1, False), (1, True))]}",
+)
 # A pair is two consecutive admitted rows: a frozen cycle, one with no power
 # reading, or one refused under the duty floor between them voids it. Two
 # admitted rows, then one such cycle, over and over: no pair ever completes.
