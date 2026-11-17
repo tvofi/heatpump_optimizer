@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow._elapsed GUARD_OFF 34121f43",
+  "killed_by": "tests/features.py",
+  "old": "            if (now.tzinfo is None) != (then.tzinfo is None):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 10.0.2
+# claims-for: 10.0.3
 #
-# v10.0.2: card applies a plan only up to the manual-plan window; implausible floor-return readings no longer seed the slab. The stamp empties the list; the
+# v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

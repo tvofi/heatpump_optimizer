@@ -23,6 +23,10 @@ not go through ``async_simulate``.
            (the ``holds`` line prints the room it settles at), so its day
            setpoints tie and two passes do not settle it: that row reads the
            thermostat reference on such a house, not the schedule arithmetic. Null: the same start twice.
+           A row is missed when it reads the pair, opposes its ask, or reads 0
+           where the ask binds; a 0 is correct (``zero_kind``) when, on every
+           distinct day of the week, neither schedule's thermostat draws on a
+           step the ask moves: the room coasts above both setpoints there.
   pair     item pair-other-asks: the steady pair's figure for a hot-water ask
            alone on a tanked house, by measured start and by hour. Null: the
            room and slab start (columns 1 and 2), which the held start holds.
@@ -125,6 +129,40 @@ def figure(opt, params, asked, given):
     return price_tiles.schedule_figure(*days, float(np.mean(given.forecast.prices)), 0.0, 24.0)[whatif.STEADY_KEY]
 
 
+#: A draw at or under this is none, kW: the thermostat's power is clipped at 0, never signed.
+IDLE_KW = 1e-9
+
+
+def zero_kind(opt, params, asked, given):
+    """Why a schedule figure reads 0: ``"idle"`` or ``"binds"``.
+
+    ``"idle"`` when, on every distinct day of ``reference_day``'s week, the
+    thermostat holding either schedule draws nothing, on its counted second
+    pass, at any step whose setpoint the ask moves: the room coasts above both
+    setpoints there, so the ask saves or costs nothing and 0 is the right
+    figure. Otherwise the ask moves a step the thermostat heats on, held at
+    the pump's maximum both ways or not, and a 0 says nothing of it: a miss.
+    """
+    sides = [shadow(opt, params, a) for a in ({}, asked)]
+    weather = optimizer._day_mean_weather(optimizer._horizon_weather(given.forecast, N), N)
+    seen = set()
+    for offset in range(7):
+        when, hours = optimizer._step_clock(given.start_time + timedelta(days=offset), N, DT)
+        comforts = [side._build_comfort_bounds(hours, N, None, None, when)[0] for side in sides]
+        targets = [np.asarray(optimizer._baseline_targets(c, N, side.config.target_temp)) for c, side in zip(comforts, sides)]
+        key = tuple(map(tuple, targets))
+        if key in seen:
+            continue
+        seen.add(key)
+        moved = targets[0] != targets[1]
+        for side, comfort in zip(sides, comforts):
+            _, settled = side._compute_baseline_power(weather, given.state, DT, comfort)
+            power, _ = side._compute_baseline_power(weather, given.state, DT, comfort, start=settled)
+            if np.any(np.asarray(power)[moved] > IDLE_KW):
+                return "binds"
+    return "idle"
+
+
 def arm_weekday():
     for label, config in (("weekend comfort set", WEEKEND), ("null, no weekend comfort", {})):
         opt, params = build(**config)
@@ -138,7 +176,7 @@ def arm_weekday():
         print(f"RESULT weekday {label}: asks whose figure moves with the weekday {moved}, "
               f"asks leaving the schedule branch on some day {pairs}")
     opt, params = build(**WEEKEND)
-    friday, rows, wrong, pairs, zero = MONDAY + timedelta(days=4), 0, 0, 0, 0
+    friday, rows, wrong, pairs, zero, idle = MONDAY + timedelta(days=4), 0, 0, 0, 0, 0
     for hour in HOURS:
         for _name, asked, want in asks(opt, WEEKEND_ASKS):
             f = figure(opt, params, asked, inputs(hour, start(), friday))
@@ -146,7 +184,9 @@ def arm_weekday():
             pairs += f is None
             wrong += f is not None and f * want < 0
             zero += f == 0
-    print(f"RESULT weekday friday: rows {rows} against the ask {wrong} rounding to 0.00 {zero} reading the pair {pairs}")
+            idle += f == 0 and zero_kind(opt, params, asked, inputs(hour, start(), friday)) == "idle"
+    print(f"RESULT weekday friday: rows {rows} against the ask {wrong} rounding to 0.00 {zero} "
+          f"(of them idle on every step the ask moves {idle}) reading the pair {pairs}")
 
 
 def arm_fields():
@@ -157,12 +197,16 @@ def arm_fields():
                       ("valve, one tank", {"valve": True}), ("two-zone valve two-tank", {"two_zone": True, "valve": True})):
         opt, params = build(**kw)
         worst = dict.fromkeys((m[0] for m in moves), 0.0)
-        rows = wrong = 0
+        rows = against = pairs = 0
+        zeros = {"idle": [], "binds": []}
         for hour in HOURS:
-            for _name, asked, want in asks(opt):
+            for name, asked, want in asks(opt):
                 base = figure(opt, params, asked, inputs(hour, start()))
                 rows += 1
-                wrong += base is None or base * want <= 0
+                pairs += base is None
+                against += base is not None and base * want < 0
+                if base == 0:
+                    zeros[zero_kind(opt, params, asked, inputs(hour, start()))].append(f"{name} {hour:02d}:00")
                 for move, change in moves:
                     other = figure(opt, params, asked, inputs(hour, start(**change)))
                     worst[move] = max(worst[move], abs(other - base))
@@ -171,7 +215,12 @@ def arm_fields():
         _, held = opt._compute_baseline_power(weather, start(), DT, np.full(N, 21.0), start=held)
         print(f"  fields {label} holds: a thermostat set to 21.0 all day ends its second pass with the room at "
               f"{held.room_temperature:.2f}")
-        print(f"RESULT fields {label}: rows {rows} at 0 or against the ask {wrong}; largest move of the figure by start: "
+        print(f"  fields {label} zeros: idle on every moved step {zeros['idle'] or 'none'}; "
+              f"binding {zeros['binds'] or 'none'}")
+        print(f"RESULT fields {label}: rows {rows} missed {pairs + against + len(zeros['binds'])} "
+              f"(reading the pair {pairs}, against the ask {against}, at 0 where the ask binds {len(zeros['binds'])}), "
+              f"at 0 and idle on every step the ask moves (a correct zero) {len(zeros['idle'])}; "
+              "largest move of the figure by start: "
               + ", ".join(f"{m} {v:.2f}" for m, v in worst.items()))
 
 
