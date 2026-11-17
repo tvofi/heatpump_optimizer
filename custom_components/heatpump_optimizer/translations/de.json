@@ -2406,7 +2406,7 @@
         },
         "dhw_legionella_temperature": {
           "name": "Temperatur der Legionellenschaltung",
-          "description": "Speichertemperatur, die während einer Legionellenschaltung erreicht wird."
+          "description": "Speichertemperatur, die während einer Legionellenschaltung erreicht wird, 55 bis 70 °C: 70 °C ist das harte Maximum, auf das jede Warmwasserschaltung begrenzt wird."
         },
         "dhw_legionella_interval_days": {
           "name": "Intervall der Legionellenschaltung",
@@ -2524,7 +2524,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 begrenzt nichts; lassen Sie das Feld weg, um mit dem gespeicherten Anteil zu rechnen."
         }
       }
     },
@@ -2614,7 +2614,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 begrenzt nichts, und ihn zu senden ersetzt einen gespeicherten kleineren Anteil; lassen Sie das Feld weg, um den gespeicherten zu behalten."
         },
         "dhw_setpoint": {
           "name": "Warmwasser-Sollwert",

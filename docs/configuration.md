@@ -1390,7 +1390,7 @@ would otherwise divide by zero inside the model:
   `dhw_min_temperature` (10–70), `dhw_daily_consumption` (0.01–2000),
   `dhw_cooling_rate` (0.01–5), `buffer_cooling_rate` (0.01–50),
   `dhw_schedule_enabled`, `dhw_windows`, `dhw_idle_min_temperature` (5–60),
-  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–75),
+  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–70),
   `dhw_legionella_interval_days` (0.01–60).
 - **Weather:** `wind_sensitivity_factor` (0–1),
   `rain_heat_loss_multiplier` (1–2).
@@ -1420,7 +1420,8 @@ same failure the live solve would report.
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
 would never open is rejected — checked against the values that *would* be
-stored, not only against the ones in the call.
+stored, not only against the ones in the call. A `silent_mode_power_fraction`
+of 1.0 replaces a stored lower fraction; leave the field out to keep it.
 
 **`assign_entity`** assigns or clears one optional sensor slot: `key` is one of
 the 21 assignable configuration keys (`outdoor_temp_entity`,

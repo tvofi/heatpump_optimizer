@@ -2406,7 +2406,7 @@
         },
         "dhw_legionella_temperature": {
           "name": "Legionellatemperatur",
-          "description": "Den temperatur beredaren når under en legionellacykel."
+          "description": "Den temperatur beredaren når under en legionellacykel, 55 till 70 °C: 70 °C är det hårda maximum som varje varmvattencykel begränsas till."
         },
         "dhw_legionella_interval_days": {
           "name": "Legionellaintervall",
@@ -2524,7 +2524,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
-          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 är det oinställda värdet: att skicka det ändrar inget, så en redan sparad andel gäller fortfarande."
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 begränsar inget; utelämna fältet för att räkna med den sparade andelen."
         }
       }
     },
@@ -2614,7 +2614,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
-          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 är det oinställda värdet: att skicka det ändrar inget, så en redan sparad andel gäller fortfarande."
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 begränsar inget, och att skicka det ersätter en sparad lägre andel; utelämna fältet för att behålla den sparade."
         },
         "dhw_setpoint": {
           "name": "Varmvattenbörvärde",

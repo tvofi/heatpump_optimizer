@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:overridden_config GUARD_OFF b6bb9a79",
+  "killed_by": "tests/features.py",
+  "old": "    if CONF_SILENT_MODE_FRACTION in overrides:",
+  "reason": "Re-keyed by hand from GUARD_OFF 8780e9c7 (`if fraction != DEFAULT_SILENT_MODE_FRACTION:`), the predicate carry 56724b85 replaced. GUARD_OFF (`if False:`) on this line at c22c267e2f, driven through tools/audit/seat/features_block.py over the block from `_et_quiet_hass = FakeHass()` to `_et_quiet_set = _et_call(` (its --emit-prelude), took that block from 0 failed to failing `the what-if and live-config folds apply an explicit 1.0 over a stored 0.6 and keep it when absent`; the unmutated block passed."
+}
