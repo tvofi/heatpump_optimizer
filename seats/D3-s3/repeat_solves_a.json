@@ -1,0 +1,39 @@
+[
+ {
+  "script": "tests/manual_plan.py",
+  "rc": 0,
+  "calls": 31,
+  "hashed": 31,
+  "repeats": 7,
+  "repeat_cpu_s": 0.78,
+  "solve_cpu_s": 4.47,
+  "wall_s": 6.5,
+  "cpu_s": 5.3,
+  "sites": [
+   {
+    "site": "manual_plan.py:174:_solve",
+    "first": "manual_plan.py:174:_solve",
+    "n": 7,
+    "cpu_s": 0.78
+   }
+  ],
+  "tail": [
+   "ALL 132 manual plan checks PASSED"
+  ]
+ },
+ {
+  "script": "tests/optimality.py",
+  "rc": 0,
+  "calls": 23,
+  "hashed": 23,
+  "repeats": 0,
+  "repeat_cpu_s": 0,
+  "solve_cpu_s": 97.7,
+  "wall_s": 113.4,
+  "cpu_s": 107.5,
+  "sites": [],
+  "tail": [
+   "ALL 84 OPTIMALITY CHECKS PASSED"
+  ]
+ }
+]

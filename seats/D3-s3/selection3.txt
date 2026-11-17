@@ -1,0 +1,47 @@
+# D3-s3 pre-screen pool 3: unpinned sites whose executing drivers (reach_census.py
+# executed_by) cost under 330 s together at the pre-screen baseline walls; their
+# cheapest executor runs first, so a pinned site is killed within seconds.
+config_flow.py:528 RETURN_DEL
+config_flow.py:1344 RETURN_DEL
+config_flow.py:2181 CMP_BOUND
+config_flow.py:2262 GUARD_OFF
+config_flow.py:2264 RETURN_DEL
+config_flow.py:2287 BOOLOP
+config_flow.py:2637 RETURN_DEL
+config_flow.py:2809 GUARD_OFF
+config_flow.py:3598 RETURN_DEL
+frontend.py:87 BOOLOP
+frontend.py:91 GUARD_OFF
+frontend.py:123 GUARD_OFF
+frontend.py:135 BOOLOP
+frontend.py:135 GUARD_OFF
+manual_plan.py:137 CMP_BOUND
+manual_plan.py:137 GUARD_OFF
+open_meteo.py:90 RETURN_DEL
+open_meteo.py:131 RETURN_DEL
+open_meteo.py:141 GUARD_OFF
+open_meteo.py:145 CMP_BOUND
+open_meteo.py:145 GUARD_OFF
+open_meteo.py:152 CLAMP_DROP
+open_meteo.py:154 CMP_BOUND
+open_meteo.py:154 GUARD_OFF
+open_meteo.py:159 CMP_BOUND
+open_meteo.py:159 GUARD_OFF
+open_meteo.py:165 CMP_BOUND
+open_meteo.py:174 CMP_BOUND
+open_meteo.py:178 CMP_BOUND
+open_meteo.py:293 CMP_BOUND
+open_meteo.py:294 CMP_BOUND
+open_meteo.py:307 GUARD_OFF
+open_meteo.py:313 RETURN_DEL
+open_meteo.py:317 RETURN_DEL
+open_meteo.py:339 CMP_BOUND
+open_meteo.py:355 GUARD_OFF
+open_meteo.py:359 GUARD_OFF
+open_meteo.py:364 GUARD_OFF
+open_meteo.py:374 GUARD_OFF
+open_meteo.py:417 RETURN_DEL
+open_meteo.py:425 GUARD_OFF
+open_meteo.py:456 GUARD_OFF
+open_meteo.py:464 GUARD_OFF
+open_meteo.py:478 CMP_BOUND
