@@ -1,0 +1,19 @@
+cells measured: 180 (10 states x 3 viewports x 2 themes x 3 languages); driver misses 0
+RESULT cells=180 count
+RESULT headline_rows=162 count
+RESULT tile_row_misaligned=0 count
+RESULT tile_row_misaligned_max_px=0 px
+RESULT below_floor_cells=0 count
+RESULT below_floor_elements=0 count
+RESULT offscale_font_sizes=9 count
+RESULT offscale_spacing=34 count
+RESULT series_colour_split=0 count
+RESULT untranslated_runs=0 count
+RESULT role_colour_split=3 count
+RESULT non_en_error_cells=60 count
+RESULT english_error_lines=0 count
+RESULT console_errors=0 count
+RESULT wall_s=86.5 s (provisional)
+RESULT thread_factor=1.00
+RESULT load1=0.81
+RESULT swapins=0
