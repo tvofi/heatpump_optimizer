@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._run_asked CMP_BOUND 8a1bdcb7",
+  "killed_by": "tests/features.py",
+  "old": "            if a >= floor and a > 0.0 and ask[0] <= a <= ask[1]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if a > floor and a > 0.0 and ask[0] <= a <= ask[1]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=23. Each of the 4 sites under this anchor was killed."
+}

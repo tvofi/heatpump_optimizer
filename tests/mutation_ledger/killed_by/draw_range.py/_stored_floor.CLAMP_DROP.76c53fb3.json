@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_stored_floor CLAMP_DROP 76c53fb3",
+  "killed_by": "tests/features.py",
+  "old": "    return (floor if keep else None), (min(max(since, 0), rows) if type(since) is int else 0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (floor if keep else None), ((max(since, 0)) if type(since) is int else 0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

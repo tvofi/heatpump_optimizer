@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:solve_band CMP_BOUND f622d728",
+  "killed_by": "tests/features.py",
+  "old": "        return band(cfg_max, \"configured\", \"lapsed\" if samples >= CEILING_MIN_SAMPLES else \"awaiting_probe\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return band(cfg_max, \"configured\", \"lapsed\" if samples > CEILING_MIN_SAMPLES else \"awaiting_probe\")`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

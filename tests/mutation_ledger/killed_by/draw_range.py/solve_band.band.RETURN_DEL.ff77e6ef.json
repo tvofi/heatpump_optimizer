@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:solve_band.band RETURN_DEL ff77e6ef",
+  "killed_by": "tests/features.py",
+  "old": "        return SolveBand(cfg_max, top, min_kw, source, reason, learned, samples, since, **bottom)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
