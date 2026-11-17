@@ -323,7 +323,8 @@ class Tick:
 
     def conditional(self, path: str) -> tuple[int, str]:
         """The body of the single-page GET at <path>, ETag-conditional and shared with every
-        process through the state dir (`gh_read.conditional_get`; a 304 costs no core call)."""
+        process under the same $HPO_STATE_DIR (`gh_read.conditional_get`, `gh_read.etag_dir`;
+        a 304 costs no core call)."""
         return gh_read.conditional_get(lambda argv: self.gh(argv[1:]), path)
 
     def git(self, argv: list[str]) -> tuple[int, str]:
@@ -2924,7 +2925,9 @@ class Stub:
                 "required_status_checks": [{"context": c} for c in out.splitlines() if c.strip()]}}]}
         elif "/check-runs?" in path:
             runs = [json.loads(x) for x in out.splitlines() if x.strip()]
-            body = {"total_count": len(runs), "check_runs": runs}
+            # a handler holding one page object (`check_runs` keyed) states that page as is
+            one = len(runs) == 1 and "check_runs" in runs[0]
+            body = runs[0] if one else {"total_count": len(runs), "check_runs": runs}
         elif "/comments?" in path:
             pages = json.loads(out)
             body = pages[0] if pages and isinstance(pages[0], list) else pages
@@ -5845,6 +5848,26 @@ def self_test() -> int:
             a, f = check("a full first page is read through to the end", [
                 ("the paginated slurp read follows the 100-comment conditional page",
                  any("--slurp" in c and "issues/71/comments?per_page=100" in " ".join(c) for c in t4._gh.calls)),
+            ])
+            total, failed = total + a, failed + f
+
+            def runs_page(sha, page_total):
+                """check_runs(<sha>) over a 100-run conditional page stating <page_total>, and a
+                paginated read holding 101 runs -> (runs read, whether the --paginate read ran)."""
+                page = {"total_count": page_total, "check_runs": [run_obj(f"r{i}") for i in range(100)]}
+                t_ = tick(gh_extra=[
+                    (lambda argv: "-i" in argv and f"commits/{sha}/check-runs" in " ".join(argv), 0, json.dumps(page)),
+                    (("--paginate", f"commits/{sha}/check-runs"), 0,
+                     "\n".join(json.dumps(run_obj(f"r{i}")) for i in range(101)))])
+                got_ = t_.check_runs(sha)
+                return got_, any("--paginate" in c and f"commits/{sha}/check-runs" in " ".join(c) for c in t_._gh.calls)
+            more, more_pg = runs_page(f"{72:040x}", 101)
+            one, one_pg = runs_page(f"{73:040x}", 100)
+            a, f = check("a check-run page holding fewer runs than its total_count is read through to the end", [
+                ("the paginated read follows a 100-run page whose total_count is 101, and its 101 runs are returned",
+                 more_pg and more is not None and len(more) == 101),
+                ("null control: a page holding its whole total_count is the one read, no --paginate call",
+                 not one_pg and one is not None and len(one) == 100),
             ])
             total, failed = total + a, failed + f
         finally:

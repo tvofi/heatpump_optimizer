@@ -1385,9 +1385,10 @@ REDS_JQ='(.total_count | "T \(.)"),
           | select(.status == "completed" and .conclusion == "failure")
           | select(.name != "pr-contract / pr-contract" and .name != "gate")
           | "R \(.name)")'
-# A sha's read is kept under the state dir for PREPR_ANCESTRY_TTL_S (default 3600 s) when no run at it
-# was still going: a commit's runs are final then, and `update_pr` and each prepr run re-read
-# the same ancestry. A read with a run pending is never kept (a red may still land).
+# A sha's read is kept under the state dir for PREPR_ANCESTRY_TTL_S (default 3600 s) when it holds a
+# run and no run at it was still going: a commit's runs are final then, and `update_pr` and each
+# prepr run re-read the same ancestry. A read with a run pending, or with no run at all (CI not yet
+# queued on a just-pushed commit), is never kept: a red may still land.
 gh_credential() { # gh binary -> the token on stdout, rc 1 when none
   case "${GITHUB_TOKEN:-}" in ?*) printf '%s' "$GITHUB_TOKEN"; return 0 ;; esac
   case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
@@ -1423,11 +1424,12 @@ ancestry_reds() { # the branch's own remote head ref
   base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main, so no ancestry could be enumerated"; return 3; }
   shas=$(git rev-list "$base..$1" 2>/dev/null) || { echo "$1 could not be read, so no ancestry was enumerated"; return 3; }
   [ -n "$shas" ] || { echo "no commit of this branch is on $1 yet -- the first push has no ancestry to read"; return 3; }
-  local cdir f runs ttl=${PREPR_ANCESTRY_TTL_S:-3600}
+  local cdir f fresh runs ttl=${PREPR_ANCESTRY_TTL_S:-3600}
   cdir=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/prepr-ancestry
   names=""; any=""; runs=0
   for sha in $shas; do
     f=$cdir/${repo//\//_}-$sha
+    fresh=""
     if [ -f "$f" ] && [ -n "$(find "$f" -mmin "-$((ttl / 60))" 2>/dev/null)" ]; then
       out=$(cat "$f")
     else
@@ -1436,12 +1438,14 @@ ancestry_reds() { # the branch's own remote head ref
       # a read that did not answer in the lines' shape is UNCHECKED, never confirmed empty
       case "$out" in "T "*) ;; *)
         echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3 ;; esac
-      if ! grep -qx P <<<"$out" && mkdir -p "$cdir" 2>/dev/null; then
-        printf '%s\n' "$out" >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$"
-      fi
+      fresh=1
     fi
     n=$(printf '%s\n' "$out" | sed -n 's/^T //p' | sort -n | tail -1)
     [ "${n:-0}" -gt 0 ] 2>/dev/null && runs=1
+    # a fresh read is kept only when the commit carries a run and none is still going
+    if [ -n "$fresh" ] && [ "${n:-0}" -gt 0 ] 2>/dev/null && ! grep -qx P <<<"$out" && mkdir -p "$cdir" 2>/dev/null; then
+      printf '%s\n' "$out" >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$"
+    fi
     n=$(printf '%s\n' "$out" | sed -n 's/^R //p')
     [ -n "$n" ] && { names="$names$n"$'\n'; any=1; }
   done
@@ -2258,6 +2262,19 @@ EOS
   st "$got2" "0:closures:1" "a commit with a run still pending is read again each time (never kept), the other 519 are kept"
   got=$(lreds 0)
   st "$got" "0:closures:520" "null control: with the keeping off (TTL 0) every commit is read, so the zero above is the cache's"
+  # A commit carrying no check run yet (just pushed, CI not queued) has no final runs: its read
+  # is never kept, so a red that lands on it within the hour is named on the next read.
+  for sha in "$oldest" "$pending"; do
+    printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"}]}' >"$LFIX/$sha.json"
+  done
+  zero=$(printf '%s\n' $long_shas | sed -n 1p)
+  printf '{"total_count":0,"check_runs":[]}' >"$LFIX/$zero.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  got=$(lreds 3600)
+  st "$got" "0::520" "a commit with no check run yet is read cold with the other 519 (no red stands)"
+  printf '{"total_count":1,"check_runs":[{"name":"closures","status":"completed","conclusion":"failure"}]}' >"$LFIX/$zero.json"
+  got2=$(lreds 3600)
+  st "$got2" "0:closures:1" "a red landing on that commit in the hour is named on the warm read: it alone is read again, never kept"
   : >"$LCALLS"
   GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
     PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR="$(mktemp -d)" ancestry_reds origin/fix >/dev/null
