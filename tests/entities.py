@@ -546,6 +546,63 @@ sensors = collect(sensor)
 by_name = {display_name("sensor", s): s for s in sensors}
 R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 
+# #3616: the room list's two sensors exist only where a list is configured,
+# so the default roster above (no list) is their null control. Driven through
+# the real async_setup_entry with a coordinator whose config names two rooms.
+_ROOM_KEY = const.CONF_ROOM_TEMPERATURE_ENTITIES
+_ROOM_BLOCK = {
+    "configured_count": 3, "valid_count": 2, "average": 19.85, "spread": 0.7,
+    "coldest_entity": "climate.a", "warmest_entity": "sensor.b",
+    "per_room": {"climate.a": {"temperature": 19.5, "target": 21.0, "calling": True, "hvac_mode": "heat"},
+                 "sensor.b": {"temperature": 20.2, "target": None, "calling": None, "hvac_mode": None}},
+    "dropped": {"climate.c": "unavailable"},
+}
+_room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
+_room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
+_room_all = collect(sensor, coordinator=_room_coord)
+_room_keys = ("room_average_temperature", "room_temperature_spread")
+room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
+_room_by_key = {e._attr_translation_key: e for e in room_sensors}
+R.check(
+    "a configured room list adds exactly the room average and spread sensors; null control, the "
+    "default roster with no list holds neither",
+    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    and not any(e._attr_translation_key in _room_keys for e in sensors),
+    f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
+)
+R.check(
+    "the room sensors read the payload's rooms block: average in degC, spread in K, the dropped "
+    "room and the coldest and warmest as attributes",
+    _room_by_key["room_average_temperature"].native_value == 19.85
+    and _room_by_key["room_temperature_spread"].native_value == 0.7
+    and _room_by_key["room_temperature_spread"].native_unit_of_measurement == "K"
+    and getattr(_room_by_key["room_temperature_spread"], "_attr_device_class", None) is None
+    and _room_by_key["room_average_temperature"].extra_state_attributes["dropped"] == {"climate.c": "unavailable"}
+    and _room_by_key["room_temperature_spread"].extra_state_attributes
+    == {"coldest_entity": "climate.a", "warmest_entity": "sensor.b", "lift": None},
+    f"{[(e._attr_translation_key, e.native_value) for e in room_sensors]}",
+)
+# R11-OUTSIDE-ROOMS-P2: the floor lift the last solve was given rides the spread sensor.
+_ROOM_LIFT = {"size": 0.5, "entity": "climate.a", "gate": None}
+_room_lift_coord = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "lift": _ROOM_LIFT}})
+_room_lift_coord._config = _room_coord._config
+_room_lifted = {e._attr_translation_key: e for e in collect(sensor, coordinator=_room_lift_coord)
+                if e._attr_translation_key in _room_keys}
+R.check(
+    "the spread sensor's lift attribute is the rooms block's lift: its size, room and gate; the "
+    "average sensor carries none",
+    _room_lifted["room_temperature_spread"].extra_state_attributes["lift"] == _ROOM_LIFT
+    and "lift" not in _room_lifted["room_average_temperature"].extra_state_attributes,
+    f"{_room_lifted['room_temperature_spread'].extra_state_attributes}",
+)
+_room_quorum = FakeCoordinator({**DATA, "rooms": {**_ROOM_BLOCK, "average": None, "spread": None}})
+_room_quorum._config = _room_coord._config
+R.check(
+    "under the quorum both room sensors read unknown",
+    all(e.native_value is None for e in collect(sensor, coordinator=_room_quorum)
+        if e._attr_translation_key in _room_keys),
+)
+
 # Entity counts are published in the README, so they are a claim rather than a
 # detail. A count that quietly drifts makes the documentation wrong in the one
 # place a user checks before installing.
@@ -10909,6 +10966,8 @@ _UT_NUMBER_CLAIMS = [
      _ut_const.DHW_COOLING_REFERENCE_AMBIENT_TEMP, "const.DHW_COOLING_REFERENCE_AMBIENT_TEMP"),
     ("services.set_thermal_parameters.fields.buffer_cooling_rate.description", "at 25 °C above ambient", 25,
      _ut_const.DHW_COOLING_REFERENCE_DELTA, "const.DHW_COOLING_REFERENCE_DELTA"),
+    ("services.set_thermal_parameters.fields.dhw_legionella_temperature.description", "55 to 70 °C", 70,
+     ThermalParameters(dhw_setpoint=90.0).dhw_hard_max_temp, "ThermalParameters.dhw_hard_max_temp"),
     *((f"services.{s}.fields.silent_mode_power_fraction.description", "raised to 0.6", 0.6,
        _ut_const.CAPACITY_FLOOR_FRACTION, "const.CAPACITY_FLOOR_FRACTION")
       for s in ("set_thermal_parameters", "simulate_plan", "apply_schedule")),
@@ -13480,7 +13539,7 @@ for _module, _name in (
 R.section("Naming, translation keys and id stability (v5.0.0)")
 
 _named_entities = (
-    [("sensor", s) for s in sensors]
+    [("sensor", s) for s in (*sensors, *room_sensors)]
     + [("binary_sensor", b) for b in binaries]
     + [("button", b) for b in buttons]
     + [("switch", s) for s in switches]
@@ -41645,6 +41704,7 @@ _egb3_resolve = {
     "self._away_state.as_dict()": ("away", "as_dict"),
     "state.as_dict()": ("away", "as_dict"),
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
+    "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
