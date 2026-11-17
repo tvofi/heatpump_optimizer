@@ -1,3 +1,4 @@
 1794875065 INIT r11-rev-3684
 1794875075 HB alive
 1794875118 CKPT setup done, packet rendered snapshot 05364b411fb3
+1794875211 CKPT figures re-derived; waiting CI snapshot c90c697398be
