@@ -54,3 +54,4 @@
 1794885219 HB alive
 1794885809 HB alive
 1794886077 CKPT blocked: carry s2 destination refused by prepr; BLOCKED.md pushed snapshot 961c9fb58ef2
+1794886085 DONE blocked: 4 sites pinned at 5dbf429011; prepr refuses body carry s2 (R11-ADVISOR-MEASURES carries-open), Question in BLOCKED.md on handoff-wip/r11-valve-reference
