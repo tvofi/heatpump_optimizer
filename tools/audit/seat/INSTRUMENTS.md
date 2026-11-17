@@ -31,6 +31,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
 - [`enumerate.py`](instruments/enumerate.py.md) — prints one audit universe, one item per line, so a finder reports examined over a command's output
 - [`product_reads.py`](instruments/product_reads.py.md) — reads `operation` and `generality` off a cell ledger, counting a row only on the read's own witness
+- [`regret_oracle.py`](instruments/regret_oracle.py.md) — reads `regret` per grid cell against the same-information oracle, and the cost record per install-day from a bundle
 - [`text_ledger.py`](instruments/text_ledger.py.md) — enumerates every unit a D5 or D6 seat judges and refuses a ledger that skips one
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
@@ -139,6 +140,7 @@ standing-seat liveness step keep the seats alive.
 - [`verdict_audit.py`](instruments/verdict_audit.py.md) — maps every open PR to its latest verdict and holder; prints `UNHELD` lines
 - [`survivor_list.py`](instruments/survivor_list.py.md) — refuses a `mutation-vacuous` verdict that omits a survivor its evidence's driver output reports; `bus.sh push-verdict` runs it
 - [`bare_array.py`](instruments/bare_array.py.md) — refuses two macOS bash 3.2 failures in tracked `tools/**/*.sh`: a bare `"${name[@]}"` (empty under a caller's `set -u`) and a `case` pattern lacking its `(` in `$( )` (`--check`, `--self-test`)
+- [`shell_hazard.py`](instruments/shell_hazard.py.md) — refuses a raw `wc -l` string compare, a padded-`wc` stub and an early-exit pipe under `pipefail` on lines a branch adds to `tools/**/*.sh` (`--check`, `--self-test`)
 - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
 - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
 - [`wt_sync.sh`](instruments/wt_sync.sh.md) — snapshots every worktree whose state is not already on origin (unpushed commits, uncommitted or untracked files) to `origin/wip-sync/<slug>`
