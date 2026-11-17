@@ -2779,9 +2779,9 @@
     "From r11-outside-rooms-p2, body item daa69071: A floor lifted to the comfort target raises the plan's peak above the unlifted plan's: `dev/audit/harnesses/room_lift_solve.py`'s `max_over_target_c`, `none` against `lift`, with `zeros` as the control. The note expected no rise. Whether the clip should stop short of the target (a headroom under it) or the rise is accepted is the owner's choice; re-measure with the harness at the deciding head. Pending owner ruling. Carry: R11-OUTSIDE-ROOMS-P2 (items daa69071)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-outside-rooms-p2",
-    "commit": null,
+    "commit": "30991a6b0d4caaf796847956ebc9977cb4656505",
     "last_step": null,
     "next_step": "designer",
     "note": "owner item from #3616, tvofi 2026-11-15; overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-SLAB-SEED-GUARD, R11-OUTSIDE-ROOMS-P1): owner item tvofi 2026-11-15 from #3616",
