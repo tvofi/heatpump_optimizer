@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 9d85331747..cf5d782bf9 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -284,7 +284,7 @@ def max_age_for(
+ 
+ def _scaled(base_minutes: float, scale: float) -> float:
+     """An age limit times the user's staleness scale, clamped to its range."""
+-    return base_minutes * min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
++    return base_minutes * min(float(scale), STALENESS_SCALE_MAX)
+ 
+ 
+ #: Per ``hass``, the entity ids seen re-reporting an unchanged value: sources

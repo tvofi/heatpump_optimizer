@@ -1,0 +1,50 @@
+== 064b60f7b2
+Merge commit 'dcedcd330cd38145dfeea1a2f07d4a295717036e' into fix/r11-outside-rooms-p1
+== 8fdb89b825
+Merge commit '8fbbe09acf2ef222f1df41a9bcaf9f3e6ef0bbd6' into fix/r11-outside-rooms-p1
+== 8fbbe09acf
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17446 + both deltas = 17385
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (140 entries)
+  closures.tests/backtest.py: merged as a set (41 entries)
+  closures.tests/block_duty.py: merged as a set (124 entries)
+  closures.tests/boost_drift_replay.py: merged as a set (105 entries)
+  closures.tests/card.mjs: merged as a set (118 entries)
+  closures.tests/card_drift.mjs: merged as a set (119 entries)
+  closures.tests/config_flow_steps.py: merged as a set (142 entries)
+  closures.tests/debug_collect.py: merged as a set (115 entries)
+  closures.tests/deployment_shape.py: merged as a set (138 entries)
+  closures.tests/doc_claims.py: merged as a set (238 entries)
+  closures.tests/edge.py: merged as a set (39 entries)
+  closures.tests/entities.py: merged as a set (586 entries)
+  closures.tests/env_drift.py: merged as a set (208 entries)
+  closures.tests/features.py: merged as a set (159 entries)
+  closures.tests/finite_boundary.py: merged as a set (130 entries)
+  closures.tests/golden.py: merged as a set (210 entries)
+  closures.tests/guard_pins.py: merged as a set (105 entries)
+  closures.tests/harness_headers.py: merged as a set (418 entries)
+  closures.tests/manual_plan.py: merged as a set (121 entries)
+  closures.tests/optimality.py: merged as a set (41 entries)
+  closures.tests/plan_view.py: merged as a set (107 entries)
+  closures.tests/solar_alignment.py: merged as a set (103 entries)
+  closures.tests/stress.py: merged as a set (45 entries)
+  closures.tests/structure.py: merged as a set (99 entries)
+  closures.tests/typing_ruler.py: merged as a set (99 entries)
+  closures.tests/validate.py: merged as a set (39 entries)
+  closures.tests/wood_advisor.py: merged as a set (109 entries)
+  recorded.tests/boost_drift_replay.py.seconds: took the larger of 341.1 and 339.8
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+Merge origin/main into fix/r11-outside-rooms-p1
+
+ tests/deployment_shape.py                               | 12 +-----------
+ tests/features.py                                       | 17 -----------------
+ .../rooms.py/published.GUARD_OFF.cdba2f29.json          |  4 ----
+ .../rooms.py/readings_of.RETURN_DEL.627b05e8.json       |  6 ------
+ ...nsor.extra_state_attributes.RETURN_DEL.c783d968.json |  6 ------
+ 5 files changed, 1 insertion(+), 44 deletions(-)
+== c12695cff7
+Merge remote-tracking branch 'origin/main' into fix/r11-outside-rooms-p1
