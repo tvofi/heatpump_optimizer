@@ -133,7 +133,9 @@ Return JSON {sha: <the published commit, 40 hex>, objective_rc: <the last object
 )
 if (!publish) throw new Error('the plan publish failed (agent returned null); relaunch')
 if (!/^[0-9a-f]{40}$/.test(String(publish.sha))) throw new Error(`the plan publish returned ${JSON.stringify(publish.sha)}, not a 40-hex commit`)
-if (publish.objective_rc !== 0) throw new Error(`the objective check refused the plan (rc=${publish.objective_rc}): ${JSON.stringify(publish.objective_fails ?? [])}; the plan is not published`)
+// An absent objective_rc is the schema's refusal (`required`); a reported
+// non-zero one stops P3 here, before the review reads an unchecked plan.
+if (publish.objective_rc !== undefined && publish.objective_rc !== 0) throw new Error(`the objective check refused the plan (rc=${publish.objective_rc}): ${JSON.stringify(publish.objective_fails ?? [])}; the plan is not published`)
 let planSha = String(publish.sha)
 log(`plan ${planRef} published at ${planSha}${publish.pushed === false ? ` (NOT PUSHED; the orchestrator runs: ${publish.command ?? '(no command returned)'})` : ''}`)
 

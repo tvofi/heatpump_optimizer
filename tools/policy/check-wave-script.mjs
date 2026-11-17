@@ -1665,7 +1665,7 @@ await block('the P3 plan workflow', async () => {
     let cur = over.publish?.sha ?? SHA('b')
     let rev = 0
     const agent = async (prompt, o) => {
-      calls.push({ label: o.label, prompt })
+      calls.push({ label: o.label, prompt, schema: o.schema })
       const label = o.label
       if (label === 'plan/read') return over.read ?? { groups: [G('A')], findings: [FIND('D7-s1-01')], holdouts_path: 'h.json', ...OPEN }
       if (label === 'plan/architect') return over.architect ?? { components: ['coordinator'], scenarios: [{ quality: 'q', scenario: 's' }], triage: (over.read?.findings ?? [FIND('D7-s1-01')]).map((f) => ({ id: f.id, verdict: 'keep' })) }
@@ -1710,8 +1710,8 @@ await block('the P3 plan workflow', async () => {
   // the approved run below, whose publish reports rc 0.
   await pthrows('a plan the objective check refuses is not published (P3 stops)', /objective check refused the plan \(rc=1\)/,
     { publish: { sha: SHA('b'), objective_rc: 1, objective_fails: ['RANK edge A after B'], pushed: false } })
-  await pthrows('and a publish that reports no objective check stops P3 alike', /objective check refused the plan \(rc=undefined\)/,
-    { publish: { sha: SHA('b'), pushed: true } })
+  // An absent objective_rc is refused by the publish schema's `required`
+  // (the runtime validates it); this pins that the schema carries it.
   await pthrows('a reviewer answering for another tree stops P3', /answered for/,
     { reviewImpl: () => ({ verdict: 'approve', sha: SHA('c'), points: [] }) })
   await pthrows('a recorded verdict that is not a 40-hex commit stops P3', /not a 40-hex commit/,
@@ -1736,6 +1736,8 @@ await block('the P3 plan workflow', async () => {
     && publishP.indexOf('plan_audit.py objective-check') < publishP.indexOf('git push origin HEAD:refs/heads/plan/r11'), publishP.slice(0, 200))
   t('and the PLAN.json written carries the block the architect returned',
     (ok.calls.find((c) => c.label === 'plan/write')?.prompt ?? '').includes('"removes": [\n     "D7-s1-01"'))
+  t('and the publish schema requires objective_rc, so a publish that reports no check is refused',
+    (ok.calls.find((c) => c.label === 'plan/publish')?.schema?.required ?? []).includes('objective_rc'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
   t('the reviewer re-runs objective-check at the plan SHA', review1.includes('objective-check --ref ' + SHA('b')))
   t('the reviewer is pointed at the published plan ref and its SHA',
