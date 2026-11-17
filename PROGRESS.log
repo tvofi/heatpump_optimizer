@@ -6,3 +6,4 @@
 1794898760 HB alive
 1794898791 CKPT real run + attacks done; full mutant run read; drafting blocked verdict snapshot 1956a4149b06
 1794898919 CKPT verdict pushed to probe/rev-3703-2d310002 at 91a13fbf snapshot 1e831d177c8e
+1794898923 DONE Fix review: blocked 2eee862d class-open; verdict 91a13fbfd4c6513ba3121712c6ddd4ab6ffcf128 on probe/rev-3703-2d310002
