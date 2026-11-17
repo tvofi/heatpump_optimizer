@@ -1,0 +1,10 @@
+n element on a meter-only install: cutting in over the level with the compressor off (S1) and over and back inside one refresh period (S5) count no start; a compressor stopping under the latched element reads no class rather than running (S3); a start under the element counts once, when it releases (S4)
+  ok   the element rule is the meter source's only: a frequency install under a latched element counts its start
+  ok   a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading the element's, a change now pending to no class
+  ok   the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps the timer armed for it, and a revert before the debounce cancels it at once; null control, the rise armed exactly one
+  ok   immersion_over is strict at each bound: a reading at the immersion level, a rated power of 0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is
+  ok   S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real start after it counts at its second refresh; neither the falling average of a short element's cut-out nor a second refresh landing while over is pending counts one; null control, on the same rig and refreshes a real start counts once, from its second refresh, and a run stopping before it counts once, at its stop
+  ok   wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading it running and one reading it unsettled, released by the second running one; a short run is its rise then its stop; null control, a counter with no hold counts the rise at once
+  ok   a refresh whose own re-read moves the class off running (the commanded draw or the element's latch changing, no meter event) while a rise is held counts no start: the tick hears the class this refresh re-reads; null control, the same rig with nothing moving counts the rise once
+
+ALL 5818 FEATURE CHECKS PASSED

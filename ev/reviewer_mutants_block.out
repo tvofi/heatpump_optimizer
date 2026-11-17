@@ -1,0 +1,22 @@
+unmutated: rc=0
+MUTANT bound_z_zero KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT bound_z_one KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT ddof_zero KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT second_row_new_coin KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT levels_flat KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT unsettled_never KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT unsettled_moved_only KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT read_always KILLED (rc=1)   ok   an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a huge ratio for the tracking gate to refuse, not a ZeroDivisionError
+MUTANT admits_no_draw_check KILLED (rc=1)   FAIL while draw evidence is pending a departure is held on any nameplate, and reads as awaiting it; with no window base's rule stands (14 kW refuses, 4 kW fol
+MUTANT admits_ignores_measured_heat KILLED (rc=1)   FAIL (l) with measured heat, or with no window, 60 flat departures under the 4.67 kW third of 14 kW each read base's rule, awaiting_draw_evidence, and the pro
+MUTANT release_waits_no_owed KILLED (rc=1)   FAIL (h) with a window that never reaches evidence the heat ask is probed, nothing folds while that is pending, and no interval is lost once it reads follows:
+MUTANT reset_keeps_verdict KILLED (rc=1)   FAIL (p) the verdict holds over 200 more flat cycles; a heat-led follows reloads as follows with no restore; a reset by a window with evidence clears the verd
+MUTANT from_dict_ignored_no_restore KILLED (rc=1)   FAIL (p) a reload between the latch and the next cycle keeps ignored and the restore it owes: the next cycle restores the configured scale  [level 1.0724; loa
+MUTANT park_never_rearms_horizon_x2 KILLED (rc=1)   FAIL a parked probe re-arms after COP_HOLD_HORIZON_S and no sooner: 6 cycles whose last is at 7 days less 30 minutes stay at the base and read nothing, and so
+MUTANT contrast_unsigned_heat_gate SURVIVED
+MUTANT contrast_drawn_over_heat SURVIVED
+MUTANT priced_after_moves KILLED (rc=1)   FAIL (h) with a window that never reaches evidence the heat ask is probed, nothing folds while that is pending, and no interval is lost once it reads follows:
+MUTANT coord_measured_heat_false KILLED (rc=1)   FAIL (l) an install with a thermal power entity reading no heat probes nothing: 672 flat cycles read no_heat_reading and the verdict stays pending  [(0, None,
+MUTANT owed_before_release KILLED (rc=1)   FAIL (p) the verdict holds over 200 more flat cycles; a heat-led follows reloads as follows with no restore; a reset by a window with evidence clears the verd
+MUTANT store_base_domain_dropped SURVIVED
+MUTANTS-DONE

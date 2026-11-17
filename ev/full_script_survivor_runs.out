@@ -1,0 +1,13 @@
+finite_boundary store_base_domain_dropped rc=1
+
+3 of 114 FINITE BOUNDARY CHECKS FAILED
+  FAIL every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)  [stores=['accuracy', 'away', 'boost', 'debug', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'duty_
+  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['thermal_learning:measured_cop/scale_base~', 'thermal_learning:measured_cop/scale_base']]
+  FAIL no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)  [refused=187]
+features contrast_unsigned_heat_gate rc=0
+
+ALL 5818 FEATURE CHECKS PASSED
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+FULL-DONE
