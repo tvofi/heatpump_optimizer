@@ -1,60 +1,55 @@
-Fix review: blocked 3099d416f40cf3e5468b6d93b6c410394cbbdfb2 harness: r10_seat_selftests_mutants.py pins cloud_dispatch-15 and cloud_dispatch-16 match nothing at this head and print NOT RUN
+Fix review: blocked 036d2a7ff405b55e9178de65b2cbd14ec50d57b8 class-open: r10_flow_dispatch_mutants.py pins brief-drop and part-line-dropped match nothing at this head and abort the harness
 
-bus-nonce: 03de65e296c3d10b84ce689ee61102bc
+bus-nonce: 6d76fbedb58ed7967ee9d1d4da4905b6
 
 ## Block
 
-This diff rewrites two production lines of `tools/audit/seat/cloud_dispatch.py` that a committed mutant harness pins by their exact text, and does not re-spell the pins. `dev/audit/harnesses/r10_seat_selftests_mutants.py`:
+The previous block is resolved, but its class is still open. The step-8 rule in the body is `git grep -l '"<basename>"'`. It misses harnesses that name the file by a path constant, such as `REL = "tools/audit/seat/cloud_dispatch.py"`. A broader `git grep -l -e cloud_dispatch -e cloud-setup -- dev/audit/harnesses` returns two more mutant harnesses:
 
-- `cloud_dispatch-15` plants on `if not design_approved(repo_dir, group_id):`. At this head that line is `approved = design_approved(repo_dir, group_id)` and then `if not approved:`.
-- `cloud_dispatch-16` plants on `return first == f"Design review: approve {tip}"`. At this head the line is `return tip if first == f"Design review: approve {tip}" else ""`.
+- `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+- `dev/audit/harnesses/r10_hotfix_delta_review_mutants.py`
 
-`mutate()` returns -1 on a pattern found other than once. `main()` counts that as a survivor (`survivors += rc <= 0`), so the harness exits 1 on any tree carrying this diff:
+`r10_flow_dispatch_mutants.py` pins two `cloud_dispatch.py` lines that this diff rewrites into the single `brief=group_brief(...)` / `+ "".join(f"\n{ln}\n" for ln in (dline, pline) if ln)` expression (`tools/audit/seat/cloud_dispatch.py:700-701` at this head):
 
-- At the merge base 174e78cebf, each one alone prints `KILLED rc=1` and `RESULT survivors=0`.
-- At this head, each one prints `NOT RUN rc=-1 | PATTERN FOUND 0 TIMES` and `RESULT survivors=1` (ev/r10_pins_base.txt, ev/r10_pins_head.txt).
+- `brief-drop`, pattern `brief=group_brief(group, roster, fixer=role == "fixer") +`
+- `part-line-dropped`, pattern `(f"\\n{pline}\\n" if pline else "")`
 
-This is the stale-marker shape the body itself repairs in `r11_honest_starts_runs.py`. No CI lane runs this harness, so CI cannot see it (`git grep` finds no workflow or test reference).
+At the merge base 174e78cebf each pattern occurs once, and both mutants run: `RESULT mutant=brief-drop failed=11 verdict=killed`, `RESULT mutant=part-line-dropped failed=2 verdict=killed`, `survived=0`, exit 0 (ev/r10_flow_pins_base.log).
 
-The production predicates are still pinned by the self-test. I planted the two mutants' intent on the new spellings by hand at this head:
+At this head each occurs 0 times. `main()` returns 2 on the first such pin, so the whole harness aborts with `abort: brief-drop's pattern occurs 0 times`, exit 2, after only `M0` and `tree-skip`. Its other 60 rows never run (ev/r10_flow_head.log, ev/r10_flow_pin_*_head.log). Every other pin of that harness counts the same at both ends (ev/flow_pin_counts.txt). No CI lane runs these harnesses, so CI cannot see this.
 
-- `if not approved:` → `if False:` gives 4 FAIL rows.
-- `first == f"…{tip}"` → `first.startswith("Design review: approve ")` gives `181 checks, 1 failed`.
+The production predicates are still pinned by the self-test. I planted both intents on the new spelling by hand at this head, then restored:
 
-So the repair is to re-spell the two pins' `old`/`new` strings to the new lines. Re-run both named mutants to `KILLED`. No production change is owed.
+- `brief=group_brief(...)` → `brief=""` gives FAIL rows on designer, design-reviewer and fixer payloads (ev/plant_brief.txt).
+- `(dline, pline)` → `(dline,)` gives `181 checks, 3 failed` (ev/plant_part.txt).
+
+So the repair is the same as round 1's: re-spell the two pins to this head's lines, re-run both to `killed`, and widen the step-8 rule to path spellings. No production change is owed.
+
+`r10_hotfix_delta_review_mutants.py` at this head: `MUTANTS: 9 run, 0 not as required`, exit 0 (ev/r10_hotfix_head.log). It is not stale.
 
 ## Findings
 
-- The stale pins above, the block itself; the fixer re-spells them on this branch before re-handoff. Carry: dismissed: this verdict's block, owed by this PR's own fixer before merge, not a later stage's
+- The two stale `r10_flow_dispatch_mutants.py` pins above are the block itself, owed by this PR's fixer before re-handoff. Carry: dismissed: this verdict's block, owed by this PR's own fixer before merge, not a later stage's
+- `r10_cloud_setup_mutants.py`'s null control fails in a plain temp directory. Its `M0` prints `FAIL 0/3` and the harness exits 1 even when every mutant is killed. That is because `self_test` copies `cloud-setup.sh` alone into a temp dir, and the script sources `../../../tests/throwaway_git.sh` and a sibling `pr_args.sh` relative to its own path. Both lines are on main (174e78cebf lines 67 and 191; the first from 27cb73cdaa), so this is not this diff's defect. The body's `M0 null 0 of 3 failed` reproduces only with `PR_BOUND=1` and a `TMPDIR` three levels under the repository root (ev/r10_setup_M8_head*.log). Carry: dismissed: present on main before this diff and outside its lines; the harness's own M0 row prints FAIL and exits 1 wherever it breaks, so its next run names it
 
 ## Evidence
 
-Round 1 (first review of this head). Measured from a detached worktree at 3099d416f40cf3e5468b6d93b6c410394cbbdfb2.
+Round 2, a delta review over the reviewed head 3099d416f40cf3e5468b6d93b6c410394cbbdfb2. Measured from detached worktrees at 036d2a7ff4, 3099d416f4 and the merge base 174e78cebf.
 
-- `git diff 174e78cebf...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
-- The PR body's `## Head` names 3099d416f4, the head measured.
+Contract and head:
+
+- `git diff 174e78cebf...origin/main -- dev/governance/roles/` touches only `architect-planner.md` and `plan-review.md`. `fix-review.md` is unchanged, so the contract read is current.
+- The PR body's `## Head` names 036d2a7ff405b55e9178de65b2cbd14ec50d57b8, the head measured.
+- The delta `git diff 3099d416f4 036d2a7ff4` touches only two harness files. It has no production delta, so the scope is not widened.
 
 RESULT lines:
 
-- RESULT classify `GREEN 3099d416f40cf3e5468b6d93b6c410394cbbdfb2 pending: none red: none` (ev/classify.final). `owed-reds` does not include `nightly-status`, the packet digest's only red, so no `## Red checks` answer is owed.
+- RESULT classify `GREEN 036d2a7ff405b55e9178de65b2cbd14ec50d57b8 pending: none red: none` (ev/classify.final). `owed-reds` does not include `nightly-status`, the packet digest's only red, so no `## Red checks` answer is owed (ev/owed_reds.txt).
 - RESULT merge-tree origin/main head: rc=0, no conflict (ev/merge_tree.txt).
-- RESULT `cloud_dispatch.py --self-test`: `181 checks, 0 failed`. Body: same.
-- RESULT `cloud-setup.sh --self-test`: `30 checks, 0 failed`. Body: same.
-- RESULT `r11_toolchain_mutants.py`: `mutants=37 survived=0`. Each D- and K- mutant is `killed`, and M0 is null-ok for all five files. Body: same (ev/mutants.log).
-- RESULT targeted mutants of my own on the changed predicates: the two above, both killed by the self-test.
-- RESULT real-BLAS `--kernels` probe at this head, seat pinned to Haswell: `ran SkylakeX Haswell Sandybridge Nehalem; red on none; not run none`. Body: same.
-- RESULT `r11_honest_starts_runs.py kernels` at this head: exit 0, `blocks that failed a check or did not complete 0` (ev/hsr_head.log).
-  - Duty-switch `REPLACED False` under SkylakeX only.
-  - Starts-and-runs `REPLACED False` under SkylakeX, Sandybridge and Nehalem, and True under Haswell. That matches the body.
-  - The starts-and-runs block reads `ALL 57 FEATURES BLOCK PASSED`, where the body quotes 51. The body's figure is from a3183c1fef, before the main merge f1e36ef847, so it is a stale figure, not a defect.
-- RESULT `_next_header` at this head resolves to `# --- #3616: an implausible slab seed is refused ---`, the first header after the group's section (1059 lines in). That is the block the body says the stale marker crossed into.
-- RESULT VERSION, manifest and RELEASE_NOTES are untouched in the three-dot diff. No claim file and no `*_budgets.json` is touched.
-- RESULT the class rules the body names are not re-run beyond the `design_approved` callers. `git grep design_approved` returns the dispatcher, its self-test and the r10 harness pin. The pin is the block above.
-
-Not re-derived:
-
-- The #3602-era worktree figures at 5d9f00db01 and 303e10f8c8.
-- The carry-12 ls-remote reading.
-- The roster `part_split` count at f223cd88f6.
-
-Those figures are the fixer's.
+- RESULT, previous finding: `r10_seat_selftests_mutants.py` at this head prints `cloud_dispatch-15 ... KILLED rc=1` and `cloud_dispatch-16 ... KILLED rc=1` (ev/r10_seat_head.log). Resolved.
+  - In the same run, `-8` and `-10` print `NOT RUN ... PATTERN FOUND 0 TIMES`. The body records both as identical at the merge base.
+  - The run was stopped after those rows, because my hand-planted mutants shared its worktree. Rows after `-16` from that log are not relied on.
+- RESULT `M8` re-spell: the old pattern occurs 1 time at 174e78cebf, and 4 times at 3099d416f4 and at this head. The new pattern occurs once at all three.
+  - With `PR_BOUND=1 TMPDIR=<three under the root>`, `r10_cloud_setup_mutants.py M8` gives `M0 none: PASS 3/3`, `M8 ... KILLED 3/3 runs red`, `RESULT survivors=0`, exit 0 (ev/r10_setup_M8_head_bound.log). This matches the body.
+  - Round 1 missed this third stale pin. The fixer's sweep found it.
+- RESULT VERSION, manifest and RELEASE_NOTES: not in the delta. Round 1 found them untouched over the three-dot diff.
