@@ -5,7 +5,9 @@ Owner instructions built here (verbatim in the group's carries 0-2, 6): a round'
 
 ## Head
 
-11e9a4e9644e9a468dd2522f03a8450fbed23731, one commit on the reviewed head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e (merge base 6f422812d5); `git merge-tree --write-tree origin/main HEAD` against origin/main c82f014a63 reported no conflict, so main was not merged.
+6804e9c5a29946cbef4722088b1f668de6a246a8, a merge of 11e9a4e9644e9a468dd2522f03a8450fbed23731 into the reviewed head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e whose tree equals 11e9a4e's (`git diff 11e9a4e9644e9a468dd2522f03a8450fbed23731 6804e9c5a29946cbef4722088b1f668de6a246a8` prints nothing); merge base 6f422812d5. `git merge-tree --write-tree origin/main HEAD` against origin/main 8f39313a44 (2026-11-17) reported no conflict, so main was not merged.
+
+Round 3 (repair of the red `governance / instrument-self-tests` at this head): no code change; the red is inherited from main, answered under Red checks.
 
 Round 2: answers the first review's block (`review/3676` at f34eb2bf, class code-unwired).
 - Block 1 (phase_hours unwired): `replan.MODEL_FIELDS` now names `phase_hours`, so `build_plan` copies it from `durations.json` into `generated.model`, which `plan_page.render` hands to `plan_phases.section`. It is not a required field (`model_refusals` lists the required ones), and `_model_duration` already refuses a non-positive, non-numeric or boolean figure as "duration unmeasured". The injected arm is replaced by one that goes durations (+`phase_hours={"finders": 7.5}`), then `replan.build_plan`, then `render`, and reads "7.5 h (plan model)" on the page; the injected arm tested only `section`, which this arm reaches through production. The `MODEL_FIELDS` and `plan_phases.MODEL_TIMED` comments state the wired source. Alternative not taken: a separate validated field in `build_plan`; the renderer's guard already refuses a bad figure, so a second validator would duplicate it.
@@ -56,9 +58,9 @@ Failing case first: this head's `plan_page.py` over 8daf6df's production files (
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/doc_claims.py`: `ALL 410 checks PASSED`.
 - `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2723 ENTITY CHECKS PASSED`.
-- prepr: passed rc=0 at 11e9a4e9644e9a468dd2522f03a8450fbed23731 (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, scoped).
+- prepr: passed rc=0 at 6804e9c5a29946cbef4722088b1f668de6a246a8 (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, scoped).
 
-<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=11e9a4e9644e9a468dd2522f03a8450fbed23731 -->
+<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=6804e9c5a29946cbef4722088b1f668de6a246a8 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -66,7 +68,8 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests` (job 133733844631), step "Show the self-tests outside tools/audit/seat/ refusing their own fixtures": inherited from main, not this diff. The step died in `python3 -I tools/audit/product_reads.py --self-test` with `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']` (read through `merge_train.py job-log 133733844631`). This diff touches neither `custom_components/heatpump_optimizer/const.py` nor `tools/audit/enumerate.py` (`git diff --stat 6f422812d5..6804e9c5a2` names 8 files under `tools/` and `dev/programme/delivery/`). Measured: `product_reads.py --self-test` on a `git archive` of main as of the run (38bf516bdd, the newest first-parent main before 2026-11-17T01:14Z) exits 1 with the same `Refuse`; on the tree `git merge-tree --write-tree origin/main 6804e9c5a2` writes against origin/main 8f39313a44 it exits 0 (`SELF-TEST passed (86 arms)`), main having since changed `enumerate.py` (93f45781be, f8d55b8bd0, bde53a1a4e, #3678). `merge_train.py introduced` reads it as INTRODUCED because its base job is the merge base's (6f422812d5), older than the main regression. Every command of the step otherwise exits 0 locally at this head. Cheaper detector: none owed by this PR; the cause is on main, now fixed there. A re-run at current main clears it.
+- The job log holds one `##[error]` line, that step's; no other step of the job is red.
 
 ## Forward-carry
 
