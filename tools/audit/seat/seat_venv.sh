@@ -33,7 +33,7 @@
 # that interpreter exists and the variable is unset -- never overriding a
 # value the seat set. --install-shims copies them, as `python` and `python3`,
 # into the bin directory you name, which goes first on the seats' PATH, with
-# seat-gh as `gh` (it logs the call to $HPO_STATE_DIR/gh-calls.log, then execs the
+# seat-gh as `gh` (it logs the call to the host-wide $HOME/.local/state/hpo/gh-calls.log, then execs the
 # real gh; gh_calls.py reads the log):
 #
 #   tools/audit/seat/seat_venv.sh && tools/audit/seat/seat_venv.sh --install-shims <seat bin dir>
@@ -281,6 +281,11 @@ STUB
   grep -qxF "gcpy=$(printf '%q' "$ROOT/tools/pr/gh_comment.py")" "$W/inst/gh" \
     && ! grep -qF '@HPO_GH_COMMENT@' "$W/inst/gh"
   expect "--install-shims bakes the tree's gh_comment.py path into the installed gh shim" $?
+  grep -qxF 'loghome=@HPO_GH_LOG_HOME@' "$ROOT/tools/audit/seat/shims/seat-gh"
+  expect "the source gh shim carries the log-home placeholder (null control)" $?
+  grep -qxF "loghome=$(printf '%q' "$HOME/.local/state/hpo")" "$W/inst/gh" \
+    && ! grep -qF '@HPO_GH_LOG_HOME@' "$W/inst/gh" && ! grep -qF "$W" <(grep -x 'loghome=.*' "$W/inst/gh")
+  expect "--install-shims fixes the host-wide log home, not the caller's HPO_STATE_DIR" $?
 
   rm -rf "$W"
   printf 'seat_venv self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
@@ -303,6 +308,8 @@ case ${1:-} in
     [ -f "$gcpy" ] || die "no $gcpy for the gh shim's comment guard"
     while IFS= read -r l; do
       [ "$l" = 'gcpy=@HPO_GH_COMMENT@' ] && l="gcpy=$(printf '%q' "$gcpy")"
+      # the one host-wide call log (P669): the installing user's default home, never the caller's HPO_STATE_DIR
+      [ "$l" = 'loghome=@HPO_GH_LOG_HOME@' ] && l="loghome=$(printf '%q' "$HOME/.local/state/hpo")"
       printf '%s\n' "$l"
     done < "$ROOT/tools/audit/seat/shims/seat-gh" > "$dest/gh" && chmod 755 "$dest/gh"
     printf 'seat_venv: shims installed in %s; they run %s/bin/python3\n' "$dest" "$VENV"
