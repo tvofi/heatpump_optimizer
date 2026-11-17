@@ -885,6 +885,7 @@ jobs:
           PY: ${{ steps.regret-oracle-python.outputs.python-path }}
         run: |
           set -euo pipefail
+          PY=${PY:-python3}  # the set-up interpreter; unset only where a tool replays this step outside CI
           "$PY" -m pip install --quiet --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
           "$PY" -I tools/audit/regret_oracle.py --self-test
 
