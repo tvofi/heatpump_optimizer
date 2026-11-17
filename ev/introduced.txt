@@ -1,0 +1,2 @@
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+introduced: 1 at bf2b1888091bfe35200c8b92b3794455ca443620 against ef6363d5f291e2eaa60620b5ea12d8d5fb902478: head job 133757261640 failure base job 133522733432 failure

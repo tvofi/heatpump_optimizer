@@ -1,0 +1,19 @@
+rc=0 python3 -I tools/audit/archscore/gate.py --self-test :: gate self-test: all cases pass
+rc=0 python3 -I tools/audit/check_scopes.py --self-test --repo . :: SELF-TEST passed (every perturbed scope refused)
+rc=0 python3 -I tools/audit/enumerate.py --self-test :: SELF-TEST passed (161 arms)
+rc=0 python3 -I tools/audit/text_ledger.py --self-test :: text_ledger self-test: 19 checks, 0 failed
+rc=0 python3 -I tools/audit/merge_throughput.py --self-test :: ok: merge_throughput.py self-test
+rc=0 bash tools/audit/worktree_gc.sh --self-test :: worktree_gc self-test: 160 checks, 0 failed
+rc=0 python3 -I tools/coverage/partition.py --self-test :: ok: partition.py self-test
+rc=0 python3 -I tools/merge/ledger_merge.py --self-test :: all passed
+rc=0 python3 -I tools/plan/replan.py --self-test :: self-test: 0 failed
+rc=0 python3 -I tools/plan/size_durations.py --self-test :: size_durations self-test: 0 failed
+rc=0 node tools/policy/policy_lint.mjs --self-test :: FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0 python3 -I tools/policy/record-predicate/row_files_replay.py --self-test :: ok: plan_path(HEAD)=dev/programme/plan-2026-09-open-issues.md
+rc=0 bash tools/pr/approve_held_runs.sh --self-test :: approve_held_runs self-test: 42 checks, 0 failed
+rc=0 python3 -I tools/pr/gate_priority.py --self-test :: gate_priority self-test: 22 checks, 0 failed
+rc=0 python3 -I tools/pr/head_note.py --self-test :: head_note self-test: 6 checks, 0 failed
+rc=0 python3 -I tools/release/stamp.py --self-test :: RESULT stamp_self_test=pass
+rc=0 python3 -I tools/policy/agreement_py.py --self-test :: agreement_py self-test: 7 checks, 0 failed
+rc=0 python3 -I tools/policy/role_pack.py --self-test :: 35 passed, 0 failed
+rc=0 python3 -I tools/policy/agreement_py.py --restore :: agreement_py restore: 22 closure file(s), 22 covered by the wave-script restore list, 0 missing

@@ -1,0 +1,6 @@
+tools/audit/seat/gh_read.py
+tools/audit/seat/instruments/gh_read.py.md
+tools/audit/seat/instruments/prepr.sh.md
+tools/audit/seat/merge_train.py
+tools/audit/seat/orchestrator_tick.py
+tools/pr/prepr.sh

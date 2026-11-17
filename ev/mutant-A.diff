@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index 945ac8cdf1..4d7f58aa93 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -398,7 +398,7 @@ class Tick:
+         code, raw = self.conditional(path)
+         try:  # one conditional page; a head with more runs than it holds is read in full
+             page = json.loads(raw) if code == 0 else None
+-            if isinstance(page, dict) and page.get("total_count", 0) <= len(page.get("check_runs") or []):
++            if isinstance(page, dict):
+                 return list(page.get("check_runs") or [])
+         except (ValueError, TypeError):
+             pass

@@ -1,0 +1,17 @@
+01:57:51Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+01:59:08Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:00:25Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:01:43Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:03:00Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:04:18Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:05:35Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:06:53Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:08:10Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:09:28Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:10:45Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:12:02Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:13:20Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:14:37Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:15:55Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:17:12Z rc=3 WAIT bf2b1888091bfe35200c8b92b3794455ca443620 pending: gate red: none
+02:18:31Z rc=1 INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
