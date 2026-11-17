@@ -1,3 +1,4 @@
 1794876523 INIT r11-pre-toolchain-pin-p3-p3
 1794876537 HB alive
 1794876550 CKPT setup done, worktree cut from origin/main 38bf516bdd snapshot 1b787eda9753
+1794876962 CKPT carry 10 built and step-pushed; kernels re-measured for carry 11 snapshot f7977ff0a293
