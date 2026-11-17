@@ -1606,7 +1606,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r11-outside-contributor-cycle-p3",
-    "commit": "755b7f57675b2a56d8bf674b9b6846bdb184eb11",
+    "commit": "824a016f7562c307b81b30a3c39e3844b1b4b630",
     "last_step": null,
     "next_step": "fixer (M, the carries are the items), opus; reviewer opus",
     "note": "overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-STANDING-SCRIPTS): round-11 pickup: the outside contract seam of R10-OUTSIDE-CONTRIBUTOR-CYCLE (carries-open); shares merge_train.py with R11-INTAKE-R10-RESIDUE and R11-PRE-STANDING-SCRIPTS, distinct seam (the outside contract calls), merged in train order",
