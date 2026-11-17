@@ -3254,7 +3254,7 @@
    "brief": "Service schema and service text disagreements carried below verbatim. Two are buildable now: the simulate_plan selectors that bound nothing the schema enforces, and the apply_manual_plan examples that age into refusals. Two need the owner's decision before any code: whether apply_schedule may reset silent_mode_power_fraction to its default, and whether set_thermal_parameters narrows dhw_legionella_temperature to the disinfection cap or documents the gap. Build the two buildable carries; ask for the other two.",
    "resume": {
     "stage": "done",
-    "commit": "38bf516bdd73f926ee9639ffda7b9ca5163fd50e",
+    "commit": "c22c267e2fce4b2a557ebab97fcc32777bfa0991",
     "branch": "fix/r11-service-schema-p2",
     "last_step": null,
     "next_step": "owner decision on the two behaviour carries, then dispatch fixer",
