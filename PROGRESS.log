@@ -36,3 +36,4 @@
 1794898748 CKPT delta read: pin commit 02266951b6 + main merge e385756030 snapshot f3a2c888cb73
 1794898956 CKPT cheap checks done; reviewer mutants 825 CLAMP_DROP/849 GUARD_OFF running; CI WAIT snapshot 273d4459a6b9
 1794899265 HB alive
+1794899781 CKPT reviewer mutants 2/2 killed on floor block; waiting CI snapshot ecf85a35e5da
