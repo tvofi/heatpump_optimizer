@@ -359,6 +359,26 @@
       "kind": "periodic"
     },
     {
+      "name": "toolchain-promote",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "toolchain-promote",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 600,
+      "timeout_s": 300,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
       "name": "darwin-selftest",
       "argv": [
         "python3",

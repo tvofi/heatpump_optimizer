@@ -116,6 +116,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ref_privacy  # noqa: E402  an archive tag never names this host (#2310)
+from toolchain import REF_PREFIX as TOOLCHAIN_PREFIX  # noqa: E402  the stable tools ref's family
 
 SELF = "tools/audit/seat/prune_refs.py"
 ARCHIVE_PREFIX = "archive/"
@@ -277,7 +278,7 @@ def classify(name: str, sha: str, prs: dict, main_reachable: set,
              ages: "dict | None" = None) -> str:
     """The rule that settles one ref. Order is the precedence, not a detail.
 
-    `main` first, then an open pull request (the keep that dominates), then a
+    `main` and the `toolchain/*` tools ref first, then an open pull request (the keep that dominates), then a
     tip already merged into main, then a handoff ref whose pull request
     merged, then the residue.
 
@@ -296,8 +297,8 @@ def classify(name: str, sha: str, prs: dict, main_reachable: set,
     request has it as its head, whatever its tip: the open-PR keep above is the
     only thing that holds one.
     """
-    if name == MAIN_REF:
-        return KEEP
+    if name == MAIN_REF or name.startswith(TOOLCHAIN_PREFIX):
+        return KEEP                     # the tools ref is a commit of main by rule: merged, and never deletable
     slot = prs.get(name) or {}
     if slot.get("open"):
         return KEEP
@@ -591,6 +592,11 @@ def _self_test_keeps(results: list) -> None:
     _check("null: the same design/ ref of a done group is still deleted",
            classify("design/R10-DONE", orphan, {}, reachable, frozenset(), og)
            == RESIDUE_NONE, results)
+    _check("toolchain/stable, always a commit of main, is kept: the merged-ref rule would delete the tools ref",
+           classify("toolchain/stable", merged, {}, reachable, ages={merged: 7 * 3600.0}) == KEEP, results)
+    _check("null: a merged ref that only resembles the prefix is still deleted",
+           [classify(n, merged, {}, reachable) for n in ("toolchain", "toolchains/stable", "fix/toolchain/stable")]
+           == [DELETE_MERGED] * 3, results)
     ages = {orphan: 5 * 3600.0, merged: 7 * 3600.0}
     _check("a tip younger than 6 h is kept",
            classify("fix/y", orphan, {}, reachable, ages=ages) == KEEP_YOUNG, results)
