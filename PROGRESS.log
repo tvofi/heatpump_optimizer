@@ -20,3 +20,4 @@
 1794878016 HB alive
 1794878224 DONE BLOCKED b50c96520a on handoff-wip: prepr 6d predicts UNDER-SCOPED tests/entities.py (owed_unactioned.py), pre-existing at d5ba8b8c, CI closures green there; --single repair is a no-op. Code 4b0091b631 built and proven.
 1794879260 HB alive
+1794879273 CKPT body edited: red checks + carry snapshot 369e57950160
