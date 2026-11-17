@@ -1,3 +1,4 @@
 ok D6-s2
 ok D9-s2
 ok D3-s2
+ok D0-s2
