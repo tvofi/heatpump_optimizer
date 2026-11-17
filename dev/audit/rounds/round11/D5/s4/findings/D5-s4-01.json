@@ -1,0 +1,52 @@
+{
+ "id": "D5-s4-01",
+ "scope": "D5-s4",
+ "step": "D5.M4",
+ "title": "558 comment units in the s4 cells carry a sentence over 40 words (C5)",
+ "severity": "low",
+ "claim": "Of the 3367 D5 comment units in custom_components/heatpump_optimizer/{j..z}*.py and www/*.js, 558 (16.6 %, in 45 of 51 files) hold at least one sentence over 40 words, 716 such sentences in all, the longest 156 words.",
+ "mechanism": "Comments and docstrings grow by appended clauses (dashes, semicolons, parentheticals) rather than new sentences; nothing in the gate measures sentence length, so criterion C5 has no detector.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+  "value": 558,
+  "unit": "units with a >40-word sentence",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (4 vCPU container)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.57,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the production comment text of custom_components/heatpump_optimizer (e.g. pump_mode.py module docstring)",
+ "perturbation": {
+  "change": "one-line production edit: pump_mode.py line 6 'the mode — reads its answer from here, so there is' -> 'the mode. All read their answer from here, so there is' (comments.py --file custom_components/heatpump_optimizer/pump_mode.py --edit 'custom_components/heatpump_optimizer/pump_mode.py|the mode — reads its answer from here, so there is|the mode. All read their answer from here, so there is')",
+  "expected_direction": "down",
+  "observed_value": "pump_mode.py long_units 3 -> 2"
+ },
+ "metric_definition": "Count of D5 units (text_ledger units --dim D5, seat D5-s4) with a text_ledger.sentences() sentence of more than 40 whitespace words, comment markers stripped.",
+ "phenomenon_property": "Every comment and docstring sentence in the seat's cells is at most 40 words (D5-criteria C5).",
+ "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --tsv OUT  (column 'long' non-empty)",
+ "leave_one_out": {
+  "cells": 51,
+  "min": 0.0,
+  "max": 0.417,
+  "drop_most_favourable": 403
+ },
+ "reproduction_steps": [
+  "cd export root",
+  "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py | grep long_units"
+ ],
+ "proposed_fix_scope": "Split the 716 sentences (253 docstring units, 305 comment units; the card holds 155 units); optionally add the 40-word check to a lint lane so C5 stays measured.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "custom_components/heatpump_optimizer/sysid.py",
+  "custom_components/heatpump_optimizer/sensor.py",
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

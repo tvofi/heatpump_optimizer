@@ -1,0 +1,46 @@
+{
+ "id": "D5-s10-02",
+ "scope": "D5-s10",
+ "step": "D5.M4",
+ "title": "stop-selfcheck.sh's policy prefix list misses AGENTS.md and dev/audit/README.md, which policy_lint measures",
+ "severity": "medium",
+ "claim": "stop-selfcheck.sh's comments say POLICY_PREFIXES covers 'the paths whose contents policy_lint ... measure' (the same set, lines 11-13 and 24-27), but 2 of the 65 baseline files POLICY_GLOBS measures (AGENTS.md, dev/audit/README.md) do not match it, so a turn touching only those ends with no lint (e2e rc 0 against a red linter where CLAUDE.md gives 2); the header's 'runs only when the branch's three-dot diff touches' is also false (an uncommitted edit runs it).",
+ "mechanism": "The prefix list is a second, hand-kept definition of policy_lint.mjs's POLICY_GLOBS; AGENTS.md was added to the globs and the harness contract moved from tools/audit/README.md to dev/audit/README.md without the list following. The #1547 change widened CHANGED to worktree, index and untracked without updating the header.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "harness_path": "dev/audit/rounds/round11/D5/s10/stop_prefixes.py",
+  "value": 2,
+  "unit": "files (escaped)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.21,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": ".claude/hooks/stop-selfcheck.sh:touches_policy (POLICY_PREFIXES) and the hook end to end; tools/policy/policy_lint.mjs:POLICY_GLOBS",
+ "perturbation": {
+  "change": "--perturb: add AGENTS\\.md|dev/audit/ to POLICY_PREFIXES in the hook copy",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "escaped: tracked files at the ref matched by policy_lint POLICY_GLOBS for which the hook's touches_policy returns non-zero",
+ "phenomenon_property": "Every path policy_lint.mjs POLICY_GLOBS measures makes stop-selfcheck.sh run the linter.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  (lists each escaped path)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/stop_prefixes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "e2e_claude_md_rc=2, e2e_prod_rc=0",
+  "note": "a listed prefix refuses on a red linter and a non-policy path does not; only the escaped paths read 0"
+ },
+ "reproduction_steps": [
+  "run the command: escaped=2 (AGENTS.md, dev/audit/README.md), e2e_agents_md_rc=0",
+  "--perturb: escaped=0, e2e_agents_md_rc=2"
+ ],
+ "proposed_fix_scope": "derive the prefix set from policy_lint (or add AGENTS.md and dev/audit/README.md), add self-test cases for both; correct the header's three-dot sentence to the four change states the code reads",
+ "files": [
+  ".claude/hooks/stop-selfcheck.sh"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I4"
+}

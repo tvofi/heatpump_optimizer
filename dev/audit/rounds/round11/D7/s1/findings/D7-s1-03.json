@@ -1,0 +1,45 @@
+{
+  "id": "D7-s1-03",
+  "scope": "D7-s1",
+  "step": "D7.M1",
+  "title": "No ratchet row counts a package import nothing uses: 14 bound names in 6 modules are never loaded",
+  "severity": "low",
+  "claim": "14 names that 6 package modules bind with `from .<module> import N` are never loaded in the importing module, re-exported from it or named in a string of it, and adding a fifteenth moves none of the 18 rows of tests/structure.py.",
+  "mechanism": "The dead censuses start at definitions (dead_top_level_symbols, dead_methods) and count loads; an import statement is neither, so a binding left behind when its last use went stays unseen. Each one is still an import edge: coordinator.py keeps edges to price_model (TIBBER_API_URL), dhw_learning (DHW_PROFILE_STORE_VERSION) and thermal_model (WATER_SPECIFIC_HEAT) by names it never reads, pump_arbiter.py to inputs.quantise_setpoint_c, optimizer.py to thermal_model.MIN_RUNNING_DRAW_KW and channel_heating_steps, and seven const names inflate const fan-out (thermal_model.py imports BUFFER_COOLING_RATE_MIN, BUFFER_COOLING_RATE_MAX and DEFAULT_BUFFER_COOLING_RATE and reads none). No lint lane in the tree reads them either (no ruff or flake8 configuration at the root).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "value": 14,
+    "unit": "unused_package_imports (importer, bound name) pairs; ratchet_rows_off_budget=0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 about 199; a static count",
+    "tolerance": "exact",
+    "load1": 198.93,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/structure.py:measure",
+  "perturbation": {
+    "change": "--perturb unused-import: in memory, `from .const import DOMAIN as _d7s1_unused` is appended to ledger.py. unused_package_imports rises 14 -> 15 and ratchet_rows_off_budget stays 0: measure() returns the budget table's 18 values unchanged.",
+    "expected_direction": "up",
+    "observed_value": 15
+  },
+  "metric_definition": "Names bound by `from .<package module> import N` that the importer never loads, no module imports from it, and no string of it names. Key: (importer, name) and that name's loads there.",
+  "phenomenon_property": "Every name a package module imports from another package module is loaded there, re-exported from there, or absent; a structural row falls when one is removed and refuses a new one.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py | grep '^UNUSED'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb use-import",
+    "value": 14,
+    "note": "the same appended import with one load of it is not counted: the census keys on the load, not on the statement"
+  },
+  "reproduction_steps": [
+    "Run the harness: 14 UNUSED lines, RESULT unused_package_imports=14, RESULT ratchet_rows_off_budget=0.",
+    "Run it with --perturb unused-import: 15, and ratchet_rows_off_budget still 0.",
+    "Run it with --perturb use-import: 14 (the row that moves there, dead_top_level_symbols 1 -> 2, is the probe function itself)."
+  ],
+  "proposed_fix_scope": "Delete the bindings (each is one name on an import statement). No tests/*.py script reads 13 of them through the importer; the fourteenth, optimizer.channel_heating_steps, is imported from optimizer by tests/guard_pins.py:765, so that test moves to thermal_model with it. Give tests/structure.py a row for the census (the Package / import_bindings machinery already holds every binding and every load), recorded at 0.",
+  "files": ["tests/structure.py", "custom_components/heatpump_optimizer/coordinator.py", "custom_components/heatpump_optimizer/config_flow.py", "custom_components/heatpump_optimizer/thermal_model.py", "custom_components/heatpump_optimizer/optimizer.py", "custom_components/heatpump_optimizer/pump_arbiter.py", "custom_components/heatpump_optimizer/modbus_prefill.py"],
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-structure-blind"
+}

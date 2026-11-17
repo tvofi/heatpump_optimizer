@@ -1,0 +1,26 @@
+SEAM coordinator.py:792 forecast_outdoor_now forecast[0]
+SEAM coordinator.py:4527 _async_drive_pumps result.timestamps[0]
+SEAM coordinator.py:5454 _current_weather self._weather_forecast[0]
+SEAM coordinator.py:7478 _forecast_arrays series[-1]
+SEAM debugger.py:141 cycle_row samples[-1]
+SEAM dhw_learning.py:317 payload self.daytype_samples[0]
+SEAM disinfection.py:261 observe self._readings.get(self.entity_id or '', (None, None))[0]
+SEAM disinfection.py:272 view self._readings.get(target, (None, None))[0]
+SEAM plan_slots.py:60 close timestamps[-1]
+SEAM price_model.py:524 extend_price_series prices[-1]
+SEAM pump_arbiter.py:1028 _feedback rec.samples[0][0]
+SEAM pump_arbiter.py:1028 _feedback rec.samples[0]
+SEAM sysid.py:1782 step self.samples[-1]
+SEAM sysid.py:1795 step self.samples[-1]
+SEAM wood_fuel.py:184 cheaper_windows timestamps[0]
+SEAM wood_fuel.py:186 cheaper_windows timestamps[0]
+SEAM wood_fuel.py:219 _scan_wood_night timestamps[0]
+SEAM wood_fuel.py:419 detected_wood_slots timestamps[0]
+SEAM wood_fuel.py:568 _attach_windows timestamps[0]
+SEAM wood_fuel.py:591 _attach_night_advice timestamps[0]
+RESULT census_constant_index_sites=20 sites
+RESULT census_functions=17 functions
+RESULT barrier_bisect_sites=6 sites
+RESULT thread_factor=1.000
+RESULT load1=4.37
+RESULT swapins=0

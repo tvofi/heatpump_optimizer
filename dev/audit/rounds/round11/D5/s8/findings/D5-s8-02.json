@@ -1,0 +1,42 @@
+{
+ "id": "D5-s8-02",
+ "step": "D5.M4",
+ "title": "friction_issues.mjs usage lines run a path that does not exist",
+ "severity": "low",
+ "claim": "The header of tools/policy/friction_issues.mjs gives three usage lines `node .claude/workflows/friction_issues.mjs ...`; that path is absent at 92d38ecb and node exits 1 (Cannot find module), while `node tools/policy/friction_issues.mjs --self-test` exits 0.",
+ "mechanism": "The script moved to tools/policy/ (its own STATS_TOOL already resolves both layouts for policy_lint) but its usage block kept the old directory (C2).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tools/policy/friction_issues.mjs --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 1,
+  "unit": "stale units in the file (3 usage lines)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/friction_issues.mjs:STATS_TOOL (the file's header unit via tools/audit/text_ledger.py:units_of)",
+ "perturbation": {
+  "change": "three --perturb 'tools/policy/friction_issues.mjs:node .claude/workflows/friction_issues.mjs=>node tools/policy/friction_issues.mjs'",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "null_control": {
+  "command": "HPO_PLANDATA=$(mktemp -d) node tools/policy/friction_issues.mjs --self-test; node .claude/workflows/friction_issues.mjs --self-test",
+  "value": "exit 0 vs exit 1",
+  "note": "the usage as written fails, the tracked path passes"
+ },
+ "metric_definition": "Count of D5 units in the file holding a present-tense path that git ls-tree at the ref does not hold.",
+ "phenomenon_property": "D5 comment units (text_ledger.py units --dim D5) of a file whose named path does not exist in the tree at the ref, in a present-tense sentence, after the seat's adjudication list (ADJ) of fixtures, history and pinned citations",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show  (every C2 row of the seat's cells; ledger verdict stale)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "tools/policy/friction_issues.mjs"
+ ],
+ "proposed_fix_scope": "Respell the three usage lines to tools/policy/friction_issues.mjs.",
+ "scope": "D5-s8"
+}

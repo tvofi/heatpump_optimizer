@@ -1,0 +1,214 @@
+{
+ "dimension": "D4",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D4/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D4.M2",
+   "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s2",
+   "universe": 15,
+   "examined": 14,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Run 1: flow_pages.py (44 handlers, 328 fields x 4 language files), flow_errors.py (9 cells), blueprint_inputs.py (26 inputs). Re-run: flow_validators.py fires 29/29 validator cells through the real handlers (comfort band x7, power/part-load x4, heat_curve_* x4, combi, flow target, flow curve, frequency, disinfection, day selector, holiday windows, dhw_min x2, peak months/hours, silent window, price entity/token) and types 2 wrong-kind values into all 131 numeric fields (262 submits); reconfigure rendered with a stub entry; flow_paths.py walks the full wizard (10 pages) and the quick setup (7 pages) to create_entry and scores I1 over 37 forms; services_icons.py scores 15 services/87 fields, 82+15 icons, 24 raised translation keys and 4533 translated leaf strings. C2: quick_setup and device_prefill driven, I1 rubric written in flow_paths.py's header and scored per page, every validation error triggered dynamically. The card JS is outside M2's method (it is M1/M3's card in a browser) and is named not_reached for that reason."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D4.M2",
+   "what": "The card JS (www/heatpump-optimizer-card.js) is in this seat's file list, but M2's method has nothing to apply to it; it stays with M1/M3. Config-flow rendering is inferred from schema and strings through tests/hastub: there is no Home Assistant frontend here, and the wrong-kind numeric result rests on the stub's NumberSelector, which mirrors HA's vol.Coerce(float) plus range."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D4-s2-01",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Config-flow device pre-fill page renders window errors with an unfilled {min_window_minutes} placeholder",
+   "severity": "low",
+   "claim": "When the setup wizard's device_prefill page refuses a DHW or silent-mode window shorter than 15 min, the form result carries no min_window_minutes placeholder, so the error string in all 4 language files is rendered with an unfilled {min_window_minutes} (8 field-language pairs), while the options flow's modbus_prefill page, the config dhw page and the options hot_water page supply it (0).",
+   "mechanism": "HeatPumpOptimizerConfigFlow._device_prefill_form passes description_placeholders={**device_prefill.disclaimer(), **notes}; the options twin _prefill_form adds **_WINDOW_PLACEHOLDERS. _prefill_errors (shared) can return dhw_window_too_short / silent_mode_window_too_short, whose strings read {min_window_minutes}.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+    "harness_path": "dev/audit/rounds/round11/D4/s2/flow_errors.py",
+    "value": 8,
+    "unit": "unfilled placeholder x language pairs",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac (darwin arm64), local seat",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other seats, load1 ~75; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 74.48,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_device_prefill (via _device_prefill_form)",
+   "perturbation": {
+    "change": "--perturb: mock.patch.object HeatPumpOptimizerConfigFlow._device_prefill_form to merge config_flow._WINDOW_PLACEHOLDERS into the placeholders (the options page's own rule)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Sum over triggered error cells and language files of {name} placeholders in the returned error's string that result['description_placeholders'] lacks.",
+   "phenomenon_property": "Every flow form result supplies every placeholder named by its step strings and by the strings of every error key it returns, in every language.",
+   "seam_rule": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py (error cells) and PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py (DESC_UNFILLED, untouched renders)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+    "value": 0,
+    "note": "control cells options.modbus_prefill x2, config.dhw, options.hot_water, options.grid_fees x3 fire the same or sibling errors and leave 0 unfilled"
+   },
+   "reproduction_steps": [
+    "Run the command; read CELL config.device_prefill lines: unfilled=4 each",
+    "Re-run with --perturb: unfilled_placeholders_total=0"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "Add _WINDOW_PLACEHOLDERS to HeatPumpOptimizerConfigFlow._device_prefill_form's description_placeholders, or share one placeholder builder between the config and options pre-fill forms; add the placeholder-supplied check to tests over every error key a step can return."
+  },
+  {
+   "id": "D4-s2-02",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "German run_optimization_no_prices message reads {entry_id}; the raise passes {entry_ids}",
+   "severity": "low",
+   "claim": "Of 4533 translated leaf strings compared with strings.json, exactly one names a different placeholder set: de exceptions.run_optimization_no_prices.message reads {entry_id} while services.py raises it with translation_placeholders={'entry_ids': ...}, so a German user who calls run_optimization with too few price steps gets a message whose entry placeholder is never filled.",
+   "mechanism": "Translation drift: the de string was written with the singular placeholder name; strings.json, en and sv use {entry_ids}, matching the raise at services.py (translation_key='run_optimization_no_prices').",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py",
+    "harness_path": "dev/audit/rounds/round11/D4/s2/services_icons.py",
+    "value": 1,
+    "unit": "placeholder-parity mismatches (and 1 raise with an unsupplied placeholder)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac (darwin arm64), local seat",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other seats, load1 ~168; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 168.06,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.services (run_optimization raise site, translation_key run_optimization_no_prices) and translations/de.json:exceptions.run_optimization_no_prices",
+   "perturbation": {
+    "change": "--perturb-fix-de: in memory, rename {entry_id} to {entry_ids} in the de message",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Leaf strings in en/sv/de whose {placeholder} set differs from strings.json's at the same path; plus raise sites whose literal translation_placeholders lack a placeholder the message reads.",
+   "phenomenon_property": "Every translated string names exactly the placeholders of its strings.json source, and every raise or form result supplies them.",
+   "seam_rule": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py (PLACEHOLDER_PARITY over every leaf string; EXC_PLACEHOLDER over every services.py raise)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py",
+    "value": "4532 of 4533 leaf strings match; en and sv of the same key match",
+    "note": "the other two languages of the same key are the in-file control"
+   },
+   "reproduction_steps": [
+    "Run the command: PLACEHOLDER_PARITY de:exceptions.run_optimization_no_prices.message and EXC_PLACEHOLDER lines, both counts 1",
+    "Re-run with --perturb-fix-de: both 0"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/de.json"
+   ],
+   "proposed_fix_scope": "Rename the placeholder in de.json to {entry_ids}; add the placeholder-parity check (every translation leaf vs strings.json) to the gate's translation tests."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every field on every rendered config/options page has a label in strings.json, en, sv, de",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py",
+   "value": "unlabelled_field_lang_pairs=0 over 328 fields"
+  },
+  {
+   "claim": "F4: every field with a unit or unit/acronym/physics term in its label has a data_description in every language",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py",
+   "value": "f4_missing_desc_field_lang_pairs=0 over 125 F4 fields (perturb --perturb-drop-desc dhw_setpoint -> 4)"
+  },
+  {
+   "claim": "F3: every error key the flow classes emit (static literal scan) has a string in its section in every language",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py",
+   "value": "f3_missing_error_strings=0"
+  },
+  {
+   "claim": "F3 dynamic: 9 triggered error cells return keys present in every language",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_errors.py",
+   "value": "missing_error_strings=0"
+  },
+  {
+   "claim": "Untouched renders supply every placeholder their title/description/data_description reads",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py",
+   "value": "desc_unfilled_page_lang_pairs=0 over 43 pages x 4 languages"
+  },
+  {
+   "claim": "I2: shortest path add-integration to create_entry has no required free value without default or picker",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_pages.py",
+   "value": "shortest_path_pages=4, i2_required_free_values=0"
+  },
+  {
+   "claim": "I3: every blueprint input has name, description, and a default unless it is a picker",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/blueprint_inputs.py",
+   "value": "26 inputs, 0/0/0 missing (perturb drop -> no_description=1)"
+  },
+  {
+   "claim": "Every remaining validator branch fires through its production step and returns a key with a string in its section, in every language, with all placeholders supplied",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_validators.py",
+   "value": "cells_fired=29/29, missing_error_strings=0, unfilled_placeholders=0 (perturb _band_errors->{}: cells_fired=22)"
+  },
+  {
+   "claim": "A wrong-kind value ('21 \u00b0C', 'abc') typed into each numeric field is refused by the page's own schema, never stored",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_validators.py",
+   "value": "262 submits over 131 NumberSelector fields, 0 accepted; config.user and config.reauth_confirm have no numeric field and cannot submit untouched"
+  },
+  {
+   "claim": "The reconfigure step renders, with a stub entry, as the user page with every field labelled",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_validators.py",
+   "value": "reconfigure -> step_id=user, 5 fields, 0 unlabelled field-language pairs"
+  },
+  {
+   "claim": "Install path: full wizard 10 pages (8 forms, 2 menus), quick setup 7 pages (5 forms, 2 menus); the one must-answer value on either path is the weather entity (a picker); the full wizard's must-know terms are the 3 nameplate fields on building_extras (COP, max/min power), the quick setup's are 0",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_paths.py",
+   "value": "full_wizard_pages=10, must_answer=1, must_know=3; quick_setup_pages=7, must_answer=1, must_know=0 (perturb skipping the quick pages -> 4)"
+  },
+  {
+   "claim": "I1 R1 (a field another page's title claims): no options key is rendered on two topic pages except after_save, the per-page save-then-close control that every page carries by design",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_paths.py",
+   "value": "i1_pages_scored=37, i1_r1_keys_on_two_pages=1 (after_save, by design)"
+  },
+  {
+   "claim": "I1 R2 (related pair split by an unrelated field): 8 key-family splits, each reviewed as deliberate grouping, not a split. Examples: upper/lower floor pairs alternate on zones; price_source, then tibber_token, then price_entity is the choice followed by each source's own field; prefill device, prefix and offer belong to one route; compressor_modulation sits inside the power band; the pump's own hysteresis and duty entities sit among the pump entities",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D4/s2/flow_paths.py",
+   "value": "i1_r2_split_families=8, 0 judged a split"
+  },
+  {
+   "claim": "services.yaml: every service and field has a name and description in every language; every number field with a unit has a description; every service has an icon; there are no orphan icons; every raised translation key has a message in every language",
+   "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py",
+   "value": "15 services, 87 fields, text_missing=0, unit_fields_without_description=0, services_without_icon=0 (perturb drop -> 1), orphan_icons=0 over 82 entity + 15 service icons, 24 raised keys, exception_strings_missing=0"
+  },
+  {
+   "claim": "wood_slots' invalid_wood_slots is not a user-facing string: it is the what-if response's error code (coordinator returns {'error': key}), not a flow or exception translation",
+   "command": "grep -n 'whatif.Refused' custom_components/heatpump_optimizer/coordinator.py",
+   "value": "returned as response field 'error', no translation lookup"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D4/s2/flow_pages.py",
+  "dev/audit/rounds/round11/D4/s2/flow_errors.py",
+  "dev/audit/rounds/round11/D4/s2/blueprint_inputs.py",
+  "dev/audit/rounds/round11/D4/s2/flow_validators.py",
+  "dev/audit/rounds/round11/D4/s2/flow_paths.py",
+  "dev/audit/rounds/round11/D4/s2/services_icons.py"
+ ],
+ "leads": []
+}

@@ -1,0 +1,43 @@
+{
+  "id": "D10-s1-03",
+  "scope": "D10-s1",
+  "step": "D10.M1",
+  "title": "Config flow stores 41 non-connection settings in ConfigEntry.data, all of them options-flow settings",
+  "severity": "low",
+  "claim": "Walking the setup wizard's 'Continue setup' path at the forms' own defaults creates an entry whose data holds 41 keys that are not asked on the two connection screens (comfort band, thermal model, hot water, weather sensitivity), every one of them also an options-flow field, and options={} -- against the config-flow (Bronze) subcheck 'Uses ConfigEntry.data and ConfigEntry.options correctly' (settings not needed for the connection belong in options); the null arm (Finish setup now) holds 0.",
+  "mechanism": "HeatPumpOptimizerConfigFlow._create_setup_entry passes the whole wizard dict self._data as async_create_entry(data=...), with no options=. Every reader then merges {**entry.data, **entry.options}, so a wizard value can be overridden by an option but never removed by one; const.py's two-zone comment records that consequence (zone keys the initial flow wrote into entry.data 'where options cannot erase them'), which needed CONF_TWO_ZONE_MODE as a workaround.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s1/cfg_data_options.py",
+    "value": 41,
+    "unit": "non-connection setting keys in the created entry's data (continue walk); finish_now walk 0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 8-core (box B1, local), venv-ci Python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other finder seats and this seat's coverage run; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 40.84,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "config_flow:HeatPumpOptimizerConfigFlow._create_setup_entry (and every async_step_* the walk drives)",
+  "perturbation": {
+    "change": "--perturb: _create_setup_entry splits the connection-screen keys into data and the rest into options",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of keys in the data dict the config flow hands async_create_entry that are not fields of the user or user_sensors steps.",
+  "phenomenon_property": "An entry created by the config flow carries only connection/identity answers in data; every setting the options flow can edit lives in options, so the options flow can both change and clear it.",
+  "seam_rule": "grep -nE 'async_create_entry\\(' custom_components/heatpump_optimizer/config_flow.py",
+  "null_control": {
+    "command": "same harness, finish_now walk",
+    "value": 0,
+    "note": "the two-screen path stores only connection keys; the perturbed split leaves merged {**data, **options} equal to the baseline data (merged_equal=1), so no setting is lost by the fix shape"
+  },
+  "proposed_fix_scope": "config_flow.py _create_setup_entry writes the non-connection keys as options= (plus a migration moving existing entries' settings from data to options under a CONFIG_ENTRY_VERSION bump in __init__.async_migrate_entry); factory_settings/undo_point already read both.",
+  "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/__init__.py"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "new"
+}

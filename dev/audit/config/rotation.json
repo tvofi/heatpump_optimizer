@@ -58,6 +58,86 @@
           "M2": 1,
           "M4": 1
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s1/cells.py",
+            "examined": 144,
+            "not_reached": [],
+            "universe": 144
+          },
+          "M2": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s1/cells.py",
+            "examined": 144,
+            "not_reached": [],
+            "universe": 144
+          },
+          "M3": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s1/cells.py",
+            "examined": 144,
+            "not_reached": [],
+            "universe": 144
+          },
+          "M4": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py ; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --list",
+            "examined": 2440,
+            "not_reached": [],
+            "universe": 2440
+          },
+          "M5": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py ; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --list | grep -E '^flat/|/flat$'",
+            "examined": 1525,
+            "not_reached": [],
+            "universe": 1525
+          },
+          "M6": {
+            "enumerator": "python3 dev/audit/rounds/round11/D0/s2/m6_queue.py --all-gap ; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --list",
+            "examined": 732,
+            "not_reached": ["coord/coord_two_zone/summer_negative", "coord/coord_minimal/shoulder", "coord/coord_dhw/shoulder", "coord/coord_minimal/summer_negative", "coord/coord_dhw/summer_negative", "coord/coord_all_features/summer_typical", "coord/coord_all_features/summer_negative", "coord/coord_dhw/flat", "coord/coord_all_features/flat"],
+            "universe": 741
+          },
+          "M7": {
+            "enumerator": "python3 tools/audit/enumerate.py d0-grid",
+            "examined": 2400,
+            "not_reached": [],
+            "universe": 2400
+          },
+          "M8": {
+            "enumerator": "python3 tools/audit/enumerate.py d0-grid; python3 tools/audit/enumerate.py d15-installs",
+            "examined": 2400,
+            "not_reached": ["install-1 2026-10-14 (d15-installs; refused in the export, D0-s3-01)"],
+            "universe": 2401
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 5
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 1,
+          "s3": 3
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M4", "M5", "M6"],
+          ["M4", "M5", "M6", "M7", "M8"]
+        ],
+        "unfinished": [
+          {
+            "step": "M6",
+            "what": "Depth, not denominator: the 2-day loop (C3) and plant-error 1.25 loop (C5) ran on the 4 high-bill cells of results/m6_variant_cells.txt, not on all 60 closed-loop cells; replan cadence R8 ran on 1 cell. The realised objective of 7 valve-storage/flow-setpoint two-zone loops differs by 7.8-15.2 pct with near-equal energy, comfort and starts: mpc.py scores the executed power schedule through the captured objective without the executed valve targets, so that part of Jr is not attributed (harness limit, named)."
+          },
+          {
+            "step": "M6",
+            "what": "the one-re-plan masking test on the 9 coordinator-capture gap cells (step-0 read: differs on 0 of 9)"
+          },
+          {
+            "step": "M8",
+            "what": "the per-install-day oracle for install-1 2026-10-14: enumerate.py d15-installs refuses in the export and the bundle evidence is stripped (D0-s3-01)"
+          }
+        ]
       }
     }
   },
@@ -120,6 +200,66 @@
           "M4": 1,
           "M6": 2
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d1-lifecycle --repo <git archive of the baseline> (the export's ._* AppleDouble files break it in place; output committed as dev/audit/rounds/round11/D1/s1/d1-lifecycle.txt)",
+            "examined": 41,
+            "not_reached": [],
+            "universe": 41
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d1-stores",
+            "examined": 41,
+            "not_reached": [],
+            "universe": 41
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d1-inputs",
+            "examined": 51,
+            "not_reached": [],
+            "universe": 51
+          },
+          "M4": {
+            "enumerator": "python3 tools/audit/enumerate.py d1-solve-state --repo <git archive of the baseline> (committed as dev/audit/rounds/round11/D1/s1/d1-solve-state.txt)",
+            "examined": 29,
+            "not_reached": [],
+            "universe": 29
+          },
+          "M5": {
+            "enumerator": "python3 tools/audit/enumerate.py d1-excepts",
+            "examined": 227,
+            "not_reached": ["custom_components/heatpump_optimizer/climate.py:300 HeatPumpOptimizerClimate._async_publish_displace_from_current_action", "custom_components/heatpump_optimizer/coordinator.py:10876 HeatPumpOptimizerCoordinator._command_frequency", "custom_components/heatpump_optimizer/coordinator.py:11230 HeatPumpOptimizerCoordinator.async_simulate", "custom_components/heatpump_optimizer/coordinator.py:11237 HeatPumpOptimizerCoordinator.async_simulate", "custom_components/heatpump_optimizer/coordinator.py:1919 _shutdown_process_pool", "custom_components/heatpump_optimizer/coordinator.py:2107 _run_in_process", "custom_components/heatpump_optimizer/coordinator.py:4173 HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription", "custom_components/heatpump_optimizer/coordinator.py:5992 HeatPumpOptimizerCoordinator._check_pump_mode_expired", "custom_components/heatpump_optimizer/coordinator.py:7113 HeatPumpOptimizerCoordinator._fetch_weather_forecast", "custom_components/heatpump_optimizer/diagnosis.py:103 attribute", "custom_components/heatpump_optimizer/diagnosis.py:114 attribute", "custom_components/heatpump_optimizer/diagnosis.py:151 diagnose_record", "custom_components/heatpump_optimizer/diagnosis.py:93 attribute", "custom_components/heatpump_optimizer/disinfection.py:225 DisinfectionSwitch._write", "custom_components/heatpump_optimizer/draw_range.py:388 DrawRange.from_dict", "custom_components/heatpump_optimizer/draw_range.py:456 _stored_ceiling", "custom_components/heatpump_optimizer/heat_curve.py:397 _send", "custom_components/heatpump_optimizer/off_restore.py:218 _restore_baseline", "custom_components/heatpump_optimizer/off_restore.py:252 async_restore", "custom_components/heatpump_optimizer/optimizer.py:496 _avoid_priced_switches", "custom_components/heatpump_optimizer/repairs.py:54 DhwSetpointRepairFlow.async_step_confirm", "custom_components/heatpump_optimizer/services.py:1144 handle_apply_manual_plan", "custom_components/heatpump_optimizer/services.py:1265 handle_diagnose_interval", "custom_components/heatpump_optimizer/services.py:657 handle_set_thermal_params", "custom_components/heatpump_optimizer/services.py:991 handle_apply_schedule", "custom_components/heatpump_optimizer/whatif.py:127 scratch_copies", "custom_components/heatpump_optimizer/whatif.py:213 steady_pair", "custom_components/heatpump_optimizer/wood_fuel.py:129 wood_fuel_ready", "custom_components/heatpump_optimizer/wood_fuel.py:369 _wood_override_fuel", "custom_components/heatpump_optimizer/wood_fuel.py:501 build_wood_fuel_view"],
+            "universe": 257
+          },
+          "M6": {
+            "enumerator": "python3 tools/audit/enumerate.py d1-parsers",
+            "examined": 31,
+            "not_reached": [],
+            "universe": 31
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 3,
+          "s2": 6,
+          "s3": 7
+        },
+        "seats": [
+          ["M1", "M4"],
+          ["M2", "M3"],
+          ["M5", "M6"]
+        ],
+        "unfinished": [
+          {
+            "step": "M5",
+            "what": "the handlers listed under not_reached: no lifecycle phase, no test script before its abort point, and no drivers_misc.py call reached their try bodies (services handlers, sysid, async_simulate, climate/disinfection/heat_curve writes, repairs, off_restore restore paths, diagnosis, wood-fuel view, and the rest named). Each needs a direct driver of its own; tests/entities.py's own KeyError at line 9634 and features.py's keystone exits cut the test-script arm short."
+          }
+        ]
       }
     }
   },
@@ -176,6 +316,64 @@
           "M4": 1,
           "M5": 3
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d2-identities --cells | grep '^M1 '",
+            "examined": 227,
+            "not_reached": [],
+            "universe": 227
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D2-s2; python3 tools/audit/enumerate.py d2-identities --cells | grep '^M2 '",
+            "examined": 134,
+            "not_reached": [],
+            "universe": 134
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M3 '",
+            "examined": 260,
+            "not_reached": [],
+            "universe": 260
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M4 '",
+            "examined": 32,
+            "not_reached": [],
+            "universe": 32
+          },
+          "M5": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M5 '",
+            "examined": 19,
+            "not_reached": ["M5 booked-against-metered | layout=no_valve emitter=floor", "M5 booked-against-metered | layout=no_valve emitter=radiators", "M5 booked-against-metered | layout=single_tank_valve emitter=floor", "M5 booked-against-metered | layout=single_tank_valve emitter=radiators", "M5 booked-against-metered | layout=slab_shunt emitter=floor", "M5 booked-against-metered | layout=slab_shunt emitter=radiators", "M5 booked-against-metered | layout=two_tank_4way emitter=floor", "M5 booked-against-metered | layout=two_tank_4way emitter=radiators", "M5 booked-against-metered | layout=valve_upper_direct_slab emitter=floor", "M5 booked-against-metered | layout=valve_upper_direct_slab emitter=radiators"],
+            "universe": 29
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 11
+        },
+        "seats": [
+          ["M1"],
+          ["M2"],
+          ["M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M5",
+            "what": "booked-against-metered, all 10 layout x emitter cells: the coordinator's _accumulate_energy space/dhw booking against a metered month needs a live coordinator per layout and an emitter config mapping (floor/radiators) the enumerator's axis does not define; no harness written"
+          },
+          {
+            "step": "M3",
+            "what": "terminal-credit magnitude on the 7 cells outside the tolerance (shoulder, shoulder_two_zone, mild_windy_rain, precip_snow, cool_rainy_summer, confidence_margins: r_J 1.6-76, absolute over-credit <= 3.8 currency; direct_flow_carnot: an undersized 3 kW pump ending 10 K under the caps, where dJ=266386 is comfort penalty, not money) was measured against a same-window re-solve, a proxy continuation; a true next-window continuation was not built, so no claim is made on them"
+          }
+        ]
       }
     }
   },
@@ -242,6 +440,68 @@
           "M3": 1,
           "M4": 2
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+            "examined": 258,
+            "not_reached": [],
+            "universe": 258
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+            "examined": 23,
+            "not_reached": ["__init__.py: 5 mutants (lines 90-220)", "accuracy.py: 24 mutants (lines 51-635)", "binary_sensor.py: 5 mutants (lines 100-323)", "climate.py: 4 mutants (lines 186-294)", "const.py: 12 mutants (lines 444-1539)", "entity.py: 4 mutants (lines 180-249)", "inputs.py: 33 mutants (lines 155-1415)", "ledger.py: 11 mutants (lines 133-739)", "sensor.py: 73 mutants (lines 60-3037)", "services.py: 15 mutants (lines 154-1168)", "snapshots.py: 13 mutants (lines 46-277)", "store.py: 9 mutants (lines 105-614)", "switch.py: 1 mutants (lines 88-88)", "topology.py: 26 mutants (lines 580-1147)", "unfinished: M25-M36 (seed 10) were sampled but not pre-screened. Other seats drove box load to 20-150, so one mutant took 6-40 minutes. Rerun with: PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M25,...,M36, from a baseline worktree that has one marker commit.", "unfinished: env_drift.py --all <baseline> (it refuses ref==HEAD, so it needs a temp commit) and finite_boundary.py/optimality.py were not run on the 4 survivors M26, M35, M04, M07; the quiet-window GATE_SCOPE=full GOLDEN_MODE=drift run should cover them"],
+            "universe": 258
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+            "examined": 7,
+            "not_reached": ["unfinished: The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors (M08, M01, M03, M22, M21, M19) is owed to the quiet window.", "unfinished: REPORT.md was not written: the subagent environment refused a write of a report .md file. Its full content (method, pre-screen table, M4 answers, M5 table, non-findings) is carried in this JSON. The orchestrator must write it to dev/audit/rounds/round10/D3/s1/REPORT.md if needed."],
+            "universe": 7
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+            "examined": 7,
+            "not_reached": [],
+            "universe": 7
+          },
+          "M5": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py x --list | grep -v ^RESULT | cut -f1",
+            "examined": 28,
+            "not_reached": ["tests/stress.py", "unfinished: The kill-overlap matrix needs every closure script run on every mutant, with no early stop. It was not taken."],
+            "universe": 29
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 1
+        },
+        "returned": {
+          "s1": 0,
+          "s2": 2,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "235 of 258 mutants not driven (time cut: ~6/h at 3 jobs, load ~7). Resume with `PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/drive_resumable.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run --jobs 3` (pair-level resume from drive/pairs.jsonl; needs HEAD = marker commit over the baseline). Round-10 items C2 (M25-M36 via round10/D3/s1/mutants.py) and C6 are not identifiable here: that harness is absent from the walled export."
+          },
+          {
+            "step": "M3",
+            "what": "Quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors, stress.py included (C3); for this seat the top candidates are accuracy.py:261 then the recorded gaps inputs.py:590, ledger.py:739, store.py:123, sensor.py:2879, accuracy.py:555. C5 (writing round 10's REPORT.md) is the orchestrator's: round 10's directory is not in this export."
+          },
+          {
+            "step": "M5",
+            "what": "Kill-overlap matrix (every closure script on every mutant, no early stop) not taken (C9): ~240 h serial on this cell set. Duplicate kills therefore unmeasured. All wall/CPU numbers provisional (load 6-14); the quiet window re-takes m5_gate_table.py."
+          }
+        ]
       }
     }
   },
@@ -283,6 +543,56 @@
           }
         ],
         "yield": {}
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "REPO=<git repo holding the baseline> node dev/audit/rounds/round11/D4/s1/enumerate_m1.mjs",
+            "examined": 132,
+            "not_reached": ["editor_schema\tde", "editor_schema\ten", "editor_schema\tsv"],
+            "universe": 135
+          },
+          "M2": {
+            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s2",
+            "examined": 14,
+            "not_reached": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+            "universe": 15
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D4-s3",
+            "examined": 15,
+            "not_reached": [],
+            "universe": 15
+          }
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 5
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 2,
+          "s3": 7
+        },
+        "seats": [
+          ["M1"],
+          ["M2"],
+          ["M3"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The released build's card in a real Home Assistant frontend (brief, Limits): no recorded render and no HA instance on box B9; editor_schema x de,en,sv (the card editor's <ha-form>) needs that frontend to measure."
+          },
+          {
+            "step": "M2",
+            "what": "The card JS (www/heatpump-optimizer-card.js) is in this seat's file list, but M2's method has nothing to apply to it; it stays with M1/M3. Config-flow rendering is inferred from schema and strings through tests/hastub: there is no Home Assistant frontend here, and the wrong-kind numeric result rests on the stub's NumberSelector, which mirrors HA's vol.Coerce(float) plus range."
+          },
+          {
+            "step": "M3",
+            "what": "Card states of tests/card_drift.mjs --list not rendered in Chromium (no browser driver for them here): plan_inline, plan_inline_sv, expanded_plan, what_if_off, expanded_zoomed, draft_dirty_menu_open, draft_mid_drag, whatif_edited, whatif_weekly, shared_steps, coarse_pointer, reduced_motion, layout_editing_dragged, layout_editing_tidy, picker_open_filtered, wood_whatif, away_toggle, editor_schema, history_panned, history_deep_panned, history_no_power (21 of 45; their nearest grid equivalents were rendered). The tooltip states at 375 px in de render no tooltip (the hover point lies below the 812 px viewport), so tooltip typography is unmeasured in that cell. No real Home Assistant frontend: config-flow look is inferred from strings and placeholders only (D4.md Limits)."
+          }
+        ]
       }
     }
   },
@@ -341,6 +651,120 @@
           "M2": 1,
           "M4": 2
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/enum_m1.py ; python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"' ; PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"document\"' ; python3 dev/audit/rounds/round11/D5/s5/step_universe.py M1 ; python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'  # x 3 reader paths ; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M1 ; python3 dev/audit/rounds/round11/D5/s8/enum_steps.py --step M1 ; python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"' ; bash dev/audit/rounds/round11/D5/s10/enumerate.sh M1",
+            "examined": 27,
+            "not_reached": ["unfinished: The feature reader paths (two-tank storage, ECL110, capacity tariff) were checked only at label level. The paragraph-by-paragraph walk for dead ends and forward references was not recorded exhaustively."],
+            "universe": 27
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/text_ledger.py outline README.md docs/CONTRIBUTING.md docs/architecture.md docs/automations.md docs/configuration.md docs/dashboard-card.md docs/ecl110.md docs/how-it-works.md docs/setup.md | awk -F'\\t' '$3==\"heading\"||$3==\"link\"' ; python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"' ; PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"heading\"||$2==\"link\"' ; python3 dev/audit/rounds/round11/D5/s5/step_universe.py M2 ; python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"' ; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M2 ; python3 dev/audit/rounds/round11/D5/s8/enum_steps.py --step M2 ; python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"' ; bash dev/audit/rounds/round11/D5/s10/enumerate.sh M2",
+            "examined": 382,
+            "not_reached": [],
+            "universe": 382
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 README.md docs/CONTRIBUTING.md docs/architecture.md docs/automations.md docs/configuration.md docs/dashboard-card.md docs/ecl110.md docs/how-it-works.md docs/setup.md ; python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6 ; PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D6 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | grep -E '^[^#\\t]*\\.(md|mdc|html?)#' ; python3 dev/audit/rounds/round11/D5/s5/step_universe.py M3 ; python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6 ; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M3 ; python3 dev/audit/rounds/round11/D5/s8/enum_steps.py --step M3 ; python3 tools/audit/text_ledger.py outline --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6 ; bash dev/audit/rounds/round11/D5/s10/enumerate.sh M3",
+            "examined": 3265,
+            "not_reached": ["unfinished: Mechanism paragraphs in how-it-works.md and configuration.md were not traced one by one against the code paths", "unfinished: mechanism paragraphs in docstrings were checked only where M4 hits led"],
+            "universe": 3265
+          },
+          "M4": {
+            "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 README.md docs/CONTRIBUTING.md docs/architecture.md docs/automations.md docs/configuration.md docs/dashboard-card.md docs/ecl110.md docs/how-it-works.md docs/setup.md docs/img/card/make_card_figures.mjs docs/img/model/make_card_weekly_figure.mjs docs/img/model/make_model_figures.py docs/img/readme/make_readme_figures.py docs/img/readme/render.mjs docs/img/readme/render_mermaid.mjs ; python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; python3 dev/audit/rounds/round11/D5/s5/step_universe.py M4 ; python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; bash dev/audit/rounds/round11/D5/s7/enumerators.sh M4 ; python3 dev/audit/rounds/round11/D5/s8/enum_steps.py --step M4 ; python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s9 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; bash dev/audit/rounds/round11/D5/s10/enumerate.sh M4",
+            "examined": 21796,
+            "not_reached": ["custom_components/heatpump_optimizer/__init__.py (36 units)", "custom_components/heatpump_optimizer/accuracy.py (85 units)", "custom_components/heatpump_optimizer/away.py (38 units)", "custom_components/heatpump_optimizer/battery.py (25 units)", "custom_components/heatpump_optimizer/binary_sensor.py (14 units)", "custom_components/heatpump_optimizer/boost.py (59 units)", "custom_components/heatpump_optimizer/button.py (14 units)", "custom_components/heatpump_optimizer/climate.py (24 units)", "custom_components/heatpump_optimizer/comfort_learning.py (24 units)", "custom_components/heatpump_optimizer/config_flow.py (246 units)", "custom_components/heatpump_optimizer/const.py (265 units)", "custom_components/heatpump_optimizer/coordinator.py (920 units)", "custom_components/heatpump_optimizer/curve_learning.py (12 units)", "custom_components/heatpump_optimizer/debugger.py (49 units)", "custom_components/heatpump_optimizer/defrost.py (61 units)", "custom_components/heatpump_optimizer/device_prefill.py (15 units)", "custom_components/heatpump_optimizer/dhw_draws.py (15 units)", "custom_components/heatpump_optimizer/dhw_learning.py (46 units)", "custom_components/heatpump_optimizer/dhw_planner.py (129 units)", "custom_components/heatpump_optimizer/dhw_schedule.py (48 units)", "custom_components/heatpump_optimizer/diagnosis.py (8 units)", "custom_components/heatpump_optimizer/diagnostics.py (25 units)", "custom_components/heatpump_optimizer/disinfection.py (27 units)", "custom_components/heatpump_optimizer/draw_range.py (65 units)", "custom_components/heatpump_optimizer/drift.py (30 units)", "custom_components/heatpump_optimizer/driving_grade.py (12 units)", "custom_components/heatpump_optimizer/duty_legs.py (18 units)", "custom_components/heatpump_optimizer/duty_switch.py (49 units)", "custom_components/heatpump_optimizer/early_cutoff.py (29 units)", "custom_components/heatpump_optimizer/entity.py (27 units)", "custom_components/heatpump_optimizer/entry_config.py (30 units)", "custom_components/heatpump_optimizer/external_heat.py (44 units)", "custom_components/heatpump_optimizer/flow_lift.py (19 units)", "custom_components/heatpump_optimizer/freq_control.py (25 units)", "custom_components/heatpump_optimizer/frontend.py (14 units)", "custom_components/heatpump_optimizer/grid_fee.py (26 units)", "custom_components/heatpump_optimizer/heat_curve.py (49 units)", "custom_components/heatpump_optimizer/heat_energy.py (66 units)", "custom_components/heatpump_optimizer/inputs.py (97 units)", "tools/audit/seat/a1_dispatch_arms.sh (3 of 5 units: C1 prose truth not executed)", "tools/audit/seat/autofix_statuses.sh (1 of 3 units: C1 prose truth not executed)", "tools/audit/seat/bare_array.py (14 of 18 units: C1 prose truth not executed)", "tools/audit/seat/beat_jobs.py (45 of 55 units: C1 prose truth not executed)", "tools/audit/seat/beat_jobs_selftest.py (23 of 45 units: C1 prose truth not executed)", "tools/audit/seat/beatd.py (46 of 59 units: C1 prose truth not executed)", "tools/audit/seat/body_patch.sh (30 of 59 units: C1 prose truth not executed)", "tools/audit/seat/body_push.sh (21 of 36 units: C1 prose truth not executed)", "tools/audit/seat/bottleneck_check.py (12 of 20 units: C1 prose truth not executed)", "tools/audit/seat/bus.sh (166 of 241 units: C1 prose truth not executed)", "tools/audit/seat/carry_fold.py (3 of 7 units: C1 prose truth not executed)", "tools/audit/seat/ci-watch.sh (17 of 28 units: C1 prose truth not executed)", "tools/audit/seat/ci_critpath.py (6 of 8 units: C1 prose truth not executed)", "tools/audit/seat/ci_pause.py (10 of 20 units: C1 prose truth not executed)", "tools/audit/seat/ci_predict_replay.sh (2 of 3 units: C1 prose truth not executed)", "tools/audit/seat/ci_priority.py (9 of 15 units: C1 prose truth not executed)", "tools/audit/seat/ci_probe.py (13 of 19 units: C1 prose truth not executed)", "tools/audit/seat/closeout.py (27 of 36 units: C1 prose truth not executed)", "tools/audit/seat/cloud-setup.sh (15 of 21 units: C1 prose truth not executed)", "tools/audit/seat/cloud_dispatch.py (61 of 94 units: C1 prose truth not executed)", "tools/audit/seat/cloud_relay.sh (179 of 241 units: C1 prose truth not executed)", "tools/audit/seat/codeql-triage-poll.sh (2 of 2 units: C1 prose truth not executed)", "tools/audit/seat/daemonize.py (8 of 13 units: C1 prose truth not executed)", "tools/audit/seat/delivery_row.sh (8 of 11 units: C1 prose truth not executed)", "tools/audit/seat/failure_logs.sh (6 of 10 units: C1 prose truth not executed)", "tools/audit/seat/features_block.py (1 of 5 units: C1 prose truth not executed)", "tools/audit/seat/finder_overlap.py (6 of 7 units: C1 prose truth not executed)", "tools/audit/seat/flow_metrics.py (3 of 7 units: C1 prose truth not executed)", "tools/audit/seat/gantt_drift.py (5 of 10 units: C1 prose truth not executed)", "tools/audit/seat/gh_calls.py (31 of 43 units: C1 prose truth not executed)", "tools/audit/seat/gh_read.py (24 of 39 units: C1 prose truth not executed)", "tools/audit/seat/gh_read_run.py (2 of 4 units: C1 prose truth not executed)", "tools/audit/seat/handoff_push.sh (16 of 23 units: C1 prose truth not executed)", "tools/audit/seat/handover_prompt.py (9 of 13 units: C1 prose truth not executed)", "tools/audit/seat/heartbeat.sh (1 of 4 units: C1 prose truth not executed)", "tools/audit/seat/hooks/liveness.py (7 of 9 units: C1 prose truth not executed)", "tools/audit/seat/hooks_setup.py (18 of 33 units: C1 prose truth not executed)", "tools/audit/seat/ledger.py (40 of 62 units: C1 prose truth not executed)", "tools/audit/seat/loop_ledger.py (10 of 16 units: C1 prose truth not executed)", "tools/audit/seat/merge_pr.sh (32 of 54 units: C1 prose truth not executed)", "tools/audit/seat/merge_train.py (382 of 689 units: C1 prose truth not executed)", "tools/audit/seat/moved_paths.py (3 of 5 units: C1 prose truth not executed)", "tools/audit/seat/mutant_run.py (30 of 57 units: C1 prose truth not executed)", "tools/audit/seat/offline_spy.py (5 of 9 units: C1 prose truth not executed)", "tools/audit/seat/open_driver.py (18 of 21 units: C1 prose truth not executed)", "tools/audit/seat/open_driver_selftest.py (22 of 27 units: C1 prose truth not executed)", "tools/audit/seat/open_pr.sh (19 of 42 units: C1 prose truth not executed)", "tools/audit/seat/orchestrator_tick.py (186 of 277 units: C1 prose truth not executed)", "tools/audit/seat/outside_intake.py (7 of 14 units: C1 prose truth not executed)", "tools/audit/seat/outside_intake_selftest.py (7 of 11 units: C1 prose truth not executed)", "tools/audit/seat/owed_unactioned.py (22 of 24 units: C1 prose truth not executed)", "tools/audit/seat/owed_watch.py (18 of 36 units: C1 prose truth not executed)", "tools/pr/app_approve.sh (89 of 114 units: C1 prose truth not executed)", "tools/pr/app_comment.sh (6 of 10 units: C1 prose truth not executed)", "tools/pr/app_mint.sh (3 of 4 units: C1 prose truth not executed)", "tools/pr/app_push.sh (55 of 75 units: C1 prose truth not executed)", "tools/pr/approve_held_runs.sh (19 of 23 units: C1 prose truth not executed)", "tools/pr/cancel_superseded.py (27 of 40 units: C1 prose truth not executed)", "tools/pr/ci_predict.py (52 of 113 units: C1 prose truth not executed)", "tools/pr/codeql_scope.py (16 of 26 units: C1 prose truth not executed)", "tools/pr/dependabot_merge.py (1 of 2 units: C1 prose truth not executed)", "tools/pr/depgraph.py (5 of 6 units: C1 prose truth not executed)", "tools/pr/figure_block.py (5 of 8 units: C1 prose truth not executed)", "tools/pr/gate_priority.py (10 of 18 units: C1 prose truth not executed)", "tools/pr/gh_comment.py (29 of 36 units: C1 prose truth not executed)", "tools/pr/head_note.py (1 of 2 units: C1 prose truth not executed)", "tools/pr/local_alerts.py (2 of 4 units: C1 prose truth not executed)", "tools/pr/merge_main_bot.py (18 of 32 units: C1 prose truth not executed)", "tools/pr/outside.py (25 of 53 units: C1 prose truth not executed)", "tools/pr/preflight.sh (6 of 12 units: C1 prose truth not executed)", "tools/pr/prepr.sh (203 of 390 units: C1 prose truth not executed)", "tools/pr/push.sh (23 of 51 units: C1 prose truth not executed)", "tests/features.py#77c834a394", "tests/features.py#1e04e90f8e", "tests/features.py#7b30342b76", "tests/features.py#612853a2e1", "tests/features.py#53ce1720fc", "tests/features.py#69ee7577f9", "tests/features.py#42f2de5711", "tests/features.py#b2b50ac272", "tests/features.py#d71992da4f", "tests/features.py#2a4a1855ed", "tests/features.py#6209c31094", "tests/features.py#ce06bd4af7", "tests/features.py#d93ad123d2", "tests/features.py#3964920480", "tests/features.py#0bd727a8f1", "tests/features.py#6930485c78", "tests/features.py#e1fb907f5d", "tests/features.py#6939d51222", "tests/features.py#540353f5df", "tests/features.py#d0246e3af3", "tests/features.py#28bba7e765", "tests/features.py#e1f2184ea9", "tests/features.py#ecfa51ac44", "tests/features.py#22fcecdb3a", "tests/features.py#cc5c4c16a6", "tests/features.py#e3db0456bf", "tests/features.py#dd1415cad4", "tests/features.py#46a8a5ce69", "tests/features.py#d8b6dcd6e4", "tests/features.py#ba4fd4e9ca", "tests/features.py#bd6218544b", "tests/features.py#381fc5724f", "tests/features.py#0749dabb60", "tests/features.py#28be5f7023", "tests/features.py#02c7d44d8b", "tests/features.py#cf84909c70", "tests/features.py#2b877e1618", "tests/features.py#ebc9da6145", "tests/features.py#85f270e041", "tests/features.py#39f45c725d", "tests/features.py#9e2a8d649d", "tests/features.py#ec658703c6", "tests/features.py#21fa507f0e", "tests/features.py#ed237934b6", "tests/features.py#56618a6017", "tests/features.py#c74a88ae28", "tests/features.py#aa0fb06c32", "tests/features.py#cb9a165933", "tests/features.py#3bb5245e98", "tests/features.py#41ea702e6b", "tests/features.py#42e7380dcd", "tests/features.py#316773ca78", "tests/features.py#8fa346a05a", "tests/features.py#79382ee21d", "tests/features.py#864f391211", "tests/features.py#743763afb8", "tests/features.py#e33207b100", "tests/features.py#e727b3105e", "tests/features.py#2efc45153c", "tests/features.py#e480e3392c", "tests/features.py#2631fbe819", "tests/features.py#7a3840414e", "tests/features.py#a69f9c60b2", "tests/features.py#0018933e42", "tests/features.py#6bd64cee95", "tests/features.py#4ea8864938", "tests/features.py#cfed31f13c", "tests/features.py#65c7815266", "tests/features.py#d7b52eb491", "tests/features.py#6daeb760c9", "tests/features.py#be716a7feb", "tests/features.py#2e495819ea", "tests/features.py#01e5a9c7d1", "tests/features.py#853ce465a2", "tests/features.py#2bbbb80a2a", "tests/features.py#ffe0e167f3", "tests/features.py#c7e94be1b9", "tests/features.py#4520811c32", "tests/features.py#e262de14f2", "tests/features.py#580138ee12", "tests/features.py#e051fc39e5", "tests/finite_boundary.py#0640c5d1cc", "unfinished: cited-number-vs-adjacent-constant check not automated; www/*.js comments not scanned for symbols; README/docs M4 cell not run"],
+            "universe": 26909
+          }
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 46
+        },
+        "returned": {
+          "s1": 4,
+          "s10": 7,
+          "s2": 11,
+          "s3": 3,
+          "s4": 3,
+          "s5": 7,
+          "s6": 8,
+          "s7": 3,
+          "s8": 7,
+          "s9": 4
+        },
+        "seats": [
+          ["M1"],
+          ["M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4"]
+        ],
+        "unfinished": [
+          {
+            "step": "M4",
+            "what": "C1 truth (executed check against the code) on 2785 of 2855 units, grouped by file in coverage.not_reached; mechanical C2/C5/C7 ran on all. C3/C4 (restatement, history share) were judged only on the 70 examined units."
+          },
+          {
+            "step": "M4",
+            "what": "Behavioural truth (C1) was driven by an executed check for 35 of 3200 claim units (semantic.py 16 checks, py_numbers.py 11, card_numbers.mjs 10); 3165 rows are 'unverifiable: mechanical checks only'. Remaining by file: the card (892 units), optimizer.py (424), thermal_model.py (366), sensor.py (223), pump_arbiter.py (159), sysid.py (143) and every other cell file's docstrings and comments."
+          },
+          {
+            "step": "M4",
+            "what": "C4 (history over half) and C3 (restatement) ran as pattern heuristics only: 43 C4 flags and 8 C3 flags were read and judged to carry a reason or to be section banners; no executed criterion check exists for either."
+          },
+          {
+            "step": "M3",
+            "what": "C6: docstring mechanism paragraphs traced to code paths only in log_latch, plan_step, silent_mode, pump_schedule and plan_slots."
+          },
+          {
+            "step": "M1",
+            "what": "C2 (feature reader paths in docs/) and C3 (docs mechanism paragraphs) are outside D5-s4's cells; routed as leads to D5-s1 and D5-s2."
+          },
+          {
+            "step": "M4",
+            "what": "2246 units with no path, identifier, flag or adjacent constant to execute against: their C1 prose truth and C3/C4 judgement not reached (by file in not_reached; largest merge_train.py, prepr.sh, orchestrator_tick.py, cloud_relay.sh, bus.sh)."
+          },
+          {
+            "step": "M4",
+            "what": "All 3781 units are rowed by executed checks (paths, file:symbol citations, name() calls, usage-line flags, count-vs-adjacent-literal, sentence length), but 2941 are `no-claim` only in the sense that those checks extracted nothing: behavioural statements inside them (what a function does) were not executed against the code (C1), and C3 restatement and C4 history-share were not judged for any of the 3781. Issue numbers (#NNNN) were not resolved (no GitHub for D5)."
+          },
+          {
+            "step": "M3",
+            "what": "C6: mechanism paragraphs in this seat's 1336 docstrings were not traced one by one against their code paths (they sit under M4 here)."
+          },
+          {
+            "step": "M4",
+            "what": "82 units (listed in not_reached) carry a cited number with no adjacent code literal, not triaged by execution; 71 further false-row units carry such numbers too (detail.tsv 'C1n'). C3 (restatement) and C4 (history over half) were not judged per unit: the executed battery covers C1 by one traced count plus the number check, C2 and C5. Per-docstring mechanism tracing past that battery is left."
+          },
+          {
+            "step": "M4",
+            "what": "C1 behavioural truth was not executed for the 2489 units naming no path or symbol (ledger verdict unverifiable), nor beyond resolvability for the 1114 resolved units; criteria C3 (restatement) and C4 (history over half) were not measured for any unit. Remainder by file: every row of ledger_m4.tsv with verdict unverifiable."
+          },
+          {
+            "step": "M3",
+            "what": "C6: mechanism paragraphs in the cells' docstrings not traced one by one against their code paths."
+          },
+          {
+            "step": "M4",
+            "what": "Per-unit semantic C1 (is the mechanism a comment states true of the code beneath it, by an executed check of that code) beyond the mechanical checks, and the C3 (restatement) and C4 (history over reason) judgements, were not executed for the 3664 claim units; largest remainders tests/entities.py 1684 units, tests/stress.py 255, tests/mutation_table.py 204, tests/structure.py 183, tests/replay.py 180, tests/env_drift.py 159, tests/nightly_ha.py 146, tests/ha_contract.py 120."
+          },
+          {
+            "step": "M3",
+            "what": "C6 carried: mechanism docstrings in the cells not traced one by one against their code paths."
+          },
+          {
+            "step": "M4",
+            "what": "Every unit is rowed with an executed mechanical check (C2 path/symbol resolution, C5 length, cited-number-vs-constant), and C1 semantic truth was executed for the 5 hooks and 9 workflow scripts (three hook harnesses, pre_bash_claims.sh, workflow_claims.py) and for the 29 adjudicated units. Left: C1 semantic truth of the remaining docstring/comment claims in the 315 dev/audit/harnesses/** files beyond resolution (e.g. 'Expected ...' values against a re-run of each harness), and C3 (restatement) and C4 (history share) for every unit; C5's 339 long sentences are counted, not each re-read."
+          }
+        ]
       }
     }
   },
@@ -383,6 +807,92 @@
           {
             "step": "M2",
             "what": "Behavioural claims were not checked against golden scenarios, and external links got no HEAD requests."
+          }
+        ]
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s1 --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s2 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/en.json $(ls custom_components/heatpump_optimizer/*.py | grep -v '/\\._') ; python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s5 --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "examined": 20018,
+            "not_reached": ["custom_components/heatpump_optimizer/translations/en.json#options.step (624 units)", "custom_components/heatpump_optimizer/translations/en.json#config.step (268 units)", "custom_components/heatpump_optimizer/topology.py (60 units)", "custom_components/heatpump_optimizer/coordinator.py (60 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_thermal_parameters (53 units)", "custom_components/heatpump_optimizer/translations/en.json#options.error (31 units)", "custom_components/heatpump_optimizer/translations/en.json#services.simulate_plan (29 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_schedule (23 units)", "custom_components/heatpump_optimizer/sysid.py (16 units)", "custom_components/heatpump_optimizer/store.py (14 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_topology (12 units)", "custom_components/heatpump_optimizer/translations/en.json#config.error (12 units)", "custom_components/heatpump_optimizer/entry_config.py (11 units)", "custom_components/heatpump_optimizer/translations/en.json#services.assign_entity (10 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_manual_plan (9 units)", "custom_components/heatpump_optimizer/heat_curve.py (8 units)", "custom_components/heatpump_optimizer/translations/en.json#services.restore_learned_snapshot (7 units)", "custom_components/heatpump_optimizer/translations/en.json#services.reset_heat_loss_learners (7 units)", "custom_components/heatpump_optimizer/services.py (7 units)", "custom_components/heatpump_optimizer/pump_mode.py (7 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_away (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.factory_reset (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.diagnose_interval (6 units)", "custom_components/heatpump_optimizer/legionella.py (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.debug_collect (5 units)", "custom_components/heatpump_optimizer/translations/en.json#options.abort (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.store_version (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.solve_worker_fallback (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.pump_mode_unreadable (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_currency_mismatch (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_magnitude (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_implausible (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_mode_blocked (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.comfort_band_contradiction (5 units)", "custom_components/heatpump_optimizer/pump_schedule.py (5 units)", "custom_components/heatpump_optimizer/optimizer.py (5 units)", "custom_components/heatpump_optimizer/config_flow.py (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.valve_target_above_comfort (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.solve_failures (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_unit_unrecognised (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_feed_stale (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.lower_floor_modelled (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_sign (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_off_step (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_above_setpoint (4 units)", "custom_components/heatpump_optimizer/sensor.py (4 units)", "custom_components/heatpump_optimizer/dhw_learning.py (4 units)", "custom_components/heatpump_optimizer/translations/en.json#services.clear_manual_plan (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.space_setpoint_unreadable (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.pump_write_ignored (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.freq_watchdog (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_silent (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_minimum_above_start (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unverified (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unreachable (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_overdue (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_write_failed (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.cop_degradation (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift_rolled_back (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift (3 units)", "custom_components/heatpump_optimizer/translations/en.json#config.abort (3 units)", "custom_components/heatpump_optimizer/mixing_valve.py (3 units)", "custom_components/heatpump_optimizer/manual_plan.py (3 units)", "custom_components/heatpump_optimizer/inputs.py (3 units)", "custom_components/heatpump_optimizer/boost.py (3 units)", "custom_components/heatpump_optimizer/wood_fuel.py (2 units)", "custom_components/heatpump_optimizer/translations/en.json#services.run_optimization (2 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.peak_window (2 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.building_era (2 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.quiet_silent_not_enforced (2 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_setpoint_below_disinfection (2 units)", "custom_components/heatpump_optimizer/translations/en.json#entity.sensor (2 units)", "custom_components/heatpump_optimizer/replay_doc.py (2 units)", "custom_components/heatpump_optimizer/pump_arbiter.py (2 units)", "custom_components/heatpump_optimizer/frontend.py (2 units)", "custom_components/heatpump_optimizer/dhw_schedule.py (2 units)", "custom_components/heatpump_optimizer/defrost.py (2 units)", "custom_components/heatpump_optimizer/curve_learning.py (2 units)", "custom_components/heatpump_optimizer/comfort_band.py (2 units)", "custom_components/heatpump_optimizer/climate.py (2 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_mode (1 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.heat_curve_target_kind (1 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.dso_product (1 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_switch_lost (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.update_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_fetch_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_auth_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_prices (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_plan (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_dhw_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_dhw_min_no_deadband (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_temperature_comfort_band_violation (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_solve_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_no_prices (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_snapshot (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_refit (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.quiet_windows_overlap (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_unusable (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_timeout (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.no_loaded_config_entry (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_slots (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_expires_at (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.factory_reset_not_applied (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.diagnose_interval_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.debug_collect_inactive (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_loaded (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_found (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_wrong_domain (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_missing (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_topology_unsupported (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_dhw_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_dhw_min_no_deadband (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_comfort_band_violation (1 units)", "custom_components/heatpump_optimizer/thermal_model.py (1 units)", "custom_components/heatpump_optimizer/tariff.py (1 units)", "custom_components/heatpump_optimizer/snapshots.py (1 units)", "custom_components/heatpump_optimizer/pump_signals.py (1 units)", "custom_components/heatpump_optimizer/price_model.py (1 units)", "custom_components/heatpump_optimizer/open_meteo.py (1 units)", "custom_components/heatpump_optimizer/off_restore.py (1 units)", "custom_components/heatpump_optimizer/narrative.py (1 units)", "custom_components/heatpump_optimizer/ledger.py (1 units)", "custom_components/heatpump_optimizer/grid_fee.py (1 units)", "custom_components/heatpump_optimizer/external_heat.py (1 units)", "custom_components/heatpump_optimizer/entity.py (1 units)", "custom_components/heatpump_optimizer/early_cutoff.py (1 units)", "custom_components/heatpump_optimizer/disinfection.py (1 units)", "custom_components/heatpump_optimizer/debugger.py (1 units)", "custom_components/heatpump_optimizer/comfort_learning.py (1 units)", ".claude/skills/steward/SKILL.md (59 units)", ".claude/workflows/web-fragments.md (16 units)", ".github/PULL_REQUEST_TEMPLATE.md (19 units)", "AGENTS.md (2 units)", "CLAUDE.md (39 units)", "SECURITY.md (9 units)", "dev/README.md (82 units)", "dev/audit/README.md (55 units)", "dev/governance/rules/brief-citations.md (33 units)", "dev/governance/rules/ci-autofix.md (36 units)", "dev/governance/rules/claim-files.md (19 units)", "dev/governance/rules/comment-readback.md (29 units)", "dev/governance/rules/defect-root-cause.md (65 units)", "dev/governance/rules/delivery-status-tracking.md (16 units)", "dev/governance/rules/finding-propagation.md (38 units)", "dev/governance/rules/gate-scoping.md (11 units)", "dev/governance/rules/ratchet-budgets.md (37 units)", "dev/governance/rules/writing-for-agents.md (21 units)", "dev/programme/HANDOVER.md (459 units)", "dev/programme/RULINGS.md (167 units)", "tests/README.md (86 units)", "tools/audit/archscore/ABOUT.md (181 units)", "tools/audit/seat/INSTRUMENTS.md (10 units)", "tools/audit/seat/instruments/app_approve.sh.md (5 units)", "tools/audit/seat/instruments/app_comment.sh.md (2 units)", "tools/audit/seat/instruments/app_push.sh.md (1 units)", "tools/audit/seat/instruments/approve_held_runs.sh.md (2 units)", "tools/audit/seat/instruments/autofix_statuses.sh.md (2 units)", "tools/audit/seat/instruments/bare_array.py.md (3 units)", "tools/audit/seat/instruments/beat_jobs.py.md (2 units)", "tools/audit/seat/instruments/beatd.py.md (6 units)", "tools/audit/seat/instruments/beatd_shims_git.md (4 units)", "tools/audit/seat/instruments/body_patch.sh.md (6 units)", "tools/audit/seat/instruments/body_push.sh.md (3 units)", "tools/audit/seat/instruments/bottleneck_check.py.md (6 units)", "tools/audit/seat/instruments/bus.sh.md (11 units)", "tools/audit/seat/instruments/cancel_superseded.py.md (11 units)", "tools/audit/seat/instruments/carry_fold.py.md (2 units)", "tools/audit/seat/instruments/check_scopes.py.md (3 units)", "tools/audit/seat/instruments/ci-watch.sh.md (3 units)", "tools/audit/seat/instruments/ci_critpath.py.md (3 units)", "tools/audit/seat/instruments/ci_pause.py.md (5 units)", "tools/audit/seat/instruments/ci_priority.py.md (4 units)", "tools/audit/seat/instruments/ci_probe.py.md (3 units)", "tools/audit/seat/instruments/closeout.py.md (6 units)", "tools/audit/seat/instruments/cloud-setup.sh.md (4 units)", "tools/audit/seat/instruments/cloud_dispatch.py.md (16 units)", "tools/audit/seat/instruments/cloud_relay.sh.md (49 units)", "tools/audit/seat/instruments/codeql-triage-poll.sh.md (1 units)", "tools/audit/seat/instruments/daemonize.py.md (2 units)", "tools/audit/seat/instruments/delivery_row.sh.md (1 units)", "tools/audit/seat/instruments/depgraph.py.md (1 units)", "tools/audit/seat/instruments/enumerate.py.md (4 units)", "tools/audit/seat/instruments/failure_logs.sh.md (2 units)", "tools/audit/seat/instruments/features_block.py.md (5 units)", "tools/audit/seat/instruments/figure_block.py.md (4 units)", "tools/audit/seat/instruments/finder_overlap.py.md (12 units)", "tools/audit/seat/instruments/flow_metrics.py.md (2 units)", "tools/audit/seat/instruments/fold_ledger.py.md (1 units)", "tools/audit/seat/instruments/gantt_drift.py.md (4 units)", "tools/audit/seat/instruments/gh_calls.py.md (3 units)", "tools/audit/seat/instruments/gh_read.py.md (1 units)", "tools/audit/seat/instruments/gh_read_run.py.md (3 units)", "tools/audit/seat/instruments/handover_prompt.py.md (2 units)", "tools/audit/seat/instruments/head_note.py.md (2 units)", "tools/audit/seat/instruments/heartbeat.sh.md (3 units)", "tools/audit/seat/instruments/hooks_setup.py.md (6 units)", "tools/audit/seat/instruments/judge_batch.py.md (2 units)", "tools/audit/seat/instruments/ledger.py.md (6 units)", "tools/audit/seat/instruments/loop_ledger.py.md (13 units)", "tools/audit/seat/instruments/machinery_ratchet.py.md (2 units)", "tools/audit/seat/instruments/merge_pr.sh.md (3 units)", "tools/audit/seat/instruments/merge_throughput.py.md (5 units)", "tools/audit/seat/instruments/merge_train.py.md (35 units)", "tools/audit/seat/instruments/moved_paths.py.md (3 units)", "tools/audit/seat/instruments/mutant_run.py.md (8 units)", "tools/audit/seat/instruments/offline_spy.py.md (3 units)", "tools/audit/seat/instruments/open_driver.py.md (4 units)", "tools/audit/seat/instruments/open_pr.sh.md (8 units)", "tools/audit/seat/instruments/orchestrator_tick.py.md (10 units)", "tools/audit/seat/instruments/outside.py.md (5 units)", "tools/audit/seat/instruments/outside_intake.py.md (3 units)", "tools/audit/seat/instruments/owed_unactioned.py.md (4 units)", "tools/audit/seat/instruments/plan_audit.py.md (2 units)", "tools/audit/seat/instruments/plan_page.py.md (8 units)", "tools/audit/seat/instruments/plan_public.py.md (4 units)", "tools/audit/seat/instruments/plan_table.py.md (2 units)", "tools/audit/seat/instruments/plant_recall.py.md (12 units)", "tools/audit/seat/instruments/policy_reread_check.py.md (2 units)", "tools/audit/seat/instruments/postmerge.py.md (3 units)", "tools/audit/seat/instruments/pr_args.sh.md (8 units)", "tools/audit/seat/instruments/pr_cap.py.md (3 units)", "tools/audit/seat/instruments/preflight.sh.md (2 units)", "tools/audit/seat/instruments/prepare_baseline.sh.md (2 units)", "tools/audit/seat/instruments/prepr.sh.md (2 units)", "tools/audit/seat/instruments/probe_bridge.py.md (3 units)", "tools/audit/seat/instruments/proof_watch.py.md (2 units)", "tools/audit/seat/instruments/prune_refs.py.md (8 units)", "tools/audit/seat/instruments/pulse.py.md (7 units)", "tools/audit/seat/instruments/push.sh.md (1 units)", "tools/audit/seat/instruments/queue_pre_flight.py.md (2 units)", "tools/audit/seat/instruments/record_beat.py.md (1 units)", "tools/audit/seat/instruments/record_row.py.md (4 units)", "tools/audit/seat/instruments/ref_privacy.py.md (2 units)", "tools/audit/seat/instruments/remerge_main.sh.md (6 units)", "tools/audit/seat/instruments/resume_doc.py.md (2 units)", "tools/audit/seat/instruments/review_carry.py.md (1 units)", "tools/audit/seat/instruments/review_packet.py.md (2 units)", "tools/audit/seat/instruments/review_strength.py.md (2 units)", "tools/audit/seat/instruments/role_pack.py.md (7 units)", "tools/audit/seat/instruments/roster_edit.py.md (9 units)", "tools/audit/seat/instruments/roster_lib.py.md (3 units)", "tools/audit/seat/instruments/roster_queue.py.md (5 units)", "tools/audit/seat/instruments/roster_sync.py.md (4 units)", "tools/audit/seat/instruments/round_metrics.py.md (7 units)", "tools/audit/seat/instruments/run_twins.py.md (2 units)", "tools/audit/seat/instruments/scorecard.py.md (14 units)", "tools/audit/seat/instruments/seat_gen.py.md (4 units)", "tools/audit/seat/instruments/seat_venv.sh.md (4 units)", "tools/audit/seat/instruments/selftest_wiring.py.md (4 units)", "tools/audit/seat/instruments/shims_seat-gh.md (17 units)", "tools/audit/seat/instruments/shims_seat-python.md (2 units)", "tools/audit/seat/instruments/state_docs.py.md (12 units)", "tools/audit/seat/instruments/survivor_list.py.md (2 units)", "tools/audit/seat/instruments/sweep_driver.py.md (5 units)", "tools/audit/seat/instruments/sweep_gantt.py.md (5 units)", "tools/audit/seat/instruments/sweep_render.py.md (3 units)", "tools/audit/seat/instruments/sweep_template.md.md (1 units)", "tools/audit/seat/instruments/text_ledger.py.md (1 units)", "tools/audit/seat/instruments/tick_loop.sh.md (13 units)", "tools/audit/seat/instruments/tmp_paths.py.md (1 units)", "tools/audit/seat/instruments/train.sh.md (7 units)", "tools/audit/seat/instruments/update_pr.sh.md (6 units)", "tools/audit/seat/instruments/verdict_audit.py.md (4 units)", "tools/audit/seat/instruments/worktree_gc.sh.md (8 units)", "tools/audit/seat/instruments/wt_sync.sh.md (2 units)", "tools/audit/seat/sweep_template.md (54 units)", "tools/pr/README.md (1 units)", "unfinished: Prose claims (behaviour, units, performance, version) in how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md and automations.md were not extracted.", "unfinished: Behavioural prose claims (the 'optimizer will…' sentences) were not exhaustively numbered."],
+            "universe": 23677
+          },
+          "M2": {
+            "enumerator": "awk -F'\\t' 'NR>1 && $3==\"claim\" {print $1}' dev/audit/rounds/round11/D6/s1/ledger.tsv ; awk -F'\\t' 'NR>1 && $3==\"claim\"' dev/audit/rounds/round11/D6/s2/ledger.tsv ; python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/en.json $(ls custom_components/heatpump_optimizer/*.py | grep -v '/\\._') ; python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s5 --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ; python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "examined": 9742,
+            "not_reached": ["README.md: 392 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "RELEASE_NOTES.md: 312 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "ROADMAP.md: 9 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/architecture.md: 29 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/automations.md: 17 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/configuration.md: 796 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/dashboard-card.md: 362 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/ecl110.md: 95 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/how-it-works.md: 468 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/index.html: 115 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "docs/setup.md: 96 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "tools/site/build_docs.mjs: 15 claim rows marked NOT-REACHED (behavioural or prose, no executed check)", "custom_components/heatpump_optimizer/strings.json (1388 claims unprobed)", "custom_components/heatpump_optimizer/services.yaml (50 claims unprobed)", "blueprints/automation/notify_wood_cheaper_window.yaml (29 claims unprobed)", "blueprints/automation/notifications.yaml (23 claims unprobed)", "dev/governance/roles/fixer.md (17 claims unprobed)", "blueprints/automation/economy_mode_on_price_peak.yaml (12 claims unprobed)", "docs/img/model/make_model_figures.py (12 claims unprobed)", "docs/img/card/pages.json (11 claims unprobed)", "blueprints/automation/charge_ev_from_grid_headroom.yaml (10 claims unprobed)", "docs/img/readme/mermaid_figures.json (9 claims unprobed)", "blueprints/automation/notify_on_manual_plan.yaml (8 claims unprobed)", "dev/governance/roles/orchestrator.md (7 claims unprobed)", "dev/governance/dimensions/D15.md (5 claims unprobed)", "dev/governance/dimensions/D12.md (4 claims unprobed)", "dev/governance/dimensions/D4.md (4 claims unprobed)", "dev/governance/dimensions/D11.md (3 claims unprobed)", "dev/governance/dimensions/D13.md (3 claims unprobed)", "dev/governance/dimensions/D5.md (3 claims unprobed)", "dev/governance/dimensions/criteria/D9-criteria.md (3 claims unprobed)", "dev/governance/roles/COMMON.md (3 claims unprobed)", "dev/governance/roles/proposal-triage.md (3 claims unprobed)", "docs/img/readme/make_readme_figures.py (3 claims unprobed)", "dev/governance/dimensions/D0.md (2 claims unprobed)", "dev/governance/dimensions/D1.md (2 claims unprobed)", "dev/governance/dimensions/D10.md (2 claims unprobed)", "dev/governance/dimensions/D2.md (2 claims unprobed)", "dev/governance/dimensions/D3.md (2 claims unprobed)", "dev/governance/dimensions/D6.md (2 claims unprobed)", "dev/governance/dimensions/D7.md (2 claims unprobed)", "dev/governance/dimensions/D9.md (2 claims unprobed)", "dev/governance/roles/standing-roster.md (2 claims unprobed)", "dev/governance/roles/standing-tick.md (2 claims unprobed)", "dev/governance/roles/standing.md (2 claims unprobed)", "dev/governance/dimensions/D14.md (1 claims unprobed)", "dev/governance/dimensions/D8.md (1 claims unprobed)", "dev/governance/roles/architect-planner.md (1 claims unprobed)", "dev/governance/roles/designer.md (1 claims unprobed)", "dev/governance/roles/evaluator.md (1 claims unprobed)", "dev/governance/roles/fix-review.md (1 claims unprobed)", "dev/governance/roles/standing-dispatch.md (1 claims unprobed)", "dev/governance/roles/standing-merge.md (1 claims unprobed)", "docs/img/model/make_card_weekly_figure.mjs (1 claims unprobed)", "docs/img/readme/render_mermaid.mjs (1 claims unprobed)", "custom_components/heatpump_optimizer/translations/en.json#options.step (624 units)", "custom_components/heatpump_optimizer/translations/en.json#config.step (268 units)", "custom_components/heatpump_optimizer/topology.py (60 units)", "custom_components/heatpump_optimizer/coordinator.py (60 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_thermal_parameters (53 units)", "custom_components/heatpump_optimizer/translations/en.json#options.error (31 units)", "custom_components/heatpump_optimizer/translations/en.json#services.simulate_plan (29 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_schedule (23 units)", "custom_components/heatpump_optimizer/sysid.py (16 units)", "custom_components/heatpump_optimizer/store.py (14 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_topology (12 units)", "custom_components/heatpump_optimizer/translations/en.json#config.error (12 units)", "custom_components/heatpump_optimizer/entry_config.py (11 units)", "custom_components/heatpump_optimizer/translations/en.json#services.assign_entity (10 units)", "custom_components/heatpump_optimizer/translations/en.json#services.apply_manual_plan (9 units)", "custom_components/heatpump_optimizer/heat_curve.py (8 units)", "custom_components/heatpump_optimizer/translations/en.json#services.restore_learned_snapshot (7 units)", "custom_components/heatpump_optimizer/translations/en.json#services.reset_heat_loss_learners (7 units)", "custom_components/heatpump_optimizer/services.py (7 units)", "custom_components/heatpump_optimizer/pump_mode.py (7 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_away (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.factory_reset (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.diagnose_interval (6 units)", "custom_components/heatpump_optimizer/legionella.py (6 units)", "custom_components/heatpump_optimizer/translations/en.json#services.debug_collect (5 units)", "custom_components/heatpump_optimizer/translations/en.json#options.abort (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.store_version (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.solve_worker_fallback (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.pump_mode_unreadable (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_currency_mismatch (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_magnitude (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_implausible (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_mode_blocked (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.comfort_band_contradiction (5 units)", "custom_components/heatpump_optimizer/pump_schedule.py (5 units)", "custom_components/heatpump_optimizer/optimizer.py (5 units)", "custom_components/heatpump_optimizer/config_flow.py (5 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.valve_target_above_comfort (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.solve_failures (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_unit_unrecognised (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.price_feed_stale (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.lower_floor_modelled (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_sign (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_off_step (4 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_above_setpoint (4 units)", "custom_components/heatpump_optimizer/sensor.py (4 units)", "custom_components/heatpump_optimizer/dhw_learning.py (4 units)", "custom_components/heatpump_optimizer/translations/en.json#services.clear_manual_plan (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.space_setpoint_unreadable (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.pump_write_ignored (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.freq_watchdog (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_silent (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_minimum_above_start (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unverified (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unreachable (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_overdue (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_write_failed (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.cop_degradation (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift_rolled_back (3 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift (3 units)", "custom_components/heatpump_optimizer/translations/en.json#config.abort (3 units)", "custom_components/heatpump_optimizer/mixing_valve.py (3 units)", "custom_components/heatpump_optimizer/manual_plan.py (3 units)", "custom_components/heatpump_optimizer/inputs.py (3 units)", "custom_components/heatpump_optimizer/boost.py (3 units)", "custom_components/heatpump_optimizer/wood_fuel.py (2 units)", "custom_components/heatpump_optimizer/translations/en.json#services.run_optimization (2 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.peak_window (2 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.building_era (2 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.quiet_silent_not_enforced (2 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_setpoint_below_disinfection (2 units)", "custom_components/heatpump_optimizer/translations/en.json#entity.sensor (2 units)", "custom_components/heatpump_optimizer/replay_doc.py (2 units)", "custom_components/heatpump_optimizer/pump_arbiter.py (2 units)", "custom_components/heatpump_optimizer/frontend.py (2 units)", "custom_components/heatpump_optimizer/dhw_schedule.py (2 units)", "custom_components/heatpump_optimizer/defrost.py (2 units)", "custom_components/heatpump_optimizer/curve_learning.py (2 units)", "custom_components/heatpump_optimizer/comfort_band.py (2 units)", "custom_components/heatpump_optimizer/climate.py (2 units)", "custom_components/heatpump_optimizer/translations/en.json#services.set_mode (1 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.heat_curve_target_kind (1 units)", "custom_components/heatpump_optimizer/translations/en.json#selector.dso_product (1 units)", "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_switch_lost (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.update_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_fetch_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_auth_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_prices (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_plan (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_dhw_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_dhw_min_no_deadband (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_temperature_comfort_band_violation (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_solve_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_no_prices (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_snapshot (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_refit (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.quiet_windows_overlap (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_unusable (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_timeout (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.no_loaded_config_entry (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_slots (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_expires_at (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.factory_reset_not_applied (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.diagnose_interval_failed (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.debug_collect_inactive (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_loaded (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_found (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_wrong_domain (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_missing (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_topology_unsupported (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_quiet_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_dhw_windows (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_dhw_min_no_deadband (1 units)", "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_comfort_band_violation (1 units)", "custom_components/heatpump_optimizer/thermal_model.py (1 units)", "custom_components/heatpump_optimizer/tariff.py (1 units)", "custom_components/heatpump_optimizer/snapshots.py (1 units)", "custom_components/heatpump_optimizer/pump_signals.py (1 units)", "custom_components/heatpump_optimizer/price_model.py (1 units)", "custom_components/heatpump_optimizer/open_meteo.py (1 units)", "custom_components/heatpump_optimizer/off_restore.py (1 units)", "custom_components/heatpump_optimizer/narrative.py (1 units)", "custom_components/heatpump_optimizer/ledger.py (1 units)", "custom_components/heatpump_optimizer/grid_fee.py (1 units)", "custom_components/heatpump_optimizer/external_heat.py (1 units)", "custom_components/heatpump_optimizer/entity.py (1 units)", "custom_components/heatpump_optimizer/early_cutoff.py (1 units)", "custom_components/heatpump_optimizer/disinfection.py (1 units)", "custom_components/heatpump_optimizer/debugger.py (1 units)", "custom_components/heatpump_optimizer/comfort_learning.py (1 units)", "custom_components/heatpump_optimizer/translations/sv.json: 1277 claim units rowed NOT CHECKED (verdict unverifiable) in LEDGER.tsv, mostly behavioural prose of options/config data_description, issues and services", "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js: 528 claim units rowed NOT CHECKED (verdict unverifiable) in LEDGER.tsv: en/sv/de explanatory prose and HTML-template literals", ".claude/skills/steward/SKILL.md (59 units)", ".claude/workflows/web-fragments.md (16 units)", ".github/PULL_REQUEST_TEMPLATE.md (19 units)", "AGENTS.md (2 units)", "CLAUDE.md (39 units)", "SECURITY.md (9 units)", "dev/README.md (82 units)", "dev/audit/README.md (55 units)", "dev/governance/rules/brief-citations.md (33 units)", "dev/governance/rules/ci-autofix.md (36 units)", "dev/governance/rules/claim-files.md (19 units)", "dev/governance/rules/comment-readback.md (29 units)", "dev/governance/rules/defect-root-cause.md (65 units)", "dev/governance/rules/delivery-status-tracking.md (16 units)", "dev/governance/rules/finding-propagation.md (38 units)", "dev/governance/rules/gate-scoping.md (11 units)", "dev/governance/rules/ratchet-budgets.md (37 units)", "dev/governance/rules/writing-for-agents.md (21 units)", "dev/programme/HANDOVER.md (459 units)", "dev/programme/RULINGS.md (167 units)", "tests/README.md (86 units)", "tools/audit/archscore/ABOUT.md (181 units)", "tools/audit/seat/INSTRUMENTS.md (10 units)", "tools/audit/seat/instruments/app_approve.sh.md (5 units)", "tools/audit/seat/instruments/app_comment.sh.md (2 units)", "tools/audit/seat/instruments/app_push.sh.md (1 units)", "tools/audit/seat/instruments/approve_held_runs.sh.md (2 units)", "tools/audit/seat/instruments/autofix_statuses.sh.md (2 units)", "tools/audit/seat/instruments/bare_array.py.md (3 units)", "tools/audit/seat/instruments/beat_jobs.py.md (2 units)", "tools/audit/seat/instruments/beatd.py.md (6 units)", "tools/audit/seat/instruments/beatd_shims_git.md (4 units)", "tools/audit/seat/instruments/body_patch.sh.md (6 units)", "tools/audit/seat/instruments/body_push.sh.md (3 units)", "tools/audit/seat/instruments/bottleneck_check.py.md (6 units)", "tools/audit/seat/instruments/bus.sh.md (11 units)", "tools/audit/seat/instruments/cancel_superseded.py.md (11 units)", "tools/audit/seat/instruments/carry_fold.py.md (2 units)", "tools/audit/seat/instruments/check_scopes.py.md (3 units)", "tools/audit/seat/instruments/ci-watch.sh.md (3 units)", "tools/audit/seat/instruments/ci_critpath.py.md (3 units)", "tools/audit/seat/instruments/ci_pause.py.md (5 units)", "tools/audit/seat/instruments/ci_priority.py.md (4 units)", "tools/audit/seat/instruments/ci_probe.py.md (3 units)", "tools/audit/seat/instruments/closeout.py.md (6 units)", "tools/audit/seat/instruments/cloud-setup.sh.md (4 units)", "tools/audit/seat/instruments/cloud_dispatch.py.md (16 units)", "tools/audit/seat/instruments/cloud_relay.sh.md (49 units)", "tools/audit/seat/instruments/codeql-triage-poll.sh.md (1 units)", "tools/audit/seat/instruments/daemonize.py.md (2 units)", "tools/audit/seat/instruments/delivery_row.sh.md (1 units)", "tools/audit/seat/instruments/depgraph.py.md (1 units)", "tools/audit/seat/instruments/enumerate.py.md (4 units)", "tools/audit/seat/instruments/failure_logs.sh.md (2 units)", "tools/audit/seat/instruments/features_block.py.md (5 units)", "tools/audit/seat/instruments/figure_block.py.md (4 units)", "tools/audit/seat/instruments/finder_overlap.py.md (12 units)", "tools/audit/seat/instruments/flow_metrics.py.md (2 units)", "tools/audit/seat/instruments/fold_ledger.py.md (1 units)", "tools/audit/seat/instruments/gantt_drift.py.md (4 units)", "tools/audit/seat/instruments/gh_calls.py.md (3 units)", "tools/audit/seat/instruments/gh_read.py.md (1 units)", "tools/audit/seat/instruments/gh_read_run.py.md (3 units)", "tools/audit/seat/instruments/handover_prompt.py.md (2 units)", "tools/audit/seat/instruments/head_note.py.md (2 units)", "tools/audit/seat/instruments/heartbeat.sh.md (3 units)", "tools/audit/seat/instruments/hooks_setup.py.md (6 units)", "tools/audit/seat/instruments/judge_batch.py.md (2 units)", "tools/audit/seat/instruments/ledger.py.md (6 units)", "tools/audit/seat/instruments/loop_ledger.py.md (13 units)", "tools/audit/seat/instruments/machinery_ratchet.py.md (2 units)", "tools/audit/seat/instruments/merge_pr.sh.md (3 units)", "tools/audit/seat/instruments/merge_throughput.py.md (5 units)", "tools/audit/seat/instruments/merge_train.py.md (35 units)", "tools/audit/seat/instruments/moved_paths.py.md (3 units)", "tools/audit/seat/instruments/mutant_run.py.md (8 units)", "tools/audit/seat/instruments/offline_spy.py.md (3 units)", "tools/audit/seat/instruments/open_driver.py.md (4 units)", "tools/audit/seat/instruments/open_pr.sh.md (8 units)", "tools/audit/seat/instruments/orchestrator_tick.py.md (10 units)", "tools/audit/seat/instruments/outside.py.md (5 units)", "tools/audit/seat/instruments/outside_intake.py.md (3 units)", "tools/audit/seat/instruments/owed_unactioned.py.md (4 units)", "tools/audit/seat/instruments/plan_audit.py.md (2 units)", "tools/audit/seat/instruments/plan_page.py.md (8 units)", "tools/audit/seat/instruments/plan_public.py.md (4 units)", "tools/audit/seat/instruments/plan_table.py.md (2 units)", "tools/audit/seat/instruments/plant_recall.py.md (12 units)", "tools/audit/seat/instruments/policy_reread_check.py.md (2 units)", "tools/audit/seat/instruments/postmerge.py.md (3 units)", "tools/audit/seat/instruments/pr_args.sh.md (8 units)", "tools/audit/seat/instruments/pr_cap.py.md (3 units)", "tools/audit/seat/instruments/preflight.sh.md (2 units)", "tools/audit/seat/instruments/prepare_baseline.sh.md (2 units)", "tools/audit/seat/instruments/prepr.sh.md (2 units)", "tools/audit/seat/instruments/probe_bridge.py.md (3 units)", "tools/audit/seat/instruments/proof_watch.py.md (2 units)", "tools/audit/seat/instruments/prune_refs.py.md (8 units)", "tools/audit/seat/instruments/pulse.py.md (7 units)", "tools/audit/seat/instruments/push.sh.md (1 units)", "tools/audit/seat/instruments/queue_pre_flight.py.md (2 units)", "tools/audit/seat/instruments/record_beat.py.md (1 units)", "tools/audit/seat/instruments/record_row.py.md (4 units)", "tools/audit/seat/instruments/ref_privacy.py.md (2 units)", "tools/audit/seat/instruments/remerge_main.sh.md (6 units)", "tools/audit/seat/instruments/resume_doc.py.md (2 units)", "tools/audit/seat/instruments/review_carry.py.md (1 units)", "tools/audit/seat/instruments/review_packet.py.md (2 units)", "tools/audit/seat/instruments/review_strength.py.md (2 units)", "tools/audit/seat/instruments/role_pack.py.md (7 units)", "tools/audit/seat/instruments/roster_edit.py.md (9 units)", "tools/audit/seat/instruments/roster_lib.py.md (3 units)", "tools/audit/seat/instruments/roster_queue.py.md (5 units)", "tools/audit/seat/instruments/roster_sync.py.md (4 units)", "tools/audit/seat/instruments/round_metrics.py.md (7 units)", "tools/audit/seat/instruments/run_twins.py.md (2 units)", "tools/audit/seat/instruments/scorecard.py.md (14 units)", "tools/audit/seat/instruments/seat_gen.py.md (4 units)", "tools/audit/seat/instruments/seat_venv.sh.md (4 units)", "tools/audit/seat/instruments/selftest_wiring.py.md (4 units)", "tools/audit/seat/instruments/shims_seat-gh.md (17 units)", "tools/audit/seat/instruments/shims_seat-python.md (2 units)", "tools/audit/seat/instruments/state_docs.py.md (12 units)", "tools/audit/seat/instruments/survivor_list.py.md (2 units)", "tools/audit/seat/instruments/sweep_driver.py.md (5 units)", "tools/audit/seat/instruments/sweep_gantt.py.md (5 units)", "tools/audit/seat/instruments/sweep_render.py.md (3 units)", "tools/audit/seat/instruments/sweep_template.md.md (1 units)", "tools/audit/seat/instruments/text_ledger.py.md (1 units)", "tools/audit/seat/instruments/tick_loop.sh.md (13 units)", "tools/audit/seat/instruments/tmp_paths.py.md (1 units)", "tools/audit/seat/instruments/train.sh.md (7 units)", "tools/audit/seat/instruments/update_pr.sh.md (6 units)", "tools/audit/seat/instruments/verdict_audit.py.md (4 units)", "tools/audit/seat/instruments/worktree_gc.sh.md (8 units)", "tools/audit/seat/instruments/wt_sync.sh.md (2 units)", "tools/audit/seat/sweep_template.md (54 units)", "tools/pr/README.md (1 units)", "de.json config/step/user_sensors: 59 behavioural rows (unverifiable in ledger.tsv)", "de.json services/set_thermal_parameters: 53 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/building: 51 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/entities: 48 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/entities_metering: 47 behavioural rows (unverifiable in ledger.tsv)", "de.json options/error: 45 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/hot_water: 42 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/entities_pump: 41 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/comfort: 34 behavioural rows (unverifiable in ledger.tsv)", "de.json services/simulate_plan: 29 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/hot_water_tank: 29 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/dhw: 28 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/zones: 27 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/thermal_model: 26 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/quick_setup: 25 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/modbus_prefill: 24 behavioural rows (unverifiable in ledger.tsv)", "de.json services/apply_schedule: 23 behavioural rows (unverifiable in ledger.tsv)", "de.json config/error: 23 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/quick_setup: 22 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/thermal: 22 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/thermal_model_zones: 21 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/learning_features: 21 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/heat_curve: 20 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/tuning: 19 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/grid: 19 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/building_preset: 19 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/device_prefill: 19 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/learning: 18 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/temperature: 16 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/user: 14 behavioural rows (unverifiable in ledger.tsv)", "de.json services/apply_topology: 13 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/grid_connection: 13 behavioural rows (unverifiable in ledger.tsv)", "de.json services/assign_entity: 12 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/grid_fees: 12 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/building_describe: 12 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/solar_pv: 11 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/away: 11 behavioural rows (unverifiable in ledger.tsv)", "de.json services/restore_learned_snapshot: 10 behavioural rows (unverifiable in ledger.tsv)", "de.json services/apply_manual_plan: 9 behavioural rows (unverifiable in ledger.tsv)", "de.json services/set_away: 8 behavioural rows (unverifiable in ledger.tsv)", "de.json services/reset_heat_loss_learners: 8 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/factory_reset: 7 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/building_extras: 7 behavioural rows (unverifiable in ledger.tsv)", "de.json services/diagnose_interval: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json services/debug_collect: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/hot_water_pumps: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json options/abort: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/pump_mode_unreadable: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_mode_blocked: 6 behavioural rows (unverifiable in ledger.tsv)", "de.json services/factory_reset: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/store_version: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/solve_worker_fallback: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/price_currency_mismatch: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/floor_return_implausible: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_overdue: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_off_step: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/comfort_band_contradiction: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/weather_sensitivity: 5 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/valve_target_above_comfort: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/space_setpoint_unreadable: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/solve_failures: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/price_unit_unrecognised: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/price_feed_stale: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/floor_return_silent: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_unreachable: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_above_setpoint: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_disinfection_switch_lost: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/accuracy_drift_rolled_back: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/accuracy_drift: 4 behavioural rows (unverifiable in ledger.tsv)", "de.json services/clear_manual_plan: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/quiet_silent_not_enforced: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/grid_fee_sign: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/freq_watchdog: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_setpoint_below_disinfection: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_minimum_above_start: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_disinfection_write_failed: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/cop_degradation: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/reauth_confirm: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/building: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json config/abort: 3 behavioural rows (unverifiable in ledger.tsv)", "de.json services/set_mode: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json services/run_optimization: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/setup_overview: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/pump_write_ignored: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/lower_floor_modelled: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/dhw_legionella_unverified: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/setup_overview: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json config/step/finish_setup: 2 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/init: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json options/step/advanced: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json issues/grid_fee_magnitude: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/update_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/tibber_fetch_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/tibber_auth_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/simulate_plan_no_prices: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/simulate_plan_no_plan: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/simulate_plan_invalid_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/simulate_plan_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/simulate_plan_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/set_thermal_params_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/set_thermal_params_invalid_dhw_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/set_thermal_params_dhw_min_no_deadband: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/set_temperature_comfort_band_violation: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/run_optimization_solve_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/run_optimization_no_prices: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/restore_learned_snapshot_no_snapshot: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/restore_learned_snapshot_no_refit: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/quiet_windows_overlap: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/process_worker_unusable: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/process_worker_timeout: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/no_loaded_config_entry: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/manual_plan_invalid_slots: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/manual_plan_invalid_expires_at: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/factory_reset_not_applied: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/diagnose_interval_failed: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/debug_collect_inactive: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/config_entry_not_loaded: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/config_entry_not_found: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/assign_entity_wrong_domain: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/assign_entity_missing: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/apply_topology_unsupported: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/apply_schedule_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/apply_schedule_invalid_dhw_windows: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/apply_schedule_dhw_min_no_deadband: 1 behavioural rows (unverifiable in ledger.tsv)", "de.json exceptions/apply_schedule_comfort_band_violation: 1 behavioural rows (unverifiable in ledger.tsv)", "unfinished: Behavioural claims were not checked against golden scenarios, and external links got no HEAD requests.", "unfinished: Five claims are not checked. Four have no direct const and need flow or engine harnesses: 23 options pages, up to 20 manual-plan hours, 8 weekly snapshots and ±12 %. The fifth is link HEAD requests, which were not run because no network was used."],
+            "universe": 20782
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s1 ; python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s2 | cut -f3 ; ls custom_components/heatpump_optimizer/translations/en.json custom_components/heatpump_optimizer/*.py | grep -v '/\\._' ; python3 tools/audit/text_ledger.py --dim D6 units custom_components/heatpump_optimizer/translations/sv.json custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js ; python3 tools/audit/check_scopes.py --repo <clone holding 92d38ecb> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s5 ; python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json ; python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s7 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "examined": 9240,
+            "not_reached": [],
+            "universe": 9240
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 35
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 2,
+          "s4": 2,
+          "s5": 8,
+          "s6": 1,
+          "s7": 2
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "2706 claim rows have no executed check, by file: README.md 392, RELEASE_NOTES.md 312, ROADMAP.md 9, docs/architecture.md 29, docs/automations.md 17, docs/configuration.md 796, docs/dashboard-card.md 362, docs/ecl110.md 95, docs/how-it-works.md 468, docs/index.html 115, docs/setup.md 96, tools/site/build_docs.mjs 15. These are mostly behavioural 'the optimizer will...' prose and numbers in prose. RELEASE_NOTES history claims were not checked against the code at each version. C4 (checking behaviour against golden scenarios) is not done."
+          },
+          {
+            "step": "M2",
+            "what": "1642 claims rowed unverifiable without a probe that decides them: 1388 behavioural sentences of strings.json (config/options descriptions, issues, exceptions, service descriptions), 50 of services.yaml, 82 blueprint sentences (quiet hours, templates), 86 governance sentences whose cited paths resolve but whose stated behaviour was not executed, 36 figure/record strings under docs/img (pages.json structure hashes and sizes not re-rendered: tests/doc_claims.py cannot run in this export, see exposure). Also: governance sentences citing no path were classed mandates (no-claim) by rule, so a factual governance sentence without a backticked path was not rowed as a claim."
+          },
+          {
+            "step": "M1",
+            "what": "1535 of 3331 units unrowed: 897 en.json config/options step descriptions (behaviour prose), 239 en.json services/issues/errors/abort sentences, and 399 Python string literals carrying a claim word or digit (coordinator.py 60, topology.py 60, sysid.py 16, store.py 14, ...); not_reached.tsv lists every one."
+          },
+          {
+            "step": "M2",
+            "what": "The claims among those 1535 units have no executed check; behavioural claims were not run against golden scenarios (carry C4)."
+          },
+          {
+            "step": "M2",
+            "what": "1805 claim units have no executed check (sv.json 1277, card 528), rowed NOT CHECKED in LEDGER.tsv: mainly behavioural prose ('the optimizer will ...', write/hold rules of pump_duty_mode, combi tank, heat-curve kinds, issue texts) needing flow, coordinator or golden-scenario harnesses; also the card's 'modelled COP 0.1 or lower' and 'In auto and economy mode the pump runs on its own curve' sentences."
+          },
+          {
+            "step": "M1",
+            "what": "2124 of 3483 units are unrowed: sentences carrying no checkable reference atom and outside the 30 hand checks (largest: dev/programme/HANDOVER.md, tools/audit/archscore/ABOUT.md, dev/README.md, dev/programme/RULINGS.md, tests/README.md); listed per file in not_reached and unrowed_by_file.txt."
+          },
+          {
+            "step": "M2",
+            "what": "Atom rows (1353) verify a sentence's paths, symbols and flags, not its behavioural assertion; 54 rows are unverifiable (runtime-state or seat-workdir names with no state directory on this box); the behavioural content of the 2124 unrowed units is unchecked. Redispatched C1-C4 are outside these cells."
+          },
+          {
+            "step": "M2",
+            "what": "1228 behavioural sentences of de.json (rows verdict unverifiable in ledger.tsv; grouped by step/service/issue in coverage.not_reached) were rowed with their anchor object checked but the behaviour they state was not driven; C4's golden-scenario check of them stays open."
+          },
+          {
+            "step": "M2",
+            "what": "1979 claim rows end unverifiable: 1976 in the plan (dated issue/PR/review/session history that only GitHub holds, which D6 does not read; 44 commit SHAs absent from the clone's object store, indistinguishable from unfetched PR heads; 13 path tokens that are globs or bare basenames not in the tree) and 3 in CONTRIBUTING.md (449bddf757 needs tests/entities.py's new-file classification check run on a planted file; 9f218033b0 a GitHub operation; 6c51756d8a a habit)."
+          },
+          {
+            "step": "M2",
+            "what": "569 link occurrences in the plan (447 distinct github.com pull-request URLs) were not HEAD-requested: COMMON.md forbids D6 reading GitHub and no network was used."
           }
         ]
       }
@@ -429,6 +939,86 @@
           "M3": 1,
           "M6": 2
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "ls custom_components/heatpump_optimizer/*.py",
+            "examined": 95,
+            "not_reached": [],
+            "universe": 95
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m2.py",
+            "examined": 3,
+            "not_reached": [],
+            "universe": 3
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+            "examined": 21,
+            "not_reached": [],
+            "universe": 21
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m4.py",
+            "examined": 17,
+            "not_reached": [],
+            "universe": 17
+          },
+          "M5": {
+            "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m5_train.py list  # the lines `git -C <HOME>/hpo-orch/r10s6/r11/find-wt diff --name-status --diff-filter=A 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -- 'custom_components/*.py'` printed (the export has no .git)",
+            "examined": 29,
+            "not_reached": [],
+            "universe": 29
+          },
+          "M6": {
+            "enumerator": "for h in m6_dead m6_inner m6_stmt; do python3 dev/audit/rounds/round11/D7/s3/$h.py --list; done",
+            "examined": 25888,
+            "not_reached": [],
+            "universe": 25888
+          },
+          "M7": {
+            "enumerator": "ls custom_components/heatpump_optimizer/*.py",
+            "examined": 78,
+            "not_reached": ["__init__.py: literal_clone_copies 1", "accuracy.py: literal_clone_copies 2", "comfort_band.py: params_over_10 1", "config_flow.py: literal_clone_copies 35, private_cross_module 1", "datetime.py: private_cross_module 1", "debugger.py: literal_clone_copies 2", "defrost.py: literal_clone_copies 6", "dhw_learning.py: literal_clone_copies 1", "dhw_planner.py: private_cross_module 3", "dhw_schedule.py: literal_clone_copies 2", "inputs.py: duplication_copies 2 -- needs a design (control inversion around _begin)", "name_match.py: literal_clone_copies 7", "narrative.py: literal_clone_copies 2", "services.py: literal_clone_copies 18", "store.py: literal_clone_copies 5", "thermal_model.py: duplication_copies 5, literal_clone_copies 6, params_over_10 3 -- the clone classes need a design (scalar/batch twins)", "wood_fuel.py: literal_clone_copies 3"],
+            "universe": 95
+          },
+          "M8": {
+            "enumerator": "python3 dev/audit/rounds/round11/D7/s3/m8_enum.py --list",
+            "examined": 114,
+            "not_reached": [],
+            "universe": 114
+          }
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 22
+        },
+        "returned": {
+          "s1": 6,
+          "s2": 3,
+          "s3": 9
+        },
+        "seats": [
+          ["M1", "M7"],
+          ["M2", "M3", "M4"],
+          ["M5", "M6", "M8"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "Five rows have no second census in this harness and were driven instead (each moved as its definition says): coordinator_attrs, coordinator_multiassigned_attrs, dead_methods, name_kept_members, seam_cut_total. A recount of them is a second role, receiver-type and seam-flow engine, which was not built. coordinator_private_reach is recounted by the receiver's spelling only (coordinator / coord / .coordinator), a weaker census than the ratchet's role engine. One reading left open: relabelling the single unit _dhw_confidence_band from dhw to views reads seam_cut_total 415 (unmoved) where merging all 17 dhw units reads 393; whether one unit should move the row was not established."
+          },
+          {
+            "step": "M7",
+            "what": "Clone copies: 9 of 18 are prototyped; the other 9 (six classes) need a design and are named in D7-s1-05 -- inputs.read / read_state, the optimizer's two solve paths and its objective twins, tariff's top-k twins, thermal_model's step and trajectory twins. Layer violations: 7 of 13 are prototyped; the other 6 need a design and are named in D7-s1-06 (the inputs.py clock, setpoint_check, snapshots). Not prototyped and not in the re-run: hub_solve_writes (1) and shared_inplace_writes (3), private_cross_module (10; a rename is that metric's cheapest move), params_over_10 (6), literal_clone_copies (118 in 43 classes). Suite: golden.py (GOLDEN_MODE=strict; its default drift mode needs a git ref and the export has none): exit code 1 on both trees and the two 430-line outputs are byte-identical -- on the tree itself 56 of 56 scenarios read CHANGED against the committed fixtures in strict mode on this machine, and the prototype tree reads the same 56 the same way; features.py ran to its end on both trees (2945 ok / 131 FAIL on each, same exit code): 3,075 of its 3,076 check lines are identical and the one other is the same FAIL check on both sides, 'a tank that never gets hot is retried a day later', whose message carries an elapsed-hours float that reads 216.00000012305554 on one side and 216.00000020472223 on the other (0.3 ms apart: a clock read, not confirmed by a second run of the same tree); boost_drift_replay.py 41 ok / 5 FAIL on each side, identical. On the six-prototype tree alone features.py was compared over a timed prefix only (2,423 lines); its full run is the ten-prototype one. stress.py, validate.py, rolling.py, env_drift.py, typing_ruler.py, the card scripts and the full tests/run.sh were not run on a prototype tree, and a real pull request would also owe the tests/seam_map.json and budget re-records the prototypes do not carry. The tree's own suite is red, so 'green' means unchanged, line for line, not passing."
+          },
+          {
+            "step": "M5",
+            "what": "Function-level deletion mutants not driven through every entering script: 102 of the 29 modules' functions (dhw_planner.py 2, draw_range.py 15, driving_grade.py 7, duty_switch.py 6, early_cutoff.py 11, entry_config.py 8, flow_meter.py 2, heat_curve.py 1, heat_energy.py 2, learner_progress.py 1, notifier.py 11, off_restore.py 2, price_tiles.py 15, quiet_windows.py 7, runs.py 4, supply_hold.py 2, whatif.py 6) and 18 of the C2 groups' (coordinator.py 1, dhw_schedule.py 2, optimizer.py 1, tariff.py 5, thermal_model.py 5, topology.py 2, wood_fuel.py 2). Each stayed green under the scripts driven so far; what is left is the 70-96 s tier where the second pass was cut (config_flow_steps.py, validate.py, edge.py, entities.py) and the long scripts never driven (tests/features.py at 6073 s here, finite_boundary.py, backtest.py, optimality.py, boost_drift_replay.py, manual_plan.py, dst_checks.py; load1 150-300); resume with `m5_train.py mutate --retry --max-script-seconds 4000 --out m5_mutants.json` (and `--c2 --out m5_c2_mutants.json`), which re-drives only the scripts not yet run. The golden differential (env_drift.py --all) was not run for any mutant: the export has no .git."
+          }
+        ]
       }
     }
   },
@@ -466,6 +1056,55 @@
         "yield": {
           "M2": 1
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d8-cells",
+            "examined": 393,
+            "not_reached": ["de datetime.away_return name", "en datetime.away_return name", "sv datetime.away_return name"],
+            "universe": 396
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py --list",
+            "examined": 1458,
+            "not_reached": [],
+            "universe": 1458
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s2",
+            "examined": 6,
+            "not_reached": [],
+            "universe": 6
+          },
+          "M4": {
+            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+            "examined": 6,
+            "not_reached": [],
+            "universe": 6
+          },
+          "M5": {
+            "enumerator": "python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+            "examined": 6,
+            "not_reached": [],
+            "universe": 6
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 3,
+          "s2": 2,
+          "s3": 1
+        },
+        "seats": [
+          ["M1", "M2"],
+          ["M3"],
+          ["M4", "M5"]
+        ],
+        "unfinished": []
       }
     }
   },
@@ -513,6 +1152,58 @@
             "what": "Memory channel (rss_peak_mb/traced_peak_mb x MEMORY_BUDGET_FACTOR 1.5) not tested against an injected 2x retained-bytes regression"
           }
         ]
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s1 ; python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s2",
+            "examined": 183,
+            "not_reached": ["custom_components/heatpump_optimizer/power_guard.py", "custom_components/heatpump_optimizer/pump_schedule.py", "custom_components/heatpump_optimizer/open_meteo.py", "custom_components/heatpump_optimizer/notifier.py", "custom_components/heatpump_optimizer/device_prefill.py", "custom_components/heatpump_optimizer/name_match.py", "custom_components/heatpump_optimizer/prefill_offer.py", "custom_components/heatpump_optimizer/quick_setup.py", "custom_components/heatpump_optimizer/repairs.py", "unfinished: ru_maxrss subprocess measurement not taken; a >672-cycle run to observe the _accuracy plateau directly not run (~3 h at load1 40-80)", "unfinished: gil_hold numbers taken at load1 16-28; need a quiet-window re-take. The contyield arm was inconclusive.", "unfinished: solves_per_cycle: the shadow/what-if (coordinator ~11148) and diagnose paths were not triggered by the rig", "unfinished: DHW planning loops' SSE per gradient not split out separately"],
+            "universe": 192
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s3",
+            "examined": 96,
+            "not_reached": [],
+            "universe": 96
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 10
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 1,
+          "s3": 2
+        },
+        "seats": [
+          ["M1"],
+          ["M1"],
+          ["M2"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "loop_thread_work for power_guard.py, pump_schedule.py, open_meteo.py and notifier.py, each with its feature configured (a power-sensor fuse guard, circulation pumps, Open-Meteo irradiance, notifications)."
+          },
+          {
+            "step": "M1",
+            "what": "C4, redispatched here but on D9-s2's retained_bytes axis: ru_maxrss in a subprocess and a >672-cycle _accuracy plateau run. Not measured; sent as a lead to D9-s2."
+          },
+          {
+            "step": "M1",
+            "what": "Owner fixture (tests/replay/owner-2026-10-30-away.json) not finished on either axis: its solves ran ~3-5 s of solver CPU each at load1 8-11, and neither the 500-cycle retained run nor the 160-cycle payload run finished in ~70 min, so they were stopped. Every number here is from the synthetic fixture (synthetic-dhw-only.json). Next: retained.py --fixture owner --cycles 1100 and payload.py --fixture owner --cycles 160 in a quiet window (about 3 h)."
+          },
+          {
+            "step": "M1",
+            "what": "Redispatched C1 (gil_hold quiet re-take), C2 (shadow/what-if and diagnose solves per cycle) and C3 (DHW planning loops' SSE per gradient) are D9-s1's axes, not this seat's; not measured, handed to D9-s1 as leads."
+          },
+          {
+            "step": "M1",
+            "what": "Dynamic retained-bytes check not run for device_prefill.py, name_match.py, prefill_offer.py, quick_setup.py and repairs.py (setup and repair flows); static scan only."
+          }
+        ]
       }
     }
   },
@@ -552,6 +1243,43 @@
         "yield": {
           "M1": 1
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+            "examined": 165,
+            "not_reached": ["unfinished: 7 docs-* gold rules and entity-category/device-class/disabled-by-default not separately counted; HA rule pages not fetched."],
+            "universe": 165
+          },
+          "M2": {
+            "enumerator": "python3 -c \"import json;t=json.load(open('dev/audit/rounds/round11/D10/s1/ha_tiers.json'));[print(r if isinstance(r,str) else r['id']) for k in ('bronze','silver') for r in t[k]]\" ; python3 dev/audit/rounds/round11/D10/s2/enum_gold.py ; python3 <HOME>/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo <HOME>/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+            "examined": 165,
+            "not_reached": [],
+            "universe": 165
+          },
+          "M3": {
+            "enumerator": "ls custom_components/heatpump_optimizer/*.py",
+            "examined": 95,
+            "not_reached": [],
+            "universe": 95
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 13
+        },
+        "returned": {
+          "s1": 6,
+          "s2": 4,
+          "s3": 2
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M1", "M2"],
+          ["M1", "M2"]
+        ],
+        "unfinished": []
       }
     }
   },
@@ -600,6 +1328,64 @@
         "yield": {
           "M1": 2
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D11-s1",
+            "examined": 1387,
+            "not_reached": [],
+            "universe": 1387
+          },
+          "M2": {
+            "enumerator": "python3 dev/audit/rounds/round11/D11/s2/standards.py --list",
+            "examined": 35,
+            "not_reached": [],
+            "universe": 35
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/m3_universe.py",
+            "examined": 251,
+            "not_reached": [],
+            "universe": 251
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/inventory.py",
+            "examined": 66,
+            "not_reached": ["policy-tool tools/policy/agreement.mjs", "policy-tool tools/policy/agreement_py.py", "policy-tool tools/policy/check-wave-script.mjs", "policy-tool tools/policy/dependabot_contract.mjs", "policy-tool tools/policy/field_coverage.mjs", "policy-tool tools/policy/figure_census.mjs", "policy-tool tools/policy/figure_lint.mjs", "policy-tool tools/policy/friction_issues.mjs", "policy-tool tools/policy/policy_lint_envmatrix.mjs", "policy-tool tools/policy/render_md.mjs", "policy-tool tools/policy/role_pack.py", "gate-script tests/arch_score.py", "gate-script tests/arch_score_head.py", "gate-script tests/backtest.py", "gate-script tests/block_duty.py", "gate-script tests/boost_drift_replay.py", "gate-script tests/card.mjs", "gate-script tests/card_drift.mjs", "gate-script tests/config_flow_steps.py", "gate-script tests/debug_collect.py", "gate-script tests/deployment_shape.py", "gate-script tests/doc_claims.py", "gate-script tests/edge.py", "gate-script tests/entities.py", "gate-script tests/features.py", "gate-script tests/finite_boundary.py", "gate-script tests/frontend.py", "gate-script tests/golden.py", "gate-script tests/guard_pins.py", "gate-script tests/ha_contract.py", "gate-script tests/harness_headers.py", "gate-script tests/layout.py", "gate-script tests/manual_plan.py", "gate-script tests/md_tables.mjs", "gate-script tests/open_meteo.py", "gate-script tests/optimality.py", "gate-script tests/plan_view.py", "gate-script tests/solar_alignment.py", "gate-script tests/stress.py", "gate-script tests/typing_ruler.py", "gate-script tests/validate.py", "gate-script tests/wood_advisor.py", "pr-tool tools/pr/app_approve.sh", "pr-tool tools/pr/app_comment.sh", "pr-tool tools/pr/app_mint.sh", "pr-tool tools/pr/app_push.sh", "pr-tool tools/pr/approve_held_runs.sh", "pr-tool tools/pr/cancel_superseded.py", "pr-tool tools/pr/ci_predict.py", "pr-tool tools/pr/codeql_scope.py", "pr-tool tools/pr/dependabot_merge.py", "pr-tool tools/pr/depgraph.py", "pr-tool tools/pr/figure_block.py", "pr-tool tools/pr/gate_priority.py", "pr-tool tools/pr/gh_comment.py", "pr-tool tools/pr/head_note.py", "pr-tool tools/pr/local_alerts.py", "pr-tool tools/pr/merge_main_bot.py", "pr-tool tools/pr/outside.py", "pr-tool tools/pr/preflight.sh", "pr-tool tools/pr/push.sh", "plan-tool tools/plan/replan.py", "plan-tool tools/plan/size_durations.py", "ci-tool tools/ci/alert_list.py", "ci-tool tools/ci/alert_list_mutants.sh", "ci-tool tools/ci/codescan_wait.py", "ci-tool tools/ci/ghapi.py", "ci-tool tools/ci/prelude.py", "ci-tool tools/ci/ruleset_cutover.py", "ci-tool tools/ci/selftest_scope.py", "ci-tool tools/ci/selftest_scope_mutants.sh", "ci-tool tools/ci/selftest_step.sh", "ci-tool tools/ci/sweep.py", "ci-tool tools/ci/sweep_selftest.py", "seat-instrument tools/audit/seat/bare_array.py", "seat-instrument tools/audit/seat/beat_jobs.py", "seat-instrument tools/audit/seat/beatd.py", "seat-instrument tools/audit/seat/body_patch.sh", "seat-instrument tools/audit/seat/body_push.sh", "seat-instrument tools/audit/seat/bottleneck_check.py", "seat-instrument tools/audit/seat/bus.sh", "seat-instrument tools/audit/seat/carry_fold.py", "seat-instrument tools/audit/seat/ci-watch.sh", "seat-instrument tools/audit/seat/ci_critpath.py", "seat-instrument tools/audit/seat/ci_pause.py", "seat-instrument tools/audit/seat/ci_priority.py", "seat-instrument tools/audit/seat/ci_probe.py", "seat-instrument tools/audit/seat/closeout.py", "seat-instrument tools/audit/seat/cloud-setup.sh", "seat-instrument tools/audit/seat/cloud_dispatch.py", "seat-instrument tools/audit/seat/cloud_relay.sh", "seat-instrument tools/audit/seat/daemonize.py", "seat-instrument tools/audit/seat/delivery_row.sh", "seat-instrument tools/audit/seat/failure_logs.sh", "seat-instrument tools/audit/seat/features_block.py", "seat-instrument tools/audit/seat/finder_overlap.py", "seat-instrument tools/audit/seat/flow_metrics.py", "seat-instrument tools/audit/seat/gantt_drift.py", "seat-instrument tools/audit/seat/gh_calls.py", "seat-instrument tools/audit/seat/gh_read_run.py", "seat-instrument tools/audit/seat/handoff_push.sh", "seat-instrument tools/audit/seat/handover_prompt.py", "seat-instrument tools/audit/seat/heartbeat.sh", "seat-instrument tools/audit/seat/hooks_setup.py", "seat-instrument tools/audit/seat/ledger.py", "seat-instrument tools/audit/seat/loop_ledger.py", "seat-instrument tools/audit/seat/merge_pr.sh", "seat-instrument tools/audit/seat/merge_train.py", "seat-instrument tools/audit/seat/moved_paths.py", "seat-instrument tools/audit/seat/mutant_run.py", "seat-instrument tools/audit/seat/offline_spy.py", "seat-instrument tools/audit/seat/open_driver.py", "seat-instrument tools/audit/seat/open_pr.sh", "seat-instrument tools/audit/seat/orchestrator_tick.py", "seat-instrument tools/audit/seat/outside_intake.py", "seat-instrument tools/audit/seat/owed_unactioned.py", "seat-instrument tools/audit/seat/owed_watch.py", "seat-instrument tools/audit/seat/plan_audit.py", "seat-instrument tools/audit/seat/plan_page.py", "seat-instrument tools/audit/seat/plan_public.py", "seat-instrument tools/audit/seat/plan_table.py", "seat-instrument tools/audit/seat/plant_recall.py", "seat-instrument tools/audit/seat/policy_reread_check.py", "seat-instrument tools/audit/seat/postmerge.py", "seat-instrument tools/audit/seat/pr_args.sh", "seat-instrument tools/audit/seat/pr_cap.py", "seat-instrument tools/audit/seat/probe_bridge.py", "seat-instrument tools/audit/seat/proof_watch.py", "seat-instrument tools/audit/seat/prune_refs.py", "seat-instrument tools/audit/seat/pulse.py", "seat-instrument tools/audit/seat/queue_pre_flight.py", "seat-instrument tools/audit/seat/r10_ledger_mutants.py", "seat-instrument tools/audit/seat/r10_mandate_guard_mutants.py", "seat-instrument tools/audit/seat/r10_roster_ops_mutants.py", "seat-instrument tools/audit/seat/r10_stamp_round_mutants.py", "seat-instrument tools/audit/seat/record_beat.py", "seat-instrument tools/audit/seat/record_row.py", "seat-instrument tools/audit/seat/ref_privacy.py", "seat-instrument tools/audit/seat/resume_doc.py", "seat-instrument tools/audit/seat/review_carry.py", "seat-instrument tools/audit/seat/review_packet.py", "seat-instrument tools/audit/seat/review_strength.py", "seat-instrument tools/audit/seat/roster_edit.py", "seat-instrument tools/audit/seat/roster_lib.py", "seat-instrument tools/audit/seat/roster_queue.py", "seat-instrument tools/audit/seat/roster_sync.py", "seat-instrument tools/audit/seat/round_metrics.py", "seat-instrument tools/audit/seat/run_twins.py", "seat-instrument tools/audit/seat/scorecard.py", "seat-instrument tools/audit/seat/seat_gen.py", "seat-instrument tools/audit/seat/seat_venv.sh", "seat-instrument tools/audit/seat/selftest_wiring.py", "seat-instrument tools/audit/seat/state_docs.py", "seat-instrument tools/audit/seat/survivor_list.py", "seat-instrument tools/audit/seat/sweep_driver.py", "seat-instrument tools/audit/seat/sweep_gantt.py", "seat-instrument tools/audit/seat/sweep_render.py", "seat-instrument tools/audit/seat/tick_loop.sh", "seat-instrument tools/audit/seat/tmp_paths.py", "seat-instrument tools/audit/seat/topic_grammar.py", "seat-instrument tools/audit/seat/train.sh", "seat-instrument tools/audit/seat/update_pr.sh", "seat-instrument tools/audit/seat/verdict_audit.py"],
+            "universe": 229
+          },
+          "M5": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/inventory.py",
+            "examined": 66,
+            "not_reached": ["policy-tool tools/policy/agreement.mjs", "policy-tool tools/policy/agreement_py.py", "policy-tool tools/policy/check-wave-script.mjs", "policy-tool tools/policy/dependabot_contract.mjs", "policy-tool tools/policy/field_coverage.mjs", "policy-tool tools/policy/figure_census.mjs", "policy-tool tools/policy/figure_lint.mjs", "policy-tool tools/policy/friction_issues.mjs", "policy-tool tools/policy/policy_lint_envmatrix.mjs", "policy-tool tools/policy/render_md.mjs", "policy-tool tools/policy/role_pack.py", "gate-script tests/arch_score.py", "gate-script tests/arch_score_head.py", "gate-script tests/backtest.py", "gate-script tests/block_duty.py", "gate-script tests/boost_drift_replay.py", "gate-script tests/card.mjs", "gate-script tests/card_drift.mjs", "gate-script tests/config_flow_steps.py", "gate-script tests/debug_collect.py", "gate-script tests/deployment_shape.py", "gate-script tests/doc_claims.py", "gate-script tests/edge.py", "gate-script tests/entities.py", "gate-script tests/features.py", "gate-script tests/finite_boundary.py", "gate-script tests/frontend.py", "gate-script tests/golden.py", "gate-script tests/guard_pins.py", "gate-script tests/ha_contract.py", "gate-script tests/harness_headers.py", "gate-script tests/layout.py", "gate-script tests/manual_plan.py", "gate-script tests/md_tables.mjs", "gate-script tests/open_meteo.py", "gate-script tests/optimality.py", "gate-script tests/plan_view.py", "gate-script tests/solar_alignment.py", "gate-script tests/stress.py", "gate-script tests/typing_ruler.py", "gate-script tests/validate.py", "gate-script tests/wood_advisor.py", "pr-tool tools/pr/app_approve.sh", "pr-tool tools/pr/app_comment.sh", "pr-tool tools/pr/app_mint.sh", "pr-tool tools/pr/app_push.sh", "pr-tool tools/pr/approve_held_runs.sh", "pr-tool tools/pr/cancel_superseded.py", "pr-tool tools/pr/ci_predict.py", "pr-tool tools/pr/codeql_scope.py", "pr-tool tools/pr/dependabot_merge.py", "pr-tool tools/pr/depgraph.py", "pr-tool tools/pr/figure_block.py", "pr-tool tools/pr/gate_priority.py", "pr-tool tools/pr/gh_comment.py", "pr-tool tools/pr/head_note.py", "pr-tool tools/pr/local_alerts.py", "pr-tool tools/pr/merge_main_bot.py", "pr-tool tools/pr/outside.py", "pr-tool tools/pr/preflight.sh", "pr-tool tools/pr/push.sh", "plan-tool tools/plan/replan.py", "plan-tool tools/plan/size_durations.py", "ci-tool tools/ci/alert_list.py", "ci-tool tools/ci/alert_list_mutants.sh", "ci-tool tools/ci/codescan_wait.py", "ci-tool tools/ci/ghapi.py", "ci-tool tools/ci/prelude.py", "ci-tool tools/ci/ruleset_cutover.py", "ci-tool tools/ci/selftest_scope.py", "ci-tool tools/ci/selftest_scope_mutants.sh", "ci-tool tools/ci/selftest_step.sh", "ci-tool tools/ci/sweep.py", "ci-tool tools/ci/sweep_selftest.py", "seat-instrument tools/audit/seat/bare_array.py", "seat-instrument tools/audit/seat/beat_jobs.py", "seat-instrument tools/audit/seat/beatd.py", "seat-instrument tools/audit/seat/body_patch.sh", "seat-instrument tools/audit/seat/body_push.sh", "seat-instrument tools/audit/seat/bottleneck_check.py", "seat-instrument tools/audit/seat/bus.sh", "seat-instrument tools/audit/seat/carry_fold.py", "seat-instrument tools/audit/seat/ci-watch.sh", "seat-instrument tools/audit/seat/ci_critpath.py", "seat-instrument tools/audit/seat/ci_pause.py", "seat-instrument tools/audit/seat/ci_priority.py", "seat-instrument tools/audit/seat/ci_probe.py", "seat-instrument tools/audit/seat/closeout.py", "seat-instrument tools/audit/seat/cloud-setup.sh", "seat-instrument tools/audit/seat/cloud_dispatch.py", "seat-instrument tools/audit/seat/cloud_relay.sh", "seat-instrument tools/audit/seat/daemonize.py", "seat-instrument tools/audit/seat/delivery_row.sh", "seat-instrument tools/audit/seat/failure_logs.sh", "seat-instrument tools/audit/seat/features_block.py", "seat-instrument tools/audit/seat/finder_overlap.py", "seat-instrument tools/audit/seat/flow_metrics.py", "seat-instrument tools/audit/seat/gantt_drift.py", "seat-instrument tools/audit/seat/gh_calls.py", "seat-instrument tools/audit/seat/gh_read_run.py", "seat-instrument tools/audit/seat/handoff_push.sh", "seat-instrument tools/audit/seat/handover_prompt.py", "seat-instrument tools/audit/seat/heartbeat.sh", "seat-instrument tools/audit/seat/hooks_setup.py", "seat-instrument tools/audit/seat/ledger.py", "seat-instrument tools/audit/seat/loop_ledger.py", "seat-instrument tools/audit/seat/merge_pr.sh", "seat-instrument tools/audit/seat/merge_train.py", "seat-instrument tools/audit/seat/moved_paths.py", "seat-instrument tools/audit/seat/mutant_run.py", "seat-instrument tools/audit/seat/offline_spy.py", "seat-instrument tools/audit/seat/open_driver.py", "seat-instrument tools/audit/seat/open_pr.sh", "seat-instrument tools/audit/seat/orchestrator_tick.py", "seat-instrument tools/audit/seat/outside_intake.py", "seat-instrument tools/audit/seat/owed_unactioned.py", "seat-instrument tools/audit/seat/owed_watch.py", "seat-instrument tools/audit/seat/plan_audit.py", "seat-instrument tools/audit/seat/plan_page.py", "seat-instrument tools/audit/seat/plan_public.py", "seat-instrument tools/audit/seat/plan_table.py", "seat-instrument tools/audit/seat/plant_recall.py", "seat-instrument tools/audit/seat/policy_reread_check.py", "seat-instrument tools/audit/seat/postmerge.py", "seat-instrument tools/audit/seat/pr_args.sh", "seat-instrument tools/audit/seat/pr_cap.py", "seat-instrument tools/audit/seat/probe_bridge.py", "seat-instrument tools/audit/seat/proof_watch.py", "seat-instrument tools/audit/seat/prune_refs.py", "seat-instrument tools/audit/seat/pulse.py", "seat-instrument tools/audit/seat/queue_pre_flight.py", "seat-instrument tools/audit/seat/r10_ledger_mutants.py", "seat-instrument tools/audit/seat/r10_mandate_guard_mutants.py", "seat-instrument tools/audit/seat/r10_roster_ops_mutants.py", "seat-instrument tools/audit/seat/r10_stamp_round_mutants.py", "seat-instrument tools/audit/seat/record_beat.py", "seat-instrument tools/audit/seat/record_row.py", "seat-instrument tools/audit/seat/ref_privacy.py", "seat-instrument tools/audit/seat/resume_doc.py", "seat-instrument tools/audit/seat/review_carry.py", "seat-instrument tools/audit/seat/review_packet.py", "seat-instrument tools/audit/seat/review_strength.py", "seat-instrument tools/audit/seat/roster_edit.py", "seat-instrument tools/audit/seat/roster_lib.py", "seat-instrument tools/audit/seat/roster_queue.py", "seat-instrument tools/audit/seat/roster_sync.py", "seat-instrument tools/audit/seat/round_metrics.py", "seat-instrument tools/audit/seat/run_twins.py", "seat-instrument tools/audit/seat/scorecard.py", "seat-instrument tools/audit/seat/seat_gen.py", "seat-instrument tools/audit/seat/seat_venv.sh", "seat-instrument tools/audit/seat/selftest_wiring.py", "seat-instrument tools/audit/seat/state_docs.py", "seat-instrument tools/audit/seat/survivor_list.py", "seat-instrument tools/audit/seat/sweep_driver.py", "seat-instrument tools/audit/seat/sweep_gantt.py", "seat-instrument tools/audit/seat/sweep_render.py", "seat-instrument tools/audit/seat/tick_loop.sh", "seat-instrument tools/audit/seat/tmp_paths.py", "seat-instrument tools/audit/seat/topic_grammar.py", "seat-instrument tools/audit/seat/train.sh", "seat-instrument tools/audit/seat/update_pr.sh", "seat-instrument tools/audit/seat/verdict_audit.py"],
+            "universe": 229
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 11
+        },
+        "returned": {
+          "s1": 6,
+          "s2": 4,
+          "s3": 4
+        },
+        "seats": [
+          ["M1"],
+          ["M2", "M3"],
+          ["M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M4",
+            "what": "163 of 229 inventory rows not perturbed: every seat-instrument (89), 19 pr-tools, 31 gate-scripts, 11 policy-tools, 11 ci-tools, 2 plan-tools (named in coverage.not_reached); and prepr.sh's other 23 `step ... $?` call sites (D11-s3-04's seam_rule)."
+          },
+          {
+            "step": "M5",
+            "what": "the same 163 rows carry no mechanisation verdict"
+          }
+        ]
       }
     }
   },
@@ -647,6 +1433,74 @@
           "M2": 1,
           "M3": 1
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d12-cells --pairs",
+            "examined": 199,
+            "not_reached": ["level ha_version_floor=2025.2.0 (the stub is one Home Assistant, not a version)", "level ha_version_typed=2026.11.1 (same)", "level language=._de (export artefact: untracked AppleDouble file counted because the export has no .git)", "surface card custom_components/heatpump_optimizer/www/._heatpump-optimizer-card.js (same artefact)", "pair cells whose first axis is CONF_AWAY_PRESENCE_ENTITY (388 cells)", "pair cells whose first axis is CONF_BUFFER_TANK_TEMP_ENTITY (384 cells)", "pair cells whose first axis is CONF_COMPRESSOR_FREQ_ENTITY (380 cells)", "pair cells whose first axis is CONF_DHW_DISINFECTION_SWITCH_ENTITY (376 cells)", "pair cells whose first axis is CONF_DHW_HYSTERESIS_ENTITY (372 cells)", "pair cells whose first axis is CONF_DHW_INLET_ENTITY (368 cells)", "pair cells whose first axis is CONF_DHW_SETPOINT_ENTITY (364 cells)", "pair cells whose first axis is CONF_DHW_TEMP_ENTITY (360 cells)", "pair cells whose first axis is CONF_ENERGY_ENTITY (356 cells)", "pair cells whose first axis is CONF_EXTERNAL_HEAT_ENTITY (352 cells)", "pair cells whose first axis is CONF_FLOOR_RETURN_TEMP_ENTITY (348 cells)", "pair cells whose first axis is CONF_FLOW_METER_ENTITY (344 cells)", "pair cells whose first axis is CONF_GRID_FEE_ENTITY (340 cells)", "pair cells whose first axis is CONF_HEAT_CURVE_DISPLACE_ENTITY (336 cells)", "pair cells whose first axis is CONF_HEAT_ENERGY_ENTITY (332 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY (328 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY (324 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_DEFROST_ENTITY (320 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY (316 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_FAULT_ENTITY (312 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_MODE_ENTITY (308 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_ONLINE_ENTITY (304 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_RETURN_TEMP_ENTITY (300 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY (296 cells)", "pair cells whose first axis is CONF_HEAT_PUMP_SWITCH_ENTITY (292 cells)", "pair cells whose first axis is CONF_HOLIDAY_CALENDAR_ENTITY (288 cells)", "pair cells whose first axis is CONF_HOUSE_POWER_ENTITY (284 cells)", "pair cells whose first axis is CONF_INDOOR_HUMIDITY_ENTITY (280 cells)", "pair cells whose first axis is CONF_INDOOR_TEMP_ENTITY (276 cells)", "pair cells whose first axis is CONF_LOWER_FLOOR_TEMP_ENTITY (272 cells)", "pair cells whose first axis is CONF_MIXING_VALVE_TARGET_ENTITY (268 cells)", "pair cells whose first axis is CONF_MIXING_VALVE_WRITE_ENTITY (264 cells)", "pair cells whose first axis is CONF_OUTDOOR_TEMP_ENTITY (260 cells)", "pair cells whose first axis is CONF_POWER_ENTITY (256 cells)", "pair cells whose first axis is CONF_PRICE_ENTITY (252 cells)", "pair cells whose first axis is CONF_PV_EXPORT_PRICE_ENTITY (248 cells)", "pair cells whose first axis is CONF_PV_PRODUCTION_ENTITY (244 cells)", "pair cells whose first axis is CONF_SOLAR_RADIATION_ENTITY (240 cells)", "pair cells whose first axis is CONF_SPACE_HYSTERESIS_ENTITY (236 cells)", "pair cells whose first axis is CONF_SPACE_PUMP_ENTITY (232 cells)", "pair cells whose first axis is CONF_SPACE_SETPOINT_ENTITY (228 cells)", "pair cells whose first axis is CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY (224 cells)", "pair cells whose first axis is CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY (220 cells)", "pair cells whose first axis is CONF_THERMAL_POWER_ENTITY (216 cells)", "pair cells whose first axis is CONF_VALVE_OUTLET_TEMP_ENTITY (212 cells)", "pair cells whose first axis is CONF_VVC_PUMP_ENTITY (208 cells)", "pair cells whose first axis is CONF_WOOD_TANK_BOTTOM_ENTITY (204 cells)", "pair cells whose first axis is CONF_WOOD_TANK_TOP_ENTITY (200 cells)", "pair cells whose first axis is climate (475 cells)", "pair cells whose first axis is combi_tank (276 cells)", "pair cells whose first axis is compressor_modulation (267 cells)", "pair cells whose first axis is emitter (174 cells)", "pair cells whose first axis is energy_unit (252 cells)", "pair cells whose first axis is era (395 cells)", "pair cells whose first axis is flow_unit (568 cells)", "pair cells whose first axis is foundation (204 cells)", "pair cells whose first axis is grid_fee_mode (195 cells)", "pair cells whose first axis is ha_version_floor (64 cells)", "pair cells whose first axis is ha_version_typed (63 cells)", "pair cells whose first axis is heat_curve_target_kind (122 cells)", "pair cells whose first axis is language (228 cells)", "pair cells whose first axis is layout (260 cells)", "pair cells whose first axis is mixing_valve_mode (192 cells)", "pair cells whose first axis is operation_mode (215 cells)", "pair cells whose first axis is power_unit (156 cells)", "pair cells whose first axis is price_shape (248 cells)", "pair cells whose first axis is price_source (58 cells)", "pair cells whose first axis is pump_duty_mode (78 cells)", "pair cells whose first axis is solar_source (48 cells)", "pair cells whose first axis is space_setpoint_unit (63 cells)", "pair cells whose first axis is structure (68 cells)", "pair cells whose first axis is temperature_unit (70 cells)", "pair cells whose first axis is two_zone_mode (21 cells)", "pair cells whose first axis is valve_write_target (10 cells)", "pair cells whose first axis is wood_packing (6 cells)"],
+            "universe": 19091
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/enumerate.py d12-cells | grep -E '^level (CONF_|layout=|mixing_valve_mode=|valve_write_target=|two_zone_mode=|combi_tank=|space_setpoint_unit=|wood_type=|wood_packing=|pump_duty_mode=|heat_curve_target_kind=|grid_fee_mode=|solar_source=|price_source=)'",
+            "examined": 131,
+            "not_reached": ["level price_source=tibber", "level solar_source=open_meteo"],
+            "universe": 133
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D12-s3 | cut -f3",
+            "examined": 93,
+            "not_reached": ["custom_components/heatpump_optimizer/prefill_offer.py", "custom_components/heatpump_optimizer/quick_setup.py"],
+            "universe": 95
+          },
+          "M4": {
+            "enumerator": "python3 tools/audit/enumerate.py d12-cells",
+            "examined": 199,
+            "not_reached": ["level price_source=tibber", "level solar_source=open_meteo", "level ha_version_floor=2025.2.0", "level ha_version_typed=2026.11.1"],
+            "universe": 203
+          },
+          "M5": {
+            "enumerator": "python3 tools/audit/check_scopes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D12-s3 | cut -f3",
+            "examined": 92,
+            "not_reached": ["custom_components/heatpump_optimizer/prefill_offer.py", "custom_components/heatpump_optimizer/quick_setup.py", "custom_components/heatpump_optimizer/repairs.py"],
+            "universe": 95
+          },
+          "M6": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s1/cells.py --list-shrinks",
+            "examined": 5,
+            "not_reached": [],
+            "universe": 5
+          }
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 9
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 1,
+          "s3": 3
+        },
+        "seats": [
+          ["M1", "M6"],
+          ["M2", "M4"],
+          ["M3", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "18888 pair cells of enumerate.py d12-cells --pairs not run (cells.py builds level cells only; about 6 CPU-s per run, roughly 31 CPU-hours for the plane); ha_version_floor / ha_version_typed levels not runnable on tests/hastub"
+          },
+          {
+            "step": "M2",
+            "what": "price_source=tibber and solar_source=open_meteo: the usable bar past the network fetch needs an HTTP double (aiohttp session) in tests/hastub or the harness"
+          },
+          {
+            "step": "M4",
+            "what": "the tibber and open_meteo cells (same stub gap); ha_version_floor=2025.2.0 and ha_version_typed=2026.11.1 need a real Home Assistant install of each version, which the stub cannot provide"
+          }
+        ]
       }
     }
   },
@@ -688,6 +1542,61 @@
           "M4": 1,
           "M6": 1
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --list",
+            "examined": 234,
+            "not_reached": [],
+            "universe": 234
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --list",
+            "examined": 234,
+            "not_reached": [],
+            "universe": 234
+          },
+          "M3": {
+            "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --list",
+            "examined": 448,
+            "not_reached": [],
+            "universe": 448
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+            "examined": 271,
+            "not_reached": [],
+            "universe": 271
+          },
+          "M5": {
+            "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+            "examined": 271,
+            "not_reached": [],
+            "universe": 271
+          },
+          "M6": {
+            "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --list",
+            "examined": 174,
+            "not_reached": [],
+            "universe": 174
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 2,
+          "s3": 3
+        },
+        "seats": [
+          ["M1", "M2"],
+          ["M3", "M6"],
+          ["M4", "M5"]
+        ],
+        "unfinished": []
       }
     }
   },
@@ -745,6 +1654,128 @@
         "yield": {
           "M4": 3
         }
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value|type==\"object\")|select(.key|startswith(\"_\")|not)|.key' dev/audit/config/bugclasses.json",
+            "examined": 112,
+            "not_reached": [],
+            "universe": 112
+          },
+          "M2": {
+            "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value.status? == \"open\")|.key' dev/audit/config/bugclasses.json",
+            "examined": 75,
+            "not_reached": ["unfinished: P8 (currency precedence) was not given a detector.", "unfinished: N-name-sort, N-step-grid, N-reap-lock not picked this round"],
+            "universe": 75
+          },
+          "M3": {
+            "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+            "examined": 49,
+            "not_reached": ["N-postreview-merge-red: its census reads check-runs at recarry heads from the GitHub API; D14 may not read GitHub and no local arm was built", "N-approval-rebuy: needs per-PR reviewed vs merged patch-ids from GitHub reviews; not readable under the wall", "N-gate-yield: needs the blocked-verdict population from PR reviews on GitHub", "N-period-rollover: a detector over every period-boundary aggregate (tariff.PeakTracker month, ledger months, day counters) was not built for time", "N-confounded-learner: needs a covariate-error probe per residual-fed learner; not built for time", "N-order-coupling: needs an enumeration of destructively-read shared intervals and call-order permutation; not built for time", "N-restore-race: needs a writer injected inside every store load await; not built for time", "N-p2b-assembly-reader: no detector idea in the ledger; needs CI push-run history", "N-dispatch-overreach: the ledger detector reads the Actions API; a static arm (5 code dispatch callers found: stamp.py dispatch_record_beat, merge_train.py launch, beat_jobs.py pages.yml, ci_probe.py, sweep_selftest.py) evaluating each target workflow's job if: under workflow_dispatch was not built for time", "N-stamp-claim-conflict: a throwaway-repo arm (base with claim lines, stamp commit emptying them, branch adding a claim, merge through the claimnotes driver) was not built for time", "N-orphaned-handoff: the predicate reads handoff refs and PRs on origin; not readable under the wall", "I1", "N-livehead-operator-cancel", "N-future-clamp", "N-period-rollover", "N-confounded-learner", "N-leaf-imports-solver", "N-order-coupling", "N-restore-race", "unfinished: N-staleness detector does not re-find R9 D1-s5-51 at its pre-fix tree: the synthetic fixture's indoor/dhw probes change every ~10 min, so there is no quiet gap over 60 min; needs a quiet-night fixture. Mode-select seam downstream consequence (MODE_LAST_GOOD 180 min -> full capability) not measured.", "unfinished: P10 pre-fix re-find at c4e1e0c07^ was not run, because replay.kernel_routes post-dates that fix. The coordinator._replay_interval seam (house and lower-floor loss learners) is listed but not driven, because the fixture is DHW-only.", "unfinished: re-find P8 instances at pre-fix commits (e.g. 3490cb16) and detectors for N-name-sort/P10; config_flow fee-bound seams listed but not probed"],
+            "universe": 68
+          },
+          "M4": {
+            "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json ; jq -r 'to_entries[]|select(.value|type==\"object\")|select(.value.status==\"open\" and .value.kind==\"production\")|.key' dev/audit/config/bugclasses.json",
+            "examined": 49,
+            "not_reached": ["N-postreview-merge-red: no detector this round (see D14.M3)", "N-approval-rebuy: no detector this round (see D14.M3)", "N-gate-yield: no detector this round (see D14.M3)", "N-period-rollover: no detector this round (see D14.M3)", "N-confounded-learner: no detector this round (see D14.M3)", "N-order-coupling: no detector this round (see D14.M3)", "N-restore-race: no detector this round (see D14.M3)", "N-p2b-assembly-reader: no detector this round (see D14.M3)", "N-dispatch-overreach: no detector this round (see D14.M3)", "N-stamp-claim-conflict: no detector this round (see D14.M3)", "N-orphaned-handoff: no detector this round (see D14.M3)", "I1", "N-livehead-operator-cancel", "N-future-clamp", "N-period-rollover", "N-confounded-learner", "N-leaf-imports-solver", "N-order-coupling", "N-restore-race", "unfinished: detector/barriered-axis classes not swept for new seams"],
+            "universe": 68
+          },
+          "M5": {
+            "enumerator": "jq -r 'to_entries[]|select(.value.status? == \"open\" or .value.status? == \"prototype-only\" or .value.status? == \"detector\" or .value.status? == \"barriered\")|.key' dev/audit/config/bugclasses.json ; jq -r '.findings[].class_guess' dev/audit/rounds/round11/D14/s3/REPORT.json | sort -u",
+            "examined": 59,
+            "not_reached": [],
+            "universe": 59
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 6
+        },
+        "returned": {
+          "s1": 3,
+          "s2": 4,
+          "s3": 3
+        },
+        "seats": [
+          ["M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "N-postreview-merge-red: its census reads check-runs at recarry heads from the GitHub API; D14 may not read GitHub and no local arm was built"
+          },
+          {
+            "step": "M3",
+            "what": "N-approval-rebuy: needs per-PR reviewed vs merged patch-ids from GitHub reviews; not readable under the wall"
+          },
+          {
+            "step": "M3",
+            "what": "N-gate-yield: needs the blocked-verdict population from PR reviews on GitHub"
+          },
+          {
+            "step": "M3",
+            "what": "N-period-rollover: a detector over every period-boundary aggregate (tariff.PeakTracker month, ledger months, day counters) was not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-confounded-learner: needs a covariate-error probe per residual-fed learner; not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-order-coupling: needs an enumeration of destructively-read shared intervals and call-order permutation; not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-restore-race: needs a writer injected inside every store load await; not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-p2b-assembly-reader: no detector idea in the ledger; needs CI push-run history"
+          },
+          {
+            "step": "M3",
+            "what": "N-dispatch-overreach: the ledger detector reads the Actions API; a static arm (5 code dispatch callers found: stamp.py dispatch_record_beat, merge_train.py launch, beat_jobs.py pages.yml, ci_probe.py, sweep_selftest.py) evaluating each target workflow's job if: under workflow_dispatch was not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-stamp-claim-conflict: a throwaway-repo arm (base with claim lines, stamp commit emptying them, branch adding a claim, merge through the claimnotes driver) was not built for time"
+          },
+          {
+            "step": "M3",
+            "what": "N-orphaned-handoff: the predicate reads handoff refs and PRs on origin; not readable under the wall"
+          },
+          {
+            "step": "M3",
+            "what": "C5 (N-staleness quiet-night fixture, MODE_LAST_GOOD consequence): barriered class, outside this seat's axis (D14-s2)"
+          },
+          {
+            "step": "M4",
+            "what": "C4 (detector/barriered classes swept for new seams): outside this seat's axis (D14-s2)"
+          },
+          {
+            "step": "M3",
+            "what": "coverage limits of the delivered detectors: registry_sweep.py and future_clamp.py drive one topology (minimal resp. coord_all_features, no boost press, away set or manual plan), so stores and registries only those actions populate are unexercised; reap_lock.py cannot simulate a child stuck in the kernel (D state)"
+          },
+          {
+            "step": "M3",
+            "what": "I1 (mutation_table.py --scope changed needs an origin/main diff) and N-livehead-operator-cancel (--fetch needs the Actions API) ran argv parse only; pre-fix re-finds done for N-staleness, N-log-flood, N-no-expiry only, other barriered classes rest on their own in-tree planted controls"
+          },
+          {
+            "step": "M4",
+            "what": "I1 and N-livehead-operator-cancel not swept for new seams; D14-s2-01's 7 non-flag q255 seam keys listed but not driven to their published consequence; D14-s2-02's 20 census candidates not dispositioned; REPORT.md could not be written (the session's tool policy refused a report .md file) -- its content is in the returned report"
+          },
+          {
+            "step": "M3",
+            "what": "No replay detector yet for N-future-clamp, N-period-rollover, N-confounded-learner, N-leaf-imports-solver, N-order-coupling, N-restore-race: month-boundary time-shifted day (N-period-rollover), reload with a persisted future instant (N-future-clamp), restore racing a cycle write (N-restore-race); N-leaf-imports-solver/N-order-coupling/N-confounded-learner need non-replay or learner-specific arms."
+          },
+          {
+            "step": "M4",
+            "what": "C4: barriered/detector production classes other than N-staleness not swept through the replay for new seams; cycle_cost reds of the full lane await the quiet re-take."
+          }
+        ]
       }
     }
   },
@@ -799,15 +1830,221 @@
           }
         ],
         "yield": {}
+      },
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M1 --repo <a full checkout at the baseline> (in this walled export enumerate.py d15-installs refuses: D15-s1-01)",
+            "examined": 1,
+            "not_reached": ["install-1 2026-10-14 round=10 steps=M1,M2,M3,M4,M6,M7 (round 10's bundle; this task named only the 2026-11-16 download)"],
+            "universe": 2
+          },
+          "M2": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M2",
+            "examined": 62,
+            "not_reached": [],
+            "universe": 62
+          },
+          "M3": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M3",
+            "examined": 24,
+            "not_reached": [],
+            "universe": 24
+          },
+          "M4": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M4",
+            "examined": 22,
+            "not_reached": [],
+            "universe": 22
+          },
+          "M5": {
+            "enumerator": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_enumerate.py --bundle <owner download 2026-11-16>",
+            "examined": 92,
+            "not_reached": ["cycle 2026-11-15T16:07:09.030391+00:00", "cycle 2026-11-15T16:22:09.030391+00:00", "cycle 2026-11-15T16:37:09.030391+00:00", "cycle 2026-11-15T16:52:09.030391+00:00", "cycle 2026-11-15T17:07:09.030391+00:00", "cycle 2026-11-15T17:22:09.030391+00:00", "cycle 2026-11-15T17:37:09.030391+00:00", "cycle 2026-11-15T17:52:09.030391+00:00", "cycle 2026-11-15T18:07:09.030391+00:00", "cycle 2026-11-15T18:22:09.030391+00:00", "cycle 2026-11-15T18:37:09.030391+00:00", "cycle 2026-11-15T18:52:09.030391+00:00", "cycle 2026-11-15T19:07:09.030391+00:00", "cycle 2026-11-15T19:22:09.030391+00:00", "cycle 2026-11-15T19:37:09.030391+00:00", "cycle 2026-11-15T19:52:09.030391+00:00", "cycle 2026-11-15T20:07:09.030391+00:00", "cycle 2026-11-15T20:22:09.030391+00:00", "cycle 2026-11-15T20:37:09.030391+00:00", "cycle 2026-11-15T20:52:09.030391+00:00"],
+            "universe": 112
+          },
+          "M6": {
+            "enumerator": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle <owner download 2026-11-16> --enumerate",
+            "examined": 12,
+            "not_reached": [],
+            "universe": 12
+          },
+          "M7": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M7 --bundle B",
+            "examined": 24,
+            "not_reached": ["redispatched:C3 solve-time outliers re-checked at baseline", "unfinished: v6.7.17 solve-time outliers (payload up to 272 s, wall up to 401 s) cannot be re-checked at baseline without a replay half; only 2 v7.0.0 rows exist"],
+            "universe": 25
+          },
+          "M8": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M8 --bundle B",
+            "examined": 5,
+            "not_reached": ["anomaly:unsolved_publish:after_restart", "anomaly:row_gaps:restart_gaps", "anomaly:row_gaps:off_cadence_publishes", "anomaly:accuracy_sample_lag:tracker_paused", "anomaly:self_test_stores:off_domain:off_restore", "anomaly:self_test_stores:off_domain:snapshots", "anomaly:self_test_stores:off_domain:thermal_learning"],
+            "universe": 12
+          },
+          "M9": {
+            "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M9 --bundle B",
+            "examined": 0,
+            "not_reached": ["install_day:day0", "install_day:day1", "install_day:day2", "install_day:day3", "install_day:day4", "install_day:day5", "install_day:day6", "install_day:day7"],
+            "universe": 8
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 15
+        },
+        "returned": {
+          "s1": 5,
+          "s2": 7,
+          "s3": 3
+        },
+        "seats": [
+          ["M1", "M2", "M3", "M4"],
+          ["M5", "M6"],
+          ["M7", "M8", "M9"]
+        ],
+        "unfinished": [
+          {
+            "step": "M5",
+            "what": "The last 20 replay cycles (2026-11-15T16:07Z..20:52Z) were not run through the judges: m5_judges.py --bundle B --from-hours 19 --hours 5. The zone arms ran 1 hour of the real window (not 4) and the --null/--perturb fixed arms ran on the synthetic bundle only."
+          },
+          {
+            "step": "M7",
+            "what": "C3: the round-10 bundle's 6.7.17 solve-time outliers; that bundle was not an input this round."
+          },
+          {
+            "step": "M8",
+            "what": "7 anomalies not reproduced through debug_replay: unsolved_publish (needs a cold-restart arm in run_fixture), restart_gaps, off_cadence_publishes, accuracy_sample_lag, and the three store off-domain anomalies (document, not window)."
+          },
+          {
+            "step": "M9",
+            "what": "C_same for all 8 install-days: needs exogenous inputs per decision time beyond the replay half's one day and a measured-house plant independent of the learned model (D0 step 8's method has none for a live bundle)."
+          }
+        ]
       }
     }
   },
   "D16": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+            "examined": 532,
+            "not_reached": [],
+            "universe": 532
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+            "examined": 532,
+            "not_reached": [],
+            "universe": 532
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+            "examined": 532,
+            "not_reached": [],
+            "universe": 532
+          },
+          "M4": {
+            "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+            "examined": 532,
+            "not_reached": [],
+            "universe": 532
+          },
+          "M5": {
+            "enumerator": "python3 tools/audit/enumerate.py d16-writes | grep '^hold'",
+            "examined": 30,
+            "not_reached": [],
+            "universe": 30
+          },
+          "M6": {
+            "enumerator": "python3 dev/audit/rounds/round11/D16/s3/enum_m6.py",
+            "examined": 32,
+            "not_reached": [],
+            "universe": 32
+          }
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 11
+        },
+        "returned": {
+          "s1": 5,
+          "s2": 4,
+          "s3": 4
+        },
+        "seats": [
+          ["M1", "M2"],
+          ["M3", "M4"],
+          ["M5", "M6"]
+        ],
+        "unfinished": [
+          {
+            "step": "M6",
+            "what": "pump_arbiter.py:1610's silent-switch and night-mode slots (written only with a capacity-limited switch and silent rows, or a Modbus night-mode package) were not driven; the site's four cells were examined through its mode and tank slots. The module docstring says the silent switch is not restored on Off; a next round drives heat_pump_capacity_limited_entity with silent rows through the four triggers. coordinator._async_set_pump's space circulation pump (_space_pump_to_drive) was not configured; its hot-water twin was."
+          }
+        ]
+      }
+    }
   },
   "D17": {
     "steps": ["M1", "M2", "M3"],
-    "rounds": {}
+    "rounds": {
+      "11": {
+        "coverage": {
+          "M1": {
+            "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option ; sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field' ; for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+            "examined": 307,
+            "not_reached": [],
+            "universe": 307
+          },
+          "M2": {
+            "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option ; sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field' ; for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+            "examined": 307,
+            "not_reached": [],
+            "universe": 307
+          },
+          "M3": {
+            "enumerator": "python3 tools/audit/enumerate.py d17-features --kind options-step && python3 tools/audit/enumerate.py d17-features --kind option ; sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field' ; for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+            "examined": 306,
+            "not_reached": ["option learning.system_identification_enabled"],
+            "universe": 307
+          }
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 14
+        },
+        "returned": {
+          "s1": 5,
+          "s2": 5,
+          "s3": 3
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "learning.system_identification_enabled: the experiment never armed in the rig (8 cycles from 00:00 at 6 C, sawtooth prices; published phase 'idle' with the option on and off). Left: build the armed state its gates need (night window 23-05, outdoor band, price under the max_price_percentile of the horizon, learner unconverged) and check that a step is planned and published with the option on and absent off."
+          },
+          {
+            "step": "M3",
+            "what": "entities_pump.heat_pump_backup_heater_entity, heat_pump_capacity_limited_entity, heat_pump_dhw_booster_entity: measured only as the published heat_pump_signals moving in one cycle; their described effect (efficiency/capacity learning paused while on) needs a metered multi-cycle learning arm. heat_pump_defrost_entity and heat_pump_fault/online moved learner_freeze_reason/learners_frozen, so they are covered."
+          },
+          {
+            "step": "M3",
+            "what": "the 148 other section-nested option fields (D17-s1-01, h_enum.out MISSING lines) are outside the enumerator's universe and were not examined; only the 8 owed weekend/holiday fields were."
+          },
+          {
+            "step": "M3",
+            "what": "The restart arm (a new coordinator on the same entry) ran on 51 of 117 rows (the plan/state-observable rows); the flow-only and entity-role rows (user.*, reauth_confirm, device_prefill.*, user_sensors defrost/online/fault/switch/mode, quick_setup wood/buffer/dhw_tank/two_zone, the config-step rows) were not re-run across a restart. The holiday named state was not exercised (no field of these two kinds reads it)."
+          }
+        ]
+      }
+    }
   }
 }

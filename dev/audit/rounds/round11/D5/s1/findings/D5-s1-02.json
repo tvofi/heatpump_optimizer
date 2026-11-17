@@ -1,0 +1,47 @@
+{
+ "id": "D5-s1-02",
+ "scope": "D5-s1",
+ "step": "D5.M1",
+ "title": "README contradicts itself on the control paths: 'three paths' over a five-row table, and Known limitations denies the stored-parameter kind the table and options page offer",
+ "severity": "medium",
+ "claim": "README 'Supported heat pumps and controls' says control goes 'over three paths' (and 'the other two', 'all three' elsewhere) above a table of five rows. Its 'Known limitations' ECL110 bullet says 'an absolute or stored curve parameter is not supported in this version', while the same README's table row 'Heat-curve stored parameter (kind persistent)', its Removal section, docs/ecl110.md's 'Kind persistent' section and the options page (config_flow._OPTION_FIELDS selector for heat_curve_target_kind offers ['offset', 'persistent']) all support it. A reader checking limitations before installing is told a supported path does not exist.",
+ "evidence": [
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/control_paths.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/control_paths.py",
+   "value": 1,
+   "unit": "kinds (denied_kinds)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 204.94,
+   "thread_factor": 1.0
+  },
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/control_paths.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/control_paths.py",
+   "value": 5,
+   "unit": "rows (readme_path_rows, vs 3 stated)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 204.94,
+   "thread_factor": 1.0
+  }
+ ],
+ "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:_OPTION_FIELDS (row for CONF_HEAT_CURVE_TARGET_KIND, built from const.HEAT_CURVE_TARGET_KINDS)",
+ "perturbation": "--perturb cuts const.HEAT_CURVE_TARGET_KINDS to ('offset',) before config_flow is imported: denied_kinds 1 -> 0 (executed).",
+ "metric_definition": "Heat-curve target kinds the production options selector offers that README's Known-limitations ECL110 bullet declares not supported.",
+ "phenomenon_property": "README's control-path count and its limitations agree with its own path table and with the kinds the options page offers.",
+ "seam_rule": "grep -n -E 'three paths|other two|all three|not supported' README.md",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "README.md"
+ ],
+ "proposed_fix_scope": "README only: make the paths count match the table (or regroup the three heat-curve rows as one path with kinds) and remove the 'stored curve parameter is not supported' clause from Known limitations."
+}

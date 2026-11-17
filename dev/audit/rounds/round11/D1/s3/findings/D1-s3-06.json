@@ -1,0 +1,40 @@
+{
+  "id": "D1-s3-06",
+  "scope": "D1-s3",
+  "step": "D1.M5",
+  "title": "_async_update_data's generic arm logs ERROR with a traceback on every cycle of a persisting failure",
+  "severity": "low",
+  "claim": "A persisting unexpected exception in the update cycle is logged by the integration as ERROR 'Error updating Heat Pump Optimizer' with exc_info on every refresh (3 of 3 refreshes that follow an already-failed update), while the UpdateFailed arm beside it was fixed (#216, D10-09) precisely so a day-long outage would not print the same ERROR every cycle.",
+  "mechanism": "coordinator.py `_async_update_data`: `except (UpdateFailed, ConfigEntryAuthFailed): raise` (the raiser's latch already logged once) then `except Exception as err: _LOGGER.error(..., exc_info=True); _raise_update_failed(...)` with no latch. Home Assistant's DataUpdateCoordinator already logs the failure on the transition ('Error fetching ... data'), so each later cycle adds one ERROR with a full traceback: at the default 15-minute interval about 96 tracebacks a day for one stuck fault, on Raspberry-Pi-class storage. `_async_first_refresh_light` repeats the arm on every setup retry (coordinator.py:6195).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/log_flood.py",
+    "value": 3,
+    "unit": "integration ERROR records added in refreshes A1, A2, B1 (each follows an already-failed update)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running (load1 ~107); count is contention-immune",
+    "tolerance": "exact",
+    "load1": 107.15,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (the `except Exception` handler at coordinator.py:6148; its try body forced to raise by d1s3hook.py), driven through DataUpdateCoordinator.async_refresh on a real asyncio loop",
+  "perturbation": {
+    "change": "the generic arm logs ERROR only on the transition: `(_LOGGER.error if self.last_update_success else _LOGGER.debug)(...)` (`--perturb`, in memory at import via excepts_inject.py --edit)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of the armed refreshes A1, A2, B1 (each preceded by a failed update) whose added records include the integration's ERROR 'Error updating Heat Pump Optimizer: %s'.",
+  "phenomenon_property": "A persisting failure is logged above DEBUG once per outage (on the transition), never on every cycle, at every update-wrapper arm.",
+  "seam_rule": "python3 tools/audit/enumerate.py d1-excepts | grep -E '_async_update_data|_async_first_refresh_light'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/log_flood.py",
+    "value": "RESULT recovered=1",
+    "note": "the disarmed refresh B2 succeeds and adds no such record (only the base class's 'recovered' INFO); the transition ERROR in setup A and setup B is kept under the perturbation"
+  },
+  "proposed_fix_scope": "coordinator._async_update_data and _async_first_refresh_light generic arms: log ERROR on the transition (last_update_success) or through log_held, DEBUG after; coordinator.py only.",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "N-log-flood"
+}

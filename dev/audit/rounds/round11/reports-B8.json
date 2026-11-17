@@ -1,0 +1,1641 @@
+{
+  "box": "B8",
+  "missing": [],
+  "reports": {
+    "D13-s1": {
+      "dimension": "D13",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D13/s1/REPORT.md",
+      "exposure": "GitHub API, 2026-11-16 (the D13 brief's exception): /commits/<sha>/pulls for the 250 first-parent commits of v7.1.10..92d38ecb; /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews (all pages) for the 234 merged PRs -- verdict first lines, full bodies of #3379 #3448 #3568 #3618 #3545 #3321; git ls-remote and fetch of origin's review/<pr>, verdict/<pr>, archive/review/<pr>, archive/verdict/<pr> refs for those PRs (bus history of #3461 #3517 #3618 read). Temporary refs/d13s1/* written to the shared repository were deleted (0 remain).",
+      "coverage": [
+        {
+          "step": "D13.M1",
+          "enumerator": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --list",
+          "universe": 234,
+          "examined": 234,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "yield_rounds.baseline.out: merges=234 api_failures=0 verdict_prs=206 comment_verdicts=420 first_verdict_yield=0.583 one_round_yield=0.476 rounds_mean=2.039 rounds_max=10 (#3355); bus_verdicts=452 bus_only_verdicts=42 relay_duplicates=9"
+        },
+        {
+          "step": "D13.M2",
+          "enumerator": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --list",
+          "universe": 234,
+          "examined": 234,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "yield_rounds.baseline.out M2 rows: record|hpo-author 23/24 (nightly.yml record predicate), build|dependabot 4/4 (dependabot-automerge.yml), (untyped)|hpo-author 1/184 (#3618, no rule), triage/hotfix/roster/closure/policy 0; no_verdict_prs=28 no_verdict_unexempt=1; --perturb reshape moves 206->205 and unexempt 1->2"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D13-s1-01",
+          "scope": "D13-s1",
+          "step": "D13.M1",
+          "title": "The yield instrument's verdict population is not the review rounds the verdict bus records: 42 rounds missing, 9 counted twice",
+          "severity": "medium",
+          "claim": "Over the 234 merges of v7.1.10..92d38ecb, policy_lint.mjs --stats (fetchWindow + statsHistogram, comments and reviews) reads 420 verdict comments, while the verdict bus holds 452 distinct (PR, word, head) verdicts: 42 bus verdicts (24 blocked, over 32 PRs, every head an ancestor of the merged branch) never reached the PR as a comment or review, and 9 comments are second relays of one verdict (same bus-nonce), so rounds per merge reads 2.039 where the bus population read once gives 2.178, one-round yield 0.476 where it gives 0.452, and #3618 (a fix lane with a bus merge verdict) reads as a merge carrying no verdict.",
+          "mechanism": "A reviewer's verdict is written to the bus (review/<pr>, verdict/<pr>, archived as archive/review/<pr>) and relayed to the PR as an hpo-approver comment; the relay delivered some verdicts never (42, including a cluster written to the bus 2026-11-14 10:45-11:45) and some twice (9, identical bus-nonce, hours apart). fetchWindow reads only /issues/<n>/comments and /pulls/<n>/reviews, and statsHistogram counts every parsable comment as one round; review_strength.py reads the bus. The two in-tree verdict readers therefore count different populations of the same rounds, and the brief's rule (comment or review) inherits the comment side's gaps.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+            "harness_path": "dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+            "value": "bus_only_verdicts=42 (24 blocked, 32 PRs, 42/42 heads on the merged branch); relay_duplicates=9 (8 PRs); rounds_mean 2.039 -> 2.178; one_round_yield 0.476 -> 0.452; verdict_prs 206 -> 208",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8, Linux, node v22.23.4",
+            "cpu_or_wall": "count",
+            "contention_note": "count-only; other D13/D15 seats running on the box; numbers do not depend on load. GitHub state read 2026-11-16 (comments can be added or deleted later; the window cache file is printed by the harness)",
+            "tolerance": "exact",
+            "load1": 2.67,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (driven over the window as fetchWindow's comment+review stream), with policy_lint.mjs:enumerateMerges/resolvePrFromCommit enumerating the window",
+          "perturbation": {
+            "change": "--perturb dedup,bus-union: read each relayed verdict once (drop a comment repeating an earlier bus-nonce) and feed statsHistogram the 42 bus-only verdicts as comments at their bus author time",
+            "expected_direction": "up",
+            "observed_value": "comment_verdicts 420 -> 453, rounds_mean 2.039 -> 2.178, verdict_prs 206 -> 208, instrument_repeat_rounds 9 -> 0 (dedup alone: 420 -> 411, rounds_mean 1.995); one_round_yield 0.476 -> 0.452"
+          },
+          "metric_definition": "Distinct (PR, verdict word, 40-hex head) verdicts on the bus for window merges that no comment/review verdict on the PR names, plus comments repeating an earlier comment's bus-nonce on the same PR.",
+          "phenomenon_property": "Every review round the verdict bus records for a merged PR appears exactly once in the population the first-pass-yield and rounds-per-merge instrument reads (policy_lint.mjs --stats), so its yield, rounds and coverage lines agree with review_strength.py's bus reading of the same window.",
+          "seam_rule": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs | grep -E '^  bus-only #|RESULT (bus_only_verdicts|relay_duplicates)'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs --perturb reshape",
+            "value": "202 of 234 merges carry no bus-only verdict and keep their count under bus-union; first_verdict_yield moves only 0.583 -> 0.587 (ordering-dependent: the 2026-11-14 bus cluster's author time sorts it after the PR's comment verdicts), so the robust effect is on rounds and one-round yield, not on first-verdict yield",
+            "note": "The claim is a count, not a cost or a time; the null is the set of PRs the bus and the comments agree on."
+          },
+          "leave_one_out": {
+            "cells": 32,
+            "min": 1,
+            "max": 5,
+            "drop_most_favourable": 37
+          },
+          "reproduction_steps": [
+            "From the export root, with GITHUB_TOKEN (or the session proxy) for api.github.com and `git ls-remote origin` access:",
+            "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs  (first run fetches the window into os.tmpdir(), ~7 min)",
+            "Read RESULT bus_only_verdicts, relay_duplicates, rounds_mean; then --perturb dedup,bus-union and compare."
+          ],
+          "proposed_fix_scope": "Either make the relay post each bus verdict exactly once (idempotent on bus-nonce, and a sweep for bus verdicts with no PR comment), or have policy_lint.mjs --stats read the bus (review_strength.py's population) deduplicated by (PR, word, head); name in the --stats header which population it reads.",
+          "files": [
+            "tools/policy/policy_lint.mjs",
+            "tools/audit/seat/review_strength.py",
+            "tools/audit/seat/cloud_relay.sh",
+            "tools/audit/seat/bus.sh"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I4"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Window enumeration through /commits/<sha>/pulls loses nothing",
+          "command": "PYTHONPATH=tests/hastub node dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+          "value": "api_failures=0, gap_recovered_from_subject=0 over 250 first-parent commits, 234 merges"
+        },
+        {
+          "claim": "No verdict is posted as a PR review in the window, so the reviews endpoint hides nothing",
+          "command": "same",
+          "value": "review_endpoint_verdicts=0 of 420"
+        },
+        {
+          "claim": "No Fix review: line falls outside web-fix-wave.js VERDICT_RE; the brief's looser rule and the wave grammar read the same 420",
+          "command": "same",
+          "value": "outside_grammar=0"
+        },
+        {
+          "claim": "fetchWindow's single page of 100 per endpoint truncates no window PR",
+          "command": "same",
+          "value": "max_comments_on_one_pr=10, max_reviews_on_one_pr=7"
+        },
+        {
+          "claim": "Re-verification rounds after a merge verdict (55 over 36 PRs, 42 returning merge) could not be shown avoidable under the carry predicate: inconclusive, harness gap",
+          "command": "python3 tools/audit/seat/review_carry.py <prev merge head> <later head> --main <main as of the later verdict>, over the 55 pairs",
+          "value": "55/55 FRESH-REVIEW, most refusals 'no branch tip of origin' -- an artefact of the PR branches being deleted since, so a retrospective replay cannot reproduce the predicate's 'ours' test; not reported"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D13/s1/yield_rounds.mjs",
+        "dev/audit/rounds/round11/D13/s1/window_fetch.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D5-s8",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "prClass (comment)",
+          "what": "The comment says delivery-status-tracking.md exempts `record` PRs from review; that file carries no exemption (grep -i exempt: none). The exempting predicate is a comment in .github/workflows/nightly.yml (tvofi, 2026-10-07)."
+        }
+      ]
+    },
+    "D13-s2": {
+      "dimension": "D13",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D13/s2/REPORT.md",
+      "exposure": "D13 brief sources read via gh api: /repos/tvofi/heatpump_optimizer/commits/<sha>/pulls for the 612 first-parent commits of v7.1.0..92d38ecb, and /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews (all pages) for the 569 merged pull requests; main's first-parent git history. Snapshot committed as dev/audit/rounds/round11/D13/s2/window.json. Verdict and friction text used only as population.",
+      "coverage": [
+        {
+          "step": "D13.M3",
+          "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --list",
+          "universe": 448,
+          "examined": 448,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "block_classes.out: blocked_verdicts=448 (statsHistogram over window.json, v7.1.0..92d38ecb, 569 merges, api_failures 0); buckets engineering 259 / orchestration 95 / record-and-body 94; outside_grammar 0; fetchWindow arm lost 0"
+        },
+        {
+          "step": "D13.M6",
+          "enumerator": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --list",
+          "universe": 174,
+          "examined": 174,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "friction_keys.out: accepted_entries=174, one_file=69 (0.397), ambiguous=0, no_file=105 (84 ids); SELFCHECK equal to statsHistogram's friction cells"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D13-s2-01",
+          "scope": "D13-s2",
+          "step": "D13.M3",
+          "title": "47.8% of blocked verdicts carry a class word VERDICT_CLASSES lacks; bus.sh and fixer.md teach a second vocabulary",
+          "severity": "medium",
+          "claim": "Over the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 214 of the 448 parseable blocked verdicts (0.478; 93 distinct words, on 155 PRs) carry a class word that web-fix-wave.js's VERDICT_CLASSES does not hold, so parseVerdict routes every one to `other` and no bucket can be read off the grammar for them; 71 of them (ci-red 63, ci-cancelled 4, ci-pending 2, red-unanswered 1, body 1) are words that bus.sh's MECHANICAL_CLASSES and fixer.md's 'Never for a mechanical-only gap' paragraph teach, 9 of bus.sh's 12 mechanical words being absent from VERDICT_CLASSES.",
+          "mechanism": "Two writers of the block vocabulary and one reader: VERDICT_CLASSES (web-fix-wave.js, read by policy_lint.mjs:blockClasses and the wave's parseVerdict) and MECHANICAL_CLASSES (tools/audit/seat/bus.sh:672, taught by dev/governance/roles/fixer.md:311), while fix-review.md teaches the class as free `[a-z-]+`. check-wave-script.mjs's taught-word check reads only `blocked <sha> <word>:` examples in briefs, so fixer.md's prose list and bus.sh's shell variable never meet it. The same verdict is therefore `mechanical` to bus.sh dispatch and `other` to the wave and the --stats class table; 143 further verdicts are untaught by both (bus.sh's 'an unknown one refuses').",
+          "evidence": {
+            "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+            "harness_path": "dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+            "value": 214,
+            "unit": "blocked verdicts outside VERDICT_CLASSES (of 448; share 0.478)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; a count over the committed snapshot window.json, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.45,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (class key), :blockClasses / :waveVerdictRe (the wave's VERDICT_CLASSES and VERDICT_RE)",
+          "perturbation": {
+            "change": "--perturb teach-ci-red: the VERDICT_CLASSES literal of .claude/workflows/web-fix-wave.js edited in memory to carry 'ci-red', read through policy_lint.mjs:blockClasses",
+            "expected_direction": "down",
+            "observed_value": "214 -> 151 (share 0.478 -> 0.337); bus_mechanical_not_in_wave 9 -> 8"
+          },
+          "metric_definition": "blocked verdicts (trimmed first line of an issue comment or review parsing under VERDICT_RE's blocked arm) whose statsHistogram class word is not in blockClasses(), over the window",
+          "phenomenon_property": "Every class word a seat is taught to write in a blocked verdict (fix-review.md, fixer.md, bus.sh's MECHANICAL_CLASSES) is one word list, the one VERDICT_CLASSES holds, so the wave, bus.sh dispatch and the --stats class table route each verdict alike",
+          "seam_rule": "grep -nE '^MECHANICAL_CLASSES=|^const VERDICT_CLASSES' tools/audit/seat/bus.sh .claude/workflows/web-fix-wave.js; HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read | grep UNTAUGHT",
+          "null_control": {
+            "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read --perturb reshape-one",
+            "value": "blocked 448 -> 447, outside_grammar 0 -> 1, untaught 214 -> 213",
+            "note": "the brief's fixture perturbation: one verdict re-shaped out of the grammar moves the population by exactly one, so the harness counts verdicts and not rows"
+          },
+          "reproduction_steps": [
+            "(optional, network) PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s2/fetch_window.py --since v7.1.0 --head 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out /tmp/w.json",
+            "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read [--window /tmp/w.json]",
+            "read RESULT untaught_blocked, untaught_in_bus_vocabulary, bus_mechanical_not_in_wave"
+          ],
+          "proposed_fix_scope": "One block vocabulary: VERDICT_CLASSES carries bus.sh's mechanical words (or bus.sh derives MECHANICAL_CLASSES from it), fix-review.md's class teaches that list rather than any [a-z-]+, and check-wave-script.mjs's taught-word check reads fixer.md's mechanical list and bus.sh's variable",
+          "files": [
+            ".claude/workflows/web-fix-wave.js",
+            "tools/audit/seat/bus.sh",
+            "dev/governance/roles/fixer.md",
+            "dev/governance/roles/fix-review.md",
+            "tools/policy/check-wave-script.mjs",
+            "tools/policy/policy_lint.mjs"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-vocabulary-drift"
+        },
+        {
+          "id": "D13-s2-02",
+          "scope": "D13-s2",
+          "step": "D13.M6",
+          "title": "60.3% of accepted ## Friction entries name no policy file; the body contract never resolves the rule id",
+          "severity": "medium",
+          "claim": "Of the 174 `## Friction` entries policy_lint.mjs:frictionEntries accepts in the bodies of the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 105 (0.603; 84 distinct ids) name no `--budgets` path under D13.M6's rule and 0 are ambiguous, so only 69 (0.397) attribute friction to a policy file, because checkPrBody refuses only an entry's shape and never that its `<rule_id>` names a rule.",
+          "mechanism": "The template asks for `<rule_id>: <event>: <evidence>`; frictionEntries accepts any FRICTION_ID ([A-Za-z.][A-Za-z0-9_.#/-]*) and checkPrBody (policy_lint.mjs:7317) refuses only an entry whose id is null. Ids such as `brief` (4), `handoff-wip`, `frugal-routing`, `PROMPT.md`, `fixer-step-push` (3 each), `r10-process-slim-1..5`, tool and group names pass the contract and key their own verbatim histogram rows, so friction a seat aimed at a contract section (fixer-step-push, fixer-brief, fixer-step-6: 6 entries) reaches no policy file under either keying, and checkSunset's honour-rule test reads only the file keys.",
+          "evidence": {
+            "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+            "harness_path": "dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+            "value": 0.397,
+            "unit": "share of accepted friction entries naming exactly one --budgets path (69/174; no file 105, ambiguous 0)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8",
+            "cpu_or_wall": "ratio",
+            "contention_note": "shared box during the fan-out; counts over the committed snapshot window.json, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.28,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:frictionEntries (what an accepted entry is; checked equal to statsHistogram's friction cells), :frictionKey via --normalize-friction-keys, :sizes/:policyFiles (the --budgets paths)",
+          "perturbation": {
+            "change": "--perturb readme: the first accepted entry naming ratchet-budgets.md (#3185) re-spelled `README.md` in its body (D13.md's fixture perturbation); --perturb bare / unticked re-spell it ratchet-budgets / unbackticked",
+            "expected_direction": "down",
+            "observed_value": "readme: one_file 69 -> 68, ambiguous 0 -> 1 (tests/README.md, tools/audit/README.md); bare and unticked: one_file 69 unchanged, only the spelling row moves"
+          },
+          "metric_definition": "accepted friction entries whose id (backticks stripped, # dropped) names exactly one --budgets path p (p is k, k.md, k/SKILL.md or ends in /k, /k.md, /k/SKILL.md), over all accepted entries",
+          "phenomenon_property": "An accepted `## Friction` entry names the policy file it is friction with (or is refused), so every entry the contract accepts is countable against one rule by the histogram and by the sunset check",
+          "seam_rule": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs | sed -n '/no-file rows/,/RESULT rule_file/p'",
+          "null_control": {
+            "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --perturb unticked",
+            "value": "one_file 69, no_file 105 (unchanged)",
+            "note": "a spelling change that still names the same file moves no count: the share measures naming, not formatting"
+          },
+          "reproduction_steps": [
+            "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+            "read RESULT one_file_share, no_file and the no-file rows"
+          ],
+          "proposed_fix_scope": "checkPrBody refuses a ## Friction id that names no policy file by the histogram's own resolution (frictionKey resolves to a policyFiles() path), with the template's <rule_id> naming the file; existing verbatim keys stay readable in --stats",
+          "files": [
+            "tools/policy/policy_lint.mjs",
+            ".github/PULL_REQUEST_TEMPLATE.md"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-vocabulary-drift"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every `Fix review:` first line in the window parses under web-fix-wave.js's VERDICT_RE",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+          "value": "outside_grammar=0 over 448 blocked + 647 merge verdicts"
+        },
+        {
+          "claim": "Every blocked verdict in the window arrived as an issue comment; none as a pull-request review",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --list | awk '{print $2}' | sort | uniq -c",
+          "value": "448 issue-comment, 0 review"
+        },
+        {
+          "claim": "policy_lint.mjs:fetchWindow's single page of 100 per endpoint loses no verdict in this window (latent only)",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+          "value": "prs_over_one_page=0, fetchwindow_lost_verdicts=0 (1707 stub-curl calls)"
+        },
+        {
+          "claim": "D13.md's high bar (more rounds on body figures than on any engineering class) is not met",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read",
+          "value": "body-figure words 17 vs class-open 84; record-and-body bucket 94 vs engineering bucket 259"
+        },
+        {
+          "claim": "The PR-body contract and the friction histogram read the same entries: none unparsed, per-entry keys equal statsHistogram's cells",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+          "value": "unparsed_entries=0, SELFCHECK yes"
+        },
+        {
+          "claim": "The one threshold split between D13.M6's rule and frictionKey (orchestrator.md: 3 PRs by the rule, 2 under its best production key) follows frictionKey's documented briefs carve-out, and the bare-id entry (#3625) is a seat's own cost, not the contract",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+          "value": "files_at_threshold_split_below=1; rule_file_prod_other=6 (fixer 5, orchestrator 1)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D13/s2/fetch_window.py",
+        "dev/audit/rounds/round11/D13/s2/block_classes.mjs",
+        "dev/audit/rounds/round11/D13/s2/friction_keys.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tools/policy/check-wave-script.mjs",
+          "symbol": "taughtWords (the 'teaches block class' check)",
+          "what": "reads only `blocked <sha> <word>:` examples in briefs, so the mechanical words fixer.md:311 lists in prose and bus.sh's MECHANICAL_CLASSES variable (ci-red, ci-wait, ci-pending, ci-cancelled, red-unanswered, body, contract, carry, ungated) never meet the VERDICT_CLASSES check (mechanism half of D13-s2-01)"
+        },
+        {
+          "owner_seat": "D13-s1",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "fetchWindow",
+          "what": "reads /issues/<n>/comments?per_page=100 and /pulls/<n>/reviews?per_page=100 with no paging, so a PR with more than 100 comments loses its later verdicts from --stats yield/coverage; 0 such PRs in v7.1.0..92d38ecb, so latent (block_classes.mjs arm (c) drives it with a paging stub)"
+        }
+      ]
+    },
+    "D13-s3": {
+      "dimension": "D13",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D13/s3/REPORT.md",
+      "exposure": "GitHub REST API for the window 2026-11-09T12:00Z..2026-11-16T12:00Z: /commits/<sha>/pulls, /commits/<sha>/check-runs (default and filter=all), /pulls/<n>/commits, /actions/jobs/<id>/logs for four governance / instrument-self-tests failures; main's git history and version tags. No comments, reviews or bodies read.",
+      "coverage": [
+        {
+          "step": "D13.M4",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+          "universe": 271,
+          "examined": 271,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py -> merges=271 releases_per_day=1.71 lead_time_median_h=6.94 lead_time_p90_h=16.86 cfr_raw_merge_keyed=0.808 cfr_job_merge_keyed=0.797 cfr_raw_head_keyed=0.439 reverted_merges=0 ttr_names=17 api_failures=0 (C1: DF, LT and TTR computed per check-run name)"
+        },
+        {
+          "step": "D13.M5",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+          "universe": 271,
+          "examined": 271,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py -> merges=271 gov_missing_from_GOV=none gov_extra_in_GOV=none head_total_seconds_mean=11442 full_total_seconds_mean=106627 head_governance_share=0.204 full_governance_share=0.186 omitted_share=0.893 api_failures=0"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D13-s3-01",
+          "scope": "D13-s3",
+          "step": "D13.M4",
+          "title": "dora_keys.cfr_keyings exclusion is inert: `record` never equals the check-run name `governance / record`",
+          "severity": "medium",
+          "claim": "dora_keys.cfr_keyings drops an exclusion key only when it equals the full check-run name (`names - drop`). Since the layout cut-over every governance job reports as `<unit> / <job>`, so cfr_exclusions.json's only key `record` matches nothing: over the window's 271 merges cfr_merge_keyed equals cfr_merge_unexcluded (0.808, delta 0.0), while keying the same list on the job id drops the 3 merges whose only red is `governance / record` (0.797, delta 0.011). The brief's own control -- one job added to the exclusion list moves the rate by exactly that job's count -- fails on the instrument: --exclude record leaves the instrument's rate at 0.808.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+            "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+            "value": 0.0,
+            "unit": "cfr_raw_excl_delta_merge (rate delta the exclusion buys in dora_keys.cfr_keyings); job-keyed delta 0.011 (3 merges)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+            "cpu_or_wall": "ratio",
+            "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.04,
+            "thread_factor": 1.009
+          },
+          "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:cfr_keyings (with :load_exclusions and :latest_by_name), driven on the window's live check-run listings",
+          "perturbation": "`--exclude 'governance / record'` (the full name as a key, in memory): cfr_raw_excl_delta_merge moves 0.0 -> 0.011 (up, by exactly the 3 merges); `--exclude record` leaves it at 0.0 while cfr_job_excl_delta_merge reads 0.011",
+          "metric_definition": "cfr_raw_excl_delta_merge = dora_keys.cfr_keyings(...)['merge_unexcluded'] - ['merge_keyed'] over the window's 271 first-parent merges, latest run per check-run name at the merge commit",
+          "phenomenon_property": "An exclusion key removes a check run from the change-failure rate exactly when it equals the job id the run's name carries, whatever `<unit> / ` prefix or ` (<matrix leg>)` suffix the name has",
+          "seam_rule": "grep -nE 'names - drop|name in names|in excl' dev/audit/rounds/round4/D11/dora_keys.py",
+          "stop_rule_class": "bug",
+          "class_guess": "N-vocabulary-drift",
+          "files": [
+            "dev/audit/rounds/round4/D11/dora_keys.py",
+            "dev/governance/config/cfr_exclusions.json"
+          ],
+          "proposed_fix_scope": "key the exclusion comparison in cfr_keyings on the job id (strip the unit prefix and matrix leg, as governance_cost.bare does) and pin it with a unit-prefixed name; S"
+        },
+        {
+          "id": "D13-s3-02",
+          "scope": "D13-s3",
+          "step": "D13.M4",
+          "title": "instrument-self-tests red on main at 200 of 271 merges, green at 186 of their heads; time to restore 106 h, still open",
+          "severity": "medium",
+          "claim": "Per check-run name, `governance / instrument-self-tests` concluded failure at 200 of the window's 271 merge commits (0.738) and at 18 of their 271 pull-request heads; at 186 merges it failed at the merge commit after passing at the head. Its red episodes on main: 2, median 65.82 h, max 106.19 h, one still open at the window's end, against the required `gate`'s 19 episodes of median 0.34 h. It is the only failing name at 162 merges, so it alone carries the merge-keyed change-failure rate from 0.24 to 0.808. The logs read at four failures show the drift check (`tools/ci/selftest_scope.py check`, which its docstring runs only on a push to main) refusing 11 then 27 steps: a red that no pull-request head can see, which then stands on main for days and masks any new red of the job.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+            "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+            "value": 186,
+            "unit": "merges whose instrument-self-tests failed at the merge commit and passed at the PR head (ist_fail_merge_pass_head); ttr max 106.19 h, still_open=True",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.04,
+            "thread_factor": 1.009
+          },
+          "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:latest_by_name driven on the check runs of .github/workflows/governance.yml job `instrument-self-tests` (whose push-only step is tools/ci/selftest_scope.py `check`)",
+          "perturbation": "`--exclude 'governance / instrument-self-tests'` (in memory): cfr_raw_merge_keyed falls 0.808 -> 0.24 and merges_failing_only_excluded_jobs_merge rises 3 -> 165 (the 162 merges whose only red it is, plus the 3 `record`-only)",
+          "metric_definition": "ist_fail_merge_pass_head = count of window merges whose latest `governance / instrument-self-tests` run concluded failure at the merge commit and success at the PR head; TTR = completed_at of the first failing run at a merge to completed_at of the next succeeding run at a later merge, first-parent order",
+          "phenomenon_property": "A job whose check runs on a push to main also runs, with the same verdict, at the pull-request head that produced the merge, so its red is answered before the merge rather than restored after it",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py | grep \"per name\" | grep 'head=0.0 (0)'   (every name failing at merge commits and at no head)",
+          "stop_rule_class": "bug",
+          "class_guess": "R10-SELFTEST-RED-INTRODUCED",
+          "files": [
+            ".github/workflows/governance.yml",
+            "tools/ci/selftest_scope.py"
+          ],
+          "proposed_fix_scope": "run selftest_scope.py's drift `check` (or an equivalent table-staleness test) on the pull-request event of a diff that reaches tools/, or auto-commit the unioned table on main the way record-autofix answers `record`; M; frozen machinery -- needs the owner's instrument window"
+        },
+        {
+          "id": "D13-s3-03",
+          "scope": "D13-s3",
+          "step": "D13.M5",
+          "title": "governance_cost.py reads 10.7% of the CI seconds a merge pays: final head only, latest attempt only",
+          "severity": "medium",
+          "claim": "governance_cost.py sums check-run durations at a pull request's FINAL head from the default check-runs listing, which returns the latest attempt only. Over the window's 271 merges that surface reads 3,100,885 s of the 28,895,795 s their CI ran at every commit of the pull request (filter=all) plus the merge commit: omitted_share 0.893 (by day 0.857..0.921 over 8 day-cells; 0.896 with the lowest day dropped; 0.887 with runs deduplicated across stacked PRs). Mean seconds per merge read 11,442 against 106,627 paid, a 9.3x under-read. At the final heads alone the default listing hides 37,189 run attempts (5,331,965 s) that filter=all returns, although d11lib.check_runs's docstring says the listing shows a re-run. The governance share barely moves (0.204 vs 0.186), so the split survives; the per-merge cost the instrument reports does not.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+            "harness_path": "dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+            "value": 0.893,
+            "unit": "omitted_share = 1 - head-surface seconds / all seconds paid",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+            "cpu_or_wall": "ratio",
+            "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.26,
+            "thread_factor": 1.012
+          },
+          "instrumented_symbol": "tools/audit/round4/D11/governance_cost.py:GOV, :bare and :dur (every second is classified and timed by the instrument's own symbols); tools/audit/round4/D11/d11lib.py:check_runs's listing reproduced (default filter)",
+          "perturbation": "D13S3_HEAD_ONLY=1 (the full surface collapses onto governance_cost.py's): omitted_share moves 0.893 -> 0.0; --gov-drop pr-contract moves governance share 0.204 -> 0.197 (the instrument's own control)",
+          "metric_definition": "omitted_share = 1 - sum over merges of concluded check-run seconds at the final PR head (default listing) / sum of concluded check-run seconds at every PR commit (filter=all) plus the merge commit",
+          "phenomenon_property": "A per-merge CI-cost reading sums every concluded check-run attempt the merge triggered: every head the pull request had, every re-run attempt, and the push run at its merge commit",
+          "seam_rule": "grep -nE 'check_runs\\(|check-runs\\?' tools/audit/round4/D11/*.py dev/audit/rounds/round4/D11/*.py tools/audit/seat/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/audit/round4/D11/governance_cost.py",
+            "tools/audit/round4/D11/d11lib.py"
+          ],
+          "proposed_fix_scope": "read check runs with filter=all at each commit of pulls/<n>/commits and at the merge commit, report the head-only figure beside it; correct check_runs's docstring; S. Null control: single-commit, no-rerun merges still omit 0.492 (the merge-commit push run alone)"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "governance_cost.py's GOV equals the set its own rule re-derives from the workflow files at the baseline",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+          "value": "gov_missing_from_GOV=none gov_extra_in_GOV=none"
+        },
+        {
+          "claim": "The brief's revert rule fails no window merge (dora_keys omits the rule; it costs nothing here); the fixture control moves the count",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py [--fixture-revert e02c7015b57ab95a59871bccb6d1001536e85673]",
+          "value": "reverted_merges=0 (fixture: 1)"
+        },
+        {
+          "claim": "Scheduled nightly-job reds attached to merge commits inflate the merge-keyed rate by at most one merge",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+          "value": "merges_failing_only_schedule_jobs_merge=1 of 271"
+        },
+        {
+          "claim": "The required gate's red on main is restored quickly",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+          "value": "ttr gate: episodes=19 median_h=0.34 max_h=9.25 still_open=False"
+        },
+        {
+          "claim": "Deployment frequency and lead time are computable and bounded in the window",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+          "value": "releases_per_day=1.71 lead_time_median_h=6.94 p90=16.86 n=260 unreleased=11"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D13/s3/d13s3lib.py",
+        "dev/audit/rounds/round11/D13/s3/enum_merges.py",
+        "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+        "dev/audit/rounds/round11/D13/s3/ci_seconds.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D11-s2",
+          "file": "tools/ci/selftest_scope.py",
+          "symbol": "check",
+          "what": "the drift check runs only on a push to main, so instrument-self-tests passed at 186 PR heads whose merge commits it failed (D13-s3-02); whether the pull-request event should run it is the mechanism question"
+        },
+        {
+          "owner_seat": "D11-s1",
+          "file": "dev/governance/config/cfr_exclusions.json",
+          "symbol": "excluded_jobs.record.reason",
+          "what": "states `record` concludes failure at EVERY merge; in the window it failed at 16 of 271 merge commits, so the recorded reason no longer describes the job"
+        },
+        {
+          "owner_seat": "D11-s1",
+          "file": "tools/audit/round4/D11/d11lib.py",
+          "symbol": "merged_prs / api(paginate=True)",
+          "what": "merged_prs is GraphQL-only and --paginate follows repositories/<id> Link headers; a REST-only session's proxy refuses both, so dora_keys.py and governance_cost.py cannot run there"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": ".github/workflows/tests.yml",
+          "symbol": "nightly-status",
+          "what": "fails at 107 of 271 PR heads (0.395), the largest head-keyed red name in the window"
+        }
+      ]
+    },
+    "D15-s2": {
+      "dimension": "D15",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D15/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D15.M5",
+          "enumerator": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_enumerate.py --bundle <owner download 2026-11-16>",
+          "universe": 112,
+          "examined": 92,
+          "not_reached": [
+            "cycle 2026-11-15T16:07:09.030391+00:00",
+            "cycle 2026-11-15T16:22:09.030391+00:00",
+            "cycle 2026-11-15T16:37:09.030391+00:00",
+            "cycle 2026-11-15T16:52:09.030391+00:00",
+            "cycle 2026-11-15T17:07:09.030391+00:00",
+            "cycle 2026-11-15T17:22:09.030391+00:00",
+            "cycle 2026-11-15T17:37:09.030391+00:00",
+            "cycle 2026-11-15T17:52:09.030391+00:00",
+            "cycle 2026-11-15T18:07:09.030391+00:00",
+            "cycle 2026-11-15T18:22:09.030391+00:00",
+            "cycle 2026-11-15T18:37:09.030391+00:00",
+            "cycle 2026-11-15T18:52:09.030391+00:00",
+            "cycle 2026-11-15T19:07:09.030391+00:00",
+            "cycle 2026-11-15T19:22:09.030391+00:00",
+            "cycle 2026-11-15T19:37:09.030391+00:00",
+            "cycle 2026-11-15T19:52:09.030391+00:00",
+            "cycle 2026-11-15T20:07:09.030391+00:00",
+            "cycle 2026-11-15T20:22:09.030391+00:00",
+            "cycle 2026-11-15T20:37:09.030391+00:00",
+            "cycle 2026-11-15T20:52:09.030391+00:00"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "16 seeding items: m5_seed_ids.py (8 unresolved id leaves in 4 stores, 2 learners voided) and m5_seed_age.py (142/192 future samples). 76 cycles through all 8 lane judges: hours 0-1 (4 cycles) in both m5_zone.py arms, all judges 0; hours 1-19 (72 cycles) in nine 2-hour m5_judges.py chunks, each re-seeded: red only in hours 7-9 (no_default 1, not_frozen 1) and 13-15 (not_frozen 1), all three judge false positives (D15-s2-06, -07). The last 20 cycles were cut by the window on a box at load1 12-290."
+        },
+        {
+          "step": "D15.M6",
+          "enumerator": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle <owner download 2026-11-16> --enumerate",
+          "universe": 12,
+          "examined": 12,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "examined"
+            }
+          ],
+          "evidence": "m6_monitor.py: 9 local-day windows 2026-11-08..16 (n, bias, MAE, counting-tick live bias), every day re-run from the rows' 538 distinct samples plus the store's 192 (605 known, 67 store-only); anchors: self_test exact (count_delta 0, bias_delta 0.0, mae_delta 0.0), snapshot 2026-11-11 count_delta 0 (partial: pre-collection samples unknown, bias_delta 0.011); latch: SnapshotRing.observe_bias over the 5 fully known ticks 2026-11-12..16 ends alarmed 0, bias_days 0, last_day 2026-11-16 = stored (latch_match=1), accuracy_drift issue absent = latch; restart_flip_days=0. Controls: --perturb no-restart moves self_test count_delta to 318 and latch_match to 0; --perturb band=0.1 latch_match 0. Cusum: no Cusum feeds accuracy_drift at baseline (lead to D11-s1)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M5",
+          "what": "The last 20 replay cycles (2026-11-15T16:07Z..20:52Z) were not run through the judges: m5_judges.py --bundle B --from-hours 19 --hours 5. The zone arms ran 1 hour of the real window (not 4) and the --null/--perturb fixed arms ran on the synthetic bundle only."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D15-s2-01",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "debug_replay seeds unmasked store entity ids against the masked replay half, voiding the learned heat loss",
+          "severity": "medium",
+          "claim": "On the owner's 2026-11-16 download, tools/replay/debug_replay.py:run_seeded seeds store documents whose entity-id leaves (8 leaves in 4 stores) name ids absent from the masked replay half, so the replayed coordinator voids house_heat_loss_scale and lower_floor_loss_ratio ('its zone sensor changed') and drops 42 learned heat-loss samples before its first cycle: the D15 timeline replay runs a house model the install does not have.",
+          "mechanism": "The debugger bundle's replay half is written through replay_doc's mask (each configured entity becomes its role name or an e_<hash> id), while its stores section is the install's store documents verbatim. debug_replay.seed_stores writes those documents onto the stub disk unchanged; the coordinator's thermal-learning load compares the stored heat_loss_zone_entities with the replay entry's (masked) zone sensors, finds them different, and runs the one void path (_void_heat_loss_learners). The same mismatch leaves dhw_legionella.disinfection_owned and off_restore.armed naming ids the replay has no state for (the replay logs the owned disinfection switch as unreadable).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle <owner download>",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_seed_ids.py",
+            "value": "voided_learners=2; learned_samples_lost=42; unresolved_id_leaves=8 (4 stores)",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "box shared with other finder seats (two other debug_replay runs); counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 44.03,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners (driven through tools/replay/debug_replay.py:run_seeded)",
+          "perturbation": {
+            "change": "--remap-zones: rewrite the seeded thermal_learning heat_loss_zone_entities to the replay entry's own ids for the same keys (what a mask-aware seed_stores would write)",
+            "expected_direction": "to_zero",
+            "observed_value": "voided_learners=0, learned_samples_lost=0, unresolved_id_leaves 8 -> 6"
+          },
+          "metric_definition": "Learners the production void path resets while debug_replay.run_seeded sets up from the bundle's stores and runs the window's first cycle.",
+          "phenomenon_property": "Every entity id a store document seeded by debug_replay names resolves in the replay half it is replayed against (the same mask applied to both), so the replayed coordinator starts from the install's learned state.",
+          "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle B --list",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle <dbg_bundle_gen.py --days 1 bundle.json>",
+            "value": "unresolved_id_leaves=0, voided_learners=0, learned_samples_lost=0",
+            "note": "the synthetic bundle's stores were written by the same replay, so ids agree and nothing is voided"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_ids.py --bundle B --list   # 8 seams",
+            "... --bundle B            # voided_learners=2",
+            "... --bundle B --remap-zones   # voided_learners=0"
+          ],
+          "proposed_fix_scope": "tools/replay/debug_replay.py seed_stores: carry the replay half's id mapping (or re-derive it with replay_doc's mask) and rewrite every entity-id leaf of the seeded stores through it before writing them; or have custom_components/heatpump_optimizer/debugger.py write the stores section through the same mask. Pin with a debug_replay gate check over a bundle whose stores carry an unmasked zone id.",
+          "files": [
+            "tools/replay/debug_replay.py",
+            "custom_components/heatpump_optimizer/debugger.py",
+            "custom_components/heatpump_optimizer/replay_doc.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I4"
+        },
+        {
+          "id": "D15-s2-02",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "debug_replay starts the window from download-time stores: 142 of 192 accuracy samples postdate the replay clock",
+          "severity": "low",
+          "claim": "On the owner's 2026-11-16 download, debug_replay.run_seeded starts the replay window with a coordinator whose accuracy tracker holds 142 of its 192 samples stamped after the replay's own first-cycle clock (up to 41.4 h ahead), and 10 further stored instants are bounded as 'ahead of the clock', because the stores are the download's (19.5 h after the collection ended) seeded as the state at the window's start.",
+          "mechanism": "custom_components/heatpump_optimizer/debugger.py reads the stores at download time; the replay half covers the collection's last day. tools/replay/debug_replay.py:seed_stores writes those documents as they are and run_fixture constructs the coordinator (running the seeded loads) before it freezes the clock at the window start, so the accuracy store's later samples load unbounded against the wall clock; stores loaded later, under the frozen clock, are clamped by the store boundary instead. Either way the replayed coordinator starts holding evidence from after the window, and the window's own new samples append behind it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle <owner download>",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_seed_age.py",
+            "value": "future_samples_held=142 of 192; bounded_instants=10; window_start_to_store_newest_h=41.4",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "box shared with other finder seats; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 24.64,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._accuracy (read at the first _async_update_data of tools/replay/debug_replay.py:run_seeded); heatpump_optimizer.store:_bound_instants (its warnings)",
+          "perturbation": {
+            "change": "--start-after-stores: start the replay one minute after the newest seeded accuracy sample (the window the seeded state is actually as of)",
+            "expected_direction": "to_zero",
+            "observed_value": "future_samples_held=0 of 192; bounded_instants=0"
+          },
+          "metric_definition": "Accuracy samples the replayed coordinator holds at the replay's first cycle whose own timestamp is later than that cycle's clock.",
+          "phenomenon_property": "The coordinator a D15 timeline replay starts holds no learned evidence stamped after the replay's own clock: the seeded state is the install's as of the window start, or the evidence after it is withheld.",
+          "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle B --list",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_seed_age.py --bundle <owner download> --start-after-stores",
+            "value": "future_samples_held=0, bounded_instants=0",
+            "note": "the same seeding with a start at which no stored evidence is in the future"
+          },
+          "reproduction_steps": [
+            "... m5_seed_age.py --bundle B --list   # stores holding instants after the window start (accuracy 387 leaves, ledger 4, pump_duty 4, duty_switch 2, dhw_legionella 1, dhw_profile 1, energy 1)",
+            "... m5_seed_age.py --bundle B          # future_samples_held=142",
+            "... m5_seed_age.py --bundle B --start-after-stores   # 0"
+          ],
+          "proposed_fix_scope": "tools/replay/debug_replay.py: before seeding, withhold store evidence stamped after the replay window's start (accuracy samples, ledger and duty entries), or refuse/flag a replay whose stores postdate it by more than the window; and freeze the clock at the window start before the seeded loads run. Alternatively custom_components/heatpump_optimizer/debugger.py keeps the stores as of the replay window's start in the bundle.",
+          "files": [
+            "tools/replay/debug_replay.py",
+            "tests/replay.py",
+            "custom_components/heatpump_optimizer/debugger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D15-s2-03",
+          "scope": "D15-s2",
+          "step": "D15.M6",
+          "title": "The synthetic null bundle never runs the drift latch: observe_bias is called 0 times in 96 cycles",
+          "severity": "low",
+          "claim": "tools/replay/dbg_bundle_gen.py, D15's null control, generates its bundle without ever calling SnapshotRing.observe_bias (0 calls over 96 cycles on --days 2; the 7-day bundle's snapshots store records last_day ''), so D15.M6's latch comparison on the null control reads a clean, never-run latch as agreement: m6_monitor.py --fresh re-derives last_day 2026-01-21 over 7 counted days against a stored ''.",
+          "mechanism": "The generator drives tests/replay.py:run_fixture, whose FakeHass closes every spawned coroutine but the session restore, so the coordinator's _async_load_snapshots never runs, _snapshots_loaded stays false and _async_watch_learning_drift returns at its first line on every cycle. tools/replay/debug_replay.py already carries the remedy for the timeline replay (enable_store_loads runs the spawned loads), but the generator does not use it, so the null control's drift watch, weekly snapshot and accuracy_drift latch are never exercised and their stored state is the constructor's.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m6_null_ring.py",
+            "value": "observe_bias_calls=0 over cycles=96; stored_last_day_set=0",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "box shared with other finder seats; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 21.99,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.snapshots:SnapshotRing.observe_bias (driven through tools/replay/dbg_bundle_gen.py:build_bundle)",
+          "perturbation": {
+            "change": "--perturb loads: run the generator with tools/replay/debug_replay.py:enable_store_loads in force, so the coordinator's spawned store loads run",
+            "expected_direction": "up",
+            "observed_value": "observe_bias_calls=96, ring_days_counted=3, stored_last_day_set=1"
+          },
+          "metric_definition": "Calls of the production SnapshotRing.observe_bias while dbg_bundle_gen.build_bundle generates a bundle of --days days.",
+          "phenomenon_property": "The synthetic null bundle exercises every monitor D15's steps re-derive against it (the drift watch and its latch included), so a step's agreement on the null control is a measured agreement, not a never-run default.",
+          "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle <dbg_bundle_gen.py --days 7 bundle.json> --fresh",
+            "value": "latch_rederived last_day:2026-01-21 (7 ticks) against latch_stored last_day:'' -> latch_match=0",
+            "note": "the M6 re-derivation over the same null bundle shows the stored latch is the never-run default"
+          },
+          "proposed_fix_scope": "tools/replay/dbg_bundle_gen.py: build the bundle with debug_replay.enable_store_loads in force (restored after), and add a gate check that the generated bundle's snapshots store counted at least one day; tools/replay/debug_ingest.py or the D15 M6 harness may then compare the null bundle's latch.",
+          "files": [
+            "tools/replay/dbg_bundle_gen.py",
+            "tools/replay/debug_replay.py",
+            "tests/replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-silent-zero"
+        },
+        {
+          "id": "D15-s2-04",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "debug_replay replays on a UTC clock, not the bundle time_zone the lane uses: 4 of 4 cycles publish differently",
+          "severity": "medium",
+          "claim": "tools/replay/debug_replay.py runs tests/replay.py:run_fixture in its own process without setting HASTUB_TZ, so a bundle whose replay half records time_zone Europe/Stockholm is replayed on the stub's UTC clock; over the owner's window's first hour every one of 4 cycles publishes differently from the same seeded replay in the lane's environment (replay.child_env(time_zone)), on 93 entity fields including Heat Pump Action's state, heat_pump_on and power_kw, the DHW schedule and the predicted indoor temperature.",
+          "mechanism": "tests/replay.py:replay_one runs each fixture in a child whose environment child_env(fixture time_zone) sets HASTUB_TZ, and the stub's homeassistant.util.dt reads HASTUB_TZ once at import. debug_replay.main and run_seeded call run_fixture in-process and never set it, so dt_util.now() is UTC: local-hour logic (comfort day/night hours, DHW windows, the recorded price walk's local day and its 13:00 tomorrow-prices rule) runs an hour off for a CET install, and the plan, the action and the published entities differ from what the install computed and from what the lane would replay.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_zone.py --bundle <owner download> --hours 1 --labels 40",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_zone.py",
+            "value": "differing_cycles=4 of compared_cycles=4; published_fields_differing=93",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "box at load1 ~200 (many seats); counts are contention-immune, wall 6825 s provisional",
+            "tolerance": "exact",
+            "load1": 198.17,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_replay.py:run_seeded over tests/replay.py:run_fixture; published records read through tests/replay.py:sweep from the production entities (heatpump_optimizer sensor/climate platforms)",
+          "perturbation": {
+            "change": "--perturb fixed: the shipped arm run with HASTUB_TZ set to the replay half's time_zone (debug_replay's one-line fix: set it from the bundle before importing the stub, or replay in replay.child_env)",
+            "expected_direction": "to_zero",
+            "observed_value": "synthetic bundle (fixture time_zone Europe/Stockholm), --hours 4: 8 of 8 differing shipped, 0 under --perturb fixed"
+          },
+          "metric_definition": "Replay cycles whose published records (instants in UTC, _ms attributes dropped) differ between debug_replay as shipped and the same replay under replay.child_env(time_zone).",
+          "phenomenon_property": "Every replay driver replays a recording on the clock zone the recording names (the replay half's time_zone), as the lane does, so a D15 timeline replay reproduces the install's local-time behaviour.",
+          "seam_rule": "grep -n 'run_fixture(' tools/replay/*.py tests/*.py dev/audit/harnesses/*.py  # every in-process caller of run_fixture outside replay_one's child_env",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_zone.py --bundle <dbg_bundle_gen.py --days 1 bundle.json> --hours 4 --null",
+            "value": "differing_cycles=0 of 8",
+            "note": "the shipped arm against itself: the replay is deterministic once the _ms wall-time attributes are dropped, so every difference is the zone"
+          },
+          "reproduction_steps": [
+            "... m5_zone.py --bundle B --hours 1            # 4 of 4 cycles differ, 93 fields",
+            "... m5_zone.py --bundle SYN --hours 4          # 8 of 8",
+            "... m5_zone.py --bundle SYN --hours 4 --null   # 0",
+            "... m5_zone.py --bundle SYN --hours 4 --perturb fixed   # 0"
+          ],
+          "proposed_fix_scope": "tools/replay/debug_replay.py: read the replay half's time_zone before the stub is imported and set HASTUB_TZ (or re-exec itself under replay.child_env), as tools/replay/dbg_bundle_gen.py should too for its fixture; a gate check in debug_replay.gate_checks that dt_util.DEFAULT_TIME_ZONE equals the fixture's zone during run_seeded.",
+          "files": [
+            "tools/replay/debug_replay.py",
+            "tools/replay/dbg_bundle_gen.py",
+            "tests/replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P7"
+        },
+        {
+          "id": "D15-s2-05",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "debug_replay reports 5 of the lane's 8 judges and its verdict reads 4: red judges pass unseen",
+          "severity": "low",
+          "claim": "tools/replay/debug_replay.py:main prints offenders for finite, unit, no_default, agreement and cycle and grades smoke_verdict on four of them, while tests/replay.py:run_fixture returns and the lane grades eight (also not_frozen, away, cycle_cost): on the owner's window hours 7-9 not_frozen is red and never printed (unreported_red_judges=1), and on the 7-day synthetic null bundle agreement is red with 41 offenders while debug_replay prints smoke_verdict=pass (verdict_blind_red_judges=1).",
+          "mechanism": "debug_replay.main hard-codes the tuple of judges it prints and a shorter tuple its verdict reads; run_fixture's results dict is the lane's (grade_ran checks every key empty). The D15 timeline replay is graded by debug_replay's report, so judges outside its tuples, and agreement for the verdict, never reach the D15 seat.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 7 --hours 2 --offenders 4",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+            "value": "real chunk: lane_red_judges=2 (no_default, not_frozen), unreported_red_judges=1 (not_frozen); synthetic 7-day: lane_red_judges=1 (agreement 41), debug_replay_verdict=pass, verdict_blind_red_judges=1",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 12.18,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_replay.py:main (its printed and verdict judge tuples, read off its source by AST) over tests/replay.py:run_fixture's verdict",
+          "perturbation": {
+            "change": "--verdict-keys all: debug_replay's verdict reads every judge run_fixture returns (the lane's rule)",
+            "expected_direction": "to_zero",
+            "observed_value": "verdict_blind_red_judges=0 (synthetic: debug_replay_verdict=fail)"
+          },
+          "metric_definition": "Judges red in run_fixture's verdict that debug_replay.main does not print (unreported) or its smoke_verdict does not read (verdict-blind).",
+          "phenomenon_property": "The D15 timeline replay reports and grades every judge the replay lane grades (run_fixture's results keys), so a lane-red judge is never a debug_replay pass.",
+          "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle B --hours 1   # unreported_/verdict_blind_red_judges name the judges outside debug_replay.main's tuples",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 1 --hours 2",
+            "value": "lane_red_judges=0, unreported 0, verdict_blind 0",
+            "note": "a chunk where no judge is red: the two definitions agree"
+          },
+          "proposed_fix_scope": "tools/replay/debug_replay.py:main: print a RESULT per key of run_fixture's results and grade smoke_verdict on all of them (or on the lane's own grading), with a gate check that the printed set equals run_fixture's keys.",
+          "files": [
+            "tools/replay/debug_replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I4"
+        },
+        {
+          "id": "D15-s2-06",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "Replay judge no_default fires on the optimal-setpoint sensor at the configured max_temperature",
+          "severity": "low",
+          "claim": "On the owner's replay window (hours 7-9) tests/replay.py:inv_no_default reports sensor ...optimal_setpoint=21.0 as a leaked ThermalState default although the value is the action's setpoint clamped at the configured max_temperature (21.0 in the replay entry), because SETPOINT_KEYS exempts only valve_target_recommendation; with the setpoint sensor's keys added to SETPOINT_KEYS the offender count goes 1 -> 0.",
+          "mechanism": "inv_no_default flags any temperature equal to a ThermalState default that no input read, unless the sensor's translation key is in SETPOINT_KEYS and the configured value equals it. CurrentSetpointSensor (keys current_setpoint/optimal_setpoint) publishes current_action.setpoint, which is bounded by min/max_temperature; at the bound it equals a config value that happens to equal room_temperature's default, which the module's own comment names for the valve target and leaves open for this sensor.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 7 --hours 2 --offenders 4",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+            "value": "judge_no_default=1 (sensor.heat_pump_optimizer_optimal_setpoint=21.0)",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 12.18,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/replay.py:inv_no_default (SETPOINT_KEYS) over heatpump_optimizer.sensor:CurrentSetpointSensor.native_value in the seeded replay",
+          "perturbation": {
+            "change": "--perturb setpoint: SETPOINT_KEYS gains current_setpoint and optimal_setpoint -> (max_temperature, min_temperature), in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "judge_no_default=0 on the same chunk"
+          },
+          "metric_definition": "no_default offenders tests/replay.py:run_fixture returns over the seeded replay's hours 7-9 of the owner's window.",
+          "phenomenon_property": "No replay judge reports a published setpoint that equals the configuration value bounding it as a leaked constructor default: every sensor publishing a config-bounded setpoint is in SETPOINT_KEYS with the options that bound it.",
+          "seam_rule": "grep -n 'setpoint' custom_components/heatpump_optimizer/sensor.py | grep '__init__\\|super().__init__'   # every setpoint-publishing sensor's keys, against tests/replay.py SETPOINT_KEYS",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 1 --hours 2",
+            "value": "judge_no_default=0",
+            "note": "hours 1-3 of the same window, where the setpoint is not at the bound"
+          },
+          "proposed_fix_scope": "tests/replay.py SETPOINT_KEYS: add the setpoint sensor's key with (max_temperature, min_temperature) and a control in controls() for a setpoint at the configured bound; no production change.",
+          "files": [
+            "tests/replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D15-s2-07",
+          "scope": "D15-s2",
+          "step": "D15.M5",
+          "title": "Replay judge not_frozen reads a config-constant wear price as a frozen mirror of the electricity price",
+          "severity": "low",
+          "claim": "On the owner's replay window (hours 7-9) tests/replay.py:frozen_offenders reports compressor_starts.wear_price_per_start 'stayed 0.3 while sensor.price moved', although wear_price_per_start is replacement_cost / rated_starts (heatpump_optimizer.wear:wear_price_per_start), a constant that never moved in the window; hours 13-15 show the same with solar_heat_gain.orientation_factor 'stayed 0.7' against the price (a configured factor); restricting the judge to published series that moved at least once takes the count 1 -> 0.",
+          "mechanism": "frozen_offenders takes a published series as a mirror of an input when at least MIRROR_MIN_HITS cycles and half the paired cycles lie within MIRROR_TOL of the input and two distinct non-zero input values matched. A published constant passes all three whenever the input hovers near it for a short window (an 8-cycle chunk, a price near 0.3), and then every later price move reads as the mirror freezing.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 7 --hours 2 --offenders 4",
+            "harness_path": "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+            "value": "judge_not_frozen=1 (compressor_starts.wear_price_per_start against sensor.price)",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "owner's macOS box (B8), venv-ci python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 12.18,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/replay.py:frozen_offenders over heatpump_optimizer.coordinator's published wear_price_per_start (heatpump_optimizer.wear:wear_price_per_start) in the seeded replay",
+          "perturbation": {
+            "change": "--perturb constant: frozen_offenders judges only published series with at least two distinct values over the window, in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "judge_not_frozen=0 on both chunks (hours 7-9 and 13-15)"
+          },
+          "metric_definition": "not_frozen offenders tests/replay.py:run_fixture returns over the seeded replay's hours 7-9 of the owner's window.",
+          "phenomenon_property": "The not_frozen judge flags only a published value that tracked an input and then stopped: a series constant over the whole window is never a mirror.",
+          "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle B --from-hours F --hours H --offenders 8   # every not_frozen line whose published side never moved",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 1 --hours 2",
+            "value": "judge_not_frozen=0",
+            "note": "hours 1-3, where the price does not hover near the constant"
+          },
+          "proposed_fix_scope": "tests/replay.py:frozen_offenders: require the published series to have moved (two distinct values) before it can be a mirror, with a controls() arm of a constant beside an input that brushes it; no production change.",
+          "files": [
+            "tests/replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The live accuracy monitor re-derived from the rows and the store reproduces the install's own self-test reading exactly (deque length, bias, MAE)",
+          "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle B",
+          "value": "anchor_self_test count_delta=0 bias_delta=0.0 mae_delta=0.0 (no-restart control: 318 / 0.103)"
+        },
+        {
+          "claim": "SnapshotRing.observe_bias folded over every fully re-derivable counting tick ends in the stored accuracy_drift latch, and the repair issue agrees with it",
+          "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle B",
+          "value": "latch_match=1 over 5 ticks; issue_agrees_with_latch=1; band=0.1 control: latch_match=0"
+        },
+        {
+          "claim": "No fully known counting tick's in/out-of-band verdict depends on the restart truncation of the live deque to the 192-sample persisted slice",
+          "command": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_monitor.py --bundle B",
+          "value": "restart_flip_days=0 of 5"
+        },
+        {
+          "claim": "The seeded timeline replay raises in no cycle and publishes no non-finite value, wrong unit or agreement offender over the examined cycles",
+          "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle B --from-hours F --hours 2 (F=1..17)",
+          "value": "judge_cycle=0, judge_finite=0, judge_unit=0, judge_agreement=0, judge_away=0, judge_cycle_cost=0 in all 9 chunks (72 cycles) and the 4 cycles of hour 0"
+        },
+        {
+          "claim": "The replay's published records are deterministic run to run once the _ms wall-time attributes are dropped (so the zone difference of D15-s2-04 is not noise)",
+          "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_zone.py --bundle SYN --hours 4 --null",
+          "value": "differing_cycles=0 of 8"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D15/s2/m5_enumerate.py",
+        "dev/audit/rounds/round11/D15/s2/m5_seed_ids.py",
+        "dev/audit/rounds/round11/D15/s2/m5_seed_age.py",
+        "dev/audit/rounds/round11/D15/s2/m5_zone.py",
+        "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+        "dev/audit/rounds/round11/D15/s2/m6_monitor.py",
+        "dev/audit/rounds/round11/D15/s2/m6_null_ring.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s3",
+          "file": "custom_components/heatpump_optimizer/debugger.py",
+          "symbol": "DebugCollector.record / async_close (SAVE_EVERY)",
+          "what": "Two accuracy samples recorded in the 30 min before the 2026-11-15 09:36Z restart (the 10.0.0 upgrade) are in the accuracy store but in no cycle row (a 42.7 min row gap): rows since the hourly save look lost at a Home Assistant stop, against the module docstring's 'a reload mid-week keeps every row'. Count: m6_monitor.py's store_only_samples includes them (dbg check: 2 pre-restart store-only samples)."
+        },
+        {
+          "owner_seat": "D15-s3",
+          "file": "custom_components/heatpump_optimizer/sensor.py",
+          "symbol": "Heat Pump Action power_kw (tests/replay.py:inv_agreement)",
+          "what": "Synthetic-only: the 7-day dbg_bundle_gen.py bundle replays with 41 agreement offenders 'power_kw 4.0 while the plan's current step draws 0.00 kW', the first at 2026-01-15T23:00Z; the owner's 76 examined cycles show none. debug_replay's verdict hides it (D15-s2-05)."
+        },
+        {
+          "owner_seat": "D11-s1",
+          "file": "dev/governance/dimensions/D15.md",
+          "symbol": "Method step 6",
+          "what": "M6 asks for 'Cusum ... against the recorded accuracy_drift latch', but at baseline no Cusum feeds accuracy_drift: Cusum( is constructed only for the vent and COP-health detectors in coordinator.py (grep -n 'Cusum(' custom_components/heatpump_optimizer/*.py); the latch is SnapshotRing's alone. The step names a mechanism the tree does not have."
+        },
+        {
+          "owner_seat": "D15-s1",
+          "file": "custom_components/heatpump_optimizer/debugger.py",
+          "symbol": "the bundle's stores section (privacy gate, D15.M2)",
+          "what": "The stores section carries the install's unmasked entity ids (thermal_learning zone ids, dhw_legionella.disinfection_owned, off_restore.armed, snapshot learners: 8 leaves, listed by m5_seed_ids.py --list without values) while the replay half is masked; M2 runs export.violations over the replay half only. Owner-private download, but worth a ruling. No id is written here."
+        },
+        {
+          "owner_seat": "D15-s1",
+          "file": "tools/replay/export.py",
+          "symbol": "violations (replay_doc rules) as D15's 'Privacy' bar",
+          "what": "D15.md: 'No bundle value is written unless export.violations passes it'. export.violations flags any prose as 'an address-like token (a word, then a house number)': D15.md's own text fails it, and so does every field of every finding here, so it cannot grade report text; the bar needs a text-mode check."
+        }
+      ]
+    },
+    "D15-s1": {
+      "dimension": "D15",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D15/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D15.M1",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M1 --repo <a full checkout at the baseline> (in this walled export enumerate.py d15-installs refuses: D15-s1-01)",
+          "universe": 2,
+          "examined": 1,
+          "not_reached": [
+            "install-1 2026-10-14 round=10 steps=M1,M2,M3,M4,M6,M7 (round 10's bundle; this task named only the 2026-11-16 download)"
+          ],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B --synthetic S: rows 662, rows_without_version 0, releases 9, untagged 0, release_before_tag 0, restart_gaps 2 (1 at a release switch), gaps_with_samples_inside 2 (lead to D15-s3); anomalies of M2-M4 re-measured at the baseline by their harnesses (all run baseline code)"
+        },
+        {
+          "step": "D15.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M2",
+          "universe": 62,
+          "examined": 62,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B --synthetic S --scope whole|debug|replay: LEAK_PROBES 46/46 green; violations whole 72 synthetic / 1102 real, debug 72 / 1012, replay 0 / 0; private_hits 0; planted credential caught 5/5 sections per bundle. C1 answered: the whole-bundle refusal reproduces on the null control and is the brief's scope (D15-s1-02); the run proceeded on the replay-half gate, no bundle value written"
+        },
+        {
+          "step": "D15.M3",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M3",
+          "universe": 24,
+          "examined": 24,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --synthetic S [--corrupt accuracy] [--empty replay|cycle_rows|stores]: 11/11 ok both bundles, 0 vacuous; --corrupt accuracy refused (accuracy_samples_loaded 0, bias-rederived fails); accuracy-loaded and corruption-refused each examined in its own mode"
+        },
+        {
+          "step": "D15.M4",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M4",
+          "universe": 22,
+          "examined": 22,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B --synthetic S [--code-version ledger]: real 16 stores, 16 loaders ran, 0 refused versions (1 under the perturbation), 0 quarantined, 103 off-domain fields, 0 load warnings; synthetic 6 stores, 192 off-domain; findings D15-s1-04, D15-s1-05"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D15-s1-01",
+          "scope": "D15-s1",
+          "step": "D15.M1",
+          "title": "The finder wall strips the evidence bundles.json cites, so D15's universe enumerator refuses in every finder tree",
+          "severity": "medium",
+          "claim": "After tools/audit/prepare_baseline.sh --strip <tree> 11, `tools/audit/enumerate.py d15-installs` refuses (exit 2) on a tree where it printed 1 line before the strip, because strip_earlier_rounds keeps only round files cited by tests/closures.json or tests/*.py|mjs|sh and bundles.json's evidence path is neither.",
+          "mechanism": "strip_earlier_rounds' keep set (closures + literal paths in tests/*) and enumerate.py:d15's existence requirement on bundles.json[].evidence are two definitions of which earlier-round files a finder tree must hold; the D15 brief names `enumerate.py d15-installs` as the universe, so the seat whose dimension it is cannot enumerate it in its own tree (observed in this seat's export: REFUSE ... round10/D15/s1/intake.py is not in the tree). Of the 19 universes enumerate.py serves, only d15-installs refuses in the walled export.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/wall_enum.py",
+            "value": "d15_installs_before_strip=1, d15_installs_after_strip=-1 (refused), evidence_survives=0",
+            "unit": "lines (-1 = refused)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, other finder seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 21.97,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/enumerate.py:d15",
+          "perturbation": {
+            "change": "--cite-in-tests: plant one tests/*.py citing the evidence path (the strip's own keep rule)",
+            "expected_direction": "up",
+            "observed_value": "d15_installs_after_strip=1, evidence_survives=1"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py --round 10",
+            "value": "after=1 (no earlier round stripped)",
+            "note": "the evidence's own round is not stripped, so the enumerator answers"
+          },
+          "metric_definition": "Lines enumerate.py d15-installs prints in a planted tree after prepare_baseline.sh --strip; -1 when it refuses.",
+          "phenomenon_property": "Every path an enumerate.py universe requires to exist survives the finder wall that prepares the tree the universe's dimension runs in.",
+          "seam_rule": "for each universe U in enumerate.py's docstring: bash tools/audit/prepare_baseline.sh --strip <copy> <round> && python3 tools/audit/enumerate.py U --repo <copy> (exit 2 = a seam); at the baseline only d15-installs",
+          "stop_rule_class": "bug",
+          "class_guess": "I4",
+          "files": [
+            "tools/audit/prepare_baseline.sh",
+            "tools/audit/enumerate.py",
+            "dev/audit/config/bundles.json"
+          ],
+          "proposed_fix_scope": "Keep dev/audit/config/*.json-cited evidence paths in strip_earlier_rounds' keep set (one more glob beside tests/*), or have enumerate.py d15 read the evidence from git when the tree is walled; either way a self-test arm in prepare_baseline.sh --strip-self-test planting a bundles.json citation.",
+          "reproduction_steps": [
+            "python3 tools/audit/enumerate.py d15-installs (in the finder export): REFUSE",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py"
+          ]
+        },
+        {
+          "id": "D15-s1-02",
+          "scope": "D15-s1",
+          "step": "D15.M2",
+          "title": "D15.md step 2's privacy gate over the bundle refuses its own null-control bundle, so every D15 run stops at M2",
+          "severity": "medium",
+          "claim": "export.violations over the debug bundle, the scope D15.md M2 names, returns 72 violations on the synthetic dbg_bundle_gen.py bundle (no private datum by construction) and 1102 on the owner's real download with 0 true private hits, while over the sealed replay half (the scope tools/replay/debug_ingest.py stage 2 gates) both return 0.",
+          "mechanism": "replay_doc.text_ok is the allowlist for a committed public replay fixture; the debug bundle's other sections carry text the integration itself writes (release strings in every cycle row, Home Assistant's redaction marker, insight and ledger prose that the ADDRESS regex reads as 'a word, then a house number', month keys). D15.md M2 and debug_ingest.py hold two definitions of the gate's scope; under the brief's, 'either failing stops the run' fires on every bundle including the null control (round 10 left M2 unfinished on it, item C1). The marker refusal is a second seam: _no_credential does not accept '**REDACTED**', so each redacted credential key reads as 'a credential-named key carries a value' (61 marker leaves refused in the real download).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B [--synthetic S]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+            "value": "synthetic_violations=72 (scope whole), real_violations=1102, real_private_hits=0, replay-half 0/0, leak_probe_controls_green=46/46, planted arms caught 5/5 per bundle",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "synthetic +-5 (prose varies with the fixture); real exact for this download",
+            "load1": 21.47,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/replay_doc.py:violations (via tools/replay/export.py)",
+          "perturbation": {
+            "change": "--scope replay: the gate reads debug.replay only, as debug_ingest.py stage 2 does",
+            "expected_direction": "to_zero",
+            "observed_value": "synthetic_violations=0, real_violations=0, planted arms still 5/5"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+            "value": "synthetic_private_hits=0 with synthetic_violations=72",
+            "note": "a bundle with no private datum: every violation it raises is a false refusal"
+          },
+          "metric_definition": "Strings export.violations returns over the scope named, per bundle; private_hits = credential-named keys holding anything but the redaction marker, or coordinates past the decimal cap.",
+          "phenomenon_property": "D15's privacy gate passes a bundle that carries no private datum (the synthetic null control, and a real download whose only credential-key values are the redaction marker) and refuses a planted credential in any section.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --scope whole|debug|replay (each scope whose synthetic_violations exceeds 0 is a seam)",
+          "stop_rule_class": "bug",
+          "class_guess": "I4",
+          "files": [
+            "dev/governance/dimensions/D15.md",
+            "tools/replay/debug_ingest.py",
+            "custom_components/heatpump_optimizer/replay_doc.py"
+          ],
+          "proposed_fix_scope": "D15.md step 2 names the gate debug_ingest.py already runs (export.violations over debug.replay, planted-credential arm) plus a credential-key and coordinate rule over the rest of the download that accepts Home Assistant's redaction marker; a policy edit, owner approval before merge. No production change is required for the gate itself.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B",
+            "same with --scope replay"
+          ]
+        },
+        {
+          "id": "D15-s1-03",
+          "scope": "D15-s1",
+          "step": "D15.M3",
+          "title": "debug_ingest.py's verdict line misstates what it judged: a fixed /12 denominator and a vacuous replay-clean pass",
+          "severity": "low",
+          "claim": "tools/replay/debug_ingest.py prints stages_ok=12/12 when 11 checks ran, 10/12 when 8 of 10 checks passed (stores emptied), and passes replay-clean with smoke_verdict=pass on a bundle whose replay half is empty.",
+          "mechanism": "main() prints 12 - len(fails) over a constant 12 while ingest() runs accuracy-loaded XOR corruption-refused and skips both when no accuracy store exists; replay-clean is not(export.violations({})) and carries no item count, so D15.md M3's 'a check passing on an empty section is vacuous' is left to the reader.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B [--synthetic S] [--empty replay|stores]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/ingest_checks.py",
+            "value": "checks_ok=11/11 vs tool_stages_ok=12/12 (both bundles); --empty stores: checks_ok=8/10 vs tool_stages_ok=10/12; --empty replay: vacuous_passes=1 with all checks ok",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 21.91,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+          "perturbation": {
+            "change": "--empty replay (the replay half emptied, as a download from an install without the recorder carries it)",
+            "expected_direction": "up",
+            "observed_value": "vacuous_passes 0 -> 1, verdict still 12/12 pass"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B",
+            "value": "vacuous_passes=0 on both filled bundles",
+            "note": "the overstatement of the denominator persists (12 vs 11) even here"
+          },
+          "metric_definition": "Per bundle: checks ingest() ran and passed, against the stages_ok line main() prints; passes whose section read holds 0 items.",
+          "phenomenon_property": "debug_ingest.py's verdict counts the checks it ran and names a pass on an empty section as not judged.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --empty replay|cycle_rows|stores (each check with section_items=0 and value 1 is a seam)",
+          "stop_rule_class": "hygiene",
+          "class_guess": "N-silent-zero",
+          "files": [
+            "tools/replay/debug_ingest.py"
+          ],
+          "proposed_fix_scope": "main() prints passed/ran from Results (count checks, not fails); replay-clean reports the replay row count and reads 'skipped: replay half empty (manifest.replay names why)' when it is 0; gate_checks gains the empty-replay arm.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 tools/replay/debug_ingest.py --bundle S (11 ok lines, stages_ok=12/12)"
+          ]
+        },
+        {
+          "id": "D15-s1-04",
+          "scope": "D15-s1",
+          "step": "D15.M4",
+          "title": "store.DOMAINS declares less than the writers write; the debug ring's loader drops rows with an unpriced sample",
+          "severity": "medium",
+          "claim": "A sample the coordinator writes with predicted_cost None (no price covered the interval, #2229) is outside DOMAINS (admitted=0), so debugger._kept refuses each debugger.cycle_row row that carries it: 0 of 192 rows kept for the synthetic bundle's production-written samples; and on the owner's real download 102 healthy fields its loaders read intact are off their declaration (off_restore 1, snapshots 101).",
+          "mechanism": "DOMAINS['accuracy']['accuracy/samples/#/predicted_cost'] is _R (non-null) while AccuracySample.as_dict writes None and actual_cost beside it is _N; 'rows/#/accuracy_sample' aliases that table and debugger._repair drops a row admitted() refuses, so the ring loses those rows on the next load (restart). The same drift without a dropping reader: off_restore 'armed/*' is declared a number while its writer stores {entity_id, value} and _entry_of reads that mapping; the snapshot ring keeps the pre-R10-HOTFIX-COP-UNMEASURED learner keys cop_baseline/cop_health_cusum, which DOMAINS neither declares nor marks unread. The stores self-test (debugger.store_report) reports these as off-domain on a healthy install.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B [--synthetic S]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/domains_drift.py",
+            "value": "sample_none_cost_admitted=0, unit_row_kept=0/1, synthetic_written_rows_kept=0/192 (192/192 unpriced), real off_domain[off_restore]=1 with loader keeping 2/2, real off_domain[snapshots]=101",
+            "unit": "rows / fields",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 22.31,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_kept",
+          "perturbation": {
+            "change": "--declare: in memory, DOMAINS accuracy samples' predicted_cost nullable (as actual_cost is) and off_restore's armed entry declared as its writer's mapping",
+            "expected_direction": "up",
+            "observed_value": "synthetic_written_rows_kept 0/192 -> 192/192, unit arm 0 -> 1, real off_domain[off_restore] 1 -> 0"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B",
+            "value": "real_written_rows_kept=192/192 and real_cycle_rows_kept=662/662, unchanged under --declare",
+            "note": "the real install priced every interval in the window, so its rows are kept either way: the drop needs an unpriced interval, which the synthetic install's store shows the coordinator writing"
+          },
+          "metric_definition": "Rows debugger._kept keeps of rows debugger.cycle_row writes from a bundle's restored accuracy samples; store.off_domain field count per store document.",
+          "phenomenon_property": "Every field a current or still-on-disk release's writer produces is declared in store.DOMAINS, in its domain or marked unread, so no reader that consults DOMAINS (admitted, _repair, the stores self-test) refuses healthy data.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B (each store with off_domain>0 over a production-written bundle is a seam; then grep -n 'admitted(' custom_components/heatpump_optimizer/*.py for the readers that drop on it)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/store.py",
+            "custom_components/heatpump_optimizer/debugger.py",
+            "custom_components/heatpump_optimizer/accuracy.py",
+            "custom_components/heatpump_optimizer/off_restore.py"
+          ],
+          "proposed_fix_scope": "store.py DOMAINS: predicted_cost -> _N; off_restore 'armed/*/entity_id' and 'armed/*/value' beside the scalar; the snapshot ring's legacy thermal_learning keys declared with unread= naming the provenance rule. A regression arm driving debugger.cycle_row with an unpriced sample through _kept.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py",
+            "same with --declare"
+          ]
+        },
+        {
+          "id": "D15-s1-05",
+          "scope": "D15-s1",
+          "step": "D15.M4",
+          "title": "A capacity-envelope bucket the fold writes with count 0 is dropped by its own loader at every restart",
+          "severity": "medium",
+          "claim": "_fold_capacity_envelope seeds a bucket as [heat_kw, 0] for a measured heat sample at partial load, _thermal_learning_payload stores it, and _load_t4b_learners refuses it through _learned_pair (count < 1): 1 bucket written, 0 reloaded; the owner's live thermal-learning store holds 1 such bucket and the loader restores 0 of it.",
+          "mechanism": "One fact decided twice: the fold (#1955 fold e) treats a measured delivered-heat sample as a floor that 'never counts towards capping' and so keeps count 0, while the loader's _learned_pair (and DOMAINS 'capacity_envelope/*/1': int >= 1) holds that a fold writes an entry only at its first counted sample. The floor learned between restarts is discarded at each load (and at a snapshot restore, which shares the parser); the next nameplate sample then starts from max(thermal_kw, nothing) instead of the remembered floor.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/capacity_envelope.py",
+            "value": "fold_written=1, fold_written_count_zero=1, reloaded=0, lost=1; bundle_stored=1, bundle_zero_count=1, bundle_reloaded=0; bundle_snapshot_zero_count_buckets=2",
+            "unit": "buckets",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 22.21,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._load_t4b_learners",
+          "perturbation": {
+            "change": "--loader-accepts-zero: coordinator._learned_pair accepts a count of 0 (the one-line loader edit)",
+            "expected_direction": "to_zero",
+            "observed_value": "lost 1 -> 0; bundle_reloaded 0 -> 1"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B --nameplate",
+            "value": "fold_written_count_zero=0, lost=0",
+            "note": "a sample at nameplate counts, so the loader keeps the bucket: the loss is confined to the partial-load floor"
+          },
+          "metric_definition": "Buckets of _capacity_envelope the fold wrote minus those a fresh coordinator holds after _load_t4b_learners reads _thermal_learning_payload's JSON.",
+          "phenomenon_property": "Every [value, count] pair a fold writes is restored by its loader: a fold's stored count domain equals its loader's.",
+          "seam_rule": "grep -nE \"setdefault\\([^)]*\\[[^]]*, *0\\]\\)\" custom_components/heatpump_optimizer/*.py, each seeded pair against the loader its store key reaches (baseline: coordinator.py capacity_envelope, a seam; freq_control.py buckets, increments before any save and its loader accepts count >= 0, not a seam)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/store.py"
+          ],
+          "proposed_fix_scope": "Decide the count's meaning once: either the loader (a capacity-envelope-specific parse) and DOMAINS accept count 0 for the measured floor, or the fold stores the floor apart from the counted envelope; a round-trip regression arm through _thermal_learning_payload and _load_t4b_learners.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py",
+            "same with --loader-accepts-zero, and with --nameplate"
+          ]
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The LEAK_PROBES controls of tests/replay.py are green on the baseline",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+          "value": "leak_probe_controls_green=46/46"
+        },
+        {
+          "claim": "The sealed replay half of the real download passes export.violations with the installed entry allowlist, and a credential planted in any of five sections is caught",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B --scope replay",
+          "value": "real_replay_violations=0 over 19471 state rows; planted arms 5/5 (synthetic 0 over 7119 rows, 5/5)"
+        },
+        {
+          "claim": "No credential or full-precision coordinate leaves in the real download: every credential-named key holds Home Assistant's redaction marker; the address-like and free-text refusals over the debug half are integration-written prose, release strings and month keys (read in memory, not written; the harness counts only the credential/coordinate class)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B",
+          "value": "real_private_hits=0 (whole download), synthetic_private_hits=0"
+        },
+        {
+          "claim": "Every cycle row carries the release that wrote it; each of the 9 releases is tagged and none is first seen before its tag, so attribution needs no gap inference",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B",
+          "value": "rows_without_version=0, releases=9, untagged_releases=0, release_before_tag=0"
+        },
+        {
+          "claim": "The manifest's integration_version differs from the last row's release because the 7-day collection was final before the next upgrade; rows and manifest cycles agree",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B",
+          "value": "collection_final=1, manifest_cycles_match=1, manifest_version_is_last_row_release=0"
+        },
+        {
+          "claim": "debug_ingest.py passes the real download with no vacuous check, and refuses its --corrupt accuracy perturbation",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B [--corrupt accuracy]",
+          "value": "real_checks_ok=11/11, vacuous_passes=0; corrupt: 10/11, bias-rederived fails on 0 loaded samples"
+        },
+        {
+          "claim": "The accuracy bias re-derived from the store window equals the rows' on the shared samples; the store's 67 unshared samples are newer than the finalized ring (read in memory: the tracker kept sampling after the collection closed)",
+          "command": "PYTHONPATH=tests/hastub python3 tools/replay/debug_ingest.py --bundle B",
+          "value": "accuracy_bias_delta=0.0 over shared 125/192"
+        },
+        {
+          "claim": "Every store document of the real download is at the version this release constructs its store with, none would be quarantined, and every loader (12 at coordinator init, off_restore, pump_duty, duty_switch, notifier) ran without a warning",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B",
+          "value": "real_refused_versions=0, real_quarantined=0, real_loaders_ran=16/16, real_load_warnings=0; accuracy samples 192 -> 192; off_restore armed entries 2 -> 2"
+        },
+        {
+          "claim": "The snapshots store's unhealthy_input field (round 10's carry) is declared and inside its domain on the real download",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B",
+          "value": "off_domain[snapshots]=101, all under learners/thermal_learning legacy keys and capacity_envelope; none under unhealthy_input"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D15/s1/enum_s1.py",
+        "dev/audit/rounds/round11/D15/s1/intake.py",
+        "dev/audit/rounds/round11/D15/s1/wall_enum.py",
+        "dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+        "dev/audit/rounds/round11/D15/s1/ingest_checks.py",
+        "dev/audit/rounds/round11/D15/s1/store_replay.py",
+        "dev/audit/rounds/round11/D15/s1/domains_drift.py",
+        "dev/audit/rounds/round11/D15/s1/capacity_envelope.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s3",
+          "file": "custom_components/heatpump_optimizer/debugger.py",
+          "symbol": "DebugCollector.observe",
+          "what": "M1 found both restart gaps (2 of 2, one at a release switch) each holding one accuracy-sample stamp and no cycle row, i.e. the integration ran during part of each gap; the same pattern shows at release switches below the gap threshold. Either the first cycle after a load publishes no row or the collector skips it: M7/M8 to attribute and reproduce (intake.py gaps_with_samples_inside=2)."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "tools/replay/debug_replay.py",
+          "symbol": "main --bundle",
+          "what": "This download's replay half is filled (24 h window, 28 inputs, 19471 state rows, export.violations 0), so M5 can run on debug.replay without an export.py document."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "custom_components/heatpump_optimizer/snapshots.py",
+          "symbol": "SnapshotRing.from_dict",
+          "what": "Round 10's carry 'D15 reads the next bundle's unhealthy_input': the field is present on the newer snapshots and in its domain (M4); reading its content against the drift latch is M6's."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/harnesses/r10_scores_envelope.py",
+          "symbol": "--bundle arm",
+          "what": "Round 10's carry asks D15 to run r10_scores_envelope.py --bundle on the next download; it is not a step of M1-M4, so this seat did not run it."
+        }
+      ]
+    },
+    "D15-s3": {
+      "dimension": "D15",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D15/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D15.M7",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M7 --bundle B",
+          "universe": 25,
+          "examined": 24,
+          "not_reached": [
+            "redispatched:C3 solve-time outliers re-checked at baseline"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "m7_rowscan.py --bundle B: 11 row checks over all 662 rows, 7 of 7 snapshots (0 action/plan mismatches beyond user overlays), 5 of 5 self-tests re-derived (stores, sensors, feeds, solver equal; accuracy store bias within 0.006 C on 192 samples). C3: the 6.7.17 outlier rows belong to the round-10 bundle, which this seat was not given; on this bundle 0 of 652 solves exceed 3x their release median in any of 9 releases (max 49.9 s on 7.1.12, 31.7 s on 10.0.0), and a cross-host solve-time comparison has no ruler on the owner's host. Null control: the synthetic week (dbg_bundle_gen.py --days 7) ran first; its rows broke feed_health (finding D15-s3-02)."
+        },
+        {
+          "step": "D15.M8",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M8 --bundle B",
+          "universe": 12,
+          "examined": 5,
+          "not_reached": [
+            "anomaly:unsolved_publish:after_restart",
+            "anomaly:row_gaps:restart_gaps",
+            "anomaly:row_gaps:off_cadence_publishes",
+            "anomaly:accuracy_sample_lag:tracker_paused",
+            "anomaly:self_test_stores:off_domain:off_restore",
+            "anomaly:self_test_stores:off_domain:snapshots",
+            "anomaly:self_test_stores:off_domain:thermal_learning"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "m8_replay.py --bundle B --start-h 18.5 --end-h 23 (18 cycles, debug_replay seeding, three arms): solve_wall_ms:wall_twice_payload reproduced as 0.667 what-if solves per scheduled solve, 0.0 with tiles-off (seam fetch, _maybe_refresh_price_tile; design); dhw_window_floor reproduced as 5 of 12 in-window cycles under the window minimum, 0 of them not heating (seam core; holds at baseline); self_test_solver:week_solve_ms_counts_unsolved_rows reproduced at baseline by m7_rowscan.py --perturb solver-filter (finding D15-s3-01). C4: two anomalies reproduced by debug_replay over --start/--end windows with their perturbations, plus finding D15-s3-03 in the replay instrument. Not reached: the unsolved publish needs a cold restart run_fixture does not model (its reloads hand over the last payload); the store off-domain anomalies are documents, not windows (leads to D15-s1, M4); restart gaps, off-cadence publishes and sample lag were not replayed in this window."
+        },
+        {
+          "step": "D15.M9",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M9 --bundle B",
+          "universe": 8,
+          "examined": 0,
+          "not_reached": [
+            "install_day:day0",
+            "install_day:day1",
+            "install_day:day2",
+            "install_day:day3",
+            "install_day:day4",
+            "install_day:day5",
+            "install_day:day6",
+            "install_day:day7"
+          ],
+          "redispatched": [],
+          "evidence": "m9_costs.py --bundle B computes C_real and C_model per install-day from the rows' distinct accuracy samples (coverage 0.53-0.96 of a day's intervals) and the model gap |C_real-C_model|/C_real: range 0.10..1.87 over 8 days, mean 0.80, 0.90 with the most favourable day dropped; --null reads 0 on every day, --plant-scale 1.2 moves it. C_same is not computed on any day: the bundle carries the exogenous inputs at decision time for the replay half's single day only, and the tree has no measured-house plant other than the learned model the oracle excludes. No day is examined in full."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M7",
+          "what": "C3: the round-10 bundle's 6.7.17 solve-time outliers; that bundle was not an input this round."
+        },
+        {
+          "step": "D15.M8",
+          "what": "7 anomalies not reproduced through debug_replay: unsolved_publish (needs a cold-restart arm in run_fixture), restart_gaps, off_cadence_publishes, accuracy_sample_lag, and the three store off-domain anomalies (document, not window)."
+        },
+        {
+          "step": "D15.M9",
+          "what": "C_same for all 8 install-days: needs exogenous inputs per decision time beyond the replay half's one day and a measured-house plant independent of the learned model (D0 step 8's method has none for a live bundle)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D15-s3-01",
+          "scope": "D15-s3",
+          "step": "D15.M7",
+          "title": "Solver self-test counts every restart's not-run publish as a 0 ms solve",
+          "severity": "low",
+          "claim": "On the real bundle, debugger._solver_smoke's week_solve_ms spread admits 10 rows whose payload was the not-run publish (no action, solve_time_ms 0), so the self-test reports min 0 ms and n 662 where 652 solves ran.",
+          "mechanism": "_apply_unsolved_payload publishes solve_time_ms 0 for a solve that never ran (the light first refresh after each restart); cycle_row copies it into payload_solve_time_ms and _solver_smoke spreads every row carrying the key.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+            "value": 10,
+            "unit": "rows (solver_spread_unsolved_rows); solver_week_min_ms=0",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 about 22; a count",
+            "tolerance": "exact",
+            "load1": 21.84,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_solver_smoke (via debugger:spread)",
+          "perturbation": {
+            "change": "--perturb solver-filter: _solver_smoke's spread drops a row whose payload_solve_time_ms is 0 (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": "0 rows, n 652, min 9806 ms"
+          },
+          "metric_definition": "Rows the solver self-test's week_solve_ms spread admits whose payload carried no action and solve_time_ms 0 (n_spread minus rows with a positive solve time).",
+          "phenomenon_property": "A solve-time statistic over published payloads ranges only over payloads where a solve ran; the not-run payload's inert 0 is never read as a duration.",
+          "seam_rule": "grep -rn \"solve_time_ms\" custom_components/heatpump_optimizer/ tools/replay/ dev/audit/harnesses/",
+          "null_control": {
+            "command": "m7_rowscan.py --bundle <dbg_bundle_gen.py --days 7 bundle>",
+            "value": 0,
+            "note": "no restart in the synthetic week"
+          },
+          "proposed_fix_scope": "debugger._solver_smoke (or cycle_row omitting the key when optimization_status is not_run), one line and a test row.",
+          "files": [
+            "custom_components/heatpump_optimizer/debugger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-silent-zero"
+        },
+        {
+          "id": "D15-s3-02",
+          "scope": "D15-s3",
+          "step": "D15.M7",
+          "title": "dbg_bundle_gen's null-control rows are a diverged copy of cycle_row; feed self-test raises on them",
+          "severity": "medium",
+          "claim": "Every row tools/replay/dbg_bundle_gen.py writes differs from debugger.cycle_row's row for the same payload (48 of 48 in one day), and debugger.feed_health raises TypeError on them, so D15's mandated null control cannot run M7's self-test re-derivation.",
+          "mechanism": "build_bundle.recording_tick builds its row with its own dict literal: keeps None-valued keys (production drops them), no version, no t on the accuracy sample, no manifest self_tests.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+            "value": 48,
+            "unit": "rows diverging of 48 (rows_with_explicit_none=48, samples_without_t=47, feed_health_completes=False)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 about 12; counts",
+            "tolerance": "exact",
+            "load1": 11.82,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/dbg_bundle_gen.py:build_bundle against debugger:cycle_row and debugger:feed_health",
+          "perturbation": {
+            "change": "--perturb production-row: row = debugger.cycle_row(self, data, dt_util.now(), wall_ms) in build_bundle's source, in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "0 diverging, 0 explicit None, feed_health completes"
+          },
+          "metric_definition": "Rows of one generated day whose keys or values differ from cycle_row's row for the same coordinator and payload at the same tick (solve_wall_ms by presence).",
+          "phenomenon_property": "The null-control bundle is produced by the production collector's own functions, so every reader of a real bundle runs unchanged on the synthetic one.",
+          "seam_rule": "grep -n \"row = {\\|payload_snapshots.append\\|\\\"manifest\\\":\" tools/replay/dbg_bundle_gen.py custom_components/heatpump_optimizer/debugger.py",
+          "null_control": {
+            "command": "m7_nullcontrol_rows.py",
+            "value": "null_feed_health_on_production_rows=True",
+            "note": "production rows for the same payloads read cleanly"
+          },
+          "proposed_fix_scope": "dbg_bundle_gen builds rows, snapshots and self_tests through debugger's functions; a gate_checks arm runs feed_health and sensor_sanity on a generated row.",
+          "files": [
+            "tools/replay/dbg_bundle_gen.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D15-s3-03",
+          "scope": "D15-s3",
+          "step": "D15.M8",
+          "title": "debug_replay seeds unmasked entity ids into a masked replay; learned heat-loss learners reset",
+          "severity": "medium",
+          "claim": "On the owner's bundle, debug_replay.seed_stores writes 4 store-held entity ids that name no entity of the masked replay half; over the 18-cycle window the replayed coordinator voids 2 learned heat-loss learners ('its zone sensor changed') and warns 1 input unreadable, and remapping the ids through the mask brings both counts to 0.",
+          "mechanism": "seed_stores remaps the store key onto test_entry but copies each document verbatim; thermal_learning's zone entities, dhw_legionella, off_restore and snapshots keep the install's real ids while the replay config holds masked ones, so _void_heat_loss_learners resets house_heat_loss_scale and lower_floor_loss_ratio and every M5/M8 reproduction plans on configuration defaults; the five replay judges stay 0, so the lane's verdict does not show it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m8_replay.py --bundle B --start-h 18.5 --end-h 23",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+            "value": 2,
+            "unit": "learner resets; seeded_foreign_entity_ids=4, unreadable_warnings=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "three arms in parallel beside other seats, load1 55-280; counts",
+            "tolerance": "exact",
+            "load1": 269.97,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_replay.py:seed_stores (counted through coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners and the unreadable-input warning)",
+          "perturbation": {
+            "change": "--perturb remap-ids: store-held ids rewritten to the masked id of the same configuration key before seeding",
+            "expected_direction": "to_zero",
+            "observed_value": "0 foreign ids, 0 learner resets, 0 unreadable warnings"
+          },
+          "metric_definition": "Over the replay window: WARNING records voiding a learned heat-loss learner because its zone sensor changed, beside the count of seeded ids absent from the masked replay half.",
+          "phenomenon_property": "A replay seeded from a bundle's stores names only entities of the replay half it runs on, and starts from the learned state the install held.",
+          "seam_rule": "grep -n \"entity_id\\|_entities\" custom_components/heatpump_optimizer/off_restore.py custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/snapshots.py custom_components/heatpump_optimizer/coordinator.py (every store document seed_stores copies, store.DOMAINS)",
+          "null_control": {
+            "command": "same command with --perturb remap-ids",
+            "value": 0,
+            "note": "no learner voided, no input unreadable"
+          },
+          "proposed_fix_scope": "debug_replay.seed_stores maps every entity id in a seeded document through the replay half's mask (pairs from the replay entry's configuration keys), or refuses an id outside it; a gate_checks arm proves no learner is voided.",
+          "files": [
+            "tools/replay/debug_replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No solve failure in 662 rows",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "solve_failures_added=0, solve_failure_increments=0"
+        },
+        {
+          "claim": "No solve-time outlier: 0 solves over 3x their release median in 9 releases",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "payload_solve_outliers_over3x=0; max 49.9 s (7.1.12), 31.7 s (10.0.0)"
+        },
+        {
+          "claim": "solve_wall_ms about twice the payload solve time is the price tiles' what-if solve (price_tiles_enabled on); 10.0.0 rows follow the 2-2-1 rotation with one 4x cap refresh, 7.1.x rows an extra solve every cycle (older release only); reproduced at baseline",
+          "command": "m7_rowscan.py --bundle B; m8_replay.py --bundle B --start-h 18.5 --end-h 23 [--perturb tiles-off]",
+          "value": "wall classes 10.0.0 {1:14, 2:30, 4:1}; simulate_per_solve=0.667, tiles-off 0.0"
+        },
+        {
+          "claim": "Price feed healthy: no cycle without prices, no short horizon after 14:00 local",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "no_price_rows=0, short_horizon_after_14h=0"
+        },
+        {
+          "claim": "Weather forecast never stale",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "weather_stale_rows=0 (production omits the key when fresh)"
+        },
+        {
+          "claim": "Action fields consistent: no off action with the pump on or power drawn, no heating mode with the pump off",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "action_contradictions=0"
+        },
+        {
+          "claim": "Each payload snapshot's action equals the plan's current step except user boost overlays",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "5 agree, 2 overlay (boost_space, boost_dhw), 0 differ"
+        },
+        {
+          "claim": "Self-tests sensors, feeds, solver and stores re-derive exactly at the baseline; accuracy store window re-derived from rows",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "rederived_equal=True x4; accuracy bias delta 0.006 C on 192/192 samples"
+        },
+        {
+          "claim": "The 10 no-action rows are the not-run first publish after each restart (8 at a release change, 2 after downtime or a short restart)",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "unsolved_rows=10, restart_gaps=2, release_changes=8"
+        },
+        {
+          "claim": "Hot-water tank under the window minimum inside a demand window is drawn down while the plan is heating, at baseline over the replay window",
+          "command": "m8_replay.py --bundle B --start-h 18.5 --end-h 23",
+          "value": "5 of 12 in-window cycles below the floor, 0 not heating; whole week 68 of 159 rows below floor, 4 on 10.0.0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D15/s3/s3_enumerate.py",
+        "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+        "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+        "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+        "dev/audit/rounds/round11/D15/s3/m9_costs.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s1",
+          "file": "dev/audit/harnesses/d15_restart_gaps.py",
+          "symbol": "GAP_INTERVALS rule",
+          "what": "On the owner's bundle the 3-interval rule finds 2 restart gaps while the not-run first publish (row with no action_mode and payload_solve_time_ms 0) marks 10 restarts, 8 of them upgrades with gaps of 2-28 min; M1's attribution by gap would miss them (rows here carry version, so attribution is unaffected this round)."
+        },
+        {
+          "owner_seat": "D15-s1",
+          "file": "custom_components/heatpump_optimizer/store.py",
+          "symbol": "DOMAINS['off_restore'], DOMAINS['snapshots'], DOMAINS['thermal_learning']",
+          "what": "The stores self-test re-derives 82 off-domain paths at baseline: off_restore armed/* is declared real but written as an {entity_id, value} dict, so the domain never checks the restored value; snapshots hold pre-rename learners/thermal_learning/cop_baseline and cop_health_cusum (80 paths); thermal_learning capacity_envelope/*/1 is below its declared minimum 1 in one entry."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "tools/replay/debug_replay.py",
+          "symbol": "run_seeded",
+          "what": "Stores are seeded from the download instant, 1-2 days after the replay window: the ledger, pump_duty and duty_switch stamps are bounded as 'ahead of the clock', and learned state from after the window enters the timeline replay."
+        },
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_record_accuracy (predicted_power_kw vs actual_power_kw)",
+          "what": "Over the week's distinct accuracy samples, planned power exceeds measured by interval kind: hot_water 1.66 vs 0.72 kW mean (127 samples), user boost 4.94 vs 2.39 (102), pre_heat 3.07 vs 1.15 (11), eco 1.55 vs 1.46 (81); the per-day cost model gap is 10-187 percent (m9_costs.py)."
+        },
+        {
+          "owner_seat": "D0-s3",
+          "file": "dev/governance/dimensions/D0.md",
+          "symbol": "step 8, same-information oracle",
+          "what": "For a live bundle, C_same has no measured-house plant other than the learned model the oracle excludes, and exogenous inputs at decision time exist only for the replay half's day; D15.M9 cannot be completed until the method names that plant."
+        },
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_maybe_refresh_price_tile",
+          "what": "On the owner's host the tile solve doubles the cycle's wall (median 19 s over the payload solve on 7.1.x); at baseline 0.667 extra solves per scheduled solve (solves_per_cycle axis)."
+        }
+      ]
+    }
+  }
+}

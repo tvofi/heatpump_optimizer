@@ -1,0 +1,48 @@
+{
+ "id": "D12-s3-03",
+ "scope": "D12-s3",
+ "step": "D12.M3",
+ "title": "Mode-less counter-metered pump: an unplanned hot-water charge folds into the house learner as space heat",
+ "severity": "medium",
+ "claim": "On a plant with an electric and a heat counter (heat meter declared to see DHW), a DHW tank thermometer and no operating-mode entity, a heat-counter span holding a 3.75 kWh hot-water charge the plan had not scheduled is read as 4.54 kW of space heat against 0.79 kW true and folds into a fabric learner (1 of 3 charge-holding spans); with the mode select mapped, or with the pump following the plan, the count is 0.",
+ "mechanism": "With no mode entity the ModeDwell observes nothing, so heat_energy.attribution falls back to the plan's split and space_heat_kw applies the whole-unit rule (the whole span is space heat when the plan put no DHW in it); the configured tank thermometer, which rose 4 K per charging cycle, is not consulted, so the charge reaches close_span's interval and the house/lower learners.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py --sees-dhw --no-mode",
+  "harness_path": "dev/audit/rounds/round11/D12/s3/counter_spans.py",
+  "value": 1,
+  "unit": "closed heat-counter spans (of 7; 3 hold a real charge) whose space figure exceeds the plant's true space heat by >0.05 kW and that fold into a fabric learner (RESULT inflated_spans_folded)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+  "cpu_or_wall": "count",
+  "contention_note": "two other compute seats on B6 (load1 4-11); a count, contention-immune",
+  "tolerance": "exact (clock frozen per cycle; prices laid from the start hour -- the span's index can shift with the start hour, the count held on 3 runs)",
+  "load1": 4.21,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.heat_energy:close_span (span_heat / space_heat_kw on the evidence heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data folds)",
+ "perturbation": {
+  "change": "--perturb unobserved-no-space: heat_energy.space_heat_kw returns None for an integrated span the dwell did not observe (one-line production edit)",
+  "expected_direction": "to_zero",
+  "observed_value": "inflated_spans_folded 1 -> 0 (space_spans_folded 2 -> 0)"
+ },
+ "metric_definition": "Closed heat-counter spans holding a real DHW charge whose space figure exceeds true space heat/hours by >0.05 kW and that reach the house or lower learner.",
+ "phenomenon_property": "A heat-counter span that held a hot-water charge never reaches a space-heat learner as space heat, whether the charge was observed through a mode entity or only through the configured tank thermometer.",
+ "seam_rule": "grep -n 'space_heat_kw(\\|def attribution\\|ran_hot_water(' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "counter_spans.py --sees-dhw (mode select mapped); counter_spans.py --sees-dhw --no-mode --plan-only (pump follows the plan)",
+  "value": "0 and 0 inflated spans (2 charge-holding spans each)",
+  "note": "The same plant with the mode entity mapped subtracts the charge exactly (bad_spans=0); with the pump following the plan the whole-unit rule holds. The defect is the mode-less cell."
+ },
+ "reproduction_steps": [
+  "counter_spans.py --sees-dhw --no-mode: INFLATED span ... space 4.540 kW vs true 0.789 kW; RESULT inflated_spans_folded=1",
+  "counter_spans.py --sees-dhw: inflated_spans_folded=0",
+  "counter_spans.py --sees-dhw --no-mode --perturb unobserved-no-space: 0"
+ ],
+ "proposed_fix_scope": "heat_energy / the span's evidence: on an unobserved span, treat a configured tank thermometer's rise as a hot-water charge (refuse the span's space figure), rather than trusting the plan split alone",
+ "files": [
+  "custom_components/heatpump_optimizer/heat_energy.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

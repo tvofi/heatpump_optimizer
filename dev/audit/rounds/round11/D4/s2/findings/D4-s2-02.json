@@ -1,0 +1,46 @@
+{
+ "id": "D4-s2-02",
+ "scope": "D4-s2",
+ "step": "D4.M2",
+ "title": "German run_optimization_no_prices message reads {entry_id}; the raise passes {entry_ids}",
+ "severity": "low",
+ "claim": "Of 4533 translated leaf strings compared with strings.json, exactly one names a different placeholder set: de exceptions.run_optimization_no_prices.message reads {entry_id} while services.py raises it with translation_placeholders={'entry_ids': ...}, so a German user who calls run_optimization with too few price steps gets a message whose entry placeholder is never filled.",
+ "mechanism": "Translation drift: the de string was written with the singular placeholder name; strings.json, en and sv use {entry_ids}, matching the raise at services.py (translation_key='run_optimization_no_prices').",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py",
+  "harness_path": "dev/audit/rounds/round11/D4/s2/services_icons.py",
+  "value": 1,
+  "unit": "placeholder-parity mismatches (and 1 raise with an unsupplied placeholder)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "orchestrator Mac (darwin arm64), local seat",
+  "cpu_or_wall": "count",
+  "contention_note": "box shared with other seats, load1 ~168; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 168.06,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.services (run_optimization raise site, translation_key run_optimization_no_prices) and translations/de.json:exceptions.run_optimization_no_prices",
+ "perturbation": {
+  "change": "--perturb-fix-de: in memory, rename {entry_id} to {entry_ids} in the de message",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Leaf strings in en/sv/de whose {placeholder} set differs from strings.json's at the same path; plus raise sites whose literal translation_placeholders lack a placeholder the message reads.",
+ "phenomenon_property": "Every translated string names exactly the placeholders of its strings.json source, and every raise or form result supplies them.",
+ "seam_rule": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py (PLACEHOLDER_PARITY over every leaf string; EXC_PLACEHOLDER over every services.py raise)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 -I dev/audit/rounds/round11/D4/s2/services_icons.py",
+  "value": "4532 of 4533 leaf strings match; en and sv of the same key match",
+  "note": "the other two languages of the same key are the in-file control"
+ },
+ "reproduction_steps": [
+  "Run the command: PLACEHOLDER_PARITY de:exceptions.run_optimization_no_prices.message and EXC_PLACEHOLDER lines, both counts 1",
+  "Re-run with --perturb-fix-de: both 0"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/translations/de.json"
+ ],
+ "proposed_fix_scope": "Rename the placeholder in de.json to {entry_ids}; add the placeholder-parity check (every translation leaf vs strings.json) to the gate's translation tests."
+}

@@ -1,0 +1,44 @@
+{
+  "id": "D8-s1-01",
+  "scope": "D8-s1",
+  "step": "D8.M2",
+  "title": "Sensor Gap Advisor prices a hot-water tank thermometer as the top gap on installs with no hot water",
+  "severity": "medium",
+  "claim": "On every matrix cell whose payload says dhw_enabled is False, once a power series exists SensorGapAdvisorSensor publishes dhw_temp_entity as its top gap with a positive monthly cost (12 of 22 no-DHW cell-cycles), because _gap_probe_terms prices a month of the default tank volume whether or not hot water is configured.",
+  "mechanism": "sensor._gap_probe_terms sets dhw_extra_kwh from EntryConfig.dhw_tank_volume, which falls back to DEFAULT_DHW_TANK_VOLUME when no tank is configured; topology.rank_sensor_gaps prices the dhw_temp_entity row whenever that key is unset, with no DHW-enabled gate. The plan sensors gate their DHW attributes on the payload's dhw_enabled (round-5 D12-01, #1237); the gap advisor decides the same fact without it. The entity is enabled by default and the card's advisor page reads it (heatpump-optimizer-card.js advisorRow(plan, \"gap\", ...)).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/gapdhw.py",
+    "value": 12,
+    "unit": "cell-cycles (of 22 no-DHW cell-cycles) publishing a priced dhw_temp_entity gap; all 12 have it as top_slot and state",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), <HOME>/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box with other finder seats running; the count is deterministic (frozen clock, injected prices, no network); this run's load1 line was filtered, nearest run 207.89",
+    "tolerance": "exact",
+    "load1": 207.89,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor (native_value, extra_state_attributes), through heatpump_optimizer.sensor:_gap_probe_terms and heatpump_optimizer.topology:rank_sensor_gaps",
+  "perturbation": {
+    "change": "--fix: _gap_probe_terms returns dhw_extra_kwh 0.0 when thermal_model._dhw_enabled_from_config(config) is false (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "count of (cell, cycle) pairs with payload dhw_enabled False where SensorGapAdvisorSensor publishes a dhw_temp_entity gap with sek_per_month > 0",
+  "phenomenon_property": "An advisor gap is priced only for a slot whose feature is configured: no slot of a disabled feature carries a positive monthly cost or becomes the advisor's state.",
+  "seam_rule": "dev/audit/rounds/round11/D8/s1/gapdhw.py -v (and every row of topology.rank_sensor_gaps whose feature can be unconfigured; at baseline only dhw_temp_entity)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py --fix",
+    "value": "dhw_null=4 of 6 in both arms",
+    "note": "DHW-enabled cells without a tank probe keep their priced gap under the fix: there the gap is real"
+  },
+  "reproduction_steps": [
+    "run the command: 12 lines print, e.g. coord_minimal|c1|state=59.32|top=dhw_temp_entity|dhw_sek=59.32",
+    "run with --fix: no_dhw_priced=0 and no_dhw_top=0, dhw_null unchanged"
+  ],
+  "proposed_fix_scope": "gate the DHW coast term on the install's DHW status (sensor._gap_probe_terms or the dhw row of topology.rank_sensor_gaps)",
+  "files": ["custom_components/heatpump_optimizer/sensor.py", "custom_components/heatpump_optimizer/topology.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

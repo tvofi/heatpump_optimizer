@@ -1,0 +1,8 @@
+CELL draw-range-censored samples=censored_at_minimum_power top=5.6:solve_max=1.500(measured_below_configured) narrowing_kw=+4.100 planned_range=(1.0, 1.5) power_floor=0.800
+CELL draw-range-censored samples=uncensored top=5.6:solve_max=6.000(not_below_configured) narrowing_kw=-0.400 planned_range=None power_floor=0.800 | top=4.0:solve_max=4.000(measured_below_configured) narrowing_kw=+0.000 planned_range=None power_floor=0.800
+RESULT narrowing_censored_kw=4.100 kW
+RESULT narrowing_uncensored_agree_kw=0.000 kW
+RESULT uncensored_overstated_learned_max_kw=4.000 kW
+RESULT thread_factor=1.0000
+RESULT load1=2.93
+RESULT swapins=0

@@ -1,0 +1,54 @@
+{
+ "id": "D4-s3-02",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "German headline stats at phone width: the two numbers in one row sit 14 px apart",
+ "severity": "low",
+ "claim": "In every state that shows the headline stats (6 states), at 375 px in German, in both themes, the savings and score numbers in one .hl-stats row differ in baseline by 14 px (12 of 12 such rows; 0 of 96 rows in en, sv or at 768/1280 px), because 'Voraussichtliche Einsparung' wraps to two lines and pushes its number down while 'Optimierungswert' stays on one.",
+ "mechanism": "cardStyleBlock lays .hl-stat out as label (display:block) then .hl-value (display:block; margin-top:2px): each value hangs from its own label's last line, so a row whose labels wrap to different line counts has its numbers at different heights. The grid stretches the cells to one height but nothing aligns the values to a common line.",
+ "evidence": {
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=score_open,score_open_typical,score_open_no_evidence,score_open_graded_pump,savings_open,folds_open",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+  "value": 12,
+  "unit": "count of .tiles/.hl-stats rows whose numbers differ in first-line bottom or font-size by >0.5 px (of 216 rows)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "ran beside the seat's own full-grid run; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.77,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.hl-stat / .hl-label / .hl-value rules), rendered by the headline of HeatpumpOptimizerCard",
+ "perturbation": {
+  "change": "--perturb=tile_nowrap: .tile-k and .hl-label get white-space:nowrap (one label line per cell)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "rows of .tiles/.hl-stats cells (grouped by cell top) whose value elements' first text line bottoms or font-sizes differ by more than 0.5 px",
+ "phenomenon_property": "Headline numbers that share a row share a baseline (±0.5 px) whatever the length of their labels in any shipped language, at every viewport.",
+ "seam_rule": "grep -nE \"\\.(tile-k|tile-v|hl-label|hl-value) \\{\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+ "null_control": {
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=score_open,score_open_typical,score_open_no_evidence,score_open_graded_pump,savings_open,folds_open  (read hl_rows_by_vp_lang in --out JSON)",
+  "value": 0,
+  "note": "the same rows in en and sv at 375 px and in all three languages at 768/1280 px: 0 of 96 misaligned -- the offset needs a label that wraps in one cell and not the other"
+ },
+ "leave_one_out": {
+  "cells": 6,
+  "min": 14,
+  "max": 14,
+  "drop_most_favourable": 14
+ },
+ "reproduction_steps": [
+  "Home Assistant language Deutsch, a phone (375 px wide) dashboard",
+  "Card with the savings and score sensors present; open the score or savings detail",
+  "Compare the heights of the two numbers in the stats row"
+ ],
+ "proposed_fix_scope": "Align the stat values to the row (e.g. a two-row subgrid for label and value, or align the value to the cell's end), not a nowrap that truncates German labels.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "criteria_statement": "D4-criteria P3 one look: 'headline numbers in one row share font size and baseline (±0.5 px)'"
+}

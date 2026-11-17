@@ -1,0 +1,53 @@
+{
+ "id": "D17-s1-05",
+ "scope": "D17-s1",
+ "step": "D17.M3",
+ "title": "Peak guard projects the window from current x elapsed, so it acts late on real peaks and holds back on non-peaks",
+ "severity": "high",
+ "claim": "With the peak guard saved on (threshold 2.0 kW from three recorded peaks, margin 0.5 kW) and a steady meter draw read once a minute through a 60-minute window, the guard's suppressing state disagrees with its description in 69 of 300 minute-samples over 5 draws: 0.8 and 1.2 kW (windows that cannot set a peak) are held back for 3 and 21 minutes, and 1.8, 3.0 and 9.0 kW (windows that will) are first held back at minutes 26, 16 and 6 instead of minute 1.",
+ "mechanism": "power_guard.project_window_mean returns (mean*elapsed + current_kw*elapsed)/window; its docstring (and the computed but unused `remaining`) says the remainder of the window continues at current_kw, i.e. (mean*elapsed + current_kw*remaining)/window. The projection is 0 at the window start, about half the draw early and about twice it near the end, so GuardState.update crosses threshold - margin at the wrong times.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_guard.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s1/h_guard.py",
+  "value": 69,
+  "unit": "minute-samples whose suppressing state contradicts the documented rule, over 5 steady draws x 60 min",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (vm, 4 cpu, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; immune to load (frozen clock)",
+  "tolerance": "exact",
+  "load1": 2.24,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.power_guard:project_window_mean (via heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event)",
+ "perturbation": {
+  "change": "--perturb-docstring: project_window_mean = (mean*elapsed + current*remaining)/window, its docstring's rule",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "sum over draws P in {0.8,1.2,1.8,3.0,9.0} kW of minutes m in 0..59 where suppressing != (P > 1.5 and m >= 1)",
+ "phenomenon_property": "The guard's projection of the open window's billed mean equals what the window averages if the current draw continues for the rest of it; with a steady draw it equals that draw from the first reading.",
+ "seam_rule": "grep -n 'project_window_mean' custom_components/heatpump_optimizer/*.py (its definition and its one caller, coordinator._on_power_event)",
+ "null_control": {
+  "command": "same harness, peak_guard_enabled off (RESULT null_suppressed_minutes)",
+  "value": 0,
+  "note": "no listener, never suppresses"
+ },
+ "leave_one_out": {
+  "cells": 5,
+  "min": 3,
+  "max": 25,
+  "drop_most_favourable": 44
+ },
+ "reproduction_steps": [
+  "Options: Grid peak tariff on; Advanced > Fuse and peak guards: Peak guard on; a house power meter",
+  "month with three 2.0 kW peaks; meter steady at 1.2 kW",
+  "from minute ~39 of every hour the guard holds back hot water and nudges the curve down though the hour averages 1.2 kW"
+ ],
+ "proposed_fix_scope": "power_guard.project_window_mean: weight current_kw by the remaining minutes; failing test on a steady draw below and above the line, null control guard off.",
+ "files": [
+  "custom_components/heatpump_optimizer/power_guard.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

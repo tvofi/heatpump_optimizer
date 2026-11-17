@@ -1,0 +1,45 @@
+{
+  "id": "D15-s3-03",
+  "scope": "D15-s3",
+  "step": "D15.M8",
+  "title": "debug_replay seeds unmasked entity ids into a masked replay; learned heat-loss learners reset",
+  "severity": "medium",
+  "claim": "On the owner's bundle, debug_replay.seed_stores writes 4 store-held entity ids that name no entity of the masked replay half, and over the 18-cycle window the replayed coordinator resets 2 learned heat-loss learners to the configuration ('its zone sensor changed') and warns 1 input unreadable; remapping those ids through the mask brings both counts to 0.",
+  "mechanism": "export/the debugger mask every entity id in the replay half to its role (replay_doc), but seed_stores remaps only the store KEY onto FakeEntry's test_entry and copies each document verbatim; thermal_learning (heat-loss zone entities), dhw_legionella, off_restore and snapshots keep the install's real ids. On load, _void_heat_loss_learners compares the stored zone entities with the masked config, finds them changed and voids house_heat_loss_scale and lower_floor_loss_ratio, so every M5/M8 reproduction plans on configuration defaults rather than the install's learned house; the legionella restore watches an entity the replay never has and reports it unreadable.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m8_replay.py --bundle B --start-h 18.5 --end-h 23",
+    "harness_path": "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+    "value": 2,
+    "unit": "learner resets (learner_resets_zone_sensor_changed); seeded_foreign_entity_ids=4, unreadable_warnings=1",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, CI venv",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, three arms in parallel with other seats, load1 55-280; counts, contention-immune",
+    "tolerance": "exact",
+    "load1": 269.97,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/replay/debug_replay.py:seed_stores (counted through coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners' WARNING and the integration's unreadable-input WARNING)",
+  "perturbation": {
+    "change": "--perturb remap-ids: before seeding, each store-held entity id is rewritten to the masked id the replay entry gives the same configuration key (the remap seed_stores omits)",
+    "expected_direction": "to_zero",
+    "observed_value": "seeded_foreign_entity_ids=0, learner_resets_zone_sensor_changed=0, unreadable_warnings=0"
+  },
+  "metric_definition": "Over the replay window: WARNING records voiding a learned heat-loss learner because its zone sensor changed, with the count of store-held entity ids absent from the masked replay half.",
+  "phenomenon_property": "A replay seeded from a bundle's stores names, in every seeded document, only entities of the replay half it runs on; learned state the install held is the state the replay starts from.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 -c \"import re,json,sys; sys.path[:0]=['custom_components']; from heatpump_optimizer import store; print(sorted(store.DOMAINS))\" (each store document seed_stores copies; grep -n entity_id custom_components/heatpump_optimizer/{off_restore,legionella,thermal_model,snapshots}.py for the id-holding fields)",
+  "null_control": {
+    "command": "the same command with --perturb remap-ids",
+    "value": 0,
+    "note": "with every seeded id inside the mask no learner is voided and no input reads unreadable; the five replay judges read 0 in both arms, so the defect is invisible to the lane's own verdict"
+  },
+  "reproduction_steps": [
+    "Run the command on the owner's bundle (window 18.5-23 h after the replay half's start, 18 cycles): seeded_foreign_entity_ids=4, learner_resets_zone_sensor_changed=2, unreadable_warnings=1, all five judges 0.",
+    "Re-run with --perturb remap-ids: 0, 0, 0.",
+    "tools/replay/debug_replay.py --bundle B over the whole replay half logs the same two 'Learned ... reset to the configuration: its zone sensor changed' lines at its first cycle."
+  ],
+  "proposed_fix_scope": "tools/replay/debug_replay.py:seed_stores maps every entity id in a seeded document through the replay half's mask (the replay entry's configuration keys give the pairs), or refuses to seed a document naming an id outside it; a gate_checks arm seeds a store holding a real id against a masked fixture and asserts no learner is voided.",
+  "files": ["tools/replay/debug_replay.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

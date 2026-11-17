@@ -1,0 +1,41 @@
+FILE DISCLAIMER.md no-claim=36 true=2 false=0 stale=0 unverifiable=0 notreached=0
+FILE README.md no-claim=90 true=120 false=2 stale=0 unverifiable=3 notreached=392
+FILE RELEASE_NOTES.md no-claim=140 true=32 false=0 stale=0 unverifiable=0 notreached=312
+FILE ROADMAP.md no-claim=6 true=1 false=0 stale=0 unverifiable=0 notreached=9
+FILE docs/architecture.md no-claim=14 true=41 false=0 stale=0 unverifiable=0 notreached=29
+FILE docs/automations.md no-claim=10 true=22 false=0 stale=0 unverifiable=0 notreached=17
+FILE docs/configuration.md no-claim=109 true=243 false=3 stale=0 unverifiable=3 notreached=796
+FILE docs/dashboard-card.md no-claim=52 true=72 false=0 stale=0 unverifiable=0 notreached=362
+FILE docs/ecl110.md no-claim=12 true=18 false=0 stale=0 unverifiable=0 notreached=95
+FILE docs/how-it-works.md no-claim=67 true=48 false=0 stale=0 unverifiable=0 notreached=468
+FILE docs/index.html no-claim=70 true=1 false=0 stale=0 unverifiable=0 notreached=115
+FILE docs/setup.md no-claim=20 true=21 false=0 stale=0 unverifiable=0 notreached=96
+FILE docs/site/docs.css no-claim=1 true=0 false=0 stale=0 unverifiable=0 notreached=0
+FILE tools/site/build_docs.mjs no-claim=3 true=1 false=0 stale=0 unverifiable=1 notreached=15
+FALSE README.md#3df9800b56 L499 :: legionella_default: ThermalParameters() default: enabled=True, 60 °C every 10 days
+FALSE README.md#6436d982f4 L916 :: learner_converges_35pct: 3 days at 1.35: scale 1.000->0.300, last-quarter std 0.0101, breach 0.00->5.42 K·h
+FALSE docs/configuration.md#f452785306 L287 :: hot_water.dhw_legionella_interval_days default=10.0 doc='7 days'; range 1-30 doc='1–30'
+FALSE docs/configuration.md#f452785306.1 L478 :: hot_water.dhw_legionella_interval_days default=10.0 doc='7 days'; range 1-30 doc='1–30'
+FALSE docs/configuration.md#5c31343a33 L894 :: echo_grace_60s: reading counted (write record dropped) at +s: {5: True, 10: True, 19: True, 21: True, 30: True, 59: True, 61: True, 90: True}; contradicting the 60 s sentence at [5, 10, 19, 21, 30, 59]
+BUILD_DOCS RESULT: PASS fails 0
+ANCHORS docs/index.html: ids=35 internal_hrefs=15 distinct=10 unresolved=0 []
+ANCHORS $TMP/site/architecture.html: ids=13 internal_hrefs=21 distinct=11 unresolved=0 []
+ANCHORS $TMP/site/automations.html: ids=9 internal_hrefs=13 distinct=7 unresolved=0 []
+ANCHORS $TMP/site/configuration.html: ids=49 internal_hrefs=76 distinct=47 unresolved=0 []
+ANCHORS $TMP/site/dashboard-card.html: ids=37 internal_hrefs=54 distinct=35 unresolved=0 []
+ANCHORS $TMP/site/disclaimer.html: ids=4 internal_hrefs=3 distinct=2 unresolved=0 []
+ANCHORS $TMP/site/ecl110.html: ids=11 internal_hrefs=20 distinct=9 unresolved=0 []
+ANCHORS $TMP/site/how-it-works.html: ids=46 internal_hrefs=58 distinct=44 unresolved=0 []
+ANCHORS $TMP/site/readme.html: ids=45 internal_hrefs=74 distinct=43 unresolved=0 []
+ANCHORS $TMP/site/setup.html: ids=16 internal_hrefs=35 distinct=14 unresolved=0 []
+RESULT units=3970 count
+RESULT rows=3970 count
+RESULT claims_checked=634 count
+RESULT claims_not_reached=2706 count
+RESULT no_claim=630 count
+RESULT false_rows_total=5 count
+RESULT files_with_false=2 count
+RESULT build_docs_fail_lines=0 count
+RESULT thread_factor=1.000
+RESULT load1=8.08
+RESULT swapins=0

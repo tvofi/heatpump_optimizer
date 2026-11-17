@@ -1,0 +1,44 @@
+{
+  "id": "D1-s3-07",
+  "scope": "D1-s3",
+  "step": "D1.M5",
+  "title": "Broad handlers swallow any exception with no record at any level (7 of 11 reached)",
+  "severity": "low",
+  "claim": "Seven `except Exception` handlers the lifecycle reaches leave no log record at any level, DEBUG included, when their try body fails on every pass, so a programming error behind them is invisible: _record_accuracy's COP-residual tag, both _capture_diagnosis_inputs arms, CoordinatorDiagnostics.of, diagnostics._coordinator_snapshot and _never_breaks, and optimizer._lbfgsb_restart.",
+  "mechanism": "Handler bodies are a bare fallback (`sample.cop_residual = None`, `return None`, `planned_wind = 0.0`, `'summary unavailable'`, `state = None`, `return 'unavailable'`, `return best`). The diagnostics three leave a visible marker in the downloaded diagnostics; the other four do not: a broken MeasuredCop.residual silently drops the COP tag from every accuracy sample, and a broken _current_weather silently records wind 0.0 as the plan's assumption in the diagnosis evidence (#52).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/silent_broad.py",
+    "value": 7,
+    "unit": "broad handlers (of 11 reached non-logging, non-reraising broad handlers) adding zero records at any level under a persistent fault",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running (load1 ~108); count is contention-immune",
+    "tolerance": "exact",
+    "load1": 108.43,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_accuracy (handler coordinator.py:10082) and the six sibling handlers, try bodies forced to raise by d1s3hook.py, driven through setup/refresh/diagnostics/unload/restart on a real asyncio loop",
+  "perturbation": {
+    "change": "coordinator.py:10083 `sample.cop_residual = None` -> `sample.cop_residual = _LOGGER.debug(\"COP residual tag skipped\")` (still None; `--perturb`, in memory at import)",
+    "expected_direction": "down",
+    "observed_value": 6
+  },
+  "metric_definition": "Reached broad handlers with no log call and no re-raise whose persistently raising try body added 0 integration log records at any level over the fault-free control.",
+  "phenomenon_property": "No broad handler hides an exception: each one leaves at least a DEBUG record (or a held warning) naming what it swallowed.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/silent_broad.py --seams",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/silent_broad.py",
+    "value": "coordinator.py:6507 added_records=10, coordinator.py:7103 added_records=14, optimizer.py:1944 added_records=10, optimizer.py:1970 added_records=20",
+    "note": "four handlers of the same static seam list log through a helper and are counted as recorded by the same run: the count separates them"
+  },
+  "proposed_fix_scope": "A DEBUG record (exc_info) in each of the seven handlers; no behaviour change. coordinator.py, diagnostics.py, optimizer.py.",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "new"
+}

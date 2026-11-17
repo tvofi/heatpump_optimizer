@@ -1,0 +1,40 @@
+{
+  "id": "D1-s3-03",
+  "scope": "D1-s3",
+  "step": "D1.M6",
+  "title": "An Open-Meteo sample stamped 0001-01-01 fails every solve: IrradianceSeries.mean_over overflows outside the fence",
+  "severity": "medium",
+  "claim": "_parse_block keeps a sample stamped '0001-01-01T00:00', and IrradianceSeries.mean_over then raises OverflowError on `t - self.resolution` for every plan step, so every solve fails ('Optimization failed: date value out of range') for as long as the series is held, with last_update_success staying True.",
+  "mechanism": "OpenMeteoSolar.async_refresh fences only the fetch+parse (`_fenced`, #1519: 'never raises ... by construction'); the parsed series is stored, and the read side (`irradiance_for` -> `mean_over`, called per step by `_apply_open_meteo` inside the solve-input build) computes `sample_start = t - self.resolution` for every sample. datetime.min - 1 h raises OverflowError; async_run_optimization's broad handler books it as a solve failure (logged once by log_held, counted in _solve_failures), the last plan stays published and the update reports success. The series is replaced only by a later non-empty forecast, so a feed that keeps the stamp fails every cycle.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+    "value": 3,
+    "unit": "failed solves over 3 refreshes (coordinator._solve_failures)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 190.32,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.open_meteo:IrradianceSeries.mean_over (driven through OpenMeteoSolar.async_refresh -> _parse_block and HeatPumpOptimizerCoordinator.async_refresh; read off coordinator._solve_failures)",
+  "perturbation": {
+    "change": "mean_over returns None (not covered) instead of raising OverflowError on an out-of-range sample (`--perturb openmeteo_overflow_guard`, mock.patch.object wrapper)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "coordinator._solve_failures after 3 refreshes with solar_forecast_source=open_meteo and a forecast body whose hourly block carries two 0001-01-01 samples before 72 valid ones.",
+  "phenomenon_property": "A parsed external series never raises on read: every instant kept by an external-feed parser is one the read-side arithmetic (t - resolution, t + step) can carry, or the sample is dropped at parse.",
+  "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'open_meteo|_fetch_weather|_parse_block'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm openmeteo",
+    "value": "RESULT openmeteo_healthy_solve_failures=0 solves",
+    "note": "the same 72 valid samples without the two year-1 stamps: 0 failed solves; nan, string, unsorted/duplicate, non-dict and error bodies also 0"
+  },
+  "proposed_fix_scope": "open_meteo._parse_block: drop a sample whose stamp minus one resolution (or minus the plan step) is out of datetime range, or bound stamps to a plausible window around now; open_meteo.py only.",
+  "files": ["custom_components/heatpump_optimizer/open_meteo.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

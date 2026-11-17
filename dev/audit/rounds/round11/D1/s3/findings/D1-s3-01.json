@@ -1,0 +1,45 @@
+{
+  "id": "D1-s3-01",
+  "scope": "D1-s3",
+  "step": "D1.M6",
+  "title": "Pump flag slots read a non-finite state (nan, inf, 1e309) as True: fault and defrost fabricated",
+  "severity": "medium",
+  "claim": "inputs.parse_bool reads the states 'nan', 'NaN', 'inf', '-inf' and '1e309' as True (float(token) != 0.0), so a heat-pump fault or defrost entity reporting a non-finite number publishes fault=True and defrosting=True and freezes learning with freeze_reason 'pump_fault', where the numeric reader refuses the same state.",
+  "mechanism": "pump_signals.read -> InputReader.read_bool -> inputs.parse_bool: the numeric arm `return float(token) != 0.0` is reached for any token outside BOOL_TRUE/BOOL_FALSE, and float('nan') != 0.0 and float('inf') != 0.0 are both True. No finiteness test precedes it (const.finite_float, the integration's own number rule, refuses non-finite values), so an unreadable numeric state becomes a positive flag rather than `not_boolean`. The fabricated fault freezes every learner (`_learning_frozen`); the fabricated defrost feeds the defrost window/duty fold and blocks the COP fold.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+    "harness_path": "dev/audit/rounds/round11/D1/s3/parsers_fuzz.py",
+    "value": 10,
+    "unit": "flag readings published True from a non-finite state (5 tokens x {fault, defrost})",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "orchestrator Mac, Apple M1 (darwin arm64, 8 cores), shared box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 171.66,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.inputs:parse_bool (driven through heatpump_optimizer.pump_signals:read in a full HeatPumpOptimizerCoordinator.async_refresh; read off coordinator.data['heat_pump_signals'])",
+  "perturbation": {
+    "change": "parse_bool's numeric arm refuses a non-finite number (return None when not math.isfinite(float(token))): `--perturb parse_bool_finite`, applied in memory with mock.patch.object",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of {fault, defrosting} published True in heat_pump_signals over one refresh each for states nan, NaN, inf, -inf, 1e309 on sensor-domain fault and defrost entities.",
+  "phenomenon_property": "A flag read from an entity state is never True (or False) on a non-finite numeric state: such a state is unreadable (problem not_boolean), as the numeric reader and const.finite_float already rule.",
+  "seam_rule": "python3 tools/audit/enumerate.py d1-parsers | grep -E 'parse_bool|_parse_ecl110_state'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub <HOME>/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D1/s3/parsers_fuzz.py --arm pump",
+    "value": "RESULT pump_null_control_zero_flag_true=0 readings",
+    "note": "state '0' publishes fault=False, defrosting=False, freeze_reason None; 'garbage', '' and 'unknown' publish None (not_boolean) in the same run"
+  },
+  "reproduction_steps": [
+    "Configure heat_pump_fault_entity=sensor.hp_fault and heat_pump_defrost_entity=sensor.hp_defrost (sensor domain, so strict parsing applies)",
+    "Set both states to 'nan' with a fresh last_updated",
+    "Run one coordinator refresh; read coordinator.data['heat_pump_signals']: fault True, defrosting True, freeze_reason 'pump_fault'"
+  ],
+  "proposed_fix_scope": "inputs.parse_bool: test finiteness before the numeric arm (reuse const.finite_float or math.isfinite); a non-finite token returns None. One function; inputs.py.",
+  "files": ["custom_components/heatpump_optimizer/inputs.py", "custom_components/heatpump_optimizer/pump_signals.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

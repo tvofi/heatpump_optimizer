@@ -1,0 +1,47 @@
+{
+  "id": "D11-s3-01",
+  "scope": "D11-s3",
+  "step": "D11.M4",
+  "title": "The tree's only ruleset reader never reads main-protect (deletion, non-fast-forward) or the release-tag ruleset",
+  "severity": "medium",
+  "claim": "tools/policy/counts.mjs:liveRequiredContexts fetches only rulesets that contribute a required_status_checks rule, so 1 of the repository's 3 active rulesets is compared with its record: dropping main-protect 22628467's deletion and non_fast_forward rules, adding an always-bypass actor to it, disabling it, or emptying release-tags-protect 23937752 each leaves requiredContextsDrift at 0 errors, while the same class of edit on 23698884 yields 1-7.",
+  "mechanism": "The reader builds `ids` from branch rules filtered to type required_status_checks (counts.mjs, the `if (r.type !== 'required_status_checks') continue` line precedes `ids.add`), and requiredContextsDrift compares only the fetched objects; tools/ci/ruleset_cutover.py pins RULESET_ID = 23698884 alone. No other tracked script reads 22628467 or 23937752. The fixture's _comment records the choice: 22628467 is described there ('carries deletion and non-fast-forward') but deliberately left out of `rulesets`, so its rules are stated and never compared. Live re-read 2026-11-16 20:3x: 22628467's rules equal the capture.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+    "value": 1,
+    "unit": "rulesets read (of 3 on the repository); gap_arms_unmoved=4 of 4, controls_fired=3 of 3",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 0.42,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/policy/counts.mjs:liveRequiredContexts (and requiredContextsDrift)",
+  "perturbation": {
+    "change": "counts.mjs:liveRequiredContexts: move `if (r.ruleset_id != null) ids.add(r.ruleset_id)` above the required_status_checks filter (harness --perturb)",
+    "expected_direction": "up",
+    "observed_value": "rulesets_read 1 -> 2; gap_22628467_bypass_added_errors 0 -> 1; gap_arms_unmoved 4 -> 2"
+  },
+  "metric_definition": "Count of distinct ruleset ids liveRequiredContexts fetches from the captured API reads, and per arm the count of requiredContextsDrift error findings.",
+  "phenomenon_property": "Every active ruleset targeting main or release tags is read and compared field by field with a committed record, so a change to any of them turns a check red.",
+  "seam_rule": "gh api repos/tvofi/heatpump_optimizer/rulesets --jq '.[].id' (each id not in the `read` list dev/audit/rounds/round11/D11/s3/ruleset_arms.py prints for the null arm)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/ruleset_arms.py",
+    "value": "null arm 0 errors; control arms on 23698884: 7, 1, 4",
+    "note": "the controls show the comparator alive on the ruleset it reads, so the unmoved gap arms are the reader's scope, not a dead comparator"
+  },
+  "reproduction_steps": [
+    "run the harness: null_errors=0, controls 7/1/4, every gap_* arm 0",
+    "run with --perturb: rulesets_read 2 and the 22628467 bypass arm fires"
+  ],
+  "proposed_fix_scope": "tools/policy/counts.mjs liveRequiredContexts also reads every other ruleset GET rulesets lists (main-protect 22628467, release-tags-protect 23937752) and compares each with a committed object in tools/policy/fixtures/required-contexts.json under a key of its own, beside ruleset_objects; the `rulesets` list keeps its #1300 meaning (the ids the required contexts are read out of), which the fixture's own _comment says must not name 22628467. bypass_actors stays token-hidden in CI as today. Mechanisation (D11.M5): extends an existing mechanical reader; cost about two API GETs per policy-docs run and about 20 lines, no policy line.",
+  "files": [
+    "tools/policy/counts.mjs",
+    "tools/policy/fixtures/required-contexts.json"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I3"
+}

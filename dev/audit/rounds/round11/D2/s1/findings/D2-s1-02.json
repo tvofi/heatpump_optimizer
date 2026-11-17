@@ -1,0 +1,64 @@
+{
+ "id": "D2-s1-02",
+ "scope": "D2-s1",
+ "step": "D2.M1",
+ "title": "mixing_valve.emitter_delivery returns negative heat: a cold tank behind the valve cools the zones",
+ "severity": "high",
+ "claim": "mixing_valve.emitter_delivery returns ua*(mix-zone) without its documented max(0, .) floor, so in the scalar two-zone throttled step a tank colder than a zone draws heat back out of the slab/upper floor into the tank, while the batch twin floors it at 0: 3674 two-zone valve trajectory elements differ even with D2-s1-01 corrected. On the 9 valved golden plans the scalar step booked 496 negative deliveries moving 87.52 kWh from the zones back into the tank (valve_storage_small_tank alone 57.3 kWh).",
+ "mechanism": "mixing_valve.py:138 `return ua * (mix_temp - zone_temp)` under a docstring 'Never negative: a valve can shut, but it cannot cool a house'. _valve_two_zone_delivery uses it for q_rad and q_floor; simulate_trajectory_batch writes np.maximum(0.0, ...) for the same terms. Below the zone temperature the scalar model runs the emitters as a heat pump in reverse, booking zone heat into the tank (balance still closes, so conservation does not see it).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py --fix-lift",
+  "harness_path": "dev/audit/rounds/round11/D2/s1/batch_parity.py",
+  "value": 3674,
+  "unit": "mismatched trajectory elements (two-zone valve arms, lift corrected)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B4, 4 vCPU container, py3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "two other seats on the box; counts are contention-immune",
+  "tolerance": "exact (bitwise)",
+  "load1": 0.26,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.mixing_valve:emitter_delivery (via ThermalModel._simulate_step_two_zone / simulate_trajectory vs simulate_trajectory_batch)",
+ "perturbation": {
+  "change": "--fix-emitter: mixing_valve.emitter_delivery swapped in memory for max(0.0, ua*(mix_temp-zone_temp))",
+  "expected_direction": "to_zero",
+  "observed_value": "batch_parity --fix-lift: 3674 -> 0 with --fix-emitter; golden_identities valve_reverse_kwh 87.52 -> 0 under --fix-lift --fix-emitter"
+ },
+ "metric_definition": "Count of trajectory elements where the two-zone valved batch twin differs by any bit from the scalar path, with the lift factor corrected in both runs.",
+ "phenomenon_property": "No emitter circuit delivers negative heat: behind a valve the zones are never cooled by the tank, in the scalar step and the batch twin alike.",
+ "seam_rule": "grep -n 'emitter_delivery' custom_components/heatpump_optimizer/*.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s1/batch_parity.py --fix-lift",
+  "value": "single-zone valve arms (which floor drawn with np.maximum in _single_valve_rates): 0",
+  "note": "the single-zone valve law floors its own draw, so its arms stay in parity"
+ },
+ "reproduction_steps": [
+  "... batch_parity.py --fix-lift  (two-zone valve arms 3674)",
+  "... batch_parity.py --fix-lift --fix-emitter  (0)",
+  "... golden_identities.py --only valve_storage  (valve_reverse deliveries on the published golden plan)"
+ ],
+ "proposed_fix_scope": "mixing_valve.py emitter_delivery: return max(0.0, ua * (mix_temp - zone_temp)).",
+ "files": [
+  "custom_components/heatpump_optimizer/mixing_valve.py"
+ ],
+ "expected_golden_drift": [
+  "valve_storage",
+  "valve_storage_low_target",
+  "valve_storage_flat_prices",
+  "valve_storage_small_tank",
+  "valve_storage_smart_write",
+  "wood_two_tank",
+  "wood_two_tank_smart_write",
+  "wood_coil",
+  "valve_upper_direct_slab"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "leave_one_out": {
+  "cells": 9,
+  "min": 0.604,
+  "max": 57.3,
+  "drop_most_favourable": 30.22
+ }
+}

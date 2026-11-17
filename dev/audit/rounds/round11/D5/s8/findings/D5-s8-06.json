@@ -1,0 +1,47 @@
+{
+ "id": "D5-s8-06",
+ "step": "D5.M4",
+ "title": "657 of 3628 comment units in D5-s8's cells hold a sentence over 40 words (criterion C5)",
+ "severity": "low",
+ "claim": "657 D5 units (870 sentences) of the seat's 44 files hold a sentence longer than 40 words, after splitting each unit at blank, list, usage and indented lines; the longest is 524 words (tests/deployment_shape.py module docstring, a closure-census history from 'That is a selection cost'), the vendored markdown-it.min.js excluded as third-party.",
+ "mechanism": "Comments carry long dash-joined argument chains; nothing in the gate measures sentence length.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 657,
+  "unit": "units with a sentence > 40 words",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 2.2,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:sentences over the units of tools/audit/text_ledger.py:units_of, per production file",
+ "perturbation": {
+  "change": "--drop 'tests/deployment_shape.py#5d8446fbe6' (blank the 524-word unit in memory)",
+  "expected_direction": "down",
+  "observed_value": 656
+ },
+ "leave_one_out": {
+  "cells": 44,
+  "min": 0,
+  "max": 150,
+  "drop_most_favourable": 507
+ },
+ "metric_definition": "Units whose longest sentence (text_ledger.sentences per paragraph/list block, comment markers stripped) exceeds 40 words.",
+ "phenomenon_property": "No comment sentence in the cells exceeds 40 words (D5-criteria C5).",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show | grep 'C5:'",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "tools/policy/policy_lint.mjs",
+  "tests/card.mjs",
+  "tests/closure.py",
+  "tests/config_flow_steps.py",
+  "tests/doc_claims.py"
+ ],
+ "proposed_fix_scope": "Per file, split sentences over 40 words; largest: policy_lint.mjs 150 units, card.mjs 106, closure.py 79, config_flow_steps.py 40, doc_claims.py 30.",
+ "scope": "D5-s8"
+}
