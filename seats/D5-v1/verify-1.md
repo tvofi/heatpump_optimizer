@@ -1,102 +1,36 @@
-{
- "votes": [
-  {
-   "id": "D5-s10-01",
-   "vote": "verify",
-   "severity": "low",
-   "value": "edit_reaches_cursor=0, unguarded_generated=1; perturb -> 1",
-   "metric_definition": "edit_reaches_cursor: 1 if an edit in the dir named by the hook survives rules_sync regeneration",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "perturbation moved 0->1; null_prod_rc=0; not a timing claim",
-   "reproduced": "edit_reaches_cursor=0, unguarded_generated=1; perturb -> 1",
-   "independent_value": "hook line 14/94-97 say .claude/rules/; rules_sync.mjs:29-31 SRC=dev/governance/rules, outputs .claude/rules + .cursor/rules (own read)",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I5 (stale path in message; N-move-stale-path defensible but mechanism names executable consumers)",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-02",
-   "vote": "verify",
-   "severity": "low",
-   "value": "escaped=2 (AGENTS.md, dev/audit/README.md); e2e rc 0 vs CLAUDE.md rc 2; perturb escaped=0",
-   "metric_definition": "policy files from POLICY_GLOBS not matching POLICY_PREFIXES",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "null controls CLAUDE.md rc2 and prod path rc0 held; perturb 2->0",
-   "reproduced": "escaped=2 (AGENTS.md, dev/audit/README.md); e2e rc 0 vs CLAUDE.md rc 2; perturb escaped=0",
-   "independent_value": "POLICY_PREFIXES at stop-selfcheck.sh line 27 has no AGENTS.md or dev/audit/ alternative (own read); comment itself says too-narrow is the failure that matters",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I4",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-03",
-   "vote": "verify",
-   "severity": "low",
-   "value": "behind_pos=4 tip_pos=5 other_items=4 mismatches=3; perturb mismatches=1",
-   "metric_definition": "count of header claims contradicting report() output",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "null: traps section exists=1; perturb 3->1",
-   "reproduced": "behind_pos=4 tip_pos=5 other_items=4 mismatches=3; perturb mismatches=1",
-   "independent_value": "HANDOVER.md has an unnumbered 'Traps that cost a session' heading at line 1190; no 'trap 11' (own grep)",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I5",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-04",
-   "vote": "verify",
-   "severity": "low",
-   "value": "unit fails, unresolved path tools/audit/README.md; rewrite lowers unresolved 30->28",
-   "metric_definition": "unresolved repo paths in D5 unit (C2)",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "perturbation --rewrite moved down",
-   "reproduced": "unit fails, unresolved path tools/audit/README.md; rewrite lowers unresolved 30->28",
-   "independent_value": "ls tools/audit/README.md: absent; docstring lines 52 cites it",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I5",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-05",
-   "vote": "verify",
-   "severity": "low",
-   "value": "same; thermal_parity.py line 24 cites tools/audit/README.md, absent",
-   "metric_definition": "as 04",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "as 04",
-   "reproduced": "same; thermal_parity.py line 24 cites tools/audit/README.md, absent",
-   "independent_value": "ls confirms absent",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I5",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-06",
-   "vote": "verify",
-   "severity": "low",
-   "value": "cop_duty_floor.py line 23 cites carry-2065.json, absent",
-   "metric_definition": "as 04",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "null: other 28 units of the 3 files resolve",
-   "reproduced": "cop_duty_floor.py line 23 cites carry-2065.json, absent",
-   "independent_value": "ls confirms absent; 3 files together give failing units=3, unresolved_paths=4",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "I5",
-   "seam_rule_enumerates": true
-  },
-  {
-   "id": "D5-s10-07",
-   "vote": "weaken",
-   "severity": "info/low (style criterion, no behaviour consequence)",
-   "value": "long_sentences=347 in 193 files on branch tree (339/193 baseline export count; +8 from branch-only files, files count identical)",
-   "metric_definition": "sentences >40 words in D5 units",
-   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
-   "attacks": "count is definition-dependent (sentence splitter, list handling); 193 files exact; seam rule is an enumeration of units, but the 40-word line is a fixed threshold",
-   "reproduced": "long_sentences=347 in 193 files on branch tree (339/193 baseline export count; +8 from branch-only files, files count identical)",
-   "independent_value": "own counter on .claude/hooks+workflows comment paragraphs: 46 sentences >40 words in 11 files (includes some embedded-code false positives); pre-edit.sh examples 41-53 words confirmed",
-   "reachable": "n/a: repo hook/doc text, not HA runtime",
-   "class": "new (cosmetic; C5 criterion)",
-   "seam_rule_enumerates": false
-  }
- ]
-}
+# D5#1 verify report (verifier, round 11), seat D5-s10, seven findings
+
+All numbers below were taken in the planted export copy `/home/user/audit-r11-px-D5-1` (plain directory, no .git), `PYTHONPATH=tests/hastub`, `--repo /home/user/heatpump_optimizer --ref 92d38ecb`, python3, load1 0.66-0.77, thread_factor 1.000. Side note only: an earlier run in the branch worktree gave the same numbers except m4_ledger (units 1800, long_sentences 347, 193 files), which carries branch-only units.
+
+## D5-s10-01 pre-edit.sh names .claude/rules/ as the source of .cursor/rules
+- Claim: the hook's comment (line 14) and refusal (line 94) send a seat to `.claude/rules/`, itself generated; the real source is `dev/governance/rules`.
+- V1 (export): edit_reaches_cursor=0, unguarded_generated=1, named_source=.claude/rules/. Perturbation (message rewritten to dev/governance/rules/): edit_reaches_cursor 0 -> 1, correct direction. Null control: null_prod_rc=0 (non-generated path passes), regenerate_rc=0.
+- V2: own read of `rules_sync.mjs` lines 29-31: SRC=dev/governance/rules, CLAUDE_OUT=.claude/rules, CURSOR_OUT=.cursor/rules; hook text at lines 14 and 94 names `.claude/rules/`. Metric: does the named directory equal rules_sync's SRC (no = 1 mismatch). Agrees.
+- V3: repo tooling text, not Home Assistant. Severity low (a seat's edit is discarded; CI catches via --check). Seam rule covers the hook's one message and the two generated dirs, so it enumerates its seam. Class: I5 (stale reference); N-move-stale-path is defensible.
+- Vote: verify.
+
+## D5-s10-02 stop-selfcheck.sh prefix list misses AGENTS.md and dev/audit/README.md
+- V1 (export): policy_files=65, escaped=2, e2e AGENTS.md rc 0. Null controls: CLAUDE.md rc 2, a production path rc 0. Perturbation (add AGENTS.md and dev/audit/ to the prefixes): escaped 2 -> 0, AGENTS.md rc 2.
+- V2: own read of line 28: the prefix regex has no AGENTS or dev/audit alternative, and both files exist in the export. The header's own comment says a too-narrow prefix is the failure that matters. Agrees.
+- V3: dev tooling. Severity low (a lint skipped on a turn; CI still lints). Seam rule lists each escaped path, so it enumerates the seam. Class I4 (two definitions of one set disagree).
+- Vote: verify.
+
+## D5-s10-03 session-start.sh header miscounts its report; "HANDOVER trap 11" absent
+- V1 (export): behind_pos=4, tip_pos=5 (header says 5 and 6), other_items=4 (header says 3), mismatches=3, handover_trap_11_found=0. Null: the traps section exists. Perturbation (one printf inserted before `behind main:`): mismatches 3 -> 1.
+- V2: own grep of HANDOVER.md: heading "Traps that cost a session" at line 1190, zero matches for "trap 11". Agrees.
+- V3: dev tooling comment, severity low. Seam rule: single script. Class I5.
+- Vote: verify.
+
+## D5-s10-04, -05, -06 docstrings citing absent paths
+- Claim: `k1725_blas_kernel_gap.py` and `thermal_parity.py` cite tools/audit/README.md; `cop_duty_floor.py` cites dev/programme/carries/carry-2065.json; neither exists.
+- V1 (export): the three files alone give units=31, failing units=3, unresolved_paths=4. Whole cell: unresolved_paths=26, verdict_false=24. Perturbation (`--rewrite tools/audit/README.md=dev/audit/README.md`): unresolved_paths 26 -> 24, verdict_false 24 -> 22, i.e. down, as stated. Null: 28 of the 31 units resolve.
+- V2: `ls` of both paths in the export reports them absent, and `dev/audit/README.md` exists.
+- V3: harness docstrings, severity low. The seam rule is the C2 resolvability check over every unit, which enumerates the phenomenon (26 unresolved in the cell, 3 reported here). Class I5.
+- Vote: verify, each of the three.
+
+## D5-s10-07 339 sentences over 40 words across 193 files (C5)
+- V1 (export): long_sentences=339, files_with_long_sentence=193, units=1794, exact.
+- V2: own counter (`/home/user/vout/D5-v1/own.py`, comment paragraphs of `.claude/hooks/*.sh` and `.claude/workflows/*.js`): 45 sentences over 40 words in 11 files, including a few embedded-code false positives. pre-edit.sh examples of 41 to 53 words confirmed. The count depends on the sentence splitter.
+- Attack: the 40-word ceiling is the owner's criterion C5 (D5-criteria.md line 31). The finding is a style count with no behavioural consequence, and it is a population of 339, not one defect.
+- V3: dev tooling, severity info/low. Class new (cosmetic).
+- Vote: weaken, severity info/low.
