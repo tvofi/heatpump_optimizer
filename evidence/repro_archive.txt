@@ -1,5 +1,0 @@
-null control: a, b/c: returned ''
-member named '.': returned "a member's path is the archive's directory"
-members 'a' then 'a/b': returned "a member's path is both a file and a directory"
-MAX_MEMBER=10, one stored 64-byte member: returned 'a member is past the size cap'
-MAX_ARCHIVE=10, one stored 64-byte member: returned 'the archive is past the size cap'
