@@ -1,0 +1,68 @@
+
+=== features block ===
+
+-- R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs
+  ok   on a plan whose steps are all off or at the floor or above, the start count is the integer number of off-to-on edges, from a stopped and a running compressor
+  ok   a constant level under the floor is counted as the starts it is, and a level change inside a run is none
+  ok   a start to the floor and a start to the maximum cost the same one start
+  ok   a running compressor continues free, and pays for a stop and a return; a stopped one pays for its first step
+  ok   a step needs the compressor by the plan's running rule, not by the floor, and leaves its successor the share of a start it did not run
+  ok   a configured floor of zero still counts against the plan's running rule
+  ok   hot water then heating at equal draw with a certain stop costs exactly two starts with the steps adjacent, and exactly two with an idle step between
+  ok   over a grid of boundaries a step's start share plus the switch weight never passes one start, and on a committed pair it is a start, the priced switch or nothing
+  ok   the grid has something to detect: weighed at the combined draw beside the start count (the keyword omitted) a boundary passes one start
+  ok   with the level keyword omitted switch_weights_batch weighs at the combined draw, value for value what the explicit draw gives, and a different level moves it
+  ok   every committed mask runs its unforced on steps in [floor, cap], keeps every forced step, ends within half a floor step where it tracked, and holds the run and pause minimums as step counts
+  ok   the run and pause minimums are one pair: the supply gate's and the early cut-off's are the leaf's own objects, two steps at 5 minutes and one at 15
+  ok   on a trickle at half the floor commit runs half the steps at the floor in one run: the same energy, never a step raised on its own
+  ok   a balance its band cannot hold is penalised and never refused: the mask is a best effort that says it did not track, and still buys the energy back
+  ok   on a realizable plan commit returns the plan's own runs at a zero price and a zero start price, and is not the identity where a step or a start has a price
+  ok   a step at the running rule itself does not run, and one a hair above starts the compressor
+  ok   a plan is realizable with an off step and with a level inside the float slack under the floor, at the slack's own edge too, and not with a level clearly under it
+  ok   a cap inside the float slack under the floor still runs, at the slack's own edge too, and a cap clearly under the floor forces the step off
+  ok   the commit's bands, its balance grid and its out-of-band price are the approved design's values
+  ok   where a band tracks the plan, the candidates are one mask per band and no whole-horizon mask: three distinct masks on a trickle whose cheapest mask of all is fifty floor steps from the plan
+  ok   a balance outside its band is paid for at every step: where the cheapest mask of all leaves the band, each band's mask stays within its band of the plan's energy and reports it tracked, and a wider band buys a cheaper mask
+  ok   the fixture has something to commit: the unpriced duty-cycle plan runs steps under the floor, and every engaged solve was handed a relaxed plan that does
+  ok   acceptance: an engaged plan ships no step between the running rule and the floor, on a priced modulating install at both floors and on a clamped one
+  ok   acceptance: a priced plan holds no more starts than the unpriced plan of the same install by the same count, and scores no higher on its own objective than the projection of the relaxed plan it was committed from
+  ok   selection: the shipped plan never scores above the projection (candidate 1) on the true objective, and where a start has a price it scores strictly lower
+  ok   selection: a realizable relaxed plan that ships changed scores strictly below itself in the scope it ships in, and its start count falls
+  ok   selection: a stage that raises ships the projection, and the solve still reports its own status
+  ok   the true objective prices cycling_cost per start of the shipped plan: the published objective of a priced plan less the same plan's unpriced score is cycling_cost x its start count
+  ok   the relaxed objective is the true one less the start term, scalar and batch bit for bit, and it is the unpriced solve's own objective
+  ok   the published start count is the edge count of the shipped plan with the solve's running reading, on an engaged and an unengaged install alike
+  ok   null control, zero cost on a duty-cycle install: the solve never enters the candidate stage, and the running reading moves no array of its plan
+  ok   and that control has something to detect: where a start has a price the running reading moves the score by the start it saves
+  ok   null control: an unengaged solve ships any relaxed plan unchanged, the very array, the objective never consulted
+  ok   and with a plan that is not realizable the same call ships the projection when its objective fails: every step at the floor, as a clamped install shipped before
+  ok   the stage offers the relaxed plan itself where it already runs, and never where a step sits under the floor
+  ok   the stage's candidates hold a forced-on pin, an off window and a cap under the floor: on a duty-cycle install the capped step cycles as solved, on a clamped one every mask leaves it off
+  ok   a run that continues from a running compressor pays no start: at a start price that outbids its energy the plan's opening run is kept from a running compressor and dropped from a stopped one, by the program in every band
+  ok   and the stage commits with the horizon's running reading: its masks keep that opening run from a running compressor and drop it from a stopped one
+  ok   a candidate's levels are re-solved inside its own runs: an off step is held shut, an on step bounded at the floor, a step cycled under its cap held as it stands
+  ok   the running reading is the running signal's settled class where it has settled with no change pending, else the executing step's planned draw of either circuit by the plan's running rule, and the pump's record keeps the last one
+  ok   at a 5-minute step the stage's masks hold no run or pause shorter than the 10-minute minimums; committed at one-step lengths the same plans do
+  ok   selection on a stand-in objective: the stage ships the projection where it scores lowest and a committed mask where that does, and the two differ
+  ok   the best candidates' levels are re-solved inside their own runs: toward the same runs at 2.5 kW the shipped plan reaches it, off steps held shut
+  ok   each relaxed plan is committed on its own and the lowest score ships: a second relaxed plan lowers the score where its runs are the better ones, in either order, and never raises it
+  ok   in the full solves the shipped plan scores no higher on the true objective than any candidate the stage scored
+No electricity price data available; skipping optimization until prices can be fetched
+  ok   the coordinator's scheduled solve reads whether the compressor runs from its executing step, either circuit, and keeps the reading; before any solve the kept reading is not running
+  ok   the what-if solve takes the reading the live plan was solved with, not a fresh one: the two start counts the card compares share r[-1]
+  ok   the commit program is handed a forced-on pin and a hot-water step as on, a step with no room as off, and every other step free
+  ok   each candidate is scored in the scope of a solve started from it and held to that scope's bound, and the plan ships with the scope it was scored in
+  ok   the start term is no operand at zero cost or on a descent, and cycling_cost x the start count otherwise, scalar and batch
+  ok   the start price a solve plans with: the configured price, except that a clamped install configured at zero plans at the clamped default 0.1; a priced install keeps its own price below and above the default, and an unclamped install keeps zero
+  ok   failing case: the grid cell clamped at no configured price ships the plan it ships configured at the clamped default, with no more than the 2 starts the tree before pull request 3602 shipped (5 without the default) and fewer than the same install ships with the default patched to zero
+  ok   every optimizer reader of the start price reads start_price, never the raw configured cycling_cost, which only the property reads
+  ok   a solve is handed its humidity series only when it carries data: the very array with one finite value, None when empty or all unknown
+  ok   beside a hot-water charge a committed space step heats where the relaxed plan asked for half the floor or more: 0.6 kW of a 1.1 kW floor runs at the floor in every mask, 0.5 and 0.3 kW idle
+  ok   the stage box caps space at p_max less what the tank draws: 3.5, 0, 0.5 and 5.0 kW beside 2.0, 5.5, 5.0 and 0.5 kW of hot water, 4.4 kW beside the clamped projection of 0.5 kW, a pinned floor lowered to the room left, and the scope's own box with no tank
+  ok   the best re-solved candidate is polished once from its own point: at one iteration the plan that ships is the restart's, scoring below the run it restarted from
+  ok   the two best candidates are re-solved: where the best as it stands is a mask and the projection second, the projection's runs re-solved ship, every step on and scoring below the best mask's
+  ok   at a flat price, of two equal-cost masks that pause as many steps the plan asked for, the one that runs no step the plan left off ships
+  ok   at a flat price, of two equal-cost masks that run no step the plan left off, the one that pauses fewer steps the plan asked for ships
+
+ALL 60 FEATURES BLOCK PASSED
+rc=0

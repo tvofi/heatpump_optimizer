@@ -1,0 +1,38 @@
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 0.0: starts 5, energy_kwh 2.93, predicted_cost 1.4128, lowest_room 20.19
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 0.05: starts 3, energy_kwh 2.75, predicted_cost 1.3468, lowest_room 20.22
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 0.1: starts 2, energy_kwh 2.75, predicted_cost 1.3980, lowest_room 20.22
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 0.25: starts 2, energy_kwh 2.75, predicted_cost 1.3980, lowest_room 20.22
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 0.5: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 1.0: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 1.5: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 2.5: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 5.0: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, clamped, configured 0, default 10.0: starts 1, energy_kwh 2.28, predicted_cost 1.2824, lowest_room 19.96
+grid p_min 1.1 loss 0.4, null priced clamped (configured 0.25): without default starts 2, energy_kwh 2.75, predicted_cost 1.3980, lowest_room 20.22; default 10.0: starts 2, energy_kwh 2.75, predicted_cost 1.3980, lowest_room 20.22; array-equal True
+grid p_min 1.1 loss 0.4, null unpriced unclamped (configured 0.0): without default starts 3, energy_kwh 2.80, predicted_cost 1.4106, lowest_room 20.14; default 10.0: starts 3, energy_kwh 2.80, predicted_cost 1.4106, lowest_room 20.14; array-equal True
+cycling_cost, clamped, configured 0, default 0.0: starts 7, energy_kwh 42.04, predicted_cost 32.0354, lowest_room 16.87
+cycling_cost, clamped, configured 0, default 0.05: starts 7, energy_kwh 42.04, predicted_cost 32.0354, lowest_room 16.87
+cycling_cost, clamped, configured 0, default 0.1: starts 7, energy_kwh 42.04, predicted_cost 32.0354, lowest_room 16.87
+cycling_cost, clamped, configured 0, default 0.25: starts 7, energy_kwh 42.04, predicted_cost 32.0354, lowest_room 16.87
+cycling_cost, clamped, configured 0, default 0.5: starts 5, energy_kwh 42.29, predicted_cost 32.5779, lowest_room 17.03
+cycling_cost, clamped, configured 0, default 1.0: starts 4, energy_kwh 42.29, predicted_cost 33.3579, lowest_room 17.09
+cycling_cost, clamped, configured 0, default 1.5: starts 4, energy_kwh 42.29, predicted_cost 33.3579, lowest_room 17.09
+cycling_cost, clamped, configured 0, default 2.5: starts 3, energy_kwh 42.29, predicted_cost 35.6129, lowest_room 17.22
+cycling_cost, clamped, configured 0, default 5.0: starts 2, energy_kwh 42.29, predicted_cost 39.3429, lowest_room 17.42
+cycling_cost, clamped, configured 0, default 10.0: starts 2, energy_kwh 42.29, predicted_cost 39.3429, lowest_room 17.42
+cycling_cost, null priced clamped (configured 1.5): without default starts 4, energy_kwh 42.29, predicted_cost 33.3579, lowest_room 17.09; default 10.0: starts 4, energy_kwh 42.29, predicted_cost 33.3579, lowest_room 17.09; array-equal True
+cycling_cost, null unpriced unclamped (configured 0.0): without default starts 7, energy_kwh 41.47, predicted_cost 31.0590, lowest_room 16.90; default 10.0: starts 7, energy_kwh 41.47, predicted_cost 31.0590, lowest_room 16.90; array-equal True
+everything_on, clamped, configured 0, default 0.0: starts 5, energy_kwh 69.57, predicted_cost 63.2857, lowest_room 17.91
+everything_on, clamped, configured 0, default 0.05: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 0.1: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 0.25: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 0.5: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 1.0: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 1.5: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97
+everything_on, clamped, configured 0, default 2.5: starts 3, energy_kwh 69.45, predicted_cost 64.5234, lowest_room 17.94
+everything_on, clamped, configured 0, default 5.0: starts 2, energy_kwh 67.32, predicted_cost 65.8530, lowest_room 17.80
+everything_on, clamped, configured 0, default 10.0: starts 1, energy_kwh 62.49, predicted_cost 66.9418, lowest_room 17.53
+everything_on, null priced clamped (configured 0.5): without default starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97; default 10.0: starts 4, energy_kwh 69.94, predicted_cost 63.4567, lowest_room 17.97; array-equal True
+everything_on, null unpriced unclamped (configured 0.0): without default starts 4, energy_kwh 68.29, predicted_cost 61.7167, lowest_room 17.82; default 10.0: starts 4, energy_kwh 68.29, predicted_cost 61.7167, lowest_room 17.82; array-equal True
+null pairs that differ 0
+rc=0
