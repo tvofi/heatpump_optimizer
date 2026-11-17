@@ -1863,9 +1863,9 @@
     "From r11-outside-honest-dhw-runs, body item be94cc35: `finding-propagation.md`: `unclear`: a dependency on a handed-off, unmerged predecessor (P2's mutants file) has no tree to land a carry in; it is named in this body only. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (items be94cc35)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-outside-honest-starts-runs-p3",
-    "commit": null,
+    "commit": "332da69b74650d086f65345c2209c13ff35269a8",
     "last_step": null,
     "next_step": "fixer (M, opus) after pull request 3602 merges: measure first, return the table to tvofi, build at his value (ruling Q2)",
     "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2): the default start price (owner ruling Q2), a distinct seam from the shared files' other owners; merged in train order | set-files files ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/configuration.md'] -> ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/configuration.md', 'dev/audit/harnesses/r11_honest_starts_runs.py'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
@@ -1920,13 +1920,13 @@
     "From r11-outside-honest-dhw-runs, body item d364f59d: The clamped tail, test 7's figures (`tail` arm): the start count of the combined draw is the same with the tail allowed and refused on all three installs and the combi fixture, so it saves no start there. Carry: R11-OUTSIDE-HONEST-DHW-RUNS (decision: owner, the note's Decisions routed) (items d364f59d)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-honest-dhw-runs",
     "commit": null,
     "last_step": null,
     "next_step": "designer (L, fable) when its last predecessor dispatches; design review; fixer only on Design review: approve",
     "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2, R11-OUTSIDE-HONEST-STARTS-RUNS-P3): the note's group B, hot-water charges as runs in dhw_planner.py; shares tests/features.py and optimizer.py with distinct seams, merged in train order | set-files files ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/architecture.md'] -> ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/architecture.md', 'custom_components/heatpump_optimizer/runs.py'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
-    "pr": null
+    "pr": 3709
    }
   },
   {
@@ -3621,8 +3621,8 @@
     "From r11-arch-objective, body item 390ea33c: The settlement reads keyed rows from an objective record's `keyed.<kind>` (`escapes` rows by `key`, `classes` by `class`, `injected` by `group`, `rereport` by `finding`, `examined_by` by `group`). `dev/audit/yardstick/round10/OBJECTIVE.json` has none, so those lines settle UNDECIDED: the self-test arm \"at the next close they settle on keyed rows, and with none they are UNDECIDED\". Decision 0018 section 6's record shape would have to name those rows, or the settlement credits nothing. The approved design leaves 0018 unedited and routes \"the roster's files name the 0018 record\" to the orchestrator (design verdict, `decision: orchestrator`). No live group after this one can receive it: `carry_audit.py check --pr-group R11-ARCH-OBJECTIVE` prints \"valid targets: none live after R11-ARCH-OBJECTIVE\". So it stays with this group, pending that ruling. Carry: R11-ARCH-OBJECTIVE (items 390ea33c)"
    ],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "e3c75934c29f885a1fb7102d3a3ca2091120eb31",
     "branch": "fix/r11-arch-objective",
     "last_step": null,
     "next_step": "designer on fable",
