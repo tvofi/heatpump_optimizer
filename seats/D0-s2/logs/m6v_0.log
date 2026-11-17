@@ -1,0 +1,2 @@
+RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/plain/48h|d2.0|R16|e1.0|cell]=2.8234847630138806 pct
+RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/no-dhw/plain/48h|d2.0|R16|e1.0|cell]=0.9979154241858075 pct

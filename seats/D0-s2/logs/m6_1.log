@@ -1,1 +1,14 @@
 RESULT realised_gap_pct[winter_typical/shoulder/two-zone/no-dhw/wood/6h|d1.0|R16|e1.0|cell]=0.052052874457402004 pct
+RESULT realised_gap_pct[winter_extreme/winter_cold/two-zone/dhw/wood/24h|d1.0|R16|e1.0|cell]=0.14305752440412695 pct
+RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/dhw/wood/48h|d1.0|R16|e1.0|cell]=0.25781871148216423 pct
+RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/plain/48h|d1.0|R16|e1.0|cell]=2.8234847630138806 pct
+RESULT realised_gap_pct[winter_extreme/winter_mild/two-zone/dhw/wood/48h|d1.0|R16|e1.0|cell]=0.7120605468471707 pct
+RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/48h|d1.0|R16|e1.0|cell]=-0.7377888031590157 pct
+RESULT realised_gap_pct[winter_moderate/winter_mild/two-zone/dhw/plain/24h|d1.0|R16|e1.0|cell]=-0.22666162835628118 pct
+RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/dhw/valve-storage/48h|d1.0|R16|e1.0|cell]=-15.198495092600417 pct
+RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/no-dhw/valve-storage/24h|d1.0|R16|e1.0|cell]=-7.7595219891467195 pct
+RESULT realised_gap_pct[winter_extreme/winter_cold/single-zone/dhw/manual-valve-buffer/24h|d1.0|R16|e1.0|cell]=0.19100267976378701 pct
+RESULT realised_gap_pct[winter_moderate/winter_mild/two-zone/no-dhw/manual-valve-buffer/48h|d1.0|R16|e1.0|cell]=1.3157586842705904 pct
+RESULT realised_gap_pct[winter_extreme/shoulder/single-zone/no-dhw/plain/24h|d1.0|R16|e1.0|cell]=-0.14376037287429627 pct
+RESULT realised_gap_pct[winter_typical/winter_cold/single-zone/dhw/flow-setpoint-behind-valve/24h|d1.0|R16|e1.0|cell]=-0.3637220850822801 pct
+RESULT realised_gap_pct[winter_moderate/winter_mild/single-zone/no-dhw/plain/48h|d1.0|R16|e1.0|cell]=-0.10912956044559048 pct
