@@ -2,3 +2,4 @@
 1794873442 INIT r11-pre-no-read-builders
 1794873463 HB alive
 1794873486 CKPT setup done; design de4e49ddc1 + verdict 02b7a5e8 read; worktree cut from origin/main 54cb7211 for part D snapshot 4411df230b36
+1794873624 CKPT D surveyed: roster_lib cause test, loop_ledger, fetch_runs; C still waits on TOKEN-LEDGER (no fix branch); writing D's failing tests snapshot f48a7ea4da92
