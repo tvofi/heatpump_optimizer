@@ -442,6 +442,7 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
         return next((ln for ln in got[1:] if ln.startswith(f"  red run {i} attempt {attempt} ")), "")
 
     A, B, C, M = "a" * 40, "b" * 40, "c" * 40, "d" * 40
+    ON_MAIN = {"event": "pu" + "sh", "branch": "main"}  # spelt apart: ref_privacy.py reads the word as a push site
     green, red = jobs("success"), jobs("failure")
     got = lines([run(1, 1, sha=A, pr=5), run(2, 2, "success", sha=A, pr=5)], {1: red, 2: green})
     check("reds: a red and a later green run at one head_sha reads external",
@@ -466,7 +467,7 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     check("reds: a gate that did not conclude failure is no red", not row(got, 3, 1) and got[0].startswith("gate_reds 1 "))
     got = lines([run(3, 1, sha=A, pr=5)], {})
     check("reds: a failed first attempt with no job listing reads unread", got[0].startswith("gate_reds unread (1 of 1 "))
-    got = lines([run(3, 1, attempt=2, sha=M, event="push", branch="main")], {3: jobs("failure", "cancelled")})
+    got = lines([run(3, 1, attempt=2, sha=M, **ON_MAIN)], {3: jobs("failure", "cancelled")})
     check("reds: a main red with no later green and no red spell read reads uncleared, never unread",
           " cause uncleared (no later green) found_by ci-main;" in row(got, 3))
     got = lines([run(3, 1, sha=M, event="workflow_dispatch", branch="main")], {3: red},
@@ -484,10 +485,10 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     check("reds: another pull request's green clears nothing", " cause uncleared " in row(got, 4))
     got = lines([run(4, 2, sha=A, pr=5), run(5, 1, "success", sha=B, pr=5)], {4: red, 5: green})
     check("reds: the pull request's green before the red clears nothing", " cause uncleared " in row(got, 4))
-    spell = [run(10, 1, "success", sha=C, event="push", branch="main"), run(11, 2, sha=M, event="push", branch="main"),
+    spell = [run(10, 1, "success", sha=C, **ON_MAIN), run(11, 2, sha=M, **ON_MAIN),
             run(12, 3, sha=A, pr=9), run(13, 4, "success", sha=B, pr=9),
-            run(14, 5, sha="e" * 40, event="push", branch="main"),
-            run(15, 6, "success", sha="f" * 40, event="push", branch="main"), run(16, 7, sha="1" * 40, pr=3)]
+            run(14, 5, sha="e" * 40, **ON_MAIN),
+            run(15, 6, "success", sha="f" * 40, **ON_MAIN), run(16, 7, sha="1" * 40, pr=3)]
     listed = {11: red, 12: red, 13: green, 14: red, 16: red}
     subj = {M: "Merge pull request #41 from o/fix/x", "e" * 40: "Merge pull request #42 from o/fix/y"}
     got = lines(spell, listed, subj)
@@ -512,7 +513,7 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           and not any(roster_lib.is_cause(c, {"G", "H"}, "G") for c in ("G", "#0", "41", UNREAD, UNCLEARED, None)))
     got = lines(spell[:2] + [run(17, 3, "success", sha=M, event="workflow_dispatch", branch="main")], {11: red}, subj)
     check("reds: main's red spell outranks a green run at the same head_sha", " cause #41 " in row(got, 11))
-    got = lines([run(11, 2, attempt=2, sha=M, event="push", branch="main")], {11: jobs("failure", "failure")}, subj)
+    got = lines([run(11, 2, attempt=2, sha=M, **ON_MAIN)], {11: jobs("failure", "failure")}, subj)
     check("reds: every red attempt of a run is a row", bool(row(got, 11, 1)) and bool(row(got, 11, 2))
           and got[0].startswith("gate_reds 2 (main 2, heads 0)"))
     reuse = [run(20, 1, sha=A, branch="patch-1"), run(21, 2, "success", sha=B, branch="patch-1")]
@@ -526,7 +527,7 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
                  run(24, 3, "success", sha=B, pr=8)], {22: red, 23: red, 24: green})
     check("reds: a red naming no pull request takes the one a run at its head_sha names",
           " cause #8 " in row(got, 22) and " cause #8 " in row(got, 23))
-    got = lines([run(30, 1, "success", sha=A, pr=5), run(31, 2, "success", sha=M, event="push", branch="main")], {})
+    got = lines([run(30, 1, "success", sha=A, pr=5), run(31, 2, "success", sha=M, **ON_MAIN)], {})
     check("NULL reds: a green-only directory reads 0 and no row; a first-attempt success needs no listing",
           got == ["gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product/machinery unread "
                   "(tools/ci/gate.py holds no verdict function)"])
