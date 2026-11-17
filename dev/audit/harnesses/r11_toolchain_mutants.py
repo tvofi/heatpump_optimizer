@@ -41,6 +41,7 @@ tools/audit/seat/cloud_dispatch.py (carry 10: the payload names the approved des
   D-part-always     an unsplit group's design line speaks of parts.
   D-order           the design line follows the part line.
   D-stale-approval  an approval of a design that has since moved is one.
+  D-no-verdict      a design with no verdict ref reads the verdict fetched last.
 tools/audit/seat/cloud-setup.sh (carry 11: a check read under each kernel class):
   K-pin-kept        --kernels runs the command under the seat's pinned class every time.
   K-probe           a class OpenBLAS does not load is run and counted.
@@ -50,7 +51,7 @@ tools/audit/seat/cloud-setup.sh (carry 11: a check read under each kernel class)
 
     python3 dev/audit/harnesses/r11_toolchain_mutants.py
 
-EXPECTED RESULT mutants=36
+EXPECTED RESULT mutants=37
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -120,6 +121,8 @@ PLANTS = {
     "D-part-always": (DISPATCH, '    if part:\n        line += (" Its parts', '    if True:\n        line += (" Its parts'),
     "D-order": (DISPATCH, "for ln in (dline, pline) if ln),", "for ln in (pline, dline) if ln),"),
     "D-stale-approval": (DISPATCH, '    return tip if first == f"Design review: approve {tip}" else ""\n', "    return tip\n"),
+    "D-no-verdict": (DISPATCH, '    if not _git(repo_dir, "ls-remote", "origin", vref).split():\n        return ""\n',
+                     '    if not _git(repo_dir, "ls-remote", "origin", vref).split():\n        pass\n'),
     "K-pin-kept": (SETUP, '    rc=0; OPENBLAS_CORETYPE=$k "$@" || rc=$?\n', '    rc=0; "$@" || rc=$?\n'),
     "K-probe": (SETUP, '    if [ "$got" != "$k" ]; then\n', "    if false; then\n"),
     "K-red": (SETUP, '    ran="$ran $k"; [ "$rc" = 0 ] || red="$red $k"\n', '    ran="$ran $k"\n'),

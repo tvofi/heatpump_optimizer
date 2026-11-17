@@ -989,6 +989,8 @@ def _group_checks(check) -> None:
                   "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
             # R11-PRE-TOOLCHAIN-PIN carry 10: a part of a designed group.
             git(work, "push", "-q", "origin", f"{tip}:refs/heads/design/R10-DSPLIT")
+            check("a design with no verdict ref is not approved by another group's verdict of the same commit, fetched just before",
+                  design_approved(str(work), "R10-BIG") == tip and why_any("R10-DSPLIT", part=2).startswith("R10-DSPLIT is size L"))
             _publish(str(work), "design-verdict/R10-DSPLIT", {"verdict.md": f"Design review: approve {tip}\n"})
             stext = fetched(dispatch("R10-DSPLIT", part=2), "PROMPT.md").splitlines()
             cuts = [ln for ln in stext if ln.startswith("Approved design (decision 0014): design.md at " + tip + ", the design/R10-DSPLIT tip")]
