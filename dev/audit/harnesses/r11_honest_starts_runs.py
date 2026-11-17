@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|defaults|gradient|stress|kernels
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|defaults|gradient|stress|kernels|identity|stage
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
@@ -105,6 +105,32 @@ a block fails a check or does not complete under any kernel, so the mode
 with one kernel named is a command ``tools/audit/seat/mutant_run.py`` can
 drive; a kernel this processor cannot run is printed as such and counted as
 not completed.
+
+``identity [seed]``: the leaf's identity arms (design note round 3, item a2).
+The design review's leaf generator (``ev/reviewer_leaf_props.py`` of the
+round-1 fix verdict at 04e5bcfca3, seed 0 by default), 3000 realizable
+plans, ``runs.commit`` at band 2 with one-step lengths and the cap at p_max:
+per arm, the masks other than the plan's own. Arms: prices and start price as
+generated; start price zero; a flat price of 1.0 and start price zero; price
+and start price zero; that arm with ``runs._TIE_BREAK`` at 0, the
+perturbation. Exits 1 when the zero arm moves a mask or its perturbation
+moves none.
+
+``stage [seed] [cells]``: the candidate stage per call (design note round 3,
+item a2; design verdict item r1), a spy on ``optimizer._commit_runs`` over
+the 12 cells of ``descents`` and over the design review's generated solves
+(``ev/reviewer_solve_props.py``'s generator at 04e5bcfca3, seed 1 and 140
+cells by default; 0 cells reads the ``descents`` cells alone).
+Per set: engaged stage calls; of those handed two relaxed plans, the shipped
+score against the same call re-run with the first relaxed plan alone, both
+in their shipped scopes (below, equal, above); and the calls whose first
+relaxed plan is realizable beside the tank, shipped changed or not and how
+many price a start. Per changed one: the gain, the relaxed plan clipped into
+the shipped scope's box and scored in that scope less the shipped score,
+printed beside the clip distance (kW the relaxed plan lay outside that box),
+and the edges of the combined draw before and after. Exits 1 when a call's
+two plans score above its first alone or a changed realizable plan scores
+above its clipped relaxed plan.
 """
 from __future__ import annotations
 
@@ -114,6 +140,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import datetime, timezone
 
 import numpy as np
@@ -505,6 +532,177 @@ def stress_cost() -> int:
     return 1 if bad else 0
 
 
+def identity() -> int:
+    from heatpump_optimizer import runs
+
+    rng = np.random.default_rng(int(sys.argv[2]) if len(sys.argv) > 2 else 0)
+    arms = ("as generated", "start price zero", "flat price, start price zero",
+            "price zero, start price zero", "price zero, start price zero, tie break 0")
+    moved, kept_tie = dict.fromkeys(arms, 0), runs._TIE_BREAK
+    for t in range(3000):
+        # The design review's leaf generator, its draws in its order: only the
+        # realizable plan, its step width, prices and start price are read.
+        n = int(rng.integers(1, 40))
+        f = float(rng.choice([0.0, 0.05, 0.53, 1.0, 1.1, 5.5]))
+        floor = runs.floor_kw(f)
+        p_max = max(5.5, floor)
+        q = np.where(rng.random(n) < 0.5, rng.uniform(floor, p_max, n), 0.0)
+        rng.uniform(0, p_max, (5, n)), rng.random((5, n))
+        if n >= 2:
+            rng.random(n)
+        dt = float(rng.choice([1 / 12, 0.25, 0.5, 1.0]))
+        rng.uniform(0, p_max, n), rng.random(n), rng.choice([0.2, 1.0])
+        rng.random(n), rng.uniform(0, floor * 1.2, n), rng.random(n), rng.random(n)
+        prices = rng.uniform(-0.2, 3, n) if t % 3 else np.full(n, 1.0)
+        start = float(rng.choice([0.0, 0.25, 5.0]))
+        rng.random()
+        for arm, price, cost in zip(arms, (prices, prices, 1.0, 0.0, 0.0), (start, 0.0, 0.0, 0.0, 0.0)):
+            runs._TIE_BREAK = 0.0 if arm.endswith("tie break 0") else kept_tie
+            try:
+                mask = runs.commit(q, price, f, p_max, cost, 2, dt=dt, lengths=(1, 1))[0]
+            finally:
+                runs._TIE_BREAK = kept_tie
+            moved[arm] += not np.array_equal(mask, q > 0.0)
+    for arm in arms:
+        print(f"{arm}: masks other than the realizable plan's own {moved[arm]} of 3000")
+    bad = moved[arms[3]] != 0 or moved[arms[4]] == 0
+    print(f"identity arm moved, or its perturbation moved nothing {int(bad)}")
+    return 1 if bad else 0
+
+
+_SOLVE_INSTALLS = {"duty1.1": (False, 1.1), "duty0": (False, 0.0), "clamp1.5": (True, 1.5), "fixed5.5": (True, 5.5)}
+
+
+def _generated_cells(seed: int, count: int):
+    """The design review's solve generator (``ev/reviewer_solve_props.py`` at 04e5bcfca3): each
+    cell's installation, price, extras and outdoor mean, with its own draws."""
+    import itertools
+
+    rng = np.random.default_rng(seed)
+    prices = {
+        "sine": lambda: 1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - 30) / 96.0), "flat": lambda: np.full(96, 1.0),
+        "spiky": lambda: np.where(rng.random(96) < 0.2, 4.0, 0.6) - 0.8 * (rng.random(96) < 0.1),
+    }
+    cells = list(itertools.product(
+        _SOLVE_INSTALLS, (0.0, 0.25, 2.0), (False, True), ((0.0, 0.0), (1.0, 0.0), (0.6, 0.9)), (False, True),
+        prices, ("none", "caps", "pins_on", "pins_off", "off_steps"), (-4.0, 4.0, 10.0)))
+    rng.shuffle(cells)
+    done = 0
+    for cell in cells:
+        if done >= count:
+            return
+        inst, cost, dhw_on, pair, running, price, extra, out_mean = cell
+        if not dhw_on and pair != (0.0, 0.0):
+            continue
+        done += 1
+        clamp, p_min = _SOLVE_INSTALLS[inst]
+        params = ThermalParameters()
+        params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
+        params.min_electrical_power, params.max_electrical_power = p_min, 5.5
+        params.dhw_enabled = dhw_on
+        cfg = om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost)
+        cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, (501.0, 300.0)
+        outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
+        kw = {}
+        win = np.zeros(96, bool)
+        a = int(rng.integers(0, 80))
+        win[a:a + int(rng.integers(1, 12))] = True
+        if extra == "caps":
+            kw["power_caps_extra"] = np.where(win, float(rng.choice([0.0, 0.6, 1.2, 2.0])), 99.0)
+        if extra in ("pins_on", "pins_off"):
+            kw["space_pins"] = np.where(win, 1.0 if extra == "pins_on" else 0.0, np.nan)
+        if extra == "off_steps":
+            kw["off_steps"] = win
+        inputs = solve_inputs(
+            initial_state=ThermalState(
+                room_temperature=20.5, upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                slab_temperature=21.0, outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
+                dhw_temperature=45.0, dhw_hours_since_legionella=20.0),
+            prices=prices[price](), outdoor_temps=outdoor, start_time=T0, **kw)
+        yield cell, om.HeatPumpOptimizer(ThermalModel(params), cfg), replace(inputs, compressor_running=running)
+
+
+def _stage_calls(solve) -> list[dict]:
+    """Each engaged ``_commit_runs`` call of ``solve()``: the shipped plan's
+    score; with two relaxed plans, the same call's with the first alone; and
+    with a realizable first relaxed plan, its gain and clip distance."""
+    from heatpump_optimizer import runs
+
+    kept, calls = om._commit_runs, []
+
+    def spy(opt, h, scope, relaxed, dhw, maxiter, rescope=None):
+        before = opt._space_avail
+        plan, shipped = kept(opt, h, scope, relaxed, dhw, maxiter, rescope)
+        if not om._engaged(opt):
+            return plan, shipped
+        after, args = opt._space_avail, (() if dhw is None else (dhw,))
+        row = {"score": float(shipped[1](plan, *args))}
+        if len(relaxed) > 1:
+            opt._space_avail = before
+            alone, alone_scope = kept(opt, h, scope, relaxed[:1], dhw, maxiter, rescope)
+            row["alone"] = float(alone_scope[1](alone, *args))
+        lo, hi, other, _ = om._stage_box(opt, shipped[0], dhw)
+        if runs.realizable(relaxed[0] + other, runs.floor_kw(opt.model.params.min_electrical_power)):
+            clipped = np.clip(relaxed[0], lo, hi)
+            row["realizable"] = {
+                "changed": not np.array_equal(plan, relaxed[0]), "priced": opt.config.cycling_cost > 0,
+                "gain": float(shipped[1](clipped, *args)) - row["score"],
+                "clip_kw": float(np.max(np.abs(clipped - relaxed[0]))),
+                "edges": (edges(relaxed[0] + other), edges(plan + other)),
+            }
+        opt._space_avail = after
+        calls.append(row)
+        return plan, shipped
+
+    om._commit_runs = spy
+    try:
+        solve()
+    finally:
+        om._commit_runs = kept
+    return calls
+
+
+def stage() -> int:
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    count = int(sys.argv[3]) if len(sys.argv) > 3 else 140
+    if not hasattr(om, "_commit_runs"):
+        print("this tree has no candidate stage: nothing to read")
+        return 0
+    bad = 0
+    sets = {
+        "descents cells": [
+            (f"{name} price phase {phase} outdoor {out_mean}",
+             lambda c=clamp, p=p_min, ph=phase, o=out_mean: _switch_solve(c, p, PAIR, "both", ph, o))
+            for name, clamp, p_min in INSTALLS for phase, out_mean in DAYS],
+        f"generated cells, seed {seed}": [
+            (str(cell), lambda o=opt, i=inputs: o.optimize(inputs=i)) for cell, opt, inputs in _generated_cells(seed, count)],
+    }
+    for label, cells in sets.items():
+        two, real = {"below": 0, "equal": 0, "above": 0}, []
+        engaged = 0
+        for name, solve in cells:
+            for row in _stage_calls(solve):
+                engaged += 1
+                if "alone" in row:
+                    gap = row["score"] - row["alone"]
+                    two["below" if gap < -1e-9 else "above" if gap > 1e-9 else "equal"] += 1
+                if "realizable" in row:
+                    real.append((name, row["realizable"]))
+        changed = [(n, r) for n, r in real if r["changed"]]
+        print(f"{label}: {len(cells)} solves, {engaged} engaged stage calls; with two relaxed plans, both"
+              f" against the first alone: {sum(two.values())} calls, below {two['below']}, equal {two['equal']},"
+              f" above {two['above']}")
+        print(f"{label}: a realizable first relaxed plan in {len(real)} calls, shipped changed {len(changed)}"
+              f" ({sum(r['priced'] for _, r in changed)} pricing a start), unchanged {len(real) - len(changed)}"
+              f" ({sum(r['priced'] for n, r in real if not r['changed'])} pricing a start)")
+        for name, r in changed:
+            print(f"  {name}: priced {r['priced']}, gain {r['gain']:.4f} against the relaxed plan clipped"
+                  f" {r['clip_kw']:.3f} kW into the shipped scope's box, edges {r['edges'][0]} to {r['edges'][1]}")
+        bad += two["above"] + sum(r["gain"] < -1e-9 for _, r in changed)
+    print(f"calls whose two plans scored above the first alone, or a changed realizable plan scored above it {bad}")
+    return 1 if bad else 0
+
+
 KERNELS = ("SkylakeX", "Haswell", "Sandybridge", "Nehalem")
 _BLOCK = 'R.section("R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs")'
 # The block that follows this group's in tests/features.py; the block runs up to it.
@@ -580,4 +778,5 @@ def kernels() -> int:
 
 if __name__ == "__main__":
     sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "defaults": defaults, "gradient": gradient,
-              "stress": stress_cost, "kernels": kernels}[sys.argv[1]]())
+              "stress": stress_cost, "kernels": kernels,
+              "identity": identity, "stage": stage}[sys.argv[1]]())
