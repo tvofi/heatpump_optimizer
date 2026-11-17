@@ -241,7 +241,7 @@
     "branch": "handoff/r10-gh-read-residue-p3",
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']",
     "pr": 3682,
-    "commit": "fc9e24c0892446af741faae60d3ac0473214b4f5"
+    "commit": "8f39313a44a4baec18b239ba925f6e164eb26bd2"
    }
   },
   {
