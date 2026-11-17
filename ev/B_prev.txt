@@ -1,0 +1,8 @@
+== prev
+RESULT selfset_2.2_swing0_control_s1=48/672_scale=1.000 lowest=0.733 highest=1.000 off5=6 verdict=does_not_follow
+RESULT selfset_2.2_swing0.15_p64_s1=667/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
+RESULT selfset_2.2_swing0.15_p80_s1=668/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
+RESULT selfset_2.2_swing0.3_p96_s1=665/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
+RESULT selfset_2.2_swing0.15_p120_s1=48/672_scale=1.000 lowest=0.676 highest=1.000 off5=6 verdict=does_not_follow
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s1=670/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
+RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s1=47/672_scale=1.000 lowest=0.672 highest=1.000 off5=7 verdict=does_not_follow
