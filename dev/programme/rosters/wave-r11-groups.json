@@ -4333,6 +4333,55 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-ROUND-METRICS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/round_metrics.py",
+    "tools/audit/seat/round_metrics_selftest.py",
+    "tools/audit/seat/loop_ledger.py",
+    "dev/governance/decisions/0018-objective-function.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "The convergence records decision 0018 (dev/governance/decisions/0018-objective-function.md, sections 2 and 4) still owes, and the escapes record they read: the per-step denominator with an off-cadence dimension reading 0 (found-by, cause and refix are on main), and tools/audit/seat/round_metrics.py reading rows shaped as dev/audit/rounds/round10/objective/escapes_hand.tsv. Null control: a dimension off cadence must read 0 in the denominator, not be dropped. Done when both are built with self-test arms. Not R11-ARCH-OBJECTIVE's seam: that group sets the architect's goals, not the records. Sources: R11-PRE-ROUND-METRICS (PR #3612), R11-PRE-PRODUCT-READS (PR #3665). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 174 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P744 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) sections 2 and 4 owe from this group's convergence records: found-by and owning dimension per escape (`none` is a value), the cause of an injected bug named by the root-cause seat and never the fixer, the per-step denominator with an off-cadence dimension reading 0, an examining pass over a late merge reporting its denominator, and a re-report naming the fix it follows (link 3, a fix that did not fix, has no other read). Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-INTAKE-R10-RESIDUE (items 2df48a3a)",
+    "From r11-pre-product-reads, body item 94f5e481: n11: `dev/audit/rounds/round10/objective/escapes_hand.tsv` is a hand-read escapes ledger with owner and ruling columns; the round-metrics instrument should read rows of that shape; routed as n6. Carry: R11-PRE-PRODUCT-READS (items 94f5e481)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-round-metrics",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-ROUND-METRICS carries 5; R11-PRE-PRODUCT-READS carries 3; overlap admitted (R11-CARRY-LOOP-LEDGER): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
