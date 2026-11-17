@@ -1,0 +1,7 @@
+RESULT functions_mutated=10
+NULL	tests/debug_collect.py	rc=0	selected=True
+NULL	tests/guard_pins.py	rc=0	selected=True
+NULL	tests/manual_plan.py	rc=0	selected=True
+NULL	tests/plan_view.py	rc=0	selected=True
+NULL	tests/solar_alignment.py	rc=0	selected=True
+NULL	tests/wood_advisor.py	rc=0	selected=True

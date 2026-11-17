@@ -1,0 +1,98 @@
+=== s2/flow_errors.py
+Traceback (most recent call last):
+ModuleNotFoundError: No module named 'homeassistant'
+=== s2/flow_errors.py --perturb
+Traceback (most recent call last):
+ModuleNotFoundError: No module named 'homeassistant'
+=== s2/services_icons.py
+RESULT leaf_strings_compared=4533 count
+RESULT placeholder_parity_mismatches=1 count
+RESULT services=15 count
+RESULT service_fields=87 count
+RESULT text_missing=0 count
+RESULT unit_fields_without_description=0 count
+RESULT services_without_icon=0 count
+RESULT orphan_icons=0 count
+RESULT icon_entity_keys=82 count
+RESULT raised_translation_keys=24 count
+RESULT exception_strings_missing=0 count
+RESULT exception_placeholders_unsupplied=1 count
+RESULT thread_factor=1.000
+RESULT load1=0.31
+RESULT swapins=0
+=== s2/services_icons.py --perturb-fix-de
+RESULT leaf_strings_compared=4533 count
+RESULT placeholder_parity_mismatches=0 count
+RESULT services=15 count
+RESULT service_fields=87 count
+RESULT text_missing=0 count
+RESULT unit_fields_without_description=0 count
+RESULT services_without_icon=0 count
+RESULT orphan_icons=0 count
+RESULT icon_entity_keys=82 count
+RESULT raised_translation_keys=24 count
+RESULT exception_strings_missing=0 count
+RESULT exception_placeholders_unsupplied=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.31
+RESULT swapins=0
+=== s3/m3_text.py
+RESULT en_page_titles=41 count
+RESULT en_title_case_titles=6 count
+RESULT sv_page_titles=41 count
+RESULT sv_title_case_titles=3 count
+RESULT en_straight_spans=64 count
+RESULT en_typographic_spans=6 count
+RESULT en_degree_without_sign=2 count
+RESULT de_straight_spans=27 count
+RESULT de_typographic_spans=95 count
+RESULT de_degree_without_sign=0 count
+RESULT sv_straight_spans=64 count
+RESULT sv_typographic_spans=4 count
+RESULT sv_degree_without_sign=0 count
+RESULT mixed_languages=3 count
+RESULT thread_factor=1.00
+RESULT load1=0.31
+RESULT swapins=0
+=== s3/m3_text.py --perturb=sentence_titles
+RESULT en_page_titles=41 count
+RESULT en_title_case_titles=0 count
+RESULT sv_page_titles=41 count
+RESULT sv_title_case_titles=0 count
+RESULT en_straight_spans=64 count
+RESULT en_typographic_spans=6 count
+RESULT en_degree_without_sign=2 count
+RESULT de_straight_spans=27 count
+RESULT de_typographic_spans=95 count
+RESULT de_degree_without_sign=0 count
+RESULT sv_straight_spans=64 count
+RESULT sv_typographic_spans=4 count
+RESULT sv_degree_without_sign=0 count
+RESULT mixed_languages=3 count
+RESULT thread_factor=1.00
+RESULT load1=0.31
+RESULT swapins=0
+=== s3/m3_text.py --perturb=de_quotes
+RESULT en_page_titles=41 count
+RESULT en_title_case_titles=6 count
+RESULT sv_page_titles=41 count
+RESULT sv_title_case_titles=3 count
+RESULT en_straight_spans=64 count
+RESULT en_typographic_spans=6 count
+RESULT en_degree_without_sign=2 count
+RESULT de_straight_spans=2 count
+RESULT de_typographic_spans=120 count
+RESULT de_degree_without_sign=0 count
+RESULT sv_straight_spans=64 count
+RESULT sv_typographic_spans=4 count
+RESULT sv_degree_without_sign=0 count
+RESULT mixed_languages=3 count
+RESULT thread_factor=1.00
+RESULT load1=0.31
+RESULT swapins=0
+=== leads/dead_placeholder.py
+Traceback (most recent call last):
+ModuleNotFoundError: No module named 'homeassistant'
+=== leads/dead_placeholder.py --perturb
+Traceback (most recent call last):
+ModuleNotFoundError: No module named 'homeassistant'

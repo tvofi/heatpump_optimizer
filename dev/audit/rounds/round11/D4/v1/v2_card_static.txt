@@ -1,0 +1,41 @@
+== s1-01
+  rence per pipe. const pipeDots = (fx, fy, tx, ty) => `<circle class="setup-pipe-dot" cx="$ { fx }
+  " r="2" />` + `<circle class="setup-pipe-dot" cx="$ { tx }
+  pper.h - SETUP_INSET; const yBot = lower.y + SETUP_INSET; return `<path class="setup-pipe$ { extra }
+  const f = anchor(a); const t = to(b); return `<path class="setup-pipe$ { extra }
+  .setup-pipe-dot { fill: var(--hpo-surface, #ffffff); stroke: var(--hpo-text-2, #727272); stroke-width: 1.5; opacity: 0.8; pointer-events: none; }
+  .setup-pipe { fill: none; stroke: var(--hpo-text-2, #727272); stroke-width: 1.5; opacity: 0.55; }
+  d in the muted ink while the coil is configured but not modelled. */ .setup-pipe.coil-pipe { stroke: var(--hpo-accent, #026aa8); stroke-width: 1.8; opacity: 0.85; }
+  .setup-pipe.coil-pipe.off { stroke: var(--hpo-text-2, #727272); stroke-dasharray: 3 3; opacity: 0.5; }
+  click target, and clicking a pipe is how one is removed. */ .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+  t what is clickable. */ .setup-svg.editing .setup-pipe-dot, .setup-svg.editing .setup-flow { display: none; }
+  .setup-pipe.layout-match { stroke: var(--hpo-primary, #03a9f4); opacity: 0.9; }
+  .setup-pipe.invalid { stroke: var(--error-color, #db4437); opacity: 0.95; stroke-dasharray: 6 4; }
+  "]` : `.setup-pipe[data-edge="$ { focusedEdge }
+  pipe-hit class present: False
+== s1-03
+  .hl-fold-head { display: flex; align-items: center; gap: var(--hpo-space-2, 8px); width: 100%; min-height: 32px; margin: 0; box-sizing: border-box; padding: 4px var(--hpo-space-3, 12px) 4px 4px; background: none; bor }
+  .hl-fold-head:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: -2px; border-radius: 4px; }
+  ">` + `<button type="button" class="hl-fold-head" data-fold="$ { key }
+  coarse block mentions hl-fold-head: False
+  .sp-filter, .sp-select floor list line: ['.sp-filter, .sp-select,', '.sp-filter, .sp-select {']
+== s3-01
+RESULT err_message_sites=10 lines=[11038, 11082, 11091, 11641, 11660, 13332, 13437, 13937, 14173, 15098] translation_key_reads=0 []
+== s3-03
+  .tooltip -> ['font-size: 0.78em']
+  .tooltip .tt-shared -> ['font-size: 0.85em']
+  dialog.expanded .tooltip -> ['font-size: 0.92em']
+  t stay inside (R9-UX-1). Here it keeps the tile's own 0.78 em. */ dialog.expanded .tooltip -> ['font-size: 0.78em']
+  .tooltip .tt-shared -> ['font-size: 0.85em']
+  .sp-note -> ['font-size: 0.8em']
+  .layout-verdict -> ['font-size: 0.85em']
+== s3-04
+   const ERROR_READABLE = "#ca4c46"; // 4.53:1 on #fff, white-on-it 4.53:1
+   const SUCCESS_READABLE = "#24845d"; // 4.63:1 on #fff
+   const WARNING_READABLE = "#a16900"; // 4.63:1 on #fff
+   const ERROR_READABLE_DARK = "#e0574d"; // 4.58:1 on #1c1c1c
+   const SUCCESS_READABLE_DARK = "#1fad6b"; // 5.88:1 on #1c1c1c
+   const WARNING_READABLE_DARK = "#ad7e1f"; // 4.69:1 on #1c1c1c
+== s3-05
+RESULT distinct_font_size_exprs=27
+   ['.9em', '0.78em', '0.82em', '0.85em', '0.88em', '0.8em', '0.92em', '0.95rem', '0.9em', '1.15em', '1.1em', '1.25em', '1.4em', '11px', '12px', '13px', '1em', '1rem', '2em', 'max(12px, 0.76em)', 'max(12px, 0.78em)', 'max(12px, 0.82em)', 'max(12px, 0.85em)', 'var(--hpo-text-lg, 18px)', 'var(--hpo-text-md, 15px)', 'var(--hpo-text-sm, 13px)', 'var(--hpo-text-xs, 12px)']

@@ -1,0 +1,254 @@
+{
+ "votes": [
+  {
+   "id": "D4-s1-01",
+   "vote": "verify",
+   "severity": "medium",
+   "value": 576,
+   "metric_definition": "pipe targets in layout_editing_dragged/tidy whose elementFromPoint band, normal to the pipe at its midpoint, is under 24 px (fine) or 44 px (coarse)",
+   "method": "V1 m1_pipes.mjs with a plan_view.py payload (planted copy); V2 static read of the card stylesheet for every .setup-pipe rule and any wider hit path",
+   "attacks": [
+    "perturbation PERTURB=1 (stroke-width 60): 576 -> 296 (down, as stated)",
+    "null control: port_hit_median_px 30.5 px, so the scan reads a sized target as sized",
+    "max band 5.75 px at 1280 px; min 0 (pipes under dragged boxes)",
+    "V2: the only editing rule is `.setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer }`; no transparent hit path exists (no pipe-hit class)",
+    "keyboard alternative: pipes are focusable (data-edge refocus, card.js:14779-14788). D4-criteria F1 has no equivalent-control exception, so it does not void the finding; it does bound the consequence for keyboard users"
+   ],
+   "reproduced": "576 of 576; max 5.75 px; port median 30.5 px; perturbed 296",
+   "independent_value": "stroke-width 3.5 user units is the whole hit target, with no wider hit path in the source",
+   "reachable": "yes: card layout editor in a real browser; no HA stub involved",
+   "class": "P9 (unfloored hit target): confirmed",
+   "seam_rule_enumerates": "yes: m1_browser.mjs strict_small covers every interactive element class in the grid; m1_pipes covers the SVG pipes it cannot box-measure",
+   "load1": 4.84,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s1-03",
+   "vote": "verify",
+   "severity": "low",
+   "value": 72,
+   "metric_definition": "interactive targets under 44 px under a coarse pointer (24 px fine) in the score_open state",
+   "method": "V1 m1_browser.mjs STATES=score_open (planted copy); V2 static: .hl-fold-head rule and the coarse floor selector list",
+   "attacks": [
+    "perturbation HPO_PERTURB adds .hl-fold-head to the floor list: 72 -> 0 (to_zero, as stated)",
+    "null: the 36 fine renders count 0 (72 renders, 72 targets, all coarse)",
+    "V2: `.hl-fold-head { min-height: 32px }`; the `.sp-filter, .sp-select` coarse floor list omits it"
+   ],
+   "reproduced": "72 (renders 72); perturbed 0",
+   "independent_value": "min-height 32px; .hl-fold-head absent from the coarse 44 px list",
+   "reachable": "yes: card on a touch device; no stub",
+   "class": "P9: confirmed",
+   "seam_rule_enumerates": "yes: strict_small over every interactive element",
+   "load1": 2.78,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s2-01",
+   "vote": "verify",
+   "severity": "low",
+   "value": 6,
+   "metric_definition": "(shipped translation language, window field) pairs whose config.error string reads {min_window_minutes} while the device_prefill form result carries no such placeholder; strings.json (the en source, not shipped to users) excluded",
+   "method": "V1 flow_errors.py in planted export copy (PYTHONPATH=tests/hastub; -I dropped as the header has none); V2 own AST scan of config_flow.py async_show_form/_device_prefill_form placeholder expressions vs error strings",
+   "attacks": [
+    "perturbation --perturb: 8 -> 0 as stated",
+    "null/control cells (modbus_prefill x2, config.dhw, options.hot_water, grid_fees x3): 0 unfilled",
+    "finder's 8 counts strings.json as a 4th 'language file'; only de/en/sv ship: 6 user-visible pairs",
+    "V2: L2720 device_prefill placeholders = {**disclaimer(), **notes} without _WINDOW_PLACEHOLDERS; dhw (L3155) and modbus_prefill (L3996) carry it"
+   ],
+   "reproduced": 8,
+   "independent_value": "device_prefill is the one window-error step whose placeholder expression lacks _WINDOW_PLACEHOLDERS; 3 shipped languages x 2 errors = 6",
+   "reachable": "yes: production form result; HA frontend formats step errors with the step's description_placeholders, no stub divergence involved; requires the pre-fill offer switched on and a resolving device",
+   "class": "P2 (sibling seam options.modbus_prefill carries the placeholder, config.device_prefill does not); corrected from new",
+   "seam_rule_enumerates": "partial: flow_errors.py drives a hand-listed 9 cells; V2's AST scan over every show_form site finds no further window step without the placeholder",
+   "tree": "planted export copy ../audit-r11-px-D4"
+  },
+  {
+   "id": "D4-s2-02",
+   "vote": "verify",
+   "severity": "low",
+   "value": 1,
+   "metric_definition": "translation leaves whose {placeholder} set differs from strings.json's for the same key",
+   "method": "V1 services_icons.py -I (planted copy); V2 own leaf walk over translations/*.json vs strings.json; services.py:606-608 read",
+   "attacks": [
+    "perturbation --perturb-fix-de: 1 -> 0 (both parity and exception_placeholders_unsupplied)",
+    "in-file control: en and sv of the same key read {entry_ids}",
+    "V2: 4533 leaves compared, 1 mismatch (de exceptions.run_optimization_no_prices.message {entry_id} vs {entry_ids})"
+   ],
+   "reproduced": 1,
+   "independent_value": 1,
+   "reachable": "yes for a German-language Home Assistant: services.py raises HomeAssistantError(translation_key=run_optimization_no_prices, translation_placeholders={entry_ids}); the de template names {entry_id}, which is never supplied. Exact rendering (raw braces or a fallback to the key) depends on HA's formatter, not measured here",
+   "class": "P6 (a reader names a key the producer never writes); corrected from new",
+   "seam_rule_enumerates": "yes: PLACEHOLDER_PARITY covers every leaf string and EXC_PLACEHOLDER every services.py raise",
+   "tree": "planted export copy"
+  },
+  {
+   "id": "D4-s3-01",
+   "vote": "verify",
+   "severity": "medium",
+   "value": 24,
+   "metric_definition": "sv/de cells in pin_fail/save_fail whose failure line contains an en exceptions.*.message prefix",
+   "method": "V1 m3_look.mjs --err=ha (planted copy); V2 static: card.js sites printing err.message vs reading translation_key",
+   "attacks": [
+    "perturbation err_localize: 24 -> 0",
+    "null --err=plain: 0",
+    "V2: 10 sites print err.message (card.js lines 11038, 11082, 11091, 11641, 11660, 13332, 13437, 13937, 14173, 15098); 0 read translation_key",
+    "--err=ha is the harness's model of the websocket rejection; in HA core, async_get_exception_message formats in en, so err.message is English. This was not executed against real HA"
+   ],
+   "reproduced": "24 of 24; perturbed 0; null 0",
+   "independent_value": "10 err.message print sites, 0 translation_key reads",
+   "reachable": "yes, provided HA's websocket error message is the en-formatted text (HA core behaviour, stated, not executed)",
+   "class": "new",
+   "seam_rule_enumerates": "yes: the grep lists every err.message site, matching V2's 10",
+   "load1": 2.93,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s3-02",
+   "vote": "verify",
+   "severity": "low",
+   "value": 12,
+   "metric_definition": "headline rows whose numbers differ in first-line bottom or font-size by >0.5 px",
+   "method": "V1 m3_look.mjs over the 6 states (planted copy); V2 the same instrument over the full 900-cell grid, to test confinement",
+   "attacks": [
+    "perturbation tile_nowrap: 12 -> 0",
+    "full grid: 12 misaligned rows, so no other state, viewport or language carries the defect (confined as claimed)"
+   ],
+   "reproduced": "12 of 108 cells' rows; perturbed 0",
+   "independent_value": "full 900-cell grid: 12, all inside the six states",
+   "reachable": "yes: card at 375 px in German",
+   "class": "new",
+   "seam_rule_enumerates": "yes: the selector grep lists every tile/hl label and value rule",
+   "load1": 4.14,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s3-03",
+   "vote": "verify",
+   "severity": "medium",
+   "value": 78,
+   "metric_definition": "cells with any visible HTML text run whose computed font-size < 12 px",
+   "method": "V1 m3_look.mjs over the 6 states plus the full grid (planted copy); V2 static: em font-sizes on the tooltip, tt-shared, sp-note and layout-verdict rules",
+   "attacks": [
+    "perturbation tooltip_floor: 78 -> 54 (down)",
+    "null: the full 900-cell grid also gives 78, so 0 cells outside the six states",
+    "leave-one-out: with the tooltip floored, 54 cells remain from .sp-note and .layout-verdict alone, so the count is not one element's artefact",
+    "V2: .tooltip 0.78em, .tt-shared 0.85em, .sp-note 0.8em, .layout-verdict 0.85em, all without the max(12px, ...) wrapper the card uses elsewhere"
+   ],
+   "reproduced": "78 cells (7 elements); perturbed 54; full grid 78",
+   "independent_value": "4 rules with a bare em font-size under the 12 px floor",
+   "reachable": "yes: card in a browser",
+   "class": "P9 (unfloored): confirmed",
+   "seam_rule_enumerates": "yes: the grep lists every bare em font-size",
+   "load1": 1.83,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s3-04",
+   "vote": "weaken",
+   "severity": "cosmetic",
+   "value": 5,
+   "metric_definition": "(theme, status role) pairs whose rendered colour set has more than one member",
+   "method": "V1 m3_look.mjs over the 10 states plus the full grid (planted copy); V2 static: the *_READABLE constants and their documented contrast",
+   "attacks": [
+    "perturbation one_error_colour: 5 -> 3 (down)",
+    "full grid: 5",
+    "V2: the second shade is a deliberate, separately named text tone. ERROR_READABLE #ca4c46 is commented 4.53:1 on #fff, SUCCESS_READABLE #24845d 4.63:1, and the _DARK variants carry their own ratios. These are text-on-surface tones; the pill and stripe colours are fills. Two of the 5 splits (warning #ffa600) are a non-text stripe against pill text",
+    "no reader-facing defect: every shade carries the same role and meets contrast, so this is a palette-consolidation preference"
+   ],
+   "reproduced": "5; perturbed 3",
+   "independent_value": "6 contrast-documented *_READABLE constants separate from the --hpo-crit/ok/warn tokens, by design",
+   "reachable": "yes: card in a browser",
+   "class": "new (not P9: no token is missing and nothing is clipped or unfloored)",
+   "seam_rule_enumerates": "yes: the grep lists every *_READABLE constant and status colour var",
+   "load1": 0.66,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s3-05",
+   "vote": "verify",
+   "severity": "low",
+   "value": 17,
+   "metric_definition": "distinct computed font-sizes of visible HTML text off {12,13,15,18} px over the full grid (subset of 10 states: 14); distinct off-scale spacings: 45",
+   "method": "V1 m3_look.mjs over the 10 states plus the full 900-cell grid (planted copy); V2 static: distinct font-size expressions in the stylesheet",
+   "attacks": [
+    "perturbation type_tokens: 14 -> 10 (down)",
+    "full grid: 17 sizes and 45 spacings, both exactly as claimed",
+    "null: the token-reading elements land on the scale",
+    "V2: 27 distinct font-size expressions in card.js; 23 are literal em/px/rem or max(12px, em), and only 4 are var(--hpo-text-*)"
+   ],
+   "reproduced": "14 (subset), 17 (full grid), spacing 45; perturbed 10",
+   "independent_value": "23 of 27 font-size expressions bypass the --hpo-text tokens",
+   "reachable": "yes: card in a browser",
+   "class": "new",
+   "seam_rule_enumerates": "yes: the grep lists every literal size and spacing declaration",
+   "load1": 0.64,
+   "thread_factor": 1.0,
+   "tree": "planted export copy ../audit-r11-px-D4, Chromium from /opt/pw-browsers (not the finder's 158.0.8127.18), playwright /opt/node-tools"
+  },
+  {
+   "id": "D4-s3-06",
+   "vote": "verify",
+   "severity": "low",
+   "value": 6,
+   "metric_definition": "en config/options step titles with a capitalised non-first word that is not all-caps and not a proper name",
+   "method": "V1 m3_text.py (planted copy); V2 own title scan with a proper-name list",
+   "attacks": [
+    "perturbation sentence_titles: en 6 -> 0, sv 3 -> 0",
+    "null: 35 of 41 en titles uncounted",
+    "V2: the same 6 en titles (user, temperature, thermal, zones, dhw, weather_sensitivity) and 3 sv (user, thermal, zones)"
+   ],
+   "reproduced": "en 6 of 41, sv 3 of 41",
+   "independent_value": "en 6 of 41, sv 3 of 41, identical titles",
+   "reachable": "yes: the config flow's first-run pages",
+   "class": "new (copy consistency)",
+   "seam_rule_enumerates": "yes: every config and options title in en and sv",
+   "tree": "planted export copy"
+  },
+  {
+   "id": "D4-s3-07",
+   "vote": "weaken",
+   "severity": "low",
+   "value": 7,
+   "metric_definition": "straight-quoted spans in de.json that quote prose (a UI label, an issue or button name, a word), excluding spans that quote a literal value the user types or a placeholder value",
+   "method": "V1 m3_text.py (planted copy); V2 own regex over de.json leaves, each span listed and classified; blueprint scan for a bare '<n> C'",
+   "attacks": [
+    "perturbation de_quotes: 27 -> 2 as stated",
+    "null: degree count 0 in de and sv",
+    "V2: 25 straight spans in de.json (finder 25), 82 typographic (finder 95 including card STRINGS)",
+    "18 of the 25 quote literal input values or placeholder values ('06:00-08:30, 17:00-22:00', '22:00-06:00', 'Nov-Mar', '{entry_id}', '{windows}'), where straight quotes delimit a value the user types; only 7 quote prose labels",
+    "blueprint economy_mode_on_price_peak.yaml: '1.5 C' and '15 C' confirmed"
+   ],
+   "reproduced": "de straight 27, typographic 95; en degree-without-sign 2",
+   "independent_value": "de.json 25 straight (7 prose, 18 literal or placeholder values), 82 typographic; 2 bare-C in one blueprint",
+   "reachable": "yes: rendered strings and the blueprint description",
+   "class": "new (copy consistency)",
+   "seam_rule_enumerates": "yes: all de strings and the card's STRINGS",
+   "tree": "planted export copy"
+  },
+  {
+   "id": "D4-s2-51",
+   "vote": "verify",
+   "severity": "low",
+   "value": 3,
+   "metric_definition": "shipped languages whose config.step.user strings never reference a placeholder that async_step_user passes",
+   "method": "V1 leads/dead_placeholder.py (planted copy); V2 grep of every component JSON for the literal {tibber_info} plus config_flow.py:2657-2664",
+   "attacks": [
+    "perturbation --perturb: unrendered 3 -> 0",
+    "null control unpassed=0",
+    "V2: 0 JSON files reference {tibber_info}; config_flow.py passes it once (async_step_user)"
+   ],
+   "reproduced": "passed=1 unrendered=3 unpassed=0",
+   "independent_value": "0 text references of {tibber_info}, 1 code pass",
+   "reachable": "yes: every first-run setup page; HA ignores an unused placeholder silently, so the Tibber token hint never appears",
+   "class": "new (inverse of P6: the producer writes a key no reader reads)",
+   "seam_rule_enumerates": "no: the harness checks async_step_user only, not every step's description_placeholders",
+   "tree": "planted export copy"
+  }
+ ]
+}

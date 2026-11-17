@@ -1,0 +1,42 @@
+== s2-01
+L2720 async_show_form step="device_prefill" window_ph=False ph={**device_prefill.disclaimer(), **notes}
+L3155 async_show_form step="dhw" window_ph=True ph=_WINDOW_PLACEHOLDERS
+L3996 async_show_form step="modbus_prefill" window_ph=True ph={
+                **_WINDOW_PLACEHOLDERS, **device_prefill.disclaimer(), **notes
+strings.json config.error.dhw_window_too_short
+strings.json config.error.silent_mode_window_too_short
+strings.json options.error.dhw_window_too_short
+strings.json options.error.silent_mode_window_too_short
+de.json config.error.dhw_window_too_short
+de.json config.error.silent_mode_window_too_short
+de.json options.error.dhw_window_too_short
+de.json options.error.silent_mode_window_too_short
+en.json config.error.dhw_window_too_short
+en.json config.error.silent_mode_window_too_short
+en.json options.error.dhw_window_too_short
+en.json options.error.silent_mode_window_too_short
+sv.json config.error.dhw_window_too_short
+sv.json config.error.silent_mode_window_too_short
+sv.json options.error.dhw_window_too_short
+sv.json options.error.silent_mode_window_too_short
+== s2-02
+MISMATCH de.json exceptions.run_optimization_no_prices.message ['entry_id'] vs ['entry_ids']
+RESULT v2_leaves_compared=4533 mismatches=1
+== s2-51
+RESULT tibber_info_text_refs=0 passed_in_code=1
+== s3-06
+en config.user: 'Heat Pump Optimizer Setup' caps=['Setup']
+en config.temperature: 'Temperature Settings' caps=['Settings']
+en config.thermal: 'Thermal Model & Optimization' caps=['Model', 'Optimization']
+en config.zones: 'Two-Zone & Solar Configuration' caps=['Zone', 'Solar', 'Configuration']
+en config.dhw: 'Domestic Hot Water (DHW) Configuration' caps=['Hot', 'Water', 'Configuration']
+en config.weather_sensitivity: 'Weather Sensitivity Parameters' caps=['Sensitivity', 'Parameters']
+RESULT en_titles=41 title_case=6
+sv config.user: 'Värmepumpsoptimering - Konfiguration' caps=['Konfiguration']
+sv config.thermal: 'Termisk modell & Optimering' caps=['Optimering']
+sv config.zones: 'Tvåzons- & Solkonfiguration' caps=['Solkonfiguration']
+RESULT sv_titles=41 title_case=3
+== s3-07
+RESULT de_json_straight=25 de_json_typographic=82 sample=['"06:00-08:30, 17:00-22:00"', '"{entry_id}"', '"{entry_id}"']
+BARE_C blueprints/automation/economy_mode_on_price_peak.yaml 1.5 C
+BARE_C blueprints/automation/economy_mode_on_price_peak.yaml 15 C

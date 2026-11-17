@@ -1,0 +1,444 @@
+{
+ "perturb": null,
+ "cells": 108,
+ "states": [
+  "score_open",
+  "score_open_typical",
+  "score_open_no_evidence",
+  "score_open_graded_pump",
+  "savings_open",
+  "folds_open"
+ ],
+ "missed": [],
+ "offscale_fonts": {
+  "14": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "span",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "div.wi-result",
+   "span.wi-value.wi-comfort-value",
+   "span.wi-value.wi-dhw-value",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "16": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "13.12": [
+   "span.hl-caveat",
+   "span.sb-name",
+   "span.sb-val",
+   "span.sb-na"
+  ],
+  "12.48": [
+   "div.sb-text.sb-drivers",
+   "div.sb-text"
+  ],
+  "19.6": [
+   "span.title"
+  ],
+  "16.66": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "12.16": [
+   "p.legend-note"
+  ],
+  "12.6": [
+   "div.wi-group-title",
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "17.5": [
+   "span.delta"
+  ]
+ },
+ "offscale_spacing": {
+  "1": [
+   "div.sb-row"
+  ],
+  "2": [
+   "div.header",
+   "span.tile-v",
+   "div.headline",
+   "span.hl-value",
+   "div.score-breakdown",
+   "div.dlg-head",
+   "div.legend",
+   "p.legend-note",
+   "input.wi-temp",
+   "input.wi-dhw-min",
+   "div.score-breakdown.why-now"
+  ],
+  "3": [
+   "span.status-pill.tone-ok",
+   "span.tile-u"
+  ],
+  "6": [
+   "span.status-pill.tone-ok",
+   "div.score-breakdown",
+   "span.legend-chips",
+   "ul.hl-narrative",
+   "div.score-breakdown.why-now"
+  ],
+  "7": [
+   "div.legend"
+  ],
+  "10": [
+   "span.status-pill.tone-ok"
+  ],
+  "10.78": [
+   "div.dlg-head"
+  ],
+  "8.82": [
+   "div.dlg-head"
+  ],
+  "5.88": [
+   "div.dlg-tabs"
+  ],
+  "5.83": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "14.99": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "7.2": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "13.6": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "11.2": [
+   "div.whatif"
+  ],
+  "4.2": [
+   "div.whatif"
+  ],
+  "2.1": [
+   "div.whatif"
+  ],
+  "9.8": [
+   "div.whatif",
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-section",
+   "div.wi-row.wi-slots",
+   "div.wi-row"
+  ],
+  "16.8": [
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-row.wi-slots",
+   "div.wi-row"
+  ],
+  "6.3": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "11.9": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "5.6": [
+   "div.wi-pin-result",
+   "div.wi-group",
+   "input.wi-day-start",
+   "input.wi-day-end",
+   "div.wi-windows",
+   "div.wi-quiet"
+  ],
+  "12.6": [
+   "div.wi-section"
+  ],
+  "7.7": [
+   "label.wi-field"
+  ],
+  "2.8": [
+   "input.wi-day-start",
+   "input.wi-day-end"
+  ],
+  "5.67": [
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "10.71": [
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "10.5": [
+   "div.legend"
+  ]
+ },
+ "misaligned_rows": [
+  {
+   "cell": "score_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_typical/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_no_evidence/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_graded_pump/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "savings_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "folds_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_typical/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_no_evidence/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_graded_pump/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "savings_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "folds_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  }
+ ],
+ "misaligned_by_state": {
+  "score_open/de-DE": 2,
+  "score_open_typical/de-DE": 2,
+  "score_open_no_evidence/de-DE": 2,
+  "score_open_graded_pump/de-DE": 2,
+  "savings_open/de-DE": 2,
+  "folds_open/de-DE": 2
+ },
+ "series_split": {},
+ "untranslated": {
+  "Most heating is placed in the cheapest hours.": [
+   "score_open/de-DE",
+   "score_open_typical/de-DE",
+   "score_open_no_evidence/de-DE",
+   "score_open_graded_pump/de-DE",
+   "savings_open/de-DE",
+   "score_open/sv-SE",
+   "score_open_typical/sv-SE",
+   "score_open_no_evidence/sv-SE",
+   "score_open_graded_pump/sv-SE",
+   "savings_open/sv-SE"
+  ]
+ },
+ "console_errors": [],
+ "role_colours": {
+  "light:ok": {
+   "rgb(28, 115, 80)": [
+    "span.status-pill.tone-ok @score_open",
+    "span.status-pill.tone-ok @score_open_typical",
+    "span.status-pill.tone-ok @score_open_no_evidence",
+    "span.status-pill.tone-ok @score_open_graded_pump",
+    "span.status-pill.tone-ok @folds_open"
+   ]
+  },
+  "dark:ok": {
+   "rgb(31, 173, 107)": [
+    "span.status-pill.tone-ok @score_open",
+    "span.status-pill.tone-ok @score_open_typical",
+    "span.status-pill.tone-ok @score_open_no_evidence",
+    "span.status-pill.tone-ok @score_open_graded_pump",
+    "span.status-pill.tone-ok @folds_open"
+   ]
+  }
+ },
+ "english_error_lines": [],
+ "below_floor": {},
+ "hl_rows_by_vp_lang": {
+  "375/en": [
+   12,
+   0
+  ],
+  "375/de-DE": [
+   12,
+   12
+  ],
+  "375/sv-SE": [
+   12,
+   0
+  ],
+  "768/en": [
+   12,
+   0
+  ],
+  "768/de-DE": [
+   12,
+   0
+  ],
+  "768/sv-SE": [
+   12,
+   0
+  ],
+  "1280/en": [
+   12,
+   0
+  ],
+  "1280/de-DE": [
+   12,
+   0
+  ],
+  "1280/sv-SE": [
+   12,
+   0
+  ]
+ }
+}
