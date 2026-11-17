@@ -14,7 +14,6 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r11-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-GH-READ-RESIDUE-P3 (stage carries-open, branch `handoff/r10-gh-read-residue-p3`): `git fetch origin handoff/r10-gh-read-residue-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-PREPR-DARWIN-SELFTEST-LANE (stage carries-open, branch `handoff/r10-prepr-darwin-selftest-lane`): `git fetch origin handoff/r10-prepr-darwin-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-PRE-TOOLCHAIN-PIN (stage carries-open, branch `fix/r11-pre-toolchain-pin-p3`): `git fetch origin fix/r11-pre-toolchain-pin-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -56,7 +55,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-RCA-SELFTEST-TABLE-DRIFT (stage in-progress, branch `fix/r11-rca-selftest-table-drift`): `git fetch origin fix/r11-rca-selftest-table-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-OBJECTIVE (stage in-progress, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R11-ADVISOR-MEASURES, R11-ARCH-OBJECTIVE, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-POLICY-TOKEN-CAP, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN, R11-RCA-SELFTEST-TABLE-DRIFT, R11-SERVICE-SCHEMA, R11-VALVE-REFERENCE
+Ready next (after-edges satisfied; nothing open constrains them): R10-GH-READ-RESIDUE-P3, R10-NUDGE-RETIRE, R11-ADVISOR-MEASURES, R11-ARCH-OBJECTIVE, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-POLICY-TOKEN-CAP, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOOLCHAIN-PIN, R11-PREPR-STEP-TIMING, R11-RCA-SELFTEST-TABLE-DRIFT, R11-SERVICE-SCHEMA, R11-VALVE-REFERENCE
 
 ## Resume steps
 
