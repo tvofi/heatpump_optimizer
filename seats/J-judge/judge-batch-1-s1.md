@@ -1,0 +1,22 @@
+| id | metric | expected | got | reproduced | direction | perturbed | perturbation | void | null_value | load1 | thread_factor | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D0-s2-01 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 0.52 |  | rc=127; load1 from batch; no thread_factor |
+| D1-s2-05 | v1_mutants |  | 200 | by-hand | to_zero |  | by-hand |  | by-hand | 0.82 | 1.000 |  |
+| D10-s1-01 | cases |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 | 1.000 |  |
+| D11-s1-02 | unmonitored | 1 | 2 | no | down |  | by-hand |  | by-hand | 0.84 | 1.000 |  |
+| D11-s3-04 |  |  |  | by-hand | up |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D14-s2-01 | quiet_stale_flags | 6, | 6 | no | to_zero |  | by-hand |  | by-hand | 0.84 | 1.000 |  |
+| D15-s2-05 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 |  | rc=1; load1 from batch; no thread_factor |
+| D16-s2-02 |  |  |  | by-hand | up |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D17-s2-02 | step0_outdoor_spread_K | 0.0 |  | by-hand | up |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D2-s2-02 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D2-s3-11 |  |  |  | by-hand | up |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D4-s3-05 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 0.84 |  | rc=1; load1 from batch; no thread_factor |
+| D5-s2-03 | lower_floor_ratio |  | 1.4 | by-hand | up |  | by-hand |  | by-hand | 0.84 | 1.000 |  |
+| D5-s3-03 | units | 2855, |  | by-hand | down |  | by-hand |  | by-hand | 0.84 |  | rc=127; load1 from batch; no thread_factor |
+| D5-s6-02 | stamp_record_class_res_len |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 | 1.00 |  |
+| D5-s8-02 | units | 3628, |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s1-02 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 0.84 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s5-05 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.84 |  | rc=1; load1 from batch; no thread_factor |
+| D7-s1-05 | counters_ablated |  | none | by-hand | to_zero |  | by-hand |  | by-hand | 0.95 | 1.00 |  |
+| D8-s1-02 | avail_none_cycles |  | 1 | by-hand | to_zero |  | by-hand |  | by-hand | 0.96 | 1.000 |  |
