@@ -2,7 +2,7 @@
 "script": "tests/typing_ruler.py",
 "rc": 0,
 "failed": 0,
-"seconds": 58.6,
+"seconds": 46.1,
 "reach": {
 "hits": {},
 "reads": [
@@ -103,7 +103,7 @@
 "custom_components/heatpump_optimizer/wood_fuel.py"
 ],
 "problems": [
-"starts a non-Python process: /root/d3s3-tmp/tmpwxz3nkxb/green-interpreter /root/d3s3-tmp/mutation-table-wsj7pu77/w2/tests/typing_ruler.py --mypy (+1)",
+"starts a non-Python process: /root/d3s3-tmp/tmpuzy15mm9/green-interpreter /root/d3s3-tmp/mutation-table-dymk4va9/w2/tests/typing_ruler.py --mypy (+1)",
 "4 processes started, 3 recorded"
 ],
 "processes": {

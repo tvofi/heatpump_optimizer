@@ -2,7 +2,7 @@
 "script": "tests/open_meteo.py",
 "rc": 0,
 "failed": 0,
-"seconds": 0.9,
+"seconds": 0.5,
 "reach": {
 "hits": {
 "custom_components/heatpump_optimizer/const.py": [

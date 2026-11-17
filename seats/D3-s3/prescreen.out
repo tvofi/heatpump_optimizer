@@ -12,3 +12,20 @@ MUTATION TABLE -- scope full: every production module
   baseline tests/deployment_shape.py: rc=0 failed=0 8s
   baseline tests/doc_claims.py: rc=1 failed=1 32s
   baseline tests/boost_drift_replay.py: rc=0 failed=0 606s
+  baseline tests/features.py: rc=0 failed=0 2105s
+  baseline tests/finite_boundary.py: rc=0 failed=0 282s
+  baseline tests/entities.py: rc=1 failed=2 1369s
+  baseline tests/guard_pins.py: rc=0 failed=0 11s
+  baseline tests/manual_plan.py: rc=0 failed=0 13s
+  baseline tests/open_meteo.py: rc=0 failed=0 1s
+  baseline tests/optimality.py: rc=0 failed=0 238s
+  baseline tests/plan_view.py: rc=0 failed=0 2s
+  baseline tests/solar_alignment.py: rc=0 failed=0 2s
+  baseline tests/structure.py: rc=0 failed=0 54s
+  baseline tests/typing_ruler.py: rc=0 failed=0 46s
+  baseline tests/validate.py: rc=0 failed=0 46s
+  baseline tests/wood_advisor.py: rc=0 failed=0 2s
+  tests/doc_claims.py: baseline red ONLY on the finder-wall artifact (dev/archive/backlog.md absent); tolerated, kill = >1 FAIL
+  tests/entities.py: baseline red ONLY on two machinery checks of this export (closure partial re-derive, PR-template acceptance); tolerated, kill = >2 FAIL
+  null control custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT survived every driver
+  20 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)

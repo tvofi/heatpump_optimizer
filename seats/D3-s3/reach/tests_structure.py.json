@@ -2,7 +2,7 @@
 "script": "tests/structure.py",
 "rc": 0,
 "failed": 0,
-"seconds": 64.9,
+"seconds": 53.8,
 "reach": {
 "hits": {},
 "reads": [
