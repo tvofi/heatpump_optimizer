@@ -1,0 +1,7 @@
+dither_noop KILLED 25   FAIL (h) with a window that never reaches evidence the heat ask is probed, nothing folds while that is pending, and no interval is lost on
+coin_always_plus KILLED 3   FAIL a fresh dither hands out the same levels on every run: its first twelve pairs lead high six times, then low, high, high, high, high, 
+no_pair_differencing_levels KILLED 17   FAIL (h) with a window that never reaches evidence the heat ask is probed, nothing folds while that is pending, and no interval is lost on
+follows_inverted KILLED 18   FAIL (h) with a window that never reaches evidence the heat ask is probed, nothing folds while that is pending, and no interval is lost on
+no_bound KILLED 2   FAIL the verdict waits for 24 pairs, then reads follows where the mean contrast less 3 standard errors reaches 0.5 and ignored where the m
+drop_clamp_reseed KILLED 3   FAIL (s) a probe whose first row is read at the clamp owes the configured scale (0.9) and takes it as its base, once: the next row is read
+follows_no_owed KILLED 3   FAIL a draw that follows the heat ask: the first row sets the base, the dither runs from the second cycle at both levels in runs of at mos

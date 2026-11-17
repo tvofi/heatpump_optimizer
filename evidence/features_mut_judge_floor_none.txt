@@ -1,6 +1,0 @@
-  FAIL a heat counter with the electric counter and no power entity folds its span's COP as heat over electricity; a cycle inside the span reads span_open, not no_measured_power  [samples 0 refusals ['duty_floor', 'duty_floor', 'duty_floor'] cop None]
-  FAIL null control on that install: heat equal to the model's COP times the electricity reproduces the model and the scale holds at 1.0  [samples 0 scale 1.0 modelled 3.5874999999999995]
-  FAIL on that install the duty floor is judged at the span close on its mean draw and ask: 0.5 kW refuses, the 2.0 kW span folds (null control)  [low samples 0 refusal duty_floor refusals ['duty_floor', 'duty_floor', 'duty_floor']]
-  FAIL the span close judges the duty floor capped by the stored running-draw window: on a 3.0 kW minimum a 2.0 kW span folds once the window has metered the pump running at 1.8 kW, and is refused with an empty window  [warm samples 0 ['duty_floor', 'duty_floor', 'duty_floor']; empty samples 0 ['duty_floor', 'duty_floor', 'duty_floor']]
-4 of 5736 FEATURE CHECKS FAILED
-rc=1
