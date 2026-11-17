@@ -1,4 +1,4 @@
-layout: 11277 tracked path(s) enumerated
+layout: 11558 tracked path(s) enumerated
   category  9 finding(s)
     outside the allowed categories: .claude/workflows/carry-1921.json
     outside the allowed categories: .claude/workflows/wave-3l-groups.json
@@ -13,7 +13,7 @@ layout: 11277 tracked path(s) enumerated
     planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
     reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
     reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
-  reference 1065 finding(s)
+  reference 1068 finding(s)
     .claude/hooks/stop-selfcheck.sh:57 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
     .claude/hooks/stop-selfcheck.sh:58 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
     .claude/hooks/stop-selfcheck.sh:104 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
@@ -24,31 +24,31 @@ layout: 11277 tracked path(s) enumerated
     .claude/workflows/carry-1921.json:16 cites retired path docs/delivery/; use dev/programme/delivery/
     .claude/workflows/carry-1921.json:16 cites retired path tools/audit/app_approve.sh; use tools/pr/app_approve.sh
     .claude/workflows/wave-3l-groups.json:3 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
-    ... 1055 more (--verbose)
+    ... 1058 more (--verbose)
   dead      3 finding(s)
     retired entry matches nothing at either end: .claude/workflows/carry-1774.json -> dev/programme/carries/carry-1774.json
     retired entry matches nothing at either end: .claude/workflows/carry-1795.json -> dev/programme/carries/carry-1795.json
     retired entry matches nothing at either end: .claude/workflows/carry-201.json -> dev/programme/carries/carry-201.json
 layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
 layout: GITIGNORE: 0 finding(s)
-layout: GUARD: 0 refusal(s) against e75ad291ff5c
-  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 223 of 223 listed
-  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 223 of 223 listed
-  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 223 of 223 listed
-  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 223 of 223 listed
-  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 224 of 224 listed
-  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 223 of 223 listed
-  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 223 of 223 listed
-  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 223 of 223 listed
-  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 224 of 224 listed
-  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 223 of 223 listed
-  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 223 of 223 listed
+layout: GUARD: 0 refusal(s) against b425502da8d1
+  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 226 of 226 listed
+  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 226 of 226 listed
+  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 226 of 226 listed
+  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 226 of 226 listed
+  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 227 of 227 listed
+  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 226 of 226 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 226 of 226 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 226 of 226 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 227 of 227 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 226 of 226 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 226 of 226 listed
   ok   locate .claude/workflows/agreement.mjs with ['.claude/workflows/agreement.mjs', 'tools/policy/agreement.mjs']: .claude/workflows/agreement.mjs
   ok   locate .claude/workflows/agreement.mjs with ['tools/policy/agreement.mjs']: tools/policy/agreement.mjs
   ok   locate .claude/workflows/agreement.mjs with neither: .claude/workflows/agreement.mjs
@@ -87,3 +87,4 @@ layout: GUARD: 0 refusal(s) against e75ad291ff5c
   ok   gitignore self-test: rule 'config/': 2 finding(s), want 2
   ok   gitignore self-test: rule '/config/': 0 finding(s), want 0
 layout self-test: ok
+layout=0

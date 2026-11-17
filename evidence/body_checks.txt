@@ -1,0 +1,19 @@
+# layout.json three-dot vs merge base b425502da8
+diff --git a/tests/layout.json b/tests/layout.json
+index 54890ec847..db6fdeec1f 100644
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@ -10,6 +10,7 @@
+     "NOTICE",
+     "DISCLAIMER.md",
+     "SECURITY.md",
++    "CODE_OF_CONDUCT.md",
+     "ROADMAP.md",
+     "RELEASE_NOTES.md",
+     "VERSION",
+# community files unchanged since reviewed head
+0
+# json.load
+ok
+# merge base of 4e8c918
+92d38ecb640bd462f2e19c0814d0f0b7df1ee692
