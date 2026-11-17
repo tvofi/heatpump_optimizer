@@ -12,26 +12,27 @@ Red 2, step "Refuse a self-test read set the committed table misses": 20 UNDER-S
 
 ## Head
 
-Code head `20e8f10a9115ae0b158e4e9c6174c89f98317334`, one commit on origin/main 38bf516bdd73f926ee9639ffda7b9ca5163fd50e. Everything below was measured there.
+Code head `a571679e9004f9eca41ae5255691517a48f6872e`, two commits on origin/main 38bf516bdd73f926ee9639ffda7b9ca5163fd50e. Everything below was measured there.
 
-prepr: passed rc=0 at 20e8f10a9115ae0b158e4e9c6174c89f98317334 (hotfix mode: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`; CI is the authority).
+prepr: passed rc=0 at a571679e9004f9eca41ae5255691517a48f6872e (hotfix mode: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`; CI is the authority).
 
 ## Mutation proof
 
 Each mutation was applied at the head, then reverted. Each fails at the head and passes once reverted:
 - (a) fixture const.py back to `('off', 'control')`: `python3 -I tools/audit/product_reads.py --self-test` exits 1 with the same `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']`.
 - (b) the `DUTY_OF` guard disabled (`if False and tok in DUTY_OF ...`): exits 1, `SELF-TEST FAILED`, failing arms `planted: another duty mode differs: got False, want True` and `planted: a hold whose recorded state differs is not reached: got False, want True`.
+- (c) the `observe`/`off` branch of `token_holds` (`if tok in ("observe", "off"): return first`), the fix review's surviving M3 and M6. A new arm, `token: off holds under duty=off on the first pass, not on a restart pass`, pins an `off` token under `duty=off` that holds at ordinal 0 and does not hold at ordinal 1. M3 (`return False`) exits 1 with `got (False, False), want (True, False)`. M6 (`return True`) exits 1 with `got (True, True), want (True, False)`. Unmutated, it prints `SELF-TEST passed (86 arms)`, exit 0.
 
 ## Null control
 
 - Failing first: at origin/main 38bf516bdd, `python3 -I tools/audit/product_reads.py --self-test` exits 1 with the Refuse quoted above.
-- At the head: `SELF-TEST passed (85 arms)`, exit 0.
-- `python3 -I tools/ci/selftest_scope.py static` at the head prints `122 gated step(s), 0 problem(s)`, and `--self-test` prints `118 checks, 0 failed`.
+- At the head: `SELF-TEST passed (86 arms)`, exit 0.
+- `python3 -I tools/ci/selftest_scope.py static` at the head prints `122 gated step(s), 0 problem(s)`, and `--self-test` prints `selftest_scope self-test: 118 checks, 0 failed` on macOS, which skips the strace end-to-end checks, and `128 checks, 0 failed` on Linux with strace (the fix review measured 128).
 - The trace check runs only on main (strace, Linux). If the first main run after the merge prints UNDER-SCOPED for self-tests-outside-seat, which now runs to the end, that run's artifact is committed the same way.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=20e8f10a9115ae0b158e4e9c6174c89f98317334 -->
+<!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=a571679e9004f9eca41ae5255691517a48f6872e -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -39,7 +40,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-- `governance / instrument-self-tests` on main (push run 43987459885, job 133732070457): the defect this PR fixes, at both steps above. The `FAIL D1 ... owned twice` and `FAIL D2 ... unowned` lines in that log are `check_scopes.py --self-test`'s own planted perturbations; that script passes (`SELF-TEST passed (161 arms)`).
+- `governance / instrument-self-tests` on main (push run 43987459885, job 133732070457): the defect this PR fixes, at both steps above. The `FAIL D1 ... owned twice` and `FAIL D2 ... unowned` lines in that log are `check_scopes.py --self-test`'s own planted perturbations; that script passes (`SELF-TEST passed (every perturbed scope refused)` at the head).
 
 ## Root cause
 
@@ -49,7 +50,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Forward-carry
 
-none
+- Out of scope: the committed round-11 seed ledger `dev/audit/rounds/round11/product-reads/operation.tsv` (from #3665) still holds 6 rows in the retired `duty=control | running` cell format, so `product_reads.py operation --ledger` refuses it at this head. It was already broken at the base. Re-cutting each row needs a judgement, because `running` has no 1:1 successor among the plan-state tokens. That makes it the product-reads owner's work, not this hotfix's. R11-PRE-PRODUCT-READS is at carries-open, which carry_audit refuses as a destination, so the residual goes to the round-11 holding group, which re-homes it. Carry: R11-INTAKE-R10-RESIDUE (operation.tsv seed re-cut to per-state cells)
 
 ## Friction
 
