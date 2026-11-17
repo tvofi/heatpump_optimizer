@@ -11,3 +11,4 @@
 1794876881 CKPT packet rendered, body read; starting head worktree runs snapshot bb9e69768e1a
 1794877114 CKPT harness three-end table re-derived at base and head; mutants running snapshot 4aa071f261d0
 1794877357 CKPT sweep re-derived 2730 rows matches body; reviewer mutants 17/20 killed in block; full-script survivor runs + attack rows running snapshot bc35914a049f
+1794877388 HB alive
