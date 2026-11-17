@@ -1,0 +1,41 @@
+RESULT files=65 count
+RESULT selected_pairs=1423 count
+RESULT unknown_pairs=320 count (no usable trace; never counted wasted)
+RESULT wasted_pairs=293 count
+RESULT wasted_share=0.206 ratio
+RESULT wasted_imported_pairs=265 count (the run imports F, executing its module-level lines, and no function body line)
+RESULT wasted_imported_seconds_sum=13467 s
+RESULT wasted_imported_recorded_only_sum=7520 s
+RESULT wasted[tests/wood_advisor.py]=50 files, 70 s summed
+RESULT wasted[tests/debug_collect.py]=45 files, 68 s summed
+RESULT wasted[tests/plan_view.py]=44 files, 79 s summed
+RESULT wasted[tests/guard_pins.py]=32 files, 262 s summed
+RESULT wasted[tests/solar_alignment.py]=27 files, 32 s summed
+RESULT wasted[tests/env_drift.py]=26 files, 8138 s summed
+RESULT wasted[tests/manual_plan.py]=23 files, 150 s summed
+RESULT wasted[tests/boost_drift_replay.py]=19 files, 6481 s summed
+RESULT wasted[tests/backtest.py]=7 files, 431 s summed
+RESULT wasted[tests/edge.py]=7 files, 150 s summed
+RESULT wasted[tests/validate.py]=7 files, 150 s summed
+RESULT wasted[tests/optimality.py]=6 files, 855 s summed
+RESULT wasted_seconds_per_body_edit_mean=259 s (recorded seconds; env_drift/golden at provisional measured wall)
+RESULT loo_cells=65 count
+RESULT loo_min=0 s
+RESULT loo_max=907 s (custom_components/heatpump_optimizer/plan_step.py)
+RESULT loo_mean_drop_max=249 s
+RESULT wasted_seconds_per_body_edit_mean_recorded_only=134 s (stub-recorded scripts excluded)
+  plan_step.py: 907 s over 10 of 27 selected: backtest.py, boost_drift_replay.py, debug_collect.py, edge.py, env_drift.py, optimality.py, plan_view.py, solar_alignment.py, validate.py, wood_advisor.py
+  diagnosis.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  narrative.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  power_guard.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  pump_schedule.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  repairs.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  whatif.py: 675 s over 8 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  open_meteo.py: 674 s over 7 of 23 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, wood_advisor.py
+  heat_curve.py: 673 s over 7 of 22 selected: boost_drift_replay.py, env_drift.py, guard_pins.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  plan_slots.py: 673 s over 7 of 22 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, guard_pins.py, manual_plan.py, solar_alignment.py, wood_advisor.py
+  silent_mode.py: 666 s over 7 of 21 selected: boost_drift_replay.py, debug_collect.py, env_drift.py, manual_plan.py, plan_view.py, solar_alignment.py, wood_advisor.py
+  pv.py: 609 s over 11 of 27 selected: backtest.py, boost_drift_replay.py, debug_collect.py, edge.py, guard_pins.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py, wood_advisor.py
+RESULT thread_factor=1.000
+RESULT load1=11.43
+RESULT swapins=0

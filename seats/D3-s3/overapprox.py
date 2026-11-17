@@ -23,11 +23,13 @@ Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
           dev/audit/rounds/round11/D3/s3/overapprox.py [--perturb-drop N] [--null-any-line]
 Perturbation: --perturb-drop N rewrites a private copy of tests/closures.json
 (closure.CLOSURES patched in memory) with the first N wasted (F, script)
-pairs' F removed from that script's closure: wasted_pairs must fall by
-exactly N for every pair the belt (env_drift's any-integration-change rule)
-does not re-add. Null control: --null-any-line keys WASTED on "executes no
-line of F at all" (import included): it must print 0 -- the closures are
-right at file granularity; the excess is body-granular only.
+pairs' F removed from that script's closure, skipping env_drift.py (the
+any-integration-change belt re-adds it) and PRODUCERS (re-added as a
+producer): wasted_pairs must fall by exactly N. Null control: --null-any-line keys WASTED on "executes no
+line of F at all" (import included): the file-granular excess. Measured 28
+= 21 stale entries (D3-s3-01, stale_closure.py) + 7 env_drift belt pairs;
+the body-granular excess this finding claims is wasted_imported_pairs, the
+pairs that remain when those are taken out.
 Expected: exact counts (deterministic traces); seconds are recorded values
 (exact) except the two stub-recorded scripts (provisional).
 Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box B3, 4 vCPU.
@@ -99,8 +101,12 @@ def main() -> int:
     files = sorted(f for f in en.cells()
                    if f.startswith(mt.PKG) and f.endswith(".py"))
 
+    imported: list = []   # wasted pairs whose run DID import F (executes
+                          # module-level lines): granularity, not staleness
+
     def measure():
         wasted, unknown, ran = [], Counter(), Counter()
+        imported.clear()
         per_file = {}
         for f in files:
             plan = closure.select([f])
@@ -119,6 +125,8 @@ def main() -> int:
                     cost = STUB_WALL.get(s, float(rec.get(s, {}).get("seconds", 0.0)))
                     wasted.append((f, s, cost))
                     w_s += cost
+                    if hits:
+                        imported.append((f, s, cost))
             per_file[f] = w_s
         return wasted, unknown, ran, per_file
 
@@ -132,8 +140,9 @@ def main() -> int:
         for f, s, _ in wasted0:
             if len(dropped) == drop_n:
                 break
-            if s == "tests/env_drift.py":
-                continue  # the any-integration belt re-adds it regardless
+            if s == "tests/env_drift.py" or any(
+                    s in prods for prods in closure.PRODUCERS.values()):
+                continue  # the belt / a PRODUCERS edge re-adds it regardless
             data["closures"][s] = [x for x in data["closures"][s] if x != f]
             dropped.append((f, s))
         cj.write_text(json.dumps(data))
@@ -152,6 +161,11 @@ def main() -> int:
     print(f"RESULT unknown_pairs={sum(unknown.values())} count (no usable trace; never counted wasted)")
     print(f"RESULT wasted_pairs={len(wasted)} count")
     print(f"RESULT wasted_share={len(wasted) / total_pairs:.3f} ratio")
+    print(f"RESULT wasted_imported_pairs={len(imported)} count (the run imports "
+          f"F, executing its module-level lines, and no function body line)")
+    print(f"RESULT wasted_imported_seconds_sum={sum(c for *_, c in imported):.0f} s")
+    print(f"RESULT wasted_imported_recorded_only_sum="
+          f"{sum(c for _, s_, c in imported if s_ not in STUB_WALL):.0f} s")
     for s, n in by_script.most_common():
         print(f"RESULT wasted[{s}]={n} files, {secs_by_script[s]:.0f} s summed")
     vals = sorted(per_file.values())
