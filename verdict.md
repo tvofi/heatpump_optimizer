@@ -1,7 +1,13 @@
-Fix review: merge abe961e6e56432e27cd2ea56ac22fd8e37338b50
+Fix review: blocked abe961e6e56432e27cd2ea56ac22fd8e37338b50 ci-red: the required gate is red at this head on tests / mutation, which refuses 4 sites this diff adds with no ledger disposition (ledger.py:80 REFERENCE_BASIS, thermal_model.py:2280, 3504, 4312 GUARD_OFF)
 
 bus-nonce: 9ac918a22ad6138f1efd68ea0dbd2698
-pending-ci: gate
+
+## Block
+
+- `merge_train.py classify abe961e6e56432e27cd2ea56ac22fd8e37338b50 --pr 3685` now exits 1: `RED abe961e6e56432e27cd2ea56ac22fd8e37338b50 pending: none red: gate` (ev/classify-final.txt). The previous seat on this nonce stopped while classify still printed WAIT. The gate has since concluded (job 133685351836, failure at 2026-11-16T23:19:25Z): `FAIL tests / mutation: failure (run 43966049644)` and `pr-contract / pr-contract: failure` (ev/gate-red.txt).
+- `tests / mutation` at this head (job 133685347675, head_sha abe961e6e56432e27cd2ea56ac22fd8e37338b50, started after the bot's pin commit) prints `MUTATION TABLE REFUSED -- 2169 unpinned site(s) against 2165 at the ratchet base 92d38ecb64..., 4 of them added by this diff` (ev/mutation-red.txt). The four sites are `ledger.py:80 CONST: REFERENCE_BASIS = 4`, `thermal_model.py:2280 GUARD_OFF`, `thermal_model.py:3504 GUARD_OFF` and `thermal_model.py:4312 GUARD_OFF`. mutation-autofix (job 133678186863) and mutation-pins (1) (job 133647500408) both finished green. The only pin commit, abe961e6e56432e27cd2ea56ac22fd8e37338b50, recorded three other sites (flow_setpoint CLAMP_DROP, flow_target_for_indoor BOOLOP and RETURN_DEL), and the PR head has not moved since. So no bot commit is pending that would settle these four.
+- The body's `## Red checks` answers why the mutation red happened (the cheaper detector, `ci_predict.py`, already ran in `prepr.sh`). I do not re-judge that answer. The block is that the red remains at the head: the four sites still need a `killed_by` or `survivor_triage` row. The previous seat's mutants show that each site is killable: M4 kills 2280 through the digest, and R4 (REFERENCE_BASIS) survives the new block but dies on the full `tests/features.py` through three stamp checks (ev/mutants.txt, ev/features-full-R4.txt). So the cure looks like `python3 tests/mutation_table.py --pin-killed --base origin/main` from the fixer, with a survivor_triage row for any site its driver does not kill. The R4 kill comes from checks outside the block, so its pin must name the full `tests/features.py`.
+- Everything else in the review below carries, and a re-review on a head whose only change is ledger rows is a carry (fix-review.md).
 
 ## Round
 
@@ -15,16 +21,14 @@ First round (review_packet: "Review scope: full (first round: no --reviewed-head
 
 ## Red checks
 
-- `tests / mutation` (job 133646087966, run 43966049644, at this head): `MUTATION TABLE REFUSED -- 2169 unpinned site(s) against 2165 ..., 4 of them added by this diff`, including `thermal_model.py:4312 GUARD_OFF`. The body's `## Red checks` answers it: `ci_predict.py` is the cheaper detector, already a `prepr.sh` step that named every site before the handoff, so no countermeasure is owed. mutation-autofix's commit abe961e6e56432e27cd2ea56ac22fd8e37338b50 pinned three of the sites, and `tests / mutation-pins (1)` was still in progress when I last read the checks. I check that the trigger is answered, not the answer. My own kills of those sites are under Evidence (M5 to M7, the GUARD_OFF at 2280 by M4, BOOLOP and RETURN_DEL by (c′) and (d)).
-- Note: root-cause-unrecorded: `pr-contract / pr-contract` (job 133675489838) is red only on `figure_block verify`: "block `scope-line` names head=2146b9c7d853 mb=ef6363d5f291, this run is head=abe961e6e564 mb=92d38ecb640b". The bot's pin commit moved the head under a body whose figure-block was rendered at the head before it. The body is the cheapest place to repair it (`figure_block.py refresh`), with no code change. Carry: dismissed: paperwork red, the body refresh settles it at merge (fix-review.md C5)
-- `gate` (job 133676278137): "run(s) [43966049644] at this head are still being judged; their gate decides", which is the wait, not a defect. `tests / nightly-status` is red but is not in `merge_train.py owed-reds` (ev/owed-reds.txt), so it is owed nothing.
-
-## CI
-
-Classify was polled from 22:45 to 23:16 UTC, every ~90 s, and every run exited 3. The last line was `WAIT abe961e6e56432e27cd2ea56ac22fd8e37338b50 pending: gate red: none` (ev/classify.txt, ev/classify-log.txt). Per the brief, `pending-ci: gate` is set: the relay posts this verdict only once CI is green at this head.
+- `tests / mutation`: answered in the body. It is the block above, because the red remains at this head, not because the answer is wrong.
+- `pr-contract / pr-contract` (jobs 133685353808 and 133678798720): red only on `figure_block verify`, which says the `scope-line` block names head=2146b9c7d853 mb=ef6363d5f291 while the run is at head=abe961e6e564 mb=92d38ecb640b. A body refresh (`figure_block.py refresh`) settles it when the next head is pushed. It is paperwork, and I do not block on it.
+- `gate`: red because of the two above (ev/gate-red.txt). `tests / nightly-status` is red but is not in `merge_train.py owed-reds` (ev/owed-reds.txt), so it is owed nothing.
 
 ## Evidence
 
+- Resumed from probe/rev-3685-9ac918a2 at 2e8b52ad. That seat's verdict (merge, pending-ci: gate) is kept verbatim as ev/prior-verdict.md. Its evidence was taken at this same head, abe961e6e56432e27cd2ea56ac22fd8e37338b50, and it still holds because the PR head has not moved (`git ls-remote origin refs/pull/3685/head` prints abe961e6e56432e27cd2ea56ac22fd8e37338b50).
+- Merge with main, re-taken against origin/main 38bf516bdd: `git merge-tree --write-tree` exit 0, no conflict (ev/merge-tree-now.txt).
 - Mutation proof, re-run with my own driver (ev/mut_driver.py; ev/mutants.txt), each mutant in a worktree at the head on the new block (`features_block.py "# R11-VALVE-REFERENCE (carry 2)" "# R10-HOTFIX-SAV-ESTIMATE: ..."`). Unmutated block: `ALL 6 FEATURES BLOCK PASSED` (ev/block-head.txt). Every one of the body's M1–M7 is KILLED, each by the checks the body names: M1 by the digest, the 0.02 K hold (20.499 / 18.952 / 17.405) and the 21 C hold; M2 and M3 by the 23.446 hold and the clamp; M4 by the digest; M5 by (d); M6 by (c′) (26.625 against 30.142857142857146); M7 by the clamp (20.558 C).
 - My own extra mutants, outside the body's list: R1 (`free_heat_kw = 0.5 * internal_gains`) KILLED, settles 23.223; R2 (`k_slab` doubled) KILLED, 23.223; R3 (+1e-9 on the gated return) KILLED by (d); R4 (`REFERENCE_BASIS = 3`) survives the new block, as the body says, and is KILLED on the full `tests/features.py` by three stamp checks: "a month's first savings booking stamps ...", "a month stamped 3 ...", "a month stamped 4 ..." (ev/features-full-R4.txt).
 - Full `tests/features.py` at the head, run directly (ev/features-full-head.txt): one FAIL, `_bootstrap drops the package directory so datetime is stdlib`. It is the direct-invocation artefact the body discloses (`path0` a temp dir), and the same FAIL appears in the R4 run.
@@ -38,4 +42,4 @@ Classify was polled from 22:45 to 23:16 UTC, every ~90 s, and every run exited 3
 - VERSION, the manifest version, RELEASE_NOTES and both claim files are untouched in the three-dot diff. No golden moved, and CI's scoped gate runs env_drift.
 - Merge with main: `git merge-tree --write-tree origin/main abe961e6e56432e27cd2ea56ac22fd8e37338b50` exit 0, no conflict (ev/merge-tree.txt). Roles drift since the merge base touches only COMMON.md, so fix-review.md is current.
 - No new refusal is added on an actuator write (step 16 is not engaged): the coordinator's flow write and its `valve_flow_needs_two_zone` hold are unchanged.
-- CI: ev/classify.txt and ev/classify-log.txt, final line quoted under `## CI`.
+- CI: the previous seat polled classify from 22:42 to 23:16 UTC and every run exited 3 (WAIT; ev/classify.txt, ev/classify-log.txt). This seat re-read it at 00:40 UTC and got RED (ev/classify-final.txt).
