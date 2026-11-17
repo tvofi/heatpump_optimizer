@@ -1741,6 +1741,8 @@ await block('the P3 plan workflow', async () => {
     (ok.calls.find((c) => c.label === 'plan/write')?.prompt ?? '').includes('"removes": [\n     "D7-s1-01"'))
   t('and the publish schema requires objective_rc, so a publish that reports no check is refused',
     (ok.calls.find((c) => c.label === 'plan/publish')?.schema?.required ?? []).includes('objective_rc'))
+  t('and the moves schema requires the objective block, so a reply without one is refused',
+    (ok.calls.find((c) => c.label === 'plan/moves')?.schema?.required ?? []).includes('objective'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
   t('the reviewer re-runs objective-check at the plan SHA', review1.includes('objective-check --ref ' + SHA('b')))
   t('the reviewer is pointed at the published plan ref and its SHA',

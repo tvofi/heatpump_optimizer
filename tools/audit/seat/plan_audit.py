@@ -434,6 +434,13 @@ RELATIVE_BAND = {"lead_time": "band_lead_time", "closure_slip": "band_closure_sl
 VERIFIED = ("verified", "weakened")
 DIRECTIONS = ("up", "down", "hold", "undecided")
 # Each keyed effect, and the terms its HELD line credits.
+# Every rank-1 key but `removes` (checked against the judge register), with the
+# register its ids must name: derived_rank and check_block both read this table,
+# so a rank-1 key cannot be added without a register (#3703 review, item 1).
+REGISTERED = {"escapes": ("escape", "the baseline's escapes ledger, ruled `in`"),
+              "cards": ("card", "the round's open cards, check_scopes.py --open-cards"),
+              "classes": ("class", "bugclasses.json")}
+BASELINE = "dev/audit/yardstick/round{}/OBJECTIVE.json"
 KEYED_TERMS = {"removes": ("escapes",), "escapes": ("escapes", "unowned"),
                "classes": ("escapes", "injected"), "cards": (), "examined_by": ("unexamined",),
                "injected": ("injected",), "rereport": ("escapes",)}
@@ -480,7 +487,7 @@ def derived_rank(entry: dict, bugs: set[str]) -> int:
     escape row, an open card or an open class); 2 otherwise."""
     if any(f in bugs for f in entry.get("removes") or []):
         return 1
-    return 1 if entry.get("escapes") or entry.get("cards") or entry.get("classes") else 2
+    return 1 if any(entry.get(kind) for kind in REGISTERED) else 2
 
 
 def after_closure(name: str, projected: dict) -> set[str]:
@@ -495,15 +502,18 @@ def after_closure(name: str, projected: dict) -> set[str]:
 
 
 def kept_in_floor(block: dict, projected: dict) -> set[str]:
-    """Projection B's group names: projection A's less every rank-2 group no
-    rank-1 group reaches through `after`. Edges are A's, so no roster grammar
-    is re-declared here."""
-    ranks = {g: e.get("rank") for g, e in (block.get("groups") or {}).items()}
+    """Projection B's group names: projection A's less every open rank-2 group
+    no rank-1 group reaches through `after`. A done group stays, ranked or not:
+    A omits the `after` edges to it that the roster still names, and replan.py
+    refuses a roster whose edge names no group. Edges are A's, so no roster
+    grammar is re-declared here."""
+    ranks = {g: e.get("rank") for g, e in (block.get("groups") or {}).items()
+             if isinstance(e, dict)}
     reached = set()
     for group, rank in ranks.items():
         if rank == 1:
             reached |= after_closure(group, projected)
-    return {g for g in projected if ranks.get(g) != 2 or g in reached}
+    return {g for g, e in projected.items() if e.get("done") or ranks.get(g) != 2 or g in reached}
 
 
 def reduced_roster(roster: dict, keep: set[str]) -> dict:
@@ -573,14 +583,42 @@ def projection_refusals(block: dict, a: dict, b: dict) -> list[str]:
     return bad
 
 
+def escape_rows(ledger: str) -> set[str]:
+    """The groups an escapes ledger (a TSV under its `#` header) rules `in`."""
+    rows = [ln.split("\t") for ln in ledger.splitlines() if ln and not ln.startswith("#")]
+    if not rows or "group" not in rows[0] or "ruling" not in rows[0]:
+        return set()
+    g, r = rows[0].index("group"), rows[0].index("ruling")
+    return {row[g] for row in rows[1:] if len(row) > max(g, r) and row[r] == "in"}
+
+
+def baseline_refusals(plan: dict, baseline: dict, blobs: dict) -> list[str]:
+    """The baseline is derived, never the plan's choice: the previous round's
+    record at BASELINE, of that round, and the same blob at the plan SHA, at
+    any `baseline.tree` and where the plan's branch left main (#3703 review,
+    item 2). `blobs` maps each of those reads to its blob id, None if absent."""
+    rnd = (plan.get("round") or 0) - 1
+    want = BASELINE.format(rnd)
+    got = (((plan.get("objective") or {}).get("baseline")) or {}).get("record")
+    bad = []
+    if got != want:
+        bad.append(f"BASELINE {got!r}: the baseline is the previous round's record, {want}")
+    if baseline.get("round") != rnd:
+        bad.append(f"BASELINE round {baseline.get('round')!r}: {want} must record round {rnd}")
+    if blobs.get("plan") is None or len(set(blobs.values())) > 1:
+        bad.append(f"BASELINE edited: {want} is not one blob at the plan SHA, its tree and "
+                   f"main's merge base ({', '.join(f'{k} {v}' for k, v in sorted(blobs.items()))})")
+    return bad
+
+
 def check_block(plan: dict, register: list[dict], baseline: dict, terms: list[str],
-                previous: list[dict] | None, projected: dict, classes: set[str]) -> list[str]:
+                previous: list[dict] | None, projected: dict, known: dict) -> list[str]:
     """The P3 check on the plan's objective block, one refusal per line.
 
     `register` is the judge's verdict list, `baseline` the previous round's
     objective record, `terms` objective.json's, `previous` the previous plan's
     settlement lines (None for a first plan), `projected` projection A's
-    `groups` and `classes` the bug-class ids.
+    `groups` and `known` each REGISTERED key's ids.
     """
     block = plan.get("objective")
     if not isinstance(block, dict):
@@ -626,9 +664,10 @@ def check_block(plan: dict, register: list[dict], baseline: dict, terms: list[st
                 bad.append(f"DOUBLE closure {fid}: {owner[fid]} and {group} both remove it")
             else:
                 owner[fid] = group
-        for cid in entry.get("classes") or []:
-            if cid not in classes:
-                bad.append(f"UNKNOWN class {group} {cid}: not in bugclasses.json")
+        for kind, (noun, source) in REGISTERED.items():
+            for item in entry.get(kind) or []:
+                if item not in (known.get(kind) or set()):
+                    bad.append(f"UNKNOWN {noun} {group} {item}: not in {source}")
         want = derived_rank(entry, bugs)
         if entry.get("rank") != want:
             bad.append(f"RANK {group} declares {entry.get('rank')!r}, its keys make it {want}")
@@ -649,6 +688,8 @@ def check_block(plan: dict, register: list[dict], baseline: dict, terms: list[st
         if not g.get("done") and name not in entries:
             bad.append(f"UNRANKED open group {name}: projection A schedules it and the plan "
                        f"gives it no rank")
+        elif g.get("done") and name in entries:
+            bad.append(f"RANKED done group {name}: a done group is kept unranked, and B keeps it")
     dispositions = block.get("dispositions") or {}
     for line in previous or []:
         if line.get("status") == "MISSED" and not dispositions.get(line.get("key")):
@@ -811,29 +852,42 @@ def _replan(tree: Path, out: Path, *args: str) -> dict:
     return json.loads(out.read_text())
 
 
-def run_projections(ref: str, block: dict, roster: dict) -> tuple[dict, dict]:
+def _blob(ref: str, path: str) -> str | None:
+    run = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--verify", "-q", f"{ref}:{path}"],
+                         capture_output=True, text=True)
+    return run.stdout.strip() if run.returncode == 0 else None
+
+
+def open_cards(tree: Path, ref: str, rnd: int) -> set[str]:
+    """`check_scopes.py --open-cards` at the plan SHA: the cards a group may name."""
+    run = subprocess.run([sys.executable, str(tree / "tools/audit/check_scopes.py"), "--repo", str(ROOT),
+                          "--ref", ref, "--round", str(rnd), "--open-cards", "--roster-ref", ref],
+                         cwd=str(tree), capture_output=True, text=True)
+    if run.returncode not in (0, 1):
+        raise SystemExit(f"check_scopes.py --open-cards refused (rc={run.returncode}): "
+                         f"{(run.stderr or run.stdout).strip()[-400:]}")
+    return set(json.loads(run.stdout.strip().splitlines()[-1]).get("open_cards") or [])
+
+
+def run_projections(tree: Path, ref: str, block: dict, roster: dict) -> tuple[dict, dict]:
     """Projection A (the pinned roster at the plan SHA) and B (A less the
     unreached rank-2 groups), both by replan.py at the plan SHA with the
     pinned start and durations, so a later model or VERSION moves neither."""
     pin = block["pin"]
-    tree = _worktree(ref)
-    try:
-        with tempfile.TemporaryDirectory(prefix="plan-objective-") as tmp:
-            durations = Path(tmp) / "durations.json"
-            durations.write_text(git("cat-file", "blob", pin["durations_blob"]) + "\n")
-            common = ("--durations", str(durations), "--start", pin["start"])
-            a = _replan(tree, Path(tmp) / "a.json", "--roster-ref", ref,
-                        "--roster-path", pin["roster_path"], *common)
-            # B is named as the round's roster is: roster_lib.roster_round reads
-            # the round off the basename (design verdict, item dr2-b).
-            floor = Path(tmp) / "floor" / Path(pin["roster_path"]).name
-            floor.parent.mkdir()
-            floor.write_text(json.dumps(reduced_roster(roster, kept_in_floor(block, a["groups"])),
-                                        indent=1))
-            b = _replan(tree, Path(tmp) / "b.json", "--roster-file", str(floor), *common)
-            return a, b
-    finally:
-        _drop_worktree(tree)
+    with tempfile.TemporaryDirectory(prefix="plan-objective-") as tmp:
+        durations = Path(tmp) / "durations.json"
+        durations.write_text(git("cat-file", "blob", pin["durations_blob"]) + "\n")
+        common = ("--durations", str(durations), "--start", pin["start"])
+        a = _replan(tree, Path(tmp) / "a.json", "--roster-ref", ref,
+                    "--roster-path", pin["roster_path"], *common)
+        # B is named as the round's roster is: roster_lib.roster_round reads
+        # the round off the basename (design verdict, item dr2-b).
+        floor = Path(tmp) / "floor" / Path(pin["roster_path"]).name
+        floor.parent.mkdir()
+        floor.write_text(json.dumps(reduced_roster(roster, kept_in_floor(block, a["groups"])),
+                                    indent=1))
+        b = _replan(tree, Path(tmp) / "b.json", "--roster-file", str(floor), *common)
+        return a, b
 
 
 def production_groups(ref: str, block: dict, roster: dict) -> set[str]:
@@ -851,10 +905,10 @@ def production_groups(ref: str, block: dict, roster: dict) -> set[str]:
 
 
 def objective_check(ref: str, plan_path: str, register_path: str, previous: str | None,
-                    write: bool) -> int:
+                    write: bool, main: str = "origin/main") -> int:
     plan = _json_at(ref, plan_path)
     block = plan.get("objective")
-    bad = check_block(plan, [], {}, [], None, {}, set()) if not isinstance(block, dict) else []
+    bad = check_block(plan, [], {}, [], None, {}, {}) if not isinstance(block, dict) else []
     pin = (block or {}).get("pin") or {}
     if not bad and set(pin) != OBJECTIVE_KEYS["pin"]:
         bad = [f"PIN incomplete: {sorted(OBJECTIVE_KEYS['pin'] - set(pin))}; nothing projects "
@@ -866,14 +920,27 @@ def objective_check(ref: str, plan_path: str, register_path: str, previous: str 
         return 1
     register = _json_at(ref, register_path)
     register = register.get("verdicts", []) if isinstance(register, dict) else register
-    base = block.get("baseline") or {}
-    baseline = _json_at(base.get("tree", ref), base.get("record", ""))
+    rnd = plan.get("round") or 0
+    path = BASELINE.format(rnd - 1)
+    blobs = {"plan": _blob(ref, path),
+             "main": _blob(git("merge-base", ref, main), path)}
+    if (block.get("baseline") or {}).get("tree"):
+        blobs["tree"] = _blob(block["baseline"]["tree"], path)
+    baseline = _json_at(ref, path) if blobs["plan"] else {}
     terms = _json_at(ref, str(OBJECTIVE_CONFIG))["terms"]
-    classes = {k for k in _json_at(ref, str(BUGCLASSES)) if not k.startswith("_")}
+    ledger = (((baseline.get("terms") or {}).get("escapes") or {}).get("by_hand") or {}).get("ledger")
     roster = _json_at(ref, pin["roster_path"])
-    a, b = run_projections(ref, block, roster)
+    tree = _worktree(ref)
+    try:
+        known = {"classes": {k for k in _json_at(ref, str(BUGCLASSES)) if not k.startswith("_")},
+                 "escapes": escape_rows(_show(ref, ledger)) if ledger else set(),
+                 "cards": open_cards(tree, ref, rnd)}
+        a, b = run_projections(tree, ref, block, roster)
+    finally:
+        _drop_worktree(tree)
     prev = json.loads(Path(previous).read_text()) if previous else None
-    bad = (check_block(plan, register, baseline, terms, prev, a["groups"], classes)
+    bad = (baseline_refusals(plan, baseline, blobs)
+           + check_block(plan, register, baseline, terms, prev, a["groups"], known)
            + projection_refusals(block, a, b))
     record = projection_record(block, a, b, production_groups(ref, block, roster))
     out = str(Path(plan_path).parent / "PROJECTION.json")
@@ -902,8 +969,7 @@ def objective_check(ref: str, plan_path: str, register_path: str, previous: str 
 
 def objective_settle(plan_path: str, record_path: str, bodies: str | None, out: str | None) -> int:
     plan = json.loads(Path(plan_path).read_text())
-    base = (plan.get("objective") or {}).get("baseline") or {}
-    baseline = _json_at(base["tree"], base["record"])
+    baseline = json.loads((ROOT / BASELINE.format((plan.get("round") or 0) - 1)).read_text())
     record = json.loads(Path(record_path).read_text())
     projection = json.loads((Path(plan_path).parent / "PROJECTION.json").read_text())
     thresholds = json.loads((ROOT / OBJECTIVE_CONFIG).read_text())["thresholds"]
@@ -1150,11 +1216,14 @@ def self_test() -> int:
                                "G3": {"rank": 2, "examined_by": "D3 pass"}},
                     "edges": [{"from": "G1", "to": "G2", "adr": "ADR-1"}]}}
 
+    known = {"classes": {"P1"}, "cards": {"E11-1"}, "escapes": {"G-ESC"}}
+
     def refused(plan: dict, previous=None, projected=None) -> list[str]:
         return check_block(plan, register, baseline, terms, previous,
-                           proj_a if projected is None else projected, {"P1"})
+                           proj_a if projected is None else projected, known)
 
     good_plan = objective_plan()
+    block_of = lambda plan: json.loads(json.dumps(plan["objective"]))  # noqa: E731
     t("a plan with a sound objective block passes the P3 check (every arm's twin)",
       refused(good_plan) == [], repr(refused(good_plan)))
     t("a plan with no objective block is refused",
@@ -1258,6 +1327,8 @@ def self_test() -> int:
     t("a B that keeps an unreached rank-2 group is refused (the floor cost shrunk)",
       has(projection_refusals(block, a, plan_of(proj_a, 9.0, 10.0)), "REDUCED roster keeps G3"))
     record = projection_record(block, a, b, {"G1", "G3"})
+    t("lead time reads production groups only",
+      projection_record(block, a, b, {"G1"})["a"]["lead_time_p50_hours"] == 9.0)
     t("the record holds the floor cost: A less B, and each rank-1 group's delay",
       record["floor_cost"] == {"critical_path_hours": 2.0, "wall_hours": 2.0,
                                "delay_hours": {"G1": 2.0}}
@@ -1284,6 +1355,53 @@ def self_test() -> int:
               "UNKNOWN key edges[0].why"))
     t("a card alone makes a group rank 1 (no examining pass owed)",
       planted(lambda p: p["objective"]["groups"].__setitem__("G3", {"rank": 1, "cards": ["E11-1"]})) == [])
+    # #3703 review item 1: every rank-1 key names a registered id, or a string ranks a group 1.
+    for kind, item in (("cards", "NO-SUCH-CARD"), ("escapes", "NO-SUCH-ROW"), ("classes", "P9")):
+        lines = planted(lambda p, k=kind, i=item: p["objective"]["groups"].__setitem__(
+            "G3", {"rank": 1, k: [i]}))
+        t(f"a rank-1 `{kind}` id no register holds is refused by name",
+          lines == [f"UNKNOWN {REGISTERED[kind][0]} G3 {item}: not in {REGISTERED[kind][1]}"], repr(lines))
+    t("an escape row ruled `in` makes a group rank 1",
+      planted(lambda p: p["objective"]["groups"].__setitem__("G3", {"rank": 1, "escapes": ["G-ESC"]})) == [])
+    t("every rank-1 key derived_rank reads is a REGISTERED key, checked against its register",
+      all(derived_rank({kind: ["x"]}, set()) == 1 for kind in REGISTERED)
+      and derived_rank({"removes": ["D7-01"], "examined_by": "x"}, set()) == 2)
+    ledger = ("# header\ngroup\tpr\truling\nG-ESC\t1\tin\nG-OUT\t-\tout\nshort\n")
+    t("the escapes ledger yields its `in` rows' groups; a ledger with no header yields none",
+      escape_rows(ledger) == {"G-ESC"} and escape_rows("G-ESC\t1\tin\n") == set())
+    b10 = {"round": 10}
+    same = {"plan": "x1", "tree": "x1", "main": "x1"}
+    t("the baseline is the previous round's record, one blob everywhere: passes",
+      baseline_refusals(good_plan, b10, same) == [])
+    t("a baseline path the plan chose is refused (#3703 review item 2)",
+      has(baseline_refusals({**good_plan, "objective": {**good_plan["objective"], "baseline": {
+          "record": "dev/audit/rounds/round11/PLAN/doctored.json"}}}, b10, same), "BASELINE 'dev/audit/rounds"))
+    t("a record of another round is refused",
+      baseline_refusals(good_plan, {"round": 9}, same)
+      == ["BASELINE round 9: dev/audit/yardstick/round10/OBJECTIVE.json must record round 10"])
+    t("a record edited on the plan's branch, or at its tree, is refused; an absent one too",
+      has(baseline_refusals(good_plan, b10, {**same, "plan": "x2"}), "BASELINE edited")
+      and has(baseline_refusals(good_plan, b10, {**same, "tree": "x2"}), "BASELINE edited")
+      and has(baseline_refusals(good_plan, b10, {"plan": None, "main": None}), "BASELINE edited"))
+    t("a ranked done group is refused by name (#3703 review item 4)",
+      refused({**good_plan, "groups": good_plan["groups"] + [{"group": "OLD"}],
+               "objective": {**block_of(good_plan), "groups": {**block_of(good_plan)["groups"],
+                                                               "OLD": {"rank": 2, "examined_by": "x"}}}})
+      == ["RANKED done group OLD: a done group is kept unranked, and B keeps it"])
+    t("and the floor keeps a done group whatever its rank",
+      "OLD" in kept_in_floor({"groups": {"OLD": {"rank": 2}}}, proj_a))
+    t("an objective entry that is not an object is refused by shape and read no further",
+      has(planted(lambda p: p["objective"]["groups"].__setitem__("G3", "x")), "SHAPE groups.G3"))
+    t("a rank-2 group waiting on a rank-2 group owes no edge",
+      refused(good_plan, projected={**proj_a, "G3": {**proj_a["G3"], "after": ["G2"]}}) == [])
+    t("a rank-1 group waiting on a rank-1 group owes no edge",
+      refused({**good_plan, "objective": {**block_of(good_plan), "groups": {
+          **block_of(good_plan)["groups"], "G3": {"rank": 1, "cards": ["E11-1"]}}}},
+              projected={**proj_a, "G1": {**proj_a["G1"], "after": ["G2", "G3"]}}) == [])
+    two = {"groups": {"G1": {"rank": 1}, "G3": {"rank": 2}, "G4": {"rank": 2}}}
+    t("the floor drops a rank-2 group only another rank-2 group reaches",
+      kept_in_floor(two, {**proj_a, "G3": {"after": ["G4"]}, "G4": {"after": []}})
+      == {"G1", "G2", "OLD"})
     t("the rank edge reads the whole `after` closure, not the first hop",
       has(refused(good_plan, projected={**proj_a, "G2": {**proj_a["G2"], "after": ["G3"]}}),
           "RANK edge G1 after G3"))
@@ -1343,6 +1461,70 @@ def self_test() -> int:
       and status(settle(good_plan, baseline, {**nxt, "keyed": {"injected": [{"group": "G9"}]}},
                         set(), thresholds, {"G1"}), "G1:injected") == "HELD")
 
+    # #3703 review item 3: each settlement status choice, pinned by value.
+    t("perturbation: the flipped line's status flips, HELD to MISSED (a move against `down`)",
+      [d["status"] for d in diff] == ["HELD"]
+      and status(settle(sp, base10, flipped, {"G1", "G2", "G3"}, thresholds, {"G1"}),
+                 "term:escapes") == "MISSED")
+    up = json.loads(json.dumps(sp))
+    up["objective"]["terms"]["escapes"]["direction"] = "up"
+    t("a move the other way than an `up` prediction is MISSED",
+      status(settle(up, base10, rec11, {"G1"}, thresholds, {"G1"}), "term:escapes") == "MISSED")
+    hold = json.loads(json.dumps(sp))
+    hold["objective"]["terms"]["escapes"]["direction"] = "hold"
+    tie = {**rec11, "terms": {**rec11["terms"], "escapes": {"value": 22}}}
+    t("`hold` settles MISSED on a worse move, HELD on a tie and on a credited better move",
+      status(settle(hold, base10, flipped, set(), thresholds, set()), "term:escapes") == "MISSED"
+      and status(settle(hold, base10, tie, set(), thresholds, set()), "term:escapes") == "HELD"
+      and status(settle(hold, base10, rec11, {"G1"}, thresholds, set()), "term:escapes") == "HELD")
+    und = json.loads(json.dumps(sp))
+    und["objective"]["terms"]["escapes"] = {"direction": "undecided", "builder": "B"}
+    t("`undecided` on a read term settles UNDECIDED, whichever way it moved",
+      status(settle(und, base10, flipped, set(), thresholds, set()), "term:escapes") == "UNDECIDED")
+    lt = json.loads(json.dumps(sp))
+    lt["objective"]["terms"]["lead_time"] = {"direction": "down", "basis": "x"}
+    lead = {"lead_time": {"value": 10.0}}
+    t("a term no band reads settles UNDECIDED, named so",
+      [ln["detail"] for ln in settle(lt, {**base10, "terms": lead},
+                                     {**rec11, "terms": {"lead_time": {"value": 2.0}}}, set(),
+                                     thresholds, set()) if ln["key"] == "term:lead_time"]
+      == ["no band reads this term (unset, or no denominator)"])
+    t("only a rank-2 group owes an examining pass: UNDECIDED with no rows",
+      status(held, "G2:examined_by") == "UNDECIDED" and status(held, "G1:examined_by") is None)
+    seen = settle(sp, base10, {**rec11, "keyed": {"examined_by": [{"group": "G2"}]}}, set(),
+                  thresholds, set())
+    t("and with rows, HELD where a row names the group, MISSED where none does",
+      status(seen, "G2:examined_by") == "HELD" and status(seen, "G3:examined_by") == "MISSED")
+    ek = json.loads(json.dumps(good_plan))
+    ek["objective"]["groups"]["G1"].update({"escapes": ["G-ESC"], "classes": ["P1"]})
+    at12 = lambda keyed: settle(ek, baseline, {**nxt, "keyed": keyed}, set(), thresholds, set())  # noqa: E731
+    t("escape and class keys settle at the next close on their own rows",
+      status(at12({"escapes": [{"key": "G-ESC"}], "classes": [{"class": "P9"}]}), "G1:escapes:G-ESC")
+      == "MISSED"
+      and status(at12({"escapes": [], "classes": [{"class": "P1"}]}), "G1:classes:P1") == "MISSED"
+      and status(at12({"escapes": [], "classes": []}), "G1:classes:P1") == "HELD"
+      and status(at12({}), "G1:escapes:G-ESC") == "UNDECIDED")
+    t("the next close settles no term and no own-close effect",
+      not [ln for ln in at12({}) if ln["key"].startswith("term:") or ":examined_by" in ln["key"]])
+    t("only a production group owes an `injected` line",
+      status(held, "G2:injected") is None)
+    t("a plan with no round is round 0, so a round-1 record is its next close",
+      status(settle({k: v for k, v in good_plan.items() if k != "round"}, baseline, {"round": 1},
+                    set(), thresholds, {"G1"}), "G1:injected") == "UNDECIDED")
+    t("a share reads off its counts to four places; a zero denominator is no share",
+      term_reading({"value": 0.3333, "counts": "1/3"}) == {"": (1, 3)}
+      and term_reading({"value": 0.2, "counts": "1/3 then 1/5"}) == {"": (1, 5)}
+      and term_reading({"value": 0.5, "counts": "0/0"}) == {"": 0.5}
+      and term_reading({"value": None}) is None)
+    t("a count's band is twice the root of the two counts",
+      moved("escapes", 20, 32, thresholds) == "tie" and moved("escapes", 20, 36, thresholds) == "up"
+      and moved("escapes", 40, 20, thresholds) == "down")
+    t("a share's band is twice the pooled standard error",
+      moved("first_pass", (50, 100), (65, 100), thresholds) == "up"
+      and moved("first_pass", (50, 100), (63, 100), thresholds) == "tie")
+    t("a value that is neither a count nor a share has no band",
+      moved("escapes", 2.5, 9.0, thresholds) is None and moved("escapes", True, 9, thresholds) is None)
+
     print(f"plan_audit self-test: {checks} checks, {failures} failed")
     return 1 if failures else 0
 
@@ -1377,6 +1559,8 @@ def main(argv: list[str]) -> int:
     obj.add_argument("--register", required=True)
     obj.add_argument("--previous", help="the previous plan's `settle --json` lines")
     obj.add_argument("--write", action="store_true", help="write PROJECTION.json beside --plan")
+    obj.add_argument("--main", default="origin/main",
+                     help="main's ref; the baseline must be the blob the plan's branch left it at")
     stl = sub.add_parser("settle")
     stl.add_argument("--plan", required=True)
     stl.add_argument("--record", required=True)
@@ -1418,7 +1602,8 @@ def main(argv: list[str]) -> int:
               f"mutation {data['mutation']}, coupling {data['coupling']}")
         return 0
     if args.cmd == "objective-check":
-        return objective_check(args.ref, args.plan, args.register, args.previous, args.write)
+        return objective_check(args.ref, args.plan, args.register, args.previous, args.write,
+                               args.main)
     if args.cmd == "settle":
         return objective_settle(args.plan, args.record, args.bodies, args.json)
     if args.cmd == "compare":
