@@ -1,0 +1,9 @@
+### s1-04 load1=0.36 nproc=4
+stored: {'compressor_modulation': 'on_off', 'heat_pump_min_power': 1.5}
+RESULT declared_on_off=True
+RESULT on_off_sub_min_steps=60 of 96
+RESULT modulating_sub_min_steps=60 of 96
+RESULT thread_factor=1.001
+RESULT load1=0.6552734375
+RESULT swapins=0
+### rc=0 wall=4s

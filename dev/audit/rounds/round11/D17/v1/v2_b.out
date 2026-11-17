@@ -1,0 +1,9 @@
+RESULT s1-04 declared_modulation(on_off)=True
+RESULT s1-04 declared_modulation(modulating)=True
+RESULT s1-04 declared_modulation(auto)=None
+RESULT s1-04 mode=on_off sub_min_steps=6 of 96
+RESULT s1-04 mode=modulating sub_min_steps=6 of 96
+RESULT s2-02 forecast=True step0_outdoor=[-5.0, -5.0, -5.0] spread=0.000 K plan_kwh_spread=0.6500
+RESULT s2-02 forecast=False step0_outdoor=[-20.0, 0.0, 8.0] spread=28.000 K plan_kwh_spread=110.4917
+RESULT s3-51b post-solve(resolve_each_hour=False) cells_wrong=16 of 336 published_dhw_windows='05:00-06:30, 10:00-11:00'
+RESULT thread_factor=1.000 load1=1.95

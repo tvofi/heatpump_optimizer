@@ -1,0 +1,15 @@
+### s2-02 load1=1.32 nproc=4
+sensor  -25.0: published outdoor=-25.0 plan step-0 outdoor=-5.0 plan kWh=30.944
+sensor   -3.0: published outdoor=-3.0 plan step-0 outdoor=-5.0 plan kWh=30.944
+sensor   10.0: published outdoor=10.0 plan step-0 outdoor=-5.0 plan kWh=30.944
+no forecast, sensor  -25.0: plan step-0 outdoor=-25.0 plan kWh=113.971
+no forecast, sensor   -3.0: plan step-0 outdoor=-3.0 plan kWh=28.102
+no forecast, sensor   10.0: plan step-0 outdoor=10.0 plan kWh=4.998
+RESULT step0_outdoor_spread_K=0.000 K
+RESULT plan_kwh_spread=0.0000 kWh
+RESULT null_no_forecast_step0_spread_K=35.000 K
+RESULT wall_s=3.2 s (provisional)
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=1.32
+RESULT swapins=0
+### rc=0 wall=4s

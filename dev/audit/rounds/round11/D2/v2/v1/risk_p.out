@@ -1,0 +1,13 @@
+### risk_p load1=1.18
+CELL risk golden=price_risk lambda=0.0 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=66.6385 published_baseline=131.6143 price_dev=0.000
+CELL risk golden=price_risk lambda=0.5 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=63.8464 published_baseline=131.6143 price_dev=0.000
+CELL risk golden=price_risk lambda=1.0 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=61.3580 published_baseline=131.6143 price_dev=0.000
+CELL risk golden=price_risk lambda=2.0 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=61.2302 published_baseline=131.6143 price_dev=0.000
+CELL risk golden=winter_single_dhw lambda=1.0 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=61.3580 published_baseline=131.6143 price_dev=0.000
+CELL risk golden=horizon_48h lambda=1.0 spend_premium=0.0000 baseline_premium=0.0000 savings_inflation=0.0000 published_savings=117.1172 published_baseline=248.6689 price_dev=0.000
+RESULT savings_inflation_max=0.0000 currency
+RESULT savings_inflation_lambda1_price_risk=0.0000 currency
+RESULT thread_factor=1.0004
+RESULT load1=1.80
+RESULT swapins=0
+### rc=0 wall=15s load1_end=1.80

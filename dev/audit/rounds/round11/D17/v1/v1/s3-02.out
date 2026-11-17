@@ -1,0 +1,28 @@
+### s3-02 load1=1.39 nproc=4
+/home/user/audit-r11-px-D17/tests/harness.py:597: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+RESULT auto.house_heat_loss_coefficient.two_zone=1 bool
+RESULT auto.house_heat_loss_coefficient.plan_delta=0.000 kW-steps
+RESULT auto.house_heat_loss_coefficient.plan_delta_after_restart=0.000 kW-steps
+RESULT auto.house_thermal_mass.two_zone=1 bool
+RESULT auto.house_thermal_mass.plan_delta=0.000 kW-steps
+RESULT auto.house_thermal_mass.plan_delta_after_restart=0.000 kW-steps
+RESULT on.house_heat_loss_coefficient.two_zone=1 bool
+RESULT on.house_heat_loss_coefficient.plan_delta=0.000 kW-steps
+RESULT on.house_heat_loss_coefficient.plan_delta_after_restart=0.000 kW-steps
+RESULT on.house_thermal_mass.two_zone=1 bool
+RESULT on.house_thermal_mass.plan_delta=0.000 kW-steps
+RESULT on.house_thermal_mass.plan_delta_after_restart=0.000 kW-steps
+RESULT off.house_heat_loss_coefficient.two_zone=0 bool
+RESULT off.house_heat_loss_coefficient.plan_delta=167.619 kW-steps
+RESULT off.house_heat_loss_coefficient.plan_delta_after_restart=167.619 kW-steps
+RESULT off.house_thermal_mass.two_zone=0 bool
+RESULT off.house_thermal_mass.plan_delta=5.882 kW-steps
+RESULT off.house_thermal_mass.plan_delta_after_restart=5.882 kW-steps
+RESULT two_zone_inert_cells=4 count
+RESULT perturbed=0 bool
+RESULT thread_factor=1.000
+RESULT load1=2.04
+RESULT swapins=0
+### rc=0 wall=51s

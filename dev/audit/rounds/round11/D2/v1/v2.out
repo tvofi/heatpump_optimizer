@@ -1,0 +1,20 @@
+RESULT lift ref=35.0 grid flow 36..70 x outdoor -25..15: factor>1 in 1435 of 1435; max 2.0205
+RESULT lift at outdoor 0, flow 60: production 1.5856; own Carnot ratio C(60)/C(ref) 0.6307
+RESULT lift_reach real coordinator solve (DHW 200 l, default plant): calls=21 factor>1=21
+RESULT emitter grid mix 15..60 x zone 15..25 ua 0.2: negative deliveries 15 of 110; e.g. mix 15 zone 22 -> -1.400 kW
+RESULT defrost duty=0.0: derate_from_duty=1.000 ; capacity-loss law 1-1.5*d=1.000
+RESULT defrost duty=0.05: derate_from_duty=1.000 ; capacity-loss law 1-1.5*d=0.925
+RESULT defrost duty=0.1: derate_from_duty=1.000 ; capacity-loss law 1-1.5*d=0.850
+RESULT defrost duty=0.2: derate_from_duty=1.000 ; capacity-loss law 1-1.5*d=0.700
+RESULT defrost duty=0.3: derate_from_duty=1.000 ; capacity-loss law 1-1.5*d=0.550
+RESULT presets low_energy loss >= post_2005 loss in 48 of 48 cells; ratio 1.545..1.545
+RESULT clamp compressor_modulation=on_off: clamp_planned_levels=n/a
+RESULT clamp compressor_modulation=modulating: clamp_planned_levels=n/a
+RESULT clamp compressor_modulation=auto: clamp_planned_levels=n/a
+RESULT thread_factor=1.000 load1=0.85
+RESULT s1-04 declared_modulation(on_off)=True
+RESULT s1-04 declared_modulation(modulating)=True
+RESULT s1-04 declared_modulation(auto)=None
+RESULT s1-04 mode=on_off sub_min_steps=6 of 96
+RESULT s1-04 mode=modulating sub_min_steps=6 of 96
+RESULT thread_factor=1.000 load1=0.96

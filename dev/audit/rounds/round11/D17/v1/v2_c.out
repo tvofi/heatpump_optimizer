@@ -1,0 +1,17 @@
+RESULT s1-03 mode=off two_zone=False kwh_m10=32.4838 kwh_m40=23.0722 delta=-9.4116 kWh
+RESULT s1-03 mode=on two_zone=True kwh_m10=32.2609 kwh_m40=32.2609 delta=+0.0000 kWh
+RESULT s1-03 mode=None two_zone=True kwh_m10=32.2609 kwh_m40=32.2609 delta=+0.0000 kWh
+RESULT s3-02 mode=off two_zone=False field=house_heat_loss_coefficient kwh_before=32.4838 kwh_after=81.5623 delta=+49.0785 kWh
+RESULT s3-02 mode=off two_zone=False field=house_thermal_mass kwh_before=81.5623 kwh_after=87.8988 delta=+6.3366 kWh
+RESULT s3-02 mode=on two_zone=True field=house_heat_loss_coefficient kwh_before=32.2609 kwh_after=32.2609 delta=-0.0000 kWh
+RESULT s3-02 mode=on two_zone=True field=house_thermal_mass kwh_before=32.2609 kwh_after=32.2609 delta=+0.0000 kWh
+RESULT s3-02 mode=None two_zone=True field=house_heat_loss_coefficient kwh_before=32.2609 kwh_after=32.2609 delta=-0.0000 kWh
+RESULT s3-02 mode=None two_zone=True field=house_thermal_mass kwh_before=32.2609 kwh_after=32.2609 delta=+0.0000 kWh
+RESULT s2-04 arm=none max_kw_06_10=5.000
+RESULT s2-04 arm=win max_kw_06_10=5.000
+RESULT s2-04 arm=win_f05 max_kw_06_10=3.000
+RESULT s2-04 cap_delta_default_fraction=+0.000 kW; with_fraction_0.5=-2.000 kW
+RESULT s3-01 arm=action price 1.0->1.0 first_step_price=1.0 stamp_moved=False
+RESULT s3-01 arm=button price 1.0->3.0 first_step_price=3.0 stamp_moved=True
+RESULT s3-01 arm=nothing price 1.0->1.0 first_step_price=1.0 stamp_moved=False
+RESULT thread_factor=1.000 load1=1.27

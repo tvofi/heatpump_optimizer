@@ -1,0 +1,129 @@
+# D17 verify -- round 11, box V5 (seat D17-v1)
+
+One verifier, three lenses. Every finding of this unit carries a planted-export scope, so every number below was taken in a private copy of the planted export (`../audit-r11-px-D17`, PYTHONPATH=tests/hastub); none from a git tree. Counts only; load1 0.2-2.1 on 4 cpu (counts; immune), thread_factor 1.000. Verifier harnesses: `$HOME/vout/D17-v1/harness/` (v2_s1_01_enum.py, v2_d17.py, v2_flow.py, myrig.py); finder re-runs: `$HOME/vout/D17-v1/v1/`.
+
+## D17-s1-01 -- verify (medium)
+
+- metric: options fields in strings.json options.step.*.(data|sections.*.data) with no '<step>.<key>' token in `enumerate.py d17-features --kind option` output
+- method: V1 finder h_enum.py base + --perturb-sections; V2 own parser v2_s1_01_enum.py; tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 156 missing of 286; owed cell 0 of 8; perturb 0
+- V2 independent: 156 missing (156 nested, 0 flat), by page building 29, building_preset 11, comfort 19, entities 20, entities_metering 17, hot_water 18, hot_water_tank 14, learning_features 9, thermal_model_zones 9, tuning 10
+- attacks: perturbation 156->0 (to_zero, as stated); null (sections walked) 0; my parser: 156 missing, all 156 section-nested, 0 flat; weekend/holiday keys 10 declared, 1 printed (the brief's 8 comfort cells all missing); not a timing claim
+- V3 reach: n/a for HA: an audit-instrument defect, reached on every D17 enumeration run; class: I4 (confirmed: the instrument's option universe and strings.json/flow disagree); seam_rule enumerates: yes: MISSING lines list every omitted field by page; config side checked 0
+
+## D17-s1-02 -- verify (high)
+
+- metric: computed-default comfort fields (weekend/holiday) whose shown value, kept in a save that changes the weekday source, is not the effective EntryConfig value afterwards
+- method: V1 h_computed.py base/--perturb-merged; V2 own options-flow walk v2_flow.py s1_02 (entry stores source A, form default read from the rendered section, submit source B + field at shown A); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 8 of 8 lost; null 0; perturb 0
+- V2 independent: 6 of 6 valid saves lose the kept value (2 cells refused by validation in my arm); null 0 of 8
+- attacks: perturb 8->0; null B=A 0 (mine 0 of 8); leave-one-out: my 2 night cells were refused by page validation (17.5 night form error), the 6 saved cells all lose the kept value (6 of 6); reachable through the real async_step_comfort + _omit_unstored_computed
+- V3 reach: yes: real options flow page in HA; the stub divergences in tests/ha_contract.py (cv.*, FlowError, as_local) are not on this path; class: P2 (computed default decided over stored config at the omit seam, over the merged save at the effective read); seam_rule enumerates: yes: enumerates every _OPTION_FIELDS row with a _Computed default (12, 8 same-page numeric)
+
+## D17-s1-03 -- verify (medium)
+
+- metric: plan kWh delta when house_thermal_mass 10->40 is stored, per two-zone mode
+- method: V1 h_zone.py base/--perturb-gate; V2 v2_d17.py s1-03 (own rig, options house_thermal_mass); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: two_zone_only_no_effect=1 ['house_thermal_mass']; perturb 0
+- V2 independent: two-zone on/auto delta 0.0000 kWh vs single-zone -9.4116 kWh
+- attacks: perturb (gate field to single zone) 1->0; null single-zone arm: field moves plan; mine: off -9.41 kWh, on 0.0000, auto(absent) 0.0000; same root as D17-s2-01/D17-s3-02 (two-zone model never reads house_thermal_mass; auto resolves on)
+- V3 reach: yes: thermal_model options page renders it on the default two-zone entry; class: P2 (corrected from P6: page render predicate and model read predicate differ; no consumer reads a missing key); seam_rule enumerates: partial: enumerates the thermal_model page only; the same inert field reaches set_thermal_parameters (D17-s3-02)
+
+## D17-s1-04 -- verify (high)
+
+- metric: planned steps with 0.01 kW < P < min power under compressor_modulation=on_off
+- method: V1 h_modulation.py base/--perturb-docstring; V2 v2_d17.py s1-04: declared_modulation per mode + own solve with on_off/min 1.5 stored in entry data; tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: on_off 60 of 96 = modulating 60 of 96; perturb 0
+- V2 independent: declared_modulation('on_off') returns True; on_off sub-min steps 6 of 96 == modulating 6 of 96
+- attacks: perturb 60->0; null modulating arm 60 (identical); mine declared_modulation(on_off)=True, (modulating)=True, (auto)=None; my solve 6 of 96 sub-min under both on_off and modulating (different house, same identity)
+- V3 reach: yes: thermal_model options page / entry data, real solve path; class: new (confirmed: a mapping inverted against its own docstring; no existing class); seam_rule enumerates: yes: the 3 readers of declared_modulation (thermal_model.py:1454, 1570, 1633)
+
+## D17-s1-05 -- verify (high)
+
+- metric: minute-samples where the guard's suppressing state contradicts the documented projection rule over 5 steady draws x 60 min
+- method: V1 h_guard.py base/--perturb-docstring; V2 v2_d17.py s1-05: project_window_mean evaluated directly for steady draws; tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 69 over 5 draws (range 3..25; LOO 44); perturb 0
+- V2 independent: 280 of 295 (P,minute) cells with >5 % projection error, worst 96.7 %
+- attacks: perturb 69->0; null (guard off) 0; leave-one-out (drop most favourable draw) 44; mine: projection of a steady draw P at minute m is 2*P*m/60, (P=3: m1 0.10, m30 3.00, m59 5.90); empty window projects 0.0 not the current draw
+- V3 reach: yes: coordinator._on_power_event calls it on every power-meter state change in real HA; class: new (confirmed); seam_rule enumerates: yes: definition + its one caller
+
+## D17-s2-01 -- verify (high)
+
+- metric: two_zone_enabled published / from_config for an entry with no zone value and mode absent or auto
+- method: V1 two_zone_auto.py base/--perturb; V2 v2_d17.py s2-01 (from_config and own coordinator); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: auto_two_zone_without_values=1, questionnaire_two_zone_unasked=1, upper_emitter_moves=1; perturb 0
+- V2 independent: mode absent and 'auto' with no zone key: two_zone_enabled True (from_config and published)
+- attacks: perturb 1->0 all three; null explicit off 0 / on 1; mine: absent True, auto True, off False, on True; code: thermal_model.py:1122 `in (ON, DEFAULT_TWO_ZONE_MODE)` makes the presence branch unreachable for auto
+- V3 reach: yes: every finish-now/questionnaire entry in real HA; class: new (root of D17-s1-03 and D17-s3-02); seam_rule enumerates: yes: every reader of DEFAULT_TWO_ZONE_MODE/TWO_ZONE_MODE_AUTO (config_flow 1856/3085, quick_setup 136, thermal_model 1120/1122)
+
+## D17-s2-02 -- verify (medium)
+
+- metric: spread of the solve's step-0 outdoor temperature over outdoor-sensor readings with a forecast present
+- method: V1 outdoor_sensor.py base/--perturb; V2 v2_d17.py s2-02 (own forecast injection, readings -20/0/+8); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: step0 spread 0.000 K, plan spread 0.0000 kWh; perturb 35 K
+- V2 independent: step0 spread 0.000 K with forecast (28 K without); plan kWh spread 0.650 with forecast
+- attacks: perturb 0->35 K / 5.124 kWh; null no-forecast 35 K (mine 28 K); mine with forecast step-0 outdoor -5,-5,-5 (spread 0.000 K) but plan kWh spread 0.650 kWh, not 0: the sensor reaches the plan through another path in my rig, so the claim's 'its energy identical' half does not hold generally; the current-hour outdoor half does
+- V3 reach: yes: any entry with a weather entity; class: new (confirmed); seam_rule enumerates: partial: coordinator _weather_series/outdoor_temps only
+
+## D17-s2-03 -- verify (medium)
+
+- metric: two_tank_modelled / topology of a quick-setup entry answering wood furnace + wood buffer tank, with the top probe set
+- method: V1 wood_quick.py; V2 v2_flow.py s2_03 (own quick-setup walk, ThermalParameters.from_config on the created data); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: quick path spread 0.0000 kWh; valve arm 11.805 kWh
+- V2 independent: two_tank_modelled=False on the quick-setup wood entry (with probe)
+- attacks: finder spread 0.0000 kWh (LOO 0.0000), valve arm 11.805 (LOO 2.559); mine: wood_tank_configured False without probe, True with probe, two_tank_modelled False, topology no_valve; even with mixing_valve_mode smart_write my arm resolves single_tank_valve, so the valve condition is wider than the finder's 'throttling valve' wording
+- V3 reach: yes: quick setup in real HA; class: P2 (confirmed); seam_rule enumerates: yes: wood_tank_configured/two_tank_modelled/topology_layout readers
+
+## D17-s2-04 -- verify (medium)
+
+- metric: max planned kW inside a stored silent window with the fraction at its default vs no window
+- method: V1 silent_prefill.py base/--perturb; V2 v2_d17.py s2-04 (own cold-house solve, window 06-10 stored in data); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: cap delta 0.000 kW; with fraction -2.000
+- V2 independent: cap delta +0.000 kW at default fraction; -2.000 kW with 0.5
+- attacks: perturb 0->-2.0 kW; null fraction stored -2.0; mine: none 5.000, window 5.000 (delta +0.000), window+0.5 3.000 (-2.000); the fraction's 1.0 default is documented ('1.0 caps nothing'), so the defect is the setup pre-fill page keeping the schedule without offering the fraction (offered 0 fields)
+- V3 reach: yes: modbus pre-fill page in real HA; class: new (confirmed); seam_rule enumerates: yes: config_flow, modbus_prefill and silent_mode readers
+
+## D17-s2-05 -- verify (low)
+
+- metric: created entries whose data carries after_save, over choices {menu, close}
+- method: V1 after_save_stray.py base/--perturb; V2 v2_flow.py s2_05 (own walk: device_prefill submitted once with after_save, no device picked); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 2 of 2; perturb 0
+- V2 independent: 0 of 2 on the no-device single-submit path
+- attacks: perturb 2->0; null navigation finish_setup both; mine: 0 of 2 when no device is picked (single submit) -- the stray write needs the device-picked second submit the finder walked; scope narrowed, consequence unchanged (an unread key)
+- V3 reach: yes, on the device-picked path only; class: P2 (corrected from new: the options flow pops after_save, the config flow's device_prefill sibling does not); seam_rule enumerates: yes: CONF_AFTER_SAVE lives only in config_flow.py
+
+## D17-s3-01 -- verify (medium)
+
+- metric: published current price / last_optimization stamp after the price feed moves and the run_optimization action vs Optimize Now
+- method: V1 f01_run_optimization.py base/--perturb; V2 v2_d17.py s3-01 (own rig, 1.0->3.0); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: service 0.5 republished 0; button 2.0
+- V2 independent: action first-step price 1.0 (stale), button 3.0
+- attacks: perturb 0.5->2.0; null button 2.0; mine: action 1.0->1.0 stamp unmoved, button 1.0->3.0 stamp moved, nothing 1.0; FakeHass task closing neutralised (tasks run) in both rigs, button refresh rides off_the_action as in HA
+- V3 reach: yes: services.py:596 awaits async_run_optimization with no refresh in real HA; class: P2 (corrected from new: sibling seams button.py:110 refreshes, services.py:596 does not); seam_rule enumerates: yes: both call sites
+
+## D17-s3-02 -- verify (medium)
+
+- metric: plan delta after set_thermal_parameters house_heat_loss_coefficient / house_thermal_mass, per two-zone mode
+- method: V1 f02_two_zone_inert.py base/--perturb; V2 v2_d17.py s3-02 (own rig, 0.35 kW/C then 3.0 kWh/C); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 4 inert cells; off 167.619 / 5.882 kW-steps
+- V2 independent: 4 of 4 two-zone cells 0.0000 kWh; single-zone +49.08 / +6.34 kWh
+- attacks: perturb (mode off) 4->0; null off arm 167.619 / 5.882; mine: on and absent 0.0000 kWh both fields; off +49.08 and +6.34 kWh; same root as D17-s2-01
+- V3 reach: yes: service in real HA on the default two-zone entry; class: new (same root as D17-s2-01); seam_rule enumerates: yes: _THERMAL_PARAM_FIELDS and two_zone_enabled readers
+
+## D17-s3-03 -- verify (low)
+
+- metric: best_restore() result for a healthy snapshot whose accuracy evidence is absent
+- method: V1 f03_restore_unevidenced.py base/--perturb; V2 v2_d17.py s3-03 (SnapshotRing.best_restore on planted rings); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: restored 1 of 1; perturb 0
+- V2 independent: bias None and {} restore; bias 5.0 and no accuracy refuse
+- attacks: perturb 1->0 (scale 1.0 vs 1.3); no null in the finding, mine supplies one: bias 5.0 -> refused, accuracy missing -> refused; bias None -> restored, empty accuracy dict -> restored, bias 0.1 -> restored. The description's 'prediction accuracy was in band' is not met by an absent bias
+- V3 reach: yes: restore_learned_snapshot in real HA after the first weekly snapshot; class: new (confirmed); seam_rule enumerates: yes: best_restore and undo_target
+
+## D17-s3-51 -- verify (low)
+
+- metric: half-hour cells of a week where published dhw_in_demand_window differs from windows_for_day(weekday)
+- method: V1 leads/dhw_window_weekday.py base/--perturb; V2 v2_d17.py s3-51 (own spec 'weekdays 05:00-06:30, weekend 10:00-11:00') and s3-51b (after a real solve each day); tree: planted export copy ../audit-r11-px-D17 (PYTHONPATH=tests/hastub)
+- V1 reproduced: 18 of 336; null 0; perturb 0
+- V2 independent: 16 of 336 (no solve) and 16 of 336 (after a daily solve); null 0
+- attacks: perturb 18->0; null flat spec 0 (mine 0); the finder ran no solve: mine with a solve each day still 16 of 336 wrong and dhw_windows published as the flat union -- reach holds after a solve
+- V3 reach: yes: entity attributes in real HA; the plan itself uses the per-day windows; class: P2 (corrected from new: published flag and optimizer resolve the day's windows by different predicates); seam_rule enumerates: partial: no seam_rule supplied with the lead; the same flat union feeds dhw_next_window_in_hours and dhw_windows (coordinator.py:6042/6048)

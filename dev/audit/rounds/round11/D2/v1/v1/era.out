@@ -1,0 +1,11 @@
+### era load1=0.40
+eras order: ['pre_1960', '1960_1980', '1980_2005', 'post_2005', 'low_energy']
+RESULT cells=36 count
+RESULT cells_inverted=36 count
+RESULT null_cells_inverted=0 count
+RESULT low_energy_over_post2005_min=1.545 ratio
+RESULT low_energy_over_post2005_max=1.546 ratio
+RESULT thread_factor=1.001
+RESULT load1=0.40
+RESULT swapins=0
+### rc=0 wall=0s

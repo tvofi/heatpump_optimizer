@@ -1,0 +1,12 @@
+### s2-04 load1=1.32 nproc=4
+setup pre-fill page offers: ['after_save', 'dhw_setpoint', 'dhw_temp_entity', 'heat_pump_capacity_limited_entity', 'heat_pump_return_temp_entity', 'heat_pump_supply_temp_entity']
+entry kept: silent_mode_windows='06:00-10:00' silent_mode_power_fraction=None
+max planned kW in the window: without schedule=5.000 kept schedule=5.000 schedule+fraction 0.6=3.000
+RESULT kept_schedule_cap_delta_kW=0.000 kW
+RESULT with_fraction_cap_delta_kW=-2.000 kW
+RESULT offered_fraction_on_setup_page=0 fields
+RESULT wall_s=1.2 s (provisional)
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=1.32
+RESULT swapins=0
+### rc=0 wall=2s
