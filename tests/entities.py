@@ -10966,6 +10966,8 @@ _UT_NUMBER_CLAIMS = [
      _ut_const.DHW_COOLING_REFERENCE_AMBIENT_TEMP, "const.DHW_COOLING_REFERENCE_AMBIENT_TEMP"),
     ("services.set_thermal_parameters.fields.buffer_cooling_rate.description", "at 25 °C above ambient", 25,
      _ut_const.DHW_COOLING_REFERENCE_DELTA, "const.DHW_COOLING_REFERENCE_DELTA"),
+    ("services.set_thermal_parameters.fields.dhw_legionella_temperature.description", "55 to 70 °C", 70,
+     ThermalParameters(dhw_setpoint=90.0).dhw_hard_max_temp, "ThermalParameters.dhw_hard_max_temp"),
     *((f"services.{s}.fields.silent_mode_power_fraction.description", "raised to 0.6", 0.6,
        _ut_const.CAPACITY_FLOOR_FRACTION, "const.CAPACITY_FLOOR_FRACTION")
       for s in ("set_thermal_parameters", "simulate_plan", "apply_schedule")),
