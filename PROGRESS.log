@@ -15,3 +15,4 @@
 1794874516 HB alive
 1794874524 CKPT fixer start: brief, verdict (approve ce85b10049) and role pack read snapshot 7c7d29acdea4
 1794875120 HB alive
+1794875285 CKPT production code drafted (kernel, store program, acceptance, combi commit); fixtures 11/4 -> 0/0 under floor; writing tests snapshot a28b79f92562
