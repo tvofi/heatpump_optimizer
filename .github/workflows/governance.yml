@@ -784,6 +784,7 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/bare_array.py --self-test
           python3 -I tools/audit/seat/bare_array.py --check
+          python3 -I tools/audit/seat/shell_hazard.py --self-test
 
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
