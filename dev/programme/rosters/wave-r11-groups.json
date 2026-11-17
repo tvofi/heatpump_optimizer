@@ -2060,7 +2060,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "branch": "handoff/r11-pre-briefs-census",
+    "branch": "fix/r11-pre-briefs-census-p2",
     "commit": "f1520e3539b82407e56be9fe915d8a57ad6aedef",
     "last_step": null,
     "next_step": "fire now on the cards at the approved eval/r11 sha; D9 held until ruled",
