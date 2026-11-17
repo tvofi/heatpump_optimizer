@@ -146,8 +146,8 @@
  {
   "name": "OUT_OF_BAND_PENALTY",
   "file": "custom_components/heatpump_optimizer/runs.py",
-  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
-  "new": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs])\n"
+  "old": "        return np.clip(np.rint(b / quantum).astype(np.int64) + half, 0, 2 * half), fine * outside\n",
+  "new": "        return np.clip(np.rint(b / quantum).astype(np.int64) + half, 0, 2 * half), 0.0 * outside\n"
  },
  {
   "name": "END_BALANCE_HALF_STEP",
@@ -164,8 +164,8 @@
  {
   "name": "START_COST_EDGE",
   "file": "custom_components/heatpump_optimizer/runs.py",
-  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts in srcs]) + fine * outside\n",
-  "new": "        c = np.concatenate([cost[s] + paid for s, starts in srcs]) + fine * outside\n"
+  "old": "        c = np.concatenate([cost[s] + paid + start_cost * starts for s, starts, _, _, paid in took]) + extra\n",
+  "new": "        c = np.concatenate([cost[s] + paid for s, starts, _, _, paid in took]) + extra\n"
  },
  {
   "name": "RUN_PAUSE_COUNTS",
@@ -314,13 +314,13 @@
  {
   "name": "REV3_TIE_NOT_ASKED_SIDE_OFF",
   "file": "custom_components/heatpump_optimizer/runs.py",
-  "old": "price[k] * level[k] * dt + _TIE_BREAK * (not asked)),\n",
-  "new": "price[k] * level[k] * dt + 0.0 * (not asked)),\n"
+  "old": "    return _TIE_BREAK * (not asked), _TIE_BREAK * asked\n",
+  "new": "    return 0.0 * (not asked), _TIE_BREAK * asked\n"
  },
  {
   "name": "REV3_TIE_ASKED_SIDE_OFF",
   "file": "custom_components/heatpump_optimizer/runs.py",
-  "old": "            (-q[k] * dt, _TIE_BREAK * asked),\n",
-  "new": "            (-q[k] * dt, 0.0 * asked),\n"
+  "old": "    return _TIE_BREAK * (not asked), _TIE_BREAK * asked\n",
+  "new": "    return _TIE_BREAK * (not asked), 0.0 * asked\n"
  }
 ]
