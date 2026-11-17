@@ -447,7 +447,8 @@ def parity(repo, cell, plant_error, oracle_error=None):
     L = Loop(repo, lv, plant_error if oracle_error is None else oracle_error, 1)
     space, dhw, _ = L.closed(1.0)
     return (bool(np.array_equal(space, got["space_power"])), bool(np.array_equal(dhw, got["dhw_power"])),
-            abs(L.cost(space, dhw) - float(np.sum(got["cost"]))) < 1e-9 * max(1.0, abs(L.cost(space, dhw))))
+            abs(L.cost(space, dhw) - float(np.sum(got["cost"]))) < 1e-9 * max(1.0, abs(L.cost(space, dhw))),
+            float(np.sum(got["cost"])))
 
 
 # ---------------------------------------------------------------------------------------------- self-test
@@ -477,6 +478,45 @@ def _bundle(repo, out, scale):
             f"p.write_text(json.dumps(fx)); g.FIXTURE = p; g.main(sys.argv[1:])\n")
     env = {**os.environ, "PYTHONPATH": os.pathsep.join(str(Path(repo, p)) for p in ("tests/hastub", "tests"))}
     return subprocess.Popen([sys.executable, "-c", code], cwd=repo, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+
+
+def synth_bundle(edit=None):
+    """A one-day bundle with known numbers: 2 kW at 0.5 for the window's 24 h is 24.0 metered; the store's 23.5
+    and the day's promise 20.0."""
+    t0 = "2026-01-15T00:00:00+01:00"
+    b = {"replay": {"window": {"start": t0, "end": "2026-01-16T00:00:00+01:00"},
+                    "entry": {"data": {"heat_pump_power_entity": "sensor.p", "price_entity": "sensor.c"}},
+                    "states": {"sensor.p": [["2026-01-14T22:00:00+00:00", "2.0", None, None]],
+                               "sensor.c": [["2026-01-14T22:00:00+00:00", "0.5", None, None]]}},
+         "stores": {"x_energy": {"total_cost": 23.5, "since": "2026-01-14"},
+                    "x_accuracy": {"accuracy": {"promises": {"2026-01-15": {"cost": [1.0, 20.0]}}}}}}
+    if edit:
+        edit(b)
+    return b
+
+
+SYNTH = (
+    ("as built", None, (23.5, "energy store since 2026-01-14", 24.0, 20.0, "promises 2026-01-15")),
+    ("store counting from before the window", lambda b: b["stores"]["x_energy"].update(since="2026-01-01"),
+     (None, "NO-READ: the energy store counts since 2026-01-01, before the window", 24.0, 20.0, "promises 2026-01-15")),
+    ("no energy store", lambda b: b["stores"].pop("x_energy"),
+     (None, "NO-READ: the bundle holds no energy store", 24.0, 20.0, "promises 2026-01-15")),
+    ("price halved at noon local", lambda b: b["replay"]["states"]["sensor.c"].append(["2026-01-15T11:00:00+00:00", "0.25", None, None]),
+     (23.5, "energy store since 2026-01-14", 18.0, 20.0, "promises 2026-01-15")),
+    ("a second day with no promise", lambda b: b["replay"]["window"].update(end="2026-01-17T00:00:00+01:00"),
+     (23.5, "energy store since 2026-01-14", 48.0, None, "NO-READ: no day-ahead promise for 2026-01-16")),
+    ("two days, both promised", lambda b: (b["replay"]["window"].update(end="2026-01-17T00:00:00+01:00"),
+                                           b["stores"]["x_accuracy"]["accuracy"]["promises"].update({"2026-01-16": {"cost": [2.0, 5.0]}})),
+     (23.5, "energy store since 2026-01-14", 48.0, 25.0, "promises 2026-01-15,2026-01-16")),
+)
+
+
+def _raises(fn):
+    try:
+        fn()
+    except Refuse:
+        return True
+    return False
 
 
 def _exit(*argv):
@@ -526,9 +566,13 @@ def self_test():
         arm("a cell outside --cells is printed not run", sum("not run: outside --cells" in l for l in null),
             len(universe(repo, "d0-grid")) - len(SELF_CELLS) - 3)
         # the loop is run_rolling's: its own function, extracted from tests/rolling.py, drives the same series
-        arm("parity: a hot-water cell's executed loop is run_rolling's", parity(repo, DHW_CELL, 1.25), (True, True, True))
-        arm("parity: a two-zone cell's", parity(repo, TWO_ZONE_CELL, 0.8), (True, True, True))
-        arm("parity null: another plant on the oracle's side differs", parity(repo, DHW_CELL, 1.25, 1.0)[0], False)
+        arm("parity: a hot-water cell's executed loop is run_rolling's", parity(repo, DHW_CELL, 1.25)[:3], (True, True, True))
+        arm("parity: a two-zone cell's", parity(repo, TWO_ZONE_CELL, 0.8)[:3], (True, True, True))
+        pn = parity(repo, DHW_CELL, 1.0, 1.25)
+        arm("parity null: another plant on the oracle's side differs", pn[0], False)
+        arm("a grid row's C_real is run_rolling's cost on its cell", field(nrows[DHW_CELL], "C_real"), f"{pn[3]:.4f}")
+        arm("an examined row carries its band", nrows[DHW_CELL].endswith("\tband=undecided (thresholds.band_model_gap is null)"), True)
+        arm("the MEAN floor is 0 with the forecast realised", null[-2].split()[3], "floor=0.0000")
         arm("a challenger wins where the solver leaves cost: greedy", "(greedy of" in nrows[SELF_CELLS[2]], True)
         arm("and perturbed", "(perturbed of" in nrows[DHW_CELL], True)
         # admission: bounds, limits, stored heat
@@ -541,18 +585,27 @@ def self_test():
         arm("score: all off breaks the floor, all on the ceiling", (L.score(sp * 0, dh)[0] > 0, L.score(sp * 0 + L.pmax, dh)[0] > 0), (True, True))
         arm("admits: greedy holds the bounds but ends colder: refused for the heat it borrowed",
             (L.score(g, dh)[0], L.admits(g, dh, ref), L.admits(g, dh, ref, terminal=False)), (0.0, False, True))
-        arm("in_limits: 0..pmax, nothing below or above", (L.in_limits(np.array([0.0, L.pmax])), L.in_limits(np.array([-1e-6])),
+        arm("in_limits: 0..pmax, nothing below or above", (L.in_limits(np.array([-EPS, L.pmax])), L.in_limits(np.array([-1e-6])),
                                                           L.in_limits(np.array([L.pmax + 1e-6]))), (True, False, False))
+        last = sp.copy()
+        last[-1] = L.pmax if sp[-1] < L.pmax / 2 else 0.0
+        arm("score: the end state is the window's last step", L.score(last, dh)[1] != ref[1], True)
+        Z = Loop(repo, cell_levels(TWO_ZONE_CELL), 1.0, 1)
+        zsp, zdh, _ = Z.closed(1.0)
+        zref = Z.score(zsp, zdh)
+        arm("score: two zones read the colder zone, executed inside, all off outside", (zref[0] < 0.01, Z.score(zsp * 0, zdh)[0] > 1.0), (True, True))
         D = Loop(repo, cell_levels(DHW_CELL), 1.0, 1)
         dsp, ddh, _ = D.closed(1.0)
         dref = D.score(dsp, ddh)
-        arm("score: hot water off breaks the tank minimum in its windows", D.score(dsp, ddh * 0)[0] > dref[0] + 1.0, True)
+        arm("score: hot water off breaks the tank minimum in its windows", (dref[0] < 0.01, D.score(dsp, ddh * 0)[0] > 1.0), (True, True))
         best, best_c = perturbed(D, dsp, ddh, dref)
         arm("perturbed: cheaper, admitted, the same energy", (best_c < D.cost(dsp, ddh), D.admits(best, ddh, dref),
                                                             round(float(best.sum() - dsp.sum()), 9)), (True, True, 0.0))
         arm("cell_levels: a plane cell runs at PLANE_LEVELS", cell_levels("a/b"),
             dict(price="a", weather="b", two_zone=False, dhw=True, plant="plain", horizon_h=24))
         arm("mean_2se: no cell is a mean of 0", mean_2se([])[0], 0.0)
+        arm("cell_levels: a line of no grid shape is refused", _raises(lambda: cell_levels("x")), True)
+        arm("_at: the value held at t, a reading stamped at t included", (_at([(1, 5.0), (2, 7.0)], 2), _at([(1, 5.0)], 0)), (7.0, None))
         g = greedy(np.array([1.0, 2.0, 0.0, 3.0]), np.array([3.0, 1.0, 2.0, 0.5]), 4.0, np)
         arm("greedy: the same energy at the cheapest steps, capped at pmax", g.tolist(), [0.0, 2.0, 0.0, 4.0])
         arm("band: undecided while null", judge_gap(1.0, 10.0, None), "undecided (thresholds.band_model_gap is null)")
@@ -580,6 +633,12 @@ def self_test():
             not any("forecast" in k for k in attribute_keys(repo)))
         arm("installs: RESULT", one[-1], f"RESULT read=regret-installs universe={len(universe(repo, 'd15-installs'))} examined=1 value=NO-READ")
         arm("installs: no bundle is not read, examined 0", read_installs(repo)[-1].split()[3], "examined=0")
+        arm("installs planted: twice the metered power is twice the metered cost", field(r2, "metered"), f"{2 * float(field(r1, 'metered')):.4f}")
+        for name, edit, want in SYNTH:
+            path = Path(tmp, f"synth-{name}.json")
+            path.write_text(json.dumps(synth_bundle(edit)))
+            arm(f"installs synthetic ({name})", read_bundle(path), want)
+        arm("refuse: a --bundle naming no install", _exit("installs", "--repo", str(repo), "--bundle", "nope=x"), (2, False))
         # the refusals: an emptied universe source exits 2 with no RESULT; the head exits 0 with one
         fake = Path(tmp, "fake")
         (fake / "tests").mkdir(parents=True)
