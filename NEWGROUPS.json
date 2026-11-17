@@ -1,0 +1,987 @@
+[
+ {
+  "group": "R11-CARRY-DRAWMAP",
+  "lane": "IN",
+  "kind": "production",
+  "class": "production",
+  "severity": "high",
+  "size": "L",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "custom_components/heatpump_optimizer/draw_range.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "custom_components/heatpump_optimizer/diagnostics.py",
+   "custom_components/heatpump_optimizer/payload.py",
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The unbuilt parts of the approved draw-map evidence design (tag archive/design/R10-DRAW-MAP-EVIDENCE): part A (the sweep and its routing), part B (the ceiling probe and pass_origin), part F (the trace and the bundle readers). PR #3659 merged only part 1(b); origin/main holds none of last_sweep, pass_record, PassRecord or MAP_ROWS in custom_components/heatpump_optimizer/draw_range.py or pump_arbiter.py. Owner rulings S1-S4 (carry 2) gate the build: ask before the first part. Null control: the cop_gate_band and pass-routing harnesses must fail with the sweep interval routed to DrawRange.observe and pass with it excluded. Done when each carry below is built with its harness at both ends or dismissed with a number, and the P7 byte budget is re-measured with stored rows. Separate seam from R11-OUTSIDE-HONEST-METERED-FLOOR, whose brief excludes the sweep. Sources: R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Owner scope addition 2026-11-14 for part 2 (the collection and sweep design): it also enables the best possible wider debugging for the audit dimension that runs from a live diagnostics bundle (dev/governance/dimensions/D15.md). The design states what the debug-week collection and the diagnostics download must carry so a D15 seat can debug an install from the bundle alone, each field tied to the D15 question it answers, with its size and retention on a Raspberry-Pi-class host, its pass through the existing redaction, and a bundle shape marker an instrument can read; one collection mechanism, never a second recorder.",
+   "From r10-draw-map-evidence, body item 19509d31: (a) The ceiling store fills only from the system-identification ceiling probe, which runs only when the user presses Run System Identification and, while the house learner is unconverged, arms the fit instead: on the measured install 0 of 561 cycles ran the experiment and the store held 0 samples while the plan booked the configured 4.0 kW against a measured 3.21 kW mean at the ceiling. Precondition for part 2: a learned top on such an install needs the probe armed without a press, or ahead of an unconverged fit; ordinary ceiling-written intervals do not rescue it (2 of 116 window samples). Re-measure with `draw_map_linearity.py --bundle` (`experiment_cycles`, `ceiling_store_rows`). Carry: R10-DRAW-MAP-EVIDENCE (items 19509d31)",
+   "Owner rulings 2026-11-14 on the approved design (design/R10-DRAW-MAP-EVIDENCE 9aa450f5, design review approve at design-verdict f10dd418), by card id, verbatim answer line: \"S1 flat price sweep: Yes, allow on flat price (recommended) · S2 trace text columns: Ship text columns (recommended) · S3 probe before fit: Yes, probe first where the top is unlearned (recommended) · S4 d15 brief line: Prepare it in the part F pull request (recommended)\". So: Part B lets the band sweep run on a flat price, shown with its upper cost bound (levels times half an hour times the band top) and the metered energy afterwards; Part B builds the ceiling-evidence change with the button arming the ceiling probe before the fit where the pump's top is unlearned, the armed result saying which kind it armed and why; Part F ships the trace's text columns in the diagnostics download through the existing redaction; Part F prepares the one line naming the trace in dev/governance/dimensions/D15.md, which is policy and merges only on the owner's approving review. The design review's non-blocking items r12 to r18 are built with the part whose lines they land on; r14 (the probe clock gets its own probe-only reader, never a change in place to the reader the learned-top lapse and the solve band use) binds Part B.",
+   "From r10-draw-map-evidence-a, body item ba6dc000: Part B: the experiment kind is already on the sysid override action and typed on `payload.CurrentAction` (commit 3aac8bc7d8); B maps the sweep kind to a sweep origin in `pump_arbiter.pass_origin` and does not add the key again. Control: `tests/features.py` check \"the experiment's override action carries its kind\". Carry: R10-DRAW-MAP-EVIDENCE (items ba6dc000)",
+   "From r10-draw-map-evidence-a, body item f60f7998: Part B: the run key (`draw_range.PassRecord.run_key`) holds the level kW, so a sweep level change closes a run with no sweep-specific code; the routing invariant (a sweep interval never reaches `DrawRange.observe` nor an idle reading) is still B's, in `draw_range.fold`. Carry: R10-DRAW-MAP-EVIDENCE (items f60f7998)",
+   "From r10-draw-map-evidence-a, body item d83e38e5: Part B, r17: the row's `drawn_mean_kw` (steady minutes only) is the value to compare with the ceiling store's close-of-interval reading on B's synthetic sweep run; A builds no sweep, so the comparison is B's. Carry: R10-DRAW-MAP-EVIDENCE (items d83e38e5)",
+   "From r10-draw-map-evidence-a, body item 74becf4c: Part B, r12, r14, r15, r16, r18: no line of Part A reaches them (sweep comfort bound, ceiling source cell and probe-only clock reader, settle re-check, held set-points on `ArbiterState`, [CE] 2 gate). Carry: R10-DRAW-MAP-EVIDENCE (items 74becf4c)",
+   "From r10-draw-map-evidence-a, body item f715deff: Part F: the stored rows at `MAP_ROWS` measure 58,058 bytes compact (`draw_map_rows.py --synthetic`, `store` line) against the note's 52.7 KB estimate, and P7's margin was 226 bytes at indent 2; F re-measures P7 with the rows as stored before choosing its drop order. F's trace reads `ArbiterState.last_pass` (`draw_range.PassRecord`: mode reading and defrost flag included). Carry: R10-DRAW-MAP-EVIDENCE (items f715deff)",
+   "From r10-draw-map-evidence-a, body item 6fb1f5b0: The design note's measure-first expectation for `r10_cop_gate_band.py` on the owner's data (`fit=none`) is corrected: on the diagnostics file itself it reads `steps=0` (the harness reads `entry`/`states` at the top level, not the bundle's wrapper); on the bundle's replay half it reads `steps=13 distinct_c=10` with a flat fit. Carry: R10-DRAW-MAP-EVIDENCE (items 6fb1f5b0)",
+   "From r10-draw-map-evidence-f, body item 1db3c110: Hook owed by part A: the trace reads the arbiter's pass record through a module function `pump_arbiter.pass_record(coord)` returning a mapping (or dataclass) of the pass fields; each field becomes a column `arbiter/<field>` through the same cell rules. Until part A defines it the manifest says `arbiter: absent: this release's arbiter publishes no pass record` and `debug_ingest` reports `trace-arbiter` unfinished. Part A names the function so, or this one-line `getattr` is renamed when the two land together. Carry: R10-DRAW-MAP-EVIDENCE (items 1db3c110)",
+   "From r10-draw-map-evidence-f, body item 7384f61f: Store wear: with the option on, the hourly save rewrites the whole ring, so the trace multiplies the write volume by the day (Figures: about 9.4 to 16.7 MB on day 7 for 27 columns, against 1.8 MB for the ring without a trace). Disclosed in docs/configuration.md; a per-day trace store written once a day would cut it, at the cost of a second store document and its migration. Carry: R10-DRAW-MAP-EVIDENCE (items 7384f61f)",
+   "From r10-draw-map-evidence-b, body item 072c5e70: Part F: the diagnostics download now carries `draw_range.last_sweep` (per level: fraction, level kW, held set-point, steady minutes, drawn and inlet means; `metered_kwh`, `started_s`), the accuracy store's draw record a `sweep` key (167 bytes for five levels) and a third cell on a sweep's ceiling row; F's bundle readers and its P7 byte budget read them. Control: block checks \"the last sweep is stored beside the rows\" and \"the ceiling row's source\". Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 072c5e70)",
+   "From r10-draw-map-evidence-b, body item 64cb220e: Part A's review: at cc335482ae `mypy --strict` reads 5 errors in `draw_range.MapRows.take_pass` and `_stored_map` (command in `## Figures`), so `tests / typing` is red on Part A alone; the narrowing is in this part (commit 8b4c27bb52, `take_pass`'s early return on no pass and `_stored_map`'s filtered split), behaviour unchanged (Part A's block passes on it, 31 of 31). Either Part A takes the two hunks or the two parts merge together. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 64cb220e)",
+   "From r10-draw-map-evidence-b, body item 108e8b09: The fit's and the probe's published hold is stale after the freeze that set it ends: `stand_down` writes `held` and only a start clears it, so an armed probe reads \"an open window\" on a later cycle nothing stood down (block check \"an armed sweep's hold is the cycle's own\", its probe arm). This part re-derives the hold for a sweep only; the other two kinds are outside its brief. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 108e8b09)",
+   "From r10-draw-map-evidence-b, body item 7d9a0702: A sweep on fast-warming water keeps few running minutes at its low levels (`yield` at 0.1 and 0.2 K/min): a reader of sweep rows weighs a level by its steady minutes in `last_sweep`, never by its presence. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 7d9a0702)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-drawmap",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R10-DRAW-MAP-EVIDENCE carries 0,1,2,3,4,5,6,7,8,10,13,14,15,16,17",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-ROOM-LIFT",
+  "lane": "IN",
+  "kind": "production",
+  "class": "production",
+  "severity": "medium",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "custom_components/heatpump_optimizer/rooms.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "Two owner rulings the room phase-2 lift in custom_components/heatpump_optimizer/rooms.py still awaits: the 1.0 K lift cap with its opt-in toggle, and whether the lifted floor may raise the plan peak or the clip stops short of the comfort target. dev/programme/RULINGS.md holds no room ruling. First step: put both questions to the owner; build only what is ruled. Null control: the lift harness (dev/audit/harnesses/room_lift_solve.py) must move the plan peak with the cap removed. Done when both rulings are recorded and built or recorded refused. Sources: R11-OUTSIDE-ROOMS-P2 (PR #3678). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "From r11-outside-rooms-p2, body item 324a1354: The cap under the band (1.0 K, `rooms.ROOM_LIFT_CAP_C`) and phase 2 as its own opt-in toggle, default off, are built as the approved note recommends; both are routed `decision: owner` there and `dev/programme/RULINGS.md` holds no ruling on either (`git grep -n -i -E \"room|3616\" origin/main -- dev/programme/RULINGS.md` prints nothing). Pending owner confirmation. Carry: R11-OUTSIDE-ROOMS-P2 (items 324a1354)",
+   "From r11-outside-rooms-p2, body item daa69071: A floor lifted to the comfort target raises the plan's peak above the unlifted plan's: `dev/audit/harnesses/room_lift_solve.py`'s `max_over_target_c`, `none` against `lift`, with `zeros` as the control. The note expected no rise. Whether the clip should stop short of the target (a headroom under it) or the rise is accepted is the owner's choice; re-measure with the harness at the deciding head. Pending owner ruling. Carry: R11-OUTSIDE-ROOMS-P2 (items daa69071)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-room-lift",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-OUTSIDE-ROOMS-P2 carries 3,4",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-MERGE-TRAIN",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "L",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/train.sh",
+   "tools/audit/merge_fastpath.py",
+   "tools/audit/merge_throughput.py",
+   "tools/ci/gate.py",
+   "tools/audit/seat/orchestrator_tick.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The merge-train routing and shadow-benchmark residue of R11-PRE-PARALLEL-PIPELINE (PR #3675): the shadow benchmark of landing chains against the train's merge wait, the recorder of GREEN instants it needs, structure-budget-only batching, draft readiness, one train per repository, refresh of a green gate, the gate-conclusion readers left in tools/audit/seat/merge_train.py and orchestrator_tick.py, and the owed ruling on whether the carry-6 hold reaches workflow re-runs. Null control: the benchmark must show no gain when the train is forced serial. Done when each carry is built with its self-test arm, refused by a recorded ruling, or dismissed with a number. Sources: R11-PRE-PARALLEL-PIPELINE (PR #3675). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Owner ruling C9 (tvofi 2026-11-15, his words: \"Keep them locally and benchmark them against the train\"): the landing chains (chain_one.sh, chain_one_v2.sh, chain_after_green.sh, the per-PR copy) and land.sh with land_3568.sh stay session-local in $HPO_STATE_DIR/s14/bypass/, neither dropped nor tracked. The benchmark against the train is carried on this group because the batch names it as the owner (entries P789 and P790, both now DEFER under C9; the train's redesign and its handoff-to-merge replay baseline are this group's); it runs during this group's shadow, and its result is triaged at round 11's end. land.sh enters only by its normal-merge path; its ruleset-release arm is not run for the benchmark. The batch's benchmark text, verbatim:\n\nThe benchmark, owned by R11-PRE-PARALLEL-PIPELINE (the group that owns the train's redesign\nand its replay baseline of handoff-to-merge wall clock):\n- measures, per pull request, the merge wait: minutes from the later of (a merge verdict\n  posted at, or carried to, the live head) and (`merge_train.py classify` reading GREEN) to the\n  committer time of its merge commit on main, with the landing path (chain or train) as the\n  factor, plus each path's refusals and wrong merges (a wrong merge must read 0);\n- reads main's moves and lead time per size from `python3 tools/audit/merge_throughput.py flow`,\n  which publishes those from git alone; that instrument has no per-PR merge-wait column, so the\n  benchmark adds it there (or reads it from the design's baseline harness in\n  `$HPO_STATE_DIR/s14/seat/pipeline-design/`, which P754 lands on its design ref), never as a\n  third parser of the bus;\n- null control: the train's own entries in the same window, same classes;\n- decision rule, stated now so the benchmark cannot pick it later: if the chains' median merge\n  wait is more than 20% below the train's over at least ten pull requests each, with no wrong\n  merge, their posting-at-GREEN behaviour becomes a proposal into P750 and P754 at round 11's\n  end; otherwise they are retired.",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 2 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P754 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-ci-priority-pause, body item 97b9c91c: Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE (items 97b9c91c)",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 115 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P754 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-hotfix-sweep-deferral-dispatch, body item 2e903859: Whether `refresh` should re-run a green gate that already covers the newest event (each re-run is a deferral red that only the sweep can clear) is out of this group's scope by the brief. `tools/ci/gate.py` `refresh`, ci.yml's `refresh` job. Carry: R11-INTAKE-R10-RESIDUE (items 2e903859)",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 124 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P754 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nOwner-accepted carry (tvofi 2026-11-14, \"Yes\"), for the train-routing part: let the merge train batch a pull request whose only budget-file change is to the structure budgets with no cap moving up, instead of routing it serial by path. Today tools/audit/merge_fastpath.py file_class returns budget for any budgets JSON whose closure unit is not in its measured set, and the batch routes that serial (one recarry and one full CI pass per entry; on 2026-11-14 two of four serial entries, pull requests 3481 and 3581, were serial for this alone). Precondition to demonstrate per case, not assume: the batch proof runs tests/structure.py on the combined tree, so a lowered cap beside another entry's growth reddens the proof and drops the entry to serial; show that with a planted pair and its null control. Keep serial: any raise (the owner's approval at that head, Train.raise_hold), the machinery budgets (they grade main's merge window, so a combined proof does not represent each merge), the CI-time ratchet budget (priced in runner seconds, noisy), and the policy budgets unless the proof is shown to run the policy linter's budgets arm. One mutant per new arm. Re-measure the share of serial entries that are budget-only at the round-11 merge base before building; build only if it is worth the cost test.",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 153 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P754 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nCarry 6 (ii)'s hold at the workflow-side re-runs and dispatches (`tools/ci/gate.py`'s gate-job re-run, `tests.yml`/`merge-main.yml` `gh workflow run ci.yml` after a bot commit). They run in Actions without the roster, so whether carry 6 reaches them needs a ruling before a build. Carry: R11-INTAKE-R10-RESIDUE",
+   "Proposals PC-1113-11 and PC-1113-16 and sweep candidates at sweep.md lines 1494, 1560, 1593 and 2213 (TRAIN-ROUTING design input, read by the design reviewer at the delta; prototype $HPO_STATE_DIR/s14/train_guard.sh, then dropped), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P775 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nPC-1113-11 merge_train.py merges fail 8x on a draft PR (GraphQL: still a draft) and skip it; merge_pr.sh has --ready, the train has none (3531, 22:12Z). Local: gh pr ready by the orchestrator after reading verdict + classify. Permanent: the train marks an approved, green, verdicted draft ready before its merge attempt.\n## PC-1113-16 a second train starts in the default state dir beside a live one\nObserved 2026-11-14T00:57:44Z: with a train live under state-dir r10s6, an automatic add (bus auto-add or the tick sweep) started a second train under ~/.local/state/hpo/merge_train over seven PRs, four without the orchestrator's approval. train.sh's pidfile refuses a second train only per state dir. Proposal: one train per repository (a lock keyed on the repo, not the state dir), and the sweep and bus add read the live train's state dir from one place. Cost of the slip: one stop by hand, no wrong merge.\n\n- 2026-11-13T07:10:36Z #3492 deadlock cause (seat/diag-3492/REPORT.md): ci.yml run 43167378212 stuck with attempt-3 failed gate still counted as latest+required beside attempt 4's green. Deleted that completed run (11-09 ruling: CI cleanup is mine), gate latest 9/9 success, CLEAN, merged directly (deadlock; verdict SAME head, classify GREEN). PROPOSAL CANDIDATE: train/classify should read check-runs filter=latest per suite and name a stuck-attempt gate instead of [BRANCH-POLICY]\n\n- 2026-11-13T10:25:36Z MERGED #3528 3b9749da direct (train SKIP on transient gate red; GREEN/CLEAN/APPROVED, verdict c3fa2b58 CARRY). #3541 merge verdict posted, GREEN -> appr.sh (5889404440) -> merge seat train add. PROPOSAL CANDIDATE: train reads a red gate as final while a second ci.yml run at the head is in flight (two gate runs 09:58/10:06 both success after the skip)\n\n- 2026-11-13T11:43:44Z #3490: code run green 11:37Z, edit run's failed job re-run (queued), classify read GREEN while the re-run gate was still queued and the merge was refused by branch policy (correct). Second waiter merges when all gate check-runs at b7c97340 read success. FINDING: merge_train classify reads GREEN while a re-run gate attempt is queued (the queued attempt replaces the failed one in filter=latest as pending; classify did not count it) -> proposal candidate / check against #3499's barrier\n\n- 2026-11-14T11:35:13Z WORKAROUND armed: s14/train_guard.sh 48358 (session-local, background): SIGSTOPs the train at 'merge attempt 6/8 refused' so a pending head gate cannot skip an entry after 8 x 30 s; I SIGCONT when classify reads GREEN. Permanent fix is a proposal: land() should wait on a pending required context as the head wait does.",
+   "The baseline harness ($HPO_STATE_DIR/s14/seat/pipeline-design/), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P754 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nIt lands on design/R11-PRE-PARALLEL-PIPELINE before the build, or the cost test has no enumerator (HANDOVER).",
+   "From r11-pre-toolchain-pin-p2, body item 0feb43b0: For R11-PRE-PARALLEL-PIPELINE part 2, which edits `REQUIRED` and `event_class` in `tools/ci/gate.py`: `status` computes product as `REQUIRED[cls]` less `MACHINERY_JOBS`, and the self-test row `<class>: every required name reddens exactly one verdict` runs over every key of `REQUIRED`, so a new event class or required name is covered without an edit; a renamed machinery job must be renamed in the tuple, which the row `the machinery tuple names push-required jobs and the one self-tests lane` refuses otherwise. Carry: R11-PRE-PARALLEL-PIPELINE (items 0feb43b0)",
+   "From r11-pre-parallel-pipeline, body item 4c94356f: Lands in dev/programme/rosters/wave-r10-groups.json, R11-PRE-PARALLEL-PIPELINE's brief, for the later TRAIN-ROUTING part (part 2 or 3): carry 1's precondition: a serial entry is worth pre-approving only if its head will not move before its merge; under a strict ruleset every serial entry behind a merge recarries, so the pre-approval pays only under `strict_update()` False or a head already containing main. Measured by `P628 (vi)` and `pre_approval_refusal`'s main-inside arm. Carry: R11-PRE-PARALLEL-PIPELINE (items 4c94356f)",
+   "From r11-pre-parallel-pipeline, body item c5d7f7ba: Lands in dev/programme/rosters/wave-r10-groups.json, R11-PRE-PARALLEL-PIPELINE's brief, for the SHADOW part: carry 0 needs a recorder of GREEN instants (`{pr: iso}`) during the shadow; this part adds the reader only. Carry: R11-PRE-PARALLEL-PIPELINE (items c5d7f7ba)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-merge-train",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-PARALLEL-PIPELINE carries 0,2,8,9,10,11,12,13,15,16",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-ROSTER-WRITE",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/roster_sync.py",
+   "tools/audit/seat/roster_queue.py",
+   "tools/audit/seat/beat_jobs.py",
+   "tools/audit/seat/carry_fold.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "One roster writer of record: tools/audit/seat/postmerge.py queues its stage op to the roster-drain on a lost race and derives keyed mark-carry ops from the merged body; drain refusals become durable (events.txt, roster-refused.json) and the BLOCKED.md digest names them; the drain lints once per pass; carry_fold.py and the drain lease stop racing. Null control: a self-test that loses the push race must leave the op queued, not dropped. Done when each carry below is built with a self-test arm or dismissed with a number. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R10-TICK-RESIDUE-P3 carry 19 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nPART 2 ITEM unless the R10-TICK-RESIDUE fixer dispatched 2026-11-11 00:14Z has not yet handed off when this carry lands: that fixer's brief was rendered before this carry, so a fixer already past handoff leaves it to the group's next part.\nFrom triage batch 146 (triage: dev/programme/triage/s6-batch146.md#P555 at 6ba5055acf), queue line S14-DRAIN-REFUSAL-NOT-DURABLE, a repair of an observed wrong behaviour (a refused append-group left no durable trace; a dependent dispatch waited about 35 min on a group that did not exist). tools/audit/seat/beat_jobs.py roster_drain adds an op's key to roster-done.json whether it was applied or refused, writes its lines only to digest/jobs/roster-drain (write_job replaces that on the next pass that runs an op), and roster_queue.py --mark writes '#refused' only into the one-line state/roster-one.queue. Earlier drains marked the queue file itself: 261 '#refused' marks in s7/roster-queue-s7.txt, the last at line 3979. Fix: each refusal appends one line (occurrence key and the refused line) to digest/events.txt, whose growth already wakes the orchestrator; refused keys go to a roster-refused.json memory beside roster-done.json so applied and refused are distinct; a refusal is still never retried automatically. Self-test: a refused op writes one events line that survives a following applied pass; null control: an applied op writes none; a mutant on the append.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 25 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nPOSTMERGE-STAGE-VIA-DRAIN (triage: dev/programme/triage/s6-batch205.md#P636 at 065bd080b0), in tools/audit/seat/postmerge.py and tools/audit/seat/roster_sync.py (line numbers at 0e28afd38b). postmerge's stage step (`roster_sync.py --apply`, postmerge.py:47) pushes to handoff/audit-r10-roster directly, and roster_edit's push loop (PUSH_ATTEMPTS = 3, roster_edit.py:210) re-applies across a ~4 min lint window, which is the beat roster drain's own cadence. So under a backlogged drain every try finds the tip moved: train.log has 6 `OWED stage: ... lost the race ... 3 times` lines, and 2 of 2 on 2026-11-11 (#3425, #3447), each a stale in-progress roster row plus a hand-route through the roster queue. Fix: on a refused or raced sync (or always; the fixer chooses, with the first attempt's measured win rate), append the derived op (`set-stage <GROUP> done|carries-open --at-sha <merge>` and any keyed mark-carry lines, as `set-stage owed` prints) to the beat's roster-drain.queue as one atomic, newline-terminated line, idempotent per merge sha, and log `stage QUEUED <line>`. Acceptance: (i) a raced sync queues exactly one well-formed line per merge sha; (ii) a second postmerge run for that sha queues nothing; (iii) null control: an unraced sync behaves as the chosen design says, and queues nothing if the direct first attempt is kept; (iv) mutation: dropping the newline or the idempotence key makes (i) or (ii) red; (v) replay: #3447's derived op passes roster_queue.parse_line and replay_unsafe.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 33 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nROSTER-PUSH-LEASE (triage: dev/programme/triage/s6-batch233.md#P706 at 2ced371c1a). The roster-drain beat job (tools/audit/seat/beat_jobs.py:339) and tools/audit/seat/carry_fold.py both write the roster branch through roster_edit.py --push (push loop :1174) and share no lock; carry_fold lost the push 3 of 3 tries against a 21-op drain and the hotfix #3487 body stalled 15 minutes until the drain was SIGSTOPped by hand. Fix, one writer of record: either the drain takes a lease in HPO_STATE_DIR per op and yields between ops while an out-of-queue writer holds it, or carry_fold enqueues at the head of the queue and waits for its line; the lease form adds roster_edit.py to this group's files. Control: a drain pass with no fold pending runs unchanged.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 34 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nPOSTMERGE-DERIVES-CARRY-MARKS (triage: dev/programme/triage/s6-batch236.md#P711 at be86e36a56), in tools/audit/seat/postmerge.py and tools/audit/seat/roster_sync.py. At a merge only the stage is written; nobody marks the carries the merged part built, so after #3470 R10-TRAIN-RESIDUE-P2 read 23 of 23 unmarked and a fixer would have rebuilt its two built carries. Fix: from the merged body's \"Carry N: built here (<KEY>, ...)\" and \"Carry N: dismissed (<reason>)\" lines, derive one `mark-carry <GROUP> --match <KEY> implemented|dismissed ...` op per line, keyed on the quoted text (the body numbers carries from 1, the roster from 0: never derive by index), checked to hit exactly one carry; a line hitting zero or two prints OWED and queues nothing. Queue the ops to roster-drain.queue with the stage op (carry 25's path), idempotent per merge sha. Acceptance: (i) #3470's body yields exactly the two marks batch 236 queued by hand; (ii) a mutant that derives by index marks the wrong carry and fails the self-test; (iii) a body with no built lines yields no op (null control).",
+   "Sweep candidates at sweep.md lines 1495, 1513 and 1520 (the batch's entry P785; 1520 measured one drain batch at about 90 min), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T07:11:02Z postmerge stage steps for #3510 and #3377 lost the roster race (beat draining ~90 lines); queued set-stage R10-ROUND-PLAYBOOK-FINAL carries-open and R10-ROSTER-BATCH24 done through the drain instead. PROPOSAL CANDIDATE: postmerge's roster_sync should enqueue to roster-drain.queue when the drain is busy rather than race it\n\n- 2026-11-13T08:10:47Z SLIP: cloud fixer for R10-HOTFIX-CARRY-1412-CONTROL pushed BLOCKED.md at 07:28Z (bootstrap: grader+data change, base grader red by construction) and it sat 40 min; the carry-fold board line was the only signal. Local opus seat (seat/carry-1412) takes over: tests a data-only route first, else the bootstrap route. PROPOSAL CANDIDATE: a BLOCKED.md on a handoff-wip ref should raise its own digest line\n\n- 2026-11-13T08:42:55Z direct roster batch failed (rc=3, then refused: wt-now HEAD on no origin ref) and fought the beat's drain; stopped it. PLAYBOOK-FINAL in-progress queued through the drain instead (~90 min: each op runs a full brief_lint, 1.5-4 min). PROPOSAL CANDIDATE: roster drain lints once per pass, not once per op. ci-priority-pause reopen waits for that line"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-roster-write",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 5,6,7,8,19",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-FOLD-ARM",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/cloud_relay.sh",
+   "tools/audit/seat/body_push.sh",
+   "tools/audit/seat/carry_fold.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "sonnet",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The relay's carry-fold arm in tools/audit/seat/cloud_relay.sh and its contract with tools/audit/seat/body_push.sh: body_push writes a REFUSAL record the arm reads (not BLOCKED), the reader accepts the indented refusal line, and the arm skips wip topics already superseded by the body or a merge. Null control: a stub body_push refusal must reach the arm with the record and be missed without it. Done when the three carries are built with self-test arms. Shares cloud_relay.sh with R11-CARRY-RELAY-P12 and R11-CARRY-TICK-OWED: whichever lands second rebases. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R10-RELAY-NOBODY-STALL carry 1 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nCARRY-FOLD-SUPERSEDED (triage: dev/programme/triage/s6-batch211.md#P642 at 3dc8c8bd6a), line numbers at c71d3f6e89. carry_fold_arm in tools/audit/seat/cloud_relay.sh puts every handoff-wip/<topic> that is not CARRY-LANDED alone on the carry-fold level, every pass. dispose refuses handoff-wip/ refs, so only deleting the ref clears such a line. On 2026-11-11, 14 of 20 carry-fold level lines had a topic that had moved on. Repair: the arm writes no level line, and folds nothing, for a wip ref whose topic either (a) has a handoff-body/<topic> whose committer time is later than the wip commit's, or (b) has fix/<topic> or fix/<topic>-pr merged into origin/main (a local git log, no API). handoff-body/* joins the arm's existing ls-remote. Do not widen dispose to handoff-wip/. Demonstration: in the carry-fold self-test, a wip ref with a later handoff-body is absent from the level, and so is one whose fix branch merged. Both fail on the base and pass on the fix. Null control: a wip ref with no handoff-body and no merge keeps its OWED line.",
+   "Moved from R10-RELAY-NOBODY-STALL carry 3 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nR10-RELAY-NOBODY-STALL (triage: dev/programme/triage/s6-batch227.md#P685 at be04bca1a9), line numbers at b737e88eee. The carry-fold reader at tools/audit/seat/cloud_relay.sh :819 matches 's/^body_push: REFUSED ...' anchored at column 0; the fixer BLOCKED.md at handoff-wip 78b786f4 (#3481) quotes body_push output indented (line 14, four spaces before body_push: REFUSED CARRY-LANDED), so the job printed 'names no refusal line' and folded nothing; the orchestrator folded by hand with carry_fold.py. Widen the reader, not the writer grammar: accept leading whitespace on the refusal line and nothing else; add a self-test fixture with the indented quote beside the one at :1850; the kept-body condition is unchanged.",
+   "Brief content moved from R10-RELAY-NOBODY-STALL (absorbed; triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15, card C2): its arm 3, verbatim below except that each path:line pin is written as (line N at ee64358be7), because three of them no longer resolve on main: re-pin every one at this group's own base before building. The group's preamble: M group on the cloud fixer's stop record: tools/audit/seat/cloud_relay.sh, cloud_dispatch.py and body_push.sh. It is after R10-RELAY-ARM-ORDER (cloud_relay.sh) and R10-REVIEW-DISPATCH-RESIDUE (in progress on cloud_dispatch.py and cloud_relay.sh). body_push.sh is also in R10-BODY-CONTRACT and R10-PREPR-RESIDUE (both in progress); this group's seam there is keep_refused alone. Line numbers are at ee64358be7. The cause is the root-cause result R10-RCA-FIXER-NOBODY-STALL. Land its analysis with this group as a new markdown file in the dev/audit/rca directory named for that result, with every host path and session id replaced by a relative path or dropped, so that ref_privacy.py guard passes. Triage batch 189, ruling P611, accepted this group first. P611's arm 1 (the fold-arm indent regex) is superseded by arm 2 below and is not built.\n\n3. REFUSAL-RECORD (RCA C2, state c). The relay folds a CARRY-LANDED stop by regex over the seat's free-form BLOCKED note (carry_fold_arm, cloud_relay.sh (line 808 at ee64358be7)). tick-loop.log (2026-11-11) holds owed carry-fold lines for 65 topics against 6 topics FOLDED. Make the instrument author the record. body_push.sh's keep_refused (line 92 at ee64358be7) writes the refusing step's output verbatim and its exit code as REFUSAL text file beside the BODY markdown in the kept-body commit on handoff-wip/<topic>-body. carry_fold_arm reads REFUSAL text file, never BLOCKED note. A kept body without REFUSAL text file (written before this change) is reported once by name for a hand fold, never parsed. Demonstration: the fold arm's self-test folds a kept body whose REFUSAL text file is CARRY-LANDED alone, even when the seat's BLOCKED note is indented or prose (the r10-standing-contracts-p2 shape at 878695f8). Null control: a REFUSAL text file naming CARRY-LANDED and a second kind folds nothing.\n\nOut of scope: body_push writing the roster (P611 arm c, rejected); the turn-end and frugal-guard stop candidate (P618, deferred until three more silent sessions are read); the cloud closures environment itself (R10-RCA-CLOUD-ENTITIES-ENV shape B; the RCA's C3 asks the orchestrator to re-open it)."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-fold-arm",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 9,10,11",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-RELAY-P12",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "L",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/cloud_relay.sh",
+   "tools/audit/seat/update_pr.sh",
+   "tools/audit/seat/tick_loop.sh",
+   "tools/audit/seat/open_driver.py",
+   "tools/audit/seat/ledger.py",
+   "tools/audit/worktree_gc.sh"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The P12 core of R11-PRE-RELAY-REBUILD that PR #3648 did not build (it built carries 0-4): the relay's serial-pass stalls, update_pr's holder loop over seat worktrees (detach clean ones under the state dir, lsof guard), a verdict returning during handoff_arm, noreturn_arm fires with a code and no body, tick_loop --self-test moving its checkout HEAD, and the relayc.sh prototype tracked and self-tested so the watch-mode relay retires. Carry 10 holds the five stall instances and the requirements; carry 11 the sweep candidates. Null control: each stall instance replayed against the fix must pass and fail with the fix reverted. Done when each carry below is built or dismissed with a number. Sources: R11-PRE-RELAY-REBUILD (PR #3648). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Brief content moved from R10-RELAY-NOBODY-STALL (absorbed; triage: dev/programme/triage/r10-round-end.md#P750 at 2e17928032; ratified by tvofi 2026-11-15, card C2): its arm 1, verbatim below except that each path:line pin is written as (line N at ee64358be7), because three of them no longer resolve on main: re-pin every one at this group's own base before building. The group's preamble: M group on the cloud fixer's stop record: tools/audit/seat/cloud_relay.sh, cloud_dispatch.py and body_push.sh. It is after R10-RELAY-ARM-ORDER (cloud_relay.sh) and R10-REVIEW-DISPATCH-RESIDUE (in progress on cloud_dispatch.py and cloud_relay.sh). body_push.sh is also in R10-BODY-CONTRACT and R10-PREPR-RESIDUE (both in progress); this group's seam there is keep_refused alone. Line numbers are at ee64358be7. The cause is the root-cause result R10-RCA-FIXER-NOBODY-STALL. Land its analysis with this group as a new markdown file in the dev/audit/rca directory named for that result, with every host path and session id replaced by a relative path or dropped, so that ref_privacy.py guard passes. Triage batch 189, ruling P611, accepted this group first. P611's arm 1 (the fold-arm indent regex) is superseded by arm 2 below and is not built.\n\n1. RELAY-NOBODY-OWED (P611 arm 2, unchanged). noreturn_arm (cloud_relay.sh (line 765 at ee64358be7)) counts any moved code ref as a return, so a fire that pushed handoff/<topic> or handoff-wip/<topic> and never a handoff-body/<topic> is never owed. The ledger's 'no body ref' line (tools/audit/seat/ledger.py (line 609 at ee64358be7)) waits 4 h (AGING_DEFAULT, :127). Over 2026-11-04..11 that was 124 of 628 fires (19.7%); 113 were re-fired, median 174-196 min from fire to re-fire. Owe such a fire once the newest code commit is older than a new relay environment knob (the fixer names it; default 3600 s) with no body moved since the fire. Healthy fires take a median of 10 min from the last code commit to the body, p75 28 and p90 48. The level line names the topic, the code tip, its age and the owed fire (a continuation), or the pending fold for a CARRY-LANDED-alone stop. Self-test: a body at 30 min is silent; code without a body at 61 min owes; a body older than the fire is not a return.\n\nOut of scope: body_push writing the roster (P611 arm c, rejected); the turn-end and frugal-guard stop candidate (P618, deferred until three more silent sessions are read); the cloud closures environment itself (R10-RCA-CLOUD-ENTITIES-ENV shape B; the RCA's C3 asks the orchestrator to re-open it).",
+   "Moved from R10-UPDATE-PR-SEAT-WORKTREE carry 0 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P760 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nR10-UPDATE-PR-SEAT-WORKTREE (triage: dev/programme/triage/s6-batch228.md#P689 at ab46cc3050), line numbers at ef579d9ba6. Two more instances of this group's repair on 2026-11-12: #3479's repair handoff sat unapplied 02:54-03:26Z (32 min) behind a clean, pushed worktree with no live process holding its branch, until the orchestrator detached it by hand; the merge seat's remerge scratch worktree held another branch the same way and was caught before it bit. cloud_relay reads update_pr.sh's 75 as retry-unrecorded, so no OWED line printed in either. Precondition: the fixer takes both holders' paths from the orchestrator before building; the widened :64 loop covers each with the same three guards (clean; HEAD an ancestor of origin/$BR; no live process cwd inside, as tools/audit/worktree_gc.sh reads it). If a holder lies outside $HPO_STATE_DIR, the scope widens to it or the body states why not. A BUSY owed line after N passes (P689 part a) is not built here; it is deferred until a BUSY stall over 13 min with a live holder is measured after this group merges.",
+   "Brief content moved from R10-UPDATE-PR-SEAT-WORKTREE (absorbed; triage: dev/programme/triage/r10-round-end.md#P760 at 2e17928032; ratified by tvofi 2026-11-15, card C5): the widened holder loop and its three guards are this group's acceptance cases (a BUSY holder is one way a slow or refused update holds the pass). The absorbed brief, verbatim except that each path:line pin is written as (line N at ee64358be7):\n\ntriage: dev/programme/triage/s6-batch222.md#P675 at d3b5ec4a2f, line numbers at origin/main 046736a49f. tools/audit/seat/update_pr.sh :64-68 detaches another worktree on $BR only under $P/ (= $HPO_STATE_DIR/pr, :44), clean and with HEAD an ancestor of origin/$BR; any other worktree holding $BR exits BUSY at :69. A retired seat worktree under $HPO_STATE_DIR/<session>/seat/... that is clean at the origin head therefore holds the relay at BUSY every pass (13 min): three times on 2026-11-11 (retired merge seat s14-7: wt3442, wt3355, wt3458), and the repair handoff of pull request 3458 waited 40 min. Repair: in the :64 loop, take every worktree on $BR under $HPO_STATE_DIR/, not only $P/; keep both existing guards (clean; HEAD an ancestor of origin/$BR); add a third for a worktree outside $P: no live process has its cwd inside it (lsof -a -d cwd, as tools/audit/worktree_gc.sh :66 reads it), and an unreadable lsof keeps the worktree (BUSY, as today). Update the instruments page. Demonstration in update_pr.sh self-test: a clean seat worktree at origin head under the state dir is detached and the run proceeds (fails on the base with BUSY, passes on the fix). Null controls: with a live process cwd in that worktree the run stays BUSY; with a commit origin lacks it stays BUSY. Not critical path.",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 4 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P750 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-RELAY-ARM-ORDER carry 1 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\nRELAY-ARMS-FIRST CARRY CHECK (triage: dev/programme/triage/s6-batch202.md#P630 at ca76b1d0cf): the reviewer confirms that #3465's reorder of pass() in tools/audit/seat/cloud_relay.sh (probe_arm and confirm_arm before handoff_arm) covers the 2026-11-11 case, in which five handoff merge verdicts and review returns were held for over 45 min behind one #3462 update_pr (cloud-relay.log: last POSTED 13:21:59Z, none through 14:18Z), for every verdict present at a pass's start. Out of scope for #3465, and recorded so it is not re-proposed: a verdict that returns DURING a pass's handoff_arm still waits for the rest of that update. That residual is DEFERRED: if probe-to-POSTED p90 over the 24 h after #3465 merges is above 20 min (P601's figure before the fix was 51.6 min), propose running the update detached so the loop keeps probing. The `cloud_relay.sh topic <topic> <pr>` form is rejected, and the cloud-handoff-hold lever is already tracked (cloud_relay.sh held; bus.sh R10-FLY-RELAY-HOLD).",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 37 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P750 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-GATE-DEFER-BARRIER carry 10 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\nFrom r10-outside-contributor-cycle, body item 0036f828: `tools/audit/seat/tick_loop.sh --self-test` moves the HEAD of the checkout it runs in: run in a detached worktree it leaves that worktree on `origin/main`, and on a local branch it fails the check named under `## Figures`. Both hold at the merge base, so neither is this part's, and `tick_loop.sh` is outside this group. A seat that runs the whole self-test set in a detached worktree measures every later step on main's tree without being told; this seat lost one run to it. Not fixed here and not filed: the cause is not established. Carry: R10-GATE-DEFER-BARRIER (items 0036f828)",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 87 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P750 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nEvidence for owner card P12 (relay posts verdicts without waiting behind pull request updates; ruled yes, during round 11), proposal candidate PC-1113-03. Round 10 instances of the serial pass stalling inside one update while returned verdicts waited: 2026-11-11 (hold-all), 11-12T11:27Z (36 min), 11-13T08:49Z (57 min), 11-13T16:20Z to 17:56Z (1 h 34 min), 11-13T18:00Z onward (over 70 min, the pass inside an update of PR 3451 whose handoff conflicted with main; the verdict for PR 3557, the fix for a red main, returned 18:25Z and was posted by hand at 19:09Z). Local workaround in use from 11-13T19:20Z, to be retired by the permanent fix: a second, detached relay run in watch mode (probe arm and confirm only) beside the tick s pass, and the conflicting pull request put on the relay hold list. Requirements for the permanent fix that the instances show: posting a returned verdict never queues behind an update; an update that fails on a merge conflict is not retried until its handoff or main moves and is owed as a fixer reconcile, not a relay retry; a pass that has stood inside one update longer than a bound prints a line the orchestrator s digest carries.",
+   "Sweep candidates at sweep.md lines 1522, 1562, 1597, 1626 and 1751 (the batch's entry P785), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P750 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T08:49:04Z FINDING: the relay pass is serial and has been in update_pr for #3531 for 57 min (full prepr); nothing posted or updated since 07:29Z. Workaround: update seat s14-u1 (seat/update-u1) runs update_pr in parallel for #3536, #3539, #3526 with PREPR_SKIP_CLOSURES=1; dispatch seat hand-relays verdicts. p6 handoff complete (code d81c7c9d, body 80d843f3). PROPOSAL CANDIDATE: relay handoff arm runs updates concurrently (per-branch locks already exist) and verdict relay must not queue behind updates\n\n- 2026-11-13T10:28:12Z #3520: NO delta reviewer fired at 761e5181 (nonce 450eaeff unused): the handoff 510c4664 was already reviewed and blocked 11-12 23:41Z (revt verdict held as stale, 11 h unseen). SLIP + PROPOSAL CANDIDATE: a handoff-time verdict that is BLOCKED must reach the fixer queue even when the PR head lags (relay holds it as HELD-STALE/probe-refused and nobody reads it). BOTTLENECK yield 0.58 (22/38): top class today mutation-vacuous (3544, 3539, 3526) -> repair briefs already demand reviewer-spec kills; add 'run mutant_run --diff on every touched file before handoff' to new fixer context lines\n\n- 2026-11-13T11:52:05Z #3526 update REFUSED after 5729 s: merged tree, main moved (tests/features.py conflict). LESSON: a 60-110 min local prepr per update loses the race against hourly merges on shared test files; PROPOSAL CANDIDATE: update_pr checks merge-tree against main BEFORE the heavy steps and again cheaply before push, and CP/production updates get a heavy slot ahead of instrument opens. #3512 delta verdict returned, HELD-PENDING-CI (posts on GREEN). #3551 union-guard opened (nonce pending)\n\n- 2026-11-13T12:44:07Z board 12:43Z acked (5 lines); the two figure-block handoff-update lines came back after dispose (relay retries the body-only): PROPOSAL CANDIDATE cloud_relay dispose should also record the failure entry so a disposed body-only refusal is not re-run.\n\n- 2026-11-13T16:48:02Z OPENED #3558 R10-HOTFIX-TICK-BASH32 head 0822a4e65e2288f4327a6662c291477a56b69c37 (code e23b5abc), by the opener seat. Opener-blind cause: not the opener; the relay's level file is rewritten once per pass, before its serial updates, and the manual loop's pass has sat ~14+ min inside update_pr for fix/r10-process-slim-p2 (#3451, prepr under app_push), so new handoffs reach the board only as the tick's own 'OWED handoff:' line, which open_driver's BOARD_RE does not read. FINDING (proposal candidate): open_driver should also read the tick's 'OWED handoff: <topic> <sha> ... repair=opener' line, or the level be rewritten on a timer independent of updates. Carry: R11-INTAKE-R10-RESIDUE. ci-priority-pause: open_driver gave up after 3 push refusals (fails.json); seat reading p1.log.",
+   "The dispatch seats' `relayc.sh` prototype (dispatch-s15-* STATE-HANDOFF files under $HPO_STATE_DIR/s14/seat/), and the detached watch-mode relay this group retires, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P792 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nrelayc.sh: track and self-test its behaviour here, never its hard-coded session paths; the detached watch-mode relay is retired by this group (the batch's entries P792 and P794)."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-relay-p12",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-RELAY-REBUILD carries 5,6,7,8,9,10,11,12",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-FIXER-CONTRACT",
+  "lane": "IN",
+  "kind": "policy",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "dev/governance/roles/fixer.md",
+   "tools/audit/seat/instruments/mutant_run.py.md",
+   "tools/audit/seat/mutant_run.py",
+   "tools/audit/seat/cloud_dispatch.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "Contract text owed in dev/governance/roles/fixer.md and the documents beside it: the predicate domain probe after a class opens (steps 8 and 18), the 40-mutant cap residue named at step 2, the step 17 architect note against step 14, step 6's DIRTY arm against the dispatch brief's merge-on-main rule in tools/audit/seat/cloud_dispatch.py, and mutant_run's docs (tools survivors are answered in the body, not survivor_triage). Policy: merges on the owner's approving review or under a mandate in force. Null control: for each contradiction, quote both texts at the merge base; a carry whose two texts already agree there is dismissed. Done when fixer.md and the dispatch brief agree on every named step. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664), R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R11-INTAKE-R10-RESIDUE carry 17 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nCLASS-OPEN-DOMAIN-UNIT (triage seat triage-1113, proposal T23, 2026-11-13, on the root-cause analysis R10-RCA-CLASS-OPEN-BLOCKS, countermeasure C4; round 11 by the orchestrator's intake rule). POLICY: dev/governance/roles/fixer.md is policy, so the owner approves before merge (CLAUDE.md). Defect: fix-review.md step 6 (line 29 at origin/main 5345766b41) blocks class-open on \"a site or a predicate's unguarded domain\"; fixer.md step 8 (line 123) asks only to \"name a rule that enumerates the class's seams\", and fixer.md never says domain (git show origin/main:dev/governance/roles/fixer.md | grep -c -i domain prints 0). Step 18 (line 259) keeps a reviewer's driver in scratch. Evidence (the RCA, reproduced from the review bus): 9 of 28 blocked verdicts in the 24 h to 2026-11-13T06:26Z were class-open; 34 of 226 (15.0 %) over 7 days; in 8 of 9 the open seam was a point of a predicate's input domain, in 6 a predicate the fix itself added; in none did the fixer's step-8 rule return the seam; 7 of the 9 were a second or later class-open block on the same pull request (one pull request had 4, its body's enumerator line unchanged while the reviewer's probe widened). Change: (a) step 18: after a class-open block, the blocking verdict's domain probe (or its generated corpus) lands under dev/audit/harnesses/ as the repair's floor and the next body's step-8 rule runs it; (b) step 8: when the diff adds or changes a predicate (guard, classifier, allowlist, scrub), the named rule also enumerates that predicate's input domain (a generated or planted corpus run through it at the head) beside its sites. Cite fix-review.md step 6's wording, do not paraphrase it; no change to fix-review.md. fixer.md is at its cap: 315 lines against tools/audit/briefs/fixer.md 315 in dev/governance/config/policy_budgets.json (git show origin/main:dev/governance/roles/fixer.md | wc -l), so the text is paid for inside fixer.md or the raise is the owner's. Demonstration (replay, both runs in the body): at the blocked head 44e0b74b55080d829f199410c2e4861850cd7d99 of the gate-defer barrier pull request, the domain rule seeded from verdict 4ca43a35a5's evidence returns frozenset(), dict() and {} as un-dispositioned seams; at 3785b0d097bc22410f42eae7ba3129c5fece1c61 it returns none on the argument side. Null control: a diff that adds or changes no predicate owes no domain rule. Cost test and the control after merge: defect 4.09 class-open blocks per 20.2 h release cycle x 127 seat-min per repair round = 519 seat-min per cycle; standing cost 147 seat-min per cycle rests on two estimates (15 min per domain probe; one third of 29.3 reviewed pull requests add a predicate, a fraction taken from class-open pull requests and therefore biased high), so the change pays if more than 28 % of class-open rounds are averted; at 30 min per probe the threshold is 57 %, at or above the RCA's 5-of-9 (56 %) reach, so part (a), which costs minutes and targets the 7 repeat blocks, is the half the evidence supports; build (a) first and (b) only if its own demonstration holds. Re-measure the 7-day class-open share (the beat's block-class rule) two release cycles after merge; the control is the pre-merge 15.0 % (34 of 226) and the repeat-block share 7 of 9.",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 38 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-SEAT-SCRIPT-OUTPUT carry 3 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\ntools/audit/seat/mutant_run.py docstring (DIFF MODE, an equivalent one still needs a survivor_triage record) and tools/audit/seat/instruments/mutant_run.py.md (an equivalent one still owes a survivor_triage record) tell a fixer to record a triage the ledger refuses for any site outside custom_components/: tests/mutation_table.py _TRIAGE_KEY admits only that prefix and any other key is MUTATION TABLE REFUSED ... malformed. Correct both to: a custom_components/ survivor owes a survivor_triage record; a tools/ survivor is answered under the body section Unpinned sites (fixer.md step 2). Source: R10-HOTFIX-MUTANT-RUN-DARWIN fixer, handoff 3dccd18a, 2026-11-12. Re-measure: grep _TRIAGE_KEY tests/mutation_table.py at your merge base.",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 193 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nfixer.md: unenforced: step 2 says the diff's survivors are the fixer's before the handoff and that the mutant step draws only the first 40 mutants of added lines; nothing says a diff holding more than 40, or a line holding more than one comparison, leaves sites that step never draws. The control is `python3 tools/audit/seat/mutant_run.py --diff <merge base>...HEAD --list` against the cap, and a line of two comparisons mutated by hand as in `## Mutation proof`, \"Round 3\". Re-measure the list's length at the deciding head. Carry: R11-INTAKE-R10-RESIDUE",
+   "Moved from R10-COP-LEARNER-DRAW-FLOOR (owner-approved stale-group audit 2026-11-15): From r10-cop-learner-draw-floor, body item b4659e0c: fixer.md: contradiction: step 17 has the architect note followed and a departure raised, not made; step 14 forbids the allow-list entry that would have kept the note's call site. With no live seat to ask, the route was changed and the departure is raised in this body. Carry: R10-COP-LEARNER-DRAW-FLOOR (items b4659e0c)",
+   "From r10-draw-map-evidence-b, body item 1be53b9c: fixer.md: contradiction: step 6 merges origin/main on a merge-tree conflict \"or the head is DIRTY\"; the dispatch brief says \"Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict\". With the ledger driver installed merge-tree exits 0 on a head GitHub's driverless merge cannot merge, and `body_push.sh`'s predictor refuses that head, so the brief's arm alone leaves no handoff. This seat followed fixer.md and merged; the brief's narrower rule is recorded as pending owner confirmation. Carry: R10-DRAW-MAP-EVIDENCE (items 1be53b9c)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-fixer-contract",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 13,14,15,20; R10-DRAW-MAP-EVIDENCE carries 18",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-PREDICT",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [
+   "R11-PREPR-STEP-TIMING"
+  ],
+  "files": [
+   "tools/pr/prepr.sh",
+   "tools/pr/ci_predict.py",
+   ".github/workflows/pr-contract.yml",
+   "tools/policy/policy_lint.mjs",
+   "tools/policy/agreement.mjs"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "Handoff red-check prediction in tools/pr: prepr.sh body-check parity with pr-contract, one owner of the Forward-carry grammar, ci_predict reading the roster, a handoff that names its predicted reds and answers an inherited main red once, and ci_predict --base on a stacked head no longer flagging stack merges as merge-subject-pr. Null control: each predicted red must be red on the replayed PR and the prediction must go silent on a body that passes pr-contract. Done when each carry is built with a self-test arm or dismissed with a number. prepr.sh is also edited by R11-PREPR-STEP-TIMING: land after it. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664), R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Items 1, 2 and 6 of R11-INTAKE-R10-RESIDUE carry 30 (0-based at roster f6ff22c373), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15); items 3, 4 and 5 are deferred and stay on that carry. The carry, verbatim:\n\nMoved from R10-ROUND-PLAYBOOK-FINAL carry 40 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\nRound-11 opening list, moved from R10-PREPR-RESIDUE by the orchestrator ruling of 2026-11-12 (self-fed, would move closure): (1) extend prepr.sh body-check so a return is refused for the classes open_pr still refuses; (2) one grammar owner for Forward-carry between policy_lint.mjs and carry_audit.py; (3) ci_predict lacks the instrument-self-tests prediction behind an instrument-self-tests red; (4) a predicting detector for the HEAD-ONLY class, since step 7c reads pushed reds only; (5) ci_predict labels an import of an INERT file as INERT READS and prescribes apply-inert; (6) ci_predict carry arm grades roster-branch-only destinations bad when the roster ref is not fetched; (7) split the never tips of open_prepr_receipts by the Prepr-absent reason.",
+   "Proposals PC-1113-04 and PC-1113-20 (red-check items decided at the handoff), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P770 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-04 handoff accepted with predicted reds: doc_claims history phrase and unpinned sites reached CI on 3561/3562 after merge verdicts\n\n## PC-1113-20 a red inherited from main must be answered in every open PR body\nObserved 2026-11-14T04:30Z: after the weekend-clock defect (main's, PR 3444, fixed by PR 3578) every branch that had a run during the red window carries a `tests / fast (3.14)` red in its head's history; pr-contract refuses each body until `## Red checks` names it, after the fix is merged in and the lane is green. Cost: one more red cycle and one body patch per open PR (15 gating heads), on top of the remerge. defect-root-cause.md says an inherited instrument-self-tests red stays unowed; the same is not wired for a required test lane red at main's tip in the same window. Fix shape for triage: pr-contract treats a red whose check was red at main's tip at that time, and is green at the head, as answered by the main-side record (or by one registered line naming the RCA).",
+   "From r10-draw-map-evidence-b, body item 89be1787: ci-autofix.md: unclear: `ci_predict.py --base <stack head>` reports the stack's own merges as `merge-subject-pr` refusals, because the guard walks to the merge base of HEAD with the ref it is told is main's. Carry: R10-DRAW-MAP-EVIDENCE (items 89be1787)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-predict",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer after R11-PREPR-STEP-TIMING merges; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 16,18; R10-DRAW-MAP-EVIDENCE carries 19",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-LOOP-LEDGER",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/loop_ledger.py",
+   "tools/ci/gate.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "tools/audit/seat/loop_ledger.py: a run-red column split product/machinery read from tools/ci/gate.py status, edited/labeled/review runs at the same head read as external, and the four loop_ledger departures that await the orchestrator's ruling (get the ruling first). Null control: a machinery-only red must land in the machinery column and nowhere else. Done when each carry is built or refused by a recorded ruling. Sources: R11-PRE-PARALLEL-PIPELINE (PR #3675). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "From r11-pre-no-read-builders, body item 6889317b: Item d-toolchain-p2-column: once `gate.status` is on main (R11-PRE-TOOLCHAIN-PIN part 2, `handoff/r11-pre-toolchain-pin-p2`), the row's `product/machinery unread` becomes that function's pair over the attempt's jobs, in `loop_ledger.red_lines`. `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`), and `pr-cc` is not derivable from a cached run row: whoever wires it decides whether the run's title supplies it. Control: the self-test check `reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread` pins today's text and fails when the column changes. Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE (items 6889317b)",
+   "From r11-pre-no-read-builders, body item 4b4efd12: The four departures above await the orchestrator's ruling; lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the surface being `tools/audit/seat/loop_ledger.py`. Carry: R11-PRE-PARALLEL-PIPELINE (items 4b4efd12)",
+   "From r11-pre-no-read-builders, body item b812bd42: A limit of the design's rule, measured by reading `.github/workflows/ci.yml`'s triggers: a `pull_request` `edited` or `labeled` event and a `pull_request_review` event each start a run at the unchanged `head_sha`, so a red cleared by a body edit or a review at the same head reads `external`, as a re-run does. The instrument page says so. Splitting the two needs the run's kind, which the run listing the producer caches does not keep (it is in the run's `display_title`). Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE (items b812bd42)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-loop-ledger",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-PARALLEL-PIPELINE carries 18,19,20",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-TICK-OWED",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "L",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/orchestrator_tick.py",
+   "tools/audit/seat/owed_unactioned.py",
+   "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/cloud_relay.sh"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The owed levels tools/audit/seat/orchestrator_tick.py prints: NOT REVIEWABLE deferral vs a real split and the disabled Gate sweep flag, probe-refused lines classified and ranked by critical path, the unrecorded-merge query, orphan lines sorted hotfix/outside/critical path before the cap (with roster_lib.is_hotfix no longer treating kind bug as a hotfix), REVIEW STALLED and REVIEW RETURNED read from the probe ref, MERGE-READY reading a carried verdict, every wake_filtered NOISE level closing or escalating upstream, repair-discharge arms for the nine DEBT owed kinds, UNDISPATCHED for not-started groups and UNBLOCKED reading seat refs. Null control: per level, a fixture state that must print it and its nearest neighbour that must not. Done when each carry is built with a self-test arm or dismissed with a number. Sources: R11-PRE-ACK-COMPLETION (PR #3635), R11-PRE-STANDING-SCRIPTS (PR #3651). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R10-TICK-RESIDUE-P3 carry 28 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nTICK-ORPHAN-CAP-CLASS-ORDER (triage: dev/programme/triage/s6-batch218.md#P660 at bb3a0e5b92), line numbers at 61afd4f2db. tools/audit/seat/orchestrator_tick.py:2438 prints `stranded[:CAP_ORPHANS]` (CAP_ORPHANS = 20, :182) in the order bus.sh prints its orphans, with no class order. Instance 2026-11-11 (s14 sweep record, lines 648 and 660): hotfix handoff r10-hotfix-selftest-scope-union-p2 sat behind \"OWED handoffs capped at 20 of 68\" and was opened by hand as #3482. Repair: before the cap, sort the orphan lines hotfix first, then outside and critical path, then the rest, using open_driver.py's own class function (default_class, :104-108, over roster_lib). Add no second class vocabulary. Self-test: 70 orphan lines with one hotfix at position 60 print it among the 20. Null control: with no hotfix, outside or critical-path topic, the order is unchanged. Mutation proof: dropping the sort turns the first arm red. The opener is not in scope: it reads the relay level's handoff-no-pr lines, has no line cap and already orders by class.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 30 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nREVIEW-STALLED-READS-PROBE (triage: dev/programme/triage/s6-batch219.md#P672 at 36234d2447), line numbers at 61afd4f2db. tools/audit/seat/orchestrator_tick.py `verdict_levels` (:720-729) prints a flagged REVIEW STALLED when three things hold: the head is in the dispatch record, no approver verdict names it, and `_reviewer_ref_age` (:1046) is over STALL_MINUTES (90). It never checks whether the review has already returned. owed_unactioned.py.md:7 maps the line to re-firing the reviewer. Instance (2026-11-11): #3479 d925d867 printed REVIEW STALLED 95m while probe/rev-3479-aeb68873 f36a81b9 (returned 20:38:46Z) sat HELD-PENDING-CI in the relay. Acting on the line would have re-fired a finished review and raced two verdicts. Fix: once the stall condition holds, read probe/rev-<N>-<nonce8> (nonce from the dispatch record) with one git read, for that PR only. If the ref exists, print `REVIEW RETURNED: #N <head8> probe <sha8> <m>m` instead: not flagged, and not on owed_unactioned's re-fire list. Self-test: the #3479 shape prints REVIEW RETURNED and no REVIEW STALLED. Null control: without the probe ref the line stays REVIEW STALLED. A probe ref at another nonce does not suppress it. Mutant: skipping the probe read restores the false line.",
+   "Proposal PC-1113-22, with moved TICK carry 27, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P783 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-22 (2026-11-14T08:06:43Z): no tracked instrument prints \"GREEN at the live head with a posted merge verdict that names or carries to it\"; the dispatch seat's scratch watch counted verdict shas and missed #3564 for an hour and #3574/#3569/#3561 until read by hand. The tick's MERGE-READY line reads only a verdict AT the head, not a carried one. Candidate: extend MERGE-READY (or verdict_audit) with the review_carry CARRY arm.",
+   "The prototype wake_filtered.sh ($HPO_STATE_DIR/s14/wake_filtered.sh, kept running until this group lands), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P791 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nIts NOISE pattern is the acceptance list: each level it filters must close or escalate upstream (no repeat line), not be filtered a second time.",
+   "From r11-pre-ack-completion, body item 8bd8b42f: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): the 9 DEBT kinds of carry 1's census need their own repair-discharges arms. Carry: R11-PRE-ACK-COMPLETION (items 8bd8b42f)",
+   "From r11-pre-ack-completion, body item 8b860179: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): `UNDISPATCHED` does not print for a not-started group (UNBLOCKED already does); whether UNBLOCKED should read the seat refs is the same seam as carry 3 (a) and is left to a later part. Carry: R11-PRE-ACK-COMPLETION (items 8b860179)",
+   "Moved from R10-TICK-RESIDUE-P3 carry 0 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item. Text verbatim:\n\nMoved from R10-TICK-LEVELS carry 18 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item 2a35d4b3: NOT REVIEWABLE names deferral-only and real, and the board flags a disabled Gate sweep. Carry: R10-TICK-LEVELS (items 2a35d4b3)",
+   "Moved from R10-TICK-RESIDUE-P3 carry 2 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item. Text verbatim:\n\nMoved from R10-TICK-LEVELS carry 20 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item c4fd2112: probe-refused classified by reason and ranked by critical path. Carry: R10-TICK-LEVELS (items c4fd2112)",
+   "Moved from R10-TICK-RESIDUE-P3 carry 3 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item ; re-measure first. Text verbatim:\n\nMoved from R10-TICK-LEVELS carry 21 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item f7f2f31d: unrecorded-merge query fixed; HANDOVER line stops naming state_docs. Carry: R10-TICK-LEVELS (items f7f2f31d)",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 28 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-ROUND-PLAYBOOK-FINAL carry 38 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\nFrom r10-ci-priority-pause, body item 1655cf71: `roster_lib.is_hotfix` still treats `kind == \"bug\"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items 1655cf71)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-tick-owed",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-ACK-COMPLETION carries 10,11,14,15,16,17; R11-PRE-STANDING-SCRIPTS carries 0,1,2,11",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-BEAT-RECORD",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [
+   "R11-CARRY-ROSTER-WRITE"
+  ],
+  "files": [
+   "tools/audit/seat/record_beat.py",
+   "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/beatd.jobs.json",
+   "tools/audit/seat/beat_jobs.py",
+   "dev/programme/HANDOVER.md"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "sonnet",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The record beat and the standing seats' record: tools/audit/seat/record_beat.py and postmerge.py post nothing when #3394 already carries the sha40 and read the thread before raising Owed or retrying; beatd.jobs.json class_wait_s 60 to 900 with its table pin; dev/programme/HANDOVER.md's Standing seats bullet cites standing.md and the seat set of #3464. Null control: a replayed thread already holding the line must produce zero posts, one without it exactly one. Done when each carry is built or dismissed with a number. Shares postmerge.py with R11-CARRY-ROSTER-WRITE: land after it. Sources: R11-PRE-STANDING-SCRIPTS (PR #3651). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R10-TICK-RESIDUE-P3 carry 5 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-TICK-LEVELS carry 23 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item bfa71add: postmerge / record_beat posts nothing when issue 201 already carries the sha40. Carry: R10-TICK-LEVELS (items bfa71add)",
+   "Moved from R10-TICK-RESIDUE-P3 carry 20 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item. Text verbatim:\n\nPART 2 ITEM: the R10-TICK-RESIDUE fixer (dispatch/fixer-r10-tick-residue ea7df0fc2e) handed off as PR 3425 (handoff/r10-tick-residue 88a5ebe141) before this carry landed, so its brief does not hold it; this carry is for the group's next part.\nFrom triage batch 154 (triage: dev/programme/triage/s6-batch154.md#P565 at bf091d8b3f), queue line S14-BEAT-CLASS-PHASE-LOCK, a repair of an observed wrong behaviour. beatd.py run_one (line 322 at 63bcdcaad8) waits at most class_wait_s for the orch-checkout class lock and then records outcome=busy, and tools/audit/seat/beatd.jobs.json line 3 sets class_wait_s to 60. plan-beat runs a median 96 s (max 281 s), and next_start (line 282) keeps every periodic job on a grid anchored at the daemon's start, so the 1800 s class jobs collide on every pass and disk (900 s) on every other. Over S/beatd/journal.log (11 starts from 2026-11-09T07:52Z), gantt was busy 57 of 84 passes, verdict-audit 39 of 84 and disk 86 of 161, and every one of the 232 busy passes had a class job running in its wait window. A local restart at 02:04:44Z with class_wait_s 900 ran all four class jobs ok within 114 s, and roster-drain's next slot was not delayed. Fix: in beatd.jobs.json, set class_wait_s to 900, which is at least the longest class-row timeout_s; beatd.py's default is unchanged. Self-test, in beat_jobs.py's table checks (next to the roster-drain timeout pin, lines 133-136): the shipped table's class_wait_s is at least the longest class-row timeout_s. Null control: a table at 60 with a class row at 900 is refused by that check. A mutant back to 60 fails it. Do not add a retry-at-release arm or a new ALERT: beatd.py status (lines 467-471) already counts a busy last outcome as an alarm, rc 1. After the merge, the local s14/beatd.jobs.local.json and its --jobs flag in hook/launch/beatd.launch retire at the next beat restart.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 26 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nRECORD-OWED-READBACK (triage: dev/programme/triage/s6-batch211.md#P644 at 3dc8c8bd6a), line numbers at c71d3f6e89. tools/audit/seat/record_beat.py record() raises Owed whenever `gh_comment.py post` exits non-zero, so postmerge.py prints `#<pr> OWED record` and `--retry` posts again. On 2026-11-11 the #3394 record had already posted three times (#3447, #3466, #3472) when the gh shim refusal printed OWED, and the retries left three duplicate comments. Repair: before raising Owed, and before any `--retry` post, record() reads #3394 through gh_comment.py's thread fetch for a comment whose body equals the rendered record. If one exists, the PR is recorded: no OWED, no second post. Also name the second write the shim refuses after the POST: the shim log or gh_calls.log at the refusal. Fix it, or state why it is harmless. Demonstration: in record_beat's self-test, a post that exits 1 while the thread already holds the record prints `recorded`, not OWED, and a retry posts nothing. Both fail on the base and pass on the fix. Null control: an exit 1 with no such comment in the thread stays OWED.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 31 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). A HANDOVER sentence for the next record pull request (P752). Design input for the orchestrator_tick.py redesign decision this group's design owns (L5), not a build item. Text verbatim:\n\nMoved from R10-STANDING-CONTRACTS-P2 carry 28 (0-based), body item e8e05480 of #3464 (verdict item 27, item scp2-handover-seats): not satisfied at the #3464 merge 47788534da, which left dev/programme/HANDOVER.md untouched (git diff --stat 47788534da^1 47788534da -- dev/programme/HANDOVER.md is empty). At 47788534da the Standing seats bullet (HANDOVER.md line 82) still lists standing-roster.md as a live seat, though #3464 marks that contract retired into the roster-drain beat job, and it does not cite the new shared contract dev/governance/roles/standing.md. Update the bullet to the seat set #3464 landed, and update the handover's updated-for line, in the record PR that carries it."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-beat-record",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer after R11-CARRY-ROSTER-WRITE merges; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-STANDING-SCRIPTS carries 3,5,6,7",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-DISPATCH",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "L",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [
+   "R11-PRE-TOKEN-LEDGER"
+  ],
+  "files": [
+   "tools/audit/seat/cloud_dispatch.py",
+   "tools/audit/seat/body_push.sh"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The seat prompts and part cuts tools/audit/seat/cloud_dispatch.py renders: a fixer repairs non-CARRY-LANDED body_push refusals in its own seat, no wait handed to a background task, every cloud stop routed to a pushed BLOCKED note (and the PREPR_SKIP_CLOSURES ruling), briefs that name only arms not already on main, the --part/--topic contradiction and size rule by carry kind, parts cut by the design's part table and not by carry index (two carries, one from R11-PRE-TOOLCHAIN-PIN, say this), a per-command bound with liveness read from the run log, and the fix pipeline and sweeps run and self-tested as deterministic scripts. Null control: render a brief for a fixture group and diff it against the expected text with each rule reverted. Done when each carry is built with a self-test arm or dismissed with a number. Separate concern from R11-PRE-TOKEN-LEDGER, which owns the token ledger in the same file: land after it. Sources: R11-PRE-TOOLCHAIN-PIN (PR #3654), R11-PRE-STANDING-SCRIPTS (PR #3651). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "From r11-pre-toolchain-pin, body item 690cba76: fixer.md: contradiction: the dispatch's generated part line cuts a group by carry index (\"Part 1 of 2: build carries 0-4\") while the approved design cuts it by seam (p1 = toolchain instrument, sites, mirror, carries 1, 2 and 7), and neither names the other; this seat took the dispatch's cut. Carry: R11-PRE-TOOLCHAIN-PIN (item tp1) (items 690cba76)",
+   "Moved from R10-RELAY-NOBODY-STALL carry 0 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nBODY-REFUSAL-REPAIR (triage: dev/programme/triage/s6-batch209.md#P640 at 5d359dde17), extends arm 2 (STOP-TO-BLOCKED), in tools/audit/seat/cloud_dispatch.py (fixer text, :321-330 at 50e4b1aa25). In the fixer text cloud_dispatch.py renders, a body_push.sh refusal of any kind other than CARRY-LANDED (exit 4) is repaired in the same seat. Examples are brief-carries (\"carry N is not named in the body\"), carry_audit UNROUTED and body-stale. The seat edits the body as the refusal line names and re-runs body_push.sh. It ends only when handoff-body/<topic> names its code tip, or when the refusal is CARRY-LANDED or one it cannot repair from the body; only then does it push BLOCKED per arm 2. Demonstration: the render self-test asserts that the fixer text names the in-seat repair and keeps CARRY-LANDED as the stop; it fails on the base render and passes on the fix. Null control: a designer or reviewer render is unchanged. Instances: four body-only continuation seats on 2026-11-11 (r10-relay-arm-order twice, r10-hotfix-replay-class-cut, r10-sav-valuation-residue).",
+   "Moved from R10-RELAY-NOBODY-STALL carry 4 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nR10-RELAY-NOBODY-STALL (triage: dev/programme/triage/s6-batch228.md#P688 at ab46cc3050), line numbers at ef579d9ba6. tools/audit/seat/cloud_dispatch.py's fixer and reviewer prompt text carries no wait rule (git grep -i 'foreground|background' on it: no match). R10-HOTFIX-MAIN-IST-PREPR-SCOPE's first cloud seat handed a wait to a background task, went idle 01:45-02:55Z on 2026-11-12 (70 min, main red, no ref pushed) and never resumed; the re-fire whose event text carried an explicit foreground-wait rule handed off in about 30 min. Fix: both prompts state that a seat never hands a wait to a background task or subagent and ends its turn; it waits in the foreground, bounded, re-checking the condition, and pushes a ref or writes BLOCKED before the session can end. Demonstration: the rendered fixer and reviewer prompts carry the rule (a self-test arm that fails on the base and passes on the fix); null control: a prompt kind that is not a seat (if any) is unchanged. Re-measure: count `no return` re-fires in the dispatch ledger for the 7 days before and after the merge.",
+   "Brief content moved from R10-RELAY-NOBODY-STALL (absorbed; triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15, card C2): its arm 2, verbatim below except that each path:line pin is written as (line N at ee64358be7), because three of them no longer resolve on main: re-pin every one at this group's own base before building. The group's preamble: M group on the cloud fixer's stop record: tools/audit/seat/cloud_relay.sh, cloud_dispatch.py and body_push.sh. It is after R10-RELAY-ARM-ORDER (cloud_relay.sh) and R10-REVIEW-DISPATCH-RESIDUE (in progress on cloud_dispatch.py and cloud_relay.sh). body_push.sh is also in R10-BODY-CONTRACT and R10-PREPR-RESIDUE (both in progress); this group's seam there is keep_refused alone. Line numbers are at ee64358be7. The cause is the root-cause result R10-RCA-FIXER-NOBODY-STALL. Land its analysis with this group as a new markdown file in the dev/audit/rca directory named for that result, with every host path and session id replaced by a relative path or dropped, so that ref_privacy.py guard passes. Triage batch 189, ruling P611, accepted this group first. P611's arm 1 (the fold-arm indent regex) is superseded by arm 2 below and is not built.\n\n2. STOP-TO-BLOCKED (RCA C1, state d). The fixer prompt cloud_dispatch.py renders tells a cloud seat to report a refusal \"in your result\" (line 363 at ee64358be7) and a setup REFUSE \"as your result\" (line 236 at ee64358be7). Nothing reads a cloud seat's result; its only return is a pushed ref. Route every stop in the rendered cloud text to a BLOCKED note (markdown, named BLOCKED) pushed to handoff-wip/<topic>, code or no code: a refusal, a hook, a setup REFUSE, an environment failure, a question. It holds the refusing command and its last lines. In the same text, state the owner's standing ruling (triage s6-batch194.md#P616): when prepr.sh's closures step fails in the cloud environment, rerun prepr.sh with PREPR_SKIP_CLOSURES=1 (closures-autofix covers the pull request) rather than stopping, and say so in the body's Friction. Demonstration: a render self-test asserts that no cloud role's text routes a stop to \"your result\" and that the fixer text names PREPR_SKIP_CLOSURES. It fails on ee64358be7's render (two sites, no ruling) and passes on the fix. Null control: a local-seat render that keeps a result channel is unchanged, or the test says why there is none.\n\nOut of scope: body_push writing the roster (P611 arm c, rejected); the turn-end and frugal-guard stop candidate (P618, deferred until three more silent sessions are read); the cloud closures environment itself (R10-RCA-CLOUD-ENTITIES-ENV shape B; the RCA's C3 asks the orchestrator to re-open it).",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 42 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-round-playbook-final-p2, body item 25a6ec84: A grep found no logic in cloud_dispatch.py for phase 6's \"only arms not on main are briefed\"; not this part's scope. Carry: R11-INTAKE-R10-RESIDUE (items 25a6ec84)",
+   "Proposals PC-1113-07, -08 and -09 (cloud_dispatch.py rendering; -08 is an owner directive), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P773 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-07 cloud_dispatch.py --group --part refuses both without and with --topic (contradicting refusals; a part of a group with over five carries cannot render); prototype: s14/seat/pubfix.sh flag-path render with a This-part line; seen 2026-11-13 on R10-DOCS-STRINGS-RESIDUE\n- PC-1113-08 fixer size rule weighs a carry by kind (light text corrections may exceed five per part; findings owing their own proof keep five); prototype: s14/seat/pubfix.sh flag-path part with a This-part line; first use R10-DOCS-STRINGS-RESIDUE part 2 (carries 5-13 in one part); owner allowed it locally 2026-11-13\nPC-1113-09 cloud_dispatch.py refuses designer/design-reviewer roles for a size-M group even when a fixer raised a design departure (R10-START-COUNTER-EDGES 21:20Z); local workaround: hand brief via pubfix. Permanent: a flag admitting a requested design on M, citing the blocked ref.",
+   "Proposal PC-1113-06, design input only (the batch's entry P772 DEFERs it: what would change it is this group's design pricing the fan-outs it does not script against R11-PRE-TOKEN-LEDGER's ledger), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-06 run the per-group fix pipeline (fixer -> handoff checks -> reviewer -> bounded repair -> merge-ready) and the sweep fan-outs as deterministic workflow scripts instead of orchestrator turns plus standing seats; prototype: none yet (owner asked 2026-11-13 whether workflows would make a round more effective); evidence: s14 orchestrator 4.34 B tokens, 36 compactions in 66 h, relay stall x6, 13 idle groups unnoticed",
+   "The dispatch seats' scripts (disp.sh, disp0.sh, disploop.sh, disploop0.sh, verify.sh, watch3.sh, watch4.sh, pub*.sh, c*.sh, v.sh, vfix2.sh, mkfix*.sh, cl3451.sh, chkfix.sh; their STATE-HANDOFF files under $HPO_STATE_DIR/s14/seat/dispatch-s15-*/) and the pubfix.sh, pubrev.sh, pubrevt.sh, partline_fix.sh prototypes, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P792 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nThey are this group's specification and acceptance cases (the dispatch half), tracked and self-tested without their hard-coded paths; their written traps are acceptance cases: a relay-minted nonce is reused, never a second bus dispatch; a first round has no `--reviewed-head`; payload line 1 is verified before every fire.",
+   "Sweep candidate at sweep.md line 1609 (the batch's entry P785), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P752 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T12:06:23Z FINDING: list_runs last_event_at equals created_at for live sessions too (#3551 was working), so rule (a) cannot key on it; a dead session (#3547) showed status active/running for 1h45m. Only get_run_log's last timestamp tells. PROPOSAL CANDIDATE: cloud briefs state a 120 s per-command bound (exit 137 on long chained sleeps). set-stage done for SEAT-SCRIPT-OUTPUT and VALVE-TARGET-LABEL printed no change (byte-identical): re-check stage after the mark-carry lines land, re-queue if still carries-open.",
+   "From r11-pre-standing-scripts, body item 00d4b808: part-cut: contradiction: this seat's brief reads \"Part 1 of 4: build carries 0-4\". The approved design's section 5 cuts part 1 as carries 4, 5 and 11 (cp-owed, `class_wait_s`, `is_hotfix`), and parts 3 and 4 as the homes of carries 0 to 3. Carries 0 to 3 are answered above by the design's parts. Carries 5 and 11 are not answered here, as the brief says. The renderer cuts parts by carry index, not by the design's part table (PC-1113-07 and 08, carry 14). Carry: R11-PRE-STANDING-SCRIPTS (items 00d4b808)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-dispatch",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer after R11-PRE-TOKEN-LEDGER merges; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-TOOLCHAIN-PIN carries 10; R11-PRE-STANDING-SCRIPTS carries 8,9,10,13,14,15,16,17,18",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-PLAN-PAGE",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/plan_page.py",
+   "tools/plan/replan.py",
+   "tools/audit/seat/beat_jobs.py",
+   "tools/audit/seat/gantt_drift.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The round plan page in tools/audit/seat/plan_page.py, built to the two-tab build_tabs.py prototype: next-round groups on a second tab with a preliminary Gantt, the round's closure figure excluding them, running groups not shown as not started, serial pricing, numbered-list descriptions rendered whole (one_line_brief cuts at the first period then space), the plan beat passing --live-refs/--in-flight with the local render-timeout raise retired, and gantt_drift.py's accept on CLOSURE lapsing after the slip it accepted. Null control: a fixture roster with one next-round group must change the closure figure only when the exclusion is reverted. Done when each carry is built with a self-test arm or dismissed with a number. Sources: R11-PRE-ACK-COMPLETION (PR #3635), R11-PRE-PLAN-RENDER (PR #3622). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R10-TICK-RESIDUE-P3 carry 32 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nR10-TICK-RESIDUE-P3 (triage: dev/programme/triage/s6-batch229.md#P695 at 45adb0c3b4), line numbers at 45adb0c3b4. tools/audit/seat/gantt_drift.py:20-22 and :95: an ack of kind \"accept\" on key CLOSURE silences the key and re-baselines it with no expiry, so the 2026-11-05T06:31Z accept (acks.txt line 104, one slip of about a day) re-baselined every later closure slip and printed only \"GANTT-BASELINE re-baselined (accepted: CLOSURE ...)\": on 2026-11-12 baseline 2026-11-14T14:51Z against live 2026-11-16T11:12Z, a 44 h slip never surfaced as CLOSURE. Change: an accept lapses after the one slip it accepted (record the accepted closure value with the ack, or an until=; a later forecast past it prints CLOSURE again). Failing test first in the self-test beside :200-205: an accept recorded at closure X, a forecast at X+1 h prints CLOSURE; null control: a forecast at or before X stays silent. Severity high. Carry: R10-TICK-RESIDUE-P3",
+   "Owner instruction 2026-11-13 (tvofi, verbatim: \"The plan html for round 10 should also not show the round 11 groups\"): a round s plan page and its closure figure cover that round s groups only. Groups that belong to the next round (its pre-finder groups, its intake group, groups deferred to it) are neither drawn nor counted in closure; at most one line says how many are queued for the next round. Null control: a roster with a next-round group renders the same closure and the same lanes as the roster without it.",
+   "Owner instruction 2026-11-13, amending the round-filter carry on this group (tvofi, verbatim: \"for the permanent fix, future round items should be possible to view on a separate tab with a separate preliminary gantt\"): the next round s groups are not dropped from the page but moved to a second tab of their own, with a preliminary Gantt of their own built from the same duration model, starting at the current round s planned closure and labelled preliminary. The current round s tab, its lanes and its closure figure stay free of them. Null control: adding a next-round group changes nothing on the current round s tab and adds one bar on the other.",
+   "Owner 2026-11-13 (tvofi, verbatim: \"The copy you send me tonight is the prototype of the permanent one, future round tab included\"): the prototype is the two-tab page the round-10 orchestrator sent him that evening, built by the wrapper script build_tabs.py in the session scratch s14/seat/replan-2000 (named in the handover); build the permanent page to that prototype, as rulings on it stand at the time.",
+   "Moved from R10-TICK-RESIDUE-P3 carry 10 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P753 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom the s13 plan pre-read of PLAN.html at the 2026-11-10T01:14Z snapshot (plan_page.py over plan-live.json): (1) a group description holding markdown (RCA-FRICTION, RCA-STRUCTURE-BLIND) renders raw headings and loose lines, and one starting with a numbered list renders as \"1.\" alone (PUMP-MODEL, TARIFF), so descriptions need a first-sentence or escaped rendering; (2) the slot strip prints \"0 part merged\" while 8 held rows read \"part merged\"; (3) the critical-path note says 46 open groups while the ledger rows sum 65 open. Control: render the page from that plan.json and count each figure against the rows; a fix makes each count equal its rows and leaves a page with no such groups unchanged. Carry: R10-TICK-RESIDUE",
+   "Proposal PC-1113-05, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P771 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-05 plan: closure figure counts post-closure R11-PRE groups; running groups shown as not started (stage words only); a serial after-edge prices parallel work as a sum",
+   "Plan beat items (the batch's entries P753 and P794), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P753 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nThe plan beat passes `--live-refs` and `--in-flight` (sweep line 1131); the local render-timeout raise in $HPO_STATE_DIR/s14/beat_extras.sh (150 to 420 s, sweep line 1196) is retired by this group; build_tabs.py is the REPLACE target (this group's carry 2). The PLAN-CAP3 refusal after a stamp is by design and is answered by the round-11 roster file existing, not by code."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-plan-page",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-ACK-COMPLETION carries 12; R11-PRE-PLAN-RENDER carries 0,1,2,3,4,5",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-ROUND-METRICS",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/seat/round_metrics.py",
+   "tools/audit/seat/round_metrics_selftest.py",
+   "tools/audit/seat/loop_ledger.py",
+   "dev/governance/decisions/0018-objective-function.md"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The convergence records decision 0018 (dev/governance/decisions/0018-objective-function.md, sections 2 and 4) still owes, and the escapes record they read: the per-step denominator with an off-cadence dimension reading 0 (found-by, cause and refix are on main), and tools/audit/seat/round_metrics.py reading rows shaped as dev/audit/rounds/round10/objective/escapes_hand.tsv. Null control: a dimension off cadence must read 0 in the denominator, not be dropped. Done when both are built with self-test arms. Not R11-ARCH-OBJECTIVE's seam: that group sets the architect's goals, not the records. Sources: R11-PRE-ROUND-METRICS (PR #3612), R11-PRE-PRODUCT-READS (PR #3665). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R11-INTAKE-R10-RESIDUE carry 174 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P744 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom #3575 (r11-pre-objective-function), body item 2df48a3a: Decision 0018 (`dev/governance/decisions/0018-objective-function.md`) sections 2 and 4 owe from this group's convergence records: found-by and owning dimension per escape (`none` is a value), the cause of an injected bug named by the root-cause seat and never the fixer, the per-step denominator with an off-cadence dimension reading 0, an examining pass over a late merge reporting its denominator, and a re-report naming the fix it follows (link 3, a fix that did not fix, has no other read). Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-INTAKE-R10-RESIDUE (items 2df48a3a)",
+   "From r11-pre-product-reads, body item 94f5e481: n11: `dev/audit/rounds/round10/objective/escapes_hand.tsv` is a hand-read escapes ledger with owner and ruling columns; the round-metrics instrument should read rows of that shape; routed as n6. Carry: R11-PRE-PRODUCT-READS (items 94f5e481)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-round-metrics",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-ROUND-METRICS carries 5; R11-PRE-PRODUCT-READS carries 3",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-ROUND-START",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "low",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tools/audit/check_scopes.py"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "medium",
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "sonnet",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "tools/audit/check_scopes.py refuses a round start while any pickup line is undispositioned. Null control: a fixture with one undispositioned pickup line refuses, the same fixture dispositioned passes. Done when built with its self-test arm. Sources: R11-PRE-ACK-COMPLETION (PR #3635). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R11-INTAKE-R10-RESIDUE carry 170 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-playbook-round-start, body item 9f33edc5: The brief asks that the round start be refused by an instrument while any pickup line is undispositioned. None exists: `audit-find.js`'s baseline step runs `check_scopes.py --round` (evaluation only, #3575). Building the refusal (an exit-1 check over the two enumerators run from `check_scopes.py` or the pickup) is a tooling change outside this one-file prose group. Carry: R11-INTAKE-R10-RESIDUE (items 9f33edc5)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-round-start",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-ACK-COMPLETION carries 13",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-POLICY-BUDGETS",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "low",
+  "size": "S",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "dev/governance/config/policy_budgets.json",
+   "dev/governance/config/corpus_excluded.json",
+   "dev/audit/README.md"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "low",
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "sonnet",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "Stale corpus keys: dev/governance/config/policy_budgets.json caps keyed on the removed tools/audit/README.md path, and the README citing the census directory instead of its CENSUS.md file. Null control: policy_lint must report the orphan key before the fix and not after. Done when no cap names a path absent at the merge base. Sources: R11-PRE-MACHINERY-LIMITER (PR #3627). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R11-INTAKE-R10-RESIDUE carry 23 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-ROUND-PLAYBOOK-FINAL carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\n`policy_budgets.json`: stale: the README's caps are keyed `tools/audit/README.md`, a path the tree no longer has, and are matched through the move map. A reader grepping the new path finds no cap. Carry: R10-ROUND-PLAYBOOK-FINAL",
+   "Moved from R11-INTAKE-R10-RESIDUE carry 41 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-round-playbook-final-p2, body item 9502b215: The README cites the census directory, not its CENSUS.md file: policy_lint's named-docs check refuses a named file with no cap or exclusion, and dev/governance/config/corpus_excluded.json is outside this part's files. The brief asked for the file path. Carry: R11-INTAKE-R10-RESIDUE (items 9502b215)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-policy-budgets",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-MACHINERY-LIMITER carries 5,6",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-LOOP-POLICY",
+  "lane": "IN",
+  "kind": "policy",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "dev/governance/roles/root-cause.md",
+   "dev/governance/roles/proposal-triage.md",
+   "dev/governance/rules/defect-root-cause.md",
+   "dev/audit/README.md"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The loop-study countermeasure cards L2, L4, L5, L7 and L8 into policy: countermeasure order (delete, self-repair, narrow, new refusal last), induced follow-up work priced in the cost test, triage by instrument with a third accepted change owing a redesign, a kill criterion for loops on k or hotfix share, and machinery-friction RCA by family at round end; in dev/governance/roles/root-cause.md, proposal-triage.md and dev/governance/rules/defect-root-cause.md. Policy: merges on the owner's approving review or under a mandate in force. Null control: replay the loop-study's cases through the new text; each card must change at least one recorded disposition or it is dismissed. Done when each card is in its policy file or refused. Sources: R11-PRE-MACHINERY-LIMITER (PR #3627). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Loop-study card L2 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L2. Order of countermeasures: delete, then self-repair, then narrow, and a new refusal last.**\n- **Change:** `root-cause.md` section 5 and `proposal-triage.md` require a countermeasure to state why each earlier rung is not possible before proposing a later one. A new refusal prints its own repair command. It also shows its refusal count on the last 20 healthy heads (a shadow run) before it gates anything.\n- **Evidence:** 48 of 76 analyses add or widen a detector and 21 heal, delete or narrow. 45 of 51 machinery hotfixes are repeats, most of them over-refusals. Refusal words tripled.\n- **Effect on k:** lowers D x p, the use-driven inflow, and h for new checks.\n- **Cost:** two policy paragraphs; a shadow run per new refusal.\n- **Risk:** a real defect class left undetected. Mitigation: product checks are exempt from the ordering.\n- **Replaces:** nothing. **Touches:** `mechanise-before-policy` (10-24) stays, read as repair before refuse.",
+   "Loop-study card L4 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L4. Price induced work in the cost test.**\n- **Change:** `defect-root-cause.md` and `proposal-triage.md` add two terms to the cost side. One is expected follow-up items: the instrument's own measured offspring rate from L1, times the mean cost of an item. The other is the number of generated artifacts or pins the change stales in open branches. Until L1 has a round of data, use this round's figures: 2.9 follow-up items per RCA and 0.22 hotfixes per machinery merge.\n- **Evidence:** 67 of 76 analyses carry a numeric cost test and 51 of 76 are repeats; none priced its follow-ups.\n- **Effect on k:** lowers a for changes to instruments that breed.\n- **Cost:** two sentences and one lookup.\n- **Risk:** a needed fix priced out. Mitigation: the existing exceptions (red required check on main, production defect, owner order).\n- **Replaces:** the \"standing seconds only\" reading. **Touches:** sharpens the 20% bar; does not change it.",
+   "Loop-study card L5 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L5. Triage by instrument, not by proposal; the third accepted change to one instrument in a round owes a redesign decision.**\n- **Change:** at the round-end consolidation the triage seat groups proposals by the instrument they name and rules once per instrument: retire it, simplify it, redesign it (a designer note), or leave it. A fourth patch is not an option.\n- **Evidence:** `merge_train.py` took 58 accepted proposals. 169 accepted proposals hit an instrument with ten or more earlier accepts. The gate-deferral analysis is titled \"the producer of a deferral was fixed three times, its reader never\".\n- **Effect on k:** replaces many small changes, each with offspring 0.3 to 0.5, by one designed change.\n- **Cost:** a designer seat for perhaps six instruments at round end.\n- **Risk:** a redesign larger than the patches; #3315 was one such. Mitigation: L6's reversal, and promotion one change at a time.\n- **Replaces:** per-proposal rulings for instruments past the threshold. **Touches:** gives the 11-13 freeze shape its unit of consolidation.",
+   "Loop-study card L7 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L7. A kill criterion for the loops.**\n- **Change:** two thresholds read from the L1 enumerator each week: k at or above 0.8, or machinery-own hotfixes above 15% of code merges. When either holds for two consecutive weeks, RCA seats record cause and state only and build nothing, and proposals are logged only, until the next round start. The owner sets the numbers.\n- **Evidence:** k was 0.76, 0.74, 0.71 and 0.95 in w2 to w5, and the hotfix share 20% then 30%, with no rule responding until the owner's ruling on day 30.\n- **Effect on k:** a ceiling.\n- **Cost:** two lines in the round playbook.\n- **Risk:** a real barrier delayed by a round. Mitigation: product defects and barriers for product classes are exempt.\n- **Replaces:** nothing; it is the backstop once the freeze lifts. **Touches:** `audit-class-barrier`, for machinery classes only.",
+   "Loop-study card L8 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L8. Root-cause analysis of machinery friction by family at round end; per defect only for the product and for outages.**\n- **Change:** a product defect, a release defect or an outage keeps its own RCA seat at once. Repeated machinery friction is counted during the round (family and occurrences, by L1) and analysed once per family at round end, feeding L5.\n- **Evidence:** 67 of 76 analyses were about machinery and 42 were triggered by recurring friction. Each produced 2.9 follow-up items. The friction family alone has at least seven analyses.\n- **Effect on k:** removes the largest generator of follow-up items and gives the analysis the whole family at once.\n- **Cost:** negative; fewer seats.\n- **Risk:** a machinery cause forgotten by round end. Mitigation: the count is mechanical and the family list is the triage input.\n- **Replaces:** per-event RCA seats for machinery friction. **Touches:** the owner's \"RCA dispatch immediately\" ruling and the third-instance rule, for machinery only. This card reverses part of a standing ruling."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-loop-policy",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-MACHINERY-LIMITER carries 7,8,9,10,11",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-MACHINERY-CHECK",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [],
+  "files": [
+   "tests/ci_ratchet.py",
+   "tools/audit/seat/review_packet.py",
+   "tools/pr/cancel_superseded.py",
+   ".github/workflows/tests.yml",
+   "tools/audit/seat/bottleneck_check.py",
+   "tools/audit/seat/bus.sh"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "A machinery check that cannot read its input prints unread, never red, and escalates after three: tests/ci_ratchet.py's advisory on push (the prelude-cancelled exclusion is on main), tools/audit/seat/review_packet.py's introduced-red read, and tools/pr/cancel_superseded.py cancelling main runs that kill the self-tests job, with the reviewer dispatched on a running self-tests job and marked pending. Null control: an unreadable input must print unread with the fix and red with it reverted. Done when each carry is built with a self-test arm or dismissed with a number. Sources: R11-PRE-TOOLCHAIN-PIN (PR #3654). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Moved from R11-INTAKE-R10-RESIDUE carry 148 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P743 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom the round-10 orchestrator, 2026-11-14 (main red, measured by the hotfix seat): the push-time ci-ratchet fails closed on a push run whose prelude was cancelled. Main's job printed \"ci-ratchet: CI push run 43602217369 has no completed `tests / *` job (fail closed)\" on four pushes in a row; that run (merge 97a3a921e0) was cancelled at its prelude, so every tests job was skipped. The walk in tests/ci_ratchet.py excludes a run with a cancelled tests job but refuses one whose tests jobs never ran, and the sixteen-run push window keeps it for about sixteen merges. Owed: exclude a run whose every tests job is skipped because its prelude was cancelled, failing test first; null control: a run with one tests job genuinely missing still fails closed. Also owed, never built: the owner's ruling of 2026-11-11 that ci-ratchet is advisory on push (the done group R10-HOTFIX-GATE-REDISPATCH-LOOP's brief names it; the workflow has no advisory arm). Re-measure at your merge base: the red ages out of the window by itself, so reproduce it from a recorded run listing, not from live main.",
+   "Loop-study card L3 (owner: yes), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P743 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L3. A machinery check that cannot read its input reports \"unread\", not red.**\n- **Change:** for checks that grade the process (CI-time ratchet, self-test scope drift, introduced-red guard, review packet, figure block), an unreadable input yields an advisory \"unread\" line. Unreadable means a cancelled run, a job still running, a spent API budget or a stale checkout. Three consecutive unread results escalate. Product checks keep failing closed.\n- **Evidence:** case study 2. The introduced-red guard held reviewer dispatch on four pull requests on 11-14. The gate-deferral family has 7 hotfixes and 4 analyses.\n- **Effect on k:** removes the largest class of false refusals; lowers p.\n- **Cost:** one helper and edits to about five instruments; under the freeze, a round-start group.\n- **Risk:** a silent real failure. Mitigation: the escalation after three, and the unread count on the scorecard.\n- **Replaces:** R10-HOTFIX-CI-RATCHET-SKIPPED-RUN becomes its first use. **Touches:** builds the owner's unbuilt 11-11 \"advisory on push\" ruling.",
+   "Proposal PC-1113-15, L3's first use, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P779 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n## PC-1113-15 the introduced-red guard holds reviewer dispatch until instrument-self-tests concludes\nEvidence: PR 3481 at d712c2ba, 2026-11-14 00:50Z: `review_packet: REFUSE introduced-red: unreadable: head governance / instrument-self-tests job ...: in_progress has not concluded ... (fail closed)`; same shape on 3568, 3574, 3566 tonight. Each costs the reviewer the job's wall (10-25 min) at every new head, against orchestrator.md's \"dispatch a fix's reviewer when the fixer pushes, not when CI settles\".\nProposal: dispatch on a running job with the packet marked `introduced-red: pending`, and let the reviewer's own bounded CI wait (it already has one, and `pending-ci:` drafts are held by the relay until GREEN) carry the fail-closed check. Cost/benefit at round-end triage: reviewer starts per day times the job wall.",
+   "Sweep candidates at sweep.md lines 1689 and 1758 (the batch's entry P785 routes both here, as L3's uses), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P743 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T14:02:17Z FINDING + LOCAL RULE: cancelling a superseded CI run on main cancels that commit's governance/instrument-self-tests job, and any PR whose merge base is that commit then reads classify --pr rc 2 (fail closed; held #3551's merge verdict ~40 min). Merge seat told to stop cancelling superseded main runs (PR-branch cancels unchanged) and to re-run the self-tests job on cfa86839. This narrows my use of the 11-13 ruling (2) permission; it does not change the ruling. PROPOSAL CANDIDATE: cancel_superseded on main keeps the instrument-self-tests job, or introduced_at falls back to the nearest ancestor with a concluded job.\n\n- 2026-11-13T17:06:39Z #3557/#3558 dispatch refused while each head's instrument-self-tests job is in_progress (introduced-red barrier fails closed), ~40 min per head before a reviewer can start. For the two production hotfixes: reviewer dispatched AT THE HANDOFF (bus.sh dispatch-handoff, no PR/CI read), helper s14/seat/pubrevt.sh. PROPOSAL CANDIDATE: bus.sh dispatch should mint on an in-progress self-tests job (WAIT, as classify does for required contexts) and let the reviewer's verdict carry pending-ci; the fail-closed read costs every review a CI cycle, against orchestrator.md 5 'dispatch a fix's reviewer when the fixer pushes, not when CI settles'."
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-machinery-check",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-TOOLCHAIN-PIN carries 4,5,6,8",
+   "pr": null
+  }
+ },
+ {
+  "group": "R11-CARRY-TOOLCHAIN",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "severity": "medium",
+  "size": "M",
+  "wave": 1,
+  "issues": [],
+  "fixes": [],
+  "after": [
+   "R11-CARRY-MERGE-TRAIN"
+  ],
+  "files": [
+   "tools/audit/seat/toolchain.py",
+   "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/train.sh",
+   "tools/audit/seat/pr_args.sh",
+   "tools/audit/seat/cloud-setup.sh"
+  ],
+  "hot_files": [],
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "effort": "high",
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "opus",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "findings": [],
+  "architect_note": "",
+  "brief": "The toolchain design's unbuilt parts p1/p2 in tools/audit/seat/toolchain.py and its consumers: the freshness sites, merge_train's main mirror, refusing a train or relay launched from a far-behind checkout, toolchain promote --init run once and a recorded decision on who may push toolchain/stable (absent on origin today), and tools/audit/seat/cloud-setup.sh pinning one OpenBLAS kernel so cloud seats miss CI's SkylakeX reds. Null control: a checkout N commits behind must be refused above the bound and accepted below it. Done when each carry is built or refused by a recorded ruling. Shares merge_train.py with R11-CARRY-MERGE-TRAIN: land after it. Sources: R11-PRE-TOOLCHAIN-PIN (PR #3654). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, CARRY-MAP.md).",
+  "carry": [
+   "Proposal PC-1113-10's first addendum (nothing refuses a train or relay launched from a checkout far behind main), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P743 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nPC-1113-10 addendum 2026-11-13T22:16:58Z: probable cause is the stale tools checkout (Nov 11) the train ran from, not the recarry itself; verify on the next recarry from a fresh checkout before building anything. Real gap: nothing refuses a train or relay launched from a checkout thousands of commits behind main (tick_loop has a freshness check; train.sh has none).",
+   "From r11-pre-toolchain-pin, body item 3a999745: The design's p1 other than carries 1 and 2 (the toolchain instrument with promote and behind, the section 3 freshness sites, the `merge_train.py` main mirror with notes dr14-dr18, the prune guard, the beat row) and its p2 are in no part the dispatch has cut: part 2 as dispatched is carries 5-8. The next part's payload must name them, or the group closes with its brief unbuilt. `tools/pr/cancel_superseded.py main` is run by hand; the design names no beat row for it. Carry: R11-PRE-TOOLCHAIN-PIN (item tp1) (items 3a999745)",
+   "From r11-outside-honest-starts-runs, body item a4ac1e10: The cloud seat pins `OPENBLAS_CORETYPE=Haswell` (`tools/audit/seat/cloud-setup.sh`, `CORETYPE`), the one kernel of SkylakeX, Haswell, Sandybridge and Nehalem on which this pull request's two replaced clauses passed, so no fixer or reviewer round read the red that `tests / fast (3.14)` drew on SkylakeX runners. A pinned toolchain that also fixes the kernel reproduces CI on only one of the kernels it draws; the control is the `kernels` figure, the replaced clauses False on three kernels at one tree. Re-measure with `r11_honest_starts_runs.py kernels` at that group's merge base. Carry: R11-PRE-TOOLCHAIN-PIN (items a4ac1e10)",
+   "From r11-pre-toolchain-pin-p2, body item 806e1101: After the merge the orchestrator runs `python3 -I tools/audit/seat/toolchain.py promote --init --repo tvofi/heatpump_optimizer` once from the tools checkout. Until then the beat's `toolchain-promote` row prints `toolchain-promote: rc=1: toolchain: REFUSED origin/toolchain/stable is absent ...` every pass, and nothing else reads the ref. The beat's credentials must be able to push `refs/heads/toolchain/stable`; who may push it and whether a ruleset protects it is the design's open owner decision. Carry: R11-PRE-TOOLCHAIN-PIN (item tp2) (items 806e1101)"
+  ],
+  "resume": {
+   "stage": "not-started",
+   "branch": "fix/r11-carry-toolchain",
+   "commit": null,
+   "last_step": null,
+   "next_step": "dispatch the fixer after R11-CARRY-MERGE-TRAIN merges; re-measure every carry first",
+   "note": "created by the round-11 carry map from R11-PRE-TOOLCHAIN-PIN carries 7,9,11,12",
+   "pr": null
+  }
+ }
+]
