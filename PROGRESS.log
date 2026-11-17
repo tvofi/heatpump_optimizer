@@ -22,3 +22,4 @@
 1794875999 HB alive
 1794876010 CKPT resumed from probe 2e8b52ad; rechecking CI and merge snapshot 30f1fc9682ff
 1794876108 CKPT verdict pushed c85ee67c (blocked ci-red) snapshot 2c771b013257
+1794876112 DONE blocked ci-red: tests/mutation 4 added unpinned sites at abe961e6; verdict c85ee67c on probe/rev-3685-9ac918a2
