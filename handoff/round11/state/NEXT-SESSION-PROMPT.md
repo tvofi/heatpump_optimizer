@@ -18,7 +18,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-TOOLCHAIN-PIN (stage carries-open, branch `fix/r11-pre-toolchain-pin-p3`): `git fetch origin fix/r11-pre-toolchain-pin-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-MACHINERY-LIMITER (stage carries-open, branch `handoff/r11-pre-machinery-limiter`): `git fetch origin handoff/r11-pre-machinery-limiter && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-ROUND-METRICS (stage carries-open, branch `fix/r11-pre-round-metrics`): `git fetch origin fix/r11-pre-round-metrics && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-RULINGS-FILE (stage carries-open, branch `handoff/r11-pre-rulings-file`): `git fetch origin handoff/r11-pre-rulings-file && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SHARED-FILES (stage in-progress, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-RELAY-REBUILD (stage carries-open, branch `handoff/r11-pre-relay-rebuild`): `git fetch origin handoff/r11-pre-relay-rebuild && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -27,34 +26,18 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-PLAN-RENDER (stage carries-open, branch `handoff/r11-pre-plan-render`): `git fetch origin handoff/r11-pre-plan-render && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage carries-open, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage carries-open, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (stage carries-open, branch `handoff/r11-outside-contributor-cycle-p3`): `git fetch origin handoff/r11-outside-contributor-cycle-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-HOTFIX-SELFTEST-FLAKE-ARMS (stage carries-open, branch `handoff/r11-hotfix-selftest-flake-arms`): `git fetch origin handoff/r11-hotfix-selftest-flake-arms && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-HONEST-STARTS-RUNS-P2 (stage carries-open, branch `handoff/r11-outside-honest-starts-runs-p2`): `git fetch origin handoff/r11-outside-honest-starts-runs-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (stage in-progress, branch `handoff/r11-outside-honest-starts-runs-p3`): `git fetch origin handoff/r11-outside-honest-starts-runs-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-METERED-FLOOR (stage in-progress, branch `handoff/r11-outside-honest-metered-floor`): `git fetch origin handoff/r11-outside-honest-metered-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-FINDER-CONTRACT (stage carries-open, branch `handoff/r11-pre-finder-contract`): `git fetch origin handoff/r11-pre-finder-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-BRIEFS-CENSUS (stage carries-open, branch `fix/r11-pre-briefs-census-p2`): `git fetch origin fix/r11-pre-briefs-census-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-BRIEFS-TEXT (stage carries-open, branch `handoff/r11-pre-briefs-text`): `git fetch origin handoff/r11-pre-briefs-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-NEW-DIMENSIONS (stage carries-open, branch `handoff/r11-pre-new-dimensions`): `git fetch origin handoff/r11-pre-new-dimensions && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-OWNER-CRITERIA (stage carries-open, branch `fix/r11-pre-owner-criteria-p2`): `git fetch origin fix/r11-pre-owner-criteria-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-NO-READ-BUILDERS (stage carries-open, branch `handoff/r11-pre-no-read-builders`): `git fetch origin handoff/r11-pre-no-read-builders && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-GENERIC-CONTROL-TEXT (stage in-progress, branch `handoff/r11-owner-generic-control-text`): `git fetch origin handoff/r11-owner-generic-control-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-ROUND-CHECK-GATE (stage carries-open, branch `handoff/r11-pre-round-check-gate`): `git fetch origin handoff/r11-pre-round-check-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PRODUCT-READS (stage carries-open, branch `fix/r11-pre-product-reads-p2`): `git fetch origin fix/r11-pre-product-reads-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-COMMUNITY-STANDARDS (stage carries-open, branch `handoff/r11-owner-community-standards`): `git fetch origin handoff/r11-owner-community-standards && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage in-progress, branch `handoff/r11-pre-security-privacy`): `git fetch origin handoff/r11-pre-security-privacy && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P1 (stage in-progress, branch `handoff/r11-outside-rooms-p1`): `git fetch origin handoff/r11-outside-rooms-p1 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P2 (stage carries-open, branch `handoff/r11-outside-rooms-p2`): `git fetch origin handoff/r11-outside-rooms-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P3 (stage design, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage in-progress, branch `fix/r11-outside-self-setting-pump`): `git fetch origin fix/r11-outside-self-setting-pump && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SERVICE-SCHEMA (stage carries-open, branch `fix/r11-service-schema-p2`): `git fetch origin fix/r11-service-schema-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-ADVISOR-MEASURES (stage carries-open, branch `fix/r11-advisor-measures-p2`): `git fetch origin fix/r11-advisor-measures-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage in-progress, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-POLICY-TOKEN-CAP (stage carries-open, branch `fix/r11-policy-token-cap`): `git fetch origin fix/r11-policy-token-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-RCA-SELFTEST-TABLE-DRIFT (stage in-progress, branch `fix/r11-rca-selftest-table-drift`): `git fetch origin fix/r11-rca-selftest-table-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-OBJECTIVE (stage in-progress, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ADVISOR-MEASURES, R11-ARCH-OBJECTIVE, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-SELFTEST-FLAKE-ARMS, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COMMUNITY-STANDARDS, R11-OWNER-GENERIC-CONTROL-TEXT, R11-POLICY-TOKEN-CAP, R11-PRE-ACK-COMPLETION, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT, R11-PRE-FINDER-CONTRACT, R11-PRE-MACHINERY-LIMITER, R11-PRE-OWNER-CRITERIA, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-CHECK-GATE, R11-PRE-ROUND-METRICS, R11-PRE-RULINGS-FILE, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PRE-TOOLCHAIN-PIN, R11-PREPR-STEP-TIMING, R11-RCA-SELFTEST-TABLE-DRIFT, R11-SERVICE-SCHEMA, R11-VALVE-REFERENCE
+Ready next (after-edges satisfied; nothing open constrains them): R10-NUDGE-RETIRE, R11-ARCH-OBJECTIVE, R11-CLOSEOUT-CLEANUP, R11-INTAKE-R10-RESIDUE, R11-OUTSIDE-HONEST-METERED-FLOOR, R11-OUTSIDE-HONEST-STARTS-RUNS, R11-OUTSIDE-ROOMS-P1, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-ACK-COMPLETION, R11-PRE-MACHINERY-LIMITER, R11-PRE-PARALLEL-PIPELINE, R11-PRE-PLAN-RENDER, R11-PRE-PRODUCT-READS, R11-PRE-RELAY-REBUILD, R11-PRE-ROUND-METRICS, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PRE-TOOLCHAIN-PIN, R11-PREPR-STEP-TIMING, R11-VALVE-REFERENCE
 
 ## Resume steps
 
