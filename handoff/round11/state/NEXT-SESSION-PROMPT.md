@@ -52,7 +52,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SERVICE-SCHEMA (stage carries-open, branch `fix/r11-service-schema-p2`): `git fetch origin fix/r11-service-schema-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ADVISOR-MEASURES (stage carries-open, branch `fix/r11-advisor-measures-p2`): `git fetch origin fix/r11-advisor-measures-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-VALVE-REFERENCE (stage in-progress, branch `fix/r11-valve-reference`): `git fetch origin fix/r11-valve-reference && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-POLICY-TOKEN-CAP (stage in-progress, branch `fix/r11-policy-token-cap`): `git fetch origin fix/r11-policy-token-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-POLICY-TOKEN-CAP (stage carries-open, branch `fix/r11-policy-token-cap`): `git fetch origin fix/r11-policy-token-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-RCA-SELFTEST-TABLE-DRIFT (stage in-progress, branch `fix/r11-rca-selftest-table-drift`): `git fetch origin fix/r11-rca-selftest-table-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-OBJECTIVE (stage planned, branch `fix/r11-arch-objective`): `git fetch origin fix/r11-arch-objective && git worktree add --detach $SEAT/wt FETCH_HEAD`
 

@@ -134,7 +134,7 @@ gantt
 | R11-PRODUCT-TEXT-PINS | CORE | 2 | not-started | - | opus/opus | - | Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below ver... |  |
 | R11-ADVISOR-MEASURES | CORE | 1 | carries-open | - | opus/opus | - | Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked f... |  |
 | R11-VALVE-REFERENCE | CORE | 1 | in-progress | - | opus/opus | - | Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, t... |  |
-| R11-POLICY-TOKEN-CAP | IN | 1 | in-progress | - | opus/opus | - | Drop the files_tokens cap kept for the retired orchestrator turn and extend policy_lint.mjs's orphan-cap check to files_tokens, as the carry below states ver... |  |
+| R11-POLICY-TOKEN-CAP | IN | 1 | carries-open | - | opus/opus | - | Drop the files_tokens cap kept for the retired orchestrator turn and extend policy_lint.mjs's orphan-cap check to files_tokens, as the carry below states ver... |  |
 | R11-START-EVALUATION-LAND | IN | 1 | done | - | opus/opus | - | Land the approved round-11 start evaluation (eval/r11, approved at the evaluation review round 4, c04cef7fca) on main so check_scopes.py --round 11 can read... |  |
 | R11-HOTFIX-MAIN-SELFTEST-DRIFT | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-RCA-SELFTEST-TABLE-DRIFT | IN | 1 | in-progress | - | opus/opus | - | Root-cause record, S. |  |
