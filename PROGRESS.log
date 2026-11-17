@@ -2,3 +2,4 @@
 1794879232 INIT r11-rev-3693
 1794879240 HB alive
 1794879277 CKPT packet rendered snapshot 62fb64382422
+1794879431 CKPT cmdA head pass 57; one-resolved behavioural kill confirmed; mutants+harness running snapshot 488e2947ab7d
