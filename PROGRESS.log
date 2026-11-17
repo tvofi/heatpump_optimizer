@@ -16,3 +16,4 @@
 1794874040 HB alive
 1794874645 HB alive
 1794874790 CKPT handoff code dbc806ce5f pushed; body_push exit 4 CARRY-LANDED; BLOCKED.md at 90718260dc snapshot 15a94ecf0f27
+1794874794 DONE blocked: body_push REFUSED CARRY-LANDED (3 carries to R11-OUTSIDE-HONEST-STARTS-RUNS-P3 for the relay to fold); code dbc806ce5f on handoff ref, prepr clean
