@@ -4109,8 +4109,6 @@ def _p2_registry(sources):
                      "an elapsed time in hours (the pairing window's lower edge), not a power",
                  "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                      "a tank draw intensity in K/h, not a power",
-                 "dhw_planner.py::DhwPlanner._dhw_shortfall":
-                     "a tank temperature gap in K, not a power",
                  "ledger.py::freeze_month_report":
                      "a month-report reconciliation tolerance in kWh and SEK, not a power",
                  "narrative.py::build":

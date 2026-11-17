@@ -2102,7 +2102,7 @@ def _combi_flux_exchange(
         """How far the store falls under the requirement at worst, K."""
         gaps = planner._dhw_shortfall(
             None, schedule, float(h.initial_state.dhw_temperature), h.outdoor_temps, draw_rates,
-            h.dt, h.humidity, opt._dhw_requirement, set(), net)[1]
+            h.dt, h.humidity, np.asarray(opt._dhw_requirement), set(), net)[1]
         return float(np.max(gaps))
 
     kept = short(committed, net_under(committed, space_net)) <= short(dhw_power, space_net) + _COMBI_COMMIT_SLACK_K

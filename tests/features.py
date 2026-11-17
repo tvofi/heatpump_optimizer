@@ -11916,7 +11916,9 @@ _ct_blind = [n.lineno for n in _ct_walk_calls
 _ct_fns = {n.name: _ct_ast.get_source_segment(_ct_sources["dhw_planner.py"], n)
            for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.FunctionDef)}
 _ct_affine = [f for f in ("_plan_dhw_min_cost", "_dhw_legionella_ceilings", "_clamp_dhw_to_capacity")
-              if "_exo_at(" not in _ct_fns.get(f, "")]
+              if "_exo_at(" not in _ct_fns.get(f, "")
+              # the linear program's recursion is the context's (R11-OUTSIDE-HONEST-DHW-RUNS)
+              and not ("ctx.coast(" in _ct_fns.get(f, "") and "_exo_at(self.tank_exo_kw" in _ct_fns.get("coast", ""))]
 _ct_space = [f for f in ("def simulate_trajectory(", "def simulate_trajectory_batch(")
              if f not in _ct_sources["thermal_model.py"]
              or "buffer_exo = weather.buffer_exo_kw" not in _ct_sources["thermal_model.py"].split(f)[1][:4000]]
