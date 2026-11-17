@@ -130,7 +130,7 @@ gantt
 | R11-HOTFIX-TICK-SEAT-WINDOW | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-OUTSIDE-DEARER-WORDING | DOCS | 2 | absorbed | #3643 | opus/opus | - | Outside issue 3643, size S, text only. |  |
 | R11-PREPR-STEP-TIMING | IN | 3 | not-started | - | opus/opus | - | Two remeasured countermeasures from dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md, both in tools/pr/prepr.sh, carried below verbatim: the per-step elapsed field (... |  |
-| R11-SERVICE-SCHEMA | CORE | 1 | in-progress | - | opus/opus | - | Service schema and service text disagreements carried below verbatim. |  |
+| R11-SERVICE-SCHEMA | CORE | 1 | carries-open | - | opus/opus | - | Service schema and service text disagreements carried below verbatim. |  |
 | R11-PRODUCT-TEXT-PINS | CORE | 2 | not-started | - | opus/opus | - | Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below ver... |  |
 | R11-ADVISOR-MEASURES | CORE | 1 | carries-open | - | opus/opus | - | Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked f... |  |
 | R11-VALVE-REFERENCE | CORE | 1 | in-progress | - | opus/opus | - | Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, t... |  |
