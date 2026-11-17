@@ -1,10 +1,11 @@
-Fix review: merge 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa
+Fix review: merge 53d38475ef2f31f5baf17bd2c9c171881b8ccf17
 
-bus-nonce: 24d67ab9e740de5c2d23225c2931d8c7
+bus-nonce: 08a0a72da5be5e217f7e0bc8709e0412
+pending-ci: gate
 
 ## Scope
 
-Round 2 (a later round over reviewed head bba6698d438e). The packet's `## Review scope` reads `full`: no verdict on verdict/3628 names bba6698d438e, so there are no prior findings to confirm resolved, and the whole three-dot diff was reviewed. The diff has no `custom_components/` line. It touches `.github/ISSUE_TEMPLATE/` (five forms and `config.yml`), `CODE_OF_CONDUCT.md`, `tests/closure.py` (two `INERT` entries), `tests/layout.json` (one root entry), `dev/audit/config/scopes.json` (D6 universe and seat s5) and the delivery row `dev/programme/delivery/3628.md`. The delta from bba6698d438e is only the two `scopes.json` lines, which is an instrument/config delta.
+Round 3, a later round over the reviewed head 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa. The packet's `## Review scope` reads `delta`, and the previous verdict at 6ee7ba56e48b had no findings to resolve. The delta is three merge commits: 4e8c918de7df, 948ce9050b71 and 53d38475ef2f. `review_carry.py` prints FRESH-REVIEW because 4e8c918de7df is not the automatic merge of its parents (ev/review_carry.txt). The delta has no `custom_components/` line, so nothing widens the review. What was reviewed is that merge's hand resolution plus the PR's own three-dot diff, compared with the one reviewed before.
 
 ## Findings
 
@@ -12,35 +13,27 @@ none
 
 ## Evidence
 
-- Head: PR #3628's live head is 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa, as the verdict names and as the body's `## Head` names (ev/HEAD.txt).
-- Role contract current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- CI: `merge_train.py classify 6ee7ba56e48b... --pr 3628` exited 0 with `GREEN 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa pending: none red: none` (ev/classify_final.txt). The only failed check run at the head is `tests / nightly-status` (ev/check_runs.txt). It is not in the `merge_train.py owed-reds` set, so it owes no answer and is no block. The digest's earlier `gate` failure was superseded; classify reads GREEN.
-- Merge: `git merge-tree --write-tree origin/main 6ee7ba56e48b...` exits 0, so there is no conflict (ev/merge_tree.txt).
-- `VERSION`, `custom_components/heatpump_optimizer/manifest.json` and `RELEASE_NOTES.md` are untouched across merge-base...head.
-- Mutation proof, step 1. Each was run in a detached worktree at the head and then restored:
-  - Delete both `INERT` entries: `PYTHONPATH=tests/hastub python3 tests/entities.py` exits 1, where the head exits 0. The `  FAIL` lines differ from the head's only by `every tracked file is either measured or deliberately classified`, which names all seven paths. The other FAIL lines are the hb:positive_control negative controls, at both ends, differing only in timing digits (ev/entities_head.txt, ev/entities_mut_both.txt). This reproduces the body.
-  - Delete `".github/ISSUE_TEMPLATE/"` only: entities.py exits 1 and names the six form files (ev/entities_mut_tmpl.txt).
-  - Delete `"CODE_OF_CONDUCT.md"` only: the entities.py run was killed at the 30-minute background limit before it finished, so it has no result. In its place, `closure.orphan_files()` returns `['CODE_OF_CONDUCT.md']` against `[]` at the head (ev/orphan_files.txt). That is the function the failing entities.py check reports.
-  - Delete the `tests/layout.json` root entry: `tests/layout.py` exits 1 with `placement: CODE_OF_CONDUCT.md is in 0 categories`, where the head exits 0 (ev/layout_*.txt).
-  - Delete both `scopes.json` entries: `check_scopes.py --repo .` exits 1 with `FAIL D6 ... universe=353` and `FAIL coverage ... unclassified=1`. The head exits 0 with `ok D6 ... universe=354` and `ok coverage ... unclassified=0` (ev/scopes_*.txt).
-- Null control: base `tests/closure.py` (e75ad291) on the head tree gives `orphan_files()` = the seven new paths; the head gives `[]` (ev/orphan_files.txt). This matches the body.
-- Step 2: no finder's harness applies. This is the owner's item, not a finder's finding, and the packet reads `Finder's harness: none named`. The forms have no executable harness; GitHub validates them on render.
-- Step 4: no golden or claim file is touched. `tests/env_drift.py --claims-only origin/main` exits 0 at the head (ev/env_drift_claims.txt).
-- Step 14: no budget, score, ledger or closures.json moves. `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED (ev/structure_head.txt). The `INERT`, `layout.json` and `scopes.json` additions each classify a file this diff adds, and the mutations above show each one is what clears its check.
-- Figures re-derived at the head under the body's stated rules:
-  - Fields per form from `yaml.safe_load`, counting non-markdown body items and the required ones: bug 11 (7), feature 5 (3), design notes 11 (9), support 6 (5), docs 4 (3). All match.
-  - `id` and `label` are unique per form, and every dropdown option is a string.
-  - Labels `bug`, `enhancement` and `documentation` exist; `design` returns 404.
-  - `has_discussions` is false.
-  - `tests/closure.py select --diff <merge-base>` prints `MODE: FULL`.
-  - `check_scopes.py --self-test --repo .` prints `SELF-TEST passed (every perturbed scope refused)`, and D6 `s5` reads 3245u (ev/scopes_selftest_head.txt, ev/scopes_head.txt).
-- Body claims checked:
-  - README's "Supported heat pumps and controls" table has five rows (switch, ECL110, offset entity, stored parameter, compressor frequency).
-  - `config_flow.py` defaults the entry title to "Heat Pump Optimizer".
-  - `plan_public.PLAN_URL` resolves to https://tvofi.github.io/heatpump_optimizer/plan/, the URL the design form links.
-  - The linked decision 0014 file and docs/CONTRIBUTING.md exist at the head.
-  - No workflow has an `issues:` trigger; the only matches are permission blocks.
-  - `CODE_OF_CONDUCT.md` contains no email address, personal name, attribution or volume limit, and names only the account `tvofi` for enforcement.
-- Not re-derived: the body says `CODE_OF_CONDUCT.md` is "byte for byte" the text the owner approved. That approved text is not in the tree, so this was not compared.
-- Red checks: the body answers `instrument-self-tests` (red at bba6698d438e, repaired in 3f464acc3daf, cheaper detector named, countermeasure refusal recorded). That context is not in the owed-reds set. At this head it passes.
-- Steps 15 and 16: no production code and no actuator write, so they do not apply. Step 10: the body's Forward-carry is none, and its CoC carries 0–2 are dismissed as answered in this diff; the file content above confirms that.
+- Resolution, `tests/layout.json` (from `--remerge-diff`, ev/remerge_diffs.txt):
+  - The only conflict hunk is the `root` globs. One side has this PR's `"CODE_OF_CONDUCT.md"`, the other has main's `"ROADMAP.md"`, and the resolution keeps both once each.
+  - 948ce9050b71 and 53d38475ef2f show an empty remerge-diff, so they are automatic merges.
+- Own diff unchanged: `git diff <mb>...6ee7ba56e48b` and `git diff b425502da8...53d38475ef2f` touch the same 11 files with 358 insertions. They differ only in index hashes, hunk offsets and main's neighbouring context lines in `scopes.json` and `layout.json` (ev/own_diff_old_vs_new.txt).
+- Community files: `git diff 6ee7ba56e48b 53d38475ef2f -- CODE_OF_CONDUCT.md .github/ISSUE_TEMPLATE/` is empty (ev/body_checks.txt).
+- Body read-back figures re-derived (ev/body_checks.txt):
+  - The `tests/layout.json` diff against merge base b425502da8 is the single added line `"CODE_OF_CONDUCT.md",`, as the body states.
+  - The merged file loads as JSON.
+  - The merge base of 4e8c918de7df with origin/main is 92d38ecb640b, as the body states.
+- Mutant on the resolution: deleting `"CODE_OF_CONDUCT.md",` from the merged `tests/layout.json` makes `tests/layout.py` exit 1 with `placement: CODE_OF_CONDUCT.md is in 0 categories` (ev/layout_mut_coc.txt). The head exits 0 (ev/layout_head.txt). So the PR's line survived the resolution and still carries its check.
+- Cheap checks at the head, all exit 0:
+  - `tests/layout.py`
+  - `check_scopes.py --repo .`
+  - `tests/structure.py` (STRUCTURE RATCHET PASSED)
+  - `tests/env_drift.py --claims-only origin/main`
+  - `closure.orphan_files()` returns `[]`
+  - Files: ev/layout_head.txt, ev/scopes_head.txt, ev/structure_head.txt, ev/env_drift_claims.txt, ev/orphan_files.txt.
+- Merge: `git merge-tree --write-tree origin/main 53d38475ef2f` (origin/main 54cb72116423) exits 0, so there is no conflict (ev/merge_tree.txt).
+- Untouched across b425502da8...53d38475ef2f: `VERSION`, the manifest and `RELEASE_NOTES.md`. The role contracts are current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+- CI: `merge_train.py classify 53d38475ef2f... --pr 3628` was polled every ~90 s for about 30 minutes. Every run exited 3 with `WAIT 53d38475ef2f31f5baf17bd2c9c171881b8ccf17 pending: gate red: none` (ev/classify_log.txt), so this verdict carries `pending-ci: gate`. At the last read (ev/check_runs.txt), `tests / lane-proofs` was queued, and the test lanes had finished.
+  - The packet's digest read `gate` failure and `tests / nightly-status` failure.
+  - `nightly-status` is not in the `merge_train.py owed-reds` set, so it is neither answered nor a block.
+  - The body's `## Red checks` answers `instrument-self-tests`, which is also outside the owed-reds set.
+- Steps 1–3 and 14–16 were carried from the round-2 verdict, because the PR's own diff is unchanged. No finder's harness is named.

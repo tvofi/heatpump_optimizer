@@ -1,55 +1,52 @@
-CodeQL	completed	success
-arch-score / arch-score	completed	success
-arch-score / arch-score	completed	success
-arm	completed	skipped
-budget-raise-gate / budget-raise-gate	completed	success
-budget-raise-gate / budget-raise-gate	completed	success
-cancel-superseded	completed	success
-cancel-superseded	completed	success
-codeql	completed	skipped
-codeql / Analyze (actions)	completed	success
-codeql / Analyze (javascript-typescript)	completed	success
-codeql / Analyze (python)	completed	success
-gate	completed	success
-gate	completed	success
-governance	completed	skipped
-governance / env-matrix	completed	success
-governance / instrument-self-tests	completed	success
-governance / policy-docs	completed	success
-governance / record	completed	skipped
-governance / wave-script	completed	success
-hassfest	completed	skipped
-hassfest / hassfest	completed	success
-kernel-points	completed	skipped
-kernel-points	completed	skipped
-pr-contract / pr-contract	completed	success
-pr-contract / pr-contract	completed	success
-prelude	completed	success
-prelude	completed	success
-refresh	completed	success
-refresh	completed	success
-sweep-self	completed	skipped
-sweep-self	completed	skipped
-tests	completed	skipped
-tests / arch-instrument	completed	success
-tests / briefs	completed	success
-tests / browser	completed	success
-tests / ci-ratchet	completed	skipped
-tests / claims-autofix	completed	skipped
-tests / closure-scope	completed	success
-tests / closures	completed	success
-tests / closures-autofix	completed	skipped
-tests / coverage	completed	success
-tests / coverage-ratchet	completed	success
-tests / fast (3.14)	completed	success
-tests / graders-head-copy	completed	success
-tests / lane-proofs	completed	success
-tests / mutation	completed	success
-tests / mutation-autofix	completed	skipped
-tests / mutation-pins	completed	skipped
-tests / nightly-ha	completed	skipped
-tests / nightly-status	completed	failure
-tests / replay	completed	skipped
-tests / typing	completed	success
-validate	completed	skipped
-validate / validate-hacs	completed	success
+CodeQL completed success 133691378646
+arch-score / arch-score completed success 133685163107
+arch-score / arch-score completed success 133685696890
+arm completed skipped 133679292986
+budget-raise-gate / budget-raise-gate completed success 133685162763
+budget-raise-gate / budget-raise-gate completed success 133685696929
+cancel-superseded completed success 133679293490
+cancel-superseded completed success 133679307349
+codeql / Analyze (actions) completed success 133685162959
+codeql / Analyze (javascript-typescript) completed success 133685163021
+codeql / Analyze (python) completed success 133685162881
+codeql completed skipped 133685699234
+gate completed failure 133690019807
+governance / env-matrix completed success 133685162854
+governance / instrument-self-tests completed success 133685162925
+governance / policy-docs completed success 133685162990
+governance / record completed skipped 133685164963
+governance / wave-script completed success 133685162903
+governance completed skipped 133685699489
+hassfest / hassfest completed success 133685162972
+hassfest completed skipped 133685699432
+kernel-points completed skipped 133685164826
+kernel-points completed skipped 133685699097
+pr-contract completed skipped 133690021717
+prelude completed success 133679293601
+prelude completed success 133679306899
+refresh completed success 133679293174
+refresh completed success 133679307310
+sweep-self completed skipped 133693589101
+tests / arch-instrument completed success 133691850322
+tests / briefs completed success 133685163128
+tests / browser completed success 133691850146
+tests / ci-ratchet completed skipped 133714843293
+tests / claims-autofix completed skipped 133714097448
+tests / closure-scope completed success 133685162995
+tests / closures completed success 133691850181
+tests / closures-autofix completed skipped 133714842548
+tests / coverage completed success 133691850223
+tests / coverage-ratchet completed success 133706424238
+tests / fast (3.14) completed success 133691850158
+tests / graders-head-copy completed success 133706424394
+tests / lane-proofs queued null 133719027708
+tests / mutation completed success 133685163243
+tests / mutation-autofix completed skipped 133692807812
+tests / mutation-pins completed skipped 133692807090
+tests / nightly-ha completed skipped 133691852226
+tests / nightly-status completed failure 133685163020
+tests / replay completed skipped 133691852770
+tests / typing completed success 133691850107
+tests completed skipped 133685698525
+validate / validate-hacs completed success 133685162770
+validate completed skipped 133685698681
