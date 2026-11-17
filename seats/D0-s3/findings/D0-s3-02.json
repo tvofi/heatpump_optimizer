@@ -30,14 +30,14 @@
  "seam_rule": "grep -n 'starts = \\[\\|starts.append\\|extra_starts' custom_components/heatpump_optimizer/optimizer.py",
  "null_control": {
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
-  "value": "flat_gap_cells=0/60, flat gap_off max 0.0000",
+  "value": "summer_warm twins: flat_gap_cells=0/60; all 300 flat cells: 40 gaps, max 0.587 units, max rel 0.27 %, 0 above 1 %",
   "note": "the same 60 cells at profiles.prices('flat'): with no price that pays to run, the plan is off and the gap vanishes; the gap is price-driven"
  },
  "leave_one_out": {
-  "cells": 60,
-  "min": -1217.0097,
-  "max": 3204.3327,
-  "drop_most_favourable": 282.1917
+  "cells": 300,
+  "min": -1217.0096633911162,
+  "max": 3204.3327384753284,
+  "drop_most_favourable": 55.524878917507664
  },
  "reproduction_steps": [
   "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
@@ -57,5 +57,10 @@
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --cells dev/audit/rounds/round11/D0/s3/loop_cells_famA.txt --tag famA.d1e4 --workers 1",
   "value": "same_nonflat n=16 realised_gap_pos=10 (>1e-4) neg=2 mean=1.588 min=-128.48 max=84.70 loo_drop_max_mean=-3.95; mis (plant heat loss x1.2, mass x0.85): mean=10.32 max=127.0 loo=2.54",
   "note": "perturbation --perturb no_seeds makes the augmented arm production itself: realised_gap 0 by construction"
+ },
+ "population_all_summer_negative": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 2 --cells dev/audit/rounds/round11/D0/s3/offstart_cells_all.txt",
+  "value": "summer_negative_gap_cells=44/300 (rel > 1 %: 22); flat_gap_cells=40/300 with max gap_off 0.587, max rel 0.0027, mean -0.14 (rel > 1 %: 0)",
+  "note": "every summer_negative and flat line of enumerate.py d0-grid; beyond summer_warm the same mechanism reaches summer_cool 48h DHW storage cells (rel 8.5 %, 0.38-0.44 units, 42-45 kWh shipped vs 14 kWh); the flat arm's 40 cells are noise-sized and the off arm is worse on average there"
  }
 }
