@@ -33,3 +33,4 @@
 1794881780 HB alive
 1794881783 CKPT 32 checks; mutation re-drive done; scoped gate running snapshot f68c59ac653c
 1794882384 HB alive
+1794882816 CKPT scoped gate: 24 scripts green; entities/typing/census repaired; 6 duty-switch checks of other groups red on committed hot water, under study snapshot 982fea726284
