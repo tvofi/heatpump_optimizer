@@ -1,0 +1,7 @@
+OK       0.0s launch
+OK      11.5s selftest-scope
+OK     133.1s selftest-scope-mutants
+OK       0.0s unread
+selftest_scope: recorded 2 step(s) into /home/user/rv2/tools/ci/selftest_closures.json; 0 failed [], 0 broken trace(s)
+rc=0
+DONE

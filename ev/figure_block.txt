@@ -1,0 +1,21 @@
+figure_block: refreshed 1 block(s) at 2105cb370bdd
+  ok   refresh fills an empty marker at the head with no agent turn
+  ok   verify accepts the refreshed body and the free-form line beside it
+  ok   a hand-typed value in a block is refused
+  ok   a block naming another head is refused as stale
+figure_block: refreshed 1 block(s) at 84cb460912f2
+  ok   a moved head is stale until the writer re-renders it
+  ok   an instrument registered only by the head is refused (null: the base's own mb passes above)
+  ok   an unknown name is refused
+  ok   an instrument that exits non-zero is refused
+  ok   an unclosed block is refused
+  ok   a malformed marker is refused
+  ok   a body with no block is untouched (null control)
+  ok   a program main changed or added after the fork runs as the base's and is not the head's diff
+  ok   null: a file the instrument's run leaves changed in the head's tree is still listed
+figure_block self-test: 13 checks, 0 failed
+
+real	0m0.333s
+user	0m0.234s
+sys	0m0.063s
+rc=0

@@ -1,0 +1,13 @@
+19:43:46 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:45:03 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:46:20 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:47:38 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:48:55 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:50:13 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:51:30 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:52:48 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:54:05 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:55:23 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:56:40 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:57:57 rc=3 WAIT ca670cb70e0c24a21c12ed55d6d5fd6803b48919 pending: gate red: none
+19:59:15 rc=2 REFUSE selftests: the head's governance / instrument-self-tests job 134305328234 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)
