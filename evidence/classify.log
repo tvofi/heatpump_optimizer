@@ -1,18 +1,4 @@
-23:56:49 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-23:58:21 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-23:59:53 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:01:26 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:02:58 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:04:30 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:06:03 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:07:35 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:09:07 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:10:39 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:12:12 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:13:44 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:15:16 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:16:49 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:18:21 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:19:53 rc=3 WAIT 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: gate red: none
-00:21:26 rc=1 RED 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: none red: gate
-DONE
+GREEN c12695cff70ec25c45085b1dae7a4044c0287087 pending: none red: none
+rc=0
+GREEN c12695cff70ec25c45085b1dae7a4044c0287087 pending: none red: none
+rc=0

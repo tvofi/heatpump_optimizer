@@ -1,0 +1,2 @@
+  FAIL the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over 10 as 10; null control, the two ends themselves pass through unchanged  [[180.0, 180.0, 3600.0, 360000000000.0]]
+  FAIL the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over 10 as 10; null control, the two ends themselves pass through unchanged  [[0.0, 180.0, 3600.0, 3600.0]]
