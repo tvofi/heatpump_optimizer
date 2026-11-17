@@ -2,3 +2,4 @@
 1794875187 INIT r11-pre-toolchain-pin-p3
 1794875200 HB alive
 1794875394 CKPT re-measured carries 0-4 at 2d7161a4b7: all answered on main; writing BLOCKED.md snapshot b39a08974ab3
+1794875405 DONE BLOCKED: carries 0-4 already built by part 1 (#3645) at base 2d7161a4b7; BLOCKED.md with Question at handoff-wip/r11-pre-toolchain-pin-p3 a194a3c533; no code pushed
