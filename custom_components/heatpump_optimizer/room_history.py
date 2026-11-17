@@ -257,7 +257,7 @@ def loaded(raw: Any) -> History:
 
 # --- the report
 
-def _pairs(history: History, column: Sequence[int | None]) -> list[tuple[int, int]]:
+def _step_pairs(history: History, column: Sequence[int | None]) -> list[tuple[int, int]]:
     """Successive rows both holding ``column``, outdoor and the first row's calling share,
     at most :data:`PAIR_GAP_MIN` apart: a 60-minute entry's pairs skip its null rows."""
     outdoor = history.house["outdoor"]
@@ -276,7 +276,7 @@ def _fit(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
     return coef, coef / np.sqrt(np.maximum(variance, 1e-300))
 
 
-def _calls(column: Sequence[int | None]) -> np.ndarray:
+def _call_fractions(column: Sequence[int | None]) -> np.ndarray:
     """A calling-share column as fractions, NaN where missing."""
     return np.array([np.nan if v is None else v / FULL_SHARE for v in column], dtype=float)
 
@@ -316,7 +316,7 @@ def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]
     share = calls[entity]
     if np.isnan(share).all():
         return {"code": "no_action"}
-    pairs = [(i, j) for i, j in _pairs(history, columns["t"]) if columns["call"][i] is not None]
+    pairs = [(i, j) for i, j in _step_pairs(history, columns["t"]) if columns["call"][i] is not None]
     if len(pairs) < MIN_PAIRS:
         return {"code": "short_history", "pairs": len(pairs)}
     on = float(np.mean(share[~np.isnan(share)] >= CALLING_SHARE / FULL_SHARE))
@@ -363,10 +363,10 @@ def _house_line(history: History, calls: Mapping[str, np.ndarray]) -> dict[str, 
             "t": round(float(fitted[1][0]), 2)}
 
 
-def report(history: History) -> dict[str, Any]:
+def identifiability_report(history: History) -> dict[str, Any]:
     """Per room the first verdict that applies, in the order the codes are tried,
     and the house line."""
-    calls = {e: _calls(c["call"]) for e, c in history.rooms.items()}
+    calls = {e: _call_fractions(c["call"]) for e, c in history.rooms.items()}
     r = _correlations(calls)
     return {
         "rows": len(history.times),

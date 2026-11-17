@@ -3576,7 +3576,7 @@ def _room_history_at_scale():
     spent = []
     for _ in range(3):  # the median of three: the first call pays numpy's warm-up
         started = time.perf_counter()
-        rh.report(history)
+        rh.identifiability_report(history)
         spent.append((time.perf_counter() - started) * 1000.0)
     return held_bytes, stored_bytes, sorted(spent)[1]
 

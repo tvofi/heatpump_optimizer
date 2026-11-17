@@ -760,7 +760,7 @@ class RoomSeparabilitySensor(HeatPumpOptimizerSensorBase):
     """How many rooms the room history can model apart (#3616, phase 3a).
 
     The state counts the rooms whose verdict is ``separable``; the attributes
-    carry each room's verdict and the house line (``room_history.report``).
+    carry each room's verdict and the house line (``room_history.identifiability_report``).
     Unknown until the history is loaded on the first cycle.
     """
 

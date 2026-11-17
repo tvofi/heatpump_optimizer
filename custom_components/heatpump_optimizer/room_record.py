@@ -18,7 +18,7 @@ from weakref import WeakKeyDictionary
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .room_history import History, House, Period, loaded, note, report, stored
+from .room_history import History, House, Period, identifiability_report, loaded, note, stored
 from .rooms import RoomReading
 from .store import QuarantiningStore
 
@@ -104,5 +104,5 @@ def report_of(coord: Any) -> dict[str, Any] | None:
         return None
     key = (len(rec.history.times), rec.history.times[-1] if rec.history.times else 0)
     if rec.cached is None or rec.cached[0] != key:
-        rec.cached = (key, report(rec.history))
+        rec.cached = (key, identifiability_report(rec.history))
     return rec.cached[1]

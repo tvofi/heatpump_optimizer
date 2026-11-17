@@ -95471,8 +95471,8 @@ def _rh_copied(r, t, rng, calls):
     return calls["climate.a"] if r == "climate.b" else _rh_own(r, t, rng, calls)
 
 
-_rh_sep = _rh.report(_rh_simulate(5, 10, _rh_own))
-_rh_sep60 = _rh.report(_rh_simulate(10, 60, _rh_own))
+_rh_sep = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own))
+_rh_sep60 = _rh.identifiability_report(_rh_simulate(10, 60, _rh_own))
 R.check(
     "independent calling reads separable, the calling gain within 20 % of the simulated 2.0 K/h, at a "
     "10-minute and at a 60-minute interval (pairs span the 60-minute entry's null rows)",
@@ -95480,7 +95480,7 @@ R.check(
         for rep in (_rh_sep, _rh_sep60) for v in rep["rooms"].values()),
     f"{_rh_sep['rooms']} {_rh_sep60['rooms']}",
 )
-_rh_col = _rh.report(_rh_simulate(5, 10, _rh_copied))
+_rh_col = _rh.identifiability_report(_rh_simulate(5, 10, _rh_copied))
 R.check(
     "a room whose calling copies another's reads collinear and names it; null control, the same room on "
     "its own schedule reads separable (above)",
@@ -95489,23 +95489,23 @@ R.check(
 )
 _rh_shuf_h = _rh_simulate(5, 10, _rh_own)
 np.random.default_rng(7).shuffle(_rh_shuf_h.rooms["climate.a"]["call"])
-_rh_shuf = _rh.report(_rh_shuf_h)
+_rh_shuf = _rh.identifiability_report(_rh_shuf_h)
 R.check(
     "a room whose calling is shuffled in time reads no response; the room left in order still reads separable",
     _rh_shuf["rooms"]["climate.a"]["code"] == "no_response" and _rh_shuf["rooms"]["climate.b"]["code"] == "separable",
     f"{_rh_shuf['rooms']}",
 )
-_rh_cooling = _rh.report(_rh_simulate(5, 10, _rh_own, gain=-_RH_GAIN))
+_rh_cooling = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, gain=-_RH_GAIN))
 R.check(
     "a room that cools while it calls reads no response however clear its t-statistic: the gain must be positive "
     "(the t-statistic carries its sign)",
     all(v["code"] == "no_response" and v["t"] < -_rh.MIN_T for v in _rh_cooling["rooms"].values()),
     f"{_rh_cooling['rooms']}",
 )
-_rh_short_r = _rh.report(_rh_simulate(102 * 30 / 1440, 30, _rh_own))
-_rh_sens = _rh.report(_rh_simulate(5, 10, _rh_own, sensor=("sensor.c",)))
-_rh_always = _rh.report(_rh_simulate(5, 10, lambda r, t, rng, c: True))
-_rh_never = _rh.report(_rh_simulate(5, 10, lambda r, t, rng, c: False))
+_rh_short_r = _rh.identifiability_report(_rh_simulate(102 * 30 / 1440, 30, _rh_own))
+_rh_sens = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, sensor=("sensor.c",)))
+_rh_always = _rh.identifiability_report(_rh_simulate(5, 10, lambda r, t, rng, c: True))
+_rh_never = _rh.identifiability_report(_rh_simulate(5, 10, lambda r, t, rng, c: False))
 R.check(
     "100 pairs read short history; a sensor room reads no action reported; always and never calling read so",
     all(v["code"] == "short_history" and v["pairs"] == 100 for v in _rh_short_r["rooms"].values())
@@ -95515,13 +95515,13 @@ R.check(
     and all(v["code"] == "never_calling" for v in _rh_never["rooms"].values()),
     f"{_rh_short_r['rooms']} {_rh_sens['rooms']['sensor.c']}",
 )
-_rh_house30 = _rh.report(_rh_simulate(5, 30, _rh_own))["house"]
+_rh_house30 = _rh.identifiability_report(_rh_simulate(5, 30, _rh_own))["house"]
 R.check(
     "the house line reads enough with power proportional to the calling fraction (slope near the "
     "simulated 3 kW), flat with every room calling together, and no power meter without one",
     _rh_house30["verdict"] == "enough" and abs(_rh_house30["slope_kw"] - 3.0) < 0.3
     and _rh_always["house"]["verdict"] == "calling_fraction_flat"
-    and _rh.report(_rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])[0])["house"]["verdict"] != "no_power_meter"
+    and _rh.identifiability_report(_rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])[0])["house"]["verdict"] != "no_power_meter"
     and _rh._house_line(_rh.History(times=[0], house={f: [None] for f in _rh.HOUSE_FIELDS}), {})["verdict"] == "no_power_meter",
     f"{_rh_house30} {_rh_sep['house']} {_rh_always['house']}",
 )
@@ -95532,8 +95532,8 @@ _rh_iqr = _rh.History(
     house={"outdoor": [0] * 200, "return": [3000] * 200, "power": [200, 300] * 100, "space": [10000] * 200})
 R.check(
     "a calling fraction that moves, but by under FLAT_IQR between its quartiles, reads flat",
-    _rh.report(_rh_iqr)["house"] == {"verdict": "calling_fraction_flat", "rows": 200},
-    f"{_rh.report(_rh_iqr)['house']}",
+    _rh.identifiability_report(_rh_iqr)["house"] == {"verdict": "calling_fraction_flat", "rows": 200},
+    f"{_rh.identifiability_report(_rh_iqr)['house']}",
 )
 # The boundaries each threshold and range is read at (the mutation proof's survivors).
 _rh_cyc = [_rh.House(-2.0, 30.0, 2.0, 2.0, 0.0), _rh.House(-2.0, None, 2.0, 0.5, 0.0), _rh.House(-2.0, None, 2.0, 0.0, 0.0)]
@@ -95580,7 +95580,7 @@ def _rh_grid(calls, gap=30):
 
 
 def _rh_code(history):
-    return _rh.report(history)["rooms"]["climate.a"]
+    return _rh.identifiability_report(history)["rooms"]["climate.a"]
 
 
 R.check(
@@ -95612,8 +95612,8 @@ _rh_flat_edge = _rh.History(
 R.check(
     "a calling fraction whose quartiles lie exactly FLAT_IQR apart is enough, and a period spent exactly "
     "half on space heating counts",
-    _rh.report(_rh_flat_edge)["house"]["verdict"] == "enough",
-    f"{_rh.report(_rh_flat_edge)['house']}",
+    _rh.identifiability_report(_rh_flat_edge)["house"]["verdict"] == "enough",
+    f"{_rh.identifiability_report(_rh_flat_edge)['house']}",
 )
 R.check(
     "the sensor state counts the separable rooms of a report",
@@ -95662,8 +95662,8 @@ _rh_flat144 = _rh.History(
     house={"outdoor": [0] * 144, "return": [3000] * 144, "power": [300, 400] * 72, "space": [10000] * 144})
 R.check(
     "the house line needs MIN_PAIRS periods and no more: 144 read enough",
-    _rh.report(_rh_flat144)["house"]["verdict"] == "enough",
-    f"{_rh.report(_rh_flat144)['house']}",
+    _rh.identifiability_report(_rh_flat144)["house"]["verdict"] == "enough",
+    f"{_rh.identifiability_report(_rh_flat144)['house']}",
 )
 from harness import FakeEntry as _RhEntry  # noqa: E402
 from heatpump_optimizer import diagnostics as _rh_diag  # noqa: E402
