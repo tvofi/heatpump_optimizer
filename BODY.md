@@ -30,7 +30,9 @@ The bugclasses.json entry for this class and C5's demonstration (red on a plante
 
 ## Head
 
-de8325b3259a356758dd306101744a47a1400dff; branch `handoff/r11-rca-selftest-table-drift` from `origin/main` `6f422812d5`.
+aaf3c780f126b2268e009a00734d2cc9976ef70f, the pull request's head, unchanged by this repair: its code is `de8325b325` plus two merges of `origin/main` (`034438c671`, `aaf3c780f1`) and the delivery row `af67d6a221`. No commit was owed: both reds below are inherited, and `git merge-tree --write-tree origin/main HEAD` at `origin/main` `8f39313a44` reports no conflict (rc 0; `tests/closures.json` resolved by the ledger merge driver).
+
+prepr: passed rc=0 at aaf3c780f126b2268e009a00734d2cc9976ef70f
 
 ## Mutation proof
 
@@ -46,7 +48,11 @@ none
 
 ## Red checks
 
-none owed: no required check is touched by this diff.
+Reds at aaf3c780f1 (run 43986301702, attempt 2), against the set `python3 tools/audit/seat/merge_train.py owed-reds` prints:
+
+- `codeql / Analyze (python)`: **inherited**, not caused by this diff. The job was cancelled at its 75-minute timeout (`timeout: 75` in the job log; step "Perform CodeQL Analysis" cancelled, 00:49:43Z to 02:04:50Z). Main carries the same: the check on `origin/main`'s last 8 commits (`git log -8 origin/main`, check-runs API, `check_name=codeql / Analyze (python)`) concluded cancelled on `fc9e24c089`, `174e78cebf` and `69053da4f9`, each at the 75-minute mark, and its successes there took up to 71 minutes. The diff adds one 76-line `.py` file under `dev/audit/harnesses/`. Root-cause trigger: this red is not caused by the branch, so `defect-root-cause.md`'s second trigger does not apply.
+- `gate`: **inherited**. Its only failing line is `FAIL codeql / Analyze (python): cancelled (this run)`. This is the cancelled check above, not a separate failure.
+- `governance / instrument-self-tests` (outside the owed set; recorded for the reviewer): red on `tools/audit/product_reads.py --self-test`, `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']`. **Inherited**: the same refusal at the merge base `2d7161a4b7`, and the head's diff touches neither file. `origin/main` `8f39313a44` passes (`SELF-TEST passed (86 arms)`). `merge_train.py classify aaf3c780f1 --pr 3684` prints no INTRODUCED line.
 
 ## Forward-carry
 
