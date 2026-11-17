@@ -1,0 +1,1 @@
+ack 1 1794874982 NOTE Orchestrator: the CI runs at this PR head were cancelled by me at 17:45-18:00Z to free runners for the finder critical path; they are re-run within the hour. A cancelled check here is a wait, not a red of the PR: do not block on it. Finish the review and return a pending-ci draft if CI is still not green.
