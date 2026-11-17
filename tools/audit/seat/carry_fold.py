@@ -188,6 +188,29 @@ def _self_test() -> int:
               rc == 1 and "REFUSED" in out[0] and inside == [])
         os.close(drain)
         check("null control: a free lease runs the fold once", leased(st, 0, write)[0] == 0 and inside == [True])
+    import contextlib
+    import io
+    global LEASE_WAIT_S
+    wait, LEASE_WAIT_S = LEASE_WAIT_S, 0
+    try:
+        with tempfile.TemporaryDirectory() as st, tempfile.TemporaryDirectory() as co:
+            (Path(st) / "body.md").write_text(body)
+            argv = ["--body", str(Path(st) / "body.md"), "--worktree", co, "--checkout", co,
+                    "--branch", "handoff/audit-r10-roster", "--state-dir", st]
+            drain = roster_lib.writer_lease(st, 0)
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said):
+                rc = main(argv)
+            check("main folds holding the lease: a lease the drain holds refuses before any roster read",
+                  rc == 1 and "REFUSED the roster writer lease" in said.getvalue())
+            os.close(drain)
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said):
+                rc = main(argv)
+            check("null control: with the lease free, main goes on to read the roster",
+                  "REFUSED the roster writer lease" not in said.getvalue())
+    finally:
+        LEASE_WAIT_S = wait
     print(f"carry_fold self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

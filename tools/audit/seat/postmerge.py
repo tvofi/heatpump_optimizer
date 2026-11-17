@@ -164,6 +164,8 @@ def postmerge(pr: int, repo: str, state_dir: Path, dry: bool, retry: bool = Fals
                 continue
         if name == "stage":
             queued = marks + ([f"set-stage {group} done --at-sha {sha}"] if code != 0 else [])
+            if not queued:
+                continue  # a clean sync and no mark: nothing to queue, nothing owed
             try:
                 if group == rb.NO_GROUP:
                     raise OSError("no group to queue")
@@ -229,6 +231,8 @@ MUTANTS = {
                        "(i) #3470's body yields exactly the two marks batch 236 queued by hand, keyed on text"),
     "two_hits_taken": ('        if not key or len(hits) != 1:', '        if not key or not hits:',
                        "a key hitting two carries, none, or no key is OWED and queues nothing; a marked carry is skipped"),
+    "empty_queue_owed": ("            if not queued:\n                continue", "            if False:\n                continue",
+                         "a clean sync with no roster group owes nothing, queues nothing and opens no ledger event"),
     "stage_not_queued": ('            queued = marks + ([f"set-stage {group} done --at-sha {sha}"] if code != 0 else [])',
                          '            queued = marks',
                          "(i) a refused or raced stage queues exactly one terminated line for the merge, owing nothing"),
@@ -339,6 +343,11 @@ def self_test(mutants: bool = True) -> int:
         code, lines, _ = go({"roster_sync.py": 1}, state=st, ros={"groups": []})
         check("a refused stage with no roster group queues nothing and is owed as no-group",
               code == 1 and f"set-stage owed no-group {full}" in lines and not (Path(st) / QUEUE).exists(), lines)
+    with tempfile.TemporaryDirectory() as st:
+        code, lines, log = go(state=st, ros={"groups": []}, body="- x. Carry 1: built here")
+        check("a clean sync with no roster group owes nothing, queues nothing and opens no ledger event",
+              code == 0 and lines[-1].endswith("nothing owed") and not any(l.startswith("OWED") for l in lines)
+              and not (Path(st) / QUEUE).exists() and not any("ledger.py open" in c for c in log), lines)
     gate = ("roster_edit: LINT GATE REFUSED the push\n  ERROR   [G-1] cite: a.py:9 moved\n\n"
             "TOTAL: 1 error(s) across 1 file(s)\nthe commit is local at 0123 in /w; nothing pushed\n")
     code, lines, _ = go({"roster_sync.py": 3}, said={"roster_sync.py": gate})
