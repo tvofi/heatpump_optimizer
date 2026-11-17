@@ -1,0 +1,28 @@
+394c394
+< index 2f08deea70..cbf0263d4f 100644
+---
+> index 43262112ab..129d7d5028 100644
+397c397
+< @@ -495,6 +495,7 @@
+---
+> @@ -498,6 +498,7 @@
+403c403
+<     "dev/governance/{dimensions,roles,rules}/*.md",
+---
+>     "dev/governance/{dimensions,dimensions/criteria,roles,rules}/*.md",
+405c405
+< @@ -597,6 +598,7 @@
+---
+> @@ -602,6 +603,7 @@
+421c421
+< index bcd27818f9..3764caaa16 100644
+---
+> index 7604b737df..13d2af8ce6 100644
+436c436
+< index 497917b883..832512ff1d 100644
+---
+> index 54890ec847..db6fdeec1f 100644
+443a444
+>      "ROADMAP.md",
+446d446
+<      "hacs.json",

@@ -1,0 +1,24 @@
+## remerge-diff 4e8c918de7dff76e552a5864bed1989766b4568d
+4e8c918de7dff76e552a5864bed1989766b4568d 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 Merge origin/main into r11-owner-community-standards
+
+diff --git a/tests/layout.json b/tests/layout.json
+remerge CONFLICT (content): Merge conflict in tests/layout.json
+index 7275d5dd33..db6fdeec1f 100644
+--- a/tests/layout.json
++++ b/tests/layout.json
+@@ -10,11 +10,8 @@
+     "NOTICE",
+     "DISCLAIMER.md",
+     "SECURITY.md",
+-<<<<<<< 6ee7ba56e4 (Merge commit '3f464acc3daf31e66d9b1a001e01a70429ec923d' into fix/r11-owner-community-standards)
+     "CODE_OF_CONDUCT.md",
+-=======
+     "ROADMAP.md",
+->>>>>>> 92d38ecb64 (Merge pull request #3669 from tvofi/fix/r11-start-evaluation-land)
+     "RELEASE_NOTES.md",
+     "VERSION",
+     "hacs.json",
+## remerge-diff 948ce9050b71f83f2a912f49313ef1210762fb1a
+948ce9050b71f83f2a912f49313ef1210762fb1a 6ee7ba56e48bdeb1b8d1c05cb7a9df3a43c17daa 4e8c918de7dff76e552a5864bed1989766b4568d Merge commit '4e8c918de7dff76e552a5864bed1989766b4568d' into fix/r11-owner-community-standards
+## remerge-diff 53d38475ef2f31f5baf17bd2c9c171881b8ccf17
+53d38475ef2f31f5baf17bd2c9c171881b8ccf17 948ce9050b71f83f2a912f49313ef1210762fb1a b425502da8d15c43f9494412e686a3d852b74358 Merge remote-tracking branch 'origin/main' into fix/r11-owner-community-standards
