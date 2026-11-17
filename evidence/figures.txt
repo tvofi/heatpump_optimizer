@@ -1,0 +1,57 @@
+## null control: base c82f014a63 vs 1f4a5e2fe7 vs head
+pat[at review sha] lines=1 base==1f4a:same base==head:same
+pat[E11-N-P744-SCOPE] lines=1 base==1f4a:same base==head:same
+pat[^\s*PARALLEL] lines=12 base==1f4a:same base==head:same
+pat[^\s*ok D] lines=18 base==1f4a:same base==head:DIFF
+## ancestry
+b98c in c82f rc=0
+b98c in 83dc rc=1
+b98c in 83dc(short) rc=1
+graded a396 in 83dc rc=0
+b98c78e0f6144a5ea5b48a032e30bf2d085c2d61
+b98c78e0f6144a5ea5b48a032e30bf2d085c2d61 Merge pull request #3672 from tvofi/fix/r11-pre-new-dimensions-p2
+1
+## diff names b98c^1..b98c
+.claude/workflows/audit-find.js
+CLAUDE.md
+dev/audit/config/rotation.json
+dev/audit/config/scopes.json
+dev/governance/config/policy_budgets.json
+dev/governance/dimensions/D16.md
+dev/governance/dimensions/D17.md
+dev/governance/dimensions/D3.md
+dev/governance/roles/COMMON.md
+dev/programme/delivery/3672.md
+tests/closures.json
+tools/audit/check_scopes.py
+tools/audit/enumerate.py
+tools/audit/prepare_baseline.sh
+tools/audit/seat/finder_overlap.py
+tools/audit/seat/instruments/enumerate.py.md
+## 3658 on first-parent of c82f?
+0
+5854e4f69e361d841d7590ae0f868eea6758655f Merge pull request #3658 from tvofi/fix/r11-pre-round-metrics-p3
+## wc
+95
+37
+95
+37
+## enumerate (head tree)
+38
+532
+service 15
+config-step 15
+config-field 102
+options-step 26
+option 130
+entity 14
+blueprint 5
+## dimension_read D16/D17 rows
+rc=0
+0
+D10	1	1	1	1	0	3	7	3	{'deep': 5, 'spot': 2}	-	0	3
+D11	2	2	1	0	2	3	4	4	{'spot': 4}	D11.M1,D11.M2,D11.M3,D11.M4	
+D12	2	2	2	1	1	3	6	6	{'deep': 5, 'spot': 1}	D12.M3	0	2
+D13	5	5	3	5	0	3	6	6	{'deep': 6}	-	0	3
+D14	3	3	3	3	0	3	13	10	{'deep': 9, 'spot': 4}	D14.M2,D14.M3,D
+D15	5	0	0	0	0	3	8	8	{'none': 2, 'deep': 5, 'spot': 1}	D15.M5
