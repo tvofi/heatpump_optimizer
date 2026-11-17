@@ -117,7 +117,8 @@ check() { # prefix
 }
 
 loaded_kernel() { # the kernel class OpenBLAS reports loading under this environment; nothing when it reports none
-  OPENBLAS_VERBOSE=2 python3 -c 'import numpy' 2>&1 >/dev/null | sed -n 's/^Core: *//p' | head -n 1
+  local out; out=$(OPENBLAS_VERBOSE=2 python3 -c 'import numpy' 2>&1 >/dev/null || true)
+  sed -n '/^Core: */{s///p;q;}' <<<"$out"
 }
 
 kernels() { # command...
