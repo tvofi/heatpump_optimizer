@@ -94962,6 +94962,18 @@ R.check(
     and _rm_f_null.problem == "implausible" and _rm_f_null.target_c == 69.8,
     f"{_rm_f} {_rm_f_null}",
 )
+# A sensor room converts by its own unit_of_measurement, not the instance's: a
+# degF sensor on a Celsius instance (the default reader) reads degC.
+_rm_sf = {u: inputs_mod.read_room(_rm_reader({"sensor.u": FakeState(
+    v, unit=u, last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.u")
+    for u, v in (("°F", "68.0"), ("°C", "20.0"))}
+R.check(
+    "a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null "
+    "control, a degC sensor at 20.0 reads 20.0",
+    round(_rm_sf["°F"].temperature_c or 0.0, 6) == 20.0 and _rm_sf["°F"].problem is None
+    and _rm_sf["°C"].temperature_c == 20.0 and _rm_sf["°C"].problem is None,
+    f"{_rm_sf}",
+)
 _rm_bad = {e: inputs_mod.read_room(_rm_r, e).problem
            for e in ("sensor.down", "sensor.none", "sensor.old", "sensor.fault")}
 _rm_fault = inputs_mod.read_room(_rm_r, "sensor.fault")
