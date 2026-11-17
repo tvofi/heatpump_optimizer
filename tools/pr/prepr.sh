@@ -289,6 +289,31 @@ privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
   return 1
 }
 
+# Step 3f8's whole body: the added lines of tools/**/*.sh judged by `shell_hazard.py`
+# (a raw `wc -l` string compare, a stub over the host's padded `wc`, an early-exit
+# reader on a pipe under pipefail), which Linux CI cannot see and the macOS seat
+# and a large producer found three and three times (R10-RCA-PREPR-DARWIN-SELFTEST,
+# R10-RCA-FAMILY-PIPEFAIL-SIGPIPE). Under 0.1 s; it reads the diff from the merge base.
+hazard_line() { # -> one line; rc 0 nothing refused, 1 refused
+  local out
+  out=$(python3 -I tools/audit/seat/shell_hazard.py --check --base origin/main 2>&1) \
+    && { printf 'no shell hazard on an added tools/**/*.sh line'; return 0; }
+  printf '%s' "$(grep -m3 . <<<"$out" | cut -c1-220 | tr '\n' ';')"
+  return 1
+}
+
+# Step 3f9's whole body, over the tree in `$1` (default: this one): the static half of
+# `tests/harness_headers.py`, which CI's `fast` ran alone, so a harness whose inlined
+# `repo_root` drifted from `tools/audit/repo_root.py` passed every local step and went
+# red there (r10-rca-ci-critpath-3 item ce268b05; f0b75645). Under a second.
+inline_walk_line() { # [root] -> one line; rc 0 every walk matches, 1 one differs
+  local out
+  out=$(cd "${1:-.}" && python3 -I -c "import sys; sys.path.insert(0, 'tests'); import harness_headers; raise SystemExit(harness_headers.inline_scan())" 2>&1) \
+    && { printf 'every inlined repo_root walk matches the canonical helper'; return 0; }
+  printf '%s' "$(grep -m3 . <<<"$out" | cut -c1-220 | tr '\n' ';')"
+  return 1
+}
+
 # Step 4's trigger: what check-wave-script.mjs reads, as `pinned_touched` globs.
 # The briefs are `briefListing()`'s two directories; the pre-move briefs glob
 # matched no file, so a role-contract-only diff printed `skip` and went red on
@@ -3341,6 +3366,34 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   case "$got" in *'docs/zz_leak.md:2: host-path'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and names the file and line"
   (cd "$PDX/r" && git checkout -q phome && privacy_line >/dev/null); st $? 0 "the same line made home-relative passes (null control)"
+  # Step 3f8: an early-exit reader on a pipe under pipefail, and a raw wc string compare, in lines
+  # the diff adds to a tools/**/*.sh are refused, named by file, line and rule; the here-string and
+  # the stripped count pass. The instances are 09b7856fc0's carry-tip read and #3455's compare.
+  (cd "$PDX/r" && $G checkout -q -f -b hzbad origin/main && mkdir -p tools/q && printf '#!/bin/bash\nset -uo pipefail\nprintf x | %s x\nst "$(a | wc -l)" 0 m\n' 'grep -q' > tools/q/z.sh \
+    && $G add -A && $G commit -qm hzbad && $G checkout -q -b hzok origin/main && mkdir -p tools/q && printf '#!/bin/bash\nset -uo pipefail\ngrep -q x <<<x\nst "$(a | wc -l | tr -d " ")" 0 m\n' > tools/q/z.sh \
+    && $G add -A && $G commit -qm hzok) >/dev/null 2>&1
+  got=$(cd "$PDX/r" && git checkout -q hzbad && hazard_line); r=$?
+  st "$r" 1 "hazard_line refuses an early-exit pipe and a raw wc compare in added lines"
+  case "$got" in *'tools/q/z.sh:3: early-pipe'*'tools/q/z.sh:4: wc-compare'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names each file, line and rule"
+  (cd "$PDX/r" && git checkout -q hzok && hazard_line >/dev/null); st $? 0 "the here-string and the stripped count pass (null control)"
+  case "$(sed -n '/^# --- 3f8\./,/^step "shell hazard"/p' "$PREPR_PATH")" in *'HAZARD_LINE=$(hazard_line)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f8 calls hazard_line, the function the rows above drive"
+  # Step 3f9: the scan over a scratch tree holding the canonical helpers, `inline_scan`'s own
+  # corpus (one python, javascript and shell copy, judge_batch.py), so a copy that drifts is
+  # one planted line; the real tree is its own null control (the step).
+  IW=$(mktemp -d); mkdir -p "$IW/tests" "$IW/tools/audit" "$IW/dev/audit/harnesses"
+  cp tests/harness_headers.py "$IW/tests/"; cp tools/audit/repo_root.py tools/audit/repo_root.mjs tools/audit/repo_root.sh tools/audit/judge_batch.py "$IW/tools/audit/"
+  cp dev/audit/harnesses/d907_kernel_band.py dev/audit/harnesses/r10_product_page.mjs dev/audit/harnesses/git_auto_maintenance_race.sh "$IW/dev/audit/harnesses/"
+  (inline_walk_line "$IW" >/dev/null); st $? 0 "inline_walk_line passes over a tree whose copies match the helper (null control)"
+  sed 's/^    here = Path(start).resolve()$/    here = Path(start)/' "$IW/dev/audit/harnesses/d907_kernel_band.py" > "$IW/x.py" && mv "$IW/x.py" "$IW/dev/audit/harnesses/d907_kernel_band.py"
+  got=$(inline_walk_line "$IW"); r=$?
+  st "$r" 1 "inline_walk_line refuses a harness whose inlined repo_root differs from the helper"
+  case "$got" in *'FAIL python'*d907_kernel_band*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the drifted file"
+  rm -rf "$IW"
+  case "$(sed -n '/^# --- 3f9\./,/^step "inline walks"/p' "$PREPR_PATH")" in *'WALK_LINE=$(inline_walk_line)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f9 calls inline_walk_line, the function the rows above drive"
   rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
@@ -4550,6 +4603,14 @@ rm -f /tmp/prepr-tp.$$
 # `ref_privacy --check` `instrument-self-tests` runs (`privacy_line` above).
 PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"
+
+# --- 3f8. no shell hazard on a line this branch adds to tools/**/*.sh (`hazard_line` above).
+HAZARD_LINE=$(hazard_line)
+step "shell hazard" $? "$HAZARD_LINE"
+
+# --- 3f9. the inlined repo_root walks match the canonical helper (`inline_walk_line` above).
+WALK_LINE=$(inline_walk_line)
+step "inline walks" $? "$WALK_LINE"
 
 if [ -n "$REUSE" ]; then
   say skip "code-keyed steps" "PREPR_SKIP_CODE: pinned graders, self-test, wave-script"

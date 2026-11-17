@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_draws.py:DrawStats.from_dict RETURN_DEL d7cf3037",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        return stats",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=6."
+}
