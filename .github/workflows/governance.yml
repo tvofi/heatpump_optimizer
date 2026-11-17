@@ -504,6 +504,15 @@ jobs:
         if: steps.scope.outputs.scorecard == 'true'
         run: python3 -I tools/audit/seat/scorecard.py --self-test
 
+      # The stable tools ref (R11-PRE-TOOLCHAIN-PIN): behind's count over the
+      # seat paths and promote's refusals (absent, off main, not a fast-forward,
+      # machinery not green, a push that moved nothing), each beside the case
+      # that moves the ref, over a throwaway origin; GitHub is a fake.
+      - name: Show the stable tools ref promoting only a machinery-green commit of main, fast-forward
+        id: toolchain
+        if: steps.scope.outputs.toolchain == 'true'
+        run: python3 -I tools/audit/seat/toolchain.py --self-test
+
       # Decision 0018's flow reads per round and week (R11-PRE-ROUND-METRICS):
       # lead_time from the roster-entry commit, product_green with the gate's
       # check count, restore, runner seconds and tokens; an empty input reads
@@ -872,6 +881,7 @@ jobs:
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
           python3 -I tools/audit/enumerate.py --self-test
+          python3 -I tools/audit/product_reads.py --self-test
           python3 -I tools/audit/text_ledger.py --self-test
           # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
           # this same self-test: the fixture's exact counts, the unchanged
