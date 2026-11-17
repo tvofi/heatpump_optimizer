@@ -94908,5 +94908,74 @@ R.check(
     f"{_hdr_s_left}",
 )
 
+# The constants and the boundaries a mutant moved without a check failing.
+# The grid, the table spacing and the margin are design choices (the
+# contributor's spike on one install): pinned by value, so a change is a
+# decision and not a drift. The two tolerances are the planners' 0.05 K.
+R.check(
+    "the store program's grid is 0.25 K, its COP table 1 K and its margin 0.02 K, and the commit's and "
+    "the combi exchange's tolerances are the planners' 0.05 K (design choices, pinned by value)",
+    (_hdr_dp._STORE_GRID_K, _hdr_dp._COP_KNOT_K, _hdr_dp._STORE_MARGIN_K) == (0.25, 1.0, 0.02)
+    and _hdr_dp._SHORT_K == _hdr_om._COMBI_COMMIT_SLACK_K == 0.05,
+    f"{_hdr_dp._STORE_GRID_K} {_hdr_dp._COP_KNOT_K} {_hdr_dp._STORE_MARGIN_K} {_hdr_om._COMBI_COMMIT_SLACK_K}",
+)
+_hdr_e_held = np.full(8, 50.05)
+_hdr_e_edge = _hdr_e_held - _hdr_dp._SHORT_K
+R.check(
+    "the acceptance's floor clause passes a walk exactly the tolerance under the floor and refuses the "
+    "next float down",
+    _hdr_dp.charge_refusal(_hdr_b_plan, None, lambda _p: np.r_[50.0, _hdr_e_edge], _hdr_e_held) is None
+    and _hdr_dp.charge_refusal(
+        _hdr_b_plan, None, lambda _p: np.r_[50.0, np.nextafter(_hdr_e_edge, 0.0)], _hdr_e_held) == ("floor", 0),
+    "",
+)
+# What a start pays inside the program, read off the program itself.
+_hdr_q_space = np.r_[np.zeros(4), np.full(4, 2.0), np.full(4, 0.5), np.zeros(_HDR_N - 12)]
+
+
+def _hdr_start_price(running, space=_hdr_q_space):
+    rig = _hdr_rig(start=2.0, running=running)
+    return _hdr_dp._StoreProgram(
+        rig.planner, rig.ctx, _hdr_p_plan, rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, space,
+    ).start_price
+
+
+R.check(
+    "the program's start price is the start cost less the share of a start the space plan's step before "
+    "carries: all of it after an idle step, none after a step at the floor or above, half after half the "
+    "floor, and none on the first step while the compressor runs",
+    np.array_equal(_hdr_start_price(False)[[0, 4, 5, 8, 9, 12, 13]], [2.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0])
+    and _hdr_start_price(True)[0] == 0.0 and _hdr_start_price(True)[1] == 2.0,
+    f"{_hdr_start_price(False)[:14]}",
+)
+# A tank that starts over its ceiling coasts: the ceiling binds a charging
+# step only. A fill needs room: a tank already at its mark is not filled.
+_hdr_h_plan = np.zeros(_HDR_N)
+_hdr_h_plan[[26, 27]] = 0.6
+_hdr_h_rig = _hdr_rig(t0=56.0, draws=np.full(_HDR_N, 0.5))
+_hdr_h_out, _hdr_h_seen = _hdr_programs(lambda: _hdr_commit(
+    _hdr_h_rig, _hdr_h_plan, np.minimum(49.0, _hdr_h_rig.temps(_hdr_h_plan)[1:])))
+_hdr_h_prog = _hdr_dp._StoreProgram(
+    _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, _hdr_h_rig.tank,
+    (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+_hdr_h_mark = np.array([(55.0 - _hdr_dp._STORE_MARGIN_K - _hdr_h_rig.ctx.tank_decay[1]
+                         + 0.5 * 0.25 / _hdr_h_rig.ctx.c_dhw) / _hdr_h_rig.ctx.tank_decay[0]])
+R.check(
+    "a store that begins over its ceiling pauses there and the program still finds its plan (the ceiling "
+    "binds charging arrivals only); a tank that coasts onto its mark has no room and is not filled, one "
+    "a kelvin under is",
+    _hdr_h_seen[0] is not None and np.array_equal(_hdr_h_out, _hdr_h_seen[-1]) and _hdr_under(_hdr_h_out, 1.0) == 0
+    and abs(float(_hdr_h_rig.ctx.coast(_hdr_h_rig.tank[1], 0, _hdr_h_mark)[0]) - (55.0 - _hdr_dp._STORE_MARGIN_K)) < 1e-9
+    and not bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark + 1e-6)[1][0])
+    and bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark - 1.0)[1][0]),
+    f"{np.flatnonzero(_hdr_h_out > 0).tolist()}",
+)
+R.check(
+    "combi: the exchange leaves its rounds when a round's plan repeats the one before: the unengaged "
+    "solve stops short of the cap",
+    0 < len(_hdr_x_free.rounds) < _hdr_om._COMBI_EXCHANGE_ROUNDS,
+    f"{len(_hdr_x_free.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}; engaged {len(_hdr_x.rounds)}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
