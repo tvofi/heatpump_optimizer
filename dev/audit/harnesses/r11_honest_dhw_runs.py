@@ -1,7 +1,7 @@
 """R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges shipped as runs, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_dhw_runs.py fixtures|stores|hysteresis|kernel|tail|combi
+        python3 dev/audit/harnesses/r11_honest_dhw_runs.py fixtures|stores|hysteresis|kernel|tail|combi|seconds
 
 Synthetic throughout; no private data. The finding, the store program and
 the tail are outside pull request 3529's (Bankaifan), which has no finder
@@ -52,11 +52,18 @@ draw, energy and the worst gap under the requirement.
 that cannot duty-cycle, and neither (the null): rounds, committed builds,
 whether the committed build shipped, steps under the floor and the worst
 gap under the requirement.
+
+``seconds``: CPU seconds (``time.process_time``) of the two fixtures' solves,
+the least of five, as the tree solves them and with the planner handed no
+``ChargeRuns``; on a tree without the commit stage the one arm. The second
+arm on this tree against the one arm on the base tree is the noise this box
+puts on the difference.
 """
 from __future__ import annotations
 
 import hashlib
 import sys
+import time
 from dataclasses import replace
 from datetime import datetime
 from types import SimpleNamespace
@@ -411,7 +418,22 @@ def combi() -> int:
     return 0
 
 
-ARMS = {"fixtures": fixtures, "stores": stores, "hysteresis": hysteresis, "kernel": kernel, "tail": tail, "combi": combi}
+def seconds() -> int:
+    import golden
+
+    for name in FIXTURES:
+        for committed in (True, False) if HAS_STAGE else (False,):
+            took = []
+            for _ in range(5):
+                with Watch(committed):
+                    t0 = time.process_time()
+                    golden.capture(name, golden.SCENARIOS[name])
+                    took.append(time.process_time() - t0)
+            print(f"{name} {'committed' if committed else 'uncommitted'}: {min(took):.2f} CPU s (least of 5)")
+    return 0
+
+
+ARMS = {"seconds": seconds, "fixtures": fixtures, "stores": stores, "hysteresis": hysteresis, "kernel": kernel, "tail": tail, "combi": combi}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in ARMS:
