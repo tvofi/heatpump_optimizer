@@ -1,0 +1,102 @@
+{
+ "votes": [
+  {
+   "id": "D5-s10-01",
+   "vote": "verify",
+   "severity": "low",
+   "value": "edit_reaches_cursor=0, unguarded_generated=1; perturb -> 1",
+   "metric_definition": "edit_reaches_cursor: 1 if an edit in the dir named by the hook survives rules_sync regeneration",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "perturbation moved 0->1; null_prod_rc=0; not a timing claim",
+   "reproduced": "edit_reaches_cursor=0, unguarded_generated=1; perturb -> 1",
+   "independent_value": "hook line 14/94-97 say .claude/rules/; rules_sync.mjs:29-31 SRC=dev/governance/rules, outputs .claude/rules + .cursor/rules (own read)",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I5 (stale path in message; N-move-stale-path defensible but mechanism names executable consumers)",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-02",
+   "vote": "verify",
+   "severity": "low",
+   "value": "escaped=2 (AGENTS.md, dev/audit/README.md); e2e rc 0 vs CLAUDE.md rc 2; perturb escaped=0",
+   "metric_definition": "policy files from POLICY_GLOBS not matching POLICY_PREFIXES",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "null controls CLAUDE.md rc2 and prod path rc0 held; perturb 2->0",
+   "reproduced": "escaped=2 (AGENTS.md, dev/audit/README.md); e2e rc 0 vs CLAUDE.md rc 2; perturb escaped=0",
+   "independent_value": "POLICY_PREFIXES at stop-selfcheck.sh line 27 has no AGENTS.md or dev/audit/ alternative (own read); comment itself says too-narrow is the failure that matters",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I4",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-03",
+   "vote": "verify",
+   "severity": "low",
+   "value": "behind_pos=4 tip_pos=5 other_items=4 mismatches=3; perturb mismatches=1",
+   "metric_definition": "count of header claims contradicting report() output",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "null: traps section exists=1; perturb 3->1",
+   "reproduced": "behind_pos=4 tip_pos=5 other_items=4 mismatches=3; perturb mismatches=1",
+   "independent_value": "HANDOVER.md has an unnumbered 'Traps that cost a session' heading at line 1190; no 'trap 11' (own grep)",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I5",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-04",
+   "vote": "verify",
+   "severity": "low",
+   "value": "unit fails, unresolved path tools/audit/README.md; rewrite lowers unresolved 30->28",
+   "metric_definition": "unresolved repo paths in D5 unit (C2)",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "perturbation --rewrite moved down",
+   "reproduced": "unit fails, unresolved path tools/audit/README.md; rewrite lowers unresolved 30->28",
+   "independent_value": "ls tools/audit/README.md: absent; docstring lines 52 cites it",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I5",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-05",
+   "vote": "verify",
+   "severity": "low",
+   "value": "same; thermal_parity.py line 24 cites tools/audit/README.md, absent",
+   "metric_definition": "as 04",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "as 04",
+   "reproduced": "same; thermal_parity.py line 24 cites tools/audit/README.md, absent",
+   "independent_value": "ls confirms absent",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I5",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-06",
+   "vote": "verify",
+   "severity": "low",
+   "value": "cop_duty_floor.py line 23 cites carry-2065.json, absent",
+   "metric_definition": "as 04",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "null: other 28 units of the 3 files resolve",
+   "reproduced": "cop_duty_floor.py line 23 cites carry-2065.json, absent",
+   "independent_value": "ls confirms absent; 3 files together give failing units=3, unresolved_paths=4",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "I5",
+   "seam_rule_enumerates": true
+  },
+  {
+   "id": "D5-s10-07",
+   "vote": "weaken",
+   "severity": "info/low (style criterion, no behaviour consequence)",
+   "value": "long_sentences=347 in 193 files on branch tree (339/193 baseline export count; +8 from branch-only files, files count identical)",
+   "metric_definition": "sentences >40 words in D5 units",
+   "method": "finder harness re-run in worktree audit-r11-verify-D5-1 (branch tree, load1 0.25-0.57, thread_factor 1.0) + perturbation + own grep/ls",
+   "attacks": "count is definition-dependent (sentence splitter, list handling); 193 files exact; seam rule is an enumeration of units, but the 40-word line is a fixed threshold",
+   "reproduced": "long_sentences=347 in 193 files on branch tree (339/193 baseline export count; +8 from branch-only files, files count identical)",
+   "independent_value": "own counter on .claude/hooks+workflows comment paragraphs: 46 sentences >40 words in 11 files (includes some embedded-code false positives); pre-edit.sh examples 41-53 words confirmed",
+   "reachable": "n/a: repo hook/doc text, not HA runtime",
+   "class": "new (cosmetic; C5 criterion)",
+   "seam_rule_enumerates": false
+  }
+ ]
+}
