@@ -1,0 +1,29 @@
+RESULT rows_claim_false=6
+RESULT rows_claim_stale=2
+RESULT rows_claim_true=97
+RESULT rows_claim_unverifiable=1642
+RESULT rows_no-claim_-=2265
+   false: custom_components/heatpump_optimizer/strings.json#3102a60501 | probes.return_gate -> pump_arbiter._gate_floor_c(return)=30.0 (claim 20.0); pump_arbiter.FLOW_GATE_C=25.0 (claim 25.0)
+   false: custom_components/heatpump_optimizer/strings.json#60b9412b58 | probes.station_potable -> const.COMBI_TANK_PRESETS['external_station'].potable_volume_l=150.0 (claim 0.0)
+   false: custom_components/heatpump_optimizer/strings.json#538b900c1b | probes.wood_packing_ratio -> wood_fuel.useful_kwh_m3 types off 0.60=1 (claim 0)
+   false: custom_components/heatpump_optimizer/strings.json#25d4327206 | probes.flow_unit_lmin -> const.FLOW_UNIT_TO_KG_S['L/min'] / (0.998/60)=0.01667 (claim 1.0); set(['L/s','m³/h','kg/s']) <= FLOW_UNIT_TO_KG_S=True (claim True)
+   false: custom_components/heatpump_optimizer/strings.json#b6c5358b63 | probes.observe_writes -> pump_arbiter._arbitrate(observe) _command calls=1 (claim 0)
+   false: custom_components/heatpump_optimizer/strings.json#7a9d1fff5d | pump_arbiter.DHW_GATE_C=30.0 (claim 30.0); probes.return_gate -> pump_arbiter._gate_floor_c(return)=30.0 (claim 20.0); pump_arbiter.FLOW_GATE_C=25.0 (claim 25.0
+   stale: dev/governance/roles/fixer.md#bcdb213603 | unresolved: ['docs/decisions/0011-app-authored-identity.md']
+   stale: dev/governance/roles/orchestrator.md#1ec498bb82 | unresolved: ['docs/decisions/0010-merge-commits-on-main.md']
+RESULT files_with_false_or_stale=3  # custom_components/heatpump_optimizer/strings.json,dev/governance/roles/fixer.md,dev/governance/roles/orchestrator.md
+RESULT units=4012
+RESULT rows=4012
+RESULT claims=1747
+RESULT false=6
+RESULT stale=2
+RESULT true=97
+RESULT unverifiable=1642
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in blueprints/automation/charge_ev_from_grid_headroom.yaml
+RESULT check_rc=0
+RESULT thread_factor=1.000
+RESULT load1=2.16
+RESULT swapins=0

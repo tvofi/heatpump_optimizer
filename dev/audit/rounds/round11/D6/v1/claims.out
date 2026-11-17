@@ -1,0 +1,25 @@
+CLAIM options_pages: true :: menus list 24 pages (8 top + 16 advanced), 1 read-only
+RESULT options_pages=24 count
+CLAIM manual_plan_window: true :: expiry 30 h clamps to 20 h; a slot starting at +20.25 h refused=True
+RESULT manual_plan_window_h=20 h
+CLAIM snapshot_ring: true :: 13 taken over 12 weeks of daily ticks, 8 kept, gaps [7] days
+RESULT snapshots_kept=8 count
+CLAIM peak_guard_two_samples: true :: suppressing after over,over,clear,clear = [False, True, True, False]
+CLAIM legionella_default: FALSE :: ThermalParameters() default: enabled=True, 60 °C every 10 days
+RESULT legionella_default_days=10 days
+RESULT legionella_contradictions=1 count
+CLAIM comfort_weight_default: true :: option rows [('tuning', 5.0)]
+CLAIM echo_grace_60s: FALSE :: reading counted (write record dropped) at +s: {5: True, 10: True, 19: True, 21: True, 30: True, 59: True, 61: True, 90: True}; contradicting the 60 s sentence at [5, 10, 19, 21, 30, 59]
+RESULT echo_grace_contradictions=6 count
+RESULT echo_grace_const_s=20 s
+
+=== Closed-loop rolling simulation ===
+CLAIM learner_left_alone_12pct: true :: 2-day closed loop, plant_error=1.0: scale 0.979 (|-0.021| vs 0.12)
+RESULT drift_from_1=0.0214 ratio
+CLAIM learner_converges_35pct: FALSE :: 3 days at 1.35: scale 1.000->0.300, last-quarter std 0.0101, breach 0.00->5.42 K·h
+RESULT learned_scale_end=0.300 ratio
+RESULT claims_checked=14 count
+RESULT false_claims=3 count  ['legionella_default', 'echo_grace_60s', 'learner_converges_35pct']
+RESULT thread_factor=1.000
+RESULT load1=1.25
+RESULT swapins=0
