@@ -1,0 +1,26 @@
+== base
+  run pr-args
+  run beatd
+  run update-pr
+  run selftest-scope
+selftest_scope static: 122 gated step(s), 0 problem(s)
+884:          python3 -I tools/audit/product_reads.py --self-test
+== head
+  run pr-args
+  run beatd
+  run update-pr
+  run selftest-scope
+selftest_scope static: 122 gated step(s), 0 problem(s)
+884:          python3 -I tools/audit/product_reads.py --self-test
+== base
+MODE: SCOPED -- 29 step(s) run
+== head
+MODE: SCOPED -- 29 step(s) run
+== base
+  run self-tests-outside-seat
+MODE: SCOPED -- 22 step(s) run
+  run self-tests-outside-seat
+== head
+  run self-tests-outside-seat
+MODE: SCOPED -- 29 step(s) run
+  run self-tests-outside-seat
