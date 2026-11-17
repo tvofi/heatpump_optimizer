@@ -95665,6 +95665,22 @@ R.check(
     _rh.report(_rh_flat144)["house"]["verdict"] == "enough",
     f"{_rh.report(_rh_flat144)['house']}",
 )
+from harness import FakeEntry as _RhEntry  # noqa: E402
+from heatpump_optimizer import diagnostics as _rh_diag  # noqa: E402
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _RhCoord  # noqa: E402
+
+_rh_coords = [_RhCoord(FakeHass({}), _RhEntry(data={"tibber_token": "x", "weather_entity": "weather.home"},
+                                              entry_id=f"rh_diag_{k}")) for k in range(2)]
+_rh_aio.run(_rh_cycles(_rh_coords[0], 3, [_RhReading("climate.a", 20.0, 21.0, True, "heat")]))
+_rh_aio.run(_rh_cycles(_rh_coords[1], 3, []))
+_rh_snaps = [_rh_diag._coordinator_snapshot(c) for c in _rh_coords]
+R.check(
+    "a production coordinator's diagnostics carry the room-history report once a cycle with a room list made "
+    "a record; null control, a coordinator whose cycles had none carries no key",
+    _rh_snaps[0].get("room_history") == _rr.report_of(_rh_coords[0]) and _rh_snaps[0]["room_history"]["rows"] == 2
+    and "room_history" not in _rh_snaps[1],
+    f"{_rh_snaps[0].get('room_history')} {'room_history' in _rh_snaps[1]}",
+)
 R.check(
     "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
     "room_history" not in {n for n, _ in _r9f13_cmod._FACTORY_VOID},
