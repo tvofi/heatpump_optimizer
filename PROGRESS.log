@@ -37,3 +37,4 @@
 1794888013 CKPT items 2+3 built at ebc8bca74b: column via gate.status on push runs, edge spell unread; reviewer 28 swaps: 0 survivors; step-pushed snapshot 4fa4378152c1
 1794888072 HB alive
 1794888680 HB alive
+1794888727 CKPT code head ad36eefec0 step-pushed; reviewer swaps and 105-mutant sweep clean; body drafted; entities.py running, prepr next snapshot 2090203368d2
