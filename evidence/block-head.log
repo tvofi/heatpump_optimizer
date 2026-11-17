@@ -5,6 +5,7 @@
   ok   a climate room reads current_temperature and its target from attributes, calling from hvac_action
   ok   a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat is unknown, not False; a sensor room reads its state, no target
   ok   a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance reads the same 68 raw, outside a room's range
+  ok   a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null control, a degC sensor at 20.0 reads 20.0
   ok   an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry their problem word, the implausible one no temperature; null control, the watchdog off reads the old room fresh
   ok   no room read records into the reader's input health, on any path
   ok   the summary is the mean and the warmest less the coldest over the readable rooms, naming the coldest and the warmest
@@ -33,4 +34,5 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible
   ok   the side table holds plain data only: a tuple of frozen readings
 
-ALL 16 FEATURES BLOCK PASSED
+ALL 17 FEATURES BLOCK PASSED
+rc=0

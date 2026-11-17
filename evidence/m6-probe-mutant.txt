@@ -1,1 +1,0 @@
-tree=mutant(M6) RoomReading(entity_id='sensor.f', temperature_c=None, target_c=None, calling=None, hvac_mode=None, problem='implausible')
