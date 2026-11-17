@@ -28,3 +28,4 @@
 1794876606 CKPT reviewer mutants M1-M4 killed, null survives snapshot fe56a9f00f82
 1794876797 HB alive
 1794876962 CKPT class seams re-derived; waiting CI + full features snapshot a1ab11d8b0de
+1794876996 CKPT verdict drafting; waiting classify + full features.py snapshot 76dccb5c1140
