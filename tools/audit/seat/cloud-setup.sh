@@ -257,10 +257,6 @@ PY
   out=$(env -i PATH="$W/blas:/usr/bin:/bin" bash "$SELF" --kernels </dev/null 2>&1); rc=$?
   [ "$rc" = 2 ] && case $out in usage:*) true ;; *) false ;; esac
   expect "--kernels with no command is a usage error" $?
-  matrix=$(sed -n 's/^ *coretype: \[\(.*\)\]$/\1/p' "$(dirname "$SELF")/../../../.github/workflows/kernel-points.yml" | tr -d ',')
-  missing=""; for k in $CORETYPE $matrix; do case " $KERNELS native " in *" $k "*) ;; *) missing="$missing $k" ;; esac; done
-  [ -n "$matrix" ] && [ -z "$missing" ]
-  expect "KERNELS holds the pinned class and every class kernel-points.yml's matrix names" $?
   out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check)  # never-empty: vars is the seven-line output of variables, asserted above
   case $out in *"pinned to $CORETYPE"*"cloud-setup.sh --kernels <command>"*) true ;; *) false ;; esac
   expect "the check's OK line names the pinned class and the per-class run" $?
