@@ -1,0 +1,9 @@
+{'#3625': 7, '#3622': 14, '#3627': 3, '#3641': 2, '#3640': 8, '#3644': 8} sum 42 older 25
+dependency-graph-census dirs tests/mutation_ledger/killed_by/slab_seed.py | exists at 82e301585d: False
+dependency-graph-census dirs tests/mutation_ledger/survivor_triage/slab_seed.py | exists at 82e301585d: False
+gantt-and-verdict-audit dirs tests | exists at 82e301585d: True
+gantt-and-verdict-audit probes tests | exists at 82e301585d: True
+prepr dirs tests/mutation_ledger/killed_by/slab_seed.py | exists at 82e301585d: False
+prepr dirs tests/mutation_ledger/survivor_triage/slab_seed.py | exists at 82e301585d: False
+self-tests-outside-seat dirs tests/mutation_ledger/killed_by/slab_seed.py | exists at 82e301585d: False
+self-tests-outside-seat dirs tests/mutation_ledger/survivor_triage/slab_seed.py | exists at 82e301585d: False

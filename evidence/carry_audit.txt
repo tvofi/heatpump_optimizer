@@ -1,3 +1,0 @@
-NOTE stale tree: 2d7161a4b70923da910f9997e18db632c0d4ec2d lacks origin/main 38bf516bdd73f926ee9639ffda7b9ca5163fd50e; roster read at origin/main
-NOTE review 0 item 7088ede6: R11-PRE-SHARED-FILES
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
