@@ -1,4 +1,0 @@
-selftest_scope self-test: 128 checks, 0 failed
-SELF-TEST passed (every perturbed scope refused)
- dev/programme/delivery/3698.md | 1 +
- 1 file changed, 1 insertion(+)
