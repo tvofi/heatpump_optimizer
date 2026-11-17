@@ -1,0 +1,2 @@
+truth 67 {'probes': 9, 'files': 45, 'dirs': 13} steps 20
+drift e352 vs 142926-as-artifact: 27 ; 142926 vs itself: 0

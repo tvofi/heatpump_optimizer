@@ -1,0 +1,24 @@
+Fix review: merge d401f1498734d5c8633b74b28b0948d9da27a4b7
+
+bus-nonce: 4e886e342552d128c9433daadf67035d
+
+Round 1 (first review, scope full). The diff writes an RCA document, its measurement harness, the harness's INERT-read classification in `tests/closures.json`, and a delivery row; no line under `custom_components/` or `tools/`.
+
+## Evidence
+
+- RESULT classify: `GREEN d401f1498734d5c8633b74b28b0948d9da27a4b7 pending: none red: none`, rc 0 (ev/classify1.txt). `tests / nightly-status` is red in the packet digest; it is outside the set `merge_train.py owed-reds` prints (ev/owed-reds.txt), so it is neither answered nor a block.
+- RESULT merge: `git merge-tree --write-tree origin/main d401f149` exits 0 with tree 70889eb848 (ev/merge-tree.txt). No conflict.
+- RESULT step 7: the body's `## Head` names d401f1498734d5c8633b74b28b0948d9da27a4b7, the head measured here. The role directory has no diff between the merge base and origin/main.
+- RESULT step 1: no mutation proof is owed. The diff writes no production or tool line, so no mutant can be drawn; the body says so (`## Mutation proof: n/a`).
+- RESULT step 4/5: the diff leaves `tests/golden/`, both claim files, `VERSION`, `RELEASE_NOTES.md` and `custom_components/` untouched (ev/merge-rate.txt).
+- RESULT truth set re-derived: diffing the `tools/ci/selftest_closures.json` table between `e352724335` and `142926ec66` gives 67 added (step, kind, path) triples: 45 files, 13 dirs, 9 probes, over 20 steps. This matches the document's §1 and §5 (ev/truth-and-null.txt).
+- RESULT null control re-derived under a stated substitution. I did not download run 43884631892's artifact. I used `142926ec66`'s committed table, which that commit says it copied from the artifact, as its proxy. Then `selftest_scope.drift(table at e352724335)` returns 27 refusals, and the table against itself returns 0. Both match the body's 27 and 0.
+- RESULT C1 re-run: I ran the committed harness at the head on each of the 15 first-parent merges `5aaf9c112f..e352724335` (the count also re-derived). It gives 412 per-merge lines and 333 unique flags; 14 of those are in the truth set. The maximum is 119 lines at #3641. All four figures match §5 (ev/c1_flags.txt, ev/c1_stderr.txt).
+- RESULT attribution re-derived: §1's `git log --first-parent --diff-filter=A 82e301585d..e352724335 -- PATH` over the 67 paths gives #3622 14, #3644 8, #3625 7, #3627 3 and #3641 2, all matching. It gives #3640 8 against the document's 6, but the two extra are the directory `tests` (dirs and probes of `gantt-and-verdict-audit`), which already existed at `82e301585d`. Under the document's rule ("paths it added") that leaves 6, a total of 40, and 27 older reads, which matches (ev/attribution.txt).
+- RESULT step 9: the C1 harness is committed (`dev/audit/harnesses/r11_selftest_static_edge.py`), and the document discloses that the RCA seat built it.
+- Not re-derived, from the CI API and out-of-tree branches: the drift step's 54 failures in 55 conclusions over 80 push runs; the job wall times (18.9-23.8 min untraced, 38.5-71.7 min traced); the hotfix open times (62/64/105/129/152 min); and C3's 6 of 20 steps and 22 of 67 reads (`precheck` on the unmerged `fix/r11-pre-shared-files`). The directory-listing variant's "8 of 45 file reads with 384 flags" has no committed harness, so it is the builder's figure, not verified here.
+
+## Notes
+
+- Note: figure: §2 states "77 first-parent merges from 2026-11-14T15:40Z to 2026-11-16T15:44Z". `TZ=UTC git log origin/main --first-parent` over that window counts 77 first-parent commits, but only 72 are merges, so the rate is about 1.5 merges an hour, not 1.6. Separately, "about 22 flags per merge" is unique flags per merge (333/15); per-merge lines average 27.5 (412/15). Neither difference moves a verdict in §6 (ev/merge-rate.txt). Carry: dismissed: paperwork on a recorded analysis; both counts are now stated with their enumerators in this verdict's evidence
+- Note: carry-missing: the document's §7 and the body say the `bugclasses.json` entry for this class and C5's demonstration (red on a planted unrecorded read, green after the bot commit, a green push writing nothing as null control) are "written into P-R11-41 as owed by its building group". P-R11-41 is not in the tree at origin/main, at this head, or on `handoff/audit-r11-plan` (`git grep P-R11-41`), and the body's `## Forward-carry` is `none`. The owed work therefore rides only on an out-of-tree proposals file until proposal triage rules it. Carry: dismissed: the destination is an unruled proposal held out of tree by proposal triage, with no live round-11 roster group or carry file in the tree to receive it; the orchestrator lands it when P-R11-41 is ruled
