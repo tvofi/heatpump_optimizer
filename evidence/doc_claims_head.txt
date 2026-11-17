@@ -34,7 +34,7 @@
   ok   no built page requests anything from a third party
   ok   mermaid is one exact version in package.json, and the lockfile resolves that version
   ok   the mermaid pin fires on a range and on a lockfile that disagrees (null controls)
-       (pages 9, pageLinks 61, anchors 70, githubLinks 11, images 41, badges 5, external 29, mermaid 9, redirects 1)
+       (pages 9, pageLinks 61, anchors 70, githubLinks 12, images 41, badges 5, external 29, mermaid 9, redirects 1)
 
 -- third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)
   ok   the product page and a built page are the unplanted baseline (anchor)
@@ -81,7 +81,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/root/rev/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)

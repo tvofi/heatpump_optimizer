@@ -30,11 +30,11 @@
   ok   the build exists and built at least one page (anchor)
   ok   the build exits 0 with no FAIL line
   ok   every README Documentation row is a built page
-  FAIL docs/ecl110.md still resolves: a pointer to docs/heat-curve.md in the tree, a redirect to its page on the site  [site redirect to nothing; the in-tree file links docs/heat-curve.md: False]
+  FAIL docs/ecl110.md still resolves: a pointer to docs/heat-curve.md in the tree, a redirect to its page on the site  [site redirect to heat-curve.html, fragment kept: False; the in-tree file links docs/heat-curve.md: True]
   ok   no built page requests anything from a third party
   ok   mermaid is one exact version in package.json, and the lockfile resolves that version
   ok   the mermaid pin fires on a range and on a lockfile that disagrees (null controls)
-       (pages 9, pageLinks 61, anchors 70, githubLinks 11, images 41, badges 5, external 29, mermaid 9, redirects 0)
+       (pages 9, pageLinks 61, anchors 70, githubLinks 12, images 41, badges 5, external 29, mermaid 9, redirects 1)
 
 -- third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)
   ok   the product page and a built page are the unplanted baseline (anchor)
@@ -81,7 +81,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/root/rev/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
