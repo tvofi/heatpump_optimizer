@@ -3,3 +3,4 @@
 1794891511 CKPT packet and body read; starting worktree runs and CI wait snapshot d47ee39edf76
 1794891857 CKPT no-group postmerge regression measured both ends; running mutants snapshot df50c8aab347
 1794892022 HB alive
+1794892058 DONE rev-3701 returned: blocked code-defect at 475e0018, verdict 5e6d8031 on probe/rev-3701-d5e5ccba
