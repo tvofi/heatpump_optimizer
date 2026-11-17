@@ -1,0 +1,79 @@
+# D9 verify (round 11), verifier D9-v1
+Trees: all findings measured in worktree audit-r11-verify-D9 (branch tree; no D9 scope is planted). python3 = /opt/hpo/venv-ci (the harness headers' $HOME/venv-ci absent).
+
+## D9-s1-01 - verify (low)
+- value: 2-4 _multi_start_minimize entries per diagnose press (perturbed 0); diagnosis still published
+- metric_definition: entries into optimizer._multi_start_minimize between start and return of async_diagnose_interval after 3 warm cycles
+- method: reran finder harness in worktree (branch tree, not planted); own harness counts _async_update_data and HeatPumpOptimizer.optimize calls per press on single-zone house
+- attacks: null control diagnose_record_msm=0 holds; perturbation publish-only drops to 0 with diagnosis_published=1 in all 5 arms; reachability: manual press only, HA DataUpdateCoordinator debouncer still runs one cycle (real HA coalesces repeat presses within cooldown); load1 1.69 thread_factor 1
+- reproduced: msm per press min 2, max 4, mean 2.6 (finder 2-4); cpu 6.63 s on duty arm
+- independent_value: 1 _async_update_data + 1 optimize call per press, 0.66 s CPU (single zone, no DHW)
+- reachable: yes: button and service call the real method; real HA runs the same refresh, debouncer only coalesces
+- class: new
+- seam_rule_enumerates: partial: grep lists 17 async_request_refresh callers, only async_diagnose_interval demonstrated; others not shown to be input-neutral
+
+## D9-s1-02 - verify (low)
+- value: worst cycle 24.08 s host CPU = 120 Pi-s at F=5 vs B1 60 Pi-s (2.0x; 619 ref solves vs 308 at ref 38.9 ms); main-only arm max 10.04 s (50 Pi-s)
+- metric_definition: solver thread CPU per coordinator cycle summed over main + fuse advisor + steady pair + price tile jobs, vs B1 = 60 Pi-s at F=5
+- method: reran finder harness --cycles 12 --arms duty,tiles_fuse_duty in worktree; leave-one-out dropped cycle 0 (cold)
+- attacks: perturbation duty arm (tiles/fuse off) max 10.04 s under B1: moves down; leave-one-out cycle 0: next worst 15.66 s = 78 Pi-s still over B1; F=5 is an assumption; load1 1.17 thread_factor 1.0; cycle 0 inflated by cold start
+- reproduced: worst cycle 24.08 s host (finder 19-27 s); 2.0x B1 here vs finder 1.6x because ref solve 38.9 ms here vs 27.9
+- independent_value: Pi-s per cycle: 120 worst, 78 second-worst, main-only 50 max
+- reachable: yes: price tiles and fuse advisor are production options; coordinator code real, background
+- class: new
+- seam_rule_enumerates: yes: lists all async_simulate callers (2 background + steady_pair)
+
+## D9-s1-03 - verify (medium)
+- value: K=4: 12 worker jobs, scheduled solve latency 13.1x solo (finder 12.4x); K=2: 6 jobs, 7.0x; in-flight guard perturbation: 3 jobs
+- metric_definition: coordinator._run_in_process entries from K steady async_simulate calls 3.05 s apart, plus scheduled-solve latency over solo
+- method: reran finder harness --k 4, plus --k 2; card JS read
+- attacks: null K=1 gives 3 jobs; guard perturbation drops to 3 jobs and 4.27x; card debounces 400 ms only and run() has no in-flight guard (heatpump-optimizer-card.js 13128, 13234); load1 0.91 thread_factor 1
+- reproduced: 12 jobs, 13.08x
+- independent_value: K=2: 6 jobs, 6.98x
+- reachable: yes: card sliders call simulate_plan; HA services run concurrently
+- class: new
+- seam_rule_enumerates: yes: grep covers limiter and its only consumer
+
+## D9-s1-04 - verify (low)
+- value: 384 loop simulate_step calls per steady what-if; loop CPU 7.0-28.1 ms host (35-141 Pi-ms at F=5); weekend 28.1 ms
+- metric_definition: ThermalModel.simulate_step calls and thread_time on loop thread inside whatif.schedule_days per async_simulate(steady=True)
+- method: reran finder harness in worktree; read code (coordinator.py 11250 calls schedule_days directly on loop)
+- attacks: null steady=False gives 0; off-loop perturbation gives 0; leave-one-out weekend cell: max 11.8 ms host (59 Pi-ms, under B2 100); only the weekend cell exceeds B2 and only via the F=5 assumption; host max 28 ms; load1 0.93 thread_factor 1
+- reproduced: max 28.13 ms host median (finder 26.9); 384 calls
+- independent_value: code path confirmed: schedule_days reference_day x2 sync in async_simulate, 384 calls
+- reachable: yes: real loop thread, no stub involvement
+- class: P10
+- seam_rule_enumerates: partial: grep lists callers of reference_day; only demonstrated site is whatif.schedule_days via async_simulate
+
+## D9-s2-01 - verify (low)
+- value: retained rows slope 1448/day (log 476, actionLog 152, seen 628, memo 192); covered 60 chunks at day 30 vs 4-5 in 48 h reach; heap slope 140 kB/day (provisional)
+- metric_definition: rows held by HistorySource (log, actionLog, seen, covered, memo) per simulated day of one card element panned past once/day
+- method: reran finder .mjs in worktree (30 days, trim, nopan arms); read HistorySource source (card.js 7127-7470): no trimming statement on log/seen/covered/actionLog
+- attacks: null nopan arm 0 rows/day; trim perturbation drops log slope 476 to 0 and total to 780; only grows when user pans past once a day; heap growth 140 kB/day is ~51 MB/yr, small; page reload resets; load1 0.10 thread_factor 1.0
+- reproduced: 1448 rows/day exact (finder 1,448)
+- independent_value: source read: 0 trimming sites on this.log/actionLog/seen/covered in HistorySource; constructor lists 5 growing containers; heap 140 kB/day
+- reachable: yes: browser code is the production card; fetch via hass.callApi real, rig only stubs the recorder
+- class: new (class_guess N-no-expiry mismatches: that class is a published last-known value without age bound; this is unbounded in-memory history retention)
+- seam_rule_enumerates: yes: grep names all six HistorySource containers
+
+## D9-s3-01 - weaken (low)
+- value: 6 of 54 scenarios probed by the gate (3 top traced + 3 top rss); 48 blind; null ballast 0 flagged a clean scenario (1 of 2 sampled)
+- metric_definition: scenarios where the gate's own memory thresholds fire on a ballast of the scenario's recorded traced peak retained inside HeatPumpOptimizer.optimize, and the scenario is in _memory_probe_labels
+- method: reran finder harness default (universe 54, detected 6, blind 48, flagged_if_probed 54), --ballast-factor 0 and --top-n 108 on 2 scenarios; own count from tests/stress_budgets.json: 54 recorded rows, top-3 traced and top-3 rss labels are the 6
+- attacks: null control: factor 0 on summer/1z/space,flat/1z/space flags 1 of 2 (clean false positive, traced_x 1.28-1.69), so 54/54 includes about 9 clean positives and true separation is lower; top-n 108 gives detected 2/2; injection is artificial confined leak, a general optimizer regression raises the probed top scenarios too; load1 2.0 thread_factor 1.05, bytes final
+- reproduced: detected 6, blind 48, flagged_if_probed 54
+- independent_value: 54 rows in stress_budgets.json, probe set 6, 48 unprobed
+- reachable: yes: CI gate in tests/stress.py, not HA-dependent
+- class: I1
+- seam_rule_enumerates: not read in the harness header; instrument seam is the gate selection _memory_probe_labels (one place), demonstrated seam is complete
+
+## D9-s3-02 - verify (low)
+- value: solves/cycle 2->4, payload 87,804->175,053 B, retained +210,628 B/cycle, GIL yields 472.7->0; gate evals/simulate/calls dev 0.0000, traced dev max 0.0037 on five scenarios
+- metric_definition: per-cycle metric from real coordinator _async_update_data per injected arm vs the stress gate's solver_evals, simulate_steps, calls and tracemalloc peak in build_case on five sweep scenarios
+- method: reran percycle.py in worktree; independent: stress.py does not import coordinator (grep shows only a comment)
+- attacks: clean arm is null control; every arm's own metric moves while all gate readings unchanged; numbers differ from finder (payload 89,220 vs 87,804; yields 394 vs 472.7; retained 205 vs 211 kB) by under 20 percent, same conclusion; other gates (tests/features.py _st_tiles) pin solves per tile caller but not main solves per cycle, so a gate elsewhere may catch part; mutation named: double the optimize_in_process call in coordinator.py, not tested against full suite; load1 1.0 thread_factor 1.0
+- reproduced: solves 2.00->4.00; max gate dev 0.0000 (traced 0.0037)
+- independent_value: 0 coordinator imports in tests/stress.py
+- reachable: yes: gate-level, coordinator code is production
+- class: new
+- seam_rule_enumerates: not shown: four demonstrated levers, no rule enumerating other per-cycle metrics
