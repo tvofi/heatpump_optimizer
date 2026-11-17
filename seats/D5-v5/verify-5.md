@@ -1,0 +1,90 @@
+# D5-5 verify (tree: px export /home/user/audit-r11-px-D5-5, PYTHONPATH=tests/hastub; load1 0.8-2.6, thread_factor 1.000; counts are exact text counts)
+
+## D5-s8-01 vote=verify sev=low
+- metric: count of comment units naming a path that does not exist in the tree
+- method: m4_ledger.py in px: policy_lint.mjs units=463 unresolved_units=12. Own check: ls of cited paths; node .claude/workflows/policy_lint.mjs -> MODULE_NOT_FOUND; line 589 says .claude/workflows/corpus_excluded.json, code line 613 reads dev/governance/config/corpus_excluded.json which exists.
+- attacks: perturbation not needed beyond finder's --perturb; null control: 2489 units name no reference; only 1 of 12 stated 'six usage lines' count differs (I see 9 .claude/workflows usage lines at 41-50, 53-55 in two files; unit grouping, not material)
+- reproduced: 12 unresolved units in policy_lint.mjs (px); independent: 9 usage lines at lines 41-48,50 name absent .claude/workflows/policy_lint.mjs; node exits with MODULE_NOT_FOUND (px)
+- class: I5 (N-move-stale-path is a root-cause subject, not a bugclasses.json class); seam: only the demonstrated seam plus every C2 row of the seat cells; does not cover other seats' cells
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-02 vote=verify sev=low
+- metric: count of comment units naming a path that does not exist in the tree
+- method: m4_ledger.py: friction_issues.mjs unresolved_units=1 (px); own: lines 53-55 name .claude/workflows/friction_issues.mjs, absent; node on it exits with Cannot find module; node tools/policy/friction_issues.mjs --self-test -> 105 passed, 0 failed
+- attacks: null: self-test on the real path passes; the 3 usage lines are one comment unit
+- reproduced: 1 unit (3 lines); independent: 3 usage lines, path absent, real path --self-test exits 0 (px)
+- class: I5; seam: same as -01; one seam, not other consumers of .claude/workflows paths
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-03 vote=verify sev=low
+- metric: count of comment units naming a path that does not exist in the tree
+- method: m4_ledger.py: closure.py unresolved units (3 files total in tests/ listing incl doc_claims=3); own: grep tests/closure.py shows w5-partition/coverage_tree.sh (lines 164,3268), dev/audit/rounds/round4/D11/governance_cost.py (1299), docs/delivery (1994), carry-1922.json (815) all absent; tools/coverage/coverage_tree.sh and tools/audit/round4/D11/governance_cost.py exist
+- attacks: claim says 5 units; the cited 5 sites all confirmed absent; code at 4260 reads tools/audit/round4 path (contradicts line 1299). docs/delivery: rows live in dev/programme/delivery/ (ls ok)
+- reproduced: 5 sites absent (px); independent: 5 cited sites confirmed absent by grep+ls
+- class: I5; seam: only the demonstrated seam
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-04 vote=verify sev=low
+- metric: count of comment units naming a path that does not exist in the tree
+- method: m4_ledger.py: tests/doc_claims.py unresolved_units=3 (px); own: dev/programme/designs/R10-ARCH-DOCS-FIRST.md, R10-USER-DOCS-FINAL.md, CONDENSED.md all absent; find CONDENSED.md none; lines 4, 3266 cite them without SHA
+- attacks: null: other R10-* ids at 2774/2967 are task ids, not paths, correctly not counted
+- reproduced: 3 units; independent: 3 named paths absent, no designs dir (px)
+- class: I5; seam: only the demonstrated seam
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-05 vote=verify sev=low
+- metric: count of comment units naming a path that does not exist in the tree
+- method: m4_ledger.py: tests/card.mjs units unresolved; own grep: card_shapes.mjs cited at tests/card.mjs 501, 3743, 3794 and DESIGN.md at 10605; find card_shapes.mjs / DESIGN.md -> none in px
+- attacks: note unit count 4 per claim; 3 card_shapes refs + 1 DESIGN.md confirmed
+- reproduced: 4 units; independent: 4 cites, files absent everywhere in px
+- class: I5; seam: only the demonstrated seam
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-06 vote=verify sev=low
+- metric: D5 comment units with a sentence over 40 words (C5) in the seat's 44 files, units 3628
+- method: m4_ledger.py in px: over40=657 exact. Own splitter (blank-line blocks, split on .!?; before capital/backtick) gives 906 units/1319 sentences - looser, direction agrees; longest sentence 524 words in tests/deployment_shape.py module docstring (own measure 524); perturbation: finder --perturb moves count down; markdown-it excluded
+- attacks: attack: grid artefact - threshold sensitive to splitter (657 vs 906); both exceed 0 by a wide margin so finding stands; style-only consequence
+- reproduced: 657/3628 (870 sentences); independent: 906 units over 40 words under own looser splitter; max 524
+- class: new; seam: enumerates by criterion C5 across every unit of the seat cells; other seats have their own cells
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s8-07 vote=verify sev=medium
+- metric: JS/mjs/sh comment units whose reported line does not hold the unit's first comment line
+- method: ledger_lines.py in px: mislocated=1175, py_mislocated=0 (null), --fixed arm mislocated=0 (perturbation moves down to 0). Own locator (first 25 chars of unit text found on reported line): 1174 of 1899 JS units, units=3628 matched
+- attacks: 1 difference attributable to my skipping .sh and token match; attack on method: null Python units 0/1200 holds
+- reproduced: 1175 (exact), fixed 0; independent: 1174 of 1899 (own locator)
+- class: new (instrument defect in tools/audit/text_ledger.py:scan_c_like); seam: a single seam (string literal ending at newline); finder's --fixed shows that one fix zeroes it, so the seam enumerates the phenomenon in this sample
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s9-01 vote=verify sev=low
+- metric: (unit, cited in-repo path) pairs absent from the tracked tree in tests/entities.py
+- method: stale_paths.py in px: entities.py stale_refs=13, units 12 of total 15 stale units; moved_refs 14 total; contradicted=2 (docs/HANDOVER.md vs code reading dev/programme/HANDOVER.md; tools/audit/preflight.sh vs tools/pr/preflight.sh); perturb restore 17->0; null: 66 files print no FILE line. Own: ls on each cited path absent
+- attacks: comments.py independent C2-moved=14 and C2-path=3 agree (14+3=17)
+- reproduced: 13 refs / 17 across 3 files; independent: comments.py C2-moved 14 + C2-path 3 = 17 total, same
+- class: I5; seam: enumerates all D5 units of the seat cells (69 files) by tracked-tree resolution
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s9-02 vote=verify sev=low
+- metric: as -01, tests/run.sh
+- method: stale_paths.py in px: tests/run.sh stale_refs=3 (coverage_tree.sh, docs/backlog.md, docs/audit-2026-09.md); own ls: all three absent; tools/coverage/coverage_tree.sh exists; find backlog.md and audit-2026-09* none under those names in px
+- attacks: moved-to locations quoted by finder (dev/archive/, dev/programme/register/) not independently confirmed by name in px; absence is confirmed
+- reproduced: 3; independent: 3 refs absent
+- class: I5; seam: same as -01
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s9-03 vote=verify sev=low
+- metric: as -01, tests/structure.py
+- method: stale_paths.py: structure.py stale_refs=1 (tools/audit/README.md line 213); own: cat tools/audit/README.md no such file; dev/audit/README.md exists
+- attacks: 
+- reproduced: 1; independent: 1
+- class: I5; seam: same as -01
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
+## D5-s9-04 vote=verify sev=low
+- metric: D5 claim-bearing units with a sentence over 40 words (C5), 3748 units / 3664 claim-bearing
+- method: comments.py in px: C5-long=820 sentences; own tally over ledger_D5.tsv long>0: 597 units, 820 sentences, of 3664 claim rows - exact; own splitter over 69 files: 1007 units (looser); perturb C5 long 1->0 on one unit
+- attacks: grid artefact: splitter sensitive, direction stable; style-only
+- reproduced: 597 units / 820 sentences; independent: 597 units from ledger tally; 1007 under own looser splitter
+- class: new; seam: enumerates by criterion C5 across the seat cells only
+- reach: not applicable: comments/tooling, no HA runtime path; defect is in tracked text read by contributors and agents
+
