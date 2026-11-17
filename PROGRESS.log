@@ -8,3 +8,4 @@
 1794846572 DONE Fix review: merge 6ee7ba56e48b; verdict 451f6ce7 on probe/rev-3628-24d67ab9
 1794873526 HB alive
 1794873552 CKPT delta read: main merges only, layout.json conflict resolved as union snapshot 6ac0d3834c82
+1794873626 CKPT cheap checks + resolution mutants done; waiting CI snapshot 209b235d66ad
