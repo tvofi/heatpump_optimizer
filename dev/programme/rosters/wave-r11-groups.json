@@ -287,9 +287,9 @@
    "architect_note": null,
    "brief": "triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032\n\nRe-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). The paid macOS CI lane is refused: the `darwin-selftest` beat row on main (#3565, `tools/audit/seat/beat_jobs.py`) is the post-merge detector, and macOS-only checks run on local seats (tvofi 2026-11-12). This group builds the pre-merge detectors, size S:\n(a) land the root-cause seat's BODY.md (`git show cce3f946f5e8b48497e2f89486bbf4798a44c6e2:BODY.md`) under dev/audit/rca as the record named R10-RCA-PREPR-DARWIN-SELFTEST, and its class entry in `dev/audit/config/bugclasses.json` (carry 1, arm a);\n(b) the stub host-independence rule for self-test stubs (carry 0);\n(c) one diff-scoped shell-hazard lint in `tools/pr/prepr.sh` over added lines in `tools/**/*.sh` only: a raw `wc -l` string compare, and an early-exit reader on a pipe under `pipefail` (the pipefail-sigpipe family, its record under dev/audit/rca);\n(d) `harness_headers.inline_scan()` run in prepr as a static, sub-second step (moved intake carries).\nEach: a failing test first on the instance that reached CI, a null control, a mutant; standing cost under one second per prepr run, measured. Carry 1's lane conditions are void with the lane; its forward-carry on `pr_args.sh`'s GNU-only `sed -i` sites stays a precondition for this group's lint.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-prepr-darwin-selftest-lane",
-    "commit": null,
+    "commit": "a57433c661a56cbcd7a892a4c13a0fec9161464a",
     "last_step": null,
     "next_step": "fixer (sonnet, size S, no design step), then sonnet review",
     "note": "orchestrator brief to s14-36 2026-11-12: P684 barrier group; overlap admitted (R10-HOTFIX-PREPR-WC-PAD): P684: third Darwin-only prepr self-test red triggers the class barrier",
@@ -3611,12 +3611,13 @@
     "From r11-arch-objective, body item 390ea33c: The settlement reads keyed rows from an objective record's `keyed.<kind>` (`escapes` rows by `key`, `classes` by `class`, `injected` by `group`, `rereport` by `finding`, `examined_by` by `group`). `dev/audit/yardstick/round10/OBJECTIVE.json` has none, so those lines settle UNDECIDED: the self-test arm \"at the next close they settle on keyed rows, and with none they are UNDECIDED\". Decision 0018 section 6's record shape would have to name those rows, or the settlement credits nothing. The approved design leaves 0018 unedited and routes \"the roster's files name the 0018 record\" to the orchestrator (design verdict, `decision: orchestrator`). No live group after this one can receive it: `carry_audit.py check --pr-group R11-ARCH-OBJECTIVE` prints \"valid targets: none live after R11-ARCH-OBJECTIVE\". So it stays with this group, pending that ruling. Carry: R11-ARCH-OBJECTIVE (items 390ea33c)"
    ],
    "resume": {
-    "stage": "planned",
+    "stage": "in-progress",
     "commit": null,
     "branch": "fix/r11-arch-objective",
     "last_step": null,
     "next_step": "designer on fable",
-    "note": null
+    "note": null,
+    "pr": 3703
    },
    "source": "user"
   }
