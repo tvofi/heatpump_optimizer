@@ -158,7 +158,7 @@ def commit(
     for k in range(n):
         ran, paused = tie_break(bool(q[k] > 0.0))
         cost, bal, back = advance(
-            cost, bal, moves(*lengths, want[k]),
+            cost, bal, state_moves(*lengths, want[k]),
             ([_shift((level[k] - q[k]) * dt, price[k] * level[k] * dt + ran)], [_shift(-q[k] * dt, paused)]),
             float(start_cost), cells, min_on)
         trail.append(back)
@@ -202,7 +202,7 @@ def tie_break(asked: bool) -> tuple[float, float]:
     return _TIE_BREAK * (not asked), _TIE_BREAK * asked
 
 
-def moves(min_on: int, min_off: int, want: float, may_start: bool = True) -> list[tuple[int, int, bool]]:
+def state_moves(min_on: int, min_off: int, want: float, may_start: bool = True) -> list[tuple[int, int, bool]]:
     """``(source, destination, starts)`` state moves one step allows.
 
     States ``0 .. min_on - 1`` are a run of that many steps plus one (the last
@@ -236,7 +236,7 @@ def advance(
     """One step of a program over (run or pause length, a scalar on a grid):
     the cheapest arrival per cell, its exact scalar, and where it came from.
 
-    ``allowed`` is :func:`moves`' answer for the step; ``actions`` are what a
+    ``allowed`` is :func:`state_moves`' answer for the step; ``actions`` are what a
     step into a run and into a pause may do; a start pays ``start_cost``
     besides. ``place`` is the caller's cell rule. The
     scalar is the caller's alone (an energy balance, a tank temperature):

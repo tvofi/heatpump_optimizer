@@ -94625,7 +94625,7 @@ def _hdr_small(seed, cells=800, bounds=True):
     cost[1, int(round(first / width))], val[1, int(round(first / width))] = 0.0, first
     trail = []
     for k in range(n):
-        cost, val, back = _hdr_runs.advance(cost, val, _hdr_runs.moves(1, 1, np.nan), actions(k), start, place(k), 1)
+        cost, val, back = _hdr_runs.advance(cost, val, _hdr_runs.state_moves(1, 1, np.nan), actions(k), start, place(k), 1)
         trail.append(back)
     grid = np.indices((3,) * n).reshape(n, -1).T  # 0 off, 1 and 2 the levels
     v, paid, ok, was = np.full(len(grid), first), np.zeros(len(grid)), np.ones(len(grid), dtype=bool), np.zeros(len(grid), dtype=bool)
@@ -94667,11 +94667,11 @@ R.check(
 R.check(
     "the move rule begins no run on a free step it is told the pump would not start, and still does on "
     "a forced-on step; told nothing it is the rule commit always had",
-    not any(s for _a, _b, s in _hdr_runs.moves(2, 2, np.nan, False))
-    and any(s for _a, _b, s in _hdr_runs.moves(2, 2, 1.0, False))
-    and _hdr_runs.moves(2, 2, np.nan) == _hdr_runs.moves(2, 2, np.nan, True)
-    and sum(s for _a, _b, s in _hdr_runs.moves(2, 2, np.nan)) == 1,
-    f"{_hdr_runs.moves(2, 2, np.nan, False)}",
+    not any(s for _a, _b, s in _hdr_runs.state_moves(2, 2, np.nan, False))
+    and any(s for _a, _b, s in _hdr_runs.state_moves(2, 2, 1.0, False))
+    and _hdr_runs.state_moves(2, 2, np.nan) == _hdr_runs.state_moves(2, 2, np.nan, True)
+    and sum(s for _a, _b, s in _hdr_runs.state_moves(2, 2, np.nan)) == 1,
+    f"{_hdr_runs.state_moves(2, 2, np.nan, False)}",
 )
 
 # 4. Two levels (the contributor's forward-carry). Three trickles hold a
@@ -94989,7 +94989,7 @@ R.check(
 # the cell rule whether the arrival is in a run: one step from a pause.
 _hdr_g_cost = np.array([[np.inf], [0.0]])
 _hdr_g = _hdr_runs.advance(
-    _hdr_g_cost, np.zeros((2, 1)), _hdr_runs.moves(1, 1, np.nan),
+    _hdr_g_cost, np.zeros((2, 1)), _hdr_runs.state_moves(1, 1, np.nan),
     ([lambda v, ran: (v, np.inf if ran else 1.0)], [lambda v, ran: (v, 5.0 if ran else 2.0)]), 0.0,
     lambda v, charged: (np.zeros(v.size, dtype=np.int64), np.full(v.size, 10.0 if charged else 20.0)), 1)[0]
 R.check(

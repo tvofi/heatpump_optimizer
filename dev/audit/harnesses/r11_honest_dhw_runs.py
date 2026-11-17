@@ -270,7 +270,7 @@ def _small(seed: int, cells: int, bounds: bool = True) -> tuple[float, float]:
     for k in range(n):
         actions = ([lambda v, _r, h=h, k=k: (decay * v + drift[k] + h, price[k] * h) for h in heats],
                    [lambda v, _r, k=k: (decay * v + drift[k], 0.0)])
-        cost, val, _back = runs.advance(cost, val, runs.moves(1, 1, np.nan), actions, start, place(k), 1)
+        cost, val, _back = runs.advance(cost, val, runs.state_moves(1, 1, np.nan), actions, start, place(k), 1)
     grid = np.indices((3,) * n).reshape(n, -1).T
     v, paid = np.full(len(grid), first), np.zeros(len(grid))
     ok, was = np.ones(len(grid), dtype=bool), np.zeros(len(grid), dtype=bool)

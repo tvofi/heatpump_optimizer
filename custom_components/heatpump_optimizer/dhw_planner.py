@@ -618,7 +618,7 @@ class _StoreProgram:
                 return np.clip(j, 0, width - 1), np.where(inside, 0.0, np.inf)
 
             cost, temp, back = runs.advance(
-                cost, temp, runs.moves(*lengths, self.forced[k], bool(may_start[k])),
+                cost, temp, runs.state_moves(*lengths, self.forced[k], bool(may_start[k])),
                 self._actions(k), float(self.start_price[k]), place, lengths[0])
             trail.append(back)
         if not np.isfinite(cost).any():
