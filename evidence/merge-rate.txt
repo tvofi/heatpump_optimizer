@@ -1,0 +1,4 @@
+first-parent merges 2026-11-14T15:40Z..2026-11-16T15:44Z: 72
+claims/VERSION/golden/custom_components untouched
+all first-parent commits same window: 77
+merges (TZ=UTC): 72

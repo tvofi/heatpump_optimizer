@@ -1,34 +1,60 @@
 # Review packet #3684
-head: aaf3c780f126b2268e009a00734d2cc9976ef70f
-base: 2d7161a4b70923da910f9997e18db632c0d4ec2d
+head: d401f1498734d5c8633b74b28b0948d9da27a4b7
+base: 5e2ef89b4e7348b190aa917dc032da73ba04998e
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=133718171744 neutral
-arch-score / arch-score id=133717944362 queued
-budget-raise-gate / budget-raise-gate id=133717944268 queued
-cancel-superseded id=133715247792 skipped
-codeql / Analyze (actions) id=133717944208 queued
-codeql / Analyze (javascript-typescript) id=133717944114 queued
-codeql / Analyze (python) id=133717944035 success
-governance / env-matrix id=133717944176 queued
-governance / instrument-self-tests id=133717944246 queued
-governance / policy-docs id=133717944282 queued
-governance / record id=133717947159 skipped
-governance / wave-script id=133717944145 success
-hassfest / hassfest id=133717943987 queued
-kernel-points id=133717944813 skipped
-prelude id=133715246105 success
-refresh id=133715245760 success
-tests / briefs id=133717944175 in_progress
-tests / closure-scope id=133717944143 queued
-tests / mutation id=133717944057 queued
-tests / nightly-status id=133717944227 queued
-validate / validate-hacs id=133717944110 queued
+## Gate digest: red
+CodeQL id=134170870106 success
+arch-score / arch-score id=134195321234 success
+arm id=134170269407 skipped
+budget-raise-gate / budget-raise-gate id=134195322267 success
+cancel-superseded id=134195318677 success
+codeql id=134195411292 skipped
+codeql / Analyze (actions) id=134170731194 success
+codeql / Analyze (javascript-typescript) id=134170731469 success
+codeql / Analyze (python) id=134170731218 success
+gate id=134195320621 success
+governance id=134195320607 skipped
+governance / env-matrix id=134170731164 success
+governance / instrument-self-tests id=134170731022 success
+governance / policy-docs id=134170730794 success
+governance / record id=134170734558 skipped
+governance / wave-script id=134170731109 success
+hassfest id=134195320515 skipped
+hassfest / hassfest id=134170730705 success
+kernel-points id=134195427154 skipped
+pr-contract id=134195322416 skipped
+pr-contract / pr-contract id=134193605837 success
+prelude id=134195320332 success
+refresh id=134195379913 success
+sweep-self id=134195937768 skipped
+tests id=134195320672 skipped
+tests / arch-instrument id=134171306353 success
+tests / briefs id=134170730607 success
+tests / browser id=134171306525 success
+tests / ci-ratchet id=134193602881 skipped
+tests / claims-autofix id=134178619116 skipped
+tests / closure-scope id=134170731275 success
+tests / closures id=134171306351 success
+tests / closures-autofix id=134193603279 skipped
+tests / coverage id=134171306626 success
+tests / coverage-ratchet id=134181647884 success
+tests / fast (3.14) id=134171306355 success
+tests / graders-head-copy id=134181647763 success
+tests / lane-proofs id=134181648516 success
+tests / mutation id=134170731416 success
+tests / mutation-autofix id=134171337430 skipped
+tests / mutation-pins id=134171337327 skipped
+tests / nightly-ha id=134171308369 skipped
+tests / nightly-status id=134170730690 failure
+tests / replay id=134171309979 skipped
+tests / typing id=134171306312 success
+validate id=134195397771 skipped
+validate / validate-hacs id=134170730597 success
 
 ## Refusals
-introduced-red: unreadable: head governance / instrument-self-tests job 133717944246: queued has not concluded: an introduced red cannot be ruled out (fail closed)
+none
 
 ## Advisories
 none
@@ -389,10 +415,10 @@ index 0000000000..671927e4c1
 @@ -0,0 +1 @@
 +- [#3684](https://github.com/tvofi/heatpump_optimizer/pull/3684) — **open**, R11-RCA-SELFTEST-TABLE-DRIFT: r11 rca selftest table drift (R11-RCA-SELFTEST-TABLE-DRIFT)
 diff --git a/tests/closures.json b/tests/closures.json
-index 8704e9318e..b3a65d3728 100644
+index f2955a75cc..db7b8fbdd0 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -4555,6 +4555,7 @@
+@@ -4584,6 +4584,7 @@
     "dev/audit/harnesses/r11_owner_criteria.py",
     "dev/audit/harnesses/r11_plan_page_inventory.py",
     "dev/audit/harnesses/r11_relay_3358_skip.py",
