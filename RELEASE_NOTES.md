@@ -1,3 +1,37 @@
+## v10.0.3
+
+**Patch stamp: 45 merges since v10.0.2 (`git log --first-parent --merges --format=%h v10.0.2..HEAD | wc -l`): an optional list of room thermometers, with an opt-in toggle that lets a cold room raise the planned minimum; a compressor start is priced as one start, and a solve that prices starts ships runs the pump can run; the `simulate_plan` service holds its number fields to the ranges their settings accept; the COP learner reads whether the metered draw follows the plan across the whole range of asks; the rest is tooling and records.**
+
+### Action needed
+
+Only if an automation or script calls `simulate_plan` with a number outside the range of the setting it stands in for (for example `min_temp` outside 14 to 25 °C, or `comfort_weight` outside 0.1 to 20): that call is now refused, so move the value inside the range the service form shows (#3677, below). Nothing else asks anything of you: no store needs a migration, no entity is renamed, and no default changes. The room thermometers page is optional and its room lift is off by default.
+
+### #3678 Room thermometers, and an opt-in room lift (R11-OUTSIDE-ROOMS-P2, issue #3616)
+
+A new options page, **Room thermometers** under Advanced settings, takes up to 32 room thermostats (climate entities) or temperature sensors, one per room. With a list set, two sensors are added: Room Average Temperature and Room Temperature Spread, the spread between the coldest and the warmest room. A room that is unavailable, stale or out of range is left out and never raises an input problem. With no list set, nothing changes.
+
+A toggle on the same page, "Let a cold room raise the planned minimum", is off by default. When on, a room thermostat in heat or auto mode that reads further below its own target than the house reads below its comfort target raises the plan's minimum temperature by at most 1 °C, never above the comfort target, rising at most 0.25 °C per hour. A room that is off or cooling is ignored. The lift yields to Economy mode, an open window, away, a holiday, a manually planned space heating, and the two-zone model. Room Temperature Spread carries the lift, the room that set it and the condition that held it at zero. The what-if panel uses the lift its baseline plan was solved with. Issue #3616 stays open for its third phase.
+
+### #3602 A compressor start is priced as one start (R11-OUTSIDE-HONEST-STARTS-RUNS)
+
+Where "Cost of one compressor start" is above zero, or the install cannot run the compressor below its minimum power, the solve now prices each start as one start rather than through a term on the change in power between steps, and ships a plan of runs the pump can run: every step at zero or between the minimum and maximum power. It solves the plan without the start price first, commits it to runs, re-solves the two best candidates inside their own runs and ships the cheapest. A switch between hot water and heating is weighed in starts. The published start count is the number of off-to-on edges and, on every install, counts a compressor already running at the start of the plan as no new start. On an install that cannot run below its minimum power and prices no start, a plan may hold more starts than before, at a lower cost. Built on outside pull request #3529 by Bankaifan, with thanks for the finding, the start count and the commit program. #3693 adds the checks and the measuring harness for it; no production line changes there.
+
+### #3659 The COP learner reads whether the draw follows the ask across the range of asks (R10-DRAW-MAP-EVIDENCE, issue #3106)
+
+The COP learner now treats the metered draw as following the plan's ask only where the draw rises with the ask and the ratio of drawn to asked power at the high and the low end of the asks agree within the factor that already marks one sample as a disagreement. Where the draw does not follow, a departure from the planned power is not learned as an efficiency change, and the diagnostics download shows `draw_follows_ask` as false. No plan or cost figure changes at a fixed learned state.
+
+### #3677 `simulate_plan` holds its fields to the settings' ranges; dated service examples removed (R11-SERVICE-SCHEMA)
+
+Each number field of `simulate_plan` now accepts the range of the path that saves that setting: `target_temp` and `comfort_temp_day` 5 to 30 °C, `dhw_setpoint` 30 to 75 °C and `dhw_min_temperature` 35 to 55 °C (as `apply_schedule`), and `min_temp` 14 to 25 °C, `max_temp` 18 to 28 °C, `comfort_weight` 0.1 to 20 and `comfort_temp_night` 15 to 24 °C (as the options). The five service-form selectors that showed other ranges now match. The examples of `apply_manual_plan` (its slots and expiry) and of `set_away` (its return time) were fixed dates now in the past, which the service refuses or acts on at once, and are removed; the field descriptions state the format.
+
+### Documentation
+
+#3674: the dashboard-card page says the two-plan figure for the comfort weight or the lowest allowed temperature moves with the hour asked, with or without a tank, and can read as a saving at one hour and a cost at another. #3630: ROADMAP.md, linked from the README, lists where the integration is heading. #3628: issue templates for bug reports, feature requests, feature designs, hardware support and documentation, and a code of conduct.
+
+### Development process
+
+Developer tooling, CI, audit machinery and records only, no change to the integration: #3682 (cheaper GitHub reads, part 3), #3690 (evaluation, part 3), #3698 (self-test red on main, product reads), #3675 (parallel pipeline), #3639 (macOS self-test lane in the pre-PR check), #3691 (advisor measurements, part 2), #3689 (acknowledgement completion, part 2), #3694 (briefs census, part 2), #3633 (round check gate, part 2), #3654 (toolchain pin, part 2), #3665 (product reads), #3658 (round metrics, part 3), #3668 (nudge retirement), #3686 (evaluation, part 2), #3680 (nightly month-boundary check), #3683 (builders that read no tree), #3672 (new audit dimensions, part 2), #3669 (evaluation, part 1), #3664 (handoff bookkeeping), #3671 (self-test scope re-record), #3657 (round metrics, part 2), #3645 (toolchain pin), #3641 (owner criteria), #3661 (tick seat window), #3647 (finder contract), #3635 (acknowledgement completion), #3651 (standing scripts), #3625 (briefs census), #3620 (round check gate), #3627 (machinery limiter), #3648 (relay rebuild), #3653 (outside contributor cycle, part 3), #3644 (round metrics), #3702 (delivery rows, autofix), #3692 (delivery rows, autofix), #3681 (delivery rows, autofix), #3660 (delivery rows, autofix).
+
 ## v10.0.2
 
 **Patch stamp: 12 merges since v10.0.1 (`git log --first-parent --merges --format=%h v10.0.1..HEAD | wc -l`): the card's "Apply this plan" now works when the published plan runs past the manual-plan window, and a floor-return reading far above the room no longer seeds the slab estimate; the rest is tooling and records.**

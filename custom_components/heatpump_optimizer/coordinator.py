@@ -205,6 +205,7 @@ from .inputs import (
     age_of,
     normalize_price_per_kwh,
     parse_bool,
+    read_rooms,
     read_start_hysteresis,
     price_per_kwh,
     stale_summary,
@@ -261,7 +262,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
-from . import slab_seed
+from . import rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -6324,7 +6325,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
                 # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
-                min_temp_margins=self._confidence_margins(n),
+                min_temp_margins=rooms.lifted(rooms.hold(self, rooms.resolve(  # #3616: plus a short room's lift
+                    rooms.readings_of(self), rooms.lift_of(self), rooms.gate(enabled=ctx._config.room_lift_enabled, economy=self._mode == MODE_ECONOMY, open_window=self._vent_cusum.tripped, away=self._away_state.active, manual_pin=space_pins is not None, two_zone=params.two_zone_enabled),
+                    config, state.room_temperature, solve_now)), self._confidence_margins(n), config, solve_now, n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
                 away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
@@ -6765,6 +6768,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
         observe_water(self._flow_bias, reader, self.effective_config)
+        rooms.record(self, read_rooms(reader, ctx._config.room_temperature_entities))
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -6836,10 +6840,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         state = replace(_ctx_of(self)._current_state)
         # Update ECL110 effective displace state (PID/PI lag approximation)
-        if "displace_value" in self._current_action:
-            displace_cmd = float(self._current_action.get("displace_value", 0.0))
-            dt_h = _ctx_of(self)._opt_config.dt_hours
-            self._thermal_model.update_ecl110_displace_state(state, displace_cmd, dt_h)
+        if (displace_cmd := self._current_action.get("displace_value")) is not None:
+            self._thermal_model.update_ecl110_displace_state(state, float(displace_cmd), _ctx_of(self)._opt_config.dt_hours)
             self._ecl110_current_displace = state.ecl110_displace_command
 
         # Last resort: seed the slab, and the lower zone if nothing better
@@ -8227,6 +8229,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._mixing_valve_view,
         ):
             data = {**data, **view()}
+        data = {**data, **rooms.published(rooms.readings_of(self), rooms.lift_of(self))}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}
@@ -11344,9 +11347,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # except the mold cap follows the SIMULATED target, so
                 # a what-if dragging the target down sees the floor
                 # that choice would actually get.
-                min_temp_margins=self._confidence_margins(
-                    len(horizon.prices)
-                ),
+                min_temp_margins=rooms.lifted(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),  # the baseline's lift, #3616
                 min_temp_floors=self._mold_floor_series(
                     horizon.outdoor_temps,
                     target_cap=float(scratch_config.target_temp),
