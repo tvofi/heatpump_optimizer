@@ -2027,7 +2027,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r11-pre-finder-contract",
-    "commit": "e75ad291ff5c58f7c8362b0a20fbe6b230adf717",
+    "commit": "46466bf42b629c2994057da0d2c330b21c0f8e4f",
     "last_step": null,
     "next_step": "fire now; build at the approved eval/r11 sha when it lands; merge after the review commit",
     "note": "finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" Card E11-COMMON, ruled \"Accept both parts (Recommended)\". Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.",
