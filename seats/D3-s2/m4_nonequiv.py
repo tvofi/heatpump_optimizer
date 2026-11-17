@@ -191,6 +191,22 @@ def probe_note_nan_predicted():
             outcome(_tracker_drive, mut, 21.0, float("nan")))
 
 
+def probe_score_nan_pending():
+    """accuracy.py:269: a NaN prediction that reached lead_pending some other
+    way than note_lead_prediction (whose own guard, :238, refuses one)."""
+    base, mut = mutated("accuracy",
+                        "            if not np.isfinite(predicted):\n                continue",
+                        "            if False:\n                continue")
+
+    def drive(m):
+        t = m.AccuracyTracker()
+        t0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
+        t.lead_pending.append((t0, 3.0, float("nan")))
+        t.score_lead_predictions(t0 + timedelta(minutes=5), 21.0, window_hours=0.5)
+        return repr(t.sigma(3.0)), dict(t.lead_counts)
+    return outcome(drive, base), outcome(drive, mut)
+
+
 PROBES = {"setpoint_step_zero": probe_setpoint_step,
           "roll_receipts_retention": probe_roll_receipts,
           "sanitize_tuple_nan": probe_sanitize,
@@ -199,7 +215,8 @@ PROBES = {"setpoint_step_zero": probe_setpoint_step,
           "sample_from_dict_falsy_t": probe_sample_from_dict,
           "take_fresh_handover_none": probe_take_fresh_handover,
           "score_lead_nan_actual": probe_score_nan_actual,
-          "note_lead_nan_predicted": probe_note_nan_predicted}
+          "note_lead_nan_predicted": probe_note_nan_predicted,
+          "score_nan_pending_direct": probe_score_nan_pending}
 
 
 def main():
