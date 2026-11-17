@@ -15,3 +15,4 @@
 1794942220 SEAT D3-s1 running
 1794942237 HB D3-s1 Agent spawn refused by frugal guard again; seat runs INLINE in the box session per orchestrator amendment
 1794942245 CKPT D3-s1 93 file(s)
+1794942432 HB D3-s1 R0 restored (sha ok; 3 eaten JSON escapes repaired per state file); D3-s1-01 harness 681 / 0->681 on carried traces; re-taking traced baselines on Linux 4-core
