@@ -39,6 +39,8 @@ RUN_TIMEOUT_S = 900
 # A cell token -> what it observes, every comparison against the plan's or the test's own values. A token
 # printed by `d16-writes --cells` with no entry here prints `state not recorded` and never counts.
 PLAN_STATES = ("idle", "dhw-only", "both", "partial", "full", "min-cold-tank")
+# The duty mode each `d16-writes --cells` state runs under (enumerate.STATES, one row per state).
+DUTY_OF = dict(census.STATES)
 # Option axes -> the const.py names of the configuration keys that carry the level; profile axes -> the
 # tests/profiles.py function whose `profile` argument carries it; binary CONF_*_ENTITY axes read the key's
 # presence. An axis in none of these prints `no witness` per level (no observable in the stub: language,
@@ -113,16 +115,18 @@ def token_holds(tok, ps, write):
     """True / False against a recorded pass state (and the write, for a write site), or None: not recorded."""
     if ps is None:
         return False
-    if tok.startswith("duty="):
-        return ps["duty"] == tok[5:]
+    # every token is a row of census.STATES: it holds only under the duty mode that row names
+    if tok in DUTY_OF and ps["duty"] != DUTY_OF[tok]:
+        return False
+    first = ps["plan"] and ps["ordinal"] == 0 and not (write or {}).get("unavailable")
     if tok in PLAN_STATES:
-        return ps["plan_state"] == tok
+        return first and ps["plan_state"] == tok
+    if tok in ("observe", "off"):
+        return first
     if tok == "baseline":
         return ps["plan"] and ps["k"] is None
     if tok == "restart":
         return ps["ordinal"] > 0
-    if tok == "running":
-        return ps["plan"] and ps["ordinal"] == 0 and not (write or {}).get("unavailable")
     if tok == "unavailable":
         return None if write is None else bool(write.get("unavailable"))
     return None
@@ -708,7 +712,7 @@ def plant(root):
         (root / d).mkdir(parents=True, exist_ok=True)
     w = lambda p, t: (root / p).write_text(t)
     w(f"{PKG}/__init__.py", "")
-    w(f"{PKG}/const.py", "PUMP_DUTY_MODES = ('off', 'control')\nCONF_PUMP_DUTY_MODE = 'pump_duty_mode'\nDEFAULT_PUMP_DUTY_MODE = 'off'\n"
+    w(f"{PKG}/const.py", "PUMP_DUTY_MODES = ('off', 'observe', 'control')\nCONF_PUMP_DUTY_MODE = 'pump_duty_mode'\nDEFAULT_PUMP_DUTY_MODE = 'off'\n"
       "CONF_A_ENTITY = 'a_entity'\nCONF_B_ENTITY = 'b_entity'\nCONF_C_ENTITY = 'c_entity'\nMODES = ('m1', 'm2')\nGRID = ('g1', 'g2')\n"
       "CONF_GRID = 'grid'\nCONF_MODE = 'mode'\nCONF_MODE2 = 'mode2'\n")
     w(f"{PKG}/config_flow.py", "X = (CONF_A_ENTITY, CONF_B_ENTITY, CONF_C_ENTITY)\n")
@@ -751,27 +755,27 @@ def self_test():
         saved, OPTION_KEYS = OPTION_KEYS, {"mode": ("CONF_MODE", "CONF_MODE2"), "grid": ("CONF_GRID",)}
         try:
             cells = universe(root, "d16-writes", cells=True)
-            W, W2, WD = f"write {A}:8 apply", f"write {A}:10 apply", f"write {A}:14 direct"
+            W, W2, WD = f"write {A}:8 apply domain=climate", f"write {A}:10 apply domain=number", f"write {A}:14 direct domain=light"
             H = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {A}"))
             arm("the fake write sites are the arbiter's three `.services.async_call` lines, not the aliased fourth",
                 sorted({c.split(" |")[0] for c in cells if c.startswith("write ")}), sorted([W, W2, WD]))
             R = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {PKG}/off_restore.py"))
             HC = next(c.split(" |")[0] for c in cells if c.startswith(f"hold {PKG}/coordinator.py"))
             led = root / "op.tsv"
-            ops = [(f"{W} | duty=control | running", "payload"), (f"{W} | duty=control | running", "constant"),
-                   (f"{W} | duty=control | running", "restart-payload"), (f"{W} | duty=control | restart", "payload"),
-                   (f"{W} | duty=control | upgrade", "payload"), (f"{H} | duty=control | running", "held"),
-                   (f"{W} | duty=off | running", "payload"), (f"{W} | duty=control | restart", "restart-payload"),
-                   (f"{W} | duty=control | running", "nosuch"), (f"{W} | duty=control | unavailable", "unavailable-payload"),
-                   (f"{W} | duty=control | running", "unavailable-payload"), (f"{W} | duty=control | running", "counter"),
-                   (f"{R} | duty=control | running", "restored"), (f"{W} | duty=control | running", "other-payload"),
-                   (f"{W2} | duty=control | running", "other-payload"), (f"{H} | duty=off | running", "held"),
-                   (f"{W} | duty=control | running", "differs-payload"), (f"{W} | duty=control | running", "now-none-payload"),
-                   (f"{W} | duty=control | restart", "built-second-payload"), (f"{HC} | duty=control | running", "coordinator-held"),
-                   (f"{WD} | duty=control | running", "direct-hold"), (f"{W} | duty=control | running", "always-fails"),
-                   (f"{W} | duty=control | running", "differs-detail"), (f"{W} | duty=control | running", "steady-detail")]
+            ops = [(f"{W} | idle", "payload"), (f"{W} | idle", "constant"),
+                   (f"{W} | idle", "restart-payload"), (f"{W} | restart", "payload"),
+                   (f"{W} | upgrade", "payload"), (f"{H} | idle", "held"),
+                   (f"{W} | off", "payload"), (f"{W} | restart", "restart-payload"),
+                   (f"{W} | idle", "nosuch"), (f"{W} | unavailable", "unavailable-payload"),
+                   (f"{W} | idle", "unavailable-payload"), (f"{W} | idle", "counter"),
+                   (f"{R} | idle", "restored"), (f"{W} | idle", "other-payload"),
+                   (f"{W2} | idle", "other-payload"), (f"{H} | off", "held"),
+                   (f"{W} | idle", "differs-payload"), (f"{W} | baseline", "now-none-payload"),
+                   (f"{W} | restart", "built-second-payload"), (f"{HC} | idle", "coordinator-held"),
+                   (f"{WD} | idle", "direct-hold"), (f"{W} | idle", "always-fails"),
+                   (f"{W} | idle", "differs-detail"), (f"{W} | idle", "steady-detail")]
             led.write_text("# a comment and a blank line are skipped\n\n" + "".join(f"{c}\t{S}{k}\n" for c, k in ops)
-                           + f"{W} | duty=control | running\ttests/dies.py::x\n")
+                           + f"{W} | idle\ttests/dies.py::x\n")
             out = read_operation(root, led, 4)
             base = run_script(root, "tests/fake_script.py", defaults_of(root))
             full = {tuple(l.split("\t")[:2]): "\t".join(l.split("\t")[2:]) for l in out if "\t" in l and "::" in l}
@@ -799,7 +803,7 @@ def self_test():
                 "moved\ttarget=no plan value")
             arm("planted: a hold whose recorded state differs is not reached", v(15).startswith("not witnessed: state differs (recorded duty=control"), True)
             arm("planted: a set-point the plan does not hold", full[(ops[16][0], S + ops[16][1])], "moved\ttarget=differs plan=21.0 sent=22.0")
-            arm("null: a pass with no `now` reads the clock", v(17), "moved")
+            arm("null: a pass with no `now` reads the clock: past the plan, it is baseline", v(17), "moved")
             arm("null: the real coordinator class built second on one entry and applied first is restart (construction order)", v(18), "moved")
             arm("null: a hold in the coordinator module is reached", v(19), "reached")
             arm("planted: a write outside every pass", v(20), "not witnessed: state differs (recorded outside every pass)")
@@ -809,7 +813,7 @@ def self_test():
             arm("planted: a check that stays ok with a detail the perturbed site does not reach does not move", v(23),
                 "not witnessed: the check does not move")
             arm("planted: a launcher that dies before writing its record",
-                got[(f"{W} | duty=control | running", "tests/dies.py::x")].startswith("not witnessed: unknown check (launcher: "), True)
+                got[(f"{W} | idle", "tests/dies.py::x")].startswith("not witnessed: unknown check (launcher: "), True)
             n_checks = len(base["by_check"])
             arm("per-script, outside-every-pass and unlisted-writer lines", [l for l in out if not l.startswith(("write ", "hold ", "RESULT"))],
                 ["script tests/dies.py\tchecks=0\twrites outside every pass=0\terror=launcher: " + next(
@@ -817,7 +821,7 @@ def self_test():
                  f"script tests/fake_script.py\tchecks={n_checks}\twrites outside every pass=1\terror=RuntimeError: planted",
                  f"outside every pass {R.split(' ')[1]}\t1 (never witnessable: no plan)",
                  f"outside every pass {A}:14\t1 (never witnessable: no plan)", f"unlisted writer {A}:12\t1"])
-            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=7 moved=8 reached=3")
+            arm("RESULT counts distinct cells", out[-1], f"RESULT read=operation universe={len(cells)} examined=8 moved=8 reached=3")
             arm("planted (ii): a site never reached", _never_reached(root, S), "not witnessed: site never reached before the check")
             arm("null: no site perturbed turns no check but the planted FAIL (the recorders keep each return value and argv)",
                 sorted(k for k, c in base["by_check"].items() if not c["ok"]), ["always-fails"])
@@ -828,9 +832,11 @@ def self_test():
             ps = {"duty": "control", "plan": True, "k": None, "plan_state": None, "ordinal": 0}
             arm("token: baseline is a plan held and no step covering now", (token_holds("baseline", ps, None), token_holds("baseline", {**ps, "k": 0}, None)), (True, False))
             arm("token: an unknown token is not recorded", token_holds("boost-partial", ps, None), None)
-            arm("token: a write outside every pass holds no token", token_holds("duty=control", None, None), False)
+            arm("token: a write outside every pass holds no token", token_holds("idle", None, None), False)
             arm("token: a plan-state token reads the recorded plan state", (token_holds("idle", {**ps, "plan_state": "idle"}, None),
                 token_holds("both", {**ps, "plan_state": "idle"}, None)), (True, False))
+            arm("token: off holds under duty=off on the first pass, not on a restart pass",
+                (token_holds("off", {**ps, "duty": "off"}, None), token_holds("off", {**ps, "duty": "off", "ordinal": 1}, None)), (True, False))
             # generality
             gl = root / "gen.tsv"
             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),
@@ -894,18 +900,18 @@ def self_test():
                 arm(f"{name}: a ledger row naming no item exits 2, citing its line",
                     _refused(name, root, "# c\nnosuch\tx::y\n" if name == "operation" else "# c\nnosuch\tsimulation\tx::y\n", "x.tsv:2: 'nosuch'"), True)
                 arm(f"{name}: an empty ledger exits 2", _exit(name, root, "# nothing\n")[0], 2)
-            item = f"{W} | duty=control | running"
+            item = f"{W} | idle"
             for name, text in (("operation", f"{item}\tsimulation\t{S}payload\n"), ("operation", f"{item}\t{S}payload\textra\n"),
                                ("operation", f"{item}\ttests/fake_script.py payload\n"), ("generality", f"level mode=m1\t{S}payload\n"),
                                ("generality", f"level mode=m1\tsimulation\ttests/fake_script.py payload\n"),
                                ("generality", f"level mode=m1\tguesswork\t{S}payload\n")):
                 arm(f"{name}: a malformed row exits 2: {text.strip()!r}", _refused(name, root, text, "x.tsv:1: a row is"), True)
-            arm("operation: a read that prints its RESULT exits 0", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n")[0],
+            arm("operation: a read that prints its RESULT exits 0", _exit("operation", root, f"{W} | idle\t{S}payload\n")[0],
                 "RESULT printed, exit 0")
             (root / PKG / "pump_arbiter.py").write_text("x = 1\n")
             (root / PKG / "log_latch.py").write_text("")
             (root / PKG / "off_restore.py").write_text("")
-            arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | duty=control | running\t{S}payload\n")[0], 2)
+            arm("operation: an emptied universe source exits 2", _exit("operation", root, f"{W} | idle\t{S}payload\n")[0], 2)
             (root / census.OBJECTIVE).unlink()
             arm("generality: an emptied universe source exits 2", _exit("generality", root, f"level mode=m1\tsimulation\t{S}payload\n")[0], 2)
             arm("a read with no --ledger exits 2 before reading", _usage_exit(["operation", "--repo", str(root)]), 2)
@@ -943,7 +949,7 @@ def _never_reached(root, S):
     keep = p.read_text()
     p.write_text(keep + "async def unused(hass):\n    await hass.services.async_call('a', 'b', {})\n")
     try:
-        cell = next(c for c in universe(root, "d16-writes", cells=True) if " unused | duty=control | running" in c)
+        cell = next(c for c in universe(root, "d16-writes", cells=True) if " unused domain=a | idle" in c)
         led = root / "never.tsv"
         led.write_text(f"{cell}\t{S}payload\n")
         return next(l.split("\t")[2] for l in read_operation(root, led, 2) if l.startswith(cell + "\t"))

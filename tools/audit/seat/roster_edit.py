@@ -16,7 +16,7 @@
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
     python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
-    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class
+    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class|gates_finders
                                                          |found_by|owned_by|caused_by|family|cm_kind|parent|follows> <value>
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
@@ -461,7 +461,7 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
 
 
 #: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
-SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class") + roster_lib.CONVERGENCE_FIELDS
+SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class", "gates_finders") + roster_lib.CONVERGENCE_FIELDS
 CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
 REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
 
@@ -504,9 +504,9 @@ def op_set_field(roster, group, field, raw):
         raise Refuse(f"set-field: {field!r} is not one of {', '.join(SET_FIELDS)}")
     if raw == "-":
         new = None
-    elif field == "hotfix":
+    elif field in ("hotfix", "gates_finders"):
         if raw not in ("true", "false"):
-            raise Refuse("set-field: hotfix is true or false")
+            raise Refuse(f"set-field: {field} is true or false")
         new = raw == "true"
     elif field == "hotfix_by":
         try:
@@ -2236,6 +2236,12 @@ def _self_test() -> int:
     t0 = tip()
     check("set-field source with a word outside SOURCES is refused, moving nothing",
           refuses("is not a source", "set-field", "R9-S2", "source", rest=("bogus",)) and tip() == t0)
+    check("set-field gates_finders true, then false, reads back a boolean",
+          edit("set-field", "R9-S2", "gates_finders", rest=("true",)) == 0 and grp("R9-S2")["gates_finders"] is True
+          and edit("set-field", "R9-S2", "gates_finders", rest=("false",)) == 0 and grp("R9-S2")["gates_finders"] is False)
+    t0 = tip()
+    check("set-field gates_finders refuses a word that is not true or false, moving nothing",
+          refuses("gates_finders is true or false", "set-field", "R9-S2", "gates_finders", rest=("yes",)) and tip() == t0)
     check("set-field class is accepted",
           edit("set-field", "R9-S2", "class", rest=("docs",)) == 0 and grp("R9-S2")["class"] == "docs")
     # The convergence record (P7, L1): closed words, written through roster_lib.convergence_why.
@@ -2244,6 +2250,12 @@ def _self_test() -> int:
           all(edit("set-field", "R9-S3", f, rest=(v,)) == 0 and grp("R9-S3")[f] == v for f, v in (
               ("found_by", "owner"), ("owned_by", "D8"), ("family", "N-log-flood"),
               ("cm_kind", "narrow"), ("parent", "R9-S2"), ("follows", "R9-S1"))))
+    # Both sides of the #3633/#3657 merge: a resolution dropping either SET_FIELDS half or its usage words fails here.
+    check("set-field gates_finders and a convergence field in one run: both read back, both in the usage line",
+          edit("set-field", "R9-S3", "gates_finders", rest=("true",)) == 0
+          and edit("set-field", "R9-S3", "found_by", rest=("reviewer",)) == 0
+          and grp("R9-S3")["gates_finders"] is True and grp("R9-S3")["found_by"] == "reviewer"
+          and all(f"|{f}" in __doc__ for f in ("gates_finders",) + roster_lib.CONVERGENCE_FIELDS))
     t0 = tip()
     check("set-field refuses a word outside each vocabulary and an unknown group, moving nothing",
           refuses("finder dimension", "set-field", "R9-S3", "found_by", rest=("ci",))
