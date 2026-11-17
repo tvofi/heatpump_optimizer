@@ -19,3 +19,4 @@
 1794874983 DONE blocked 4fba42d085 mutation-vacuous inputs.py:287 CLAMP_DROP; verdict 0756853e6e on probe/rev-3667-3ce80db0
 1794884445 HB alive
 1794884520 CKPT packet read; delta is tests/features.py + 1 ledger pin snapshot df7fb07f6c5e
+1794884628 CKPT block mutants: all 3 clamp mutants killed 1 of 18; full features.py run in progress snapshot eb97b5db1690
