@@ -1,32 +1,29 @@
-# Reviewer's targeted mutants: apply in place in the head worktree, run the file's self-test, restore with git checkout.
-import subprocess, sys
-WT = sys.argv[1]
+import subprocess, sys, pathlib
+WT = pathlib.Path(sys.argv[1])
 M = [
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        event(ctx, f"ROSTER-REFUSED #{n} {text}")', '        pass'),
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        if key in done or key in refused:', '        if key in done:'),
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        if lease is None:\n            break', '        if False:\n            break'),
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        if mark == f"#refused {op}":', '        if False:'),
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        refused.add(key)\n', '        done.add(key)\n'),
- ("beat_jobs", "tools/audit/seat/beat_jobs.py", '        ctx.remember("roster-refused.json", sorted(refused), [])\n', ''),
- ("roster_lib", "tools/audit/seat/roster_lib.py", 'fcntl.LOCK_EX | fcntl.LOCK_NB', 'fcntl.LOCK_SH | fcntl.LOCK_NB'),
- ("roster_lib", "tools/audit/seat/roster_lib.py", '            if clock() >= end:', '            if True:'),
- ("carry_fold", "tools/audit/seat/carry_fold.py", '    fd = lease(state_dir, wait_s)\n', '    fd = os.open(os.devnull, os.O_RDONLY)\n'),
- ("carry_fold", "tools/audit/seat/carry_fold.py", 'rc, lines = leased(a.state_dir, LEASE_WAIT_S, lambda: fold(body, load, apply, a.pr, a.topic))', 'rc, lines = fold(body, load, apply, a.pr, a.topic)'),
- ("record_beat", "tools/audit/seat/record_beat.py", ', "body": d.get("body") or ""}', '}'),
- ("record_beat", "tools/audit/seat/record_beat.py", 'closingIssuesReferences,body"', 'closingIssuesReferences"'),
- ("postmerge", "tools/audit/seat/postmerge.py", '    marks, unkeyed = derive_marks(f.get("body", ""), roster_now, group, sha) if group != rb.NO_GROUP else ([], [])', '    marks, unkeyed = [], []'),
- ("postmerge", "tools/audit/seat/postmerge.py", '        if kind == "dismissed" and (not why or "]" in why):', '        if False:'),
- ("postmerge", "tools/audit/seat/postmerge.py", '        if roster_lib.carry_mark(hits[0]):', '        if False:'),
- ("postmerge", "tools/audit/seat/postmerge.py", '            if code != 0:\n                out(f"stage refused rc {code}: {last}")', '            if False:\n                out(f"stage refused rc {code}: {last}")'),
+ ("M9", "tools/audit/seat/carry_fold.py", "leased(a.state_dir, LEASE_WAIT_S, lambda: fold(", "(lambda: fold("),
+ ("M10", "tools/audit/seat/record_beat.py", '"body": d.get("body") or ""', None),
+ ("M11", "tools/audit/seat/record_beat.py", ",body", ""),
+ ("M16-empty-queue", "tools/audit/seat/postmerge.py", "            if not queued:\n                continue", "            if False:\n                continue"),
 ]
-for i, (t, path, old, new) in enumerate(M):
-    p = f"{WT}/{path}"; s = open(p).read()
-    if s.count(old) != 1:
-        print(f"M{i} {t}: SITE-NOT-UNIQUE ({s.count(old)})"); continue
-    open(p, "w").write(s.replace(old, new))
-    args = ["python3", "-I", path, "--self-test"] + (["--no-mutants"] if t in ("postmerge", "beat_jobs") else [])
-    r = subprocess.run(args, cwd=WT, capture_output=True, text=True, timeout=600)
-    subprocess.run(["git", "checkout", "-q", "--", path], cwd=WT)
-    tail = (r.stdout + r.stderr).strip().splitlines()[-1:] or ["no output"]
-    fails = [l.strip() for l in (r.stdout + r.stderr).splitlines() if "FAIL" in l][:2]
-    print(f"M{i} {t}: {old.strip()[:70]!r} -> {new.strip()[:40]!r}: rc={r.returncode} {'KILLED' if r.returncode else 'SURVIVED'} | {tail[0]} | {fails}")
+for name, f, old, new in M:
+    p = WT / f; src = p.read_text()
+    n = src.count(old)
+    if new is None:
+        # drop the dict entry and its separator
+        line = [l for l in src.splitlines(True) if old in l]
+        print(name, "anchor lines:", [l.strip() for l in line])
+        mutated = src.replace('"body": d.get("body") or ""', '"_nobody": 0', 1)
+    else:
+        mutated = src.replace(old, new, 1)
+    if n == 0 or mutated == src:
+        print(f"{name}: ANCHOR-MISSING ({n})"); continue
+    p.write_text(mutated)
+    try:
+        r = subprocess.run([sys.executable, "-I", f, "--self-test"], cwd=WT, capture_output=True, text=True, timeout=200)
+        out = (r.stdout + r.stderr).splitlines()
+        fails = [l for l in out if "FAIL" in l]
+        print(f"{name}: {'KILLED' if r.returncode else 'SURVIVED'} rc={r.returncode} anchors={n} :: {out[-1] if out else ''}")
+        for l in fails[:4]: print("   ", l.strip()[:200])
+    finally:
+        p.write_text(src)

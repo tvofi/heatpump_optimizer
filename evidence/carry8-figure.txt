@@ -1,6 +1,0 @@
-5 ops; 0 owed
-mark-carry R11-PRE-HANDOFF-BOOKKEEPING --match S14-DRAIN-REFUSAL-NOT-DURABLE implemented ffffffffffffffffffffffffffffffffffffffff
-mark-carry R11-PRE-HANDOFF-BOOKKEEPING --match POSTMERGE-STAGE-VIA-DRAIN implemented ffffffffffffffffffffffffffffffffffffffff
-mark-carry R11-PRE-HANDOFF-BOOKKEEPING --match ROSTER-PUSH-LEASE implemented ffffffffffffffffffffffffffffffffffffffff
-mark-carry R11-PRE-HANDOFF-BOOKKEEPING --match POSTMERGE-DERIVES-CARRY-MARKS implemented ffffffffffffffffffffffffffffffffffffffff
-mark-carry R11-PRE-HANDOFF-BOOKKEEPING --match CARRY-FOLD-SUPERSEDED implemented ffffffffffffffffffffffffffffffffffffffff
