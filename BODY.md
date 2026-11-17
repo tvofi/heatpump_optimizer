@@ -1,6 +1,6 @@
 R11-OUTSIDE-SELF-SETTING-PUMP, rebuilt on the round-3 design (`design.md` at 0acbbc8b910c57256696e0d8ff56649b71eb8bbc of design/R11-OUTSIDE-SELF-SETTING-PUMP; `Design review: approve 0acbbc8b910c57256696e0d8ff56649b71eb8bbc`, design-verdict at 7062403121b7d5399ed6fea3eff6638b18168348). It answers `Fix review: blocked 1134fe365519ce1334aa95960e19f908bb2b4f53 class-open` (verdict at ba984f3567823b3b5f0b2297aff35e6be6185fd7). Owner ruling D4 (tvofi, 2026-11-15) stands: the self-setting pump residual of #3593 is fixed, not accepted. The first body's carry answers (carries 0 to 4 of this group on handoff/audit-r10-roster) are unchanged except where a section below says so.
 
-prepr: passed rc=0 at e1fa50dd751679423507796b6ac938a79df7d791
+prepr: passed rc=0 at a3bc90e2a8ea633c69f901aced0f84ce804a7b2b
 
 ## Two measured costs the owner should see first
 
@@ -56,6 +56,14 @@ Measured at this head (`## Figures`):
 5. **Null control 3 does not hold on four rows**, and cannot under decision 2. `sub_min_true_0.6_x384` and `_x480` read 118/384 at 0.611 and 150/480 at 0.603 at the blocked head and 0 folded, pending, here; `held_filling_heatled_true_0.8` reads 96/96 at 0.810 there and 0/96, pending, here; `selfset_flat` (96 intervals) ends pending at a dither level. Each has fewer than 50 admitted rows between the window turning unobtainable and the row's end. The `sub_min` rows are also a finding (`## Forward-carry`): they never decide at any length.
 
 ## Head
+
+`a3bc90e2a8ea633c69f901aced0f84ce804a7b2b` (the code head of this repair) is 948e07753393792a54faa69232562620db057365 plus one commit adding six checks to `tests/features.py` and no production line (`git diff 948e077533 a3bc90e2a8 --stat` lists that file alone). Merge base 30991a6b0d4caaf796847956ebc9977cb4656505. Measured 2026-11-17 12:22 UTC; at that time origin/main is 8f39313a44a4baec18b239ba925f6e164eb26bd2 and `git merge-tree --write-tree origin/main HEAD` reports no conflict (rc 0), so main is not merged. Since the previous body's head 0cbea8f970: 4725dffbfa and 948e077533 are `mutation-autofix` pin commits and afa6a3619b the merge-main bot's merge of origin/main 30991a6b0d. Figures other than `### Lane survivors`, the first item of `### Gate and ratchets` and `## Red checks` were taken at the earlier heads they name.
+
+Earlier head record, as written for 0cbea8f970:
+
+`0cbea8f970dabd8d6fae1ea44f988a16f2208a5e` merges the authored code head `e1fa50dd751679423507796b6ac938a79df7d791` and then merges origin/main `b425502da8` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`0cbea8f970dabd8d6fae1ea44f988a16f2208a5e` re-keys 1 `## Unpinned sites` line(s) the main merge moved from `e1fa50dd751679423507796b6ac938a79df7d791`, each to the line at this head with identical text and kind (`ci_predict.py --rekey-body`): custom_components/heatpump_optimizer/coordinator.py:5331 GUARD_OFF -> custom_components/heatpump_optimizer/coordinator.py:5337 GUARD_OFF.
 
 e1fa50dd751679423507796b6ac938a79df7d791 (the code head; the gate, the sweeps and the hand mutants ran at 4fee736fbeccfc47be137c7093445b6ab8e0a060, whose production files are this head's: `git diff 4fee736fbe HEAD --stat -- custom_components` prints nothing), on merge base 6f422812d5d8b918beace0283419c153f6df66ce (origin/main). Measured 2026-11-16 21:21 UTC. At that time origin/main is b08346b222, and `git merge-tree --write-tree origin/main HEAD` reports no conflict (rc 0), so main is not merged; the train re-proves the head on the current main. The branch contains the repair seat's merge of origin/main 6f422812d5 (b7a77e86dd).
 
@@ -120,6 +128,24 @@ The design's targets are in it: the coin's sign in the contrast (`coin_sign_drop
 
 The same step at this head (e1fa50dd75, inside the prepr run that printed rc=0) leaves 2 `SURVIVED` lines, the two triaged comparisons above, and kills the other 38 it draws.
 
+### Lane survivors
+
+`tests / mutation` at 948e077533 refused the table: `python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3` printed `MUTATION TABLE REFUSED -- 2134 unpinned site(s) against 2127 at the ratchet base ..., 7 of them added by this diff`, five `ADDED UNPINNED` anchors (two hold two mutants each), the survivors of `mutation-autofix`'s pin drive. The same command in this seat, at 948e077533 against the ratchet base 30991a6b0d, printed the same five anchors. Each got a check in the block, at a3bc90e2a8. Each mutant was then applied by hand, alone, to `accuracy.py` at a3bc90e2a8, the block run (`features_block.py` behind its `--emit-prelude` prelude) and the file restored. The unmutated block prints `ALL 116 FEATURES BLOCK PASSED` both before and after the seven runs (null control); each mutant prints `1 of 116` or `2 of 116 FEATURES BLOCK FAILED`:
+
+| site | mutant | failing check |
+|---|---|---|
+| `accuracy.py:989` BOOLOP | `if second or first is not None:` | "two rows taken under one first-of-pair reading make no pair ..." (a contrast 2.058 under the first-of-pair reading; `AttributeError` under the second) |
+| `accuracy.py:1069` CMP_BOUND | `COP_SCALE_MIN <= row.cop_scale` | "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX ..." and the existing "(s) a probe whose first row is read at the clamp ..." |
+| `accuracy.py:1069` CMP_BOUND | `row.cop_scale <= COP_SCALE_MAX` | "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX ..." (base 1.6 kept) |
+| `accuracy.py:1114` CLAMP_DROP | `scale = float((configured()))` | "a due restore owes the configured scale clamped ..." (2.0 owed as 2.0) |
+| `accuracy.py:1121` GUARD_OFF | `if False:` | "where no probe runs ... owes no scale and starts no dither" (`TypeError`) |
+| `accuracy.py:1124` CMP_BOUND | `0.0 < utc_elapsed_seconds(...)` | "a parked probe still holds its base on the instant it parked ..." (unparked at 0 s) |
+| `accuracy.py:1124` CMP_BOUND | `... < COP_HOLD_HORIZON_S` | same check (unparked at exactly 7 days) |
+
+`ScaleProbe.owed_scale` with no base is reached in production only with `dither.admitted` false (every admitted row sets the base first), so its check builds that state directly: it pins the guard's contract, not a path a cycle walks. The added lines are under `tests/` only, so `mutant_run.py --diff` draws none of them. The pins are `mutation-autofix`'s (`ci-autofix.md`).
+
+
+
 ## Null control
 
 - No swing: `selfset_2.2_swing0_control_s1` reads `does_not_follow` at 1.000, and so do seeds 2 to 5 of the reviewer's driver.
@@ -130,7 +156,7 @@ The same step at this head (e1fa50dd75, inside the prepr run that printed rc=0) 
 
 ## Figures
 
-<!-- figure-block: scope-line mb=367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c head=e1fa50dd751679423507796b6ac938a79df7d791 -->
+<!-- figure-block: scope-line mb=30991a6b0d4caaf796847956ebc9977cb4656505 head=a3bc90e2a8ea633c69f901aced0f84ce804a7b2b -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -213,6 +239,7 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 
 ### Gate and ratchets
 
+- Scoped gate at a3bc90e2a8ea633c69f901aced0f84ce804a7b2b (this repair's code head): `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=30991a6b0d4caaf796847956ebc9977cb4656505 PYTHONPATH=tests/hastub ./tests/run.sh` printed `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` and `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`, rc 0. Among them: `ALL 5870 FEATURE CHECKS PASSED`, `ALL 2731 ENTITY CHECKS PASSED`, `ALL 116 STRESS CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 30991a6b0d4caaf796847956ebc9977cb4656505` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`. `python3 tests/structure.py` at the same head: `STRUCTURE RATCHET PASSED`, no row re-recorded. The items below are the earlier heads'.
 - Scoped gate at 4fee736fbeccfc47be137c7093445b6ab8e0a060: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=6f422812d5d8b918beace0283419c153f6df66ce ./tests/run.sh` printed `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` and `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`. Among them: `ALL 5758 FEATURE CHECKS PASSED`, `ALL 2723 ENTITY CHECKS PASSED`, `ALL 116 STRESS CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `NO STALE FIXTURE: 56 committed fixture(s)`. Neither claim file is touched.
 - The run before it, at 08f94c2d92, was red on two scripts, both this build's and both repaired in 4fee736fbe (`## Red checks`).
 - `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`, no row re-recorded by this build. `class_excess_loc` read 17512 against 17444 with the probe inside `MeasuredCop` (368 lines); paid by `ScaleProbe` and `ScaleDither` as classes of their own, no raise.
@@ -242,7 +269,7 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 - custom_components/heatpump_optimizer/accuracy.py:968 GUARD_OFF (`if self.ahead is not None and not self.ahead[1]:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:973 RETURN_DEL (`return self.levels(base)[(coin > 0) != second]`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:985 GUARD_OFF (`if self.reading is None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/accuracy.py:989 BOOLOP (`if second and first is not None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/accuracy.py:989 BOOLOP (`if second and first is not None:`): survived the lane (`tests / mutation` at 948e077533 named it ADDED UNPINNED); killed at a3bc90e2a8 by the check "two rows taken under one first-of-pair reading make no pair" (`## Mutation proof`, "Lane survivors"); left to mutation-autofix to pin
 - custom_components/heatpump_optimizer/accuracy.py:989 GUARD_OFF (`if second and first is not None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:991 GUARD_OFF (`if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= F`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:998 CMP_BOUND (`if 2 * len(self.contrasts) < MIN_SAMPLES:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
@@ -255,7 +282,7 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 - custom_components/heatpump_optimizer/accuracy.py:1066 GUARD_OFF (`if self.response != ASK_PENDING or self.restore_due:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1068 GUARD_OFF (`if self.base is None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1069 BOOLOP (`if not self.reseeded and not COP_SCALE_MIN < row.cop_scale <`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/accuracy.py:1069 CMP_BOUND*2 (`if not self.reseeded and not COP_SCALE_MIN < row.cop_scale <`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/accuracy.py:1069 CMP_BOUND*2 (`if not self.reseeded and not COP_SCALE_MIN < row.cop_scale <`): survived the lane (`tests / mutation` at 948e077533 named it ADDED UNPINNED); killed at a3bc90e2a8 by the check "a probe's first row read exactly at COP_SCALE_MIN or COP_SCALE_MAX" (`## Mutation proof`, "Lane survivors"); left to mutation-autofix to pin
 - custom_components/heatpump_optimizer/accuracy.py:1069 GUARD_OFF (`if not self.reseeded and not COP_SCALE_MIN < row.cop_scale <`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1071 RETURN_DEL (`return ASK_PENDING`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1073 GUARD_OFF (`if self.parked_at is not None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
@@ -268,14 +295,14 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 - custom_components/heatpump_optimizer/accuracy.py:1106 BOOLOP (`self.moved = want is not None and want != self.level`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1108 RETURN_DEL (`return want if self.moved else None`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1112 GUARD_OFF (`if self.restore_due:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/accuracy.py:1114 CLAMP_DROP (`scale = float(np.clip(configured(), COP_SCALE_MIN, COP_SCALE`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/accuracy.py:1114 CLAMP_DROP (`scale = float(np.clip(configured(), COP_SCALE_MIN, COP_SCALE`): survived the lane (`tests / mutation` at 948e077533 named it ADDED UNPINNED); killed at a3bc90e2a8 by the check "a due restore owes the configured scale clamped" (`## Mutation proof`, "Lane survivors"); left to mutation-autofix to pin
 - custom_components/heatpump_optimizer/accuracy.py:1115 GUARD_OFF (`if self.response == ASK_PENDING:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1117 RETURN_DEL (`return scale`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1118 GUARD_OFF (`if self.owed is not None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1120 RETURN_DEL (`return want`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/accuracy.py:1121 GUARD_OFF (`if self.base is None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/accuracy.py:1121 GUARD_OFF (`if self.base is None:`): survived the lane (`tests / mutation` at 948e077533 named it ADDED UNPINNED); killed at a3bc90e2a8 by the check "where no probe runs (no base, no restore, nothing owed)" (`## Mutation proof`, "Lane survivors"); left to mutation-autofix to pin
 - custom_components/heatpump_optimizer/accuracy.py:1123 GUARD_OFF (`if self.parked_at is not None:`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/accuracy.py:1124 CMP_BOUND*2 (`if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HO`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/accuracy.py:1124 CMP_BOUND*2 (`if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HO`): survived the lane (`tests / mutation` at 948e077533 named it ADDED UNPINNED); killed at a3bc90e2a8 by the check "a parked probe still holds its base on the instant it parked" (`## Mutation proof`, "Lane survivors"); left to mutation-autofix to pin
 - custom_components/heatpump_optimizer/accuracy.py:1124 GUARD_OFF (`if 0.0 <= utc_elapsed_seconds(now, self.parked_at) <= COP_HO`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1127 RETURN_DEL (`return self.dither.step(self.base, live)`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1137 BOOLOP (`self.restore_due = self.restore_due and not measured_heat`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
@@ -299,7 +326,7 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 - custom_components/heatpump_optimizer/accuracy.py:1370 BOOLOP (`return [r for r in rows if not waits and self._base_folds(r,`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1370 RETURN_DEL (`return [r for r in rows if not waits and self._base_folds(r,`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 - custom_components/heatpump_optimizer/accuracy.py:1397 RETURN_DEL (`return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_t`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
-- custom_components/heatpump_optimizer/coordinator.py:5331 GUARD_OFF (`if (owed := self._measured_cop.owed_scale(lambda: ctx._confi`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
+- custom_components/heatpump_optimizer/coordinator.py:5337 GUARD_OFF (`if (owed := self._measured_cop.owed_scale(lambda: ctx._confi`): left to mutation-autofix; the block driver kills the hand and diff mutants of `## Mutation proof`
 
 - custom_components/heatpump_optimizer/accuracy.py:973 CMP_BOUND (`return self.levels(base)[(coin > 0) != second]`): equivalent, the coin is -1 or 1; triage `tests/mutation_ledger/survivor_triage/accuracy.py/ScaleDither.step.CMP_BOUND.113f2cbb.json`
 - custom_components/heatpump_optimizer/accuracy.py:991 CMP_BOUND (`if coin * math.log(first.heat_ask_kw / row.heat_ask_kw) >= FOLLOW_SLOPE_MIN * step:`): equivalent, no double ratio reaches the bound; triage `tests/mutation_ledger/survivor_triage/accuracy.py/ScaleDither.take.CMP_BOUND.d29ee146.json`
@@ -307,11 +334,14 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 
 ## Red checks
 
-No CI run exists at this head. Two local reds on this branch, both from the scoped gate at 08f94c2d92 and both repaired in 4fee736fbe:
+Reds on this pull request's commits (pr-contract's `red-history` over the 41 commits between origin/main and 948e077533), each name in `merge_train.py owed-reds` answered:
 
-- `tests/features.py`: `AttributeError: 'dict' object has no attribute 'cop_scale'` in a stub coordinator whose `_config` is a dict. The owed-scale statement read the configured scale on every cycle, where the statement it replaced read it only when a restore was due. Repaired by handing `owed_scale` the read (`lambda: ctx._config.cop_scale`), called only where a restore is due. Cheaper detector: none ran sooner than `tests/features.py` itself; the block the mutation driver runs starts past that stub, so the full script is the first place it shows (36 s alone). No countermeasure: the gate that found it is the cheapest that reads that stub.
-- `tests/entities.py`, "every InputReader key is an options-flow entity field": it lists any `.read(x)` call whose argument is not a `CONF_` name, and `ScaleDither.read(row)` matched. Repaired by naming the method `take`. Cheaper detector: none exists short of that check; it is a census inside `tests/entities.py` (12 minutes in the gate). No countermeasure built: one occurrence, and the check's own message names the site.
-- `tests / mutation`, predicted, not yet run: the sites under `## Unpinned sites` have no ledger pin at this head, so the check reads them as added unpinned sites until `mutation-autofix` pins the ones it kills (`ci-autofix.md`). The cheaper detector already ran: the hand and diff mutants of `## Mutation proof`.
+- `tests / mutation`, red at 948e077533 (run 44051675045): `MUTATION TABLE REFUSED`, 7 sites this diff added that `mutation-autofix` could not kill. Repaired at a3bc90e2a8: a check for each, every mutant killed by hand (`### Lane survivors`); the lane pins them on its next pass. Cheaper detector: `prepr.sh` step 6's `mutant_run.py --diff` ran at e1fa50dd75 but draws only the first 40 mutants of the added lines, so these seven were past its cap. The detector that names exactly "no driver the lane runs kills this site" is the lane itself, at its standing cost; none cheaper exists, so no countermeasure.
+- `gate`: red at 948e077533 because `tests / mutation` and `pr-contract / pr-contract` were; no cause of its own.
+- `pr-contract / pr-contract`, red at 948e077533: the body did not name `governance / env-matrix` or `governance / policy-docs`, and its figure block named 0cbea8f970. Both answered in this body; the block is re-rendered at this head (`figure_block.py refresh`). Cheaper detector: `tools/pr/prepr.sh`'s body check, which runs it before the handoff; this repair ran it (`prepr:` line above).
+- `governance / policy-docs` and `governance / env-matrix`, red at 4725dffbfa only (run 44002181411, jobs 133824863879 and 133824864097): `ERROR [budgets] tools/audit/briefs/nudge.md` and `tools/audit/harnesses/README.md` "has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern"; env-matrix's `policy_lint` lanes failed on the same two errors. Inherited from main: the caps came in with 0cbea8f970's merge of origin/main b425502da8 (`git show 4725dffbfa:dev/governance/config/policy_budgets.json` names both files, `git show afa6a3619b:dev/governance/config/policy_budgets.json` neither); this diff touches none of those files (`git diff 30991a6b0d...HEAD -- dev/governance/config/ tools/audit/briefs tools/audit/harnesses` prints nothing); both checks are green at afa6a3619b and 948e077533, after the merge of main's repair. The cause is main's, not this branch's: no countermeasure here.
+- `governance / instrument-self-tests`, red at 948e077533 on `selftest_scope` (step "Refuse a self-test read set the committed table misses"): inherited, main carries the same red (`tools/ci/selftest_closures.json` misses reads added by recent merges; the re-record hotfix is main's), and `merge_train.py classify 948e077533 --pr 3662` prints no INTRODUCED line. Not repaired here.
+- `tests / nightly-status` and `tests / replay`, red at 948e077533, are outside `merge_train.py owed-reds`: not answered.
 
 ## Forward-carry
 
