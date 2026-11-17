@@ -1,16 +1,2 @@
-== python3 tools/audit/seat/gh_calls.py --self-test
-  ok   null control: one log with one call prints today's tables, no sources table
-  ok   --log reads that file alone
-gh_calls self-test: 226 checks, 0 failed
-rc=0
-== python3 tools/audit/seat/orchestrator_tick.py --self-test
-orchestrator_tick self-test: 373 checks, 0 failed
-rc=0
-== bash tools/audit/seat/seat_venv.sh --self-test
-  ok   the source gh shim carries the log-home placeholder (null control)
-  ok   --install-shims fixes the host-wide log home, not the caller's HPO_STATE_DIR
-seat_venv self-test: 29 checks, 0 failed
-rc=0
-== python3 -c 'import sys;sys.path.insert(0,"tools/audit/seat");import gh_read;sys.exit(gh_read.self_test())'
-gh_read self-test: 158 checks, 0 failed
-rc=0
+gh_read self-test: 160 checks, 0 failed
+orchestrator_tick self-test: 375 checks, 0 failed

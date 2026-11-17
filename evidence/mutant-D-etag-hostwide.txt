@@ -1,0 +1,3 @@
+FAIL the ETag store is $HPO_STATE_DIR/gh-etag: a second read under the same state dir is conditional
+FAIL and a read under another state dir finds nothing stored: its first read is plain
+gh_read self-test: 160 checks, 2 failed

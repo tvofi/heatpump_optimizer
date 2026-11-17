@@ -1,6 +1,0 @@
-== /root/prepr-base.sh
-long rc=0 commits=520 calls=521 out=[]
-two rc=0 commits=2 calls=3 out=[]
-== /root/prepr-d5ba8b8ce56ba02776b02a1143657a8c98aec4d9.sh
-long rc=0 commits=520 calls=520 out=[]
-two rc=0 commits=2 calls=2 out=[]

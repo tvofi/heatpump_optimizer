@@ -1,1 +1,2 @@
-orchestrator_tick self-test: 373 checks, 0 failed
+  FAIL a check-run page holding fewer runs than its total_count is read through to the end: the paginated read follows a 100-run page whose total_count is 101, and its 101 runs are returned
+orchestrator_tick self-test: 375 checks, 1 failed
