@@ -4010,6 +4010,59 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-PREDICT",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R11-PREPR-STEP-TIMING"
+   ],
+   "files": [
+    "tools/pr/prepr.sh",
+    "tools/pr/ci_predict.py",
+    ".github/workflows/pr-contract.yml",
+    "tools/policy/policy_lint.mjs",
+    "tools/policy/agreement.mjs"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Handoff red-check prediction in tools/pr: prepr.sh body-check parity with pr-contract, one owner of the Forward-carry grammar, ci_predict reading the roster, a handoff that names its predicted reds and answers an inherited main red once, and ci_predict --base on a stacked head no longer flagging stack merges as merge-subject-pr. Null control: each predicted red must be red on the replayed PR and the prediction must go silent on a body that passes pr-contract. Done when each carry is built with a self-test arm or dismissed with a number. prepr.sh is also edited by R11-PREPR-STEP-TIMING: land after it. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664), R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Items 1, 2 and 6 of R11-INTAKE-R10-RESIDUE carry 30 (0-based at roster f6ff22c373), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15); items 3, 4 and 5 are deferred and stay on that carry. The carry, verbatim:\n\nMoved from R10-ROUND-PLAYBOOK-FINAL carry 40 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\nRound-11 opening list, moved from R10-PREPR-RESIDUE by the orchestrator ruling of 2026-11-12 (self-fed, would move closure): (1) extend prepr.sh body-check so a return is refused for the classes open_pr still refuses; (2) one grammar owner for Forward-carry between policy_lint.mjs and carry_audit.py; (3) ci_predict lacks the instrument-self-tests prediction behind an instrument-self-tests red; (4) a predicting detector for the HEAD-ONLY class, since step 7c reads pushed reds only; (5) ci_predict labels an import of an INERT file as INERT READS and prescribes apply-inert; (6) ci_predict carry arm grades roster-branch-only destinations bad when the roster ref is not fetched; (7) split the never tips of open_prepr_receipts by the Prepr-absent reason.",
+    "Proposals PC-1113-04 and PC-1113-20 (red-check items decided at the handoff), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P770 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-04 handoff accepted with predicted reds: doc_claims history phrase and unpinned sites reached CI on 3561/3562 after merge verdicts\n\n## PC-1113-20 a red inherited from main must be answered in every open PR body\nObserved 2026-11-14T04:30Z: after the weekend-clock defect (main's, PR 3444, fixed by PR 3578) every branch that had a run during the red window carries a `tests / fast (3.14)` red in its head's history; pr-contract refuses each body until `## Red checks` names it, after the fix is merged in and the lane is green. Cost: one more red cycle and one body patch per open PR (15 gating heads), on top of the remerge. defect-root-cause.md says an inherited instrument-self-tests red stays unowed; the same is not wired for a required test lane red at main's tip in the same window. Fix shape for triage: pr-contract treats a red whose check was red at main's tip at that time, and is green at the head, as answered by the main-side record (or by one registered line naming the RCA).",
+    "From r10-draw-map-evidence-b, body item 89be1787: ci-autofix.md: unclear: `ci_predict.py --base <stack head>` reports the stack's own merges as `merge-subject-pr` refusals, because the guard walks to the merge base of HEAD with the ref it is told is main's. Carry: R10-DRAW-MAP-EVIDENCE (items 89be1787)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-predict",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer after R11-PREPR-STEP-TIMING merges; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 16,18; R10-DRAW-MAP-EVIDENCE carries 19; overlap admitted (R11-PREPR-STEP-TIMING): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
