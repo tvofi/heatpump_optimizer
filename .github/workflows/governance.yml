@@ -763,6 +763,7 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/bare_array.py --self-test
           python3 -I tools/audit/seat/bare_array.py --check
+          python3 -I tools/audit/seat/shell_hazard.py --self-test
 
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
@@ -865,6 +866,29 @@ jobs:
           grep -Eq '^body_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-push-self-test.txt"
           python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
           grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
+
+      # Decision 0018's regret oracle solves, so its self-test needs the
+      # pinned solver stack this job's python3 lacks: an interpreter of its
+      # own (update-environment false, so every other step keeps the job's),
+      # installed from the same hashes as the test gate, both gated by the
+      # step's measured read set like every step here.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: regret-oracle-python
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        with:
+          python-version: "3.14"
+          update-environment: false
+
+      - name: Show the regret oracle reading its planted and null controls
+        id: regret-oracle
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        env:
+          PY: ${{ steps.regret-oracle-python.outputs.python-path }}
+        run: |
+          set -euo pipefail
+          PY=${PY:-python3}  # the set-up interpreter; unset only where a tool replays this step outside CI
+          "$PY" -m pip install --quiet --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+          "$PY" -I tools/audit/regret_oracle.py --self-test
 
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
