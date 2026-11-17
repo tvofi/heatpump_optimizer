@@ -1,59 +1,36 @@
-Fix review: blocked 1134fe365519ce1334aa95960e19f908bb2b4f53 class-open: the heat-ask probe latches follows on a self-setting pump whose draw swings on its own, and the scale walks to the 0.500 clamp as at base
+Fix review: blocked 9894911a81cdceb51eecec093a2527f93576d34e red-check: pr-contract red at this head on the body's stale scope-line figure block (body-only; code review complete, no code finding)
 
-bus-nonce: e230047bc24bb37e571195634ac2042c
+bus-nonce: 726c78d84bb93219cfb28be599619661
 
 ## Block
 
-Step 6 (attack at other configurations the finding's harness accepts), a predicate's unguarded domain. The probe's verdict, `draw_range.draw_response` on (drawn, `asked_kw x cop_scale`) rows, takes its regressor's span from the scale's own moves, and the scale is folded from drawn over asked. So on a pump that sets its own power, any swing of the draw within the probe's first `MIN_SAMPLES` admitted rows reaches the heat ask through the fold. That makes the slope of log drawn on log heat ask near 1, and the probe latches `follows` on a pump that ignores the ask. Once `follows` is latched, every admitted interval folds and the verdict persists (`as_dict`), so the scale walks to `COP_SCALE_MIN`. That is the #3593 residual the owner ruled (D4) must be fixed rather than accepted. The PR's own self-setting rows all use a draw of `kw` ±3 % i.i.d., so none of them reaches this domain. Neither the body nor the approved design note (`design.md` at b31718e618) dispositions a self-setting draw that varies on its own.
+`merge_train.py classify 9894911a81 --pr 3662` exits 1: `RED 9894911a81cdceb51eecec093a2527f93576d34e pending: none red: gate`. `gate` fails only on `FAIL pr-contract / pr-contract: failure (run 44147689564)`. The only error in that run is `[figure-block] line 171: block scope-line names head=f52f265d5b8b mb=30991a6b0d4c, this run is head=9894911a81cd mb=5e2ef89b4e73; re-render with figure_block.py refresh <body>`. This is paperwork (C5), and on its own it would be a Note under `merge`. A red head takes no `merge`, though (C8), so the verdict stays blocked until the body is refreshed. Refreshing the body with `figure_block.py refresh` re-runs pr-contract. The code, the tests and the harness below carry no finding, so a re-dispatch at an unchanged diff needs only the live checks re-read.
 
-Instrument: the head's `dev/audit/harnesses/cop_duty_floor.py` (sha1 09e6f53dfa, the same file the body cites), driven through its own `flat_row`/`run` with flat 1.5 kW ±2 % asks on the 4 kW nameplate, open loop, exactly as the PR's `selfset_*` rows. Only the draw changes: 2.2 kW x (1 + Σ a·sin(2πt/p + φ)) x U(0.97, 1.03). The rows are the reviewer's own (builder: fix reviewer, not the finder): `ev/attack_drift_rows.py`, `ev/attack_drift_map.py`, `ev/attack_drift_sweep.py`. Base rows are from the base production tree (367c3b9cac) with the head's harness file copied in, as the body did.
+## Red checks
 
-| row (seed 1, 672 intervals) | base | head |
-|---|---|---|
-| `selfset_2.2_swing0_control_s1` (null control: no swing) | 668/672 0.500, off5 625 | 48/672 1.000, does_not_follow |
-| `selfset_2.2_swing0.15_p64_s1` (±15 %, 64 cycles) | 667/672 0.500, off5 625 | 667/672 0.500, off5 625, **follows** |
-| `selfset_2.2_swing0.15_p80_s1` (±15 %, 80 cycles) | 668/672 0.500 | 668/672 0.500, **follows** |
-| `selfset_2.2_swing0.3_p96_s1` (±30 %, 96 cycles) | 665/672 0.500 | 665/672 0.500, **follows** |
-| `selfset_2.2_mix_daily0.1_5day0.2_phasepi_s1` (±10 % over 48 cycles plus ±20 % over 240, phase π) | 670/672 0.500 | 670/672 0.500, **follows** |
-| `selfset_2.2_swing0.15_p120_s1` | 668/672 0.500 | 48/672 1.000, does_not_follow |
-| `selfset_2.2_mix_daily0.1_5day0.2_phase0_s1` | 666/672 0.500 | 47/672 1.000, does_not_follow |
-
-Domain map at the head, seeds 1 to 5 (`ev/attack_map_head.txt`, `ev/attack_sweep_head.txt`). Latched `follows`, every one ending at scale 0.500:
-- 64 and 80 cycles: 5/5 seeds at ±15 %, ±20 % and ±30 %.
-- 96 cycles: 5/5 at ±30 % and ±40 %, 2/5 at ±25 %, 0/5 at ±15 % and ±20 %.
-- 48 cycles: 1/5 at ±40 %.
-- 120 and 144 cycles: 0/5.
-- The weather-like mix: 5/5 at phase π, 0/5 at phases 0, π/2 and 3π/2.
-
-At the default half-hour cadence (`draw_range.WINDOW` comment), 64 to 96 cycles is 1.3 to 2 days, which is a weather front's timescale. A weather-compensated pump's draw moves that much with outdoor temperature while a pinned plan's ask stays flat.
-
-The harness moves under its own perturbation: amplitude 0 latches `does_not_follow` and ends at 1.000, and ±15 % at 64 cycles latches `follows` and ends at 0.500. So the item is not void (`judge.md`). On these rows the head is byte-for-byte the base's outcome (the same folded count and scale), so the fix does not hold there.
-
-What closes it is the fixer's (and the design's) to choose. A rule that settles the class has to separate draw-driven scale moves from heat-led ones, for example a regressor span the draw's own variation cannot create. Re-measure with the rows above at both ends and with the PR's `selfset_*`/`heatled_*` rows as controls. The heat-led rows have to keep latching `follows`.
-
-## Findings
-
-- Follow-up: the defrost carry routed to R11-INTAKE-R10-RESIDUE (roster at 5e4fdcb7cd, `wave-r11-groups.json`, item 0116e1a6) tells a fix it "needs this PR's verdict (`MeasuredCop.scale_response`)". Under the block above, that verdict can read `follows` on a self-setting pump. A defrost fix keyed on it inherits the same false latch, so the carry should state the control: the swing rows in `ev/attack_drift_rows.py` must read `does_not_follow` before the verdict is trusted. Carry: R11-INTAKE-R10-RESIDUE
+- `pr-contract / pr-contract` and `gate` are both in the owed-reds set. The cause is a body figure block left stale by the main merge 4e722000ab. The cheaper detector is `figure_block.py verify` on the body, run before the push that merged main. It takes seconds and is in the seat's prepr path. Classified root-cause-detectable. `tests / replay` (1 of 198 replay checks FAILED) and `tests / nightly-status` are red but not in `owed-reds`, so they are neither answered nor a block.
 
 ## Evidence
 
-- Head and merge base: `ev/HEAD.txt`. The body's `## Head` names this head. `git merge-tree --write-tree origin/main 1134fe3655` reports rc 0 against origin/main e352724335 (`ev/merge_tree.txt`), so there is no conflict, and neither claim-file merge driver was invoked.
-- `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched in the three-dot diff, and so are both claim files.
-- Harness at both ends: the body's 16 moved rows reproduce exactly (`ev/harness_diff.txt`), as does the head harness file's sha1, 09e6f53dfaf95ef5d961eff047b002f96c93784b. 63 RESULT rows at each end. Only `held_full`, `held_filling` and the 14 R11 flat rows differ. The heat-led `held_*` controls read 96/96 0.811 and 0.810, and the defrost rows (factor 0.684 against 1.000) are identical at both ends.
-- Failing test first: the head's block, from `R.section("COP learner duty floor keys` to `R.section("R10-COP-GATE (#2262)`, run on base production stops at `AttributeError: 'MeasuredCop' object has no attribute 'scale_response'` (`ev/failfirst_base_tail.txt`). At the head it prints `ALL 88 FEATURES BLOCK PASSED`.
-- Full suite at the head: `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 5736 FEATURE CHECKS PASSED` (`ev/features_head_tail.txt`), matching the body.
-- Hand mutants, the reviewer's own driver (`ev/hand_mutants.py`, `ev/block_driver.sh`, `ev/hand_mutants_result.txt`). Each was applied alone to the head's production code, run through the block, and restored. 9 of 10 were killed:
-  - admission state guard
-  - measured-heat guard
-  - restore statement deleted
-  - restore target set to the current scale
-  - the judge_ratio latch made to fold
-  - release reset dropped
-  - `from_dict` not reading the verdict
-  - clamp re-seed dropped
-  - `draw_response`'s slope comparison flipped
-- The tenth hand mutant, `judge_floor`'s `drawn_kw is not None` guard rewritten to refuse a `None` draw (`min(asked_kw, drawn_kw or 0.0)`), survived the block, which drives no heat-counter install. A `None` draw reaches `judge_floor` only on a heat-counter install with no power entity. The full `tests/features.py` kills it: `4 of 5736 FEATURE CHECKS FAILED`, rc 1 (`ev/features_mut_judge_floor_none.txt`). The first failure is "a heat counter with the electric counter and no power entity folds its span's COP ...": refusals `['duty_floor', ...]`, 0 samples. So the guard is pinned, and the payment's no-draw arm is reached and checked.
-- Owed reds, from the head's own check runs. `tests / mutation` is red and in the `owed-reds` set. The body's `## Red checks` answers it: 47 unpinned added sites are left to `mutation-autofix` by `ci-autofix.md`, and the local diff-mutant run is named as the cheaper detector that already ran. `gate` is red as the aggregate. `tests / nightly-status` is red, not in the owed set, and owes nothing. I did not re-run the gate or the mutation table (step 11).
-- CI: `merge_train.py classify ... --pr 3662` printed `WAIT 1134fe3655... pending: gate red: none` on every run from 15:03 UTC (`ev/classify.log`), with `tests / mutation-pins (3)` and `(4)` still in progress. The block above is on code, so it stands whatever CI concludes. For that reason this verdict carries no `pending-ci:` line: the brief has the relay refuse a verdict carrying one over a red, and that would drop a code block on a CI colour it does not depend on. The last classify, at return time, still printed WAIT. The head was re-read at return: `refs/pull/3662/head` is still 1134fe365519ce1334aa95960e19f908bb2b4f53.
-- Forward-carry (step 10): the body's one routed finding (e98d0ab9) is on the roster branch at 5e4fdcb7cd with its control (the matched draw at 1.000). The other four body items are owner-ruled or design-stated residuals, dismissed with reasons.
-- Round: first review of this PR.
+- Round: this is the third review of this PR. Round 1 at 1134fe3655 blocked it with class-open (probe/rev-3662-e230047b). Round 2 is probe/rev-3662-f2fe353e. The packet's scope reads `delta` over 1134fe3655. `review_carry.py 1134fe3655 9894911a81` prints FRESH-REVIEW: 37 branch-only commits, among them the dither-probe redesign d171c345d and the row-to-row judgement 0c822e649/511e53a8e. The delta is a production change in `custom_components/heatpump_optimizer/accuracy.py` (ScaleDither, ScaleProbe) and in `coordinator._fold_measured_cop`.
+- Previous finding resolved. RESULT from the round-1 harness `ev/attack_drift_rows.py` (copied to ev/rows.py, 672 intervals, seed 1):
+  - At 1134fe3655 it reproduces the block: ±15% p64, ±15% p80, ±30% p96 and the mix at π each give `follows` with the scale at 0.500.
+  - At 9894911a81 every row gives `does_not_follow` at scale 1.000. That is identical to the null control, which reads swing0 → 1.000, does_not_follow (ev/B_head.txt, ev/B_prev.txt).
+- Perturbation: with the dither removed (`step()` returns `base`), every row reads `pending` at 1.000 (ev/C_swing_under_dither_noop.txt). The harness moves under its own perturbation, and without the dither the probe cannot latch a false `follows`.
+- Mutation proof. I made 7 hand mutants of accuracy.py and ran them one at a time through the features block driver (ev/drive.sh, ev/mut.py). All 7 were KILLED (ev/C_summary.txt):
+  - dither_noop: 25 checks failed
+  - coin_always_plus: 3
+  - no_pair_differencing_levels: 17
+  - follows_inverted: 18
+  - no_bound: 2
+  - drop_clamp_reseed: 3
+  - follows_no_owed: 3
+
+  The unmutated block prints `ALL 116 FEATURES BLOCK PASSED`.
+- Full suite: `PYTHONPATH=tests/hastub python3 tests/features.py` at the head prints `ALL 5875 FEATURE CHECKS PASSED`, rc 0 (ev/D_features_head.txt).
+- The commits since 1134fe3655 that are not merges are four `ci: pin killed mutants` commits, and they add only `tests/mutation_ledger/killed_by/*.json`. The `--remerge-diff` output of every first-parent merge is empty. The merge driver resolved `tests/structure_budgets.json` and `tests/closures.json` (LEDGER-MERGE: resolved).
+- `git merge-tree --write-tree origin/main 9894911a81` exits 0 (ev/merge-tree.txt). There is no conflict, and the driver printed `LEDGER-MERGE: resolved tests/closures.json`.
+- The three-dot diff from 5e2ef89b4e to 9894911a81 leaves VERSION, the manifest version and RELEASE_NOTES.md untouched.
+- `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- The head re-read at the verdict is 9894911a81, which equals the PR branch tip (ev/HEAD.txt).
+- Not re-derived: I ran rows.py with seed 1 only and did not re-run round 1's seed 1–5 sweep. The mutants ran on the features block only; the full script was not re-run per mutant. At the head the null control folds 0 of 672 intervals, against 48 at 1134fe3655. Over this window the probe stays at 1.000 without folding. The features block's follower rows still fail under follows_inverted, so true-follower detection is pinned by tests.

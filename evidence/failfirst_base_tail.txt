@@ -1,5 +1,0 @@
-    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
-    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "tests/features.py[block]", line 1052, in <module>
-  File "tests/features.py[block]", line 1052, in <genexpr>
-AttributeError: 'MeasuredCop' object has no attribute 'scale_response'

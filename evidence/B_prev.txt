@@ -1,3 +1,4 @@
+== prev
 RESULT selfset_2.2_swing0_control_s1=48/672_scale=1.000 lowest=0.733 highest=1.000 off5=6 verdict=does_not_follow
 RESULT selfset_2.2_swing0.15_p64_s1=667/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
 RESULT selfset_2.2_swing0.15_p80_s1=668/672_scale=0.500 lowest=0.500 highest=1.000 off5=625 verdict=follows
