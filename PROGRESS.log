@@ -22,3 +22,4 @@
 1794879260 HB alive
 1794879273 CKPT body edited: red checks + carry snapshot 369e57950160
 1794879447 CKPT BLOCKED pushed: carry BAD-DEST snapshot ca793185b0b2
+1794879451 DONE blocked: body_push BODY-LINT refuses ruled carry R11-PRE-HANDOFF-BOOKKEEPING (carries-open); code handed at 4b0091b631
