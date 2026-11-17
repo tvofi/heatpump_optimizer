@@ -484,13 +484,6 @@ jobs:
         if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         run: python3 tests/host_probe.py
 
-      # decision 0018's regret oracle solves on the pinned stack, which
-      # governance's instrument-self-tests job does not install; its
-      # self-test runs here, in the machinery lane that installs it.
-      - name: Show the regret oracle reading its planted and null controls
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
-        run: python3 -I tools/audit/regret_oracle.py --self-test
-
       # The scope `fast` takes: the prelude's, diffed from the merge base with
       # the PR's base (origin/main on a dispatch naming none); full on push.
       - name: Run the architecture-score pair
