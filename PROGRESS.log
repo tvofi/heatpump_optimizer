@@ -13,3 +13,4 @@
 1794942203 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
 1794942207 HB prepared
 1794942220 SEAT D3-s1 running
+1794942237 HB D3-s1 Agent spawn refused by frugal guard again; seat runs INLINE in the box session per orchestrator amendment
