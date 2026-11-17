@@ -14,3 +14,4 @@
 1794878768 INBOX acked through 1
 1794878854 CKPT packet rendered: delta empty, merge-tree clean, classify WAIT (gate pending re-run); poller started snapshot 25681d2a686d
 1794878891 CKPT verdict body drafted, waiting on classify snapshot 4b5e9994ed7f
+1794879182 CKPT classify WAIT: code-suite gate green 00:22Z; edit-run 43916066997 gate red 20:53Z (pr-contract had no run then), deferred as pending; polling snapshot 1ffcf2dd55ef
