@@ -1,2 +1,0 @@
-  FAIL on a realizable plan commit returns the plan's own runs at a zero price and a zero start price, and is not the identity where a step or a start has a price  [{'nothing priced': 890, 'steps priced': 894, 'a start priced': 900} of 900]
-1 of 45 FEATURES BLOCK FAILED

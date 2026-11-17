@@ -1,3 +1,7 @@
 cycling_cost: space steps under 1.0 kW 8, combined 4, edges 5, published starts 5, energy_kwh 46.39, predicted_cost 36.39, lowest_room 17.35
 everything_on: space steps under 1.0 kW 18, combined 16, edges 2, published starts 2, energy_kwh 66.71, predicted_cost 64.88, lowest_room 17.76
+
+real	0m5.046s
+user	0m5.107s
+sys	0m0.060s
 rc=0

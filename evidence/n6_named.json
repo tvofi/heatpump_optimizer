@@ -1,0 +1,26 @@
+[
+ {
+  "name": "N6_ROW_PER_VARIABLE",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    stepped = np.flatnonzero(free)\n",
+  "new": "    stepped = np.arange(x0.size)\n"
+ },
+ {
+  "name": "N6_EMPTY_BATCH_SIMULATED",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if False:\n"
+ },
+ {
+  "name": "N6_FIXED_ENTRY_WRITTEN",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    grad[free] = (f - f0) / dx[free]\n",
+  "new": "    grad[:] = np.resize((f - f0) / dx[free], x0.size)\n"
+ },
+ {
+  "name": "N6_EMPTY_GUARD_OR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if lead == 0 and not free.any():\n",
+  "new": "    if lead == 0 or not free.any():\n"
+ }
+]
