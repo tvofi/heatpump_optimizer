@@ -115,7 +115,7 @@ gantt
 | R11-OWNER-GENERIC-CONTROL-TEXT | DOCS | 1 | in-progress | #3643 | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11. |  |
 | R11-PRE-ROUND-CHECK-GATE | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
 | R11-PRE-PRODUCT-READS | IN | 2 | carries-open | - | opus/opus | - | tvofi 2026-11-15 on evaluation card E11-N-INTAKE-BUILDER, verbatim: "New L group, design first (Recommended)" (one new group for the product reads, beside th... |  |
-| R11-OWNER-COMMUNITY-STANDARDS | DOCS | 1 | in-progress | - | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11 (not finder-critical). |  |
+| R11-OWNER-COMMUNITY-STANDARDS | DOCS | 1 | carries-open | - | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11 (not finder-critical). |  |
 | R11-PRE-SECURITY-PRIVACY | IN | 2 | in-progress | - | fable/fable | - | Owner item, tvofi 2026-11-15, verbatim: "The new dimension should be about both security and privacy, and Scan the codebase for any security or privacy vulne... |  |
 | R11-HOTFIX-CI-PREDICT-TIMEOUT | IN | 1 | done | - | sonnet/opus | - | Hotfix R11-HOTFIX-CI-PREDICT-TIMEOUT (instrument, size S). |  |
 | R11-OUTSIDE-SLAB-SEED-GUARD | IN | 1 | done | #3616 | opus/opus | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
