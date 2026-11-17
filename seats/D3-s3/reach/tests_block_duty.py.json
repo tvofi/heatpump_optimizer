@@ -2,7 +2,7 @@
 "script": "tests/block_duty.py",
 "rc": 0,
 "failed": 0,
-"seconds": 16.3,
+"seconds": 21.6,
 "reach": {
 "hits": {
 "custom_components/heatpump_optimizer/__init__.py": [

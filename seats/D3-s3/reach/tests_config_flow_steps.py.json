@@ -2,7 +2,7 @@
 "script": "tests/config_flow_steps.py",
 "rc": 0,
 "failed": 0,
-"seconds": 56.2,
+"seconds": 48.1,
 "reach": {
 "hits": {
 "custom_components/heatpump_optimizer/__init__.py": [
@@ -12097,6 +12097,7 @@
 1869,
 1870,
 1871,
+1872,
 1873,
 1876,
 1890,

@@ -75,7 +75,12 @@ def main() -> int:
         r = json.loads(p.read_text())
         if r["script"] not in drop:
             rows[r["script"]] = r
-    clean = {s: r for s, r in rows.items() if r["reach"] is not None}
+    # A row whose run reach_problems refuses (a child it did not trace, a
+    # non-Python process) is no proof of never-executed: count its hits, but
+    # only a problem-free row may say a line was NOT executed.
+    traced_any = {s: r for s, r in rows.items() if r["reach"] is not None}
+    clean = {s: r for s, r in traced_any.items()
+             if not r["reach"]["problems"]}
     universe = en.universe()
     cells = en.cells()
     closures = mt.load_closures()
@@ -90,13 +95,22 @@ def main() -> int:
         f, ln = s["file"], s["line"]
         if f not in exe_cache:
             exe_cache[f] = mt.executable_lines(ROOT / f)
-        executed = sorted(d for d, r in clean.items()
+        executed = sorted(d for d, r in traced_any.items()
                           if ln in set(r["reach"]["hits"].get(f, ())))
         readers = sorted(d for d, r in clean.items()
                          if f in r["reach"]["reads"])
-        unclean = sorted(d for d, r in rows.items() if r["reach"] is None)
+        unclean = sorted(d for d in rows if d not in clean)
+        # An untraced driver (no clean reach row) could still see the line;
+        # env_drift.py is covered by drift_reach.py's traced capture child
+        # (row "tests/env_drift.py[capture]"), the only process of it that
+        # imports production code.
+        open_untraced = sorted(
+            d for d in unclean
+            if f in closures.get(d, []) and not (
+                f"{d}[capture]" in clean))
         no_instr = ln not in exe_cache[f]
-        dead = not executed and not readers and not no_instr
+        dead = (not executed and not readers and not no_instr
+                and not open_untraced)
         per_kind[s["kind"]] += 1
         by_count[min(len(executed), 5)] += 1
         if len(executed) == 1:
@@ -106,7 +120,8 @@ def main() -> int:
             dead_files[f.rsplit("/", 1)[-1]] += 1
         out_rows.append({"site": f"{f}:{ln} {s['kind']}", "anchor": s["anchor"],
                          "executed_by": executed, "read_by": readers,
-                         "untraced_drivers": unclean, "no_instruction": no_instr,
+                         "untraced_drivers": unclean, "open_untraced": open_untraced,
+                         "no_instruction": no_instr,
                          "reach_dead": dead})
     n = len(universe)
     nd = sum(r["reach_dead"] for r in out_rows)
@@ -131,7 +146,7 @@ def main() -> int:
     pairs = 0
     import_only = []
     for d, r in sorted(clean.items()):
-        for f in closures.get(d, []):
+        for f in closures.get(d.replace("[capture]", ""), []):
             if f not in cells or not f.startswith(mt.PKG) or not f.endswith(".py"):
                 continue
             pairs += 1
@@ -142,10 +157,11 @@ def main() -> int:
     print(f"RESULT closure_pairs_traced={pairs} count")
     print(f"RESULT closure_pairs_import_only={len(import_only)} count")
     per_driver = Counter(d for d, _, _ in import_only)
+    rec_of = lambda d: d.replace("[capture]", "")  # noqa: E731
     rec = json.load(open(ROOT / "tests/closures.json"))["recorded"]
     for d, c in per_driver.most_common():
         print(f"RESULT import_only[{d}]={c} files "
-              f"(recorded {rec.get(d, {}).get('seconds')} s per forced run)")
+              f"(recorded {rec.get(rec_of(d), {}).get('seconds')} s per forced run)")
     if sites_out:
         Path(sites_out).write_text(json.dumps(
             {"sites": out_rows, "import_only": import_only}, indent=0))

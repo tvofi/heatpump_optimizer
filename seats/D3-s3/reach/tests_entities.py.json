@@ -1,0 +1,7 @@
+{
+"script": "tests/entities.py",
+"rc": 1,
+"failed": 2,
+"seconds": 1374.9,
+"reach": null
+}

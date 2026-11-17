@@ -1,0 +1,8 @@
+RESULT scenarios_captured=56 count
+RESULT files_hit=82 count
+RESULT lines_hit=17470 count
+RESULT problems=0 count []
+RESULT wall=153 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=9.81
+RESULT swapins=0

@@ -2,7 +2,7 @@
 "script": "tests/arch_score_head.py",
 "rc": 0,
 "failed": 0,
-"seconds": 83.9,
+"seconds": 159.6,
 "reach": {
 "hits": {},
 "reads": [

@@ -1,0 +1,40 @@
+RESULT tests/golden.py:solves=100 count
+RESULT tests/golden.py:asserts=39 count (ok-lines, rc=0)
+RESULT tests/golden.py:asserts_per_solve=0.39 ratio
+RESULT tests/golden.py:wall=339.2 s (provisional)
+RESULT tests/golden.py:cpu=238.0 s (provisional)
+RESULT tests/doc_claims.py:solves=2 count
+RESULT tests/doc_claims.py:asserts=409 count (ok-lines, rc=1)
+RESULT tests/doc_claims.py:asserts_per_solve=204.5 ratio
+RESULT tests/doc_claims.py:wall=14.4 s (provisional)
+RESULT tests/doc_claims.py:cpu=12.6 s (provisional)
+RESULT tests/typing_ruler.py:solves=0 count
+RESULT tests/typing_ruler.py:asserts=12 count (ALL-N, rc=0)
+RESULT tests/typing_ruler.py:asserts_per_solve=None ratio
+RESULT tests/typing_ruler.py:wall=30.1 s (provisional)
+RESULT tests/typing_ruler.py:cpu=24.0 s (provisional)
+RESULT tests/dst_checks.py:solves=116 count
+RESULT tests/dst_checks.py:asserts=129 count (ok-lines, rc=1)
+RESULT tests/dst_checks.py:asserts_per_solve=1.112 ratio
+RESULT tests/dst_checks.py:wall=66.8 s (provisional)
+RESULT tests/dst_checks.py:cpu=54.8 s (provisional)
+RESULT tests/plan_view.py:solves=1 count
+RESULT tests/plan_view.py:asserts=1 count (OK-suffix-lines, rc=0)
+RESULT tests/plan_view.py:asserts_per_solve=1.0 ratio
+RESULT tests/plan_view.py:wall=1.0 s (provisional)
+RESULT tests/plan_view.py:cpu=0.9 s (provisional)
+RESULT tests/card.mjs:solves=0 count
+RESULT tests/card.mjs:asserts=1449 count (ok-lines, rc=0)
+RESULT tests/card.mjs:asserts_per_solve=None ratio
+RESULT tests/card.mjs:wall=153.1 s (provisional)
+RESULT tests/card.mjs:cpu=138.1 s (provisional)
+RESULT tests/card_drift.mjs:solves=0 count
+RESULT tests/card_drift.mjs:asserts=0 count (OK-suffix-lines, rc=0)
+RESULT tests/card_drift.mjs:asserts_per_solve=None ratio
+RESULT tests/card_drift.mjs:wall=10.2 s (provisional)
+RESULT tests/card_drift.mjs:cpu=9.0 s (provisional)
+RESULT tests/boost_drift_replay.py:solves=789 count
+RESULT tests/boost_drift_replay.py:asserts=46 count (ALL-N, rc=0)
+RESULT tests/boost_drift_replay.py:asserts_per_solve=0.058 ratio
+RESULT tests/boost_drift_replay.py:wall=351.8 s (provisional)
+RESULT tests/boost_drift_replay.py:cpu=226.4 s (provisional)

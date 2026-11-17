@@ -16,6 +16,11 @@ loader wrapper); every process appends `pid argv0 count` at exit.
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
           dev/audit/rounds/round11/D3/s3/solves.py [script ...] \
           [--out dev/audit/rounds/round11/D3/s3/solves.json]
+--distinct also counts distinct solve inputs per process (sha1 of the pickled
+optimizer state + call arguments): S - distinct = solves that repeat an
+input the same process already solved. Env vars after the script name are
+not supported; a script needing one (dst_checks.py: HASTUB_TZ) takes it from
+the caller's environment.
 Perturbation: --perturb-double makes the wrapper call the original optimize
 twice per call; every script with S>0 must report S doubled (direction up),
 scripts with S=0 stay 0 (null control).
@@ -37,12 +42,16 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 TARGET = "custom_components.heatpump_optimizer.optimizer"
+DISTINCT = False
 
 SITE = r'''
 import os, sys, atexit, importlib.abc, importlib.machinery
 _LOG = os.environ["D3S3_SOLVE_LOG"]
 _DOUBLE = os.environ.get("D3S3_DOUBLE") == "1"
+_DISTINCT = os.environ.get("D3S3_DISTINCT") == "1"
 _N = [0]
+_KEYS = set()
+_UNH = [0]
 def _patch(mod):
     cls = getattr(mod, "HeatPumpOptimizer", None)
     if cls is None or getattr(cls.optimize, "_d3s3", False):
@@ -50,6 +59,15 @@ def _patch(mod):
     raw = cls.optimize
     def orig(self, *a, **k):
         _N[0] += 1          # counts executions of the production solve
+        if _DISTINCT:
+            # the solve's whole input: the optimizer's state and the call's
+            # arguments; equal bytes = a solve the process already ran
+            import hashlib, pickle
+            try:
+                _KEYS.add(hashlib.sha1(pickle.dumps(
+                    (self.__dict__, a, sorted(k.items())), protocol=4)).hexdigest())
+            except Exception:
+                _UNH[0] += 1
         return raw(self, *a, **k)
     def optimize(self, *a, **k):
         if _DOUBLE:
@@ -72,9 +90,26 @@ class _Finder(importlib.abc.MetaPathFinder):
         spec.loader = _Loader(spec.loader)
         return spec
 sys.meta_path.insert(0, _Finder())
+# A driver that rebuilds a child's PYTHONPATH (env_drift.py's --capture child,
+# stress.py's workers) would drop this hook and count 0 solves (measured:
+# golden.py 0 solves over 297 s before this). Re-prepend the hook directory
+# to any child env that still carries the solve log.
+import subprocess as _sp
+_HOOK = os.path.dirname(os.path.abspath(__file__))
+_pinit = _sp.Popen.__init__
+def _init(self, *a, **k):
+    env = k.get("env")
+    if env is not None and "D3S3_SOLVE_LOG" in env:
+        pp = env.get("PYTHONPATH", "")
+        if _HOOK not in pp.split(os.pathsep):
+            env = dict(env)
+            env["PYTHONPATH"] = _HOOK + (os.pathsep + pp if pp else "")
+            k["env"] = env
+    _pinit(self, *a, **k)
+_sp.Popen.__init__ = _init
 def _dump():
     with open(_LOG, "a") as f:
-        f.write("%%d\t%%s\t%%d\n" %% (os.getpid(), (sys.argv or ["?"])[0], _N[0]))
+        f.write("%%d\t%%s\t%%d\t%%d\t%%d\n" %% (os.getpid(), (sys.argv or ["?"])[0], _N[0], len(_KEYS), _UNH[0]))
 atexit.register(_dump)
 _ox = os._exit
 def _exit(code):
@@ -93,6 +128,7 @@ def run(script: str, hookdir: Path, tmp: Path, double: bool) -> dict:
     log.unlink(missing_ok=True)
     env = {**os.environ, "PYTHONPATH": f"{hookdir}:tests/hastub",
            "D3S3_SOLVE_LOG": str(log), "D3S3_DOUBLE": "1" if double else "0",
+           "D3S3_DISTINCT": "1" if DISTINCT else "0",
            "HPO_PLANDATA": str(tmp / "plandata")}
     exe = "node" if argv[0].endswith(".mjs") else sys.executable
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -104,15 +140,23 @@ def run(script: str, hookdir: Path, tmp: Path, double: bool) -> dict:
     cpu = (after.ru_utime - before.ru_utime) + (after.ru_stime - before.ru_stime)
     solves = 0
     procs = 0
+    distinct = 0
+    unhashable = 0
     if log.exists():
         for ln in log.read_text().splitlines():
             procs += 1
-            solves += int(ln.split("\t")[2])
+            parts = ln.split("\t")
+            solves += int(parts[2])
+            if len(parts) > 4:
+                distinct += int(parts[3])
+                unhashable += int(parts[4])
     m = ALL_RE.findall(p.stdout)
     oks = len(OK_RE.findall(p.stdout))
     okend = len(OKEND_RE.findall(p.stdout))
     asserts = int(m[-1]) if m else (oks or okend)
     return {"script": script, "rc": p.returncode, "solves": solves,
+            "distinct_inputs": distinct if DISTINCT else None,
+            "unhashable": unhashable if DISTINCT else None,
             "hooked_processes": procs, "asserts": asserts,
             "asserts_source": "ALL-N" if m else ("ok-lines" if oks else "OK-suffix-lines"),
             "asserts_per_solve": round(asserts / solves, 3) if solves else None,
@@ -126,7 +170,9 @@ def main() -> int:
     if "--out" in args:
         i = args.index("--out"); out = args[i + 1]; del args[i:i + 2]
     double = "--perturb-double" in args
-    args = [a for a in args if a != "--perturb-double"]
+    global DISTINCT
+    DISTINCT = "--distinct" in args
+    args = [a for a in args if a not in ("--perturb-double", "--distinct")]
     scripts = args
     tmp = Path(tempfile.mkdtemp(prefix="d3s3-solves-"))
     hookdir = tmp / "hook"; hookdir.mkdir()
@@ -139,6 +185,9 @@ def main() -> int:
         print(f"RESULT {s}:solves={r['solves']} count")
         print(f"RESULT {s}:asserts={r['asserts']} count ({r['asserts_source']}, rc={r['rc']})")
         print(f"RESULT {s}:asserts_per_solve={r['asserts_per_solve']} ratio")
+        if DISTINCT:
+            print(f"RESULT {s}:distinct_inputs={r['distinct_inputs']} count "
+                  f"(unhashable={r['unhashable']}, summed per process)")
         print(f"RESULT {s}:wall={r['wall_s']} s (provisional)")
         print(f"RESULT {s}:cpu={r['cpu_s']} s (provisional)", flush=True)
         if out:

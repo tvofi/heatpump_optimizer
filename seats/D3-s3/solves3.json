@@ -1,0 +1,130 @@
+[
+ {
+  "script": "tests/boost_drift_replay.py",
+  "rc": 0,
+  "solves": 789,
+  "distinct_inputs": 786,
+  "unhashable": 0,
+  "hooked_processes": 2,
+  "asserts": 46,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 0.058,
+  "wall_s": 258.5,
+  "cpu_s": 173.0,
+  "tail": [
+   "ALL 46 BOOST DRIFT CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/golden.py",
+  "rc": 0,
+  "solves": 50,
+  "distinct_inputs": 50,
+  "unhashable": 0,
+  "hooked_processes": 4,
+  "asserts": 39,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 0.78,
+  "wall_s": 174.8,
+  "cpu_s": 105.3,
+  "tail": [
+   "NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes"
+  ]
+ },
+ {
+  "script": "tests/optimality.py",
+  "rc": 0,
+  "solves": 23,
+  "distinct_inputs": 19,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 84,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 3.652,
+  "wall_s": 170.4,
+  "cpu_s": 124.4,
+  "tail": [
+   "ALL 84 OPTIMALITY CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/validate.py",
+  "rc": 0,
+  "solves": 22,
+  "distinct_inputs": 22,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 0,
+  "asserts_source": "OK-suffix-lines",
+  "asserts_per_solve": 0.0,
+  "wall_s": 32.4,
+  "cpu_s": 24.0,
+  "tail": [
+   "NO ISSUES"
+  ]
+ },
+ {
+  "script": "tests/edge.py",
+  "rc": 0,
+  "solves": 21,
+  "distinct_inputs": 21,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 20,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 0.952,
+  "wall_s": 30.8,
+  "cpu_s": 24.2,
+  "tail": [
+   "ALL EDGE CASES PASS"
+  ]
+ },
+ {
+  "script": "tests/backtest.py",
+  "rc": 0,
+  "solves": 11,
+  "distinct_inputs": 11,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 25,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 2.273,
+  "wall_s": 79.0,
+  "cpu_s": 66.0,
+  "tail": [
+   "ALL 25 BACKTEST CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/block_duty.py",
+  "rc": 0,
+  "solves": 6,
+  "distinct_inputs": 6,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 153,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 25.5,
+  "wall_s": 9.1,
+  "cpu_s": 7.5,
+  "tail": [
+   "ALL 153 BLOCK DUTY CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/manual_plan.py",
+  "rc": 0,
+  "solves": 31,
+  "distinct_inputs": 23,
+  "unhashable": 0,
+  "hooked_processes": 1,
+  "asserts": 132,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 4.258,
+  "wall_s": 7.0,
+  "cpu_s": 5.1,
+  "tail": [
+   "ALL 132 manual plan checks PASSED"
+  ]
+ }
+]

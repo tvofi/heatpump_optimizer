@@ -2,7 +2,7 @@
 "script": "tests/boost_drift_replay.py",
 "rc": 0,
 "failed": 0,
-"seconds": 437.6,
+"seconds": 438.9,
 "reach": {
 "hits": {
 "custom_components/heatpump_optimizer/__init__.py": [
@@ -9849,8 +9849,6 @@
 71,
 72,
 73,
-74,
-75,
 83,
 84,
 87,

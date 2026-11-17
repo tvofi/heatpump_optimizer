@@ -1,0 +1,18 @@
+[
+ {
+  "script": "tests/dst_checks.py",
+  "rc": 0,
+  "solves": 116,
+  "distinct_inputs": 107,
+  "unhashable": 0,
+  "hooked_processes": 2,
+  "asserts": 137,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": 1.181,
+  "wall_s": 59.4,
+  "cpu_s": 51.3,
+  "tail": [
+   "ALL 137 DST / QUARTER-GRID CHECKS PASSED"
+  ]
+ }
+]

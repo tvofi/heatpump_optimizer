@@ -2,6 +2,6 @@
 "script": "tests/doc_claims.py",
 "rc": 1,
 "failed": 1,
-"seconds": 32.9,
+"seconds": 23.2,
 "reach": null
 }

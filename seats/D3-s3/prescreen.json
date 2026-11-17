@@ -1,0 +1,2155 @@
+{
+ "rc": 1,
+ "wall_s": 4633.1,
+ "overlap": true,
+ "drivers_allowed": [
+  "tests/arch_score.py",
+  "tests/arch_score_head.py",
+  "tests/block_duty.py",
+  "tests/boost_drift_replay.py",
+  "tests/config_flow_steps.py",
+  "tests/debug_collect.py",
+  "tests/deployment_shape.py",
+  "tests/doc_claims.py",
+  "tests/entities.py",
+  "tests/env_drift.py",
+  "tests/features.py",
+  "tests/finite_boundary.py",
+  "tests/frontend.py",
+  "tests/guard_pins.py",
+  "tests/ha_contract.py",
+  "tests/layout.py",
+  "tests/manual_plan.py",
+  "tests/md_tables.mjs",
+  "tests/open_meteo.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/solar_alignment.py",
+  "tests/structure.py",
+  "tests/typing_ruler.py",
+  "tests/validate.py",
+  "tests/wood_advisor.py"
+ ],
+ "pool": [
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "line": 302,
+   "kind": "GUARD_OFF",
+   "old": "    if active and return_time is not None and now >= return_time:",
+   "new": "    if False:",
+   "anchor": "custom_components/heatpump_optimizer/away.py:expire_override GUARD_OFF 1144eb54",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "line": 509,
+   "kind": "GUARD_OFF",
+   "old": "    if return_time.tzinfo is None and now.tzinfo is not None:",
+   "new": "    if False:",
+   "anchor": "custom_components/heatpump_optimizer/away.py:_apply_return GUARD_OFF 11cbb614",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/battery.py",
+   "line": 60,
+   "kind": "CLAMP_DROP",
+   "old": "        above = max(0.0, self.temperature - self.min_temperature)",
+   "new": "        above = (0.0)",
+   "anchor": "custom_components/heatpump_optimizer/battery.py:StorageComponent.stored_kwh CLAMP_DROP 5ca0e5e4",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/battery.py",
+   "line": 316,
+   "kind": "CLAMP_DROP",
+   "old": "                else min(float(slab_max), float(params.buffer_max_temp))",
+   "new": "                else (float(slab_max))",
+   "anchor": "custom_components/heatpump_optimizer/battery.py:build CLAMP_DROP 614109f3",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "line": 212,
+   "kind": "CMP_BOUND",
+   "old": "        return end is not None and utc_elapsed_seconds(end, now) > 0",
+   "new": "        return end is not None and utc_elapsed_seconds(end, now) >= 0",
+   "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState.active CMP_BOUND 7f4fe02b",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "line": 595,
+   "kind": "CMP_BOUND",
+   "old": "        if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):",
+   "new": "        if parsed is not None and dt_util.as_utc(parsed) >= dt_util.as_utc(now):",
+   "anchor": "custom_components/heatpump_optimizer/boost.py:restore CMP_BOUND 27302fcc",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_band.py",
+   "line": 229,
+   "kind": "CMP_BOUND",
+   "old": "    night_below_band = night < minimum and minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX",
+   "new": "    night_below_band = night <= minimum and minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX",
+   "anchor": "custom_components/heatpump_optimizer/comfort_band.py:violations CMP_BOUND 4335c2e8",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 83,
+   "kind": "CLAMP_DROP",
+   "old": "        weight = float(np.clip(self.relative_price, 0.5, 2.5))",
+   "new": "        weight = float((self.relative_price))",
+   "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:OverrideEvent.evidence CLAMP_DROP e969ebf6",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 143,
+   "kind": "GUARD_OFF",
+   "old": "        if comfort_band <= 0 or days <= 0:",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:ComfortLearner.record_quiet_period GUARD_OFF ce78ab5f",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 190,
+   "kind": "CLAMP_DROP",
+   "old": "            np.clip(self.learned_weight, COMFORT_WEIGHT_MIN, COMFORT_WEIGHT_MAX)",
+   "new": "            (self.learned_weight)",
+   "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:ComfortLearner.effective_weight CLAMP_DROP 19b2a86b",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 805,
+   "kind": "CMP_BOUND",
+   "old": "        if fitted_low is not None and number_value < fitted_low:",
+   "new": "        if fitted_low is not None and number_value <= fitted_low:",
+   "anchor": "custom_components/heatpump_optimizer/config_flow.py:_widen_to_fit CMP_BOUND 994e9389",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 1049,
+   "kind": "CMP_BOUND",
+   "old": "    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN",
+   "new": "    return float(minimum) >= float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN",
+   "anchor": "custom_components/heatpump_optimizer/config_flow.py:_dhw_min_too_close CMP_BOUND 427c3c3c",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2633,
+   "kind": "GUARD_OFF",
+   "old": "                if not user_input.get(CONF_PRICE_ENTITY):",
+   "new": "                if False:",
+   "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_user GUARD_OFF 3a5c75bf",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2644,
+   "kind": "GUARD_OFF",
+   "old": "                    if verdict == \"invalid_auth\":",
+   "new": "                    if False:",
+   "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_user GUARD_OFF 760201a6",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/curve_learning.py",
+   "line": 94,
+   "kind": "CMP_BOUND",
+   "old": "        if worst_margin_c < COMFORT_MARGIN_C:",
+   "new": "        if worst_margin_c <= COMFORT_MARGIN_C:",
+   "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner.record_day CMP_BOUND 6308b707",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/curve_learning.py",
+   "line": 164,
+   "kind": "GUARD_OFF",
+   "old": "        if not np.isfinite(learner.bias):",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner.from_dict GUARD_OFF 97194824",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 550,
+   "kind": "GUARD_OFF",
+   "old": "        if not np.isfinite(observed):",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_learn_cooling GUARD_OFF ca0830c1",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "line": 528,
+   "kind": "CMP_BOUND",
+   "old": "        if best is None or delta < best:",
+   "new": "        if best is None or delta <= best:",
+   "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window CMP_BOUND f92e3c65",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 105,
+   "kind": "GUARD_OFF",
+   "old": "        if not np.isfinite(value):",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/diagnosis.py:attribute GUARD_OFF 2967de67",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "line": 229,
+   "kind": "CMP_BOUND",
+   "old": "            return obs.measured_power_kw <= self.config.idle_power_kw",
+   "new": "            return obs.measured_power_kw < self.config.idle_power_kw",
+   "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._pump_idle CMP_BOUND dbb50325",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "line": 313,
+   "kind": "GUARD_OFF",
+   "old": "                if rate > ceiling * cfg.capacity_margin:",
+   "new": "                if False:",
+   "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._collect_evidence GUARD_OFF ccaf12c0",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "line": 367,
+   "kind": "GUARD_OFF",
+   "old": "        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._update_displacement GUARD_OFF 66b67c4f",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "line": 150,
+   "kind": "GUARD_OFF",
+   "old": "        if span <= 0 or not np.isfinite(hz) or not np.isfinite(kw):",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/freq_control.py:FrequencyMap.observe GUARD_OFF 092728a1",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "line": 276,
+   "kind": "CMP_BOUND",
+   "old": "            if not np.isfinite(ratio) or not 0 < ratio <= FREQ_MAX_KW_PER_HZ or count < 0:",
+   "new": "            if not np.isfinite(ratio) or not 0 < ratio <= FREQ_MAX_KW_PER_HZ or count <= 0:",
+   "anchor": "custom_components/heatpump_optimizer/freq_control.py:FrequencyMap.from_dict CMP_BOUND 06fe69d6",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "line": 324,
+   "kind": "GUARD_OFF",
+   "old": "        if reported is None or not np.isfinite(reported):",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/freq_control.py:FrequencyWatchdog.note_report GUARD_OFF 370bfee6",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 296,
+   "kind": "CMP_BOUND",
+   "old": "                if self.hold_minutes < DHW_LEGIONELLA_HOLD_MINUTES:",
+   "new": "                if self.hold_minutes <= DHW_LEGIONELLA_HOLD_MINUTES:",
+   "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track CMP_BOUND 667a5f81",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 309,
+   "kind": "CMP_BOUND",
+   "old": "        if previous is not None and utc_elapsed_seconds(now, previous) < 3600:",
+   "new": "        if previous is not None and utc_elapsed_seconds(now, previous) <= 3600:",
+   "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track CMP_BOUND 43323b87",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "line": 175,
+   "kind": "CLAMP_DROP",
+   "old": "    band = max(comfort_max - comfort_min, 0.0)",
+   "new": "    band = (comfort_max - comfort_min)",
+   "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:recommend_target CLAMP_DROP 93db1a1e",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "line": 185,
+   "kind": "CMP_BOUND",
+   "old": "    if price_ratio is not None and price_ratio > 0.9:",
+   "new": "    if price_ratio is not None and price_ratio >= 0.9:",
+   "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:recommend_target CMP_BOUND ceef2c96",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "line": 198,
+   "kind": "CMP_BOUND",
+   "old": "    if raw is None or raw < 0:",
+   "new": "    if raw is None or raw <= 0:",
+   "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_clock CMP_BOUND 0c6e434d",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/narrative.py",
+   "line": 192,
+   "kind": "CMP_BOUND",
+   "old": "        if reason not in ZERO_ENERGY_REASONS and entry[\"kwh\"] < 0.05:",
+   "new": "        if reason not in ZERO_ENERGY_REASONS and entry[\"kwh\"] <= 0.05:",
+   "anchor": "custom_components/heatpump_optimizer/narrative.py:build CMP_BOUND 3cefd0cc",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/open_meteo.py",
+   "line": 218,
+   "kind": "GUARD_OFF",
+   "old": "        if not math.isfinite(value) or value < 0.0 or value > max_value:",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/open_meteo.py:_parse_block GUARD_OFF 1ec8689c",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/open_meteo.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/plan_slots.py",
+   "line": 69,
+   "kind": "CMP_BOUND",
+   "old": "            \"avg_price\": (round(cost / energy, 4) if energy > 1e-9 else 0.0),",
+   "new": "            \"avg_price\": (round(cost / energy, 4) if energy >= 1e-9 else 0.0),",
+   "anchor": "custom_components/heatpump_optimizer/plan_slots.py:plan_slots.close CMP_BOUND fa4c72ca",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/power_guard.py",
+   "line": 84,
+   "kind": "GUARD_OFF",
+   "old": "        if self._last_event is None:",
+   "new": "        if False:",
+   "anchor": "custom_components/heatpump_optimizer/power_guard.py:GuardState.throttled GUARD_OFF 0a3f89ae",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "line": 277,
+   "kind": "CLAMP_DROP",
+   "old": "                \"lower_floor_thermal_mass\": round(max(0.5, lower_mass), 2),",
+   "new": "                \"lower_floor_thermal_mass\": round((0.5), 2),",
+   "anchor": "custom_components/heatpump_optimizer/presets.py:derive CLAMP_DROP 03e0f998",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1471,
+   "kind": "CMP_BOUND",
+   "old": "    return bool(abs(observed - value) > SETPOINT_TOLERANCE)",
+   "new": "    return bool(abs(observed - value) >= SETPOINT_TOLERANCE)",
+   "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_differs CMP_BOUND a7850068",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1508,
+   "kind": "CMP_BOUND",
+   "old": "        if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:",
+   "new": "        if observed is None or utc_elapsed_seconds(now, at) <= ECHO_GRACE_S:",
+   "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:hold CMP_BOUND 7549b59b",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "line": 1832,
+   "kind": "CMP_BOUND",
+   "old": "    rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C",
+   "new": "    rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) > TANK_RISE_C",
+   "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_verdict CMP_BOUND af494230",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_schedule.py",
+   "line": 84,
+   "kind": "CMP_BOUND",
+   "old": "        if temp is not None and float(temp) < float(floor_temp) + margin:",
+   "new": "        if temp is not None and float(temp) <= float(floor_temp) + margin:",
+   "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:space_pump_should_run CMP_BOUND af86f618",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pv.py",
+   "line": 70,
+   "kind": "CLAMP_DROP",
+   "old": "    irradiance = np.clip(np.asarray(irradiance_w_m2, dtype=float), 0.0, None)",
+   "new": "    irradiance = (np.asarray(irradiance_w_m2, dtype=float))",
+   "anchor": "custom_components/heatpump_optimizer/pv.py:forecast_production_kw CLAMP_DROP a09ef794",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "line": 241,
+   "kind": "GUARD_OFF",
+   "old": "    if not np.isfinite(replacement_cost) or replacement_cost <= 0:",
+   "new": "    if False:",
+   "anchor": "custom_components/heatpump_optimizer/wear.py:wear_price_per_start GUARD_OFF cbef328b",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 131,
+   "kind": "CMP_BOUND",
+   "old": "    return price > 0.0 and 10.0 <= eff <= 95.0",
+   "new": "    return price >= 0.0 and 10.0 <= eff <= 95.0",
+   "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_fuel_ready CMP_BOUND 8d07036a",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 260,
+   "kind": "GUARD_OFF",
+   "old": "    if tank_soc < 0.4 and best_i is not None:",
+   "new": "    if False:",
+   "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:night_advice GUARD_OFF 57fadad6",
+   "drivers": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/debug_collect.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py"
+   ]
+  }
+ ],
+ "outcomes": {},
+ "verdicts": {},
+ "runs": [
+  {
+   "script": "tests/arch_score_head.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r0-140545033524928-157751496425",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 81.0,
+   "timed_out": false
+  },
+  {
+   "script": "tests/arch_score_head.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r1-140545033524928-238772197531",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 123.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/block_duty.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r2-140545033524928-362581458923",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 34.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/block_duty.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r3-140545033524928-397212997464",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 33.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/env_drift.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r0-140545041917632-157746894250",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 588.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/env_drift.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r0-140545085462208-157745918287",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 603.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/config_flow_steps.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r6-140545085462208-761605276835",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 55.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/config_flow_steps.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r7-140545085462208-817488205535",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 49.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/debug_collect.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r8-140545085462208-866730720765",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 3.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/debug_collect.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r9-140545085462208-870163025701",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 2.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/deployment_shape.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r10-140545085462208-872268594430",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 6.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/deployment_shape.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r11-140545085462208-878984265432",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 6.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r12-140545085462208-885647042311",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 39.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r13-140545085462208-924808493288",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 39.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/boost_drift_replay.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r4-140545033524928-430799901283",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 563.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r14-140545085462208-964220248291",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 34.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/boost_drift_replay.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r5-140545041917632-746458914369",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 648.5,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r16-140545085462208-998524208425",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 2,
+   "wall": 1825.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r15-140545033524928-994542455246",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 3,
+   "wall": 1880.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/features.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r17-140545041917632-1394926496862",
+   "mutant": "baseline-or-null",
+   "rc": 124,
+   "failed": 0,
+   "wall": 2400.0,
+   "timed_out": true
+  },
+  {
+   "script": "tests/finite_boundary.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r20-140545041917632-3795374124929",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 279.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r19-140545033524928-2876376086416",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 2,
+   "wall": 1380.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/guard_pins.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r22-140545033524928-4256578953649",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 10.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/guard_pins.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r23-140545033524928-4267216241055",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 12.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/manual_plan.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r24-140545033524928-4279960707781",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 15.0,
+   "timed_out": false
+  },
+  {
+   "script": "tests/manual_plan.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r25-140545033524928-4295024193916",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 11.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/open_meteo.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r26-140545033524928-4306636494521",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/open_meteo.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r27-140545033524928-4307008217545",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/finite_boundary.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r21-140545041917632-4074628194586",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 252.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/optimality.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r28-140545033524928-4307396585061",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 228.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/plan_view.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r30-140545033524928-4536096770185",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 1.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/plan_view.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r31-140545033524928-4537176156208",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 1.0,
+   "timed_out": false
+  },
+  {
+   "script": "tests/solar_alignment.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r32-140545033524928-4538153536415",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/solar_alignment.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r33-140545033524928-4538976213818",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/optimality.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r29-140545041917632-4327240214309",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 223.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/structure.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r34-140545033524928-4539768305757",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 31.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/structure.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r35-140545041917632-4550676177766",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 29.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/typing_ruler.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r36-140545033524928-4571048641873",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 27.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/typing_ruler.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r37-140545041917632-4579832191164",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 26.5,
+   "timed_out": false
+  },
+  {
+   "script": "tests/validate.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r38-140545033524928-4598135995077",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 39.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/wood_advisor.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r40-140545033524928-4637768788141",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 1.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/wood_advisor.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r41-140545033524928-4639016200269",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 1.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/validate.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r39-140545041917632-4606364203386",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 38.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/features.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r18-140545085462208-2824224217366",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 1886.2,
+   "timed_out": false
+  }
+ ],
+ "cpu": [
+  {
+   "argv": [
+    "tests/arch_score_head.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r0-140545033524928-157751496425",
+   "pid": 2360,
+   "wall": 80.908389401,
+   "cpu": 56.29546,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/arch_score_head.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r1-140545033524928-238772197531",
+   "pid": 3454,
+   "wall": 123.738865747,
+   "cpu": 55.552682000000004,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/block_duty.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r2-140545033524928-362581458923",
+   "pid": 4619,
+   "wall": 34.45753686699999,
+   "cpu": 9.807905,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/block_duty.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r3-140545033524928-397212997464",
+   "pid": 4644,
+   "wall": 33.40536175300002,
+   "cpu": 8.895290000000001,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/env_drift.py",
+    "--all"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r0-140545041917632-157746894250",
+   "pid": 2358,
+   "wall": 588.631969881,
+   "cpu": 242.609183,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/env_drift.py",
+    "--all"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r0-140545085462208-157745918287",
+   "pid": 2357,
+   "wall": 603.768493631,
+   "cpu": 241.62399200000002,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/config_flow_steps.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r6-140545085462208-761605276835",
+   "pid": 5045,
+   "wall": 55.65059110599998,
+   "cpu": 26.539486999999998,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/config_flow_steps.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r7-140545085462208-817488205535",
+   "pid": 5070,
+   "wall": 49.11452247,
+   "cpu": 26.031412,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/debug_collect.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r8-140545085462208-866730720765",
+   "pid": 5123,
+   "wall": 3.187811778999958,
+   "cpu": 1.453876,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/debug_collect.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r9-140545085462208-870163025701",
+   "pid": 5135,
+   "wall": 2.0317791840000154,
+   "cpu": 1.000494,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/deployment_shape.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r10-140545085462208-872268594430",
+   "pid": 5145,
+   "wall": 6.578031323999994,
+   "cpu": 3.125936,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/deployment_shape.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r11-140545085462208-878984265432",
+   "pid": 5180,
+   "wall": 6.574861913999939,
+   "cpu": 3.216529,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/doc_claims.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r12-140545085462208-885647042311",
+   "pid": 5217,
+   "wall": 39.06922559899999,
+   "cpu": 15.55532,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/doc_claims.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r13-140545085462208-924808493288",
+   "pid": 5408,
+   "wall": 39.30695759299999,
+   "cpu": 14.693725,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/boost_drift_replay.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r4-140545033524928-430799901283",
+   "pid": 4664,
+   "wall": 563.5773954409999,
+   "cpu": 224.411471,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/doc_claims.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r14-140545085462208-964220248291",
+   "pid": 5521,
+   "wall": 34.147009142,
+   "cpu": 13.317392,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/boost_drift_replay.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r5-140545041917632-746458914369",
+   "pid": 5034,
+   "wall": 648.376552908,
+   "cpu": 224.89902,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/entities.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r16-140545085462208-998524208425",
+   "pid": 5631,
+   "wall": 1825.5592249329998,
+   "cpu": 610.939215,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/entities.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r15-140545033524928-994542455246",
+   "pid": 5629,
+   "wall": 1880.2426944979998,
+   "cpu": 631.5975960000001,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/finite_boundary.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r20-140545041917632-3795374124929",
+   "pid": 18700,
+   "wall": 279.02402918000007,
+   "cpu": 104.20234,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/entities.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r19-140545033524928-2876376086416",
+   "pid": 4678,
+   "wall": 1380.1453134539997,
+   "cpu": 535.129049,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/guard_pins.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r22-140545033524928-4256578953649",
+   "pid": 20943,
+   "wall": 10.528865098000097,
+   "cpu": 6.184713,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/guard_pins.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r23-140545033524928-4267216241055",
+   "pid": 21063,
+   "wall": 12.616297047999979,
+   "cpu": 5.483694000000001,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/manual_plan.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r24-140545033524928-4279960707781",
+   "pid": 21108,
+   "wall": 14.916093290999925,
+   "cpu": 6.74535,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/manual_plan.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r25-140545033524928-4295024193916",
+   "pid": 21144,
+   "wall": 11.557868273999702,
+   "cpu": 5.644088,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/open_meteo.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r26-140545033524928-4306636494521",
+   "pid": 21223,
+   "wall": 0.30536466000012297,
+   "cpu": 0.238917,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/open_meteo.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r27-140545033524928-4307008217545",
+   "pid": 21225,
+   "wall": 0.33622253100020316,
+   "cpu": 0.208668,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/finite_boundary.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r21-140545041917632-4074628194586",
+   "pid": 19729,
+   "wall": 252.51111004999984,
+   "cpu": 105.810515,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/optimality.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r28-140545033524928-4307396585061",
+   "pid": 21227,
+   "wall": 228.55114808399958,
+   "cpu": 118.416404,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/plan_view.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r30-140545033524928-4536096770185",
+   "pid": 21337,
+   "wall": 0.99271396200038,
+   "cpu": 0.835511,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/plan_view.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r31-140545033524928-4537176156208",
+   "pid": 21340,
+   "wall": 0.9312515880001229,
+   "cpu": 0.778231,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/solar_alignment.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r32-140545033524928-4538153536415",
+   "pid": 21344,
+   "wall": 0.7704792209997322,
+   "cpu": 0.76176,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/solar_alignment.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r33-140545033524928-4538976213818",
+   "pid": 21346,
+   "wall": 0.7197662139997192,
+   "cpu": 0.688966,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/optimality.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r29-140545041917632-4327240214309",
+   "pid": 21236,
+   "wall": 223.35797538000043,
+   "cpu": 116.337799,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/structure.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r34-140545033524928-4539768305757",
+   "pid": 21350,
+   "wall": 31.204022650999832,
+   "cpu": 24.746503,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/structure.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r35-140545041917632-4550676177766",
+   "pid": 21357,
+   "wall": 29.074305357999947,
+   "cpu": 22.624913,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/typing_ruler.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r36-140545033524928-4571048641873",
+   "pid": 21366,
+   "wall": 27.036865803000182,
+   "cpu": 21.424439,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/typing_ruler.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r37-140545041917632-4579832191164",
+   "pid": 21415,
+   "wall": 26.470343515000422,
+   "cpu": 21.096824,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/validate.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r38-140545033524928-4598135995077",
+   "pid": 21464,
+   "wall": 39.51974334100032,
+   "cpu": 22.281461,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/wood_advisor.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r40-140545033524928-4637768788141",
+   "pid": 21488,
+   "wall": 1.1484161959997436,
+   "cpu": 0.910243,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/wood_advisor.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
+   "rid": "r41-140545033524928-4639016200269",
+   "pid": 21490,
+   "wall": 1.2601518699993903,
+   "cpu": 0.943645,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/validate.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
+   "rid": "r39-140545041917632-4606364203386",
+   "pid": 21474,
+   "wall": 38.858907562999775,
+   "cpu": 22.7686,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/features.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
+   "rid": "r18-140545085462208-2824224217366",
+   "pid": 4085,
+   "wall": 1886.186590623,
+   "cpu": 794.694975,
+   "rc": 0
+  }
+ ]
+}

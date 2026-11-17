@@ -110,6 +110,8 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=3)
     ap.add_argument("--out", required=True)
     ap.add_argument("--overlap", action="store_true")
+    ap.add_argument("--no-drift-reach", action="store_true")
+    ap.add_argument("--timeout", type=int, default=6000)
     ap.add_argument("--only", default="",
                     help="comma list of drivers to keep (overlap subsets)")
     args = ap.parse_args()
@@ -194,6 +196,18 @@ def main() -> int:
                 print(f"  {s_}: baseline red ONLY on the finder-wall artifact "
                       f"(dev/archive/backlog.md absent); tolerated, kill = >1 FAIL")
                 continue
+            # entities.py in this export: exactly two machinery checks are red
+            # at the unmutated baseline (closure.py's partial re-derive and the
+            # PR-template acceptance arm), neither reading a production file.
+            # Its other FAIL lines are the nightly probes' deliberate negatives.
+            if (s_ == "tests/entities.py" and run.failed == 2
+                    and "and is accepted when it does" in names
+                    and any(n.startswith("the template arm turns the acceptance red")
+                            for n in names)):
+                print(f"  {s_}: baseline red ONLY on two machinery checks of "
+                      f"this export (closure partial re-derive, PR-template "
+                      f"acceptance); tolerated, kill = >2 FAIL")
+                continue
             keep[s_] = run
         return orig_refusal(keep, scope, recorded)
     mt.baseline_refusal = refusal
@@ -221,12 +235,36 @@ def main() -> int:
             json.dumps(rec, indent=0))
         return got, reach
     mt.traced_baseline = traced
+
+    # env_drift.py's run cannot be traced (its capture child's PYTHONPATH is
+    # rebuilt), so the lane drives it on every pair. drift_reach.py traced
+    # that very child (`env_drift.py --capture <tree> <out> --all`, the only
+    # process of the run that imports the mutated tree; the reference side
+    # captures the unmutated HEAD^1 worktree). Substitute its reach so
+    # env_drift is reach-skipped exactly where its capture never executes
+    # the line. --no-drift-reach turns this off.
+    cap = HERE / "reach" / "tests_env_drift.py_capture.json"
+    if not args.no_drift_reach and cap.exists():
+        crow = json.loads(cap.read_text())
+        inner_traced = mt.traced_baseline
+
+        def traced_with_drift(run, script, tree, timeout, extra_args, extra_env):
+            got, reach = inner_traced(run, script, tree, timeout, extra_args,
+                                      extra_env)
+            if script == "tests/env_drift.py" and got.rc == 0 and not got.timed_out:
+                r = crow["reach"]
+                reach = {"hits": r["hits"], "reads": r["reads"], "foreign": [],
+                         "untraced": [], "processes": r["processes"], "rc": 0}
+                print("  tests/env_drift.py: reach = its traced --capture "
+                      "child (drift_reach.py)")
+            return got, reach
+        mt.traced_baseline = traced_with_drift
     mt.sampled_pool = lambda *a, **k: (pool, 0)
     os.environ.setdefault("GOLDEN_REF", "HEAD^1")
     t0 = time.monotonic()
     rc = mt.main(["--scope", "full", "--jobs", str(args.jobs),
                   "--scripts", ",".join(allow), "--max", str(len(pool)),
-                  "--timeout", "2400"])
+                  "--timeout", str(args.timeout)])
     wall = time.monotonic() - t0
     cpu_log = [json.loads(x) for x in (tmp / "cpu.log").read_text().splitlines()
                ] if (tmp / "cpu.log").exists() else []

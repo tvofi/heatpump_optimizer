@@ -1,0 +1,9 @@
+RESULT tests/dst_checks.py:solves=116 count
+RESULT tests/dst_checks.py:asserts=137 count (ALL-N, rc=0)
+RESULT tests/dst_checks.py:asserts_per_solve=1.181 ratio
+RESULT tests/dst_checks.py:distinct_inputs=107 count (unhashable=0, summed per process)
+RESULT tests/dst_checks.py:wall=59.4 s (provisional)
+RESULT tests/dst_checks.py:cpu=51.3 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=7.89
+RESULT swapins=0
