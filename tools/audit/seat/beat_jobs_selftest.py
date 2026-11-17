@@ -311,6 +311,28 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain: a REFUSE line arrives in the digest and is never retried"] = (
         "roster: append-carry G2 refused" in digest(c) and f.ran("roster_queue.py") == 1)
+    def ev(ctx):
+        return [ln.split(" ", 1)[1] for ln in bj.read(ctx.digest / "events.txt").splitlines()]
+    word = {"v": "refused rc=1 lint gate: TOTAL: 1"}
+    c, f = fresh(answers={"roster_queue.py": lambda a: roster(word["v"])(a)})
+    pre = not ev(c)
+    (c.state / "roster-drain.queue").write_text("append-group G9 @x\n")
+    bj.roster_drain(c)
+    word["v"] = "pushed 0123abcde"
+    (c.state / "roster-drain.queue").write_text("append-group G9 @x\nset-stage G1 done\n")
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain: a refused op writes one events line that survives a following applied pass"] = (
+        pre and ev(c) == ["ROSTER-REFUSED #1 append-group G9 @x"]
+        and digest(c) == "roster: set-stage G1 pushed 0123abcde\n" and f.ran("roster_queue.py") == 2)
+    res["roster-drain: a refused key is remembered apart from the applied ones"] = (
+        c.memory("roster-refused.json", []) == ["1\tappend-group G9 @x"]
+        and c.memory("roster-done.json", []) == ["1\tset-stage G1 done"])
+    c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\nhold only-a-path\n")
+    bj.roster_drain(c)
+    res["roster-drain null: an applied op writes no events line; a malformed hold writes one"] = (
+        ev(c) == ["ROSTER-REFUSED #1 hold only-a-path"] and c.memory("roster-refused.json", []) == ["1\thold only-a-path"])
     on = {"v": 1}
     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde"), "git": lambda a: (on["v"], "", "")})
     (c.state / "roster-drain.queue").write_text("hold dev/programme/triage/s9-batch1.md set-stage G3 x\n")
@@ -332,7 +354,7 @@ def cases(bj) -> dict[str, bool]:
     q.write_text("hold only-a-path\n")
     bj.roster_drain(c)
     first = digest(c) == "roster: refused malformed hold line: hold only-a-path\n"
-    marked = bool(c.memory("roster-done.json", []))
+    marked = bool(c.memory("roster-refused.json", []))
     q.write_text("hold only-a-path\nset-stage G1 done\n")
     bj.roster_drain(c)
     res["roster-drain: a malformed hold line is refused once and marked, never re-printed"] = (
@@ -1258,7 +1280,14 @@ MUTANTS = {
     "owed_rc1_dropped": ("    if rc == 1:\n", "    if rc == 9:\n", "owed-check: an UNACTIONED exit lands in new.txt"),
     "roster_no_mark": ("            done.add(key)  # applied", "            pass  # applied",
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
-    "roster_saved_at_pass_end": ("            holds.pop(key, None)\n            save()\n", "            holds.pop(key, None)\n",
+    "roster_refusal_no_event": ('        event(ctx, f"ROSTER-REFUSED #{n} {text}")', '        pass',
+                                "roster-drain: a refused op writes one events line that survives a following applied pass"),
+    "roster_refused_as_done": ("    def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not\n        refused.add(key)",
+                               "    def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not\n        done.add(key)",
+                               "roster-drain: a refused key is remembered apart from the applied ones"),
+    "roster_refused_retried": ("        if key in done or key in refused:", "        if key in done:",
+                               "roster-drain: a refused op writes one events line that survives a following applied pass"),
+    "roster_saved_at_pass_end": ("        holds.pop(key, None)\n        save()\n", "        holds.pop(key, None)\n",
                                  "roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"),
     "roster_pass_unbounded": ("        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:", "        if False:",
                               "roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"),
@@ -1347,7 +1376,7 @@ MUTANTS = {
                                 "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
     "roster_shrink_ignored": ("    if len(whole) < seen or ", "    if False and ",
                               "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
-    "roster_noop_marked": ('        if mark != op or not any("no op attempted" in ln for ln in said):', '        if True:',
+    "roster_noop_marked": ('        elif mark != op or not any("no op attempted" in ln for ln in said):', '        elif True:',
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
@@ -1374,7 +1403,7 @@ MUTANTS = {
                                          "tick-digest: a transient NOT REVIEWABLE gives nothing; on a second board it appears"),
     "roster_hold_op_unstripped": ("            op = parts[2]\n", "",
                                   "roster-drain: a released hold hands roster_queue the held op, not the hold line"),
-    "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                done.add(key)',
+    "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                refuse(key)',
                                       'lines.append(f"roster: refused malformed hold line: {text}")',
                                       "roster-drain: a malformed hold line is refused once and marked, never re-printed"),
     "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan, *train)', '"--push", "--plan", plan, *train)',

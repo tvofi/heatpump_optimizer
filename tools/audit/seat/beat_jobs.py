@@ -21,8 +21,9 @@ file is its only writer:
   new.txt        the lines the last changing fold added (empty when it added none);  by fold()
   gone.txt       the lines the last changing fold dropped (empty when it dropped none); by fold()
   new.stamp      touched (the fold's UTC) only when that fold added a line;
-  events.txt     `<utc> HEAD-MOVED #<n> <old12> <new12>` (head-watch) and
-                 `<utc> STUCK ...` (opener) lines, appended once each;
+  events.txt     `<utc> HEAD-MOVED #<n> <old12> <new12>` (head-watch),
+                 `<utc> STUCK ...` (opener) and `<utc> ROSTER-REFUSED ...`
+                 (roster-drain) lines, appended once each;
   heads.tsv      head-watch's last-seen head per open pull request;
   state/         each row's own memory (tick passes, roster marks, holds).
 fold() runs under `flock digest/.lock`. A null pass changes no byte; the wake
@@ -48,8 +49,11 @@ ROWS (the job table's `interval_s` in brackets):
   roster-drain [120] each pending op of `S/roster-drain.queue` through
                      roster_queue.py `run`, one at a time; every `roster:` line
                      it reports goes to the digest and the exact line (text and
-                     occurrence) is marked done in `state/` as soon as it ran,
-                     refused or not: a refusal is never retried, and a pass
+                     occurrence) is remembered in `state/` as soon as it ran,
+                     applied in roster-done.json, refused in roster-refused.json:
+                     a refusal is never retried, appends `ROSTER-REFUSED
+                     #<occurrence> <line>` to events.txt (the job file is
+                     replaced by the next pass that runs an op), and a pass
                      killed mid-queue replays at most the op it was killed in.
                      No op starts past ROSTER_PASS_BUDGET_S into a pass; the
                      rest wait for the next. `hold <tree-path> <op...>` waits
@@ -393,6 +397,7 @@ def on_main(ctx: Ctx, path: str) -> bool:
 
 def roster_drain(ctx: Ctx) -> None:
     done = set(ctx.memory("roster-done.json", []))
+    refused = set(ctx.memory("roster-refused.json", []))
     holds = ctx.memory("roster-hold.json", {})
     lines, count, ran, cascade = [], collections.Counter(), False, 0
     # The queue is append-only. Only newline-terminated lines run: a last segment read mid-append waits
@@ -404,13 +409,18 @@ def roster_drain(ctx: Ctx) -> None:
     def save() -> None:  # after every op, not only at the pass's end: a killed pass keeps what it applied
         ctx.remember("roster-queue-lines.json", len(whole), 0)
         ctx.remember("roster-done.json", sorted(done), [])
+        ctx.remember("roster-refused.json", sorted(refused), [])
         ctx.remember("roster-hold.json", holds, {})
     if len(whole) < seen or ctx.memory("roster-shrank.json", False):
         ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
         return write_job(ctx, "roster-drain", [
             f"roster: QUEUE-SHRANK {len(whole)} terminated line(s) now, {seen} drained before; the queue is "
-            "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-hold.json, "
-            "roster-queue-lines.json and roster-shrank.json under the digest state"])
+            "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-refused.json, "
+            "roster-hold.json, roster-queue-lines.json and roster-shrank.json under the digest state"])
+    def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not
+        refused.add(key)
+        n, text = key.split("\t", 1)
+        event(ctx, f"ROSTER-REFUSED #{n} {text}")
     start = ctx.clock()
     for raw in whole:
         text = raw.strip()
@@ -418,14 +428,14 @@ def roster_drain(ctx: Ctx) -> None:
             continue
         count[text] += 1
         key = f"{count[text]}\t{text}"
-        if key in done:
+        if key in done or key in refused:
             continue
         op = text
         if text.startswith("hold "):
             parts = text.split(None, 2)
             if len(parts) < 3:
                 lines.append(f"roster: refused malformed hold line: {text}")
-                done.add(key)
+                refuse(key)
                 continue
             first = holds.setdefault(key, ctx.now)
             if not on_main(ctx, parts[1]):
@@ -452,10 +462,14 @@ def roster_drain(ctx: Ctx) -> None:
             cascade += 1  # the worktree an earlier refusal left detached refused it, not the lint gate
             continue
         lines += said or [f"roster: {op} {mark.split()[0]} rc={rc} no report line"]
-        if mark != op or not any("no op attempted" in ln for ln in said):
-            done.add(key)  # applied or refused: never retried past the lint gate
-            holds.pop(key, None)
-            save()
+        if mark == f"#refused {op}":
+            refuse(key)  # never retried past the lint gate, and durable past this pass's digest
+        elif mark != op or not any("no op attempted" in ln for ln in said):
+            done.add(key)  # applied: never re-run
+        else:
+            continue  # roster_queue attempted nothing: retried next pass
+        holds.pop(key, None)
+        save()
     if cascade:
         lines.append(f"roster: CASCADE {cascade} op(s) stay pending: the worktree "
                      f"{ctx.digest / 'state' / 'roster-wt'} is on no origin ref after an earlier refusal; "
