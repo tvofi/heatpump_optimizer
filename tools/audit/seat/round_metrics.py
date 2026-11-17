@@ -44,6 +44,26 @@ input is absent, and a partial ledger is a NO-READ, never a partial value):
   tokens          0018's tokens_per_change: the ledger `tokens.tsv` (t, seat_class,
                   tokens) summed over the window, over production merges; a seat
                   class of SEAT_CLASSES with no row in the window makes it unread.
+  closure_slip    a round's read (`--round`): over the round's plan pages after its
+                  register (the commit first adding dev/audit/rounds/round<N>/JUDGE.json
+                  to main), in the window, sampled once a day (each day's last page with
+                  a forecast, days counted from the register; SLIP_SAMPLE_S), the days the
+                  forecast closure moved later between consecutive samples (an earlier
+                  move pays nothing back), over the days between the first and last
+                  sample; beside it the samples and pages read, the net move (the
+                  last daily sample's forecast less the first's), pages
+                  with no forecast (an UNAVAILABLE page), the threshold
+                  `closure_slip_ceiling` of dev/audit/config/objective.json (null is
+                  undecided), round start to closure in days (the vN.0.0 tag, else the
+                  newest forecast) and the round's groups at stage `deferred`. Fewer
+                  than two daily samples read no slope: unread.
+  unexamined      a round's read: production merges in the window that are no ancestor
+                  of any finder baseline the round recorded (every `"baseline_sha"`
+                  under dev/audit/rounds/round<N>/ on origin/main), over the window's
+                  production merges; beside it the unexamined merges by roster group
+                  kind. A baseline that does not resolve makes it unread (a partial
+                  ledger), and so does a round with none (no finder pass, no "after
+                  the baseline").
 
 INPUTS under D, written by `produce` (one REST batch: the CI run listing since the
 open round's start, and each completed run's job listing not yet cached, at most
@@ -54,6 +74,11 @@ JOB_FETCH_MAX per pass):
   merges.tsv      sha, pr, ct, class, tokens, group, entered (scorecard.py's H line)
   entries.json    {"tip", "entered": {group: epoch}} the roster-entry scan's cache
   verdicts.json   review_strength.load's bus;  roster.json  the newest roster
+  plans.json      {"<N>": {"tip", "register", "history": [[t, closure epoch or null]]}}
+                  rounds N-1 and N's PLAN.html forecast per commit on their state ref
+                  handoff/audit-r<N>-plan, scanned from the cached tip; a deleted ref
+                  keeps the cached history
+  groups.json     {group: {"kind", "stage", "round"}} over every wave-r<N> roster
 """
 from __future__ import annotations
 
@@ -81,6 +106,17 @@ ROSTER_PATHS = ("dev/programme/rosters/", ".claude/workflows/")
 SUBJECT = re.compile(r"^Merge pull request #(\d+) from [^/\s]+/(\S+)")
 ADDED = re.compile(r'^\+\s*"group":\s*"([^"]+)"')
 TSV = ("sha", "pr", "ct", "class", "tokens", "group", "entered")
+DAY_S = 86400
+# closure_slip samples the plan history once a day (each day's last page, days counted from the register): summing
+# the later moves of every page makes the read a function of how often the page is committed (round 10's history:
+# 2.57 days per day over all 563 forecast pages, 1.27 over its 15 daily samples), so only a fixed cadence compares rounds.
+SLIP_SAMPLE_S = DAY_S
+PLAN_REF = "origin/handoff/audit-r{n}-plan"
+PLAN_PAGE = "handoff/round{n}/state/PLAN.html"
+REGISTER = "dev/audit/rounds/round{n}/JUDGE.json"
+# plan_page.py's slots note: "... merge batches, closure <plan.json summary.closure>."
+CLOSURE = re.compile(r"merge batches, closure (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?Z)")
+BASELINE = re.compile(r'"baseline_sha":\s*"([0-9a-f]{7,40})"')
 
 
 def epoch(s: str) -> float:
@@ -249,7 +285,81 @@ def token_line(d: Path, merges: list | None, a: float, b: float) -> str:
     return f"tokens {total / prod:.0f} per production merge (window total {total}; {prod} production merges)"
 
 
-def window_lines(d: Path, a: float, b: float, checks: str) -> list[str]:
+def slip_line(d: Path, rnd: dict | None, a: float, b: float) -> str:
+    if rnd is None:
+        return "closure_slip unread (a round's read: --round names the round)"
+    n = rnd["n"]
+    doc = (read_json(d / "plans.json") or {}).get(str(n))
+    if not doc or doc.get("register") is None:
+        why = "no plan history in plans.json" if not doc else f"no register: {REGISTER.format(n=n)} is not on main"
+        return f"closure_slip unread (round {n}: {why})"
+    every = sorted(h for h in doc["history"] if h[0] >= doc["register"] and a <= h[0] < b)
+    hist = [h for h in every if h[1] is not None]
+    daily = list({(h[0] - doc["register"]) // SLIP_SAMPLE_S: h for h in hist}.values())  # each day's last page
+    if len(daily) < 2:
+        return (f"closure_slip unread ({len(daily)} daily samples of plan pages with a forecast closure after the "
+                f"register in the window; a slope needs two)")
+    later = sum(max(0.0, q[1] - p[1]) for p, q in zip(daily, daily[1:])) / DAY_S
+    span = (daily[-1][0] - daily[0][0]) / DAY_S
+    slip, cap = later / span, rnd.get("ceiling")
+    held = ("ceiling unread (objective.json)" if cap == "unread" else "ceiling unset, undecided" if cap is None
+            else f"{'within' if slip <= cap else 'over'} the ceiling {cap:g}")
+    newest = max((h for h in doc["history"] if h[1] is not None), key=lambda h: h[0])[1]
+    close = (rnd["end"], "closed") if rnd["state"] == "closed" else (newest, "forecast")
+    groups = read_json(d / "groups.json")
+    deferred = ("deferred unread (groups.json)" if groups is None else
+                f"{sum(g.get('round') == n and g.get('stage') == 'deferred' for g in groups.values())} groups deferred out")
+    return (f"closure_slip {slip:.2f} days per day ({later:.2f} days later over {span:.2f} days of plan history "
+            f"after the register, {len(daily)} daily samples of {len(every)} pages; net "
+            f"{(daily[-1][1] - daily[0][1]) / DAY_S:+.2f} days; {len(every) - len(hist)} pages without a forecast; "
+            f"{held}; round start to closure "
+            f"{(close[0] - rnd['start']) / DAY_S:.1f} days ({close[1]}); {deferred})")
+
+
+def round_baselines(repo: Path, n: int) -> tuple[list[str], list[str]]:
+    """Round n's recorded finder baselines on origin/main: (resolved commits, prefixes that resolve to none)."""
+    p = subprocess.run(["git", "grep", "-h", "-E", BASELINE.pattern, "origin/main", "--", f"dev/audit/rounds/round{n}/"],
+                       cwd=repo, capture_output=True, text=True)
+    shas, bad = set(), []
+    for s in sorted(set(BASELINE.findall(p.stdout))):
+        r = subprocess.run(["git", "rev-parse", "-q", "--verify", f"{s}^{{commit}}"], cwd=repo, capture_output=True, text=True)
+        if r.returncode:
+            bad.append(s)
+        else:
+            shas.add(r.stdout.strip())
+    return sorted(shas), bad
+
+
+def unexamined_line(d: Path, rnd: dict | None, merges: list | None, a: float, b: float) -> str:
+    if rnd is None:
+        return "unexamined unread (a round's read: --round names the round)"
+    if merges is None:
+        return "unexamined unread (merges.tsv)"
+    prod = [r for r in merges if r["class"] == "production" and a <= r["ct"] < b]
+    if not prod:
+        return "unexamined unread (no production merge in the window)"
+    n = rnd["n"]
+    shas, bad = round_baselines(rnd["repo"], n)
+    if bad:
+        return f"unexamined unread ({len(bad)} finder baselines of round {n} resolve to no commit: {', '.join(bad)})"
+    if not shas:
+        return f"unexamined unread (no finder baseline recorded under dev/audit/rounds/round{n}/ on origin/main)"
+    seen = set(git(rnd["repo"], "rev-list", *shas).split())
+    un = [r for r in prod if r["sha"] not in seen]
+    groups = read_json(d / "groups.json")
+    if groups is None:
+        kinds = "by kind unread (groups.json)"
+    else:
+        tally: dict[str, int] = {}
+        for r in un:
+            k = (groups.get(r["group"]) or {}).get("kind") or ("no roster group" if not r["group"] else "unkinded")
+            tally[k] = tally.get(k, 0) + 1
+        kinds = "by kind " + (", ".join(f"{k} {c}" for k, c in sorted(tally.items())) or "none")
+    return (f"unexamined {len(un)}/{len(prod)} = {100 * len(un) / len(prod):.0f}% (production merges in the window "
+            f"no finder baseline of round {n} contains; {len(shas)} baselines; {kinds})")
+
+
+def window_lines(d: Path, a: float, b: float, checks: str, rnd: dict | None = None) -> list[str]:
     merges = load_merges(d)
     out = []
     if merges is None:
@@ -261,6 +371,8 @@ def window_lines(d: Path, a: float, b: float, checks: str) -> list[str]:
     out += green_lines(read_json(d / "runs.json"), gate_conclusions(d), a, b, checks)
     out.append(runner_line(d, merges, a, b))
     out.append(token_line(d, merges, a, b))
+    out.append(slip_line(d, rnd, a, b))
+    out.append(unexamined_line(d, rnd, merges, a, b))
     return out
 
 
@@ -319,15 +431,39 @@ def group_of(pr: int | None, branch: str, by_pr: dict, names: set) -> str:
     return ""
 
 
-def rosters_at(repo: Path, ref: str) -> list[dict]:
-    groups = []
+def round_groups(repo: Path, ref: str) -> list[tuple[int, dict]]:
+    """(round, group) over every wave-r<N>-groups.json roster at <ref>, oldest round first."""
+    out = []
     for f in git(repo, "ls-tree", "-r", "--name-only", ref, "dev/programme/rosters/").split():
-        if re.search(r"wave-r\d+-groups\.json$", f):
+        if m := re.search(r"wave-r(\d+)-groups\.json$", f):
             try:
-                groups += [g for g in json.loads(git(repo, "show", f"{ref}:{f}")).get("groups", []) if isinstance(g, dict)]
+                out += [(int(m[1]), g) for g in json.loads(git(repo, "show", f"{ref}:{f}")).get("groups", [])
+                        if isinstance(g, dict)]
             except (ValueError, subprocess.CalledProcessError):
                 continue
-    return groups
+    return sorted(out, key=lambda x: x[0])
+
+
+def rosters_at(repo: Path, ref: str) -> list[dict]:
+    return [g for _, g in round_groups(repo, ref)]
+
+
+def plan_history(repo: Path, n: int, cache: dict) -> dict:
+    """Round n's {"tip", "register", "history"}: PLAN.html's forecast closure per commit on its state ref."""
+    reg = git(repo, "log", "--diff-filter=A", "--format=%ct", "origin/main", "--", REGISTER.format(n=n)).split()
+    out = dict(cache, register=int(reg[-1]) if reg else None)
+    tip = subprocess.run(["git", "rev-parse", "-q", "--verify", PLAN_REF.format(n=n) + "^{commit}"], cwd=repo,
+                         capture_output=True, text=True).stdout.strip()
+    if not tip:
+        return out
+    old, page = cache.get("tip"), PLAN_PAGE.format(n=n)
+    inc = bool(old) and subprocess.run(["git", "merge-base", "--is-ancestor", old, tip], cwd=repo).returncode == 0
+    hist = list(cache.get("history") or []) if inc else []
+    for ln in git(repo, "log", "--format=%H %ct", f"{old}..{tip}" if inc else tip, "--", page).splitlines():
+        sha, t = ln.split()
+        m = CLOSURE.search(git(repo, "show", f"{sha}:{page}"))
+        hist.append([int(t), epoch(m[1]) if m else None])
+    return dict(out, tip=tip, history=sorted(hist, key=lambda h: h[0]))
 
 
 def merge_rows(repo: Path, since: float, old: list[dict], groups: list[dict], entered: dict) -> list[dict]:
@@ -376,7 +512,14 @@ def produce(d: Path, repo: Path, gh_repo: str, roster_ref: str | None, paginate=
     if since is None:
         raise SystemExit("round_metrics: no v*.0.0 tag, so no open round to read from")
     ref = roster_lib.reader_ref(str(repo), roster_ref)
-    groups = rosters_at(repo, ref)
+    pairs = round_groups(repo, ref)
+    groups = [g for _, g in pairs]
+    write(d / "groups.json", json.dumps({g["group"]: {"kind": g.get("kind"), "stage": (g.get("resume") or {}).get("stage"),
+                                                      "round": k} for k, g in pairs if "group" in g}, sort_keys=True))
+    plans = read_json(d / "plans.json") or {}
+    for k in (n - 1, n):
+        plans[str(k)] = plan_history(repo, k, plans.get(str(k)) or {})
+    write(d / "plans.json", json.dumps(plans, sort_keys=True))
     entries = roster_entries(repo, ref, read_json(d / "entries.json") or {})
     write(d / "entries.json", json.dumps(entries, sort_keys=True))
     rows = merge_rows(repo, since, load_merges(d) or [], groups, entries["entered"])
@@ -434,16 +577,19 @@ def main(argv: list[str]) -> int:
             print(f"round {a.round} unread (no tag v{a.round - 1}.0.0 opens it)")
             return 0
         start, end, state = w
+        objective = read_json(a.repo / "dev/audit/config/objective.json")
+        cap = ((objective.get("thresholds") or {}).get("closure_slip_ceiling") or {}).get("value") if objective else "unread"
+        rnd = {"n": a.round, "repo": a.repo, "start": start, "end": end, "state": state, "ceiling": cap}
     elif a.since:
         start, end = epoch(a.since), epoch(a.until) if a.until else now
-        state = "given"
+        state, rnd = "given", None
     else:
         ap.error("report needs --round or --since")
     spans = [(start, end)] + (weeks(start, end) if a.weeks else [])
     for k, (s, e) in enumerate(spans):
         name = "window" if k == 0 else f"week {k}" + (" (short)" if e - s < WEEK_S else "")
         print(f"== {name} {iso(s)} .. {iso(e)} ({state})")
-        print("\n".join(window_lines(a.dir, s, e, gate_checks(a.repo, s, e))))
+        print("\n".join(window_lines(a.dir, s, e, gate_checks(a.repo, s, e), rnd)))
     return 0
 
 
