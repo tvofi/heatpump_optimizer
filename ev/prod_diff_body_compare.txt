@@ -1,0 +1,1 @@
+rc=0 (0: PR-own custom_components diff body identical at c0bc81e0a1 and e385756030)

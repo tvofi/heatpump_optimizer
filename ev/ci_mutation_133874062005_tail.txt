@@ -1,0 +1,41 @@
+2026-11-17T06:54:22.5177287Z Removing SSH command configuration
+2026-11-17T06:54:22.5183700Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-17T06:54:22.5221264Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-17T06:54:22.5516278Z Removing HTTP extra header
+2026-11-17T06:54:22.5523444Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-17T06:54:22.5562507Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-17T06:54:22.5853147Z Removing includeIf entries pointing to credentials config files
+2026-11-17T06:54:22.5859393Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-17T06:54:22.5887470Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-17T06:54:22.5888462Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-17T06:54:22.5889016Z includeif.gitdir:/github/workspace/.git.path
+2026-11-17T06:54:22.5889396Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-17T06:54:22.5896933Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-17T06:54:22.5921367Z /home/runner/work/_temp/git-credentials-80cdf8aa-fdf7-4da4-9096-964c57495702.config
+2026-11-17T06:54:22.5932230Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-80cdf8aa\-fdf7\-4da4\-9096\-964c57495702\.config
+2026-11-17T06:54:22.5976070Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-17T06:54:22.6000190Z /home/runner/work/_temp/git-credentials-80cdf8aa-fdf7-4da4-9096-964c57495702.config
+2026-11-17T06:54:22.6011246Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-80cdf8aa\-fdf7\-4da4\-9096\-964c57495702\.config
+2026-11-17T06:54:22.6045179Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-17T06:54:22.6069056Z /github/runner_temp/git-credentials-80cdf8aa-fdf7-4da4-9096-964c57495702.config
+2026-11-17T06:54:22.6078986Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-80cdf8aa\-fdf7\-4da4\-9096\-964c57495702\.config
+2026-11-17T06:54:22.6112950Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-17T06:54:22.6136308Z /github/runner_temp/git-credentials-80cdf8aa-fdf7-4da4-9096-964c57495702.config
+2026-11-17T06:54:22.6144309Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-80cdf8aa\-fdf7\-4da4\-9096\-964c57495702\.config
+2026-11-17T06:54:22.6178346Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-17T06:54:22.6464042Z Removing credentials config '/home/runner/work/_temp/git-credentials-80cdf8aa-fdf7-4da4-9096-964c57495702.config'
+2026-11-17T06:54:22.6615030Z Evaluate and set job outputs
+2026-11-17T06:54:22.6621126Z Set output 'shards'
+2026-11-17T06:54:22.6623337Z Set output 'count'
+2026-11-17T06:54:22.6624312Z Cleaning up orphan processes
+2026-11-17T06:54:16.3957227Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-17T06:54:16.3957655Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-17T06:54:16.3958107Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-17T06:54:16.3958540Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-17T06:54:16.3958899Z ##[endgroup]
+2026-11-17T06:54:16.9369220Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-17T06:54:16.9369858Z  * branch                  main       -> FETCH_HEAD
+2026-11-17T06:54:20.7212648Z     ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:825 CLAMP_DROP: min_kw = cfg_min if floor is None and source == "configured" else min(fl
+2026-11-17T06:54:20.7214133Z     ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:849 GUARD_OFF: elif floor is None:
+2026-11-17T06:54:20.7217075Z MUTATION TABLE REFUSED -- 2129 unpinned site(s) against 2127 at the ratchet base 69053da4f99c4e90952f6947c169aa6e96129dc6, 2 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+2026-11-17T06:54:20.7220269Z     custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:

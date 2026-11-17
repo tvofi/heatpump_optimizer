@@ -1,0 +1,29 @@
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+diff --git a/tests/features.py b/tests/features.py
+remerge CONFLICT (content): Merge conflict in tests/features.py
+index 827f253a53..045a891aa3 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -94539,7 +94539,6 @@ R.check(
+ _sce_dt.freeze(None)
+ 
+ 
+-<<<<<<< 02266951b6 (ci: pin killed mutants)
+ # -- R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor moves the plan -------
+ # Group C of design/R11-OUTSIDE-HONEST-STARTS-RUNS for pull request 3529 by
+ # Bankaifan: configured 0.53 kW against a metered running draw from 1.1 kW.
+@@ -94951,7 +94950,7 @@ R.check(
+     f"pert {_mf_na_pert[:2]} {_mf_na_pert[2] and _mf_na_pert[2][0]}",
+ )
+ 
+-=======
++
+ R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
+ 
+ # Phase 1 of room-level support (design/R11-OUTSIDE-ROOMS-P2): a list of room
+@@ -95626,5 +95625,4 @@ R.check(
+ )
+ 
+ 
+->>>>>>> 69053da4f9 (Merge pull request #3698 from tvofi/fix/r11-hotfix-selftest-scopes)
+ sys.exit(R.close("FEATURE CHECKS"))

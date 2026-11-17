@@ -1,0 +1,13 @@
+
+STRUCTURE RATCHET PASSED
+ALL 114 FINITE BOUNDARY CHECKS PASSED
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 69053da4f9
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+env_drift rc=0
+CARD-CLAIMS-IDENTICAL
+versions-diff-empty
+10.0.2
+a3dd115dcad26ec7fcd200edce6e111d413e7ca6
+merge-tree rc=0

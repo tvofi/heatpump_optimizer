@@ -1,0 +1,40 @@
+  ok   in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer at the debounce, and counted from its first reading
+  ok   a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over it counts one; no timer outlives either
+  ok   an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known class holds across it
+  ok   with neither a frequency sensor nor a meter configured nothing is listened to and the read is None
+  ok   with both a frequency sensor and a meter, the frequency is the source: the meter's rise counts nothing, the frequency's counts one
+  ok   a start straddling a month boundary is counted and billed in the month of its first reading
+  ok   the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and over and back inside one refresh period (S5) count no start; a compressor stopping under the latched element reads no class rather than running (S3); a start under the element counts once, when it releases (S4)
+  ok   the element rule is the meter source's only: a frequency install under a latched element counts its start
+  ok   a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading the element's, a change now pending to no class
+  ok   the confirm timer is one per pending change: a refresh re-reading the same pending rise keeps the timer armed for it, and a revert before the debounce cancels it at once; null control, the rise armed exactly one
+  ok   immersion_over is strict at each bound: a reading at the immersion level, a rated power of 0.1 kW and a commanded draw of 0.1 kW are not over; one step past each is
+  ok   S7: an element cut-in on a meter averaging 60 s or 30 s counts no start at any of six offsets, and a real start after it counts at its second refresh; neither the falling average of a short element's cut-out nor a second refresh landing while over is pending counts one; null control, on the same rig and refreshes a real start counts once, from its second refresh, and a run stopping before it counts once, at its stop
+  ok   wear.RiseHold passes each edge on at its own time: a rise from a stop is held through a refresh reading it running and one reading it unsettled, released by the second running one; a short run is its rise then its stop; null control, a counter with no hold counts the rise at once
+  ok   a refresh whose own re-read moves the class off running (the commanded draw or the element's latch changing, no meter event) while a rise is held counts no start: the tick hears the class this refresh re-reads; null control, the same rig with nothing moving counts the rise once
+  ok   metered floor, the loop (Bankaifan, #3529): configured 0.53 kW on a pump whose least draw is 1.1 kW, folded over four windows with a window-long cold spell of high asks, moves the floor once, to 1.1, and holds it through the spell (g = max(a, 1.1), and g_f(f) = 1.1); a step in the least draw to 1.6 moves it once more, to within 15 % under 1.6, never back; the build's configured-floor store with its lapse returns the band to 0.53 at least twice over the same pump
+  ok   metered floor, the loop's premise: each fixture pump's draw is nondecreasing in its ask
+  ok   metered floor, down and out: 0.8 kW at a learned 1.1 lowers it to 0.8, and 1.0 kW (within 15 % under it) holds it; 0.4 kW (under the configured 0.53) clears it, never under configured; a reconfiguration clears it; a raise restarts its evidence, so runs asked near the new floor before the move do not lower it
+  ok   metered floor, persistence: the floor and its count survive a round trip; absent leaves read unset; a floor not above the configured minimum and a non-count read unset; a record keyed to another range books and publishes no learned floor
+  ok   metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good record (floor, count, samples) reads back unchanged
+  ok   metered floor, application: a learned 1.1 under clamped levels books 1.1 (metered, measured); unclamped it books the configured 0.53 and publishes 1.1 as cycled; under a learned 1.0 top it books 1.0; a plan that writes the power keeps 0.53
+  ok   metered floor, coordinator: an on/off compressor (levels clamped) books a learned floor of twice the hub's minimum in the solve copy, its top and the hub untouched; a duty-cycling install publishes it as cycled and the copy keeps the hub's minimum
+  ok   metered floor, carry 0: the run-asked reader at its default bounds is every run-asked evidence pair, and power_floor_kw reads the one low-end statistic of them
+  ok   metered floor, alignment: WINDOW + 7 appends leave the count at WINDOW; a load dropping one unreadable row clamps it to the rows kept; the legacy-commands clear restarts it at the new sample with the floor held
+  ok   metered floor, surface: each minimum reason and source is reached by its fixture, unexceeded both from a low end within 15 % (0.58 of 0.53) and from one under the configured floor (0.40), and the set reached is the carry-6 table's
+  ok   metered floor, surface: the top's row and codes are byte for byte on a configured band and on one with a learned floor (no floor key enters the max row); the minimum's row carries the configured, planned and learned floor and E's size; no plan publishes None
+  ok   metered floor, edges: a low end exactly (1 - 15 %) or (1 + 15 %) of the floor holds it, and asks exactly at those bounds are its evidence; the default reader reads a 200-sample window whole and no ask of 0; a low end exactly 15 % over the configured minimum clears it; a move sets the count to 0; a fresh window counts 0; a stored floor at the configured minimum reads unset, one just above and a count of 1 read as written, a negative count reads 0; the COP floor under 47 pairs is the configured figure; an unkeyed window reports 0 pairs; a band built without the bottom reads configured with no evidence; the stamp rounds the bottom to 3 decimals
+  ok   metered floor, null controls (b) and (c): a draw of ask + 0.053 kW, and a window of 3.0 kW asks only on a pump whose least is 1.1, learn no floor and leave the band at 0.53
+  ok   metered floor, null control (a): a pump whose least draw is its configured minimum learns no floor and its solve books the same minimum, the same plan and the same top as with no window; perturbed to twice the configured minimum, the solve's minimum moves to it
+
+-- #3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health
+  ok   a climate room reads current_temperature and its target from attributes, calling from hvac_action
+  ok   a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat is unknown, not False; a sensor room reads its state, no target
+  ok   a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance reads the same 68 raw, outside a room's range
+  ok   an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry their problem word, the implausible one no temperature; null control, the watchdog off reads the old room fresh
+  ok   no room read records into the reader's input health, on any path
+  ok   the summary is the mean and the warmest less the coldest over the readable rooms, naming the coldest and the warmest
+  ok   the quorum is half the list, minimum one: 10 of 20 and 2 of 3 summarise, 9 of 20, 1 of 3, 0 of 1 and an empty list do not
+  ok   a stale room's kept temperature never reaches the summary
+  ok   the room list parses absent, None, empty and a stored non-list to the empty tuple, a list to a tuple without its empty items, and survives a factory reset as wiring
+rc=124

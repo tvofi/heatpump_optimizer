@@ -1,0 +1,14 @@
+[
+ {
+  "name": "825_CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/draw_range.py",
+  "old": "min_kw = cfg_min if floor is None and source == \"configured\" else min(floor or cfg_min, top)",
+  "new": "min_kw = cfg_min if floor is None and source == \"configured\" else (floor or cfg_min)"
+ },
+ {
+  "name": "849_GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/draw_range.py",
+  "old": "    elif floor is None:\n        reason = \"awaiting\" if low is None else \"unexceeded\"",
+  "new": "    elif False:\n        reason = \"awaiting\" if low is None else \"unexceeded\""
+ }
+]
