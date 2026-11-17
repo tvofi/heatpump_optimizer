@@ -1681,6 +1681,7 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "dev/audit/README.md",
    "dev/audit/config/ci_priority.json",
+   "dev/audit/config/scopes.json",
    "dev/audit/harnesses/dependabot_stale_hash.py",
    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
@@ -5395,7 +5396,7 @@
    "seconds": 21.5
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
