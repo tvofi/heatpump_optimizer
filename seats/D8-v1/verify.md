@@ -1,0 +1,3 @@
+# D8 round 11 verification (one verifier, three lenses)
+Trees: all D8 scopes measured in the private planted export copy (cp -R of the px export, PYTHONPATH=tests/hastub); load1 1.3-2.05, thread_factor 1.0. Export contained macOS `._*` AppleDouble files (translations/._de.json broke m3 harnesses; removed in my copy, not a finding).
+Votes and numbers: see REPORT.json (same directory content). Summary: s1-01 verify (12/22, own call 69.78 both DHW states), s1-02 verify (2688/2976, own arithmetic), s1-03 verify (1/17), s2-01 verify (1 lang), s2-02 weaken (stub-assigned ids; name-derived ids give 1 run), s3-01 verify (36).
