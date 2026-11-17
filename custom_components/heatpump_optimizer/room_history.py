@@ -90,9 +90,9 @@ class Period:
 
     start: int
     rooms: dict[str, list[Any]] = field(default_factory=dict)  # [first t, last target, calls, samples]
-    outdoor: float | None = None
-    floor_return: float | None = None
-    power: list[float] = field(default_factory=list)
+    outdoor: int | None = None
+    floor_return: int | None = None
+    power: list[int] = field(default_factory=list)
     space: int = 0
     cycles: int = 0
 
@@ -232,10 +232,13 @@ def _times(text: Any) -> list[int] | None:
 
 def _columns(columns: Any, fields: Sequence[str], width: int) -> dict[str, list[int | None]] | None:
     """One room's (or the house's) columns, or None when any of them is bad."""
-    parsed = {f: _unpack(columns.get(f), f, width) for f in fields} if isinstance(columns, Mapping) else {}
-    if len(parsed) != len(fields) or any(c is None for c in parsed.values()):
-        return None
-    return parsed  # type: ignore[return-value]
+    parsed: dict[str, list[int | None]] = {}
+    for name in fields:
+        column = _unpack(columns.get(name), name, width) if isinstance(columns, Mapping) else None
+        if column is None:
+            return None
+        parsed[name] = column
+    return parsed
 
 
 def loaded(raw: Any) -> History:
@@ -274,7 +277,13 @@ def _fit(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
 
 
 def _calls(column: Sequence[int | None]) -> np.ndarray:
+    """A calling-share column as fractions, NaN where missing."""
     return np.array([np.nan if v is None else v / FULL_SHARE for v in column], dtype=float)
+
+
+def _units(column: Sequence[int | None]) -> np.ndarray:
+    """A centi-unit column in its unit, NaN where missing."""
+    return np.array([np.nan if v is None else v / SCALE for v in column], dtype=float)
 
 
 def _correlations(calls: Mapping[str, np.ndarray]) -> np.ndarray:
@@ -317,10 +326,10 @@ def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]
         return {"code": "always_calling", "calling_fraction": round(on, 3)}
     if (twin := _collinear(list(calls).index(entity), list(calls), r)) is not None:
         return {"code": "collinear", "with": twin[0], "r": round(twin[1], 3)}
-    temp, outdoor = columns["t"], history.house["outdoor"]
-    dt_h = np.array([(history.times[j] - history.times[i]) / 60.0 for i, j in pairs])
-    rate = np.array([(temp[j] - temp[i]) / SCALE for i, j in pairs]) / dt_h  # type: ignore[operator]
-    x = np.array([[(outdoor[i] - temp[i]) / SCALE, share[i], 1.0] for i, _j in pairs])  # type: ignore[operator]
+    first, then = (np.array(side) for side in zip(*pairs))
+    temp, outdoor = _units(columns["t"]), _units(history.house["outdoor"])
+    rate = (temp[then] - temp[first]) / ((np.array(history.times)[then] - np.array(history.times)[first]) / 60.0)
+    x = np.column_stack([outdoor[first] - temp[first], share[first], np.ones(len(pairs))])
     fitted = _fit(x, rate)
     if fitted is None or fitted[1][1] < MIN_T:  # t carries b's sign: a cooling gain fails here
         return {"code": "no_response", "pairs": len(pairs),
@@ -339,15 +348,15 @@ def _house_line(history: History, calls: Mapping[str, np.ndarray]) -> dict[str, 
     stack = np.array(list(calls.values())) if calls else np.full((1, len(power)), np.nan)
     reported = (~np.isnan(stack)).sum(axis=0)
     fraction = np.divide(np.nansum(stack, axis=0), reported, out=np.full(len(power), np.nan), where=reported > 0)
-    rows = [i for i, p in enumerate(power)
-            if p is not None and space[i] is not None and space[i] >= CALLING_SHARE and reported[i]]
+    rows = [i for i, (p, s) in enumerate(zip(power, space))
+            if p is not None and s is not None and s >= CALLING_SHARE and reported[i]]
     if len(rows) < MIN_PAIRS:
         return {"verdict": "short_history", "rows": len(rows)}
     xs = fraction[rows]
     q1, q3 = np.percentile(xs, [25, 75])
     if q3 - q1 < FLAT_IQR:
         return {"verdict": "calling_fraction_flat", "rows": len(rows)}
-    fitted = _fit(np.column_stack([xs, np.ones(len(rows))]), np.array([power[i] / SCALE for i in rows]))  # type: ignore[operator]
+    fitted = _fit(np.column_stack([xs, np.ones(len(rows))]), _units(power)[rows])
     if fitted is None:
         return {"verdict": "calling_fraction_flat", "rows": len(rows)}
     return {"verdict": "enough", "rows": len(rows), "slope_kw": round(float(fitted[0][0]), 3),
@@ -370,4 +379,4 @@ def separable_count(view: Mapping[str, Any] | None) -> int | None:
     """The sensor's state: how many rooms read separable."""
     if view is None:
         return None
-    return sum(v["code"] == "separable" for v in view["rooms"].values())
+    return sum(1 for v in view["rooms"].values() if v["code"] == "separable")

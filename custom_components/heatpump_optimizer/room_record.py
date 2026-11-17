@@ -35,7 +35,7 @@ SAVE_EVERY_ROWS = 12
 @dataclass
 class _Record:
     hass: HomeAssistant
-    store: QuarantiningStore
+    store: QuarantiningStore[dict[str, Any]]
     history: History = field(default_factory=History)
     period: Period | None = None
     loaded: bool = False
