@@ -3442,7 +3442,7 @@
    "brief": "Drop the files_tokens cap kept for the retired orchestrator turn and extend policy_lint.mjs's orphan-cap check to files_tokens, as the carry below states verbatim (triage: dev/programme/triage/r10-round-end.md#P764). A budget-file change: it merges on the owner's approval, or under the mandate in force, per budget-raise-gate.",
    "resume": {
     "stage": "done",
-    "commit": "18eba6b397",
+    "commit": "18eba6b3975754902eec6041788a1b71410d6a9a",
     "branch": "fix/r11-policy-token-cap",
     "last_step": null,
     "next_step": "mandate approval, then dispatch fixer",
