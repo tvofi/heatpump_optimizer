@@ -62,5 +62,10 @@
   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 2 --cells dev/audit/rounds/round11/D0/s3/offstart_cells_all.txt",
   "value": "summer_negative_gap_cells=44/300 (rel > 1 %: 22); flat_gap_cells=40/300 with max gap_off 0.587, max rel 0.0027, mean -0.14 (rel > 1 %: 0)",
   "note": "every summer_negative and flat line of enumerate.py d0-grid; beyond summer_warm the same mechanism reaches summer_cool 48h DHW storage cells (rel 8.5 %, 0.38-0.44 units, 42-45 kWh shipped vs 14 kWh); the flat arm's 40 cells are noise-sized and the off arm is worse on average there"
+ },
+ "m6_one_replan": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001 --workers 4",
+  "value": "of 546 grid race gap cells 512 masked after one hourly re-plan; 34 unmasked, 18 of them > 1 % of the re-plan objective, every one an off-start cell (15 summer_negative/summer_warm, 3 summer_negative/summer_cool 48h DHW storage); flat 152/152 masked",
+  "note": "one re-plan does not mask the off-start gap; the 24 h closed loop (m6_masking) masks most of it on 12 of 16 cells"
  }
 }
