@@ -983,6 +983,978 @@
           "what": "tests/entities.py at this baseline prints FAIL on the thermal battery naming modelled stores and on the sensor-gap advisor's spread ordering and null control, and dies on KeyError 'house_heat_loss_coefficient' in _NOMINAL; not measured by this seat."
         }
       ]
+    },
+    "D0-s2": {
+      "dimension": "D0",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D0/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D0.M4",
+          "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py",
+          "universe": 1220,
+          "examined": 1220,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "race.py over all 1200 d0-grid lines on the four winter prices (valve-storage, wood, manual-valve-buffer, flow-setpoint-behind-valve, plain; 6/24/48 h) and the 20 coordinator captures: results/m4_shard0..4.jsonl, 1220 rows, 0 errors; analyse.py RESULT m4_examined=1220, m4_gap_cells=186 (gap > 0.05 pct-points), coord captures max gap 0.010 pct. Wood two-zone cells re-run with the tank read (cells.WOOD_TANK_C): untanked rows superseded in results/superseded_wood_untanked.jsonl. Plant properties over all 240 cells each: mvb_nobuffer.py, analyse.py fsp_*."
+        },
+        {
+          "step": "D0.M5",
+          "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py",
+          "universe": 1220,
+          "examined": 1220,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "race.py --price flat on each cell's flat counterpart (results/m5_order.txt, 305 distinct flat lines, all raced: results/m5_flat.jsonl); analyse.py RESULT m5_cells_with_null=1220, price-attributable gap cells 161, surviving flat 52."
+        },
+        {
+          "step": "D0.M6",
+          "enumerator": "python3 dev/audit/rounds/round11/D0/s2/m6_queue.py --all-gap",
+          "universe": 186,
+          "examined": 186,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "examined"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Each of the 186 gap cells answered: 126 by race.py step0_differs=False (the executed first action is production's), 60 (m6_queue.py) by a day-long closed loop, mpc.py --days 1 --replan 16 --plant-error 1.0, production vs augmented challenger scored on the production objective (Jr, comfort-pull and start terms inside it) plus energy, comfort deficit, DHW deficit, starts: results/m6_loops.jsonl, 0 errors. Variants on the 4 high-bill positive-realised cells: --days 2 (Jr over 48 h), --plant-error 1.25, and the loop's flat null: results/m6_multiday.jsonl, m6_plant125.jsonl, m6_flatnull.jsonl."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D0.M6",
+          "what": "Depth, not denominator: the 2-day loop (C3) and plant-error 1.25 loop (C5) ran on the 4 high-bill cells of results/m6_variant_cells.txt, not on all 60 closed-loop cells; replan cadence R8 ran on 1 cell. The realised objective of 7 valve-storage/flow-setpoint two-zone loops differs by 7.8-15.2 pct with near-equal energy, comfort and starts: mpc.py scores the executed power schedule through the captured objective without the executed valve targets, so that part of Jr is not attributed (harness limit, named)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D0-s2-01",
+          "scope": "D0-s2",
+          "step": "D0.M4",
+          "title": "Charged wood tank zeroes 4 of 5 space-only multi-start seeds; mild two-zone days ship the all-off plan",
+          "severity": "low",
+          "claim": "On a two-tank (wood) two-zone house without DHW, HeatPumpOptimizer's space-only solve hands _multi_start_minimize 4 all-zero starts of 5 in 32 of the 60 cells of this seat's axis, and on the 5 mild 24 h cells it ships a 0 kWh plan that a one-run challenger beats by 1.47-2.03 objective units with no feasibility loss.",
+          "mechanism": "optimizer.py (space-only path, ~line 5507): seed_power = baseline_power * (1 - _wood_covered_share(...)); a tank that covers the thermostat reference gives share 1.0, so seed_power, baseline_energy and the three _price_ranked_start vectors built from baseline_energy (full, low, deep-low) are all zero. Only the price-weighted initial guess is live, and the all-off point is a stationary basin for the relaxed descent (the start term is not in the relaxed objective, and a run below the 1 kW floor is clipped by the candidate stage), so the multi-start has no start inside the one-run basin the true objective prefers.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --race winter_narrow/summer_cool/two-zone/no-dhw/wood/24h winter_typical/shoulder/two-zone/no-dhw/wood/24h winter_extreme/summer_cool/two-zone/no-dhw/wood/24h winter_typical/summer_cool/two-zone/no-dhw/wood/24h winter_moderate/summer_cool/two-zone/no-dhw/wood/24h flat/summer_cool/two-zone/no-dhw/wood/24h flat/shoulder/two-zone/no-dhw/wood/24h",
+            "harness_path": "dev/audit/rounds/round11/D0/s2/wood_seeds.py",
+            "value": 2.0292,
+            "unit": "objective units (J_prod - J_best, max over the 5 gap cells; census: 32 of 60 cells with 4/5 zero starts)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2, 4 vCPU, shared",
+            "cpu_or_wall": "count",
+            "contention_note": "counts and objective values; contention-immune (D0-s2 M6 loops and D3/D9 seats running)",
+            "tolerance": "exact for counts, +-0.01 objective units",
+            "load1": 5.78,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_wood_covered_share",
+          "perturbation": {
+            "change": "WOOD_SHARE_OFF=1: optimizer._wood_covered_share patched to return 0.0 (seed from the reference unscaled)",
+            "expected_direction": "down",
+            "observed_value": "gap_abs 2.029/1.678/1.631/1.468 -> 0.000 on the four summer_cool cells, 1.725 -> 0.577 on winter_typical/shoulder; census all-but-one-zero cells 32 -> 4, zero starts 128 -> 16 (the 4 left are summer_warm/6h, which needs no heat)"
+          },
+          "metric_definition": "gap_abs = J_prod - J_best feasible challenger (race.py arms seeds/warm, production objective); zero_starts = all-zero candidates in the space-only multi-start call",
+          "phenomenon_property": "The space-only multi-start's structured starts must not collapse to the all-zero vector because a free heat source covers the thermostat reference: at least one start besides the price-weighted guess carries energy whenever the shipped horizon can need heat.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --census",
+          "null_control": {
+            "command": "same --race on flat/summer_cool/two-zone/no-dhw/wood/24h and flat/shoulder/two-zone/no-dhw/wood/24h",
+            "value": "1.678 (summer_cool) / 0.0001 (shoulder)",
+            "note": "Survives flat prices: the gap is not price optimality but solver structure (seed collapse); named so per D0.M5. Bills on these days are ~0 SEK of energy: the gap is the objective's comfort-pull term (challenger buys 3.0-5.1 kWh)."
+          },
+          "leave_one_out": {
+            "cells": 5,
+            "min": 1.4675,
+            "max": 2.0292,
+            "drop_most_favourable": 1.6255
+          },
+          "reproduction_steps": [
+            "run the --census command; read census_cells_all_but_one_start_zero[prod]=32",
+            "repeat with WOOD_SHARE_OFF=1; read 4",
+            "run the --race command with and without WOOD_SHARE_OFF=1"
+          ],
+          "proposed_fix_scope": "optimizer.py space-only seeding: keep the wood-scaled seed and add an unscaled (or floor-level single-run) start, so a covered reference cannot empty the seed set; the DHW path (_solve_space) does not scale and is untouched.",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No multi-start budget gap: no L-BFGS-B run inside any production multi-start call stopped on its iteration limit in any of the 1220 cells, so the 4x maxiter arm never differs",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/race.py --cells-file dev/audit/rounds/round11/D0/s2/results/m4_order.txt --out F.jsonl",
+          "value": "budget arm 'identical' in 1220/1220 rows (prod_runs_at_limit=0)"
+        },
+        {
+          "claim": "One-shot price gaps are masked by MPC: across the 60 gap cells whose first action differs, the closed loop realises no systematic gain for the augmented challenger",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/mpc.py --days 1 --replan 16 --plant-error 1.0 --cells-file dev/audit/rounds/round11/D0/s2/results/m6_queue.txt",
+          "value": "realised gap median +0.029 pct, 29 positive / 28 negative / 3 within tolerance; realised energy gap mean 0.051 SEK per cell-day; loop flat null on the same cells -2.58..+2.26 pct (as large as priced); plant error 1.25 flips sign on 3 of 4; 2-day Jr gap -0.94..+0.58 pct"
+        },
+        {
+          "claim": "Largest price-attributable one-shot gaps on large bills stay under the brief's bar: winter_cold two-zone 24/48 h cells 0.5-1.0 pct of J on 45-182 SEK horizons, flat null ~0, realised 0.04-0.5 pct",
+          "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py",
+          "value": "m4_plane_mean_gap_loo mean 0.083 pct, drop-most-favourable 0.072 pct over 20 price x weather planes"
+        },
+        {
+          "claim": "flow-setpoint-behind-valve: the plan leaves the minimum level, more where a price spread exists",
+          "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py",
+          "value": "on-steps above min+0.05 kW: 0.693 (winter prices) vs 0.611 (flat) over 185 pairs; never above min in 2 of 240 cells; plan identical to valve-storage in 240/240 pairs (the flow set-point is actuation, not planning)"
+        },
+        {
+          "claim": "manual-valve-buffer: the plan differs from the same cell with no store",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/mvb_nobuffer.py --all --out F.jsonl",
+          "value": "identical in 0 of the 184 cells that use heat (54 identical cells all ship 0 kWh); median L1 4.21 kWh"
+        },
+        {
+          "claim": "Coordinator captures carry no gap at winter prices",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/race.py coord/coord_all_features/winter_typical/winter_cold",
+          "value": "20 capture cells, max gap 0.010 pct"
+        },
+        {
+          "claim": "Harness gap recorded (not a production defect): a wood cell without a tank reading runs the manual-valve plant",
+          "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py (before cells.WOOD_TANK_C)",
+          "value": "59/59 wood plans identical to manual-valve-buffer with wood_tank_temperature None; two-tank layout needs two zones (thermal_model.ThermalParameters.topology_layout) so single-zone wood is manual-valve by design"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D0/s2/enum_cells.py",
+        "dev/audit/rounds/round11/D0/s2/cells.py",
+        "dev/audit/rounds/round11/D0/s2/race.py",
+        "dev/audit/rounds/round11/D0/s2/mpc.py",
+        "dev/audit/rounds/round11/D0/s2/m6_queue.py",
+        "dev/audit/rounds/round11/D0/s2/analyse.py",
+        "dev/audit/rounds/round11/D0/s2/mvb_nobuffer.py",
+        "dev/audit/rounds/round11/D0/s2/wood_seeds.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D0-s3",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "_wood_covered_share (space-only seed scaling)",
+          "what": "D0-s2-01's seed collapse is price-independent (it survives flat at 1.678 objective units): the two-zone no-DHW wood cells on summer/shoulder/flat prices likely carry the same all-off plan; measure with dev/audit/rounds/round11/D0/s2/wood_seeds.py --census over that axis."
+        },
+        {
+          "owner_seat": "D0-s3",
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "ThermalState.wood_tank_temperature",
+          "what": "A cell builder that does not set the wood tank reading drives the manual-valve plant, not wood (59/59 identical plans here); D0-s3's wood cells need the reading set before they count as examined."
+        }
+      ]
+    },
+    "D3-s2": {
+      "dimension": "D3",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D3/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+          "universe": 258,
+          "examined": 258,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C8",
+              "state": "examined"
+            }
+          ],
+          "evidence": "enumerate.py: 258 sites (242 unpinned + 16 recorded `gap` survivors) of 1031 inventory sites in the 18 cell files; every one weighted (RAISE_DEL, GUARD_OFF, CONST, CMP_BOUND, BOOLOP, CLAMP_DROP, RETURN_DEL; recorded gaps last) into drive_resumable.py's order. C8's 30-40 target is superseded by the whole universe."
+        },
+        {
+          "step": "D3.M2",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/enumerate.py | grep -v ^RESULT",
+          "universe": 258,
+          "examined": 23,
+          "not_reached": [
+            "__init__.py: 5 mutants (lines 90-220)",
+            "accuracy.py: 24 mutants (lines 51-635)",
+            "binary_sensor.py: 5 mutants (lines 100-323)",
+            "climate.py: 4 mutants (lines 186-294)",
+            "const.py: 12 mutants (lines 444-1539)",
+            "entity.py: 4 mutants (lines 180-249)",
+            "inputs.py: 33 mutants (lines 155-1415)",
+            "ledger.py: 11 mutants (lines 133-739)",
+            "sensor.py: 73 mutants (lines 60-3037)",
+            "services.py: 15 mutants (lines 154-1168)",
+            "snapshots.py: 13 mutants (lines 46-277)",
+            "store.py: 9 mutants (lines 105-614)",
+            "switch.py: 1 mutants (lines 88-88)",
+            "topology.py: 26 mutants (lines 580-1147)"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "drive_resumable.py + tally.py: 23 of 258 driven to a verdict ({'killed by tests/entities.py': 8, 'killed by tests/manual_plan.py': 2, 'LIVES': 7, 'killed by tests/features.py': 4, 'killed by tests/debug_collect.py': 2}); every driver of the measured closure minus stress/edge/backtest/harness_headers, env_drift.py --all HEAD^1 (=baseline) included; 22 green traced baselines and the null control (`__init__.py:37 NULL_COMMENT survived every driver`, run/stdout.txt). ~6 mutants/hour at 3 jobs on a box at load ~7: the remainder is ~40 h."
+        },
+        {
+          "step": "D3.M3",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+          "universe": 7,
+          "examined": 7,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C5",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "every survivor reported as a prescreened candidate (patch, closure, scripts ran, verdict) in REPORT.md; the GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six is the quiet window's (stress.py is barred in the fan-out)."
+        },
+        {
+          "step": "D3.M4",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -P '\\tLIVES'",
+          "universe": 7,
+          "examined": 7,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "m4_nonequiv.py (10 probes, null control --identity = 0 of 10) answers each survivor's line and the check that should have failed; 1 real gap (accuracy.py:261), 6 equivalent."
+        },
+        {
+          "step": "D3.M5",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py x --list | grep -v ^RESULT | cut -f1",
+          "universe": 29,
+          "examined": 28,
+          "not_reached": [
+            "tests/stress.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            },
+            {
+              "item": "C7",
+              "state": "examined"
+            },
+            {
+              "item": "C9",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "m5_gate_table.py: per-script wall/CPU vs closures.json seconds, optimize() calls and Results.check calls (m5/table.json, provisional); m5_reach.py: closure over-approximation over 296 claimed pairs (170 clean, 29 over-approximated). golden.py counted at 0 s (GOLDEN_MODE=drift does not run it); stress.py is quiet-window only."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D3.M2",
+          "what": "235 of 258 mutants not driven (time cut: ~6/h at 3 jobs, load ~7). Resume with `PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/drive_resumable.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run --jobs 3` (pair-level resume from drive/pairs.jsonl; needs HEAD = marker commit over the baseline). Round-10 items C2 (M25-M36 via round10/D3/s1/mutants.py) and C6 are not identifiable here: that harness is absent from the walled export."
+        },
+        {
+          "step": "D3.M3",
+          "what": "Quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors, stress.py included (C3); for this seat the top candidates are accuracy.py:261 then the recorded gaps inputs.py:590, ledger.py:739, store.py:123, sensor.py:2879, accuracy.py:555. C5 (writing round 10's REPORT.md) is the orchestrator's: round 10's directory is not in this export."
+        },
+        {
+          "step": "D3.M5",
+          "what": "Kill-overlap matrix (every closure script on every mutant, no early stop) not taken (C9): ~240 h serial on this cell set. Duplicate kills therefore unmeasured. All wall/CPU numbers provisional (load 6-14); the quiet window re-takes m5_gate_table.py."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D3-s2-01",
+          "scope": "D3-s2",
+          "step": "D3.M5",
+          "title": "Import-level closures select 9 scripts (525.7 s recorded) for a payload.py function-body edit none of them executes",
+          "severity": "low",
+          "claim": "Of the 170 (script, D3-s2 cell) closure pairs whose traced unmutated run is clean, 29 claim a cell whose function bodies the script never executes and never reads as text, so closure.py select runs that script for any function-body-only edit of that cell although the edit cannot change its run; payload.py alone carries 525.7 s of 3051.3 s recorded selected seconds this way (boost_drift_replay.py 341.1 s, optimality.py 142.5 s, validate.py 21.5 s, guard_pins.py 8.2 s, manual_plan.py 6.5 s, ...).",
+          "mechanism": "tests/closures.json records the files a run imported or opened (derive_closures.sh); a module imported for its constants or a type is a closure member even when no function of it runs. tests/mutation_table.py already exploits the finer fact (reach_skip / never_reaches) for mutants, but the scoped gate's selection does not.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+            "harness_path": "dev/audit/rounds/round11/D3/s2/m5_reach.py",
+            "value": 29,
+            "unit": "over-approximated (script, cell) pairs of 170 clean pairs",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2, 4 cores, shared with D0-s2 and D9-s2",
+            "cpu_or_wall": "count",
+            "contention_note": "count from traced baselines (mutation_table.traced_baseline, run by prescreen.py); contention-immune; the seconds weights are tests/closures.json's recorded seconds, not measured here",
+            "tolerance": "exact",
+            "load1": 5.83,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/mutation_table.py:traced_baseline/collect/reach_problems over tests/closures.json:closures (the selection tests/closure.py select reads)",
+          "perturbation": {
+            "change": "--claim-only tests/boost_drift_replay.py:payload.py (drop that pair from the closure the count reads, the effect of a body-granular closure for that pair)",
+            "expected_direction": "down",
+            "observed_value": "28 pairs; over_seconds[payload.py] 525.7 -> 184.6 s"
+          },
+          "metric_definition": "pairs (script, cell) in closures.json with a clean traced baseline that executed zero function-body lines of the cell and did not read it as text",
+          "phenomenon_property": "A scoped-gate selection should not run a script for an edit confined to function bodies that script's measured run never executes.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "tests/closures.json",
+            "tests/closure.py",
+            "tests/derive_closures.sh"
+          ],
+          "proposed_fix_scope": "Measure only; a body-granular selection is a gate-design change (module-level edits must still select every importer). At most a closure.py selection refinement that skips a script for a function-body-only hunk in a file its recorded reach never executes, reusing mutation_table.never_reaches.",
+          "reproduction_steps": [
+            "Run prescreen.py to produce run/reach/*.json (traced baselines)",
+            "Run m5_reach.py over that directory",
+            "Re-run with --claim-only tests/boost_drift_replay.py:payload.py and see 29 -> 28"
+          ]
+        },
+        {
+          "id": "D3-s2-02",
+          "scope": "D3-s2",
+          "step": "D3.M4",
+          "title": "No check feeds NaN to score_lead_predictions; dropping its guard poisons lead sigma permanently",
+          "severity": "medium",
+          "claim": "Disabling accuracy.py:261 (`if not np.isfinite(actual_temp): return` -> `if False:`) survives all 20 drivers of accuracy.py's measured closure (12 run, 8 reach-skipped; env_drift.py --all against the baseline included), yet on one NaN reading it turns AccuracyTracker.sigma(3.0) from 0.5 to nan and keeps it nan after a later finite scoring.",
+          "mechanism": "lead_sigma is an EWMA: (1-a)*prev + a*err, so one NaN err makes every later value NaN; the guard is the only barrier inside the tracker, and no test drives a non-finite actual_temp into it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+            "harness_path": "dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+            "value": 1,
+            "unit": "RESULT distinct_score_lead_nan_actual (baseline sigma 0.5, mutant nan)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2, 4 cores, shared",
+            "cpu_or_wall": "count",
+            "contention_note": "deterministic; survivor verdict from drive_resumable.py (tally.py: accuracy.py:261 GUARD_OFF LIVES), box shared with D0-s2 and D9-s2 at load ~7",
+            "tolerance": "exact",
+            "load1": 7.1,
+            "thread_factor": 0.93
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.score_lead_predictions (and AccuracyTracker.sigma)",
+          "perturbation": {
+            "change": "m4_nonequiv.py --identity (the null mutant old->old)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py --identity",
+            "value": 0,
+            "note": "null mutant: baseline and mutant sigma both 0.5; the sibling guard accuracy.py:238 (non-finite predicted) reads 0 too: it is shadowed by the loop's own isfinite(predicted) filter, an equivalent survivor"
+          },
+          "metric_definition": "1 when AccuracyTracker.sigma(3.0) after a NaN then a finite scoring differs between the baseline module and the in-memory mutant, else 0",
+          "phenomenon_property": "Every non-finite guard at a learner's state boundary in the cells has a check that feeds it a non-finite value and asserts the learned state stays finite.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -E 'GUARD_OFF.*LIVES'",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/accuracy.py",
+            "tests/features.py"
+          ],
+          "proposed_fix_scope": "Test only: one check (features.py or a unit block) scoring a NaN actual_temp after a finite one and asserting sigma stays finite and lead_counts unchanged; then pin the site killed_by.",
+          "reproduction_steps": [
+            "drive_resumable.py over accuracy.py:261 (verdict LIVES, tally.py)",
+            "m4_nonequiv.py: distinct_score_lead_nan_actual=1",
+            "m4_nonequiv.py --identity: 0"
+          ],
+          "expected_golden_drift": []
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "closures.json records env_drift.py at 1.0 s though its gate run (--all HEAD^1) costs minutes; it is documented (#934) and mutation_table keeps env_drift eager so the stub seconds never order or budget a sweep",
+          "command": "/root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py ... (env_drift row) ; grep -n 'env_drift stays eager' tests/mutation_table.py",
+          "value": "measured 324.2 s wall / 219.3 s CPU vs recorded 1.0 s (provisional, load 10.6); mutation_table.lazy_drivers excludes REF_DRIVEN"
+        },
+        {
+          "claim": "The resumable drive's verdict rule agrees with the instrument's null control: a comment-only edit survives every driver",
+          "command": "see dev/audit/rounds/round11/D3/s2/run/stdout.txt line 29 (prescreen.py over mutation_table.main)",
+          "value": "null control __init__.py:37 NULL_COMMENT survived every driver (22 drivers)"
+        },
+        {
+          "claim": "All 22 driver baselines are green with clean reach records, so reach-skips are admissible",
+          "command": "grep baseline dev/audit/rounds/round11/D3/s2/run/progress.jsonl",
+          "value": "22/22 rc=0 failed=0 reach=true"
+        },
+        {
+          "claim": "Six of seven survivors are equivalent at every reachable input (no test can kill them)",
+          "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+          "value": "distinct=0 for accuracy.py:111, :238, __init__.py:188; abstract stub sensor.py:404 overridden by 7/7 subclasses; accuracy.py:269 only distinct off every entry path; accuracy.py:379 returns None either way"
+        },
+        {
+          "claim": "Scripts that solve more than they assert (M5): boost_drift_replay.py 789 optimize() calls for 46 checks (0.06 checks/solve), validate.py 22 solves and edge.py 21 solves with 0 harness checks (ISSUES/own counters); no redundancy proven (would need a solve-count ablation)",
+          "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m5_gate_table.py dev/audit/rounds/round11/D3/s2/m5/table.json",
+          "value": "see m5/table.json; provisional for timing, exact for counts"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D3/s2/enumerate.py",
+        "dev/audit/rounds/round11/D3/s2/prescreen.py",
+        "dev/audit/rounds/round11/D3/s2/drive_resumable.py",
+        "dev/audit/rounds/round11/D3/s2/tally.py",
+        "dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+        "dev/audit/rounds/round11/D3/s2/m5_gate_table.py",
+        "dev/audit/rounds/round11/D3/s2/m5_reach.py",
+        "dev/audit/rounds/round11/D3/s2/hook/sitecustomize.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/closure.py",
+          "symbol": "select",
+          "what": "Selection is import-granular; mutation_table.never_reaches already has the line-level reach that could skip a script for a function-body-only hunk (see D3-s2-01); a gate-design question beyond the cells."
+        }
+      ]
+    },
+    "D6-s2": {
+      "dimension": "D6",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D6/s2/REPORT.md",
+      "exposure": "Read only my cells, the D6/COMMON/README contracts, and production code to check claims; no docs/*.md prose read (D6-s1's), no gh, no GitHub records. HEAD requests (curl -I) to the 10 external URLs in my cells (heads.tsv), one answered 403 by the session proxy. INTEGRITY: check_scopes.py needs git, so I ran it with --repo /home/user/heatpump_optimizer, and while confirming my cells were the baseline's I hashed every tracked file of the export against 92d38ecb's blobs: my 109 cell files are identical, but 19 production files and docs/configuration.md differ (const.py, defrost.py, grid_fee.py, heat_curve.py, inputs.py, legionella.py, mixing_valve.py, optimizer.py, power_guard.py, presets.py, price_model.py, pump_arbiter.py, sensor.py, store.py, tariff.py, thermal_model.py, translations/de.json, wood_fuel.py, www/heatpump-optimizer-card.js), and macOS AppleDouble files (._const.py, ._wood_fuel.py, docs/._configuration.md, ...) sit beside them. I read the diff hunks of wood_fuel.py, const.py and pump_arbiter.py only, before the claim checks were written; every finding here is a claim of my cells checked against the export's production, and four of its five mechanisms (birch row, L/min factor, station preset, observe write path, return offset) are hunks in that diff. If the export is a blind calibration tree, score this seat as having seen those three files' hunks. docs/._configuration.md also makes tests/doc_claims.py die with UnicodeDecodeError in this export.",
+      "coverage": [
+        {
+          "step": "D6.M1",
+          "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s2 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "universe": 4012,
+          "examined": 4012,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py: RESULT units=4012 rows=4012 claims=1747 no-claim=2265 unrowed=0 orphan=0 malformed=0. C2: every sentence of my cells is a numbered unit (ledger.tsv), behavioural 'optimizer will' sentences included. C3: how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md are D6-s1's cells (check_scopes.py --seat D6-s1), not mine; passed as a lead."
+        },
+        {
+          "step": "D6.M2",
+          "enumerator": "awk -F'\\t' 'NR>1 && $3==\"claim\"' dev/audit/rounds/round11/D6/s2/ledger.tsv",
+          "universe": 1747,
+          "examined": 105,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/strings.json (1388 claims unprobed)",
+            "custom_components/heatpump_optimizer/services.yaml (50 claims unprobed)",
+            "blueprints/automation/notify_wood_cheaper_window.yaml (29 claims unprobed)",
+            "blueprints/automation/notifications.yaml (23 claims unprobed)",
+            "dev/governance/roles/fixer.md (17 claims unprobed)",
+            "blueprints/automation/economy_mode_on_price_peak.yaml (12 claims unprobed)",
+            "docs/img/model/make_model_figures.py (12 claims unprobed)",
+            "docs/img/card/pages.json (11 claims unprobed)",
+            "blueprints/automation/charge_ev_from_grid_headroom.yaml (10 claims unprobed)",
+            "docs/img/readme/mermaid_figures.json (9 claims unprobed)",
+            "blueprints/automation/notify_on_manual_plan.yaml (8 claims unprobed)",
+            "dev/governance/roles/orchestrator.md (7 claims unprobed)",
+            "dev/governance/dimensions/D15.md (5 claims unprobed)",
+            "dev/governance/dimensions/D12.md (4 claims unprobed)",
+            "dev/governance/dimensions/D4.md (4 claims unprobed)",
+            "dev/governance/dimensions/D11.md (3 claims unprobed)",
+            "dev/governance/dimensions/D13.md (3 claims unprobed)",
+            "dev/governance/dimensions/D5.md (3 claims unprobed)",
+            "dev/governance/dimensions/criteria/D9-criteria.md (3 claims unprobed)",
+            "dev/governance/roles/COMMON.md (3 claims unprobed)",
+            "dev/governance/roles/proposal-triage.md (3 claims unprobed)",
+            "docs/img/readme/make_readme_figures.py (3 claims unprobed)",
+            "dev/governance/dimensions/D0.md (2 claims unprobed)",
+            "dev/governance/dimensions/D1.md (2 claims unprobed)",
+            "dev/governance/dimensions/D10.md (2 claims unprobed)",
+            "dev/governance/dimensions/D2.md (2 claims unprobed)",
+            "dev/governance/dimensions/D3.md (2 claims unprobed)",
+            "dev/governance/dimensions/D6.md (2 claims unprobed)",
+            "dev/governance/dimensions/D7.md (2 claims unprobed)",
+            "dev/governance/dimensions/D9.md (2 claims unprobed)",
+            "dev/governance/roles/standing-roster.md (2 claims unprobed)",
+            "dev/governance/roles/standing-tick.md (2 claims unprobed)",
+            "dev/governance/roles/standing.md (2 claims unprobed)",
+            "dev/governance/dimensions/D14.md (1 claims unprobed)",
+            "dev/governance/dimensions/D8.md (1 claims unprobed)",
+            "dev/governance/roles/architect-planner.md (1 claims unprobed)",
+            "dev/governance/roles/designer.md (1 claims unprobed)",
+            "dev/governance/roles/evaluator.md (1 claims unprobed)",
+            "dev/governance/roles/fix-review.md (1 claims unprobed)",
+            "dev/governance/roles/standing-dispatch.md (1 claims unprobed)",
+            "dev/governance/roles/standing-merge.md (1 claims unprobed)",
+            "docs/img/model/make_card_weekly_figure.mjs (1 claims unprobed)",
+            "docs/img/readme/render_mermaid.mjs (1 claims unprobed)"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py: RESULT true=97 false=6 stale=2 unverifiable=1642. Examined = claims with an executed check that decided them (curated production-constant and behaviour probes, entity ids through the platforms' async_setup_entry, notifier.EVENT_DATA, registered services, governance path resolution, manifest/hacs, HEAD). C1: in my cells, 'next 20 hours'/'Defaults to 20 hours' = const.MANUAL_PLAN_WINDOW_HOURS 20 (true); 'weekly snapshot, about a week' = snapshots.SNAPSHOT_INTERVAL_DAYS 7 (true); link HEADs taken (9/10 answer 200, ossf/scorecard 403 proxy). '23 options pages', '8 weekly snapshots' and '+-12 %' occur in no file of my cells (grep), they are D6-s1's: lead. C4: HEADs done; behavioural claims against golden scenarios not done - the 1642 unverifiable rows remain."
+        },
+        {
+          "step": "D6.M3",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s2 | cut -f3",
+          "universe": 109,
+          "examined": 109,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py runs text_ledger.run_check(..., plant=True) over all 109 cell files: RESULT unrowed=0 orphan=0 malformed=0 plant_refused=1 planted_units=1 check_rc=0; files with a false or stale row: 3 (strings.json, fixer.md, orchestrator.md), one finding each."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D6.M2",
+          "what": "1642 claims rowed unverifiable without a probe that decides them: 1388 behavioural sentences of strings.json (config/options descriptions, issues, exceptions, service descriptions), 50 of services.yaml, 82 blueprint sentences (quiet hours, templates), 86 governance sentences whose cited paths resolve but whose stated behaviour was not executed, 36 figure/record strings under docs/img (pages.json structure hashes and sizes not re-rendered: tests/doc_claims.py cannot run in this export, see exposure). Also: governance sentences citing no path were classed mandates (no-claim) by rule, so a factual governance sentence without a backticked path was not rowed as a claim."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D6-s2-01",
+          "scope": "D6-s2",
+          "step": "D6.M2",
+          "title": "strings.json holds 6 false rows: five user-facing claims contradict the production symbol that decides them",
+          "severity": "high",
+          "claim": "In the tree under test, six strings.json sentences are contradicted by the production code deciding them: loose birch is not 0.60 of packed (wood_fuel), a flow sensor in L/min is read at 1/60 of its value (const.FLOW_UNIT_TO_KG_S), a fresh-water station carries 150 L of potable water not 0 (const.COMBI_TANK_PRESETS), Observe duty mode reaches the pump write (pump_arbiter._arbitrate), and the return-target off gate is 30 degC not 20 degC (pump_arbiter._gate_floor_c, two sentences).",
+          "mechanism": "The text states the shipped behaviour; the production symbol each sentence describes delivers a different value. Per row (ledger.tsv, verdict false): #538b900c1b wood_packing (birch loose/packed=1.667, pine and mixed 0.600); #25d4327206 flow units (FLOW_UNIT_TO_KG_S['L/min']=0.998/3600, so 10 L/min x 5 K reads 0.058 kW instead of 3.48 kW); #60b9412b58 '0 for a fresh-water station' (external_station potable_volume_l=150.0); #b6c5358b63 'Observe writes none either' (one _command, one _adopt and one night-schedule write per observe pass); #3102a60501 and #7a9d1fff5d '20 degC for a return target' (_as_target adds RETURN_SUPPLY_OFFSET_K for a return unit, so _gate_floor_c returns 30.0 and the W35 hold 40.0).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+            "harness_path": "dev/audit/rounds/round11/D6/s2/ledger.py",
+            "value": 6,
+            "unit": "false rows in custom_components/heatpump_optimizer/strings.json",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 7.49,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.wood_fuel:useful_kwh_m3; heatpump_optimizer.const:FLOW_UNIT_TO_KG_S; heatpump_optimizer.const:COMBI_TANK_PRESETS; heatpump_optimizer.pump_arbiter:_arbitrate; heatpump_optimizer.pump_arbiter:_gate_floor_c",
+          "perturbation": {
+            "change": "ledger.py --perturb: the five one-line production edits of probes.py --perturb applied in memory (birch row {packed:1900, loose:1140}; 'L/min': WATER_KG_PER_L/60.0; external_station CombiTankPreset(0.75, 0.0); 'if mode != DUTY_CONTROL or _pump_off(inp, held): return' in _arbitrate; 'supply_c - RETURN_SUPPLY_OFFSET_K' in _as_target)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Ledger rows of strings.json whose executed probe of the deciding production symbol contradicts the sentence (text_ledger verdict false).",
+          "phenomenon_property": "Every numeric or behavioural claim a strings.json sentence makes equals what the production symbol deciding it delivers.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # prints each false row; per mechanism: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe {wood_packing_ratio,flow_unit_lmin,station_potable,observe_writes,return_gate}",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/strings.json",
+            "custom_components/heatpump_optimizer/wood_fuel.py",
+            "custom_components/heatpump_optimizer/const.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "proposed_fix_scope": "The text is the documented intent in all five; the fix is production (five one-line edits, the perturbation's), each owned by its seam's seat (leads to D2-s1, D8-s1, D1-s1); translations/*.json carry the same sentences and need no change once production matches.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py --perturb",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --perturb"
+          ],
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # the same probes over the 97 rows it holds true",
+            "value": "97 true rows, e.g. const.DHW_GATE_C=30, LEASE_MINUTES=90/30 at -10 degC, SNAPSHOT_INTERVAL_DAYS=7, MANUAL_PLAN_WINDOW_HOURS=20",
+            "note": "the probe machinery reads true where production matches; the counted rows are not an artefact of the harness"
+          },
+          "expected_golden_drift": [
+            "fixing the flow-unit factor, the station preset, the birch row or the return offset may move golden fixtures that exercise them; claim per tests/golden/claimed_drift.txt"
+          ]
+        },
+        {
+          "id": "D6-s2-02",
+          "scope": "D6-s2",
+          "step": "D6.M2",
+          "title": "fixer.md cites decision 0011 at docs/decisions/, a path that does not exist",
+          "severity": "low",
+          "claim": "dev/governance/roles/fixer.md line 104 cites docs/decisions/0011-app-authored-identity.md; no such path exists and the decision is at dev/governance/decisions/0011-app-authored-identity.md.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+            "harness_path": "dev/audit/rounds/round11/D6/s2/probes.py",
+            "value": 1,
+            "unit": "unresolved backticked paths in fixer.md (2 across the governance cells)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 7.23,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "dev/audit/rounds/round11/D6/s2/probes.py:gov_paths over the tree under test (os.walk of the export); text_ledger:units_of for the unit",
+          "perturbation": {
+            "change": "cite dev/governance/decisions/0011-app-authored-identity.md (or add the file at the cited path; --perturb models the latter)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Backticked repository paths with a directory part in fixer.md that resolve to no file or directory of the tree.",
+          "phenomenon_property": "Every repository path a role contract or dimension brief cites resolves in the tree.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "dev/governance/roles/fixer.md"
+          ],
+          "proposed_fix_scope": "One-line policy text edit (owner approval before merge, CLAUDE.md); decisions are named by number elsewhere, so 'decision 0011' alone also fixes it."
+        },
+        {
+          "id": "D6-s2-03",
+          "scope": "D6-s2",
+          "step": "D6.M2",
+          "title": "orchestrator.md cites decision 0010 at docs/decisions/, a path that does not exist",
+          "severity": "low",
+          "claim": "dev/governance/roles/orchestrator.md line 73 cites docs/decisions/0010-merge-commits-on-main.md; no such path exists and the decision is at dev/governance/decisions/0010-merge-commits-on-main.md.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+            "harness_path": "dev/audit/rounds/round11/D6/s2/probes.py",
+            "value": 1,
+            "unit": "unresolved backticked paths in orchestrator.md (2 across the governance cells)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B2 (light seat), Linux 6.18 x86_64, CPython 3.14.7 (venv-ci), PYTHONPATH=tests/hastub",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out (load1 6.9-7.5); a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 7.23,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "dev/audit/rounds/round11/D6/s2/probes.py:gov_paths over the tree under test (os.walk of the export); text_ledger:units_of for the unit",
+          "perturbation": {
+            "change": "cite dev/governance/decisions/0010-merge-commits-on-main.md (or add the file at the cited path; --perturb models the latter)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Backticked repository paths with a directory part in orchestrator.md that resolve to no file or directory of the tree.",
+          "phenomenon_property": "Every repository path a role contract or dimension brief cites resolves in the tree.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/probes.py --probe gov_paths",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "dev/governance/roles/orchestrator.md"
+          ],
+          "proposed_fix_scope": "One-line policy text edit (owner approval before merge); or name it 'decision 0010'."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Blueprint entity ids (sensor.heat_pump_optimizer_cost_power_headroom, _cost_current_electricity_price, _plan_space_heating, binary_sensor.heat_pump_optimizer_wood_cheaper) are added by the integration",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check entity_ids",
+          "value": "4/4 among 82 entity ids from the six platforms' async_setup_entry"
+        },
+        {
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check events",
+          "claim": "notifications.yaml's five event types are fired, each carrying entry_id",
+          "value": "5/5 in notifier.EVENT_DATA; entry_id first key of each"
+        },
+        {
+          "claim": "Services named in blueprints and strings exist (heatpump_optimizer.set_mode ...)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py  # check services",
+          "value": "all named services registered"
+        },
+        {
+          "claim": "Curated numeric claims of strings.json/services.yaml hold",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+          "value": "true: MANUAL_PLAN_WINDOW_HOURS 20, OUTAGE 2 h/45 min, CONFIDENCE_MARGIN_CAP_C 0.8, ECONOMY 1.5 K/15 degC, OPEN_WINDOW_RELAX_C 1.0, CAPACITY_FLOOR_FRACTION 0.6 and silent_mode.caps raising 0.3 to 0.6, MOLD 0.8, legionella hold 20 min, combi potable limit 3 L, buffer 500/35 L, store min 100 L, wood margin 2 degC, top-only -5 degC, flow bias 15 K/75 degC, comfort weight 5, retry 5 min, feedback 5 min/10 %, DHW gate 30 degC, flow gate 25 degC, lease 90/30 min at -10 degC, slab seed 12 K, price tiles 75 %/30 d, self-test 15 min, refit 3 d/10 %, snapshot 7 d, DHW cooling 45/20 degC, rain 2/0.1 mm/h and 1.15, inlet 10 degC, curve writes 12/day, Daikin 19/day, partload 0.44/0.17, defaults off for tiles/window/duty, v5.1.7 comfort_band introduction (git tags), COP nominal 3.5"
+        },
+        {
+          "claim": "External links in my cells answer",
+          "command": "curl -sS -o /dev/null -I -L -w %{http_code} (ledger.py --net -> heads.tsv)",
+          "value": "9/10 HTTP 200; github.com/ossf/scorecard 403 from the session proxy (unverifiable, not the link's answer)"
+        },
+        {
+          "claim": "Governance briefs/roles: every backticked file:symbol resolves and every cited CLI flag exists in its script",
+          "command": "ad-hoc scan during the seat (symbol and flag census), path half committed as probes.py --probe gov_paths",
+          "value": "0 unresolved symbols; 1 flag miss was a false positive (--dim belongs to text_ledger in the same code span); 2 unresolved paths -> D6-s2-02/03"
+        },
+        {
+          "claim": "manifest domain and requirements, hacs name",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+          "value": "domain == const.DOMAIN; numpy/scipy/threadpoolctl installed in venv-ci; hacs.json name == manifest name"
+        },
+        {
+          "claim": "D6.M3 refuses a skipped unit",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s2/ledger.py",
+          "value": "plant_refused=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D6/s2/ledger.py",
+        "dev/audit/rounds/round11/D6/s2/probes.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+          "symbol": "WOOD_KWH_M3['birch']",
+          "what": "birch packed 1140 / loose 1900 kWh/m3, inverted against pine and mixed (loose = 0.60 x packed); a packed-birch m3 is priced 1.67x dearer per kWh in wood_sek_per_kwh and the cheaper-than-pump rule. Probe: probes.py --probe wood_packing_ratio."
+        },
+        {
+          "owner_seat": "D8-s1",
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "FLOW_UNIT_TO_KG_S['L/min']",
+          "what": "0.998/3600 kg/s per L/min (the L/h factor); a flow meter in L/min yields 1/60 of the delivered heat (10 L/min x 5 K -> 0.058 kW, physical 3.48). Probe: probes.py --probe flow_unit_lmin."
+        },
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "COMBI_TANK_PRESETS['external_station']",
+          "what": "potable_volume_l 150.0 though its own comment says a plate exchanger stores none; adds 150 L to buffer_store_volume and lifts the station above COMBI_LEGIONELLA_POTABLE_LIMIT_L so the legionella cycle runs. Probe: probes.py --probe station_potable."
+        },
+        {
+          "owner_seat": "D1-s1",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_arbitrate",
+          "what": "in duty mode observe the pass continues past the off block to _adopt, _command and _write_night_schedule (only _pump_off guards it); observe writes to the pump. Probe: probes.py --probe observe_writes."
+        },
+        {
+          "owner_seat": "D1-s1",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_as_target",
+          "what": "adds RETURN_SUPPLY_OFFSET_K for a return-water target instead of subtracting; off gate 30 degC (docstring and UI: 20), W35 hold written as 40. Probe: probes.py --probe return_gate."
+        },
+        {
+          "owner_seat": "D6-s1",
+          "file": "docs/how-it-works.md",
+          "symbol": "prose claims (C3; C1's '23 options pages', '8 weekly snapshots', '+-12 %')",
+          "what": "redispatched C1/C3 items that live in D6-s1's docs cells: the behaviour/unit/version prose of how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md, and the three C1 numbers, none of which occurs in D6-s2's cells. snapshots.RING_SIZE=8 and SNAPSHOT_INTERVAL_DAYS=7 for the snapshot one."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/doc_claims.py",
+          "symbol": "DOCS (module level)",
+          "what": "read_text over docs/*.md dies with UnicodeDecodeError on an AppleDouble docs/._configuration.md present in this export (not in git); environment, but the registered doc-claims gate cannot run here."
+        }
+      ]
+    },
+    "D9-s2": {
+      "dimension": "D9",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D9/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D9.M1",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s2",
+          "universe": 96,
+          "examined": 91,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/device_prefill.py",
+            "custom_components/heatpump_optimizer/name_match.py",
+            "custom_components/heatpump_optimizer/prefill_offer.py",
+            "custom_components/heatpump_optimizer/quick_setup.py",
+            "custom_components/heatpump_optimizer/repairs.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "not_reached"
+            },
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Axes retained_bytes and payload_bytes over the 96 cells. 84 modules run in the cycle rig (_drive.py, 1,100 real _async_update_data cycles at 10 min and at 6 h steps): per-file tracemalloc slope plus deep size of every coordinator attribute (covers all 19 lines of enumerate.py d9-collections), every entity and every container module global (retained.py). Payload: all 82 entities built by their platforms' async_setup_entry (covers all 54 lines of enumerate.py d9-attributes), split by _unrecorded_attributes (payload.py). notifier.py and frontend.py: reload.py (setup/unload x10 and x20). diagnostics.py, services.py, config_flow.py: ondemand.py. process_worker.py: solving-child VmRSS series and ru_maxrss (retained.py). www/heatpump-optimizer-card.js: card_history_retained.mjs (HistorySource). debugger.py additionally by debug_ring.py. Not reached dynamically: 5 setup/repair-flow modules, which module_registries.py reads as holding no mutated module-level container. C1-C3 are D9-s1's axes (gil_hold, solves_per_cycle, sse_per_gradient), outside this seat's cells: handed over as leads. C4 examined: the solving child's ru_maxrss in a subprocess and a 1,100-cycle run past HISTORY_LENGTH=672."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D9.M1",
+          "what": "Owner fixture (tests/replay/owner-2026-10-30-away.json) not finished on either axis: its solves ran ~3-5 s of solver CPU each at load1 8-11, and neither the 500-cycle retained run nor the 160-cycle payload run finished in ~70 min, so they were stopped. Every number here is from the synthetic fixture (synthetic-dhw-only.json). Next: retained.py --fixture owner --cycles 1100 and payload.py --fixture owner --cycles 160 in a quiet window (about 3 h)."
+        },
+        {
+          "step": "D9.M1",
+          "what": "Redispatched C1 (gil_hold quiet re-take), C2 (shadow/what-if and diagnose solves per cycle) and C3 (DHW planning loops' SSE per gradient) are D9-s1's axes, not this seat's; not measured, handed to D9-s1 as leads."
+        },
+        {
+          "step": "D9.M1",
+          "what": "Dynamic retained-bytes check not run for device_prefill.py, name_match.py, prefill_offer.py, quick_setup.py and repairs.py (setup and repair flows); static scan only."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D9-s2-01",
+          "scope": "D9-s2",
+          "step": "D9.M1",
+          "title": "Card HistorySource never trims rows past its 48 h span: retained rows grow linearly with the card's life",
+          "severity": "low",
+          "claim": "On a long-lived card element whose plan dialog is panned into the past once a day, HistorySource retains 1,448 more rows per day (log 476, actionLog 152, seen keys 628, memoized overlay points 192; 60 covered chunks after 30 days against a 48 h reach of 4-5), with no plateau, while its own HISTORY_SPAN_MS caps what it can ever show at 48 h.",
+          "mechanism": "HistorySource is built once per card element (constructor) and survives every dialog session (ViewWindow.onDialogClosed resets only the range). absorb() appends every fetched row to this.log[field], this.actionLog and this.seen, and fetchChunk adds each chunk to this.covered; ensure() deletes only the stale live-edge chunk's 'loaded' mark. Nothing drops a row older than Date.now() - HISTORY_SPAN_MS, and overlays() re-materialises one point per plan step of every covered chunk into this.memo, so the memo also grows per day.",
+          "evidence": {
+            "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+            "harness_path": "dev/audit/rounds/round11/D9/s2/card_history_retained.mjs",
+            "value": 1448.0,
+            "unit": "retained rows per day (log + actionLog + seen + memo points), days 3-30",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "Linux x86_64 container B2, node v22.23.4",
+            "cpu_or_wall": "count",
+            "contention_note": "count is contention-immune; heap_slope 140,157 B/day printed beside it is provisional (load1 8.5, two Python harnesses of this seat running)",
+            "tolerance": "exact for this fixture (tests/card_rig.mjs realisticHistory); +-1 % across fixture edits",
+            "load1": 8.53,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HistorySource (ensure, fetchChunk, absorb, overlays), driven through tests/card_rig.mjs historyApi",
+          "perturbation": {
+            "change": "--arm trim: in-memory one-line edit of the card source, absorb()'s add() splices samples older than Date.now() - HISTORY_SPAN_MS after its sort",
+            "expected_direction": "down",
+            "observed_value": "log_rows_slope 476 -> 0.0 rows/day, memo_points_slope 192 -> 0.0; total 1448 -> 780 (actionLog and seen, untrimmed by this one line, still grow 152 + 628/day)"
+          },
+          "metric_definition": "Rows held by one HistorySource (log, actionLog, seen, memo points) after each simulated day; slope per day between day 3 and day 30.",
+          "phenomenon_property": "Every per-session collection of HistorySource (log, actionLog, seen, covered, memo) is bounded by HISTORY_SPAN_MS: after any number of days its size is at most what a fresh 48 h window holds.",
+          "seam_rule": "grep -n 'this\\.\\(log\\|actionLog\\|seen\\|covered\\|memo\\|chunks\\)\\b' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan",
+            "value": 0,
+            "note": "the same 30 days with the dialog never panned: no fetch, 0 rows retained, heap slope 1,320 B/day (noise); growth is caused by the history fetch path, not by the clock or the rig"
+          },
+          "reproduction_steps": [
+            "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+            "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm trim",
+            "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm nopan"
+          ],
+          "proposed_fix_scope": "HistorySource: drop log/actionLog rows, seen keys and covered chunks older than Date.now() - HISTORY_SPAN_MS when a chunk is absorbed (or clear the collaborator when the dialog session ends), and build overlays only over covered chunks inside the span.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "expected_golden_drift": [],
+          "stop_rule_class": "bug",
+          "class_guess": "N-no-expiry"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "AccuracyTracker is bounded: _accuracy grows during the fill to HISTORY_LENGTH=672 samples, then plateaus (C4)",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+          "value": "coord._accuracy 136,107 B @200 -> 334,327 B @700 -> 332,047 B @1100; late_root_slope[coord._accuracy] = -5.7 B/cycle (cycles 700-1100); root_slope 200-1100 = 217.7 B/cycle (the fill)"
+        },
+        {
+          "claim": "ru_maxrss in a subprocess (C4): the coordinator process and the solving child stay under B5's 128 MB process peak; the child's RSS is flat over 900 cycles",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+          "value": "child_ru_maxrss 123,480 KiB (harness process including tracemalloc); worker_ru_maxrss 108,156 KiB; worker VmRSS 106,956-108,332 KiB across cycles 200-1100 (worker_rss_slope 614 B/cycle = noise inside a 1.4 MB band); provisional, load1 8.2, thread_factor 1.0"
+        },
+        {
+          "claim": "SnapshotRing is bounded by RING_SIZE (take() trims); at 6 h clock steps it plateaus",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+          "value": "coord._snapshot_ring 364,412 B @200 -> 382,313 B @400 -> 382,677 B @1100; late_root_slope 0.1 B/cycle; late_traced_slope 20.7 B/cycle (cycles 700-1100, harness frames included) over ~275 simulated days"
+        },
+        {
+          "claim": "No other coordinator collection grows: all 19 enumerate.py d9-collections roots and every module global are flat or oscillating after their fills",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+          "value": "late root slopes (700-1100): _thermal_model 35.2 (sawtooth 23-41 KB, no trend), _dhw_accuracy 1.8, coord.data 0.5, _dhw_learner 0.4, _price_learner 0.4 B/cycle; all others |slope| <= 0.1"
+        },
+        {
+          "claim": "B4's literal reading (slope after 200 warm-up cycles x 52,560) reads bounded fills as growth: 874.9 B/cycle = 43.85 MiB/yr at the 10 min interval, all from _accuracy (cap 672) and _snapshot_ring (cap RING_SIZE); the bounded total of both is ~0.72 MB",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --subprocess",
+          "value": "traced_slope 874.9 B/cycle; root_slope _snapshot_ring 268.9 + _accuracy 217.7 B/cycle; both plateau (accuracy late -5.7 B/cycle; ring 382,677 B at 6 h steps, late 0.1 B/cycle)"
+        },
+        {
+          "claim": "PriceLearner.days_seen/quarter_days_seen grow by one key per day in memory (trimmed to 90 only in store_payload) but stay far inside B4",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+          "value": "late_root_slope[coord._price_learner] 12.8 B per 6 h cycle = 51 B/day = ~19 KB/yr (B4 10 MiB)"
+        },
+        {
+          "claim": "Monthly receipts follow the ledger's KEEP_MONTHS (24); month-keyed collections show no trend over ~275 simulated days",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/retained.py --fixture synthetic --cycles 1100 --warmup 200 --step-minutes 360",
+          "value": "_month_reports, _score_day, _energy_totals, _cop_baseline, _pv_summary, _fuse_advisor: no root among the top late slopes (all |slope| <= 0.1 B/cycle)"
+        },
+        {
+          "claim": "A config-entry unload frees the coordinator: none survives 10 or 20 reloads; the instrument sees a leak when the entities are kept",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/reload.py --reloads 10 --cycles 3",
+          "value": "coordinators_alive_after_unload 0 of 10 (0 of 20 at --reloads 20); production traced bytes +1.6-2.8 KB/reload (hass-keyed registries such as inputs._POLLING_SOURCES); positive control --arm keep_entities: 10 of 10 alive, 453,593 B/reload"
+        },
+        {
+          "claim": "On-demand entry points retain nothing per call",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/ondemand.py --calls 80",
+          "value": "retained per call: diagnostics 108 B (217 B at 20 calls, so a one-time warm-up, not a slope), simulate_plan -4, diagnose_interval 0, debug_collect status 0, options flow init 0; positive control --arm leak: diagnostics 15,490 B/call"
+        },
+        {
+          "claim": "The debug collector's ring is bounded by COLLECT_SPAN and frozen after finalize",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/debug_ring.py",
+          "value": "peak 1,681,781 B at 1,008 rows and 7 snapshots; tail slope 0 B/cycle (cycles 1100-1299); perturbation --span-days 8: 1,921,264 B"
+        },
+        {
+          "claim": "B6 payload holds: recorded attribute bytes and every entity's recorded attributes stay under budget, and the exclusion set is load-bearing",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s2/payload.py --fixture synthetic --cycles 160",
+          "value": "recorded 794,158 B/day changed (743,418 B/day new rows after content dedup) vs 5,000,000; largest entity 856 B (climate) vs 16,384; 0 entities over; coordinator.data 84,269 B max per cycle; unrecorded 81,629 B/cycle. Perturbation record_plan_forecast: 5,804,232 B/day and 2 entities over 16,384"
+        },
+        {
+          "claim": "No module-level container in the five setup/repair-flow modules is mutated; every per-owner registry elsewhere is a WeakKeyDictionary or keyed by a bounded set",
+          "command": "python3 dev/audit/rounds/round11/D9/s2/module_registries.py",
+          "value": "23 mutation sites in 16 files of 95; 0 in device_prefill, name_match, prefill_offer, quick_setup, repairs; strong ones: coordinator._FENCED_CAUSES, coordinator._WORKER_FALLBACK_CAUSES (entry_id), store._NEWER_ON_DISK (store keys), off_restore._CONSUMERS/_WRITERS (registration keys)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D9/s2/_drive.py",
+        "dev/audit/rounds/round11/D9/s2/retained.py",
+        "dev/audit/rounds/round11/D9/s2/payload.py",
+        "dev/audit/rounds/round11/D9/s2/reload.py",
+        "dev/audit/rounds/round11/D9/s2/ondemand.py",
+        "dev/audit/rounds/round11/D9/s2/debug_ring.py",
+        "dev/audit/rounds/round11/D9/s2/module_registries.py",
+        "dev/audit/rounds/round11/D9/s2/card_history_retained.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer.optimize (GIL yields)",
+          "what": "Redispatched C1: gil_hold numbers were taken at load1 16-28 and need a quiet-window re-take; the contyield arm was inconclusive."
+        },
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "shadow/what-if solve (~line 11148), async_diagnose_interval",
+          "what": "Redispatched C2: solves_per_cycle for the shadow/what-if and diagnose paths was not triggered by the rig."
+        },
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+          "symbol": "DHW planning loops",
+          "what": "Redispatched C3: the DHW planning loops' simulate-step-equivalents per gradient are not yet split out separately."
+        },
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "HistorySource.overlays",
+          "what": "overlays() rebuilds one point per plan step over every covered chunk whenever version/fetchedThrough changes; with covered never trimmed (D9-s2-01: 60 chunks after 30 days), the per-render CPU of the history overlay grows with the card element's life. Not measured here (CPU axis)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "dev/governance/dimensions/criteria/D9-criteria.md",
+          "symbol": "B4 retained growth",
+          "what": "B4 takes the slope after 200 warm-up cycles, shorter than the fill of the bounded AccuracyTracker (672 samples) and SnapshotRing (RING_SIZE, weekly). Read literally, it gives 874.9 B/cycle (43.85 MiB/yr, a fail) for structures that plateau at ~0.72 MB together; a plateau or late-window rule would stop a false B4 failure (retained.py --late-from)."
+        }
+      ]
     }
   }
 }
