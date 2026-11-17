@@ -17,70 +17,73 @@ Alternatives not taken, as the design rules them out (section 4): hours authored
 - `production` is derived by loading `machinery_ratchet.is_product` at the plan SHA inside the command-line path, never imported at module level, so the self-test closure is unchanged.
 - `BETTER` (0018 section 2's direction column) encodes a design choice: `objective.json` carries no direction. The arm "BETTER names exactly objective.json's terms" refuses the day a term is added without one.
 
+## Review round 1 (Fix review: blocked 2eee862d2d61b2fe2431c979048360d1b4392cfa), each item answered
+
+1. **Every rank-1 key now names a registered id.** One table, `REGISTERED`, maps `escapes`, `cards` and `classes` to a register; `derived_rank` reads its keys and `check_block` refuses an id its register lacks (`UNKNOWN card|escape|class <group> <id>`), so a rank-1 key cannot be added without a check. Cards: `check_scopes.py --open-cards --round N` at the plan SHA (`open_cards`). Escapes: the `in` rows of the escapes ledger the baseline record names (`terms.escapes.by_hand.ledger`, `escape_rows`). Failing arms first: "a rank-1 `cards` id no register holds is refused by name" and the `escapes` twin both fail with the old loop restored (mutant f1 below). The real-run attack `fake-card` (the reviewer's) now refuses every relabelled group, and `fake-escape` does the same.
+2. **The baseline is derived.** `baseline_refusals` refuses a `baseline.record` other than `BASELINE` for round N-1, a record whose `round` is not N-1, and a record that is not one blob at the plan SHA, at `baseline.tree` and at the merge base of the plan SHA and `--main` (default `origin/main`). The check reads the record at the fixed path, never at the plan's chosen one. Both attacks refuse: `doctored-baseline` (the reviewer's) and `doctored-baseline-in-place` (the doctored copy written over the real path on the plan's branch). `settle` reads the same derived path.
+3. **Each settlement status choice is pinned by value.** New arms: an `up`/`down` prediction met by the opposite move is MISSED; the perturbation arm now also asserts the flipped line's status (HELD to MISSED), not only that it differs; `hold` is MISSED on a worse move and HELD on a tie and on a credited better move; `undecided` stays UNDECIDED on a read term; an unread band is UNDECIDED with its detail; `examined_by` is UNDECIDED without rows, HELD and MISSED with them, and only for a rank-2 group; `escapes` and `classes` keys settle at the next close on their own rows; the next close prints no term line; `injected` only for a production group; the band widths and the share's four-place read; the rank-edge guards (`SHAPE` on a non-object entry, rank-2 after rank-2 and rank-1 after rank-1 owe no edge); `kept_in_floor` with a rank-2 to rank-2 edge; lead time over production groups only. `check-wave-script.mjs` gains "and the moves schema requires the objective block" (reviewer m3: `254 passed, 1 failed` with `'objective'` dropped, `255 passed, 0 failed` restored).
+4. **A ranked done group is refused by name, and B keeps every done group.** `kept_in_floor` keeps a group projection A marks `done` whatever its rank, so `replan.py` no longer refuses B, and `check_block` prints `RANKED done group <name>: a done group is kept unranked, and B keeps it`. The reviewer's `done-ranked` fixture now ends in those named refusals, rc 1, with no `replan.py` refusal.
+
+Alternatives not taken: escapes validated against a hand-copied id list in `objective.json` (a second register for the same ledger); `baseline.tree` kept as the read ref (the attack's own route); `objective-check` refusing a done group before projecting (the projections would still crash on the reviewer's fixture first).
+
 ## Head
 
-`bf9c7acaa17106f538692dfc25de63859cbc1855`, measured against `origin/main` 54cb7211642364d762ba47f42d5f7b8a5953f742 (merge base), 2026-11-17T00:08Z.
+`24f6fe48b565131b596bf420a46269136e91208a`, merge base `ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae`, measured with `origin/main` at 8f39313a44a4baec18b239ba925f6e164eb26bd2, 2026-11-17T11:54Z.
 
 ## Mutation proof
 
-Production predicates were mutated one at a time and `python3 tools/audit/seat/plan_audit.py --self-test` was run per mutant; the driver is out of tree, and the replacement pairs are listed here. 21 of 21 were killed.
+Driver: the reviewer's `driver-mut.py` (`review/3703` 024f41cf, `evidence/driver-mut.py`), patterns re-anchored where this diff moved them (r06 now mutates the `REGISTERED` loop's predicate, b13 the new `kept_in_floor` return), plus nine reverts of this fix, each run against `python3 tools/audit/seat/plan_audit.py --self-test`: **59 of 59 KILLED** (b01-b21, r01-r29, f1-f9), `survivors: []`. The reverts:
 
-| mutant | edit | check that went red |
+| mutant | edit | killed by |
 |---|---|---|
-| deferred bug | `and not row.get("card")` -> `and False` | "a verified bug deferred with no card is refused (lead_time bought)" |
-| unknown finding | `if fid not in ids:` -> `if False:` | "a group claiming an unregistered finding is refused" |
-| double closure | `elif fid in owner:` -> `elif False:` | "one finding closed by two groups is refused" |
-| NO-READ hold | predicate -> `False` | "a hold predicted on a term NO-READ in the baseline is refused (free credit)" |
-| rank edge | `edges.get((group, waits)) not in adrs` -> `False` | "a rank-1 group after a rank-2 group with no ADR edge is refused (dS first)" and "and an edge whose ADR no move carries is refused alike" |
-| unexamined move | predicate -> `False` | "a rank-2 group with no examining pass is refused" |
-| rank mismatch | predicate -> `False` | "a rank the keys contradict is refused both ways" |
-| authored time | classifier -> always "UNKNOWN key" | "an hours key authored in the block is refused (cost hidden)" |
-| closed grammar | predicate -> `False` | the authored-time arm and "and any other key outside the grammar is refused by name" |
-| unranked open group | predicate -> `False` | "an open group projection A schedules and the plan never ranks is refused (dr2-g)" |
-| undisposed | predicate -> `False` | "plan N+1 silent on a MISSED line of plan N is refused" |
-| stale pin | predicate -> `False` | "projection A of another roster blob is refused (a stale pin)" |
-| reduced-roster filter | `kept_in_floor` -> `return set(projected)` | "the floor keeps a reached rank-2 group and drops an unreached one" and "projections at the pin, B the exact reduction, pass" |
-| reduced-roster refusal | loop over `[]` | "a B that keeps an unreached rank-2 group is refused" |
-| projection differs | predicate -> `False` | "a committed record equal to the re-run's bytes passes; one edited is refused" |
-| settlement UNPREDICTED | predicate -> `False` | "a term that improved with no HELD keyed effect is UNPREDICTED, not banked" |
-| settlement merged | `status = "HELD"` unconditionally | the same arm |
-| settlement NOT-DUE | predicate -> `False` | "cause, re-report and escape keys are NOT-DUE at the plan's own close" |
-| version-free record | `closure` read from `closure_stamp` | "the same inputs under another VERSION give the same record (dr2-c)" |
-| lead-time clock | `start` -> `g.get("start") or start` | "lead time runs from the plan's start" |
-| settlement NO-READ guard | `if False and (...)` | none named: the self-test dies of a TypeError (rc 1); disclosed, not a survivor |
+| f1 classes only | the `REGISTERED` loop reads `classes` alone | "a rank-1 `cards` id no register holds is refused by name" and the `escapes` twin |
+| f2 cards unread | `derived_rank` reads `escapes`/`classes` only | "a card alone makes a group rank 1" |
+| f3 baseline path | `if got != want:` -> `if False:` | "a baseline path the plan chose is refused" |
+| f4 baseline round | round predicate -> `False` | "a record of another round is refused" |
+| f5 baseline blobs | blob predicate -> `False` | "a record edited on the plan's branch, or at its tree, is refused" |
+| f6 done ranked | `elif g.get("done") and name in entries:` -> `elif False:` | "a ranked done group is refused by name" |
+| f7 floor keeps done | `e.get("done") or` removed | "and the floor keeps a done group whatever its rank" |
+| f8 escape ruling | `and row[r] == "in"` removed | "the escapes ledger yields its `in` rows' groups" |
+| f9 escape header | header test reduced to `if not rows:` | the same arm |
 
-`.claude/workflows/audit-plan.js`: deleting the line `if (publish.objective_rc !== undefined && publish.objective_rc !== 0) throw ...` makes `node tools/policy/check-wave-script.mjs` print `253 passed, 1 failed` (FAIL "a plan the objective check refuses is not published (P3 stops)"). Dropping `'objective_rc'` from the publish schema's `required` also prints `253 passed, 1 failed` (FAIL "and the publish schema requires objective_rc, so a publish that reports no check is refused"). Restored: `254 passed, 0 failed`. The absence check sits in the schema because the base's copy of the grader stubs a publish with no `objective_rc`. A script-side absence throw turned that grader red over this head (`ci_predict.py` BOOTSTRAP). The base's copy run over this head's workflow now reads `249 passed, 0 failed`.
+In-tree driver over every added line: `python3 tools/audit/seat/mutant_run.py --diff ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae...HEAD --path tools/audit/seat/plan_audit.py --max-mutants 2000 --in-place --cmd "python3 tools/audit/seat/plan_audit.py --self-test"`. Every survivor the verdict names in `check_block`, `term_reading`, `moved` and `settle` (its lines 620 to 782) is now killed. What survives above the command-line layer is under `## Unpinned sites`.
 
-`prepr.sh` step 6d, with `MUTANT_CMD="python3 tools/audit/seat/plan_audit.py --self-test"` and `MUTANT_IN_PLACE=1`, printed `14 survivor(s) on the diff's added lines` at f467ed64. Survivors by line: 458 GUARD_OFF, 459 and 460 (the non-object shape and its return), 470 and 474 (the grammar walk over a term and an edge), 483 CONST_SWAP (a cards, escapes or classes group's rank), 493 (the transitive `after` closure), 517 (the 3600 divisor), 522 and 523 (the empty percentile), 551 and 552 (the floor cost's rounding), 564 (the start pin), 572 (a B missing a kept group). Commit bf9c7aca adds one value arm per line ("a term entry that is not an object is refused by shape, once, not read key by key" through "a B missing a group the floor keeps is refused"). The same 14 edits, re-driven by line against the self-test, are all killed; 522 and 523 die by an IndexError in the arm that calls `_rank_pct([], 50)` directly. No `## Unpinned sites` entry is owed. At bf9c7aca the same step prints `no survivor among the diff's first 40 mutant(s) under: python3 tools/audit/seat/plan_audit.py --self-test`, and `tools/pr/prepr.sh` (`PREPR_SKIP_CLOSURES=1`) ends `PRE-PR: bf9c7acaa17106f538692dfc25de63859cbc1855 ... rc=0`.
+`audit-plan.js`: the reviewer's m1 to m4 re-run with `node tools/policy/check-wave-script.mjs`: each prints `254 passed, 1 failed` on its named arm (m3 now on "and the moves schema requires the objective block"); restored, `255 passed, 0 failed`.
+
+## Unpinned sites
+
+- `moved`'s `return "up" if now > was else "down"` (CMP_BOUND `>=`): equivalent. It runs only when `abs(now - was) > width >= 0`, so `now != was` there.
+- `OBJECTIVE_CONFIG` and `BUGCLASSES` (STMT_DEL): read only by the command-line layer.
+- The command-line layer, `_show` through `objective_settle` (run by no in-tree check, as the design's "one real run, outside the self-test" allows): disposed by the real runs in `## Figures`, which drive `open_cards`, the derived baseline read, `run_projections` and the done-group path to their named refusals and to the PASS twin. `_blob` is pinned in the self-test ("a blob reads off the checkout, and an absent path reads None"). The rest of the driver's survivors are the self-test's own lines and `main`.
 
 ## Null control
 
-- Every planted plan has a passing twin in the same self-test: "a plan with a sound objective block passes the P3 check (every arm's twin)", plus the named twins (a hygiene deferral, a done group unranked, a disposed line, a first plan, equal blobs, the exact reduction, the re-run's bytes, a keyed effect HELD).
-- Perturbation (self-test): one record value flipped flips exactly one settlement line, `term:escapes`.
-- Perturbation (real run, below): one dropped rank-2 group's work raised moves the floor cost and leaves B byte-equal.
-- At the merge base the subcommands do not exist (`plan_audit.py objective-check` exits 2, argparse "invalid choice"), so every arm above is red there.
+- Every planted plan keeps its passing twin: "a plan with a sound objective block passes the P3 check", "an escape row ruled `in` makes a group rank 1", "the baseline is the previous round's record, one blob everywhere: passes".
+- Real run: the base fixture (below) prints `OBJECTIVE PASS`, rc 0; the `real-escape-control` twin, one group ranked 1 by a real `in` row of the round-10 ledger, prints `OBJECTIVE PASS`, rc 0, `dropped 42` (one fewer than 43, the group now kept as rank 1). So the escape refusal is the id, not the key.
+- At the merge base `objective-check` is argparse's "invalid choice", so every arm is red there.
 
 ## Figures
 
-- `python3 tools/audit/seat/plan_audit.py --self-test`: `plan_audit self-test: 76 checks, 0 failed`.
-- `node tools/policy/check-wave-script.mjs`: `254 passed, 0 failed`. The merge base reads `249 passed, 0 failed`; the five new arms are in the P3 block.
+- `python3 tools/audit/seat/plan_audit.py --self-test`: `plan_audit self-test: 112 checks, 0 failed` (2eee862d: 76).
+- `node tools/policy/check-wave-script.mjs`: `255 passed, 0 failed`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 54cb7211642364d762ba47f42d5f7b8a5953f742 HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `node tools/policy/policy_lint.mjs --budgets`: `architect-planner.md` 89/89 lines and 1325/1325 words; `plan-review.md` 27/27 lines and 360/360 words (raised, see `## Raise justification`).
-- `python3 -c "import sys; sys.path.insert(0,'tests'); import closure; print(closure.is_inert('dev/audit/rounds/round11/PLAN/PROJECTION.json'))"`: `True` (dr2-f). Control: the same call on `tools/plan/replan.py` prints `False`.
-- The scope, from `python3 tests/closure.py select --diff 54cb7211642364d762ba47f42d5f7b8a5953f742`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`. `scope.run` names `tests/entities.py`: `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2723 ENTITY CHECKS PASSED` at f467ed64; `python3 tests/closure.py select --diff f467ed64eeca722d7d1ec44eb09158b88156261e` over the one commit since prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out`. A run before the citation commit printed `1 of 2723 ENTITY CHECKS FAILED`: the policy acceptance refused the backticked `PLAN.json` and `PROJECTION.json` in the contract and the README, the next commit rewords them, and `node tools/policy/policy_lint.mjs` now reads `TOTAL: 0 error(s)`. The `run_always` lines: `tests/env_drift.py --claims-only` prints `claims hygiene: 54cb7211... ok` and `tests/closure.py selftest` prints `ALL 118 closure shrink pins PASSED`.
-- The real run, a fixture commit off this head. It holds the round-11 roster from `handoff/audit-r10-roster` at `dev/programme/rosters/wave-r11-groups.json` and a `PLAN.json` with 48 open groups (2 rank 1 by a fixture card; 46 rank 2; edges from `R11-OUTSIDE-HONEST-DHW-RUNS` to its two rank-2 predecessors, under `ADR-F1`). The block is a fixture, not a plan. Command: `python3 tools/audit/seat/plan_audit.py objective-check --ref <fixture> --plan dev/audit/rounds/round11/PLAN/PLAN.json --register dev/audit/rounds/round10/JUDGE.json [--write]`.
-  - `--write`, then a re-run at the commit holding the record: `projection A: critical path 96.13 h, wall 98.13 h, closure 2026-11-20T02:08:00Z, lead time p50/p90 26.8/83.83 h`, `floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 44`, `OBJECTIVE PASS`, rc 0.
-  - The edges deleted: `FAIL RANK edge R11-OUTSIDE-HONEST-DHW-RUNS after R11-OUTSIDE-HONEST-STARTS-RUNS` (and `-P2`), `OBJECTIVE FAIL`.
-  - The pinned roster blob edited by one character (dr2-d): `FAIL STALE pin: projection A read roster blob 'dbc96983…297b9', the plan pins 'dbc96983…297b0'` and `FAIL PROJECTION differs`, `OBJECTIVE FAIL`, rc 1.
-  - `VERSION` set to 10.0.3 at the same inputs: `OBJECTIVE PASS` (dr2-c). `VERSION` 99.0.0 makes `replan.py` itself refuse ("round 11 is not above the current major 99"), which the check reports as a refusal.
-  - Perturbation: `R10-GH-READ-RESIDUE-P3`, a dropped rank-2 group, given an owner price of 12000 minutes. The size model's largest size is 35.6 h (`tools/plan/durations.json` `sizes_hours`), below the 96.13 h chain, so a size change alone cannot bind it. Floor cost critical path 0.0 -> 139.94 h, wall 0.0 -> 139.94 h, `R11-OUTSIDE-HONEST-DHW-RUNS` delay 0.0 -> 24.57 h; record `b` byte-equal (`b unchanged: True`).
-  - The first real run (`--write`) took 1.645 s wall under `time`; no other run was timed.
-<!-- figure-block: scope-line mb=54cb7211642364d762ba47f42d5f7b8a5953f742 head=bf9c7acaa17106f538692dfc25de63859cbc1855 -->
+- `python3 tools/audit/archscore/score.py --diff ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`; `--budgets` rc 0, `architect-planner.md` 89/89 lines and 1325/1325 words, unchanged by this round.
+- Scope: `python3 tests/closure.py select --diff ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`; `scope.run` names `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2725 ENTITY CHECKS PASSED`. The `run_always` lines: `tests/closure.py selftest` prints `ALL 118 closure shrink pins PASSED`; `tests/env_drift.py --claims-only` exits 1 with `RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim lists must be empty` (see `## Red checks`).
+- Real run, a fixture off this head (the reviewer's `driver-mkfix.py`, with the open groups only and the card `E11-GATE-REDS` from `check_scopes.py --open-cards --round 11`, roster `wave-r11-groups.json` from `handoff/audit-r10-roster` cfafa28d3edf8169db080d1cccd7970e3fa8bf41). Command: `python3 tools/audit/seat/plan_audit.py objective-check --ref <fixture> --plan dev/audit/rounds/round11/PLAN/PLAN.json --register dev/audit/rounds/round10/JUDGE.json --main origin/main`, after `--write` and a commit of the record.
+  - base: `projection A: critical path 88.7 h, wall 90.7 h`, `dropped 43`, `OBJECTIVE PASS`, rc 0 (the reviewer's figures at 2eee862d).
+  - `fake-card` (every rank-2 group relabelled `{"rank": 1, "cards": ["NO-SUCH-CARD"]}`, edges emptied): `FAIL UNKNOWN card <group> NO-SUCH-CARD: not in the round's open cards, check_scopes.py --open-cards` per group, rc 1. At 2eee862d: `OBJECTIVE PASS`, rc 0.
+  - `fake-escape`, the same with `escapes`: `FAIL UNKNOWN escape <group> NO-SUCH-ROW`, rc 1.
+  - `doctored-baseline` (the reviewer's): `FAIL BASELINE 'dev/audit/rounds/round11/PLAN/doctored.json': the baseline is the previous round's record, dev/audit/yardstick/round10/OBJECTIVE.json` and the 12 `NO-READ` refusals, rc 1. At 2eee862d: `OBJECTIVE PASS`.
+  - `doctored-baseline-in-place` (the same values written over the real record on the plan's branch): `FAIL BASELINE edited: ... is not one blob at the plan SHA, its tree and main's merge base`, rc 1.
+  - `done-ranked` (every roster group ranked, done ones too): `FAIL RANKED done group R10-COP-LEARNER-DRAW-FLOOR` among the named lines, rc 1, no `replan.py` refusal. At 2eee862d: `replan.py refused (rc=2): ... after-edge names no group`.
+<!-- figure-block: scope-line mb=ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae head=24f6fe48b565131b596bf420a46269136e91208a -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
 <!-- /figure-block -->
+
+prepr: passed rc=0 at 24f6fe48b565131b596bf420a46269136e91208a (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`, `MUTANT_CMD="python3 tools/audit/seat/plan_audit.py --self-test" MUTANT_IN_PLACE=1`).
 
 ## Architecture score
 
@@ -104,7 +107,15 @@ Pending. This changes what the architect and the plan reviewer must do (`archite
 
 ## Red checks
 
-- `budget-raise-gate`: red by design while the raise in `dev/governance/config/policy_budgets.json` has no approving review at this head (decision 0013). It is cleared by the approval under mandate 6893738184 that `## Raise justification` asks for. Cheaper detector: none exists. The gate is the approval it waits for, and `node tools/policy/policy_lint.mjs --budgets` measured the raise locally before the push (Figures).
+Every red check run on a commit of this branch, by name (read at 2eee862d with `pull_request_read get_check_runs`, 2026-11-17T12:10Z):
+
+- `budget-raise-gate / budget-raise-gate`: red at 2eee862d by design while the raise in `dev/governance/config/policy_budgets.json` has no approving review at the head (decision 0013); it clears on the approval `## Raise justification` asks for. Cheaper detector: none exists; the gate is the approval it waits for, and `node tools/policy/policy_lint.mjs --budgets` measured the raise locally before the push.
+- `gate`: red at 2eee862d only because it aggregates `budget-raise-gate / budget-raise-gate` (`merge_train.py classify --pr 3703`: `APPROVAL-OWED`, the verdict's `ev/classify.txt`). Cheaper detector: none beyond the one above.
+- `governance / instrument-self-tests`: red at 2eee862d, inherited from main (step "Refuse a self-test read set the committed table misses": `tools/ci/selftest_closures.json` misses reads added by recent merges; a re-record hotfix is in flight). Outside the `owed-reds` set; classify printed no INTRODUCED line at 2eee862d. Not repaired here.
+- `tests / nightly-status`: red at 2eee862d; it grades `main`'s nightly lane, is outside the `owed-reds` set, and this diff does not touch its reporter inputs. Cheaper detector: none; the orchestrator's lane.
+- `governance / env-matrix` and `governance / policy-docs`: red on an earlier commit of this branch, `success` at 2eee862d (run 44025584323). Neither is in the `owed-reds` set. Cheaper detector for `governance / policy-docs`: `node tools/policy/policy_lint.mjs`, about a minute, run before this push (`TOTAL: 0 error(s)`); for `governance / env-matrix`: none runs locally, CI is its only runner here.
+- INHERITED CLAIMS (`tests/env_drift.py --claims-only` exits 1 locally): both claim files are byte-identical to the merge base ada9da5c, whose lists name `cycling_cost` and `everything_on`; `origin/main` has since emptied them. This branch claims nothing (`git diff ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae...HEAD -- tests/golden` is empty), so the red is main's, repaired by the train's merge, not here (`fixer.md` step 5).
+- Code-scanning alerts were not read by `prepr.sh` (HTTP 403 on `code-scanning/analyses`); `pr-contract` reads them and fails closed.
 
 ## Forward-carry
 
