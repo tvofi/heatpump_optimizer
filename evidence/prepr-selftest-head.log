@@ -73,6 +73,8 @@
   ok   and on the warm read, from the kept lines (no answered red lost)
   ok   a commit with a run still pending is read again each time (never kept), the other 519 are kept
   ok   null control: with the keeping off (TTL 0) every commit is read, so the zero above is the cache's
+  ok   a commit with no check run yet is read cold with the other 519 (no red stands)
+  ok   a red landing on that commit in the hour is named on the warm read: it alone is read again, never kept
   ok   null control: a 2-commit all-green branch makes 2 calls (the merge base made 3), never more than before
   ok   an open code-scanning alert the body does not name is refused
   ok   and the refusal names the alert
@@ -497,7 +499,7 @@
   ok   step 1a2 does not refuse when the arm returns rc 3 (null control)
   ok   step 1a3 exits nonzero on a head_arm refusal, naming it, before any heavy step
   ok   and does not fall through to the heavy steps
-tools/pr/prepr.sh: eval: line 4082: syntax error: unexpected end of file
+tools/pr/prepr.sh: eval: line 4099: syntax error: unexpected end of file
   ok   step 1a3 lets a body naming this head run every step as today (null control)
   ok   --body-check --pr-branch refuses (line and flag) when the arm concluded a red
   ok   --body-check --pr-branch passes when the arm returns rc 0 (null control)
@@ -563,5 +565,4 @@ tools/pr/prepr.sh: eval: line 4082: syntax error: unexpected end of file
   ok   (hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority
   ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
 
-560 passed, 0 failed
-rc=0
+562 passed, 0 failed

@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/gh_read.py b/tools/audit/seat/gh_read.py
+index 6df044cafc..65a5e80162 100644
+--- a/tools/audit/seat/gh_read.py
++++ b/tools/audit/seat/gh_read.py
+@@ -253,7 +253,7 @@ def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pag
+ 
+ 
+ def etag_dir() -> Path:
+-    return Path(os.environ.get("HPO_STATE_DIR") or Path.home() / ".local/state/hpo") / "gh-etag"
++    return Path(os.environ.get("HPO_ETAG_HOST") or "/tmp/hpo-etag-hostwide-mut") / "gh-etag"
+ 
+ 
+ def parse_include(out: str) -> "tuple[int | None, dict, str]":

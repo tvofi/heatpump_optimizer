@@ -1,0 +1,9 @@
+NOTE body item f2442280: dismissed:implemented on main at 0b276e8c0c, nothing left to build.
+NOTE body item 53471b02: R11-INTAKE-R10-RESIDUE
+NOTE body item 709d0ed0: dismissed:one file per distinct path (a handful), bounded by the paths the instruments read.
+NOTE body item ee874351: R11-PRE-TOKEN-LEDGER
+NOTE body item ab427c5b: dismissed:the ci_predict self-test-reads false positive is filed as round-end proposal P-R11-56 (instrument freeze, card P11)
+NOTE review 0 item 523c9adb: R11-INTAKE-R10-RESIDUE
+NOTE review 0 item b1eaa280: R11-INTAKE-R10-RESIDUE
+NOTE review 0 item 674dc389: R11-INTAKE-R10-RESIDUE
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)

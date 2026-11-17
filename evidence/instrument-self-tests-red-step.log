@@ -1,0 +1,142 @@
+2026-11-17T02:02:38.9525834Z ok   the seat-side figure-block refresh ran
+2026-11-17T02:02:39.2201246Z ok   MUTANT refresh deleted: the arm above would fail
+2026-11-17T02:02:39.2241265Z ok   (null) the published body is not in the code head's ancestry
+2026-11-17T02:02:39.2292896Z ok   precondition: the stub's recorded base is not origin/main's tip
+2026-11-17T02:02:39.4988073Z ok   no fix/t on origin (no pull request yet): the refresh renders against origin/main
+2026-11-17T02:02:39.8262468Z ok   a pull request exists: the refresh renders against its recorded base.sha, not origin/main
+2026-11-17T02:02:40.1018618Z ok     null control: equal bases render the one sha, as before
+2026-11-17T02:02:40.3833465Z ok     MUTANT mut:bpbase (its line deleted): the refresh falls back to origin/main, so the arm above would fail
+2026-11-17T02:02:40.6162301Z ok   an unreadable recorded base refuses before the refresh
+2026-11-17T02:02:40.6184820Z ok   ... and pushes nothing
+2026-11-17T02:02:40.8790979Z ok   fix/t on origin but no open pull request: origin/main
+2026-11-17T02:02:41.1222707Z ok   REFUSE head-stale: a stale ## Head is refused, naming both shas
+2026-11-17T02:02:41.1244898Z ok   ... and nothing is pushed to handoff-body/t
+2026-11-17T02:02:41.3906104Z ok   (null) a ## Head naming the code sha passes the head check
+2026-11-17T02:02:41.3906962Z body_push self-test: 49 checks, 0 failed
+2026-11-17T02:02:41.4532458Z carry_fold self-test: 6 checks, 0 failed
+2026-11-17T02:02:41.4652022Z ##[group]Run set -euo pipefail
+2026-11-17T02:02:41.4652350Z [36;1mset -euo pipefail[0m
+2026-11-17T02:02:41.4652849Z [36;1mpython3 -I tools/audit/archscore/gate.py --self-test[0m
+2026-11-17T02:02:41.4653294Z [36;1mpython3 -I tools/audit/check_scopes.py --self-test --repo .[0m
+2026-11-17T02:02:41.4653710Z [36;1mpython3 -I tools/audit/enumerate.py --self-test[0m
+2026-11-17T02:02:41.4654093Z [36;1mpython3 -I tools/audit/product_reads.py --self-test[0m
+2026-11-17T02:02:41.4654481Z [36;1mpython3 -I tools/audit/text_ledger.py --self-test[0m
+2026-11-17T02:02:41.4654913Z [36;1m# merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides[0m
+2026-11-17T02:02:41.4655379Z [36;1m# this same self-test: the fixture's exact counts, the unchanged[0m
+2026-11-17T02:02:41.4655822Z [36;1m# fixture's null control, and a named arm per classification[0m
+2026-11-17T02:02:41.4656284Z [36;1m# predicate. A flow board that stopped counting a kind reddens here.[0m
+2026-11-17T02:02:41.4656775Z [36;1mpython3 -I tools/audit/merge_throughput.py --self-test[0m
+2026-11-17T02:02:41.4657165Z [36;1mbash tools/audit/worktree_gc.sh --self-test[0m
+2026-11-17T02:02:41.4657539Z [36;1mpython3 -I tools/coverage/partition.py --self-test[0m
+2026-11-17T02:02:41.4657920Z [36;1mpython3 -I tools/merge/ledger_merge.py --self-test[0m
+2026-11-17T02:02:41.4658280Z [36;1mpython3 -I tools/plan/replan.py --self-test[0m
+2026-11-17T02:02:41.4658643Z [36;1mpython3 -I tools/plan/size_durations.py --self-test[0m
+2026-11-17T02:02:41.4659026Z [36;1mnode tools/policy/policy_lint.mjs --self-test[0m
+2026-11-17T02:02:41.4659470Z [36;1mpython3 -I tools/policy/record-predicate/row_files_replay.py --self-test[0m
+2026-11-17T02:02:41.4659938Z [36;1mbash tools/pr/approve_held_runs.sh --self-test[0m
+2026-11-17T02:02:41.4660564Z [36;1mpython3 -I tools/pr/gate_priority.py --self-test[0m
+2026-11-17T02:02:41.4661114Z [36;1mpython3 -I tools/pr/head_note.py --self-test[0m
+2026-11-17T02:02:41.4661476Z [36;1mpython3 -I tools/release/stamp.py --self-test[0m
+2026-11-17T02:02:41.4661852Z [36;1mpython3 -I tools/policy/agreement_py.py --self-test[0m
+2026-11-17T02:02:41.4662242Z [36;1mpython3 -I tools/policy/role_pack.py --self-test[0m
+2026-11-17T02:02:41.4662674Z [36;1m# The wave-script restore list is derived, never carried: every .py[0m
+2026-11-17T02:02:41.4663151Z [36;1m# file the agreement reader loads must be restored from the base,[0m
+2026-11-17T02:02:41.4663600Z [36;1m# or a head whose readers agree still reads divergent (#2423).[0m
+2026-11-17T02:02:41.4664016Z [36;1mpython3 -I tools/policy/agreement_py.py --restore[0m
+2026-11-17T02:02:41.4722770Z shell: /usr/bin/bash --noprofile --norc tools/ci/selftest_step.sh {0}
+2026-11-17T02:02:41.4723425Z env:
+2026-11-17T02:02:41.4723749Z   HPO_JOB_GRADES: nothing
+2026-11-17T02:02:41.4724143Z   SELFTEST_TRACE: 
+2026-11-17T02:02:41.4724482Z ##[endgroup]
+2026-11-17T02:02:41.5885198Z gate self-test: all cases pass
+2026-11-17T02:04:13.5652917Z ref=60f451f5f9687fee5559f1e3bbdd0c4ffedc4764 seats=65
+2026-11-17T02:04:13.5681541Z ok D0 mode=cells seats=3 universe=3 [s1:3f/23141loc, s2:3f/23141loc, s3:3f/23141loc]
+2026-11-17T02:04:13.5682880Z FAIL D1 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5684171Z    owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']
+2026-11-17T02:04:13.5685515Z    owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M4', None) by ['s1', 's2']
+2026-11-17T02:04:13.5686793Z    owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M1', None) by ['s1', 's2']
+2026-11-17T02:04:13.5688080Z    owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None) by ['s1', 's2']
+2026-11-17T02:04:13.5689337Z    owned twice ('custom_components/heatpump_optimizer/away.py', 'M1', None) by ['s1', 's2']
+2026-11-17T02:04:13.5690816Z    owned twice ('custom_components/heatpump_optimizer/away.py', 'M4', None) by ['s1', 's2']
+2026-11-17T02:04:13.5692504Z    owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M1', None) by ['s1', 's2']
+2026-11-17T02:04:13.5693864Z    owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M4', None) by ['s1', 's2']
+2026-11-17T02:04:13.5695432Z    owned twice ('custom_components/heatpump_optimizer/battery.py', 'M1', None) by ['s1', 's2']
+2026-11-17T02:04:13.5696691Z    owned twice ('custom_components/heatpump_optimizer/battery.py', 'M4', None) by ['s1', 's2']
+2026-11-17T02:04:13.5697978Z ok D2 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5699255Z ok D3 mode=cells seats=3 universe=166 [s1:12f/31817loc, s2:18f/15983loc, s3:136f/43512loc]
+2026-11-17T02:04:13.5700657Z ok D4 mode=cells seats=3 universe=15 [s1:15f/20881loc, s2:15f/20881loc, s3:15f/20881loc]
+2026-11-17T02:04:13.5702711Z ok D5 mode=cells seats=10 universe=894 [s1:15f/0loc/0u, s2:15f/0loc/0u, s3:45f/37219loc/0u, s4:51f/54093loc/0u, s5:75f/0loc/0u, s6:261f/0loc/0u, s7:3f/0loc/0u, s8:44f/0loc/0u, s9:69f/0loc/0u, s10:331f/0loc/0u]
+2026-11-17T02:04:13.5704870Z ok D6 mode=files seats=7 universe=368 [s1:14f/0loc/0u, s2:111f/0loc/0u, s3:96f/74875loc/0u, s4:2f/16437loc/0u, s5:142f/0loc/0u, s6:1f/0loc/0u, s7:2f/0loc/0u]
+2026-11-17T02:04:13.5706357Z ok D7 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5707515Z ok D8 mode=cells seats=3 universe=6 [s1:6f/4741loc, s2:6f/4741loc, s3:6f/4741loc]
+2026-11-17T02:04:13.5708683Z ok D9 mode=cells seats=3 universe=96 [s1:96f/91312loc, s2:96f/91312loc, s3:96f/91312loc]
+2026-11-17T02:04:13.5709890Z ok D10 mode=cells seats=3 universe=114 [s1:114f/91312loc, s2:114f/91312loc, s3:114f/91312loc]
+2026-11-17T02:04:13.5711339Z ok D11 mode=cells seats=3 universe=1397 [s1:1397f/0loc, s2:1397f/0loc, s3:1397f/0loc]
+2026-11-17T02:04:13.5712701Z ok D12 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5714048Z ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5715345Z ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5716368Z ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5717438Z ok D16 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5718598Z ok D17 mode=cells seats=3 universe=102 [s1:102f/74875loc, s2:102f/74875loc, s3:102f/74875loc]
+2026-11-17T02:04:13.5719762Z ok D0 mode=cells seats=3 universe=3 [s1:3f/23141loc, s2:3f/23141loc, s3:3f/23141loc]
+2026-11-17T02:04:13.5721108Z ok D1 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5722306Z FAIL D2 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5723371Z    unowned ('custom_components/heatpump_optimizer/__init__.py', 'M3', None)
+2026-11-17T02:04:13.5724371Z    unowned ('custom_components/heatpump_optimizer/__init__.py', 'M4', None)
+2026-11-17T02:04:13.5725360Z    unowned ('custom_components/heatpump_optimizer/__init__.py', 'M5', None)
+2026-11-17T02:04:13.5726332Z    unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M3', None)
+2026-11-17T02:04:13.5727313Z    unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None)
+2026-11-17T02:04:13.5728327Z    unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M5', None)
+2026-11-17T02:04:13.5729288Z    unowned ('custom_components/heatpump_optimizer/away.py', 'M3', None)
+2026-11-17T02:04:13.5730358Z    unowned ('custom_components/heatpump_optimizer/away.py', 'M4', None)
+2026-11-17T02:04:13.5731295Z    unowned ('custom_components/heatpump_optimizer/away.py', 'M5', None)
+2026-11-17T02:04:13.5732254Z    unowned ('custom_components/heatpump_optimizer/batchmath.py', 'M3', None)
+2026-11-17T02:04:13.5733413Z ok D3 mode=cells seats=3 universe=166 [s1:12f/31817loc, s2:18f/15983loc, s3:136f/43512loc]
+2026-11-17T02:04:13.5734844Z ok D4 mode=cells seats=3 universe=15 [s1:15f/20881loc, s2:15f/20881loc, s3:15f/20881loc]
+2026-11-17T02:04:13.5736930Z ok D5 mode=cells seats=10 universe=894 [s1:15f/0loc/0u, s2:15f/0loc/0u, s3:45f/37219loc/0u, s4:51f/54093loc/0u, s5:75f/0loc/0u, s6:261f/0loc/0u, s7:3f/0loc/0u, s8:44f/0loc/0u, s9:69f/0loc/0u, s10:331f/0loc/0u]
+2026-11-17T02:04:13.5739442Z ok D6 mode=files seats=7 universe=368 [s1:14f/0loc/0u, s2:111f/0loc/0u, s3:96f/74875loc/0u, s4:2f/16437loc/0u, s5:142f/0loc/0u, s6:1f/0loc/0u, s7:2f/0loc/0u]
+2026-11-17T02:04:13.5741217Z ok D7 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5742324Z ok D8 mode=cells seats=3 universe=6 [s1:6f/4741loc, s2:6f/4741loc, s3:6f/4741loc]
+2026-11-17T02:04:13.5743513Z ok D9 mode=cells seats=3 universe=96 [s1:96f/91312loc, s2:96f/91312loc, s3:96f/91312loc]
+2026-11-17T02:04:13.5744705Z ok D10 mode=cells seats=3 universe=114 [s1:114f/91312loc, s2:114f/91312loc, s3:114f/91312loc]
+2026-11-17T02:04:13.5745881Z ok D11 mode=cells seats=3 universe=1397 [s1:1397f/0loc, s2:1397f/0loc, s3:1397f/0loc]
+2026-11-17T02:04:13.5747019Z ok D12 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5748091Z ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5749051Z ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5750040Z ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+2026-11-17T02:04:13.5751411Z ok D16 mode=cells seats=3 universe=95 [s1:95f/74875loc, s2:95f/74875loc, s3:95f/74875loc]
+2026-11-17T02:04:13.5752601Z ok D17 mode=cells seats=3 universe=102 [s1:102f/74875loc, s2:102f/74875loc, s3:102f/74875loc]
+2026-11-17T02:04:13.5753360Z    D16 and D17 arms: 5/5 held
+2026-11-17T02:04:13.5754329Z    coverage arm drop D10's universe: refused=True names ['custom_components/heatpump_optimizer/py.typed']=True
+2026-11-17T02:04:13.5756037Z    coverage arm strip tests/ and blueprints/ globs: refused=True names ['tests/closure.py', 'blueprints/automation/notifications.yaml']=True
+2026-11-17T02:04:13.5757348Z    coverage arms dead/unreasoned exclusion: refused=True/True
+2026-11-17T02:04:13.5758650Z    coverage arm exclude a covered path: refused=True; null control custom_components/heatpump_optimizer/optimizer.py covered=True
+2026-11-17T02:04:13.5759782Z    harness-citation arms: True, null True
+2026-11-17T02:04:13.5760726Z    ledger arms: live True, cap refused True, line refused True/True/True/True
+2026-11-17T02:04:13.5762282Z    D5 comment-line arms: plant measured True, outside refused True, D6 null refused True, no line refused True, narrow refused True, unstatic refused True
+2026-11-17T02:04:13.5763705Z    default verdict: live True, no D10 refused True, uncited refused True
+2026-11-17T02:04:13.5764539Z    default invocation: live rc=0, blueprints dropped rc=1
+2026-11-17T02:04:13.5765375Z    yardstick records: covered=True, refused without the exclusion=True
+2026-11-17T02:04:13.5766658Z    evaluation arms: 62/62 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']
+2026-11-17T02:04:13.5767637Z    population arms: 13/13 held
+2026-11-17T02:04:13.5768260Z SELF-TEST passed (every perturbed scope refused)
+2026-11-17T02:04:42.3900679Z SELF-TEST passed (161 arms)
+2026-11-17T02:04:42.5183946Z Traceback (most recent call last):
+2026-11-17T02:04:42.5189609Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/product_reads.py", line 1017, in <module>
+2026-11-17T02:04:42.5190732Z     sys.exit(main())
+2026-11-17T02:04:42.5191640Z              ~~~~^^
+2026-11-17T02:04:42.5192802Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/product_reads.py", line 1001, in main
+2026-11-17T02:04:42.5193677Z     return self_test()
+2026-11-17T02:04:42.5194596Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/product_reads.py", line 753, in self_test
+2026-11-17T02:04:42.5195732Z     cells = universe(root, "d16-writes", cells=True)
+2026-11-17T02:04:42.5197303Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/product_reads.py", line 316, in universe
+2026-11-17T02:04:42.5198501Z     items = census.run(name, repo, **kw)
+2026-11-17T02:04:42.5199463Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/enumerate.py", line 598, in run
+2026-11-17T02:04:42.5200803Z     lines = joined(name, sorted(_dedupe(UNIVERSES[name](Path(repo), **kw))), ledger)
+2026-11-17T02:04:42.5201617Z                                         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+2026-11-17T02:04:42.5202611Z   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/audit/enumerate.py", line 139, in d16
+2026-11-17T02:04:42.5203961Z     raise Refuse(f"const.py PUMP_DUTY_MODES {sorted(modes)} are not the duty modes STATES names {sorted(named)}: "
+2026-11-17T02:04:42.5205195Z                  "a duty mode with no plan state is unrowed, and a state under no duty mode cannot run")
+2026-11-17T02:04:42.5207248Z enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']: a duty mode with no plan state is unrowed, and a state under no duty mode cannot run
+2026-11-17T02:04:42.5358909Z ##[error]Process completed with exit code 1.
+2026-11-17T02:04:42.5409994Z ##[group]Run set -o pipefail
