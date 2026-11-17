@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_building_preset_warning RETURN_DEL 4481f371",
+  "killed_by": "tests/entities.py",
+  "old": "    return PRESET_WARNING.get(lang, PRESET_WARNING[\"en\"])",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

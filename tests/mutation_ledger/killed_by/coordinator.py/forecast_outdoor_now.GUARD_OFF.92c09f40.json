@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF 92c09f40",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "    if not forecast:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}
