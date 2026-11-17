@@ -1,0 +1,1 @@
+Carried evidence of audit round 11 finder seat D3-s1 (local run 2026-11-17) for box D3R. Host paths rewritten: the seat worktree is $HOME/audit-r11-D3-s1; <orch-dir>, <home> and <tmp> are placeholders.
