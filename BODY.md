@@ -25,7 +25,13 @@ This body describes the channel only. No seat of this group looked for a finding
 
 ## Head
 
-`1455a5ad970f725ceefd883ec67cf15a9d78c545` is the code head: two commits on `f7f45193ae3c1816cd1fa63746e972a30aec7773`.
+`b99ed48a067877af9f6be67a61812a064d58fcf1` is the code head: origin/main `5e2ef89b4e7348b190aa917dc032da73ba04998e` merged into `1455a5ad970f725ceefd883ec67cf15a9d78c545`, because that merge conflicted in `tests/layout.json`: the `tools/audit/{...}` glob, where main added `regret_oracle.py` (after `product_reads.py`) and this branch `leak_detectors.py` (last). Resolved by union, both entries kept where each side put them; nothing else conflicted. This resolution changes reviewed content in that one line only.
+
+prepr: passed rc=0 at b99ed48a067877af9f6be67a61812a064d58fcf1
+
+An earlier prepr run at this head refused once on a CI-predict replay of `governance / instrument-self-tests` step "Show the beat's job rows refusing their own fixtures" (rc 1 at the head, 0 at the base). That red did not reproduce: `python3 -I tools/audit/seat/beat_jobs.py --self-test` printed `281 checks, 0 failed` three times at this head, `ci_predict.py --only step-replay` predicted nothing for that step, and the next full prepr run passed (the line above). This merge does not touch `beat_jobs.py`.
+
+`1455a5ad970f725ceefd883ec67cf15a9d78c545` is two commits on `f7f45193ae3c1816cd1fa63746e972a30aec7773`.
 
 - `b0a8effcd1149e6e544bd3593799c08ca628a6f3` merges origin/main `8f39313a44a4baec18b239ba925f6e164eb26bd2` into `f7f45193ae`, because the pull request was `DIRTY`: `tools/audit/seat/gh_calls.py`, `tools/audit/seat/gh_read.py` and `tools/audit/seat/shims/seat-gh` conflicted, where main's host-wide gh log (`--top` reads `$HOME/.local/state/hpo/gh-calls.log` plus a distinct `$HPO_STATE_DIR` log, with a `sources:` table and `--log`; the shim's install-fixed `loghome`; `gh_read`'s `conditional_get` self-test block) and this branch's owner-only work (`--top`'s bucket table; the shim's OWNER-ONLY MODE comment; `gh_read`'s bulk-read self-test block) sat at the same lines. Resolved by union, which changes reviewed code: `gh_calls.py`'s module docstring is rewritten to state both (the bucket rule, then main's sources), and each conflicted self-test keeps both blocks, this branch's first. Nothing else conflicted. At `b0a8effcd1149e6e544bd3593799c08ca628a6f3`: the `gh_read` self-test (`python3 -I -c "import sys; sys.path.insert(0, 'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())"`) prints `176 checks, 0 failed`; `python3 -I tools/audit/seat/gh_calls.py --self-test` prints `229 checks, 0 failed`; `python3 -I tools/audit/seat/owner_only.py --self-test` prints `ok (with mutants)`; `python3 -I dev/audit/harnesses/owner_only_channel.py` prints `RESULT arms=49 failed=0` and `OWNER-ONLY CHANNEL HELD`; `python3 -I dev/audit/harnesses/owner_only_mutants.py` prints `RESULT mutants=54 survived=0`, its `shim` group run against the merged shim.
 - `1455a5ad970f725ceefd883ec67cf15a9d78c545` repairs `tests / closures` (`## Red checks`): `dev/audit/config/scopes.json` joins `tests/closure.py`'s `INERT_EXCEPT`, and a Linux `./tests/derive_closures.sh --single tests/entities.py --record-only` recording at `b0a8effcd1149e6e544bd3593799c08ca628a6f3` is merged into `tests/closures.json` (one closure line, and that script's recorded `rc`).
@@ -161,7 +167,7 @@ A survivor in the rule itself (an early return on an empty set, equivalent to th
 - Architecture score: `python3 tools/audit/archscore/score.py --diff origin/main` (no product module changes).
 - Not measured, and why (design figures F3 to F7): the first scan's and an incremental round's calls per bucket. This seat may call GitHub for search only and holds no read credential, so `corpus_mirror.py` has run against a stub alone. The enumerators stand: `python3 -I tools/audit/seat/corpus_mirror.py cost --private-root <dir>` and `python3 -I tools/audit/seat/gh_calls.py --top --since <scan start>`. The brief (part 2) names the floor and the batch as `gh_read.py`'s constants, never a literal.
 
-<!-- figure-block: scope-line mb=2d7161a4b70923da910f9997e18db632c0d4ec2d head=1455a5ad970f725ceefd883ec67cf15a9d78c545 -->
+<!-- figure-block: scope-line mb=2d7161a4b70923da910f9997e18db632c0d4ec2d head=b99ed48a067877af9f6be67a61812a064d58fcf1 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -177,7 +183,7 @@ The required-check reds at `f7f45193ae3c1816cd1fa63746e972a30aec7773`, each read
 - `gate`: red because of the reds above; nothing of its own.
 - `tests / nightly-status`: not in the owed set; not answered.
 
-The latest verdict on `review/3679`, `Fix review: blocked d40c045119 merge-conflict: tests/layout.json`, is at an earlier head. `75b8f26b4c`, below, resolved it, and `git merge-tree --write-tree origin/main HEAD` at `1455a5ad970f725ceefd883ec67cf15a9d78c545` reports no conflict.
+The latest verdict on `review/3679`, `Fix review: blocked d40c045119 merge-conflict: tests/layout.json`, is at an earlier head. `75b8f26b4c`, below, resolved it, and `git merge-tree --write-tree origin/main HEAD` at `b99ed48a067877af9f6be67a61812a064d58fcf1` reports no conflict (origin/main `5e2ef89b4e`).
 
 ## Forward-carry
 
