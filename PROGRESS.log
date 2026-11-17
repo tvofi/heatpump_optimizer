@@ -12,3 +12,4 @@
 1794851347 DONE returned: Fix review: blocked 2abb0ac ci-red (code run 43914056033 cancelled mid-coverage); no code block; 5 residual survivors + unbounded-wait residual carried; probe c46d346805
 1794878763 HB alive
 1794878768 INBOX acked through 1
+1794878854 CKPT packet rendered: delta empty, merge-tree clean, classify WAIT (gate pending re-run); poller started snapshot 25681d2a686d
