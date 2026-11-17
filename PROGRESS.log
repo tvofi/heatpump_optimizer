@@ -5,3 +5,4 @@
 1794879431 CKPT cmdA head pass 57; one-resolved behavioural kill confirmed; mutants+harness running snapshot 488e2947ab7d
 1794879829 CKPT all figures re-derived; carries confirmed; waiting CI snapshot c4b01573aff2
 1794879844 HB alive
+1794879887 CKPT verdict drafted, carry_audit rc0; waiting CI snapshot a2cd72bd023b
