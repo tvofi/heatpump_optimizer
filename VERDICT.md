@@ -1,33 +1,29 @@
-Fix review: merge 15a99c4ff739b8b91e89699a165cb72058e2f173
+Fix review: merge 6804e9c5a29946cbef4722088b1f668de6a246a8
 
-bus-nonce: 25a41551552a7e015f7e0e79bd08cf62
+bus-nonce: c8b3aa208876b8c2a18fbace312988d5
+pending-ci: gate
 
-Round 2 (delta review over the reviewed head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e). The delta is the fixer's commit 11e9a4e96 (merged as 6804e9c5a) plus an automatic main merge (5e2ef89b) with no resolution. `review_carry.py` prints FRESH-REVIEW because 11e9a4e96 changes content. The own delta touches only `tools/plan/replan.py`, `tools/audit/seat/plan_page.py` and `tools/audit/seat/plan_phases.py`. Nothing under `custom_components/` changed, so the scope does not widen.
+## Review
+
+Round 2, a delta review of #3676. The previous review was at head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e. This head is 6804e9c5a29946cbef4722088b1f668de6a246a8, and the merge base is 6f422812d5d8b918beace0283419c153f6df66ce. The delta (`git diff 8daf6df 6804e9c`) touches three instrument files only: `tools/plan/replan.py`, `tools/audit/seat/plan_page.py` and `tools/audit/seat/plan_phases.py`. It touches nothing under `custom_components/`, so the scope does not widen (fix-review.md step 12).
+
+Each finding of the previous block is resolved:
+1. phase_hours unwired: `replan.MODEL_FIELDS` now names `phase_hours`, and `build_plan` (replan.py:1537) copies it from durations into `generated.model`. The new self-test arm runs from durations through `replan.build_plan` to `render`. MW (field removed from `MODEL_FIELDS`), MD (key filtered out at the copy site) and MP1 (`plan_page.py:800` handing `phase_hours=None`) are each KILLED by that arm. Failing first: the head's `plan_page.py` over 8daf6df's production files gives `152 checks, 1 failed`, and the failure is that arm, `got: (2, 2)`. No other reader of `MODEL_FIELDS` exists. `size_durations.py` writes `{**old, **out}`, so a `phase_hours` written by hand into durations.json survives a re-measure. `phase_hours` is not added to the required fields, and the renderer's guard on bad figures is unchanged.
+2. Surviving mutants M6, M15 and M16 are each now KILLED by the arm the body names, with the failure text the body quotes.
 
 ## Evidence
 
-- RESULT previous block 1 (phase_hours unwired) is resolved. `MODEL_FIELDS` now names `phase_hours`, and `build_plan` copies it only when it is present (`replan.py:1537`), so it is not required. The self-test arm now goes from durations to `build_plan` to `render`. M1-unwire (drop `"phase_hours"` from `MODEL_FIELDS`) is KILLED, and so is M17-page-handoff (`phase_hours=None` at `plan_page.py:800`). Both fail on the phase arm with `got: (2, 2)` (ev/selftests-and-mutants.txt).
-- RESULT previous block 2 is resolved. Each mutant ran at the head and was restored afterwards, and the worktree was clean after the runs:
-  - M6 (`check_plan` next-round recursion changed to `pass`) is KILLED with `got: []`.
-  - M16 (`except PlanError` changed to `except ZeroDivisionError`) is KILLED.
-  - M15 (`"beyond"` changed to `0`) is KILLED with `got: 0`.
-  - Driver: ev/mutation_driver.py.
-- RESULT figures at head (ev/selftests-and-mutants.txt):
-  - `plan_page self-test: 152 checks, 0 failed` matches the body.
-  - `self-test: 0 failed` (replan) matches the body.
-  - `beat_jobs self-test: 284 checks, 0 failed`. The body says 274. The difference comes from main: main's base 5e2ef89b gives 281 (ev/beat_jobs-main-base.txt), and the PR's own +3 matches its earlier 271 to 274. See the Note.
-- RESULT merge: `git merge-tree --write-tree origin/main 15a99c4ff7` against origin/main 91674d15cd exits 0 with no conflict (ev/merge-tree.txt).
-- RESULT VERSION, manifest, RELEASE_NOTES and both claim files are untouched in the three-dot diff (ev/threedot-stat.txt).
-- RESULT CI: `merge_train.py classify 15a99c4ff7 --pr 3676` prints `GREEN 15a99c4ff739b8b91e89699a165cb72058e2f173 pending: none red: none` (ev/classify-log.txt). No owed red is open at this head, so no `## Red checks` answer is owed.
-- RESULT head re-read: the branch head is still 15a99c4ff7 (ev/head-reread.txt), and the body's `## Head` names it.
-- Finder's harness: none named. This is an owner-directed instrument group, so each carry's own control is its harness. The mutation driver and the phase_hours domain probe are the reviewer's, not the finder's.
-- Note: figure-stale: the body's `## Figures` beat_jobs line (274) is the pre-merge count; at this head it is 284, and the increase is main's, not this PR's. Carry: dismissed: paperwork at a head whose code is verified; the count is re-derived above.
+- RESULT mutation (ev/mutants.txt, driver ev/mutation_driver.py, each mutant restored, `git status` clean): M6 KILLED, M15 KILLED, M16 KILLED, MW KILLED, MP1 KILLED, MD KILLED. Each was killed by `plan_page.py --self-test`. `replan.py --self-test` passes under all six, so the kills come from plan_page's arms only, which matches the body.
+- RESULT failing first (ev/failing-first.txt): `plan_page self-test: 152 checks, 1 failed` over 8daf6df's production files, matching the body.
+- RESULT figures at head (ev/selftests-head.txt, ev/cheap-checks.txt): `plan_page self-test: 152 checks, 0 failed`; `beat_jobs self-test: 274 checks, 0 failed`; `self-test: 0 failed` (replan); `STRUCTURE RATCHET PASSED`; `ALL 410 checks PASSED`; `ALL 2723 ENTITY CHECKS PASSED`. Every figure in the body matches. The prepr figure was not re-run and is cited from the body.
+- RESULT null controls: the body's round-2 controls are inside the passing arms. They are: `phase_hours not in plan["generated"]["model"]` and no "plan model)" on the fixture page; `check_plan(p2) == []`; and `beyond == 0` with no "more group(s) belong" text.
+- RESULT merge: `git merge-tree --write-tree origin/main 6804e9c5a29946cbef4722088b1f668de6a246a8` exits 0, no conflict (ev/merge-tree.txt).
+- RESULT VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched in the three-dot diff (ev/untouched.txt).
+- Finder's harness: none was named. This is an owner-directed instrument group, and the harness is each carry's own self-test arm. The phase_hours end-to-end control came from the round-1 reviewer, and its arm is now in the tree.
+- Head re-read: the PR head is 6804e9c5a29946cbef4722088b1f668de6a246a8, and the body's `## Head` names it. The head is a merge of the authored head 11e9a4e9644e9a468dd2522f03a8450fbed23731, and the delta diff holds only the three files above.
+- CI: `merge_train.py classify 6804e9c5a29946cbef4722088b1f668de6a246a8 --pr 3676` printed `WAIT 6804e9c5a29946cbef4722088b1f668de6a246a8 pending: gate red: none` on every poll from 00:23Z to 00:55Z, when polling stopped after 30 minutes (ev/classify-log.txt, ev/classify-last.txt). Per the orchestrator's NOTE (inbox CMD 1), the runs at this head were cancelled to free runners and are being re-run. A cancelled run is a wait, not a red. The owed-reds set is in ev/owed-reds.txt; no red is present.
+- Comms: seat_comms init and heartbeat ran. The inbox delivered CMD 1 NOTE (the CI cancellation), which was applied.
 
 ## Findings
 
-- Residual: the body says `_model_duration`'s guard makes a separate validator unnecessary, but the guard does not cover the whole input domain that the new durations path opens (ev/phase_hours_domain.txt).
-  - `phase_hours: {"finders": NaN}` (Python's `json` accepts `NaN`) prints `nan h (plan model)`, and `Infinity` prints `inf h (plan model)`.
-  - A non-dict `phase_hours` (a list or a number) raises `AttributeError` in `render`.
-  - `check_plan` checks none of these cases.
-  - Today the fault cannot be reached: `durations.json` has no `phase_hours`, and every malformed value fails visibly rather than as a plausible figure.
-  - Carry: dismissed: unreachable at this tree; any malformed value fails loudly or prints as nan/inf, never as a believable duration
+none

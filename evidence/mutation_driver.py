@@ -1,28 +1,28 @@
-import subprocess, sys, os
-wt = sys.argv[1]
-os.chdir(wt)
-env = dict(os.environ, PYTHONPATH="tests/hastub")
+import subprocess, sys, pathlib
+wt = pathlib.Path(sys.argv[1])
 M = [
- ("M1-unwire", "tools/plan/replan.py", '"carry_provenance", "phase_hours")', '"carry_provenance")'),
- ("M6-recursion", "tools/plan/replan.py", "bad += [f\"next round {plan['next_round']['round']}: {b}\" for b in check_plan(nxt)]", "pass"),
- ("M16-except", "tools/plan/replan.py", "    except PlanError as exc:\n        out[\"unavailable\"]", "    except ZeroDivisionError as exc:\n        out[\"unavailable\"]"),
- ("M15-beyond", "tools/plan/replan.py", '"beyond": len(later) - len(mine)}', '"beyond": 0}'),
- ("M17-page-handoff", "tools/audit/seat/plan_page.py", 'phase_hours=model.get("phase_hours")', 'phase_hours=None'),
+ ("M6", "tools/plan/replan.py", "        bad += [f\"next round {plan['next_round']['round']}: {b}\" for b in check_plan(nxt)]", "        pass"),
+ ("M15", "tools/plan/replan.py", '"beyond": len(later) - len(mine)}', '"beyond": 0}'),
+ ("M16", "tools/plan/replan.py", "    except PlanError as exc:\n        out[\"unavailable\"] = str(exc)", "    except ZeroDivisionError as exc:\n        out[\"unavailable\"] = str(exc)"),
+ ("MW", "tools/plan/replan.py", '"carry_provenance", "phase_hours")', '"carry_provenance")'),
+ ("MP1", "tools/audit/seat/plan_page.py", 'phase_hours=model.get("phase_hours")', 'phase_hours=None'),
+ ("MD", "tools/plan/replan.py", "**{k: durations[k] for k in MODEL_FIELDS if k in durations},", "**{k: durations[k] for k in MODEL_FIELDS if k in durations and k != 'phase_hours'},"),
 ]
-cmds = [["python3","tools/audit/seat/plan_page.py","--self-test"],["python3","tools/plan/replan.py","--self-test"]]
-for name, path, old, new in M:
-    src = open(path).read()
-    assert src.count(old) == 1, (name, src.count(old))
-    open(path,"w").write(src.replace(old,new))
+for name, f, a, b in M:
+    p = wt / f; src = p.read_text()
+    n = src.count(a)
+    if n != 1:
+        print(f"{name}: SITE-COUNT {n} (not applied)"); continue
+    p.write_text(src.replace(a, b))
     try:
         res = []
-        for c in cmds:
-            p = subprocess.run(c, env=env, capture_output=True, text=True)
-            fails = [l for l in (p.stdout+p.stderr).splitlines() if "FAIL" in l][:4]
-            res.append((c[1], p.returncode, fails))
-        killed = any(r[1] != 0 for r in res)
-        print(f"{name}: {'KILLED' if killed else 'SURVIVED'}")
-        for r in res: print("   ", r[0], "rc", r[1], *("\n      "+f for f in r[2]))
+        for s in ("tools/audit/seat/plan_page.py", "tools/plan/replan.py"):
+            r = subprocess.run(["python3", s, "--self-test"], cwd=wt, capture_output=True, text=True,
+                               env={"PYTHONPATH": "tests/hastub", "PATH": "/opt/hpo/venv-ci/bin:/usr/bin:/bin"}, timeout=600)
+            out = r.stdout + r.stderr
+            fails = [l for l in out.splitlines() if "FAIL" in l][:3]
+            res.append(f"{s} rc={r.returncode} {out.strip().splitlines()[-1] if out.strip() else ''} {fails}")
+        killed = any(" rc=0 " not in x for x in res)
+        print(f"{name}: {'KILLED' if killed else 'SURVIVED'}"); [print("   ", x) for x in res]
     finally:
-        open(path,"w").write(src)
-print("worktree diff after restore:", subprocess.run(["git","status","--porcelain"],capture_output=True,text=True).stdout or "clean")
+        p.write_text(src)
