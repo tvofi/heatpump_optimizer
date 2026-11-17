@@ -1,8 +1,0 @@
-[
- {
-  "name": "REV_N6_ONE_FIXED_ROW_KEPT",
-  "file": "custom_components/heatpump_optimizer/optimizer.py",
-  "old": "    stepped = np.flatnonzero(free)\n",
-  "new": "    stepped = np.flatnonzero(free | (np.arange(x0.size) == 1))\n"
- }
-]

@@ -1,7 +1,0 @@
-  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-  ok   a pump command that FAILED is not remembered as done
-  FAIL each relaxed plan is committed on its own and the lowest score ships: a second relaxed plan lowers the score where its runs are the better ones, in either order, and never raises it  [{'far': 37.5, 'far then near': 37.5, 'near then far': 19.020000000000003}]
-1 of 5697 FEATURE CHECKS FAILED
-rc=1
-RESTORED

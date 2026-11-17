@@ -1,0 +1,24 @@
+review_carry: 38c254f3f -> 5b33358e8  main=origin/main
+  branch-only commits: 20
+  why: eca775a25870128301841fa83f39cdb85a144d3e is not the automatic merge of its parents
+  cb5475bdd  BLOCKED: the two red acceptance checks are false per BLAS kernel on the branch's own tree, a design question
+  303e10f8c  The two kernel-dependent acceptance clauses restated on same-run quantities
+  468507e47  Step: the restated acceptance checks, green on four OpenBLAS kernels; BLOCKED.md answered by ruling (A)
+  372bbdeef  ci: pin killed mutants
+  3f0149a81  A leaf check for the out-of-band penalty, and the harness's kernels mode
+  7b6805b07  Step: the leaf check for the out-of-band penalty and the harness's kernels mode; exit 0 under four kernels at this head, exit 1 at 5d9f00db01
+  1cc7ccea5  The kernels mode exits on any failed block and prints the kept starts clause's counts; two mutants named in the group's spec
+  a8b2c7311  Step: the kernels mode as a mutant command, and the two mutants named in the spec; all three killed at this head and at 5d9f00db01
+  99685444a  Step: the predecessor's restated acceptance checks (a8b2c73119) merged onto the pull-request head 372bbdeefd
+  dacf1836d  Pin the nine killed mutant sites mutation_table.py --pin-killed recorded at 99685444a9 (budget 110 min: 9 pinned, 0 survived, 64 not started)
+  1a7a27578  Merge origin/main (5825e1346c): runs.py and #3598's running_signal.py both counted (94 modules, 113 package files), and duty_switch.running_now reads running_signal's settled class, the one read the round-3 carry 2 named
+  d5f3b590c  Pins for the sites tests/features.py kills, leaf checks for nine survivors, triage for ten
+  eca775a25  Step: the first round-4 seat's later commits, attached as a second parent; this tree is dacf1836d3's, unchanged
+  6077c3e1a  Repair the merge's resolution: a conflict marker and a glued section header left in tests/features.py, the count notes in the order the two modules land, and deployment_shape's cost note at the 163 pairs the merged closures derive
+  72267a954  Merge the step ref's eca775a258 (the first round-4 seat's commits as a parent; its tree is dacf1836d3's)
+  1aa5c7930  The first round-4 seat's d5f3b590c9 applied to this head: 52 killed_by rows from its --pin-killed over tests/features.py, five leaf checks on the runs leaf, ten survivor_triage rows; the two rows both lines recorded keep the pull-request head's text
+  f19c16156  The harness's kernels mode bounds the group's block by the block main appended after it (R10-START-COUNTER-EDGES), where that block exists
+  b9cd96299  Pin six killed sites --pin-killed recorded at f19c16156d: the runs leaf's band constants, the running rule's edge and realizable's bound (0 survived, 4 not started for the budget, 2 timed out)
+  ba22d0cde  Merge commit 'b9cd9629999d6fadccde39bf6c5e9c525e6c52c4' into fix/r11-outside-honest-starts-runs
+  5b33358e8  Merge remote-tracking branch 'origin/main' into fix/r11-outside-honest-starts-runs
+review_carry: FRESH-REVIEW

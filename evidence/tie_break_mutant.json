@@ -1,8 +1,0 @@
-[
- {
-  "name": "REV_TIE_BREAK_ZERO",
-  "file": "custom_components/heatpump_optimizer/runs.py",
-  "old": "_TIE_BREAK = 1e-9\n",
-  "new": "_TIE_BREAK = 0.0\n"
- }
-]
