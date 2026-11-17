@@ -1,5 +1,0 @@
-gate job 133685351836 (completed failure 2026-11-16T23:19:25Z) at abe961e6e56432e27cd2ea56ac22fd8e37338b50:
-  WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate
-##[endgroup]
-FAIL tests / mutation: failure (run 43966049644)
-pr-contract / pr-contract: failure (run 43966049644)

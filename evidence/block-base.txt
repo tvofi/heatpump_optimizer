@@ -1,0 +1,20 @@
+
+=== features block ===
+  ok   a month's first savings booking stamps the reference in force, once
+  ok   a month stamped 1, the spread reference, states no saving after the change
+  ok   a month stamped 2, booked before the valve-top reference, states no saving after the change
+  ok   a month stamped 3, booked before the single-zone valve reached its setpoint, states no saving after the change
+  ok   a month stamped 4, the reference in force, keeps stating its saving as it books on
+  ok   a v1 ledger migrates to v2: every month on the old basis, every line as stored
+  ok   an old-basis row keeps both columns and states no saving and no percent
+  ok   an old-basis month stays old when it books on: its total is mixed
+  ok   a v1 month with no savings booked at the upgrade books its first saving on the new reference
+  ok   a month with savings lines and no stamp reads as the old basis
+  ok   the booked reference reproduces its recorded digest on every pinned install (a change re-records it and bumps REFERENCE_BASIS)
+  ok   single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K
+  ok   single-zone valve: a thermostat set to 21 C holds 21 C behind it
+  ok   single-zone valve: the curve the model reports is the plant's own, at zero wind and rain
+  ok   single-zone valve: where the house's gains cover its loss the curve sits at its target, never below
+  ok   no valve: the priced flow curve of a single-zone direct plant is unchanged, bit for bit
+
+ALL 16 FEATURES BLOCK PASSED
