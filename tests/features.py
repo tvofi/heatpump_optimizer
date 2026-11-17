@@ -90914,6 +90914,7 @@ R.check(
     "a plausible target raised a notice",
 )
 
+# --- R10-DUTY-SWITCH-PLANNER-PRICE block start
 R.section(
     "R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops "
     "the compressor (pull request 3420, Bankaifan)"
@@ -91498,10 +91499,12 @@ def _dsp_same_plan(a, b):
 # with a start priced as a start that install plans runs, and on the 2 degC day
 # the plan it ships makes no priced switch at all (the mild day of the two
 # descents below), so the checks of a charged step and of the banned candidate
-# had nothing to read there.
+# had nothing to read there. 2 K colder again since R11-OUTSIDE-HONEST-DHW-RUNS:
+# with its hot water committed as runs the 0 degC plan makes no priced switch
+# either (dev/audit/harnesses/r11_honest_dhw_runs.py, switches).
 _DSP_INSTALLS = {
-    "duty-cycle": dict(clamp=False, out_mean=0.0),
-    "modulating clamped": dict(clamp=True),
+    "duty-cycle": dict(clamp=False, out_mean=-2.0),
+    "modulating clamped": dict(clamp=True, out_mean=0.0),
     "fixed-speed": dict(clamp=True, p_min=5.5),
 }
 _dsp_base = {name: _dsp_solve(None, **kw) for name, kw in _DSP_INSTALLS.items()}
@@ -92585,7 +92588,9 @@ def _dsp_arm(arm, **kw):
 
 _dsp_days = {
     day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
-    for day, kw in (("mild", {}), ("cold", {"out_mean": -4.0}))
+    # The cold day is -1 degC since R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
+    # committed as runs both descents ship one plan at -4 degC.
+    for day, kw in (("mild", {}), ("cold", {"out_mean": -1.0}))
 }
 R.check(
     "a solve that prices a stop commits both descents and ships the lower: on "
