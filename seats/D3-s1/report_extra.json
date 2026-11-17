@@ -1,5 +1,5 @@
 {
- "exposure": "No docs/ or GitHub read. Redispatch items C2/C3/C6 name round-10 mutant ids from dev/audit/rounds/round10/D3/s1/mutants.py, which the export strips: the seat read that one file from the worktree's object store (git show HEAD:...) only to re-draw its seed-10 sample at this baseline (c2_mutants.json, c3c6_mutants.json); no round-10 report, verdict or finding text was read. `git diff --stat HEAD^1 HEAD -- custom_components` was run once to confirm the env_drift comparison ref HEAD^1 (2c84a85c) carries production byte-identical to the baseline.",
+ "exposure": "No docs/ or GitHub read. Redispatch items C2/C3/C6 name round-10 mutant ids from dev/audit/rounds/round10/D3/s1/mutants.py, which the export strips: the seat read that one file from the worktree's object store (git show HEAD:...) only to re-draw its seed-10 sample at this baseline (c2_mutants.json, c3c6_mutants.json); no round-10 report, verdict or finding text was read. `git diff --stat HEAD^1 HEAD -- custom_components` was run once to confirm the env_drift comparison ref HEAD^1 (2c84a85c) carries production byte-identical to the baseline. Box D3R run (inline in the box session, the Agent spawn being refused by the frugal guard): read COMMON.md, D3.md, dev/audit/README.md, finding.schema.json (through a haiku extractor), the seat's own carried harnesses and state, and the three new survivor lines in custom_components; no docs/ or GitHub read beyond the box's own dispatch/inbox/wip refs.",
  "redispatched": {
   "D3.M1": [
    {
@@ -20,7 +20,7 @@
   "D3.M3": [
    {
     "item": "C3",
-    "state": "examined"
+    "state": "not_reached"
    },
    {
     "item": "C5",
@@ -35,15 +35,15 @@
    },
    {
     "item": "C4",
-    "state": "examined"
+    "state": "not_reached"
    },
    {
     "item": "C7",
-    "state": "examined"
+    "state": "not_reached"
    },
    {
     "item": "C9",
-    "state": "examined"
+    "state": "not_reached"
    }
   ]
  },
@@ -66,6 +66,14 @@
    {
     "command": "cat dev/audit/rounds/round11/D3/s1/state/null.out dev/audit/rounds/round11/D3/s1/state/posctl.out",
     "value": "null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py"
+   },
+   {
+    "command": "cat dev/audit/rounds/round11/D3/s1/state/box-null.out dev/audit/rounds/round11/D3/s1/state/box-posctl.out dev/audit/rounds/round11/D3/s1/state/box-chain1.log",
+    "value": "box D3R re-run of both controls after re-taking every driver's traced baseline on this machine (prescreen.py baseline, 21 drivers, all rc=0 failed=0; trace-capture rc=0, procs 2/2): null control LIVES over 16 fast drivers; positive control 2/2 ledger-pinned sites KILLED by tests/manual_plan.py. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+   },
+   {
+    "command": "grep -E ' (PRE|C3C6) ' dev/audit/rounds/round11/D3/s1/state/prescreen.log | tail -5",
+    "value": "box D3R: C3C6 M22 (tariff.py:595) re-driven: SURVIVED, 12 fast drivers, 442.5 s (provisional), replacing the local 17:20Z TIMEOUT (kept as state/superseded/). U1 started 19:42Z over the 1240 not-yet-driven inventory mutants (u1_keys.txt), 4 workers, fresh tree per mutant; halted by orchestrator STOP (inbox command 1) after 4: dhw_planner.py:543 and tariff.py:146 KILLED by env_drift.py, defrost.py:559 and thermal_model.py:270 SURVIVED. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
    }
   ],
   "D3.M3": [
@@ -78,6 +86,10 @@
    {
     "command": "cat dev/audit/rounds/round11/D3/s1/m4_answers.json",
     "value": "32 of 32 survivors answered: production line, file and the check that should have failed; 3 read as equivalent or near-equivalent (optimizer.py:773, thermal_model.py:835 M03, grid_fee.py:173 message-only)"
+   },
+   {
+    "command": "cat dev/audit/rounds/round11/D3/s1/m4_answers.json",
+    "value": "box D3R: the 3 new survivors (thermal_model.py:270, defrost.py:559, tariff.py:595 M22) answered; 35 of 35"
    }
   ],
   "D3.M5": [
@@ -92,6 +104,10 @@
    {
     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED",
     "value": "traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1"
+   },
+   {
+    "command": "cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out",
+    "value": "box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
    }
   ]
  },
@@ -103,6 +119,7 @@
   "0e172028a23d9372",
   "121362d48b408236",
   "22b5ec8775d5bd50",
+  "23621370731667b7",
   "2719aef4cbb8b464",
   "3885e472b8297a90",
   "460217277822d5bd",
@@ -114,6 +131,7 @@
   "639d439d71b731ce",
   "65f121eb047174ad",
   "66f8a4fb50e0b1f3",
+  "6e6026d857732e96",
   "73bc722df73caecb",
   "8e82d7a0b3617003",
   "95779f9d6d71c50d",
@@ -122,6 +140,7 @@
   "a35e03bd09f563c7",
   "a4b00ac3ca662eec",
   "aae7c9c380c3c5cf",
+  "acc8fa3942789f45",
   "ad5900dadd86e9f9",
   "bdcf7589b0a0a6df",
   "c38d53ab787ddbfa",
@@ -132,15 +151,15 @@
  "unfinished": [
   {
    "step": "D3.M2",
-   "what": "1230 of 1260 unpinned cell sites not pre-screened (30 examined: 20 inventory sites + 10 re-drawn R10 mutants that coincide with an inventory site; 10 further R10 mutants driven off-inventory). C3C6 M22 (tariff.py:595) TIMEOUT at 17:20Z falls in the disk-full window: re-drive it."
+   "what": "Orchestrator STOP (inbox command 1, 19:35:56Z) halted U1 after 4 of 1240 not-yet-driven inventory mutants: 1226 remain (state/u1_keys.txt minus state/results/pre). Resume: PYTHONPATH=tests/hastub D3S1_FRESH_TREE=1 python3 dev/audit/rounds/round11/D3/s1/prescreen.py run --anchors dev/audit/rounds/round11/D3/s1/state/u1_keys.txt --sub pre --workers 4 (done keys are skipped). About 7 min per mutant per worker on this 4-core box."
   },
   {
    "step": "D3.M3",
-   "what": "Full-net drive done on 2 of 32 survivors only. Owed: the GATE_SCOPE=full GOLDEN_MODE=drift quiet-window gate for the top six survivors, first tariff.py:64 GUARD_OFF, price_model.py:201, coordinator.py:539, sysid.py:2246 (M27), tariff.py:744 (M31), sysid.py:1549 (M26); their batch was killed at 16:57Z (throttling) and 17:40Z (reboot)."
+   "what": "Full net (prescreen.py complete, no early stop) done on 2 of 35 survivors; 33 owed, plus every U1 survivor. The quiet-window GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> gate for the top six (tariff.py:64, price_model.py:201, coordinator.py:539, sysid.py:2246 M27, tariff.py:744 M31, sysid.py:1549 M26) and down the survivors by consequence: not run (C3)."
   },
   {
    "step": "D3.M5",
-   "what": "No quiet-box gate table: per-script CPU vs closures.json seconds is provisional; kill-overlap matrix needs no-early-stop drives of every closure script on every mutant (only 2 completes); stress.py and env_drift checks-per-solve not measured; closure over-approximation for boost_drift_replay/stress not measured; tests/card.mjs, tests/card_drift.mjs, tests/golden.py, tests/stress.py not traced or measured."
+   "what": "Not built (STOP): (a) quiet-box per-script CPU/wall table vs closures.json; (b) kill-overlap matrix, every closure script on every C2, C3/C6 mutant and survivor, no early stop (C9); (c) checks per solve for stress.py and env_drift.py (C4); (d) closure over-approximation of boost_drift_replay and stress for the cell files (C4/C7); (e) tests/card.mjs, card_drift.mjs, golden.py, stress.py traced and measured."
   }
  ],
  "non_findings": [

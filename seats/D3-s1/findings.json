@@ -15,7 +15,7 @@
    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
    "machine": "owner macOS arm64 (Darwin), venv-ci CPython 3.14",
    "cpu_or_wall": "count",
-   "contention_note": "Counts are contention-immune. The traced baselines were taken while another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); the env_drift wall quoted (602.8 s for one --all run) is provisional.",
+   "contention_note": "Counts are contention-immune. The traced baselines were taken while another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); the env_drift wall quoted (602.8 s for one --all run) is provisional. Re-run on box D3R (box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2) on traced baselines re-taken there: capture_never_executes=681, gate_skippable=0 (0 -> 681 under --as-if-fixed), null 0 of 579 -- the same values; the local value stands and is confirmed. env_drift --all baseline wall on D3R 278.3 s (provisional).",
    "tolerance": "exact",
    "load1": 43.2,
    "thread_factor": 1.0
@@ -32,7 +32,7 @@
   "null_control": {
    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py --as-if-fixed",
    "value": "null_skippable=0 of null_capture_executes=579",
-   "note": "Sites the capture DOES execute stay driven under both arms; the effect is confined to never-executed lines. Falsification built in: in prescreen.py's full-net `complete` drives (relaxation off), env_drift.py ran on every completed survivor whose line the capture never executes and killed none."
+   "note": "Sites the capture DOES execute stay driven under both arms; the effect is confined to never-executed lines. Falsification built in: in prescreen.py's full-net `complete` drives (relaxation off), env_drift.py ran on every completed survivor whose line the capture never executes and killed none. Re-run on box D3R: null_skippable=0 of 579 under both arms."
   },
   "reproduction_steps": [
    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 4",
@@ -41,7 +41,10 @@
    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py --as-if-fixed"
   ],
   "proposed_fix_scope": "tests/env_drift.py's capture launch keeps HPO_REACH_HOOK on the child's PYTHONPATH when it is set, and tests/mutation_table.py's reach_problems reads a git/file/uname child (no Python executes there) as tree-blind, as TREE_BLIND already does for `/sbin/ldconfig -p`; the null control and a pinned env_drift kill (killed_by tests/env_drift.py rows) re-verified.",
-  "files": ["tests/env_drift.py", "tests/mutation_table.py"],
+  "files": [
+   "tests/env_drift.py",
+   "tests/mutation_table.py"
+  ],
   "stop_rule_class": "bug",
   "class_guess": "new"
  }
