@@ -1708,7 +1708,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r11-hotfix-selftest-flake-arms",
-    "commit": "57fd742ea9fc93372da066b1c36ae1ae10546ffd",
+    "commit": "f38124f19c658d49741232d56cc833f4c7c281ad",
     "last_step": null,
     "next_step": "fixer (S, sonnet), reviewer opus; failing test first",
     "note": null,
