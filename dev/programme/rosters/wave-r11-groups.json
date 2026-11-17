@@ -237,10 +237,11 @@
     "Proposal PC-1113-13 (a separate token for cloud seats is refused: CI widening by another name), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P777 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n## PC-1113-13 the shared REST core bucket empties under a full wave\nEvidence: 2026-11-14 ~00:27Z core remaining 0 of 5000 (reset 00:30:04Z) with ~20 cloud seats in flight; `gh_calls.py --top` over the hour: 1745 local calls (orchestrator_tick 385, merge_train 235, relay-manual 128, each update_pr run 60-115, rulesets read 240 times); cloud seats share the token and are not logged. Effect: bus.sh dispatch, classify and the relay refuse \"check runs could not be read\" until the reset; three reviewer dispatches waited on it.\nLocal handling: slowed the merge seat's watches; refusals are retried.\nProposal: cache the ruleset read (240 reads/h of an object that changes on owner action only) and the per-head check-run read across instruments in the state dir with a short TTL; give cloud seats a separate token or a per-seat read budget in the prompt. Cost/benefit for the round-end triage: measure calls per instrument per hour before and after."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-gh-read-residue-p3",
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']",
-    "pr": 3682
+    "pr": 3682,
+    "commit": "fc9e24c0892446af741faae60d3ac0473214b4f5"
    }
   },
   {
