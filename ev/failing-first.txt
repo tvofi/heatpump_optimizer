@@ -1,0 +1,2 @@
+plan_page self-test: 152 checks, 1 failed
+FAIL a phase durations.json prices reaches the plan's model and the page prints its figure; one it does not prints 'duration unmeasured', never a zero or a typed constant; the rest a dash (got: (2, 2))
