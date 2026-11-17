@@ -1,3 +1,4 @@
 1794875609 INIT r11-pre-briefs-census-p2
 1794875617 INIT r11-pre-briefs-census-p2
 1794875630 HB alive
+1794875688 CKPT setup done; worktree cut from origin/main 38bf516bdd; measuring what p1 (#3625) left open snapshot 4c46d7e9ffc7
