@@ -4063,6 +4063,54 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-LOOP-LEDGER",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/loop_ledger.py",
+    "tools/ci/gate.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "tools/audit/seat/loop_ledger.py: a run-red column split product/machinery read from tools/ci/gate.py status, edited/labeled/review runs at the same head read as external, and the four loop_ledger departures that await the orchestrator's ruling (get the ruling first). Null control: a machinery-only red must land in the machinery column and nowhere else. Done when each carry is built or refused by a recorded ruling. Sources: R11-PRE-PARALLEL-PIPELINE (PR #3675). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "From r11-pre-no-read-builders, body item 6889317b: Item d-toolchain-p2-column: once `gate.status` is on main (R11-PRE-TOOLCHAIN-PIN part 2, `handoff/r11-pre-toolchain-pin-p2`), the row's `product/machinery unread` becomes that function's pair over the attempt's jobs, in `loop_ledger.red_lines`. `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`), and `pr-cc` is not derivable from a cached run row: whoever wires it decides whether the run's title supplies it. Control: the self-test check `reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread` pins today's text and fails when the column changes. Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE (items 6889317b)",
+    "From r11-pre-no-read-builders, body item 4b4efd12: The four departures above await the orchestrator's ruling; lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the surface being `tools/audit/seat/loop_ledger.py`. Carry: R11-PRE-PARALLEL-PIPELINE (items 4b4efd12)",
+    "From r11-pre-no-read-builders, body item b812bd42: A limit of the design's rule, measured by reading `.github/workflows/ci.yml`'s triggers: a `pull_request` `edited` or `labeled` event and a `pull_request_review` event each start a run at the unchanged `head_sha`, so a red cleared by a body edit or a review at the same head reads `external`, as a re-run does. The instrument page says so. Splitting the two needs the run's kind, which the run listing the producer caches does not keep (it is in the run's `display_title`). Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE (items b812bd42)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-loop-ledger",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-PARALLEL-PIPELINE carries 18,19,20; overlap admitted (R11-CARRY-MERGE-TRAIN): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
