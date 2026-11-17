@@ -581,6 +581,31 @@ def cases(bj) -> dict[str, bool]:
     res["ci-attempt: an overlay without repo is UNREADABLE and calls no API"] = (
         digest(c) == "ci-attempt: UNREADABLE overlay lacks repo\n" and not f.calls)
 
+    # toolchain-promote
+    moved = "PROMOTE 2026-11-15T10:00:00Z aaaaaaaaaaaa -> bbbbbbbbbbbb run=7\n"
+    hold = ("PROMOTE-HELD 2026-11-15T10:00:00Z aaaaaaaaaaaa: the newest 3 concluded main runs past it read "
+            "MACHINERY 9=red, 8=unread, 7=red\n")
+    c, f = fresh(answers={"toolchain.py": (0, moved, "")})
+    bj.toolchain_promote(c)
+    tp = next((x for x in f.calls if any(a.endswith("toolchain.py") for a in x)), [])
+    res["toolchain-promote null: a promotion leaves the digest empty and keeps the instrument's answer"] = (
+        not digest(c) and f.ran("toolchain.py") == 1 and bj.read(c.state / "beatd" / "toolchain.txt") == moved)
+    res["toolchain-promote: the instrument is handed promote, the overlay's repo and the checkout, and no sha"] = (
+        tp[3:] == ["promote", "--repo", "o/r", "--dir", str(c.repo)])
+    c, f = fresh(answers={"toolchain.py": (3, moved + hold, "")})
+    bj.toolchain_promote(c)
+    res["toolchain-promote: PROMOTE-HELD is the row's one line, beside a promotion or alone"] = (
+        digest(c) == bj.norm(hold) + "\n")
+    c, f = fresh(answers={"toolchain.py": (1, "", "toolchain: REFUSED origin/toolchain/stable is absent\n")})
+    bj.toolchain_promote(c)
+    res["toolchain-promote: a refusal or a failed read reaches the digest with its reason, never clean"] = (
+        digest(c) == "toolchain-promote: rc=1: toolchain: REFUSED origin/toolchain/stable is absent\n"
+        and not (c.state / "beatd" / "toolchain.txt").exists())
+    c, f = fresh(overlay={"plan_slots": 10}, answers={"toolchain.py": (0, moved, "")})
+    bj.toolchain_promote(c)
+    res["toolchain-promote: an overlay without repo is UNREADABLE and runs nothing"] = (
+        digest(c) == "toolchain-promote: UNREADABLE overlay lacks repo\n" and f.ran("toolchain.py") == 0)
+
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
@@ -1280,6 +1305,17 @@ MUTANTS = {
                                 "scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"),
     "scorecard_write_dropped": ('    atomic(ctx.state / "beatd" / "scorecard.txt", out)\n', "    pass\n",
                                 "scorecard null: a clean report leaves the digest empty and writes scorecard.txt"),
+    "toolchain_overlay_unread": ('    if got is None:\n        return\n    rc, out, err = ctx.py("tools/audit/seat/toolchain.py"',
+                                 '    if got is None:\n        got = ["o/r"]\n    rc, out, err = ctx.py("tools/audit/seat/toolchain.py"',
+                                 "toolchain-promote: an overlay without repo is UNREADABLE and runs nothing"),
+    "toolchain_held_dropped": ('if ln.startswith("PROMOTE-HELD ")]', 'if ln.startswith("PROMOTE-HELDX ")]',
+                               "toolchain-promote: PROMOTE-HELD is the row's one line, beside a promotion or alone"),
+    "toolchain_rc_clean": ("    if rc != 0 and not held:\n", "    if False:\n",
+                           "toolchain-promote: a refusal or a failed read reaches the digest with its reason, never clean"),
+    "toolchain_answer_dropped": ('        atomic(ctx.state / "beatd" / "toolchain.txt", out)\n', "        pass\n",
+                                 "toolchain-promote null: a promotion leaves the digest empty and keeps the instrument's answer"),
+    "toolchain_sha_pinned": ('"promote", "--repo", got[0], "--dir", str(ctx.repo))', '"promote", "HEAD", "--repo", got[0], "--dir", str(ctx.repo))',
+                             "toolchain-promote: the instrument is handed promote, the overlay's repo and the checkout, and no sha"),
     "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
                            "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
     "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',

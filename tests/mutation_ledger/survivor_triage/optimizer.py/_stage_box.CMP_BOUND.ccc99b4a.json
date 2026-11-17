@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stage_box CMP_BOUND ccc99b4a",
+  "old": "    cycled = (not opt.config.clamp_planned_levels) & (other <= 0.0) & (hi < runs.floor_kw(p_min))",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The `cycled` reading's two boundaries: hot water exactly at zero and a cap exactly at the floor. With `other < 0.0` no step is ever read as cycled, yet the block's capped fixture (the named mutant CYCLED_KEPT, killed) keeps its capped steps through another arm of the same candidates; with `hi <= floor` a cap exactly at the floor would cycle. A check on `_stage_box`'s fourth value at a cap under, at and above the floor would kill both; none is recorded.",
+  "verdict": "gap"
+}

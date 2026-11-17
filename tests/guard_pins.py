@@ -181,6 +181,54 @@ def _runup_stops_at_the_ordinary_floor() -> bool:
     return len(at_or_below) == 1
 
 
+def _space_scope_caps_pins() -> dict[str, bool]:
+    """R11-OUTSIDE-HONEST-STARTS-RUNS: ``_space_scope`` bounds space heating by
+    the horizon's space caps, and by a total cap less the hot water beside it.
+
+    Each guard is driven with its cap set and the other unset; the uncapped
+    scope is the null control, the plain ``p_max - dhw`` headroom.
+    """
+    from heatpump_optimizer.optimizer import _space_scope
+
+    n = 4
+    opt = HeatPumpOptimizer(
+        ThermalModel(ThermalParameters()),
+        OptimizationConfig(
+            horizon_hours=n, time_step_minutes=60, target_temp=21.0,
+            min_temp=18.0, max_temp=24.0,
+        ),
+    )
+    p_max = opt.model.params.max_electrical_power
+    dhw = np.array([0.0, 1.0, 0.0, 0.0])
+    cap = np.array([p_max, 2.0, 0.5, p_max + 4.0])
+    zero = np.zeros(n)
+
+    def headroom(caps, extra) -> list[float]:
+        h = _Horizon(
+            initial_state=ThermalState(room_temperature=21.0),
+            prices=zero, outdoor_temps=zero, wind_speeds=zero,
+            precipitation=zero, solar_radiation=zero, start_time=None,
+            n_steps=n, dt=1.0, comfort_targets=np.full(n, 21.0),
+            temp_min_bounds=np.full(n, 17.0), temp_max_bounds=np.full(n, 23.0),
+            step_hours=np.arange(n) * 1.0, solar_gains=zero,
+            heat_loss_factors=np.ones(n), forecast={}, t_start=0.0,
+            power_caps=caps, power_caps_extra=extra,
+        )
+        got, scope = _space_scope(
+            opt, h, None, dhw, p_max, lambda *a, **k: 0.0, lambda *a, **k: zero)
+        return got.tolist() if [b[1] for b in scope[0]] == got.tolist() else []
+
+    plain = (p_max - dhw).tolist()
+    return {
+        "uncapped headroom is p_max less the hot water (null control)":
+            headroom(None, None) == plain,
+        "a space cap bounds the scope's headroom":
+            headroom(cap, None) == np.minimum(plain, cap).tolist(),
+        "a total cap bounds it less the hot water beside it":
+            headroom(None, cap) == np.minimum(plain, cap - dhw).tolist(),
+    }
+
+
 def _pinned_guess_respects_the_lower_bound() -> bool:
     """M11: ``min(max(out[i], low), high)`` must keep a warm start above low."""
     out = HeatPumpOptimizer._seed_pinned_guess(
@@ -1117,6 +1165,8 @@ def main() -> int:
         R.check(f"R10-ARCH-SHAPES {name}", ok)
     for name, ok in _off_step_notice_pins().items():
         R.check(f"R10-DISINFECTION-STEP-NOTICE {name}", ok)
+    for name, ok in _space_scope_caps_pins().items():
+        R.check(f"R11-OUTSIDE-HONEST-STARTS-RUNS {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 

@@ -28,9 +28,12 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
                          an unlisted source or no test is refused
   d14-classes [--status open]   dev/audit/config/bugclasses.json entries that carry a status
   d15-installs           dev/audit/config/bundles.json, one line per bundle an install sent
-  d16-writes [--cells]   actuator `services.async_call` and `log_held` sites; --cells crosses each
-                         with the PUMP_DUTY_MODES parsed from const.py and the four lifecycle conditions
-  d17-features           services.yaml keys, strings.json steps/fields/entities, blueprints
+  d16-writes [--cells]   every call of, or reference to, `services.async_call` (`write ... domain=<literal>`,
+                         `domain=?` when the domain is no literal; a literal on READ_ONLY_DOMAINS is no write)
+                         and every `log_held` site; --cells crosses each with the plan states of STATES, and
+                         refuses unless const.py's PUMP_DUTY_MODES equal the duty modes those states name
+  d17-features [--kind K]   services.yaml keys, strings.json steps/fields/entities, blueprints; --kind prints
+                         the lines of one prefix (KINDS)
   --briefs               the acceptance of a brief that names a universe: every `enumerate.py <universe>`
                          a dev/governance/dimensions/D*.md cites, with its --cells or --pairs, runs
                          non-empty; an unknown universe or a tree citing none is refused
@@ -48,8 +51,15 @@ from pathlib import Path
 
 PKG = "custom_components/heatpump_optimizer"
 OBJECTIVE, IDENTITIES, BUNDLES = "dev/audit/config/objective.json", "dev/audit/config/identities.json", "dev/audit/config/bundles.json"
-# the conditions the actuator-write dimension drives
-CONDITIONS = ("running", "restart", "upgrade", "unavailable")
+# D16.md's plan states, one axis: (state, the duty mode it runs under). A seat adds rows, never drops one.
+STATES = (("idle", "control"), ("min-cold-tank", "control"), ("partial", "control"), ("full", "control"),
+          ("dhw-only", "control"), ("both", "control"), ("boost-partial", "control"), ("disinfection", "control"),
+          ("baseline", "control"), ("restart", "control"), ("upgrade", "control"), ("unavailable", "control"),
+          ("observe", "observe"), ("off", "off"))
+# service domains whose calls read and never command an entity
+READ_ONLY_DOMAINS = ("weather",)
+# d17-features' line prefixes; dev/audit/config/scopes.json's D17 `kind` axis is held equal by check_scopes.py
+KINDS = ("service", "config-step", "config-field", "options-step", "option", "entity", "blueprint")
 # D0.md step 4's axes; the last two plants are the cells round 10's escapes showed no seat drove
 TOPOLOGY, DHW, HORIZON_H = ("single-zone", "two-zone"), ("dhw", "no-dhw"), (6, 24, 48)
 PLANT = ("plain", "valve-storage", "wood", "manual-valve-buffer", "flow-setpoint-behind-valve")
@@ -110,21 +120,29 @@ def const_assign(tree, name):
 def d16(repo, cells=False, **_):
     out = []
     for p in pkg_files(repo):
-        for n, q in scoped(parse(p)):
-            if isinstance(n, ast.Call):
-                f = n.func
-                if isinstance(f, ast.Attribute) and f.attr == "async_call" and isinstance(f.value, ast.Attribute) and f.value.attr == "services":
-                    out.append(f"write {rel(repo, p)}:{n.lineno} {q}")
-                if fname(n) == "log_held":
-                    out.append(f"hold {rel(repo, p)}:{n.lineno} {q}")
+        tree = parse(p)
+        calls = {id(n.func): n for n in ast.walk(tree) if isinstance(n, ast.Call)}
+        for n, q in scoped(tree):
+            if isinstance(n, ast.Attribute) and n.attr == "async_call" and isinstance(n.value, ast.Attribute) and n.value.attr == "services":
+                # a reference handed on uncalled is a writer too: its domain is whatever the receiver passes
+                c = calls.get(id(n))
+                arg = c and (c.args[0] if c.args else next((k.value for k in c.keywords if k.arg == "domain"), None))
+                dom = arg.value if isinstance(arg, ast.Constant) and isinstance(arg.value, str) else "?"
+                if dom not in READ_ONLY_DOMAINS:
+                    out.append(f"write {rel(repo, p)}:{n.lineno} {q} domain={dom}")
+            if isinstance(n, ast.Call) and fname(n) == "log_held":
+                out.append(f"hold {rel(repo, p)}:{n.lineno} {q}")
     if cells:
         v = const_assign(parse(repo / PKG / "const.py"), "PUMP_DUTY_MODES")
-        modes = [e.value for e in getattr(v, "elts", []) if isinstance(e, ast.Constant)]
-        out = [f"{s} | duty={m} | {c}" for s in out for m in modes for c in CONDITIONS]
+        modes, named = {e.value for e in getattr(v, "elts", []) if isinstance(e, ast.Constant)}, {d for _, d in STATES}
+        if modes != named:
+            raise Refuse(f"const.py PUMP_DUTY_MODES {sorted(modes)} are not the duty modes STATES names {sorted(named)}: "
+                         "a duty mode with no plan state is unrowed, and a state under no duty mode cannot run")
+        out = [f"{s} | {name}" for s in out for name, _ in STATES]
     return out
 
 
-def d17(repo, **_):
+def d17(repo, kind=None, **_):
     out, base = [], repo / PKG
     out += [f"service {m}" for m in re.findall(r"^([a-z_]+):", (base / "services.yaml").read_text(), re.M)]
     s = json.loads((base / "strings.json").read_text())
@@ -134,7 +152,11 @@ def d17(repo, **_):
             out += [f"{kfield} {step}.{k}" for k in (body.get("data") or {})]
     ent = s.get("entity", {})
     out += [f"entity {pl}.{k}" for pl in USER_PLATFORMS for k in ent.get(pl, {})]
-    return out + [f"blueprint {b}" for b in sorted(tracked(repo)) if b.startswith("blueprints/")]
+    out += [f"blueprint {b}" for b in sorted(tracked(repo)) if b.startswith("blueprints/")]
+    stray = sorted({l.split(" ", 1)[0] for l in out} - set(KINDS))
+    if stray:
+        raise Refuse(f"d17-features prints a prefix KINDS does not name: {stray}")
+    return [l for l in out if not kind or l.split(" ", 1)[0] == kind]
 
 
 def d14(repo, status=None, **_):
@@ -621,7 +643,7 @@ def plant(root):
     w(f"{PKG}/p.py", "import json\ndef parse_a(x):\n    return json.loads(x)\nasync def g(r, m):\n    await r.json()\n    r.json('k')\n"
       "    await m.async_subscribe('t')\n")
     w(f"{PKG}/e.py", "class E:\n    @property\n    def extra_state_attributes(self):\n        return {}\nclass F:\n    _attr_extra_state_attributes = {}\nclass G:\n    pass\ndef use(c):\n    return c.cycle()\n")
-    w(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\nCONFIG_ENTRY_VERSION: Final = 3\n"
+    w(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'observe', 'control')\nCONFIG_ENTRY_VERSION: Final = 3\n"
       "CONF_A_ENTITY = 'a_entity'\nCONF_B_ENTITY: Final = 'b_entity'\nCONF_F_SENSOR = 'f_sensor'\nCONF_H1 = 'h1'\nCONF_H2 = 'h2'\n"
       "CONF_W_SENSOR = 'w_sensor'\nCONF_NAME = 'n'\nX_ENTITY = 'x_entity'\nMODES = ('m1', 'm2')\n")
     w(f"{PKG}/config_flow.py", "def _entity_of(d):\n    return selector.EntitySelector(d)\ndef _text():\n    return selector.TextSelector()\n"
@@ -694,6 +716,7 @@ def edit_json(path, fn):
 
 
 X, CO, CF = f"{PKG}/x.py", f"{PKG}/coordinator.py", f"{PKG}/config_flow.py"
+DUTY = "PUMP_DUTY_MODES: Final = ('off', 'observe', 'control')\n"
 # the entry points the planted __init__.py defines, typed apart from ENTRY_FNS so a dropped one shows
 ENTRY = ("async_setup", "async_setup_entry", "async_unload_entry", "async_remove_entry", "async_migrate_entry", "async_update_options")
 # universe, options, the planted count, the edit deleting one item, the count after it, the edit emptying the source
@@ -721,8 +744,7 @@ PLANTED = [
     ("d14-classes", {}, 2, edit_json("dev/audit/config/bugclasses.json", lambda d: d.pop("B")), 1, put("dev/audit/config/bugclasses.json", "{}")),
     ("d15-installs", {}, 2, edit_json(BUNDLES, lambda d: d["bundles"].pop()), 1, edit_json(BUNDLES, lambda d: d["bundles"].clear())),
     ("d16-writes", {}, 3, cut(X, "    hass.services.async_call('a', 'b')\n"), 2, put(X, "")),
-    ("d16-writes", {"cells": True}, 3 * 2 * 4, cut(f"{PKG}/const.py", "('off', 'control')", "('off',)"), 3 * 1 * 4,
-     cut(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\n")),
+    ("d16-writes", {"cells": True}, 3 * len(STATES), cut(X, "    log_held('x')\n"), 2 * len(STATES), cut(f"{PKG}/const.py", DUTY)),
     ("d17-features", {}, 9, cut(f"{PKG}/services.yaml", "set_b:\n"), 8,
      both(put(f"{PKG}/services.yaml", ""), put(f"{PKG}/strings.json", "{}"), rm("blueprints/automation/b.yaml"))),
 ]
@@ -807,7 +829,7 @@ def self_test():
         arm("d1-lifecycle lines: an async_track_* call, a LIFE_CALLS call and every entry point",
             run("d1-lifecycle", t), sorted([f"async_create_task {X}:12 f", f"async_track_time_interval {X}:11 f", *[f"entry {f}" for f in ENTRY]]))
         arm("d16-writes lines: the .services.async_call sites and log_held, not an async_call on another receiver",
-            run("d16-writes", t), [f"hold {X}:4 f", f"write {X}:2 f", f"write {X}:3 f"])
+            run("d16-writes", t), [f"hold {X}:4 f", f"write {X}:2 f domain=a", f"write {X}:3 f domain=a"])
         arm("d1-parsers lines: a parse def, json.loads, a bare .json() and async_subscribe, not a .json(x) with an argument",
             run("d1-parsers", t), [f"def {PKG}/p.py:2 parse_a", f"json {PKG}/p.py:3 parse_a", f"response {PKG}/p.py:5 g", f"subscribe {PKG}/p.py:7 g"])
         arm("d0-modules follows `from <package> import <module>`", f"{PKG}/t.py" in run("d0-modules", t), True)
@@ -815,6 +837,57 @@ def self_test():
         arm("d9-solves lines: the solver's call, the recursive call inside its module, the coordinator's call and its bare reference",
             [(l.split(" <- ")[0], l.rsplit(" ", 1)[-1]) for l in run("d9-solves", t)],
             [("path go", "C.cycle"), ("path go", "(ref)"), ("path go", "go"), ("solve _multi_start_minimize", "go")])
+        # D16's site rule and its one axis; D17's kinds. Each edit is of a fresh plant.
+        def planted(*edits, u="d16-writes", **opt):
+            d = Path(tempfile.mkdtemp())
+            try:
+                plant(d)
+                for e in edits:
+                    e(d)
+                with contextlib.redirect_stderr(io.StringIO()):
+                    return run(u, d, **opt)
+            except Refuse:
+                return "Refuse"
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+        CALL, more = "    hass.services.async_call('a', 'b')\n", lambda line: cut(X, "    log_held('x')\n", "    log_held('x')\n" + line)
+        writes = lambda ls: sorted(l.split(" ", 2)[2] for l in ls if l.startswith("write "))
+        arm("d16 a write line names its literal domain", writes(planted()), ["f domain=a", "f domain=a"])
+        arm("d16 a call on a read-only domain is no write (the count stays)", len(planted(more("    hass.services.async_call('weather', 'get_forecasts')\n"))), 3)
+        arm("d16 null control: the same call on another domain is a write", len(planted(more("    hass.services.async_call('number', 'set_value')\n"))), 4)
+        arm("d16 a reference handed on uncalled is a write with no literal domain", writes(planted(more("    g = hass.services.async_call\n"))), ["f domain=?", "f domain=a", "f domain=a"])
+        arm("d16 a call whose domain is no literal is a cell, never dropped", writes(planted(cut(X, CALL, "    hass.services.async_call(*svc(e), {})\n"))), ["f domain=?", "f domain=a"])
+        arm("d16 a domain passed by keyword is read", writes(planted(cut(X, CALL, "    hass.services.async_call(domain='weather', service='s')\n"))), ["f domain=a"])
+        real_states = STATES
+        try:
+            globals()["STATES"] = tuple(st for st in real_states if st[0] != "idle")
+            arm("d16 --cells is sites x states: one state cut drops one cell per site", len(planted(cells=True)), 3 * (len(real_states) - 1))
+        finally:
+            globals()["STATES"] = real_states
+        arm("d16 --cells each site carries every state once", sorted({l.rsplit(" | ", 1)[1] for l in planted(cells=True)}), sorted(n for n, _ in STATES))
+        arm("d16 --cells a duty mode added in production and rowed by no state is refused",
+            planted(cut(f"{PKG}/const.py", "('off', 'observe', 'control')", "('off', 'observe', 'control', 'eco')"), cells=True), "Refuse")
+        arm("d16 --cells a duty mode a state names and production dropped is refused",
+            planted(cut(f"{PKG}/const.py", "('off', 'observe', 'control')", "('off', 'control')"), cells=True), "Refuse")
+        arm("d17 --kind prints one prefix's lines", planted(u="d17-features", kind="service"), ["service set_a", "service set_b"])
+        def cli(*argv):
+            d = Path(tempfile.mkdtemp())
+            try:
+                plant(d)
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+                    rc = main([*argv, "--repo", str(d)])
+                return rc, buf.getvalue().splitlines()
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+        arm("d17 the command line's --kind reaches the filter", cli("d17-features", "--kind", "service"), (0, ["service set_a", "service set_b"]))
+        arm("d17 the kinds partition the universe", sorted(l for k in KINDS for l in (lambda r: [] if r == "Refuse" else r)(planted(u="d17-features", kind=k))), planted(u="d17-features"))
+        real_kinds = KINDS
+        try:
+            globals()["KINDS"] = tuple(k for k in real_kinds if k != "blueprint")
+            arm("d17 a printed prefix KINDS does not name is refused", planted(u="d17-features"), "Refuse")
+        finally:
+            globals()["KINDS"] = real_kinds
         arm("d0-modules follows an absolute import of the package", f"{PKG}/u.py" in run("d0-modules", t), True)
         arm("d3-sites --ast --by-file counts the sites per file", run("d3-sites", t, ast_only=True, by_file=True), [f"{X} 5"])
         quiet = contextlib.redirect_stderr(io.StringIO())
@@ -877,7 +950,7 @@ def self_test():
         arm("briefs: a citation of no universe is refused", cited("1. `enumerate.py d1-nothing`\n"), "Refuse")
         arm("briefs: a tree whose briefs cite none is refused", cited("1. Enumerate by hand.\n"), "Refuse")
         arm("briefs: one refused citation beside a good one refuses the tree", cited("1. `enumerate.py d1-inputs` and `enumerate.py d1-nothing`\n"), "Refuse")
-        arm("briefs: a citation's options are run as cited", (cut(f"{PKG}/const.py", "PUMP_DUTY_MODES: Final = ('off', 'control')\n")(t), cited("1. `enumerate.py d16-writes --cells`\n"))[1], "Refuse")
+        arm("briefs: a citation's options are run as cited", (cut(f"{PKG}/const.py", DUTY)(t), cited("1. `enumerate.py d16-writes --cells`\n"))[1], "Refuse")
         (t / BUNDLES).write_text('{"bundles": []}')
         arm("briefs: a cited universe that is empty is refused", cited("1. `enumerate.py d15-installs`\n"), "Refuse")
         plant_bundles(t)
@@ -929,6 +1002,7 @@ def main(argv=None):
     ap.add_argument("--repo", default=".")
     ap.add_argument("--cells", action="store_true")
     ap.add_argument("--pairs", action="store_true")
+    ap.add_argument("--kind", choices=KINDS)
     ap.add_argument("--ledger")
     ap.add_argument("--status")
     ap.add_argument("--plane", choices=("price-weather",))
@@ -943,7 +1017,7 @@ def main(argv=None):
     if not a.universe and not a.briefs:
         ap.error("universe required")
     try:
-        ls = briefs(Path(a.repo)) if a.briefs else run(a.universe, a.repo, cells=a.cells, pairs=a.pairs, ledger=a.ledger, status=a.status, plane=a.plane,
+        ls = briefs(Path(a.repo)) if a.briefs else run(a.universe, a.repo, cells=a.cells, pairs=a.pairs, kind=a.kind, ledger=a.ledger, status=a.status, plane=a.plane,
                  state=a.state, by_file=a.by_file, ast_only=a.ast)
     except (Refuse, SyntaxError, json.JSONDecodeError) as e:
         print(f"REFUSE: {e}", file=sys.stderr)

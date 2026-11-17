@@ -844,6 +844,106 @@ def touches_production(group: dict) -> bool:
             or any(str(f).startswith("custom_components/") for f in group.get("files") or []))
 
 
+#: The convergence record (decision 0018 sections 2 and 4; process cards P7 and
+#: L1): what found an escape, which dimension owns it, what caused it, its
+#: symptom family, the countermeasure's kind, the group it descends from and
+#: the fix a re-report follows. `roster_edit.py set-field` writes each through
+#: `convergence_why`; `loop_ledger.py` reads them back.
+CONVERGENCE_FIELDS = ("found_by", "owned_by", "caused_by", "family", "cm_kind", "parent", "follows")
+#: `found_by` besides a finder dimension `D<n>` (card P7's list).
+FOUND_BY = ("reviewer", "ci-main", "owner", "outside")
+#: `caused_by.cause` besides a pull request `#<n>` or a roster group (card L1).
+CAUSES = ("external", "original")
+#: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
+CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
+_ROOT = Path(__file__).resolve().parents[3]
+_DIM = re.compile(r"\AD\d{1,2}\Z")
+_PR = re.compile(r"\A#[1-9]\d*\Z")
+_RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
+
+
+def _dimension(word, root) -> bool:
+    """A finder dimension: `D<n>` with its brief under dev/governance/dimensions/."""
+    return isinstance(word, str) and bool(_DIM.match(word)) and (root / "dev/governance/dimensions" / f"{word}.md").is_file()
+
+
+def _bug_families(root) -> set:
+    try:
+        return set(json.loads((root / "dev/audit/config/bugclasses.json").read_text()))
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
+def rca_lists(rca, group: dict, root=None) -> bool:
+    """Whether dev/audit/rca/<rca>.md is a root-cause record of `group`: the file
+    exists, and its id is one of the group's own `rca` records (the group is its
+    countermeasure; round 9's rosters hold a bool there, which lists no id) or the
+    group is one of `rca_subjects` of its text (the group is the defect it analyses;
+    a name in the record's body, a status table or a countermeasure line, is not).
+    `root` defaults to the repository at call time."""
+    if not isinstance(rca, str) or not _RCA_ID.match(rca):
+        return False
+    try:
+        text = ((root or _ROOT) / "dev/audit/rca" / f"{rca}.md").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    me, own = group.get("group"), group.get("rca")
+    return (isinstance(own, list) and rca in own) or me in rca_subjects(text)
+
+
+def rca_subjects(text: str) -> set:
+    r"""The names a root-cause record declares as its subject: the whole tokens
+    (`[\w.-]+` runs, trailing dots and dashes stripped) of its opening block, which
+    is its first paragraph, and the one after it when the first is a one-line `# `
+    title, less any table row. A record states there what it analyses ("This is the root-cause seat for <group>", "beside <group>", a title's
+    "(<group>)"); a group it mentions later is a sibling, a countermeasure or a
+    dispatch-status row, which the record does not analyse (verdict/3657)."""
+    paras = [p for p in re.split(r"\n[ \t]*\n", text.strip()) if p.strip()]
+    title = bool(paras) and paras[0].startswith("# ") and "\n" not in paras[0]
+    block = [ln for p in paras[:2 if title else 1] for ln in p.splitlines() if not ln.lstrip().startswith("|")]
+    return {t.strip(".-") for t in re.findall(r"[\w.-]+", "\n".join(block))}
+
+
+def convergence_why(field: str, value, group: dict, names, root=None) -> "str | None":
+    """Why `value` is no admissible `field` of `group`, else None. `names` is every
+    group name the reader can see (the cause, parent and follows targets).
+    `caused_by` is {cause, rca}: `rca_lists(rca, group)`, so the cause is the
+    root-cause seat's record and never the fixer's (decision 0018 section 2,
+    `injected`), and a defect group with no `rca` of its own takes one once a
+    record under dev/audit/rca/ declares it as its subject (`rca_subjects`). `root` defaults to the repository."""
+    root = root or _ROOT
+    me = group.get("group")
+    if field == "found_by":
+        return None if value in FOUND_BY or _dimension(value, root) else (
+            f"found_by {value!r} is neither a finder dimension D<n> nor one of {', '.join(FOUND_BY)}")
+    if field == "owned_by":
+        return None if value == "none" or _dimension(value, root) else (
+            f"owned_by {value!r} is neither a dimension D<n> nor none")
+    if field == "family":
+        return None if value in _bug_families(root) else (
+            f"family {value!r} is no class of dev/audit/config/bugclasses.json")
+    if field == "cm_kind":
+        return None if value in CM_KINDS else f"cm_kind {value!r} is none of {', '.join(CM_KINDS)}"
+    if field in ("parent", "follows"):
+        return None if value in names and value != me else f"{field} {value!r} is no other roster group"
+    if field != "caused_by":
+        return f"{field!r} is no convergence field"
+    if not isinstance(value, dict) or set(value) != {"cause", "rca"}:
+        return "caused_by must be a JSON object {cause, rca}"
+    cause, rca = value["cause"], value["rca"]
+    if not (cause in CAUSES or (isinstance(cause, str) and _PR.match(cause)) or (cause in names and cause != me)):
+        return f"caused_by cause {cause!r} is no pull request #<n>, other roster group, or one of {', '.join(CAUSES)}"
+    if not rca_lists(rca, group, root):
+        return (f"caused_by rca {rca!r} is no rca record under dev/audit/rca/ that is the group's own"
+                f" or declares {me} its subject")
+    return None
+
+
+def recorded(group: dict, fields, names, root=None) -> bool:
+    """Whether every field of `fields` is present on the group and admissible."""
+    return all(f in group and convergence_why(f, group[f], group, names, root) is None for f in fields)
+
+
 def savings_h(group: dict) -> "float | None":
     """The group's recorded saving in hours (`savings`), or None when it is absent or not a number."""
     v = group.get("savings") if isinstance(group, dict) else None
@@ -854,7 +954,7 @@ def _replan_production(group: dict) -> bool:
     """Whether replan.py puts the group in one of its PRODUCTION lanes; False when replan is unreadable."""
     import importlib.util
     try:
-        path = Path(__file__).resolve().parents[2] / "tools" / "plan" / "replan.py"
+        path = _ROOT / "tools" / "plan" / "replan.py"
         spec = importlib.util.spec_from_file_location("replan_lanes_for_roster_lib", path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -1256,7 +1356,69 @@ def _self_test() -> int:
         check("P268 readers: group_class is the class when present, lane-derived only when absent",
               group_class({"group": "X", "class": "instrument", "lane": "CORE"}) == "instrument"
               and group_class({"group": "X", "class": "production"}) == "production"
-              and group_class({"group": "X"}) in ("production", "instrument"))
+              and group_class({"group": "X"}) == "production"
+              and group_class({"group": "X", "files": ["tools/audit/seat/x.py"]}) == "instrument")
+        # a fixture root, so the vocabulary is read from planted files and never the tree's
+        froot = Path(td) / "vocab"
+        for rel in ("dev/governance/dimensions/D3.md", "dev/governance/dimensions/D8.md",
+                    "dev/governance/dimensions/D12.md", "dev/audit/rca/R10-N-log-flood.md",
+                    "dev/audit/rca/R10-N-staleness.md"):
+            (froot / rel).parent.mkdir(parents=True, exist_ok=True)
+            (froot / rel).write_text("x\n")
+        (froot / "dev/audit/rca/R10-RCA-NAMED.md").write_text("Cause of R10-D, found again in R10-E-2.\n")
+        # A process record (verdict/3657's R10-RCA-TICK-BLIND): its title and opening paragraph
+        # declare R10-S its subject; R10-T is a dispatch-status row and R10-U a later mention.
+        (froot / "dev/audit/rca/R10-RCA-STATUS.md").write_text(
+            "# R10-RCA-STATUS: why the board missed a dispatch\n\nThis is the root-cause seat for R10-S.\n"
+            "| group | state |\n|---|---|\n| R10-T | dispatched |\n\n## 1. Cases\n\n"
+            "| group | state |\n|---|---|\n| R10-T | stalled |\n\nR10-U waited on the same board.\n")
+        (froot / "dev/audit/config").mkdir(parents=True)
+        (froot / "dev/audit/config/bugclasses.json").write_text('{"N-log-flood": {}}')
+        cg = {"group": "R10-C", "rca": ["R10-N-log-flood"]}
+        cn = {"R10-C", "R10-P"}
+        cw = lambda f, v, g=cg: convergence_why(f, v, g, cn, froot)  # noqa: E731
+        check("convergence: each closed word is admitted, and its neighbour refused (null control)",
+              all(cw(f, ok) is None and cw(f, bad) for f, ok, bad in (
+                  ("found_by", "D3", "D99"), ("found_by", "ci-main", "ci"), ("owned_by", "none", "None"),
+                  ("owned_by", "D12", "D1x"), ("family", "N-log-flood", "N-no-such-class"),
+                  ("cm_kind", "new-refusal", "refusal"), ("parent", "R10-P", "R10-C"),
+                  ("follows", "R10-P", "R10-ZZ"))))
+        check("convergence: caused_by needs a root-cause record of the group, so the fixer cannot name it",
+              cw("caused_by", {"cause": "#3520", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "R10-P", "rca": "R10-N-log-flood"}) is None
+              and cw("caused_by", {"cause": "original", "rca": "R10-N-log-flood"}) is None
+              and "rca record under" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-staleness"})
+              and "rca record under" in cw("caused_by", {"cause": "#1", "rca": "R10-N-log-flood"}, {"group": "G"})
+              and "no pull request" in cw("caused_by", {"cause": "3520", "rca": "R10-N-log-flood"})
+              and "no pull request" in cw("caused_by", {"cause": "R10-C", "rca": "R10-N-log-flood"})
+              and "{cause, rca}" in cw("caused_by", "#3520")
+              and "no convergence field" in cw("source", "user"))
+        # A defect group with no rca of its own: the record that names it is its root-cause record.
+        check("convergence: caused_by admits a record naming a group with no rca, by whole token only",
+              cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"}, {"group": "R10-D"}) is None
+              and cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"}, {"group": "R10-E-2"}) is None
+              and all("rca record under" in (cw("caused_by", {"cause": "#3520", "rca": "R10-RCA-NAMED"},
+                                                {"group": n}) or "") for n in ("R10", "R10-E", "R10-D-1", "10-D", "G")))
+        check("convergence: caused_by admits only a group the record declares its subject, never a status row",
+              cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"}, {"group": "R10-S"}) is None
+              and all("rca record under" in (cw("caused_by", {"cause": "original", "rca": "R10-RCA-STATUS"},
+                                                {"group": n}) or "") for n in ("R10-T", "R10-U", "R10-RCA-STATUS-X"))
+              and rca_subjects("Cause of R10-D.\n\nR10-T later.\n") == {"Cause", "of", "R10-D"}
+              and rca_subjects("# R10-A\nCause.\n\nR10-T later.\n") == {"R10-A", "Cause"}
+              and rca_subjects("## R10-A\n\nR10-T later.\n") == {"R10-A"}
+              and rca_subjects("") == set())
+        check("convergence: an own rca id whose record file is missing, or a path for an id, is refused",
+              "rca record under" in cw("caused_by", {"cause": "#3520", "rca": "R10-N-gone"},
+                                       {"group": "R10-C", "rca": ["R10-N-gone"]})
+              and rca_lists("R10-N-log-flood", cg, froot) and not rca_lists("R10-N-gone", {"rca": ["R10-N-gone"]}, froot)
+              and not rca_lists("../rca/R10-N-log-flood", {"rca": ["../rca/R10-N-log-flood"]}, froot)
+              and not rca_lists(None, cg, froot)
+              and not rca_lists("R10-N-log-flood", {"group": "R10-C", "rca": True}, froot)
+              and rca_lists("R10-RCA-NAMED", {"group": "R10-D", "rca": True}, froot))
+        check("convergence: recorded needs every named field present and admissible",
+              recorded({**cg, "found_by": "owner", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "owner"}, ("found_by", "owned_by"), cn, froot)
+              and not recorded({**cg, "found_by": "nobody", "owned_by": "none"}, ("found_by", "owned_by"), cn, froot))
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))

@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 95 modules, of which 33 import the
+knows nothing about Home Assistant: 96 modules, of which 33 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -128,6 +128,8 @@ custom_components/heatpump_optimizer/
 │                         #   falls in, for the solve and the pump arbiter
 ├── duty_legs.py          # The legs a step is served in, the switches between
 │                         #   them, and what a stop at one costs the plan
+├── runs.py               # What a compressor start is in a plan, which runs of
+│                         #   a relaxed plan ship, and the shortest run and pause
 ├── plan_slots.py         # A channel's step schedule as the heating slots a plan publishes
 ├── slot_drivers.py       # Why each step runs or idles: five signed driver weights,
 │                         #   and the current step's "why now" for the card
@@ -282,7 +284,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-33 of the 95 modules import `homeassistant` at module level: `__init__`,
+33 of the 96 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
@@ -291,7 +293,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, 
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 61 modules are deliberately free of it, so each can be driven
+The other 62 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
@@ -344,7 +346,7 @@ solar  ─┘        │                                                    │
 ```
 
 Both optimizer paths share one set of cost terms — the comfort penalty, the
-terminal cost, the cycling and capacity charges — so enabling hot water cannot
+terminal cost, the start and capacity charges — so enabling hot water cannot
 change the space-heating objective. That is not hypothetical tidiness: it used
 to, and the two objectives had silently drifted apart.
 

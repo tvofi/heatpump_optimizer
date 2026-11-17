@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CMP_BOUND 344874f5",
+  "killed_by": "tests/features.py",
+  "old": "    want = np.where(np.isnan(want) & (cap < f - _SLACK), 0.0, want)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`want = np.where(np.isnan(want) & (cap <= f - _SLACK), 0.0, want)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
