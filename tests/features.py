@@ -94618,7 +94618,20 @@ R.check(
     and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
     f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
 )
-_rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
+# The staleness scale is clamped to [STALENESS_SCALE_MIN, STALENESS_SCALE_MAX]
+# before it multiplies a limit: a stored scale outside the options slider's
+# range reads the limit at the nearer bound.
+_rm_clamp = {s: inputs_mod.max_age_for("indoor_temp_entity", s) for s in (0.1, 50.0, 2.0)}
+R.check(
+    "an out-of-range staleness scale is clamped: 0.1 reads the indoor limit times "
+    "STALENESS_SCALE_MIN (360 -> 180 min), 50.0 times STALENESS_SCALE_MAX (360 -> 3600 min); "
+    "null control, an in-range 2.0 reads 720 min",
+    _rm_clamp[0.1] == 360.0 * inputs_mod.STALENESS_SCALE_MIN == 180.0
+    and _rm_clamp[50.0] == 360.0 * inputs_mod.STALENESS_SCALE_MAX == 3600.0
+    and _rm_clamp[2.0] == 720.0,
+    f"{_rm_clamp}",
+)
+_rm_edges ={v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
     str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
     for v in (-30.0, 60.0, -30.1, 60.1)}
 R.check(
