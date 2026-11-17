@@ -1,0 +1,20 @@
+none               space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+zeros              space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_enabled      space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_economy      space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_open_window  space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_away         space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_manual_pin   space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+gated_two_zone     space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=eda725c0be09 status=optimal
+lift margins, first 8 steps and the largest: [0.1, 0.1625, 0.225, 0.2875, 0.35, 0.4125, 0.475, 0.5] 1.0
+lift               space_kwh=  8.62 min_c=20.000 mean_c=20.165 max_over_target_c=+0.450 sha1=986a015f4945 status=optimal
+none_pinned_off    space_kwh=  6.24 min_c=19.578 mean_c=19.895 max_over_target_c=+0.241 sha1=f6cd94a0b32e status=optimal
+lift_pinned_off    space_kwh=  7.88 min_c=20.000 mean_c=20.194 max_over_target_c=+0.484 sha1=93e670785219 status=optimal
+released space pins: unlifted=0 lifted=6
+ok   zeros reproduce none
+ok   every gate reproduces none
+ok   the lift changes the plan
+ok   the lift plans more space energy
+ok   the lift raises the lowest planned temperature
+ok   the lifted floor is at or under the comfort target at every step
+rc=0
