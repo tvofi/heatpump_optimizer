@@ -1,0 +1,6 @@
+OK       0.0s launch
+OK      16.5s field-coverage
+OK     631.3s pr-args
+OK       0.0s unread
+selftest_scope: recorded 2 step(s) into /tmp/claude-0/-home-user-heatpump-optimizer/5b6f1f44-701a-59df-8b39-b7ac2322ddfb/scratchpad/meas.json; 0 failed [], 0 broken trace(s)
+rc=0
