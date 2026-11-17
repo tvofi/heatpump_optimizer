@@ -27,7 +27,7 @@ Deviations from the note, each with its reason:
 
 ## Head
 
-prepr: passed rc=0 at PREPR_SHA (scoped: `PREPR_SKIP_CLOSURES=1`; `MUTANT_CMD` set to this group's block).
+prepr: passed rc=0 at 813a9e9e8dca4583a89f4ec46354cf2a8b389d91 (scoped: `PREPR_SKIP_CLOSURES=1`; `MUTANT_CMD` set to this group's block).
 
 `813a9e9e8dca4583a89f4ec46354cf2a8b389d91`, the code head `handoff/r11-valve-reference` points at: the merge-main bot's `ci: merge main` over 3ab8342d3a, which merges the authored code head 5dbf42901194fd41f4055e1e4d08e21a6a6efadb into `fix/r11-valve-reference`. This repair adds no commit. Its merge base is fc9e24c0892446af741faae60d3ac0473214b4f5. `diff <(git diff 92d38ecb640b...5dbf42901194) <(git diff fc9e24c089 813a9e9e)` differs only in hunk offsets, blob ids and the `tests/structure_budgets.json` row, whose `class_excess_loc` before and after moved 17407 -> 17406 to 17385 -> 17384 with main's own payment: the authored change is 5dbf429011's, unchanged. origin/main was at 8f39313a44 at 2026-11-17T11:41Z, and `git merge-tree --write-tree origin/main 813a9e9e` exits 0, no conflict. The figures in `## Mutation proof` and `## Unpinned sites` were taken at 5dbf429011, whose production code this head carries unchanged; the structure line and `## Red checks` were re-taken at this head. The other figures were taken at c60b23450f, before the main merge c77e7e8f97 (which brings main's changes into ten `custom_components/` files, `thermal_model.py` among them by two lines); review/3685 re-took the finder harnesses (`r10_sav_held_install.py`, `r10_advisor_steady_seams.py fields`), the block and the archscore diff at abe961e6e5, whose production code this head carries unchanged, and they match the figures below.
 
