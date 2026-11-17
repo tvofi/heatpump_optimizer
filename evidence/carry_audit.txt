@@ -1,6 +1,0 @@
-NOTE body item 324a1354: R11-OUTSIDE-ROOMS-P2: R11-OUTSIDE-ROOMS-P2 resolved on origin/handoff/audit-r10-roster
-NOTE body item daa69071: R11-OUTSIDE-ROOMS-P2: R11-OUTSIDE-ROOMS-P2 resolved on origin/handoff/audit-r10-roster
-NOTE body item e98789a8: R11-OUTSIDE-ROOMS-P3: R11-OUTSIDE-ROOMS-P3 resolved on origin/handoff/audit-r10-roster
-NOTE body item fc1592bb: R11-OUTSIDE-ROOMS-P3: R11-OUTSIDE-ROOMS-P3 resolved on origin/handoff/audit-r10-roster
-NOTE body item d91a0b41: dismissed:a working practice of this seat, no later stage's brief changes on it
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

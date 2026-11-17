@@ -1,0 +1,4 @@
+start=2026-10-24T20:00:00+02:00 lifted_steps=116 max(lifted floor - target)=+0.0000 holiday_steps_lifted=0
+start=2026-10-25T01:45:00+02:00 lifted_steps=96 max(lifted floor - target)=+0.6000 holiday_steps_lifted=0
+start=2026-03-29T01:30:00+01:00 lifted_steps=192 max(lifted floor - target)=+0.0000 holiday_steps_lifted=0
+RESULT lifted floor over the solver's own target, worst: +0.6000
