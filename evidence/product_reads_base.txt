@@ -1,0 +1,14 @@
+## merge base 38bf516bdd73f926ee9639ffda7b9ca5163fd50e
+    return self_test()
+  File "/root/wt2/tools/audit/product_reads.py", line 753, in self_test
+    cells = universe(root, "d16-writes", cells=True)
+  File "/root/wt2/tools/audit/product_reads.py", line 316, in universe
+    items = census.run(name, repo, **kw)
+  File "/root/wt2/tools/audit/enumerate.py", line 598, in run
+    lines = joined(name, sorted(_dedupe(UNIVERSES[name](Path(repo), **kw))), ledger)
+                                        ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/root/wt2/tools/audit/enumerate.py", line 139, in d16
+    raise Refuse(f"const.py PUMP_DUTY_MODES {sorted(modes)} are not the duty modes STATES names {sorted(named)}: "
+                 "a duty mode with no plan state is unrowed, and a state under no duty mode cannot run")
+enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']: a duty mode with no plan state is unrowed, and a state under no duty mode cannot run
+rc=1
