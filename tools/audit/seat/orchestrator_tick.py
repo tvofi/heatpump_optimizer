@@ -209,6 +209,7 @@ BRIEF_CAP = 5
 HEARTBEAT_SECONDS = 480
 CI_BUDGETS = "tests/ci_budgets.json"
 BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
+ANSI_ESC = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
 UNBLOCKABLE_STAGES = (None, "", "not-started")
@@ -1003,6 +1004,9 @@ class Tick:
         v = queue.get(n)
         if v and (v == head or self.git(["merge-base", "--is-ancestor", v, head])[0] == 0):
             return "train", "", ""
+        m = owatch.FIX_VERDICT.match(last)
+        if m and m.group(1) == "merge" and m.group(2) != head and self._carries(m.group(2), head):  # mut:carriedverdict
+            return "verdicted", "", ""  # P657: the head only main-remerges a merge-verdicted head
         blocked = sum(1 for l in lines if l.startswith("Fix review: blocked "))
         if blocked >= RECUT_BLOCKED and "## Re-cut" not in (pr.get("body") or ""):
             return "owed", f"{blocked} blocked verdicts, head is not a re-cut or a split", "recut"
@@ -2074,6 +2078,10 @@ class Tick:
                 except ValueError:
                     pass
         blob = summary + "\n" + text
+        if cid and not blob.strip():  # P541: an Actions job publishes no output; its log holds the error line
+            log = mt.job_log(lambda argv: self.gh(argv[1:]), self.repo, cid)  # mut:redlog
+            blob = ANSI_ESC.sub("", log or "")
+            summary = ""
         err = next((l.strip() for l in blob.splitlines() if ERR_LINE.search(l)),
                    (summary or text or "no error line read"))[:160]
         if re.search(r"closures\.json|UNDER-SCOPED|closure", blob, re.I):
@@ -2627,7 +2635,9 @@ class Tick:
                          "carries it: open_pr.sh (opener), update_pr.sh "
                          f"(update) or a human decision (review){self._opener_last(od, l.split()[1])}", flag=True)
         if len(stranded) > CAP_ORPHANS:
-            self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
+            # a summary, not an owed item: it opens with no owed-family word (no topic, never
+            # acknowledgeable), so owed_unactioned never reads it as an obligation
+            self.line(S, f"HANDOFF LIST CAPPED at {CAP_ORPHANS} of "
                          f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
                          "these are discharged", flag=True)
         for l in out:
@@ -4066,13 +4076,30 @@ def self_test() -> int:
         t = tick(bus_refs=held14 + live11 + [summ25], bus_rc=1)
         t.orphans("REPLAN")
         owed = [x["text"] for x in t.findings if x["text"].startswith("OWED handoff: ")]
-        capl = [x["text"] for x in t.findings if x["text"].startswith("OWED handoffs capped at")]
+        capl = [x["text"] for x in t.findings if x["text"].startswith("HANDOFF LIST CAPPED at")]
+        ou_cap = _module("owed_unactioned_cap", "tools/audit/seat/owed_unactioned.py")
+        def cap_family(tt):  # every flagged line the orphan section emits, through owed_unactioned's reader
+            fl = ["-> " + x["text"] for x in tt.findings]
+            keyed, unreadable = [], False
+            try:
+                keyed = [ou_cap.key_of(l) for l in fl if ou_cap.FAMILY.match(l)]
+                ou_cap.board("BOARD measured from origin/main at " + "a" * 40 + ", 2026-11-15T01:00:00Z\n" + "\n".join(fl))
+            except ou_cap.Unreadable:
+                unreadable = True
+            return fl, keyed, unreadable
         a, f = check("OWED handoffs held-last", [
             ("25 stranded with 14 held: all 11 others print within the cap, held ones after them",
              len(owed) == CAP_ORPHANS and all(f"r10-live-{i} " in owed[i] for i in range(11))
              and "triage-s14-batch0 " in owed[11]),
             ("the cap line counts the held refs",
-             len(capl) == 1 and "capped at 20 of 25 (14 held" in capl[0]),
+             len(capl) == 1 and "CAPPED at 20 of 25 (14 held" in capl[0]),
+            ("the cap line is no owed-family line, and every family line the section emits keys: not UNREADABLE",
+             (lambda r: not any(ou_cap.FAMILY.match(l) for l in r[0] if "CAPPED" in l)
+              and len(r[1]) == CAP_ORPHANS and not r[2])(cap_family(t))),
+            ("null control: exactly CAP_ORPHANS stranded print no cap line and are not UNREADABLE",
+             (lambda tt: (tt.orphans("REPLAN"), (lambda r: not any("CAPPED" in l for l in r[0]) and len(r[1]) == CAP_ORPHANS
+                                                  and not r[2])(cap_family(tt)))[1])(
+                 tick(bus_refs=live11 + held14[:CAP_ORPHANS - 11] + [summ25.replace("25", str(CAP_ORPHANS))], bus_rc=1))),
             ("null control: 11 live refs and no held ones print in bus order, no cap line",
              (lambda t2: [x["text"].split()[2] for x in t2.findings if x["text"].startswith("OWED handoff: ")]
               == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
@@ -4394,7 +4421,7 @@ def self_test() -> int:
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
                     extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
-                    show=None, dref=None, disposed=()):
+                    show=None, dref=None, disposed=(), carries=None):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -4443,6 +4470,8 @@ def self_test() -> int:
                 t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
+            if carries is not None:  # the train's carry predicate, stubbed: (verdict sha, head) -> bool
+                t._carries = carries
             t._readback = {str(n): ls for n, _, ls, _ in specs}
             t._readback.update({str(n): [] for n in extra_read})
             t._verdict_at = {n: iso(NOW - timedelta(minutes=a)) for n, _, ls, a in specs if ls}
@@ -4510,6 +4539,15 @@ def self_test() -> int:
         t_tr, o_tr = oboard2([(87, "DIRTY", [], 0)], red=gate_red(87), queue_v={87: h(87)},
                              train="STARTED train.sh pid 1 over #87\n")
         t_vd, o_vd = oboard2([(88, "DIRTY", [f"Fix review: merge {h(88)}"], 5)], red=gate_red(88))
+        # P657: a head that only main-remerges a merge-verdicted head is verdicted when the train's carry predicate holds
+        cv_asked = []
+        cv_line = lambda n: f"Fix review: merge {h(n + 1000)}"
+        t_cv, o_cv = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95),
+                             carries=lambda v, hd: cv_asked.append((v, hd)) or True)
+        t_cv0, o_cv0 = oboard2([(95, "CLEAN", [cv_line(95)], 5)], red=gate_red(95), carries=lambda v, hd: False)
+        cvb_asked = []
+        t_cvb, o_cvb = oboard2([(95, "CLEAN", [f"Fix review: blocked {h(1095)} x: y"], 5)], red=gate_red(95),
+                               carries=lambda v, hd: cvb_asked.append((v, hd)) or True)
         t_vp, o_vp = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89), disp=(89,))
         t_vp0, o_vp0 = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89))
         t_wf, o_wf = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
@@ -4611,6 +4649,13 @@ def self_test() -> int:
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
              o_tr == [] and "train 1" in bk_of(t_tr)),
+            ("P657: a red PR whose head carries an older merge verdict is verdicted, no RED-UNOWNED line",
+             o_cv == [] and "verdicted 1" in bk_of(t_cv) and cv_asked == [(h(1095), h(95))]),
+            ("P657 null control: the same PR with the carry predicate refusing is still RED-UNOWNED",
+             len(o_cv0) == 1 and o_cv0[0].startswith("OWED red-unowned #95")),
+            ("P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED",
+             "verdicted" not in bk_of(t_cvb) and len(o_cvb) == 1 and o_cvb[0].startswith("OWED red-unowned #95")
+             and cvb_asked == []),
             ("null: a DIRTY, red PR with a merge verdict at its head is verdicted, owed nothing",
              o_vd == [] and "verdicted 1" in bk_of(t_vd)),
             ("null: a DIRTY, red PR on the dispatch record is verdict-pending; off it, it is owed",
@@ -4768,7 +4813,8 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure", cid=424242))
               + "\n" + json.dumps(run_obj("record-autofix",
-                                           conclusion="failure", cid=424243)))
+                                           conclusion="failure", cid=424243))
+              + "\n" + json.dumps(run_obj("closures", conclusion="failure", cid=424245)))
         # the stub answers what `gh api --jq .output` returns: the output
         # object itself, not the response body
         gh.on("check-runs/424242", out=json.dumps(
@@ -4778,6 +4824,10 @@ def self_test() -> int:
         gh.on("check-runs/424243", out=json.dumps(
             {"summary": "skip-failed-recording: no bot commit is coming",
              "text": ""}))
+        # an Actions job publishes no check-run output: the output object is all null, the job's log holds the line
+        gh.on("check-runs/424245", out=json.dumps({"title": None, "summary": None, "text": None}))
+        gh.on("actions/jobs/424245/logs",
+              out="\x1b[36;1mrun gate\x1b[0m\nstep ok\n\x1b[31;1mERROR: closure drift in tests/closures.json\x1b[0m\nafter\n")
         gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
         t = Tick("o/r", str(version), gh=gh, git=Stub(),
@@ -4788,7 +4838,13 @@ def self_test() -> int:
                   or l["text"].startswith("main-red ")]
         tests_brief = next((b for b in briefs if "main-red tests" in b), "")
         bot_brief = next((b for b in briefs if "record-autofix" in b), "")
+        log_brief = next((b for b in briefs if "main-red closures" in b), "")
         a, f = check("main-red briefs", [
+            ("P541: a check-run with null output quotes the error line of the job's log, escapes stripped",
+             'error line: "ERROR: closure drift in tests/closures.json"' in log_brief and "\x1b" not in log_brief),
+            ("P541 null control: a check-run with its own output makes no log read",
+             not any("actions/jobs/424242/logs" in " ".join(c) for c in gh.calls)
+             and any("actions/jobs/424245/logs" in " ".join(c) for c in gh.calls)),
             ("required-lane brief has the four fields",
              all(k in tests_brief for k in
                  ("main-red tests", "job 424242", "error line:",
