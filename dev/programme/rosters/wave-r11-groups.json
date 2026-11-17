@@ -4475,6 +4475,58 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-LOOP-POLICY",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/governance/roles/root-cause.md",
+    "dev/governance/roles/proposal-triage.md",
+    "dev/governance/rules/defect-root-cause.md",
+    "dev/audit/README.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "The loop-study countermeasure cards L2, L4, L5, L7 and L8 into policy: countermeasure order (delete, self-repair, narrow, new refusal last), induced follow-up work priced in the cost test, triage by instrument with a third accepted change owing a redesign, a kill criterion for loops on k or hotfix share, and machinery-friction RCA by family at round end; in dev/governance/roles/root-cause.md, proposal-triage.md and dev/governance/rules/defect-root-cause.md. Policy: merges on the owner's approving review or under a mandate in force. Null control: replay the loop-study's cases through the new text; each card must change at least one recorded disposition or it is dismissed. Done when each card is in its policy file or refused. Sources: R11-PRE-MACHINERY-LIMITER (PR #3627). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Loop-study card L2 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L2. Order of countermeasures: delete, then self-repair, then narrow, and a new refusal last.**\n- **Change:** `root-cause.md` section 5 and `proposal-triage.md` require a countermeasure to state why each earlier rung is not possible before proposing a later one. A new refusal prints its own repair command. It also shows its refusal count on the last 20 healthy heads (a shadow run) before it gates anything.\n- **Evidence:** 48 of 76 analyses add or widen a detector and 21 heal, delete or narrow. 45 of 51 machinery hotfixes are repeats, most of them over-refusals. Refusal words tripled.\n- **Effect on k:** lowers D x p, the use-driven inflow, and h for new checks.\n- **Cost:** two policy paragraphs; a shadow run per new refusal.\n- **Risk:** a real defect class left undetected. Mitigation: product checks are exempt from the ordering.\n- **Replaces:** nothing. **Touches:** `mechanise-before-policy` (10-24) stays, read as repair before refuse.",
+    "Loop-study card L4 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L4. Price induced work in the cost test.**\n- **Change:** `defect-root-cause.md` and `proposal-triage.md` add two terms to the cost side. One is expected follow-up items: the instrument's own measured offspring rate from L1, times the mean cost of an item. The other is the number of generated artifacts or pins the change stales in open branches. Until L1 has a round of data, use this round's figures: 2.9 follow-up items per RCA and 0.22 hotfixes per machinery merge.\n- **Evidence:** 67 of 76 analyses carry a numeric cost test and 51 of 76 are repeats; none priced its follow-ups.\n- **Effect on k:** lowers a for changes to instruments that breed.\n- **Cost:** two sentences and one lookup.\n- **Risk:** a needed fix priced out. Mitigation: the existing exceptions (red required check on main, production defect, owner order).\n- **Replaces:** the \"standing seconds only\" reading. **Touches:** sharpens the 20% bar; does not change it.",
+    "Loop-study card L5 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L5. Triage by instrument, not by proposal; the third accepted change to one instrument in a round owes a redesign decision.**\n- **Change:** at the round-end consolidation the triage seat groups proposals by the instrument they name and rules once per instrument: retire it, simplify it, redesign it (a designer note), or leave it. A fourth patch is not an option.\n- **Evidence:** `merge_train.py` took 58 accepted proposals. 169 accepted proposals hit an instrument with ten or more earlier accepts. The gate-deferral analysis is titled \"the producer of a deferral was fixed three times, its reader never\".\n- **Effect on k:** replaces many small changes, each with offspring 0.3 to 0.5, by one designed change.\n- **Cost:** a designer seat for perhaps six instruments at round end.\n- **Risk:** a redesign larger than the patches; #3315 was one such. Mitigation: L6's reversal, and promotion one change at a time.\n- **Replaces:** per-proposal rulings for instruments past the threshold. **Touches:** gives the 11-13 freeze shape its unit of consolidation.",
+    "Loop-study card L7 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L7. A kill criterion for the loops.**\n- **Change:** two thresholds read from the L1 enumerator each week: k at or above 0.8, or machinery-own hotfixes above 15% of code merges. When either holds for two consecutive weeks, RCA seats record cause and state only and build nothing, and proposals are logged only, until the next round start. The owner sets the numbers.\n- **Evidence:** k was 0.76, 0.74, 0.71 and 0.95 in w2 to w5, and the hotfix share 20% then 30%, with no rule responding until the owner's ruling on day 30.\n- **Effect on k:** a ceiling.\n- **Cost:** two lines in the round playbook.\n- **Risk:** a real barrier delayed by a round. Mitigation: product defects and barriers for product classes are exempt.\n- **Replaces:** nothing; it is the backstop once the freeze lifts. **Touches:** `audit-class-barrier`, for machinery classes only.",
+    "Loop-study card L8 (owner: yes; card O2: its policy text is approved under the mandate if sound), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n**L8. Root-cause analysis of machinery friction by family at round end; per defect only for the product and for outages.**\n- **Change:** a product defect, a release defect or an outage keeps its own RCA seat at once. Repeated machinery friction is counted during the round (family and occurrences, by L1) and analysed once per family at round end, feeding L5.\n- **Evidence:** 67 of 76 analyses were about machinery and 42 were triggered by recurring friction. Each produced 2.9 follow-up items. The friction family alone has at least seven analyses.\n- **Effect on k:** removes the largest generator of follow-up items and gives the analysis the whole family at once.\n- **Cost:** negative; fewer seats.\n- **Risk:** a machinery cause forgotten by round end. Mitigation: the count is mechanical and the family list is the triage input.\n- **Replaces:** per-event RCA seats for machinery friction. **Touches:** the owner's \"RCA dispatch immediately\" ruling and the third-instance rule, for machinery only. This card reverses part of a standing ruling."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-loop-policy",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-MACHINERY-LIMITER carries 7,8,9,10,11; overlap admitted (R11-CARRY-POLICY-BUDGETS): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
