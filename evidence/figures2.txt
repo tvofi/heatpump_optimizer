@@ -1,0 +1,32 @@
+## ok D diff base vs head
+6,7c6,7
+< ok D5 mode=cells seats=10 universe=889 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37206loc/2855u, s4:51f/54085loc/3367u, s5:74f/0loc/3631u, s6:258f/0loc/3798u, s7:3f/0loc/4030u, s8:44f/0loc/3630u, s9:69f/0loc/3748u, s10:330f/0loc/1809u]
+< ok D6 mode=files seats=7 universe=366 [s1:14f/0loc/3972u, s2:111f/0loc/4075u, s3:96f/74854loc/3331u, s4:2f/16437loc/3913u, s5:140f/0loc/3487u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+---
+> ok D5 mode=cells seats=10 universe=889 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37206loc/2855u, s4:51f/54085loc/3367u, s5:74f/0loc/3631u, s6:258f/0loc/3811u, s7:3f/0loc/4030u, s8:44f/0loc/3630u, s9:69f/0loc/3748u, s10:330f/0loc/1809u]
+> ok D6 mode=files seats=7 universe=366 [s1:14f/0loc/3972u, s2:111f/0loc/4075u, s3:96f/74854loc/3331u, s4:2f/16437loc/3913u, s5:140f/0loc/3491u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+## whole-output diff 1f4a vs head
+1c1
+< ref=1f4a5e2fe75d274557ce68fb5570506638395867 seats=65
+---
+> ref=d11b0cb1b2835280259314ad69c8dfbfb8cd8d93 seats=65
+7,8c7,8
+< ok D5 mode=cells seats=10 universe=889 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37206loc/2855u, s4:51f/54085loc/3367u, s5:74f/0loc/3631u, s6:258f/0loc/3798u, s7:3f/0loc/4030u, s8:44f/0loc/3630u, s9:69f/0loc/3748u, s10:330f/0loc/1809u]
+< ok D6 mode=files seats=7 universe=366 [s1:14f/0loc/3972u, s2:111f/0loc/4075u, s3:96f/74854loc/3331u, s4:2f/16437loc/3913u, s5:140f/0loc/3487u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+---
+> ok D5 mode=cells seats=10 universe=889 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37206loc/2855u, s4:51f/54085loc/3367u, s5:74f/0loc/3631u, s6:258f/0loc/3811u, s7:3f/0loc/4030u, s8:44f/0loc/3630u, s9:69f/0loc/3748u, s10:330f/0loc/1809u]
+> ok D6 mode=files seats=7 universe=366 [s1:14f/0loc/3972u, s2:111f/0loc/4075u, s3:96f/74854loc/3331u, s4:2f/16437loc/3913u, s5:140f/0loc/3491u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+20c20
+< ok coverage tracked=11553 in_universe=1642 excluded=9911 unclassified=0
+---
+> ok coverage tracked=11555 in_universe=1642 excluded=9913 unclassified=0
+## enumerate at c82f tree
+38
+532
+service 15
+config-step 15
+config-field 102
+options-step 26
+option 130
+entity 14
+blueprint 5

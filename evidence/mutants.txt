@@ -1,0 +1,86 @@
+=== MUTANT identity (07db16cdb73baa90dddb98307090dd6c49d85d1b)
+FAIL start evaluation round=11: 2 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+=== MUTANT drop-D16-row (6e88b045c751b72ca02800e8057da22b18892f09)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for dev/governance/dimensions/D16.md
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+=== MUTANT drop-D17-row (a661b1a3e3ba17d510136d8c56dbedad5a7502f3)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json has no keep/change/remove verdict for dev/governance/dimensions/D17.md
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U1 (4f55ebc9cb59f3f164a9e392696a937cfd52625d)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U1 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U2 (1521e593026cc179f05b557c139f046c5bf5d4ed)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U4 (914ede854aa6f5fbb344cb585693dd6ac81baa2f)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U4 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U5 (ef09d2c97be9e39480733f222d4a27b6e035f349)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U5 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U6 (5fc3dff26260cb5bcb99c7763a778d6f101da8a8)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U6 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U7 (36adaa3960cf9ced69c2595d6f71cdbd521c6bcb)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U7 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U8 (4f798d700113ccc9ad79cb77ede7732c587f6ff0)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U8 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U9 (7317f06624624959ddfddace27b4528d53836285)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U9 is accepted and not merged at this ref
+=== MUTANT drop-merged-E11-U10 (091e47d51db83ad60f27bced1983bd1bc3c60cba)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U10 is accepted and not merged at this ref
+=== MUTANT plant-merged-P744-b98c (67758b049f0737c88ec16901f838b2a6c1f05b35)
+FAIL start evaluation round=11: 2 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE merged b98c78e0f6144a5ea5b48a032e30bf2d085c2d61 changes none of its object or paths
+=== MUTANT plant-merged-U2-prereview (51036a8294f30f8933b8e1983dd5e798b50f8e85)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 merged 83dc9488180379b859042b5f24b87d94a5a02c95 is not after the review at 83dc9488180379b859042b5f24b87d94a5a02c95
+=== MUTANT plant-merged-U2-othermerge (74ab0b662dff089ff6fd379a3f3e10af645edb33)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   dev/audit/yardstick/round11/EVALUATION.json card E11-U2 merged c82f014a639954b0f8930f29cf30fed3f0b20a6a changes none of its object or paths
+=== MUTANT plant-D16-empty-evidence (43cca8354138f3d0818f7449a14c2dd4ca6d4d95)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json verdict for dev/governance/dimensions/D16.md carries no evidence
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+=== MUTANT plant-D16-remove-noread (528f166f49ba46397ebabae5c8ff3d977cea3cae)
+FAIL start evaluation round=11: 3 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json remove verdict for dev/governance/dimensions/D16.md rests on a NO-READ
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+=== MUTANT plant-merged-P744-3658 (ca96252adc89ab3e3638f8ec0749e41ddf23af1c)
+FAIL start evaluation round=11: 1 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record

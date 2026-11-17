@@ -1,0 +1,36 @@
+ref=1f4a5e2fe75d274557ce68fb5570506638395867 seats=65
+ok D0 mode=cells seats=3 universe=3 [s1:3f/23141loc, s2:3f/23141loc, s3:3f/23141loc]
+ok D1 mode=cells seats=3 universe=95 [s1:95f/74854loc, s2:95f/74854loc, s3:95f/74854loc]
+ok D2 mode=cells seats=3 universe=95 [s1:95f/74854loc, s2:95f/74854loc, s3:95f/74854loc]
+ok D3 mode=cells seats=3 universe=166 [s1:12f/31817loc, s2:18f/15975loc, s3:136f/43499loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20869loc, s2:15f/20869loc, s3:15f/20869loc]
+ok D5 mode=cells seats=10 universe=889 [s1:15f/0loc/0u, s2:15f/0loc/75u, s3:45f/37206loc/2855u, s4:51f/54085loc/3367u, s5:74f/0loc/3631u, s6:258f/0loc/3798u, s7:3f/0loc/4030u, s8:44f/0loc/3630u, s9:69f/0loc/3748u, s10:330f/0loc/1809u]
+ok D6 mode=files seats=7 universe=366 [s1:14f/0loc/3972u, s2:111f/0loc/4075u, s3:96f/74854loc/3331u, s4:2f/16437loc/3913u, s5:140f/0loc/3487u, s6:1f/0loc/2300u, s7:2f/0loc/2668u]
+ok D7 mode=cells seats=3 universe=95 [s1:95f/74854loc, s2:95f/74854loc, s3:95f/74854loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4741loc, s2:6f/4741loc, s3:6f/4741loc]
+ok D9 mode=cells seats=3 universe=96 [s1:96f/91291loc, s2:96f/91291loc, s3:96f/91291loc]
+ok D10 mode=cells seats=3 universe=114 [s1:114f/91291loc, s2:114f/91291loc, s3:114f/91291loc]
+ok D11 mode=cells seats=3 universe=1390 [s1:1390f/0loc, s2:1390f/0loc, s3:1390f/0loc]
+ok D12 mode=cells seats=3 universe=95 [s1:95f/74854loc, s2:95f/74854loc, s3:95f/74854loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D16 mode=cells seats=3 universe=95 [s1:95f/74854loc, s2:95f/74854loc, s3:95f/74854loc]
+ok D17 mode=cells seats=3 universe=102 [s1:102f/74854loc, s2:102f/74854loc, s3:102f/74854loc]
+ok coverage tracked=11553 in_universe=1642 excluded=9911 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 2 gap(s), 12 card(s) beside the finders
+   dev/audit/yardstick/round11/EVALUATION.json at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record
+   dev/audit/yardstick/round11/EVALUATION.json card E11-N-P744-SCOPE is accepted and not merged at this ref
+   PARALLEL E11-GATE-REDS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-INJECTED accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-GATE-CAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INSTRUMENT-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-INTAKE-BUILDER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-NULL-REVIEWER accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-ROLE-CLAUSE accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-N-RULE-YIELD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-R-WORKFLOWS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-S-SEATS accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-SCORECARD accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
+   PARALLEL E11-T-product_green_floor accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)
