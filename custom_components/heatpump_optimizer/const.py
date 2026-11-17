@@ -608,6 +608,12 @@ OUTAGE_DHW_DELAY_MINUTES: Final = 45.0
 # the electricity, which is a trade worth taking; anyone who wants the starts
 # back has a knob denominated in real currency. `tests/validate.py` reports the
 # start count per scenario, which is how that decision gets made from evidence.
+# The option's default stays 0. One exception is applied at solve time, not
+# here: an install whose planned levels are clamped (it cannot duty-cycle)
+# and that prices no start plans at ``optimizer.CLAMPED_DEFAULT_START_PRICE``
+# (``OptimizationConfig.start_price``), because a clamped plan is committed to
+# whole runs and an unpriced commit can ship more starts than the plan it
+# replaced.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
 DEFAULT_CYCLING_COST: Final = 0.0
 

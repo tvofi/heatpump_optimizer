@@ -920,6 +920,15 @@ fold_judge() { # <memo> <level> <topic> <wip sha> <body sha> <outcome> <epoch> <
   printf '%s %s %s %s %s %s %s%s\n' "$3" "$4" "${5:--}" "$6" "$7" "$8" "$9" "${10:+ ${10}}" >> "$1"; [ -z "${10:-}" ] || printf '%s\n' "${10}" >> "$2"; }
 fold_memo_stands() { # <outcome> <epoch> <now>: rc 0 while a judged outcome stands; a failure after the fold expires after 3600 s
   case $1:$2 in blocked:*|folded:*) return 0;; fold-failed:[0-9]*|push-failed:[0-9]*) [ $(($3 - $2)) -lt 3600 ];; *) return 1;; esac; }  # mut:foldttl
+fold_superseded() { # <topic> <wip sha> <handoff-body sha|empty> <merged fix branches file>: rc 0 when the topic moved on
+  # CARRY-FOLD-SUPERSEDED (P642): dispose refuses handoff-wip/ refs, so a stop whose topic returned a later body, or
+  # whose fix branch merged, stood on the carry-fold level until someone deleted the ref (14 of 20 lines, 2026-11-11).
+  grep -qxF -e "fix/$1" -e "fix/$1-pr" "$4" && return 0  # mut:foldmerged
+  [ -n "$3" ] || return 1
+  git fetch -q origin "refs/heads/handoff-wip/$1" "refs/heads/handoff-body/$1" 2>/dev/null || return 1
+  local w b; w=$(git log -1 --format=%ct "$2" 2>/dev/null) && b=$(git log -1 --format=%ct "$3" 2>/dev/null) || return 1
+  [ "$b" -gt "$w" ]  # mut:foldlater
+}
 carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md names CARRY-LANDED alone: fold the kept body's carries, re-run body_push.sh
   # A cloud fixer may not write the roster, so body_push.sh's CARRY-LANDED refusal (exit 4; each refusal prints
   # `body_push: REFUSED <KIND>` into the BLOCKED.md the fixer pushes) stranded it until a seat landed the carries
@@ -933,15 +942,20 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
   # stored line is set again, because level_set replaces the whole carry-fold level. A failure after the fold is judged
   # again once fold_memo_stands expires it: an ancestry red can clear with no ref moving. The body is pushed from a
   # worktree at a private ref fetched from handoff/<topic>, deleted after the push, never FETCH_HEAD, which a concurrent
-  # fetch in this checkout overwrites, and only at that ref's ls-remote tip (P556).
+  # fetch in this checkout overwrites, and only at that ref's ls-remote tip (P556). A topic fold_superseded reads as
+  # moved on (a later handoff-body/<topic>, or fix/<topic>[-pr] merged into origin/main by a local git log) is skipped:
+  # no level line, no fold, no memo.
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc memo now mo me ml htip head mb mh blob fo fe fb fh fl rt
-  git ls-remote origin 'refs/heads/handoff-wip/*' 'refs/heads/handoff/*' > "$state/cloud-wip.$$" \
+  git ls-remote origin 'refs/heads/handoff-wip/*' 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-wip.$$" \
     || { echo "cloud_relay: could not list handoff-wip refs; the carry-fold level stays as it was" >&2; rm -f "$state/cloud-wip.$$"; return 0; }
   memo=$state/cloud-fold-judged; now=$(date +%s)
   mkdir -p "$state"; : > "$state/cloud-level-fold.$$"; : > "$memo.$$"
+  git log --merges --format=%s origin/main 2>/dev/null | sed -n 's|^Merge pull request #[0-9]* from [^/]*/\(fix/.*\)$|\1|p' > "$state/cloud-merged.$$"
   while read -r sha ref; do
     case $ref in refs/heads/handoff-wip/*) topic=${ref#refs/heads/handoff-wip/};; *) continue;; esac
     case $topic in ''|*/*|*-body|*-carries|*-body-*) continue;; esac
+    fold_superseded "$topic" "$sha" "$(awk -v r="refs/heads/handoff-body/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")" \
+      "$state/cloud-merged.$$" && continue  # mut:foldsuperseded
     bsha=$(awk -v r="refs/heads/handoff-wip/$topic-body" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
     htip=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-wip.$$"); blob=-
     mo= me= ml= mb= mh=; [ -f "$memo" ] && read -r _ _ _ mo me mb mh ml < <(awk -v t="$topic" -v w="$sha" -v b="${bsha:--}" '$1 == t && $2 == w && $3 == b { print; exit }' "$memo")
@@ -995,7 +1009,7 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     else fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" push-failed "$now" "$blob" "${htip:--}" "$(level_line carry-fold "$ref" "$sha" "$why")"
     fi
   done < "$state/cloud-wip.$$"
-  mv -f "$memo.$$" "$memo"; level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$"
+  mv -f "$memo.$$" "$memo"; level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$" "$state/cloud-merged.$$"
 }
 
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
@@ -2233,6 +2247,24 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   awk '$1 == "cf-l" { $6 = ""; $7 = ""; gsub(/  +/, " ") } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
   : > "$t/fetches"; cfo=$(git() { [ "$1" != fetch ] || echo "$*" >> "$t/fetches"; command git "$@"; }; carry_fold_arm 2>&1)
   chk "a memo record from before the blob and tip fields is judged again, not read with shifted fields" 0 grep -q "handoff-wip/cf-l\$" "$t/fetches"
+  # CARRY-FOLD-SUPERSEDED (P642): a stop whose topic returned a later handoff-body, or whose fix branch merged, leaves the level.
+  GIT_COMMITTER_DATE="2010-01-01T00:00:00Z" cfref handoff-wip/cf-n BLOCKED.md "the fixer is stuck"
+  GIT_COMMITTER_DATE="2011-01-01T00:00:00Z" cfref handoff-body/cf-n BODY.md "the returned body N"
+  GIT_COMMITTER_DATE="2012-01-01T00:00:00Z" cfref handoff-wip/cf-o BLOCKED.md "the fixer is stuck"
+  GIT_COMMITTER_DATE="2011-01-01T00:00:00Z" cfref handoff-body/cf-o BODY.md "an earlier body O"
+  cfref handoff-wip/cf-p BLOCKED.md "body_push: REFUSED CARRY-LANDED"; cfref handoff-wip/cf-p-body BODY.md "the body P"
+  cfref handoff-wip/cf-q BLOCKED.md "the fixer is stuck"
+  rm -rf "$t/cfx"; throwaway_git_init "$t/cfx" -q; git -C "$t/cfx" commit -q --allow-empty -m base
+  git -C "$t/cfx" commit -q --allow-empty -m side; git -C "$t/cfx" reset -q --hard HEAD~1
+  git -C "$t/cfx" merge -q --no-ff -m "Merge pull request #9 from o/fix/cf-p-pr" HEAD@{1}
+  git -C "$t/cf.git" fetch -qf "$t/cfx" "HEAD:refs/heads/main"; git fetch -q origin main
+  : > "$t/folds"; cfo=$(carry_fold_arm 2>&1)
+  chk "a stop with a later handoff-body/<topic> leaves the carry-fold level (P642)" 1 grep -q "handoff-wip/cf-n " "$LOG.level"
+  chk "... and prints no OWED line" 1 grep -q "OWED carry-fold cf-n " <<< "$cfo"
+  chk "a stop whose fix/<topic>-pr merged into origin/main leaves the level" 1 grep -q "handoff-wip/cf-p " "$LOG.level"
+  chk "... and folds nothing, though its stop is CARRY-LANDED alone with a kept body" 1 grep -q -- "--topic cf-p " "$t/folds"
+  chk "null control: a handoff-body older than the stop keeps its OWED line" 0 grep -q "carry-fold refs/heads/handoff-wip/cf-o " "$LOG.level"
+  chk "null control: a stop with no handoff-body and no merge keeps its OWED line" 0 grep -q "carry-fold refs/heads/handoff-wip/cf-q " "$LOG.level"
   # OWED-RED-TEXT-TO-CLOUD: a PREDICTOR refusal naming an owed red attaches that check's name, conclusion and error lines
   printf '#!/bin/sh\nprintf "tests / fast (3.14)\\npr-contract / pr-contract\\n"\n' > "$t/owedstub"
   printf '#!/bin/bash\necho "$1 $2" >> %s/fl.calls; printf "tests / fast (3.14)\\tfailure\\t9\\tu\\n" > "$2/failing.tsv"\necho "head %s"; printf "tests / fast (3.14)\\t9\\t8\\tf.log\\n    12:FAILED test_x\\n"; echo "failing checks: 1"\n' "$t" "$h" > "$t/flstub"
