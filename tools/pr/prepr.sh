@@ -1401,11 +1401,19 @@ PY
 # job that re-executes this script exports a credential to it, so there the
 # arm prints its skip line and stays local-only-deterministic, the position
 # PREPR_SKIP_CLOSURES holds for the closures step.
-REDS_JQ='.check_runs[]
-         | select(.status == "completed" and .conclusion == "failure")
-         | select(.name != "pr-contract / pr-contract" and .name != "gate")
-         | .name'
-
+# One read per sha carries all three facts the arm needs, as lines: `T <total_count>` (per
+# page), `P` per run not yet completed, `R <name>` per red. The total used to be a second
+# read of every commit on an all-green branch (PC-1113-13 / ANCESTRY-REDS-PER-COMMIT-READS).
+REDS_JQ='(.total_count | "T \(.)"),
+         (.check_runs[] | select(.status != "completed") | "P"),
+         (.check_runs[]
+          | select(.status == "completed" and .conclusion == "failure")
+          | select(.name != "pr-contract / pr-contract" and .name != "gate")
+          | "R \(.name)")'
+# A sha's read is kept under the state dir for PREPR_ANCESTRY_TTL_S (default 3600 s) when it holds a
+# run and no run at it was still going: a commit's runs are final then, and `update_pr` and each
+# prepr run re-read the same ancestry. A read with a run pending, or with no run at all (CI not yet
+# queued on a just-pushed commit), is never kept: a red may still land.
 gh_credential() { # gh binary -> the token on stdout, rc 1 when none
   case "${GITHUB_TOKEN:-}" in ?*) printf '%s' "$GITHUB_TOKEN"; return 0 ;; esac
   case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
@@ -1426,7 +1434,7 @@ alert_reds() { # the branch's own remote head ref -> rc 0: alert lines (maybe no
 ancestry_reds() { # the branch's own remote head ref
   # -> rc 0: the red names, one per line, sorted unique
   #    rc 3: the skip reason (one line)
-  local ghc tok url repo base shas sha out names any
+  local ghc tok url repo base shas sha out names any n
   ghc=${PREPR_GH:-gh}   # --self-test replaces the gh binary word, argv identical
   command -v "$ghc" >/dev/null 2>&1 || { echo "gh is absent, so no branch check run could be read"; return 3; }
   tok=$(gh_credential "$ghc") || { echo "no token: GITHUB_TOKEN and GH_TOKEN are unset and \`$ghc auth token\` refuses, so no branch check run could be read"; return 3; }
@@ -1441,24 +1449,35 @@ ancestry_reds() { # the branch's own remote head ref
   base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main, so no ancestry could be enumerated"; return 3; }
   shas=$(git rev-list "$base..$1" 2>/dev/null) || { echo "$1 could not be read, so no ancestry was enumerated"; return 3; }
   [ -n "$shas" ] || { echo "no commit of this branch is on $1 yet -- the first push has no ancestry to read"; return 3; }
-  names=""; any=""
+  local cdir f fresh runs ttl=${PREPR_ANCESTRY_TTL_S:-3600}
+  cdir=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/prepr-ancestry
+  names=""; any=""; runs=0
   for sha in $shas; do
-    out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
-      echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
-    [ -n "$out" ] && { names="$names$out"$'\n'; any=1; }
-  done
-  if [ -z "$any" ]; then
-    # Nothing failed anywhere: say whether that was MEASURED or merely
-    # unpopulated -- a branch whose commits never ran CI owes no answer and
-    # confirms nothing, and `total_count` is on the first page of the same
-    # endpoint this loop already read. Only the all-green branch pays for
-    # this second pass.
-    for sha in $shas; do
-      out=$("$ghc" api "repos/$repo/commits/$sha/check-runs" --jq '.total_count' 2>/dev/null) || {
+    f=$cdir/${repo//\//_}-$sha
+    fresh=""
+    if [ -f "$f" ] && [ -n "$(find "$f" -mmin "-$((ttl / 60))" 2>/dev/null)" ]; then
+      out=$(cat "$f")
+    else
+      out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
         echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
-      [ "${out:-0}" -gt 0 ] 2>/dev/null && { any=1; break; }
-    done
-    [ -n "$any" ] || { echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3; }
+      # a read that did not answer in the lines' shape is UNCHECKED, never confirmed empty
+      case "$out" in "T "*) ;; *)
+        echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3 ;; esac
+      fresh=1
+    fi
+    n=$(printf '%s\n' "$out" | sed -n 's/^T //p' | sort -n | tail -1)
+    [ "${n:-0}" -gt 0 ] 2>/dev/null && runs=1
+    # a fresh read is kept only when the commit carries a run and none is still going
+    if [ -n "$fresh" ] && [ "${n:-0}" -gt 0 ] 2>/dev/null && ! grep -qx P <<<"$out" && mkdir -p "$cdir" 2>/dev/null; then
+      printf '%s\n' "$out" >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$"
+    fi
+    n=$(printf '%s\n' "$out" | sed -n 's/^R //p')
+    [ -n "$n" ] && { names="$names$n"$'\n'; any=1; }
+  done
+  # Nothing failed anywhere: say whether that was MEASURED or merely unpopulated -- a branch
+  # whose commits never ran CI owes no answer and confirms nothing; the totals came with the reads.
+  if [ -z "$any" ] && [ "$runs" -eq 0 ]; then
+    echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3
   fi
   printf '%s' "$names" | sort -u
 }
@@ -2135,6 +2154,7 @@ if [ "${1:-}" = "--self-test" ]; then
   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
   export PREPR_NO_ALERTS=1   # the rows below never reach code scanning; the alert rows opt in
+  export PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR; HPO_STATE_DIR=$(mktemp -d)   # no kept read crosses a fixture; the cache rows below opt in
   (
     set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
@@ -2163,6 +2183,7 @@ for a in "$@"; do
   prev=$a
 done
 [ -n "$filter" ] && [ -n "$url" ] || exit 5
+[ -z "${CALLS:-}" ] || echo "$url" >>"$CALLS"
 sha=${url#*/commits/}; sha=${sha%/check-runs}
 [ -f "$REDFIX/$sha.json" ] || exit 1
 exec jq -r "$filter" "$REDFIX/$sha.json"
@@ -2223,6 +2244,67 @@ EOS
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 3 "an absent gh skips the arm (never refuses)"
   case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  # PC-1113-13 / ANCESTRY-REDS-PER-COMMIT-READS: the calls one ancestry read makes grow with the
+  # branch's commits, so they are counted (the stub appends each url to $CALLS) over a 520-commit
+  # branch whose every commit is green, then with a red on an ancestor, then warm.
+  LONG=$(mktemp -d); LFIX=$(mktemp -d); LCALLS="$LONG.calls"
+  (
+    set -e; throwaway_git_env; cd "$LONG"; throwaway_git_init . -q -b main
+    git config user.name st; git config user.email st@st
+    git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
+    export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000' GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
+    echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
+    tree=$(git write-tree); parent=$(git rev-parse HEAD)
+    for i in $(seq 1 520); do parent=$(git commit-tree "$tree" -p "$parent" -m "c$i"); done
+    git update-ref refs/remotes/origin/long "$parent"; git update-ref refs/remotes/origin/main main
+  ) >/dev/null 2>&1
+  long_shas=$(GIT_DIR="$LONG/.git" git rev-list main..origin/long)
+  for sha in $long_shas; do
+    printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"}]}' >"$LFIX/$sha.json"
+  done
+  lreds() { # ttl, extra env... -> "<rc>:<names joined>:<calls>"
+    local ttl=$1 out r; shift; : >"$LCALLS"
+    out=$(GIT_DIR="$LONG/.git" REDFIX="$LFIX" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+      PREPR_ANCESTRY_TTL_S="$ttl" HPO_STATE_DIR="$LSTATE" ancestry_reds origin/long); r=$?
+    echo "$r:$(echo $out):$(wc -l <"$LCALLS" | tr -d ' ')"
+  }
+  LSTATE=$(mktemp -d)
+  got=$(lreds 0)
+  st "$got" "0::520" "an all-green 520-commit branch reads each commit once: 520 calls, the total_count read with it (the merge base made 520 and then one more for the total)"
+  got=$(lreds 3600); got2=$(lreds 3600)
+  st "$got2" "0::0" "a second run in the hour reads nothing: every commit's runs were final and are kept"
+  oldest=$(printf '%s\n' $long_shas | sed -n 100p)
+  printf '{"total_count":2,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"},{"name":"closures","status":"completed","conclusion":"failure"}]}' >"$LFIX/$oldest.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  got=$(lreds 3600); got2=$(lreds 3600)
+  st "$got" "0:closures:520" "a red on an ancestor commit is named on the cold read"
+  st "$got2" "0:closures:0" "and on the warm read, from the kept lines (no answered red lost)"
+  pending=$(printf '%s\n' $long_shas | sed -n 7p)
+  printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"in_progress","conclusion":null}]}' >"$LFIX/$pending.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  lreds 3600 >/dev/null; got2=$(lreds 3600)
+  st "$got2" "0:closures:1" "a commit with a run still pending is read again each time (never kept), the other 519 are kept"
+  got=$(lreds 0)
+  st "$got" "0:closures:520" "null control: with the keeping off (TTL 0) every commit is read, so the zero above is the cache's"
+  # A commit carrying no check run yet (just pushed, CI not queued) has no final runs: its read
+  # is never kept, so a red that lands on it within the hour is named on the next read.
+  for sha in "$oldest" "$pending"; do
+    printf '{"total_count":1,"check_runs":[{"name":"fast (3.14)","status":"completed","conclusion":"success"}]}' >"$LFIX/$sha.json"
+  done
+  zero=$(printf '%s\n' $long_shas | sed -n 1p)
+  printf '{"total_count":0,"check_runs":[]}' >"$LFIX/$zero.json"
+  rm -rf "$LSTATE"; LSTATE=$(mktemp -d)
+  got=$(lreds 3600)
+  st "$got" "0::520" "a commit with no check run yet is read cold with the other 519 (no red stands)"
+  printf '{"total_count":1,"check_runs":[{"name":"closures","status":"completed","conclusion":"failure"}]}' >"$LFIX/$zero.json"
+  got2=$(lreds 3600)
+  st "$got2" "0:closures:1" "a red landing on that commit in the hour is named on the warm read: it alone is read again, never kept"
+  : >"$LCALLS"
+  GIT_DIR="$RA/.git" REDFIX="$RAFIX/green" CALLS="$LCALLS" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    PREPR_ANCESTRY_TTL_S=0 HPO_STATE_DIR="$(mktemp -d)" ancestry_reds origin/fix >/dev/null
+  st "$(wc -l <"$LCALLS" | tr -d ' ')" 2 "null control: a 2-commit all-green branch makes 2 calls (the merge base made 3), never more than before"
+  rm -rf "$LONG" "$LFIX" "$LONG.calls" "$LSTATE"
   # The alert listing (R4-1): `alert_reds` runs tools/pr/local_alerts.py, replaced here
   # by a script printing one alert line (the plant) or none (the null). An alert is a
   # red the body must name; a listing that could not be read says so and never refuses.
