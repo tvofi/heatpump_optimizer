@@ -9,3 +9,4 @@
 1794843074 DONE verdict pushed: probe/rev-3662-e230047b fe80cd955f, blocked class-open (probe latches follows on a self-setting pump with a 1.3-2 day draw swing)
 1794876783 HB alive
 1794876881 CKPT packet rendered, body read; starting head worktree runs snapshot bb9e69768e1a
+1794877114 CKPT harness three-end table re-derived at base and head; mutants running snapshot 4aa071f261d0
