@@ -8,3 +8,4 @@
 1794879887 CKPT verdict drafted, carry_audit rc0; waiting CI snapshot a2cd72bd023b
 1794880448 HB alive
 1794881080 HB alive
+1794881430 DONE returned: Fix review: merge ba0a43950c pending-ci: gate (probe/rev-3693-00cbb984 ad1f14711f)
