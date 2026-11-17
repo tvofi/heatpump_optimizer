@@ -2,7 +2,7 @@
 "script": "tests/frontend.py",
 "rc": 0,
 "failed": 0,
-"seconds": 0.2,
+"seconds": 0.1,
 "reach": {
 "hits": {
 "custom_components/heatpump_optimizer/const.py": [
@@ -818,8 +818,8 @@
 ],
 "problems": [],
 "processes": {
-"started": 1,
-"recorded": 1
+"started": 2,
+"recorded": 2
 }
 }
 }
