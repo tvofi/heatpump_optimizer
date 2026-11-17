@@ -1,0 +1,11 @@
+### s3-03p load1=2.04 nproc=4
+RESULT snapshots_in_ring=1 count
+RESULT snapshot_bias_is_none=1 count
+# refused: HomeAssistantError: No learner snapshot qualifies for restore for f03: a snapshot needs healthy inputs and in-band accuracy at its capture time
+RESULT restored=0 count
+RESULT scale_after=1.3 ratio
+RESULT perturbed=1 bool
+RESULT thread_factor=1.000
+RESULT load1=2.04
+RESULT swapins=0
+### rc=0 wall=8s

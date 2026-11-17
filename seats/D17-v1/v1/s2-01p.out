@@ -1,0 +1,13 @@
+### s2-01p load1=1.29 nproc=4
+finish_now: two_zone_mode=None zone values=False model two_zone=False
+questionnaire: two_zone_mode=None model two_zone=False (the path never asks the two-zone question)
+RESULT auto_two_zone_without_values=0 entries
+RESULT questionnaire_two_zone_unasked=0 entries
+RESULT upper_emitter_moves_single_zone_answer=0 entries
+RESULT explicit_off_two_zone=0 entries
+RESULT explicit_on_two_zone=1 entries
+RESULT wall_s=4.3 s (provisional)
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=1.35
+RESULT swapins=0
+### rc=0 wall=6s

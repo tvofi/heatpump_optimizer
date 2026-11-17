@@ -1,0 +1,18 @@
+### s2-03 load1=1.32 nproc=4
+quick furnace=True  probe=85.0: plan kWh=21.6738 layout=no_valve wood_energy_kwh=22.0
+quick furnace=True  probe=35.0: plan kWh=21.6738 layout=no_valve wood_energy_kwh=0.0
+quick furnace=False probe=85.0: plan kWh=21.6738 layout=no_valve wood_energy_kwh=22.0
+quick furnace=False probe=35.0: plan kWh=21.6738 layout=no_valve wood_energy_kwh=0.0
+RESULT quick_path_plan_kwh_spread=0.0000 kWh
+RESULT quick_path_plan_kwh_spread_loo=0.0000 kWh
+valve furnace=True  probe=85.0: plan kWh=5.6487 layout=two_tank_4way wood_energy_kwh=22.0
+valve furnace=True  probe=35.0: plan kWh=14.8955 layout=two_tank_4way wood_energy_kwh=0.0
+valve furnace=False probe=85.0: plan kWh=17.454 layout=single_tank_valve wood_energy_kwh=22.0
+valve furnace=False probe=35.0: plan kWh=17.454 layout=single_tank_valve wood_energy_kwh=0.0
+RESULT valve_arm_plan_kwh_spread=11.8053 kWh
+RESULT valve_arm_plan_kwh_spread_loo=2.5585 kWh
+RESULT wall_s=182.4 s (provisional)
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=1.24
+RESULT swapins=0
+### rc=0 wall=184s

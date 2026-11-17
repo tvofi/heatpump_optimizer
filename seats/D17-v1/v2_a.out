@@ -1,0 +1,18 @@
+AttributeError: 'ThermalParameters' object has no attribute 'on_off'
+RESULT s1-04 ERROR AttributeError: 'ThermalParameters' object has no attribute 'on_off'
+RESULT s1-05 cells_err_gt5pct=280 of 295; worst_rel_err=0.967
+RESULT s1-05 proj(P=3,m=1)=0.100 proj(P=3,m=30)=3.000 proj(P=3,m=59)=5.900
+RESULT s1-05 null proj(None,0,3)=0.000 (documented: 3.000)
+RESULT s3-03 bias_None best_restore_returns=snapshot
+RESULT s3-03 bias_0.1 best_restore_returns=snapshot
+RESULT s3-03 bias_5 best_restore_returns=None
+RESULT s3-03 no_accuracy best_restore_returns=None
+RESULT s3-03 empty_accuracy best_restore_returns=snapshot
+RESULT s2-01 mode=None from_config.two_zone=True published=True
+RESULT s2-01 mode=auto from_config.two_zone=True published=True
+RESULT s2-01 mode=off from_config.two_zone=False published=False
+RESULT s2-01 mode=on from_config.two_zone=True published=True
+RESULT s2-01 mode=None with_zone_key from_config.two_zone=True
+RESULT s3-51 spec='weekdays 05:00-06:30, weekend 10:00-11:00' cells_wrong=16 of 336
+RESULT s3-51 spec='05:00-06:30' cells_wrong=0 of 336
+RESULT thread_factor=1.000 load1=1.45

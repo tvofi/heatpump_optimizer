@@ -1,0 +1,8 @@
+### s2-05p load1=1.24 nproc=4
+after_save=menu: next step=finish_setup entry carries after_save=False (None)
+after_save=close: next step=finish_setup entry carries after_save=False (None)
+RESULT entries_with_after_save=0 entries
+RESULT thread_factor=1.00 (counts only; single-thread pin)
+RESULT load1=1.46
+RESULT swapins=0
+### rc=0 wall=1s

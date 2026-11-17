@@ -1,0 +1,25 @@
+RESULT s2-05 choice=menu type=create_entry next_after_prefill=finish_setup after_save_in_data=False
+RESULT s2-05 choice=close type=create_entry next_after_prefill=finish_setup after_save_in_data=False
+RESULT s2-05 null(no choice posted) after_save_in_data=False
+RESULT s2-05 entries_with_after_save=0 of 2
+RESULT s2-03 wood_furnace=True wood_tank=True type=create_entry wood_tank_configured=False two_tank_modelled=False topology=no_valve mixing_valve_mode=None wood_keys=['wood_furnace_enabled', 'wood_tank_volume']
+RESULT s2-03 +probe wood_tank_configured=True two_tank_modelled=False topology=no_valve
+RESULT s2-03 +probe+valve(smart_write) two_tank_modelled=False topology=single_tank_valve
+RESULT s2-03 wood_furnace=False wood_tank=False type=create_entry wood_tank_configured=False two_tank_modelled=False topology=no_valve mixing_valve_mode=None wood_keys=['wood_furnace_enabled']
+RESULT s1-02 change src=comfort_temp_day 21.0->23.0 field=comfort_temp_day_weekend shown=21.0 stored=False effective=23.0 kept_ok=False (result type menu, step init)
+RESULT s1-02 change src=comfort_temp_day 21.0->23.0 field=holiday_comfort_temp_day shown=21.0 stored=False effective=23.0 kept_ok=False (result type menu, step init)
+RESULT s1-02 null src=comfort_temp_day 21.0->21.0 field=comfort_temp_day_weekend shown=21.0 stored=False effective=21.0 kept_ok=True (result type menu, step init)
+RESULT s1-02 null src=comfort_temp_day 21.0->21.0 field=holiday_comfort_temp_day shown=21.0 stored=False effective=21.0 kept_ok=True (result type menu, step init)
+RESULT s1-02 change src=comfort_temp_night 19.0->17.5 field=comfort_temp_night_weekend shown=19.0 stored=False effective=19.0 kept_ok=True (result type form, step comfort)
+RESULT s1-02 change src=comfort_temp_night 19.0->17.5 field=holiday_comfort_temp_night shown=19.0 stored=False effective=19.0 kept_ok=True (result type form, step comfort)
+RESULT s1-02 null src=comfort_temp_night 19.0->19.0 field=comfort_temp_night_weekend shown=19.0 stored=False effective=19.0 kept_ok=True (result type menu, step init)
+RESULT s1-02 null src=comfort_temp_night 19.0->19.0 field=holiday_comfort_temp_night shown=19.0 stored=False effective=19.0 kept_ok=True (result type menu, step init)
+RESULT s1-02 change src=day_start_hour 6->8 field=day_start_hour_weekend shown=6 stored=False effective=8 kept_ok=False (result type menu, step init)
+RESULT s1-02 change src=day_start_hour 6->8 field=holiday_day_start_hour shown=6 stored=False effective=8 kept_ok=False (result type menu, step init)
+RESULT s1-02 null src=day_start_hour 6->6 field=day_start_hour_weekend shown=6 stored=False effective=6 kept_ok=True (result type menu, step init)
+RESULT s1-02 null src=day_start_hour 6->6 field=holiday_day_start_hour shown=6 stored=False effective=6 kept_ok=True (result type menu, step init)
+RESULT s1-02 change src=day_end_hour 22->20 field=day_end_hour_weekend shown=22 stored=False effective=20 kept_ok=False (result type menu, step init)
+RESULT s1-02 change src=day_end_hour 22->20 field=holiday_day_end_hour shown=22 stored=False effective=20 kept_ok=False (result type menu, step init)
+RESULT s1-02 null src=day_end_hour 22->22 field=day_end_hour_weekend shown=22 stored=False effective=22 kept_ok=True (result type menu, step init)
+RESULT s1-02 null src=day_end_hour 22->22 field=holiday_day_end_hour shown=22 stored=False effective=22 kept_ok=True (result type menu, step init)
+RESULT s1-02 kept_value_lost=6 of 8; null_lost=0
