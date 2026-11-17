@@ -1,0 +1,227 @@
+{
+ "perturb": null,
+ "cells": 36,
+ "states": [
+  "pin_fail",
+  "save_fail"
+ ],
+ "missed": [],
+ "offscale_fonts": {
+  "14": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "span.dearer",
+   "span",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "div.wi-result",
+   "span.wi-value.wi-comfort-value",
+   "span.wi-value.wi-dhw-value",
+   "div.wi-result.dearer",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "16": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "19.6": [
+   "span.title"
+  ],
+  "16.66": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "12.16": [
+   "p.legend-note"
+  ],
+  "12.6": [
+   "div.wi-group-title",
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "17.5": [
+   "span.delta.dearer",
+   "span.delta"
+  ],
+  "15.4": [
+   "button.wi-remove"
+  ]
+ },
+ "offscale_spacing": {
+  "2": [
+   "div.dlg-head",
+   "div.legend",
+   "p.legend-note",
+   "span.tile-v",
+   "input.wi-temp",
+   "input.wi-dhw-min"
+  ],
+  "3": [
+   "span.tile-u"
+  ],
+  "6": [
+   "span.legend-chips"
+  ],
+  "7": [
+   "div.legend"
+  ],
+  "10.78": [
+   "div.dlg-head"
+  ],
+  "8.82": [
+   "div.dlg-head"
+  ],
+  "5.88": [
+   "div.dlg-tabs"
+  ],
+  "5.83": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "14.99": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "7.2": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "13.6": [
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "11.2": [
+   "div.whatif"
+  ],
+  "4.2": [
+   "div.whatif"
+  ],
+  "2.1": [
+   "div.whatif"
+  ],
+  "9.8": [
+   "div.whatif",
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-section",
+   "div.wi-row.wi-slots",
+   "div.wi-row"
+  ],
+  "16.8": [
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-row.wi-slots",
+   "div.wi-row"
+  ],
+  "6.3": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "11.9": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.chip",
+   "button.chip.nodata"
+  ],
+  "5.6": [
+   "div.wi-pin-result",
+   "div.wi-group",
+   "input.wi-day-start",
+   "input.wi-day-end",
+   "div.wi-windows",
+   "div.wi-quiet",
+   "div.wi-window",
+   "input.wi-win-start",
+   "input.wi-win-end"
+  ],
+  "12.6": [
+   "div.wi-section"
+  ],
+  "7.7": [
+   "label.wi-field"
+  ],
+  "2.8": [
+   "input.wi-day-start",
+   "input.wi-day-end",
+   "input.wi-win-start",
+   "input.wi-win-end"
+  ],
+  "5.67": [
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "10.71": [
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "1.89": [
+   "select.wi-win-days"
+  ],
+  "2.52": [
+   "select.wi-win-days"
+  ],
+  "6.93": [
+   "button.wi-remove"
+  ],
+  "10.5": [
+   "div.legend"
+  ]
+ },
+ "misaligned_rows": [],
+ "misaligned_by_state": {},
+ "series_split": {},
+ "untranslated": {},
+ "console_errors": [],
+ "role_colours": {
+  "light:error": {
+   "rgb(202, 76, 70)": [
+    "span.dearer @pin_fail",
+    "div.wi-result.dearer @save_fail"
+   ]
+  },
+  "dark:error": {
+   "rgb(224, 87, 77)": [
+    "span.dearer @pin_fail",
+    "div.wi-result.dearer @save_fail"
+   ]
+  }
+ },
+ "english_error_lines": [
+  "pin_fail/375/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C"
+ ],
+ "below_floor": {},
+ "hl_rows_by_vp_lang": {}
+}

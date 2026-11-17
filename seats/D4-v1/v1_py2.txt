@@ -1,0 +1,59 @@
+=== s2/flow_errors.py
+  UNFILLED strings:config.error.dhw_window_too_short on field dhw_windows: ['min_window_minutes']
+  UNFILLED en:config.error.dhw_window_too_short on field dhw_windows: ['min_window_minutes']
+  UNFILLED sv:config.error.dhw_window_too_short on field dhw_windows: ['min_window_minutes']
+  UNFILLED de:config.error.dhw_window_too_short on field dhw_windows: ['min_window_minutes']
+CELL config.device_prefill dhw_windows: errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['matched_sources', 'name_matched'] unfilled=4
+  UNFILLED strings:config.error.silent_mode_window_too_short on field silent_mode_windows: ['min_window_minutes']
+  UNFILLED en:config.error.silent_mode_window_too_short on field silent_mode_windows: ['min_window_minutes']
+  UNFILLED sv:config.error.silent_mode_window_too_short on field silent_mode_windows: ['min_window_minutes']
+  UNFILLED de:config.error.silent_mode_window_too_short on field silent_mode_windows: ['min_window_minutes']
+CELL config.device_prefill silent_mode_windows: errors={'silent_mode_windows': 'silent_mode_window_too_short'} placeholders=['matched_sources', 'name_matched'] unfilled=4
+CELL options.modbus_prefill dhw_windows (control): errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['backup_heater_type', 'found', 'matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL options.modbus_prefill silent_mode_windows (control): errors={'silent_mode_windows': 'silent_mode_window_too_short'} placeholders=['backup_heater_type', 'found', 'matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL config.dhw dhw_windows (control): errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['min_window_minutes'] unfilled=0
+CELL options.hot_water dhw_windows: errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['min_window_minutes'] unfilled=0
+CELL options.grid_fees implausible: errors={'grid_fee_rules': 'grid_fee_rules_implausible'} placeholders=['currency', 'fee_bound'] unfilled=0
+CELL options.grid_fees negative: errors={'grid_fee_rules': 'grid_fee_rules_negative'} placeholders=['currency', 'fee_bound'] unfilled=0
+CELL options.grid_fees invalid: errors={'grid_fee_rules': 'invalid_grid_fee_rules'} placeholders=['currency', 'fee_bound'] unfilled=0
+RESULT cells=9 count
+RESULT cells_fired=9 count
+RESULT unfilled_placeholders_total=8 count
+RESULT missing_error_strings=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.29
+RESULT swapins=0
+=== s2/flow_errors.py --perturb
+CELL config.device_prefill dhw_windows: errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL config.device_prefill silent_mode_windows: errors={'silent_mode_windows': 'silent_mode_window_too_short'} placeholders=['matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL options.modbus_prefill dhw_windows (control): errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['backup_heater_type', 'found', 'matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL options.modbus_prefill silent_mode_windows (control): errors={'silent_mode_windows': 'silent_mode_window_too_short'} placeholders=['backup_heater_type', 'found', 'matched_sources', 'min_window_minutes', 'name_matched'] unfilled=0
+CELL config.dhw dhw_windows (control): errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['min_window_minutes'] unfilled=0
+CELL options.hot_water dhw_windows: errors={'dhw_windows': 'dhw_window_too_short'} placeholders=['min_window_minutes'] unfilled=0
+CELL options.grid_fees implausible: errors={'grid_fee_rules': 'grid_fee_rules_implausible'} placeholders=['currency', 'fee_bound'] unfilled=0
+CELL options.grid_fees negative: errors={'grid_fee_rules': 'grid_fee_rules_negative'} placeholders=['currency', 'fee_bound'] unfilled=0
+CELL options.grid_fees invalid: errors={'grid_fee_rules': 'invalid_grid_fee_rules'} placeholders=['currency', 'fee_bound'] unfilled=0
+RESULT cells=9 count
+RESULT cells_fired=9 count
+RESULT unfilled_placeholders_total=0 count
+RESULT missing_error_strings=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.29
+RESULT swapins=0
+=== leads/dead_placeholder.py
+UNRENDERED en tibber_info
+UNRENDERED de tibber_info
+UNRENDERED sv tibber_info
+RESULT passed=1 count
+RESULT unrendered=3 count
+RESULT unpassed=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.29
+RESULT swapins=0
+=== leads/dead_placeholder.py --perturb
+RESULT passed=1 count
+RESULT unrendered=0 count
+RESULT unpassed=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.29
+RESULT swapins=0
