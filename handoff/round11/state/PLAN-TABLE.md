@@ -95,7 +95,7 @@ gantt
 | R11-PRE-STANDING-SCRIPTS | IN | 2 | carries-open | - | opus/opus | - | Owner ruling 2026-11-13 on decision card R1 (yes, keep one exception seat): the mechanical standing roles (merge operation after an approved verdict, reviewe... |  |
 | R11-PRE-PLAN-RENDER | IN | 1 | carries-open | - | sonnet/opus | - | Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minute... |  |
 | R10-COP-LEARNER-DRAW-FLOOR | IN | 1 | done | #3106 | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
-| R11-PRE-PARALLEL-PIPELINE | IN | 1 | in-progress | - | opus/opus | - | Owner instruction 2026-11-14, his words: "Have a fable seat with web access and sendmessage capability study and design a high throughput pipeline, using a b... |  |
+| R11-PRE-PARALLEL-PIPELINE | IN | 1 | carries-open | - | opus/opus | - | Owner instruction 2026-11-14, his words: "Have a fable seat with web access and sendmessage capability study and design a high throughput pipeline, using a b... |  |
 | R10-DRAW-MAP-EVIDENCE | IN | 2 | carries-open | #3106 | opus/opus | - | Owner order 2026-11-14, after the linearity measurement for issue 3106 item 4 on the owner's own install: build the correction the data supports now, and imp... |  |
 | R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 | IN | 1 | carries-open | - | opus/opus | - | Part 3 of R10-OUTSIDE-CONTRIBUTOR-CYCLE (an outside request, ruled by the owner 2026-11-12), cut at the round-11 pickup: part 1 (#3514) and part 2 (#3521) ar... |  |
 | R11-HOTFIX-FIGURE-BLOCK-BASE | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P774 at 2e17928032 Hotfix, S. |  |
@@ -120,7 +120,7 @@ gantt
 | R11-HOTFIX-CI-PREDICT-TIMEOUT | IN | 1 | done | - | sonnet/opus | - | Hotfix R11-HOTFIX-CI-PREDICT-TIMEOUT (instrument, size S). |  |
 | R11-OUTSIDE-SLAB-SEED-GUARD | IN | 1 | done | #3616 | opus/opus | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
 | R11-OUTSIDE-ROOMS-P1 | IN | 1 | in-progress | #3616 | opus/opus | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
-| R11-OUTSIDE-ROOMS-P2 | IN | 2 | in-progress | #3616 | fable/fable | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
+| R11-OUTSIDE-ROOMS-P2 | IN | 2 | carries-open | #3616 | fable/fable | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
 | R11-OUTSIDE-ROOMS-P3 | IN | 3 | design | #3616 | fable/fable | - | tvofi 2026-11-15, verbatim: "Yes, create roadmap, post, and start design immediately." Issue #3616 (outside reporter); the round-11 study of it is kept out o... |  |
 | R11-OPENER-SCOPED-PREPR | IN | 1 | refused | - | sonnet/opus | - | Instrument change, owner ruling tvofi 2026-11-15, verbatim: "THE OPENER ALSO RUNS SCOPED. |  |
 | R11-HOTFIX-MAIN-SELFTEST-RED | IN | 1 | done | - | opus/opus | - | Main red, instrument (the main-red exception to the round-11 instrument freeze). |  |

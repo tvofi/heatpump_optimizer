@@ -27,7 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-ACK-COMPLETION (stage carries-open, branch `handoff/r11-pre-ack-completion`): `git fetch origin handoff/r11-pre-ack-completion && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-STANDING-SCRIPTS (stage carries-open, branch `handoff/r11-pre-standing-scripts`): `git fetch origin handoff/r11-pre-standing-scripts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PLAN-RENDER (stage carries-open, branch `handoff/r11-pre-plan-render`): `git fetch origin handoff/r11-pre-plan-render && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-PARALLEL-PIPELINE (stage in-progress, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-PARALLEL-PIPELINE (stage carries-open, branch `handoff/r11-pre-parallel-pipeline`): `git fetch origin handoff/r11-pre-parallel-pipeline && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage carries-open, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (stage carries-open, branch `handoff/r11-outside-contributor-cycle-p3`): `git fetch origin handoff/r11-outside-contributor-cycle-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-HOTFIX-SELFTEST-FLAKE-ARMS (stage carries-open, branch `handoff/r11-hotfix-selftest-flake-arms`): `git fetch origin handoff/r11-hotfix-selftest-flake-arms && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -46,7 +46,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-COMMUNITY-STANDARDS (stage carries-open, branch `handoff/r11-owner-community-standards`): `git fetch origin handoff/r11-owner-community-standards && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage in-progress, branch `handoff/r11-pre-security-privacy`): `git fetch origin handoff/r11-pre-security-privacy && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P1 (stage in-progress, branch `handoff/r11-outside-rooms-p1`): `git fetch origin handoff/r11-outside-rooms-p1 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-ROOMS-P2 (stage in-progress, branch `handoff/r11-outside-rooms-p2`): `git fetch origin handoff/r11-outside-rooms-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-ROOMS-P2 (stage carries-open, branch `handoff/r11-outside-rooms-p2`): `git fetch origin handoff/r11-outside-rooms-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-ROOMS-P3 (stage design, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage in-progress, branch `fix/r11-outside-self-setting-pump`): `git fetch origin fix/r11-outside-self-setting-pump && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SERVICE-SCHEMA (stage carries-open, branch `fix/r11-service-schema-p2`): `git fetch origin fix/r11-service-schema-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
