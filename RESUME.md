@@ -1,0 +1,5 @@
+Re-fire of the #3696 repair. Code head c8976e5397eae57db25303a75a56c24a52cfd4a1 on handoff/r11-pre-no-read-builders: ad36eefec0 (the earlier repair, answering the three block items of review/3696) with origin/main 5e2ef89b4e merged in, because the PR was DIRTY on tools/ci/selftest_closures.json; the resolution keeps both sides' entries.
+
+- Fully re-run at the merged head: the reviewer's 28 swaps and 9 plants, the seven stale-needle swaps applied above the MUTANTS table, the unpinned-site enumerator, structure, entities, archscore and the self-tests. Results match ad36eefec0's.
+- prepr: the scoped full run (PREPR_SKIP_CLOSURES=1) passed every code step and refused only the body's three carries to R11-PRE-PARALLEL-PIPELINE, which is now carries-open. Those carries were retargeted to R11-INTAKE-R10-RESIDUE, as the brief directs, and the body-delta run (PREPR_SKIP_CODE=1) ended rc=0.
+- The step ref was advanced fast-forward with a commit that carries the code head's tree and has parents (code head, the ref's previous tip), as the earlier seat did.

@@ -29,9 +29,9 @@ Raised by the repair of 3fe03e1480:
 
 ## Head
 
-`ad36eefec030b7e38c99c583a0da145795562d93` is the code head, the repair of 3fe03e1480a1149d529b46373a7ba275ac47681b after `Fix review: blocked` at review/3696. Merge base 38bf516bdd73f926ee9639ffda7b9ca5163fd50e; `git merge-tree --write-tree origin/main HEAD` exits 0 with origin/main at 4ecca4cc580b1065e366bf12bd5a917d40d03c0e, so main is not merged in.
+`c8976e5397eae57db25303a75a56c24a52cfd4a1` is the code head: the repair `ad36eefec030b7e38c99c583a0da145795562d93` of 3fe03e1480a1149d529b46373a7ba275ac47681b (after `Fix review: blocked` at review/3696), with origin/main 5e2ef89b4e7348b190aa917dc032da73ba04998e merged in. The merge was owed because the pull request was `DIRTY` on `tools/ci/selftest_closures.json`: both sides edited the `loop-ledger` step's read set, and the resolution keeps both sides' entries (`git diff origin/main c8976e5397eae57db25303a75a56c24a52cfd4a1 -- tools/ci/selftest_closures.json` adds `tools/ci/gate.py`, `tools/ci/ghapi.py`, `tools/ci/prelude.py` and the `tools/ci` probe and dir to that step and changes nothing else). The merge brings no change to `loop_ledger.py`, `round_metrics.py` or `gate.py` (`git diff --stat ad36eefec0 c8976e5397 --` those paths prints nothing); `roster_lib.py` gains main's own lines. Every figure below is re-taken at `c8976e5397eae57db25303a75a56c24a52cfd4a1`, merge base 5e2ef89b4e7348b190aa917dc032da73ba04998e.
 
-prepr: passed rc=0 at ad36eefec030b7e38c99c583a0da145795562d93
+prepr: passed rc=0 at c8976e5397eae57db25303a75a56c24a52cfd4a1
 
 The block, three items, all in `tools/audit/seat/loop_ledger.py`:
 
@@ -53,7 +53,7 @@ The block, three items, all in `tools/audit/seat/loop_ledger.py`:
 
 Failing case first, items 2 and 3: with the checks written and the code at caa40bb294, `--self-test --no-mutants` printed `FAIL  reds: a main red spell already open at the first main run read has no opener: ...`, `FAIL  reds: the edge spell ends at the first green main run read, and the next red after it opens a spell`, then ended on `NameError: name 'NO_CLASS' is not defined` at the column's null check. Item 1's four checks pass at 3fe03e1480's code and fail under their swaps: the four `mutant killed` lines.
 
-The reviewer's 28 swaps (`evidence/mut.py` of review/3696, unedited, run in place at `ad36eefec030b7e38c99c583a0da145795562d93`, the tree restored after):
+The reviewer's 28 swaps (`evidence/mut.py` of review/3696, unedited, run in place at `c8976e5397eae57db25303a75a56c24a52cfd4a1`, the tree restored after: `git status --short` prints nothing):
 
 ~~~text
 KILLED  is_cause: #n pattern dropped :: loop_ledger.py rc=1: FAIL  reds: a derived word the cause test refuses reads unread, never the word (+1 more)
@@ -87,11 +87,11 @@ STALE   gate job name: needle occurs 2 time(s)
 RESULT reviewer mutants: 28 drawn, 1 survived
 ~~~
 
-`convergence_why: is_cause call dropped` is the row the verdict rules no survivor (the driver does not run `roster_lib.py --self-test`). Six needles are stale: five occur a second time in the `MUTANTS` table that now quotes them, and one line moved. The same seven swaps, applied once to the code above the table, with the unswapped control:
+`convergence_why: is_cause call dropped` is the row the verdict rules no survivor (the driver does not run `roster_lib.py --self-test`). Six needles are stale: five occur a second time in the `MUTANTS` table that now quotes them, and one line moved. The same seven swaps, applied once to the code above the `MUTANTS` table at `c8976e5397eae57db25303a75a56c24a52cfd4a1`, with the unswapped control:
 
 ~~~text
 PASSES  NULL control: no swap (loop_ledger.py) :: rc=0: loop_ledger self-test: 0 failed
-PASSES  NULL control: no swap (roster_lib.py) :: rc=0: roster_lib self-test: 98 checks, 0 failed
+PASSES  NULL control: no swap (roster_lib.py) :: rc=0: roster_lib self-test: 101 checks, 0 failed
 KILLED  cause: head row uses own opener, not main's last :: rc=1: FAIL  reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both ma ...
 KILLED  cause: main row takes head-row path :: rc=1: FAIL  reds: a main run red at an earlier attempt and unconcluded at its latest joins no red spell: uncleared, never the spell's pull request
 KILLED  rows: gate job counted as failed job :: rc=1: FAIL  reds: a failed prelude is a required failure, never a machinery job (+1 more)
@@ -104,37 +104,37 @@ RESULT 7 swaps, 0 survived
 
 The surviving predicates of the earlier rounds stay killed: the table's rows from 3fe03e1480 all print `mutant killed` (two needles were re-anchored to the lines they moved to: `failed jobs per attempt`, and the new `failed jobs failed`).
 
-The reviewer's plants (`evidence/plants.py`, unedited) at `ad36eefec030b7e38c99c583a0da145795562d93`:
+The reviewer's plants (`evidence/plants.py`, unedited) at `c8976e5397eae57db25303a75a56c24a52cfd4a1`, each line cut at 230 characters by the driver:
 
 ~~~text
 ## P1 window left edge: the first main run in the window is already red, no green before it (spell opener unobserved)
-    gate_reds 2 (main 1, heads 1) caused {}; cause unread 2; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class,
-      red run 11 attempt 1 main dddddddddd cause unread (main red at the first main run read, no green main run read before it) found_by ci-main; required failed: none; machinery (report-only, never g
-      red run 12 attempt 1 head aaaaaaaaaa cause unread (main red at the first main run read, no green main run read before it); required failed: none; machinery (report-only, never gating): no other
+    gate_reds 2 (main 1, heads 1) caused {}; cause unread 2; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class, and pr or pr-cc is not derivable f
+      red run 11 attempt 1 main dddddddddd cause unread (main red at the first main run read, no green main run read before it) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; produ
+      red run 12 attempt 1 head aaaaaaaaaa cause unread (main red at the first main run read, no green main run read before it); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unre
 ## P2 main red at attempts 1,2 then green at 3; a head red between
-    gate_reds 3 (main 2, heads 1) caused {external: 2}; cause unread 0; uncleared 1; product red 0, machinery red 0 of 2 push reds (gate.status); product/machinery unread on 1 (gate.status takes an ev
-      red run 11 attempt 1 main dddddddddd cause external (a later attempt of the run went green) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; p
-      red run 11 attempt 2 main dddddddddd cause external (a later attempt of the run went green) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; p
-      red run 12 attempt 1 head aaaaaaaaaa cause uncleared (no later green); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status ta
+    gate_reds 3 (main 2, heads 1) caused {external: 2}; cause unread 0; uncleared 1; product red 0, machinery red 0 of 2 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class, and pr or pr-cc is not 
+      red run 11 attempt 1 main dddddddddd cause external (a later attempt of the run went green) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; product unread, machinery unread
+      red run 11 attempt 2 main dddddddddd cause external (a later attempt of the run went green) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; product unread, machinery unread
+      red run 12 attempt 1 head aaaaaaaaaa cause uncleared (no later green); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status takes an event class, and pr or pr-c
 ## P3 narrow rows (a ci_runs.json written before this PR: no head_sha/event/pr keys)
-    gate_reds 1 (main 0, heads 1) caused {}; cause unread 1; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class,
-      red run 1 attempt 1 head - cause unread (no run at the head names a pull request); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (ga
+    gate_reds 1 (main 0, heads 1) caused {}; cause unread 1; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class, and pr or pr-cc is not derivable f
+      red run 1 attempt 1 head - cause unread (no run at the head names a pull request); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status takes an event class, an
 ## P4 listing at the latest attempt with no gate job, run concluded failure (e.g. prelude failed, gate never listed)
-    gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class,
+    gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class, and pr or pr-cc is not derivable f
 ## P5 gate skipped/cancelled at the latest attempt on a head, run concluded cancelled
-    gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class,
+    gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class, and pr or pr-cc is not derivable f
 ## P6 head red while main red; the PR's later commit green after main fixed (design: main's PR, not own)
-    gate_reds 2 (main 1, heads 1) caused {#41: 2}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event c
-      red run 11 attempt 1 main dddddddddd cause #41 (main red since run 11) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; product unread, machin
-      red run 12 attempt 1 head aaaaaaaaaa cause #41 (main red since run 11); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status t
+    gate_reds 2 (main 1, heads 1) caused {#41: 2}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class, and pr or pr-cc is not deriv
+      red run 11 attempt 1 main dddddddddd cause #41 (main red since run 11) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; product unread, machinery unread
+      red run 12 attempt 1 head aaaaaaaaaa cause #41 (main red since run 11); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status takes an event class, and pr or pr-
 ## P7 squash-merge subject on main's first red run
-    gate_reds 1 (main 1, heads 0) caused {}; cause unread 1; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class,
-      red run 11 attempt 1 main dddddddddd cause unread (main red since run 11, whose subject names no pull request) found_by ci-main; required failed: none; machinery (report-only, never gating): no
+    gate_reds 1 (main 1, heads 0) caused {}; cause unread 1; uncleared 0; product red 0, machinery red 0 of 1 push reds (gate.status); product/machinery unread on 0 (gate.status takes an event class, and pr or pr-cc is not derivable f
+      red run 11 attempt 1 main dddddddddd cause unread (main red since run 11, whose subject names no pull request) found_by ci-main; required failed: none; machinery (report-only, never gating): no other job listed; product unread, 
 ## P8 a listing with jobs: null / malformed row
     RAISED TypeError 'NoneType' object is not iterable
 ## P9 a run row with pr as string
-    gate_reds 1 (main 0, heads 1) caused {#5: 1}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event cl
-      red run 1 attempt 1 head aaaaaaaaaa cause #5 (its later commit went green); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.stat
+    gate_reds 1 (main 0, heads 1) caused {#5: 1}; cause unread 0; uncleared 0; product red 0, machinery red 0 of 0 push reds (gate.status); product/machinery unread on 1 (gate.status takes an event class, and pr or pr-cc is not deriva
+      red run 1 attempt 1 head aaaaaaaaaa cause #5 (its later commit went green); required failed: none; machinery (report-only, never gating): no other job listed; product/machinery unread (gate.status takes an event class, and pr or
 ~~~
 
 P1 reads `unread` on both rows. P8 raises as it did at 3fe03e1480: `fetch_runs` writes `jobs` as a list on every listing it caches, and the verdict lists no block on it.
@@ -163,32 +163,32 @@ Its other survivors are on fixture and `check(...)` lines of `_self_test_reds` (
 
 ## Figures
 
-<!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=ad36eefec030b7e38c99c583a0da145795562d93 -->
+<!-- figure-block: scope-line mb=5e2ef89b4e7348b190aa917dc032da73ba04998e head=c8976e5397eae57db25303a75a56c24a52cfd4a1 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 - Self-tests at the head: `python3 -I tools/audit/seat/loop_ledger.py --self-test` ends `loop_ledger self-test: 0 failed`; its `ok` lines counted by `grep -c '^ok'`, the mutants among them by `grep -c '^ok    mutant killed'`. `python3 -I tools/audit/seat/round_metrics.py --self-test` ends `round_metrics self-test: ok (with mutants)`; `python3 -I tools/audit/seat/scorecard.py --self-test` ends `ok (with mutants)`; `python3 -I tools/audit/seat/roster_edit.py --self-test`, `python3 -I tools/audit/seat/roster_lib.py --self-test` and `python3 -I tools/ci/gate.py --self-test` each end `0 failed`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` ends `ALL 2725 ENTITY CHECKS PASSED` at the head.
-- The column's function at the merge base: `git grep -n -E '^def status|^MACHINERY_JOBS' 38bf516bdd -- tools/ci/gate.py` prints both names.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` ends `ALL 2731 ENTITY CHECKS PASSED` at the head.
+- The column's function at the merge base: `git grep -n -E '^def status|^MACHINERY_JOBS' 5e2ef89b4e -- tools/ci/gate.py` prints both names.
 - No live read was taken. The read's input is `round_metrics.py produce`'s directory, which this seat cannot fill: the session has no Actions API access. `python3 -I tools/audit/seat/loop_ledger.py --repo .` at the head ends `gate_reds unread (no --runs directory)`. The first live figure is the beat's, from `<state>/scorecard`.
 - Part C's edge is open: `git ls-remote origin 'refs/heads/*token-ledger*'` prints nothing, and `git grep -c nested_memory origin/main -- tools` prints nothing.
 - [d-hotfile-enumerator] at this merge base, origin's handoff refs fetched 2026-11-17: for each `refs/remotes/origin/handoff/*` ref with a merge base, `git diff --name-only <merge base> <ref>` filtered on `round_metrics|loop_ledger|roster_lib|tools/ci/gate.py` prints this topic's own ref and three more, `r11-pre-plan-render` 11e9a4e964, `r11-pre-round-check-gate-p2` 2cb653f2dd and `r11-pre-round-metrics-p2` e3f232aa84 (`roster_lib.py`; the last also `instruments/loop_ledger.py.md`); `git merge-tree --write-tree HEAD <ref>` exits 0 for each.
-- `python3 tools/audit/archscore/score.py --diff 38bf516bdd HEAD` prints `Architecture score: dS +0.0000 NULL`. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
-- `python3 -I tools/ci/selftest_scope.py select --change M:tools/ci/gate.py` names `loop-ledger` at the head. The repair changes no closure file: `git diff 3fe03e1480 HEAD --name-only` prints `tools/audit/seat/loop_ledger.py` and `tools/audit/seat/instruments/loop_ledger.py.md`.
+- `python3 tools/audit/archscore/score.py --diff 5e2ef89b4e HEAD` prints `Architecture score: dS +0.0000 NULL`. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `python3 -I tools/ci/selftest_scope.py select --change M:tools/ci/gate.py` names `loop-ledger` at the head. The scope line is `MODE: FULL` because the diff touches `tools/ci/selftest_closures.json`, a gate file (`tests/closure.py select` names it as the reason); prepr ran scoped (`PREPR_SKIP_CLOSURES=1`), CI runs the full gate.
 - No file is added, so nothing new is classified; no golden moves and neither claim file is touched.
 
 ## Red checks
 
-- `governance / instrument-self-tests`: inherited from main, not this diff's. Its one failing step is `python3 -I tools/audit/product_reads.py --self-test`, which ends rc 1 on `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']` at this head and, by the verdict's evidence, at the merge base; `git diff --name-only 38bf516bdd HEAD -- tools/audit/product_reads.py tools/audit/enumerate.py custom_components/` prints nothing. Hotfix #3698 is in flight for it. No cheaper detector is owed by this pull request: the check is not in `merge_train.py owed-reds`' set and the red is main's.
+- `governance / instrument-self-tests`: no red owed by this diff. CI has not yet run at this head (the pull request still shows 3fe03e1480). Its earlier red at 3fe03e1480, `python3 -I tools/audit/product_reads.py --self-test`, ends `SELF-TEST passed (86 arms)` here, since main fixed it. A red at this head on the step `Refuse a self-test read set the committed table misses` is main's own: main is red on it now, because `tools/ci/selftest_closures.json` misses reads that recent merges added, and a re-record hotfix is in flight. This merge adds entries only to the `loop-ledger` step. `merge_train.py classify <head> --pr 3696` separates an INTRODUCED self-test red from that inherited one, and the step is not in `merge_train.py owed-reds`' set.
 - `tests / nightly-status`: not in `merge_train.py owed-reds`' set; it grades main.
 
 ## Forward-carry
 
 - Carry 0 (part D built in this handoff, with the verdict's notes runs-json-width, d-hotfile-enumerator and branch-reuse and the design note's [d-p2-head]; part C not built): part C of the approved design is unbuilt (the load count per rule, an instrument's refusal with its outcome, a run line per workflow script), with the design note's fixer notes [paths], [P1] and [c-deferred]: the orchestrator dispatches it once R11-PRE-TOKEN-LEDGER is on main with an importable per-session iterator that also yields each session's subagent transcript files. [paths] is owed with it: E11-N-GATE-CAUSE's `paths` in `dev/audit/yardstick/round11/EVALUATION.json` become `tools/audit/seat/roster_lib.py`, `tools/audit/seat/loop_ledger.py` and `tools/audit/seat/round_metrics.py` in place of `tools/ci/gate.py`, plus C's file, written before the card is recorded merged; this pull request does not write them, because the card is whole only with C's run line. Lands in R11-PRE-TOKEN-LEDGER's row of the round-11 roster on handoff/audit-r10-roster, the group whose merge opens part C; this group's own row is at stage carries-open and takes no carry. Carry: R11-PRE-TOKEN-LEDGER
-- Item d-toolchain-p2-column, re-written (it replaces the text of item 6889317b on R11-PRE-PARALLEL-PIPELINE's row, whose precondition, `gate.status` on main, is met): `loop_ledger.gate_reds` applies `gate.status` under class `push` to a push run's red attempt and prints `product/machinery unread` on every other row, because `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`) and neither `pr` against `pr-cc` (`gate.reaches_custom_components`, a three-dot diff of the pull request's head) nor `no-pr` against `pr` is derivable from a cached run row. Whoever grades the other rows first caches the class per run in `round_metrics.fetch_runs`, then widens the one expression that reads `r.get("event") == "push"`; the departure raised for it awaits the orchestrator's ruling. Control: the self-test check `NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class` pins today's text and fails when a non-push row takes a verdict, and the `MUTANTS` row `column class from the event` is its mutant. Lands in R11-PRE-PARALLEL-PIPELINE's row of the round-11 roster on handoff/audit-r10-roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE
-- The four departures above await the orchestrator's ruling; lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the surface being `tools/audit/seat/loop_ledger.py`. Carry: R11-PRE-PARALLEL-PIPELINE
-- A limit of the design's rule, measured by reading `.github/workflows/ci.yml`'s triggers: a `pull_request` `edited` or `labeled` event and a `pull_request_review` event each start a run at the unchanged `head_sha`, so a red cleared by a body edit or a review at the same head reads `external`, as a re-run does. The instrument page says so. Splitting the two needs the run's kind, which the run listing the producer caches does not keep (it is in the run's `display_title`). Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE
+- Item d-toolchain-p2-column, re-written (it supersedes the text of item 6889317b on R11-PRE-PARALLEL-PIPELINE's row, whose precondition, `gate.status` on main, is met): `loop_ledger.gate_reds` applies `gate.status` under class `push` to a push run's red attempt and prints `product/machinery unread` on every other row, because `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`) and neither `pr` against `pr-cc` (`gate.reaches_custom_components`, a three-dot diff of the pull request's head) nor `no-pr` against `pr` is derivable from a cached run row. Whoever grades the other rows first caches the class per run in `round_metrics.fetch_runs`, then widens the one expression that reads `r.get("event") == "push"`; the departure raised for it awaits the orchestrator's ruling. Control: the self-test check `NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class` pins today's text and fails when a non-push row takes a verdict, and the `MUTANTS` row `column class from the event` is its mutant. R11-PRE-PARALLEL-PIPELINE, the group holding `tools/ci/gate.py`, is at stage carries-open and takes no carry, so this lands in R11-INTAKE-R10-RESIDUE's row of the round-11 roster on handoff/audit-r10-roster. Carry: R11-INTAKE-R10-RESIDUE
+- The four departures above await the orchestrator's ruling; R11-PRE-PARALLEL-PIPELINE is at stage carries-open and takes no carry, so this lands in R11-INTAKE-R10-RESIDUE's row of that roster, on the surface `tools/audit/seat/loop_ledger.py`. Carry: R11-INTAKE-R10-RESIDUE
+- A limit of the design's rule, measured by reading `.github/workflows/ci.yml`'s triggers: a `pull_request` `edited` or `labeled` event and a `pull_request_review` event each start a run at the unchanged `head_sha`, so a red cleared by a body edit or a review at the same head reads `external`, as a re-run does. The instrument page says so. Splitting the two needs the run's kind, which the run listing the producer caches does not keep (it is in the run's `display_title`). R11-PRE-PARALLEL-PIPELINE, the group holding `tools/ci/gate.py`, is at stage carries-open and takes no carry, so this lands in R11-INTAKE-R10-RESIDUE's row of that roster. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
