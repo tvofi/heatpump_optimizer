@@ -1,0 +1,3 @@
+dev/governance/roles/architect-planner.md         89   89     1325  1325 
+dev/governance/roles/plan-review.md               27   27      360   360 
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

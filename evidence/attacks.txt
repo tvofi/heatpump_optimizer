@@ -1,0 +1,70 @@
+## attack edges-deleted at 2980b6b1909616c918fdf483cf99c6691516d4a6: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL RANK edge R10-DRAW-MAP-EVIDENCE after R11-OUTSIDE-SELF-SETTING-PUMP: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+  FAIL RANK edge R11-OUTSIDE-HONEST-DHW-RUNS after R11-OUTSIDE-HONEST-STARTS-RUNS: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+  FAIL RANK edge R11-OUTSIDE-HONEST-DHW-RUNS after R11-OUTSIDE-HONEST-STARTS-RUNS-P2: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+OBJECTIVE FAIL
+Not currently on any branch.
+nothing to commit, working tree clean
+## attack edges-deleted at 2980b6b1909616c918fdf483cf99c6691516d4a6: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL RANK edge R10-DRAW-MAP-EVIDENCE after R11-OUTSIDE-SELF-SETTING-PUMP: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+  FAIL RANK edge R11-OUTSIDE-HONEST-DHW-RUNS after R11-OUTSIDE-HONEST-STARTS-RUNS: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+  FAIL RANK edge R11-OUTSIDE-HONEST-DHW-RUNS after R11-OUTSIDE-HONEST-STARTS-RUNS-P2: a rank-1 group waits on a rank-2 group with no ADR among the plan's moves
+OBJECTIVE FAIL
+rc=1
+## attack doctored-baseline at f3fcb596f1b5b7923f2bc4b97d0a56aef649c298: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+HEAD detached from 8d8e431cdd
+nothing to commit, working tree clean
+## attack doctored-baseline at f3fcb596f1b5b7923f2bc4b97d0a56aef649c298: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+rc=0
+## attack doctored-durations at 8cca238ed6013d0d20a2096ae120caaabefdfdf5: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+## attack doctored-durations at 99f64230eeeb594d14eaa1ca4bf4ad8c663c8f49: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+rc=0
+## attack fake-card at dff9b52db3888e11fb2862a261fcc9c3c1174e12: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 0
+OBJECTIVE PASS
+## attack fake-card at 25f4f90e46bde23d098ffdc913cd8e24e1328058: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 0
+OBJECTIVE PASS
+rc=0
+## attack authored-time at d03a6d4d2b8146d4595aa533f5c7e5795243dc29: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL AUTHORED time groups.R11-ARCH-OBJECTIVE.hours: the block's grammar is OBJECTIVE_KEYS; hours are replan.py's projections
+OBJECTIVE FAIL
+HEAD detached from 8d8e431cdd
+nothing to commit, working tree clean
+## attack authored-time at d03a6d4d2b8146d4595aa533f5c7e5795243dc29: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL AUTHORED time groups.R11-ARCH-OBJECTIVE.hours: the block's grammar is OBJECTIVE_KEYS; hours are replan.py's projections
+OBJECTIVE FAIL
+rc=1
+## attack stale-pin at d836009059f4b4760fc6b95a1b54b8c06a3abd25: --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL STALE pin: projection A read roster blob '79df1b0bcdf717836fdcad413fbe0a5ffa4e43f3', the plan pins '79df1b0bcdf717836fdcad413fbe0a5ffa4e43f0'
+OBJECTIVE FAIL
+## attack stale-pin at eadb4bfc9606a080374cfd600c642caeea922478: check
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL STALE pin: projection A read roster blob '79df1b0bcdf717836fdcad413fbe0a5ffa4e43f3', the plan pins '79df1b0bcdf717836fdcad413fbe0a5ffa4e43f0'
+OBJECTIVE FAIL
+rc=1

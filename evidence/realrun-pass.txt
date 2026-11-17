@@ -1,0 +1,15 @@
+## F2=d707b9846507c3552ffc0e6548cfa9db3bf752f1 --write
+projection record -> dev/audit/rounds/round11/PLAN/PROJECTION.json
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  rank-1 R10-DRAW-MAP-EVIDENCE finishes 0.0 h later than on the floor
+  rank-1 R11-OUTSIDE-HONEST-DHW-RUNS finishes 0.0 h later than on the floor
+OBJECTIVE PASS
+rc=0
+## F3=8d8e431cdd2b05367fbd3cc54b27136249671b5a re-run without --write
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  rank-1 R10-DRAW-MAP-EVIDENCE finishes 0.0 h later than on the floor
+  rank-1 R11-OUTSIDE-HONEST-DHW-RUNS finishes 0.0 h later than on the floor
+OBJECTIVE PASS
+rc=0
