@@ -2389,7 +2389,7 @@
         },
         "dhw_legionella_temperature": {
           "name": "Anti-Legionella Temperature",
-          "description": "Tank temperature reached during an anti-legionella cycle."
+          "description": "Tank temperature reached during an anti-legionella cycle, 55 to 70 °C: 70 °C is the hard maximum every hot-water cycle is capped to."
         },
         "dhw_legionella_interval_days": {
           "name": "Anti-Legionella Interval",
@@ -2507,7 +2507,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Silent power fraction",
-          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 is the unset value: sending it changes nothing, so a fraction already stored stays in force."
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 caps nothing; leave the field out to price the stored fraction."
         }
       }
     },
@@ -2597,7 +2597,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Silent power fraction",
-          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 is the unset value: sending it changes nothing, so a fraction already stored stays in force."
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 caps nothing, and sending it replaces a stored lower fraction; leave the field out to keep the stored one."
         },
         "dhw_setpoint": {
           "name": "Hot water setpoint",
