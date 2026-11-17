@@ -2,3 +2,4 @@
 1794876360 HB alive
 1794876367 CKPT setup done, worktree at base 38bf516 snapshot 9dcbf398d632
 1794876429 CKPT BLOCKED.md pushed to handoff-wip snapshot b029cf06d333
+1794876433 DONE blocked: carries 0-1 already landed in #3677 (6d369cd68f); carries 2-3 asked of owner in BLOCKED.md
