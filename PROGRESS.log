@@ -35,3 +35,4 @@
 1794854811 DONE blocked: body_push REFUSED CARRY-LANDED (4 carries to fold); code head c60b23450f on handoff/r11-valve-reference, prepr rc=0; BLOCKED.md at handoff-wip/r11-valve-reference 9f85278828
 1794877719 HB alive
 1794877741 CKPT worktree at abe961e6e5; read verdict snapshot 000e629892ba
+1794877766 CKPT start mutation_table --pin-killed snapshot 9ef14f83526c
