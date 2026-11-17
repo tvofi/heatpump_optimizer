@@ -42063,6 +42063,90 @@ R.check(
     and _et_quiet_entry.options.get("silent_mode_power_fraction") == 0.7,
     f"raised {_et_quiet_applied!r}, stored {dict(_et_quiet_entry.options)}",
 )
+# An explicit 1.0 is a value, not "the call left it alone": it resets a
+# stored lower fraction to the default (carry 56724b85). The null control is
+# the same call without the field, which keeps the stored one.
+_et_frac_low = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 0.6},
+)
+_et_frac_absent = _et_call(
+    _et_quiet_hass, "apply_schedule", {"quiet_silent_windows": "22:00-06:00"},
+)
+_et_frac_kept = _et_quiet_entry.options.get("silent_mode_power_fraction")
+R.check(
+    "apply_schedule without the fraction keeps a stored 0.6",
+    _et_frac_low is None and _et_frac_absent is None and _et_frac_kept == 0.6,
+    f"raised {_et_frac_low!r}/{_et_frac_absent!r}, stored {_et_frac_kept!r}",
+)
+_et_frac_reset = _et_call(
+    _et_quiet_hass, "apply_schedule", {"silent_mode_power_fraction": 1.0},
+)
+R.check(
+    "apply_schedule with an explicit 1.0 resets a stored 0.6 to 1.0",
+    _et_frac_reset is None
+    and _et_quiet_entry.options.get("silent_mode_power_fraction") == 1.0,
+    f"raised {_et_frac_reset!r}, stored "
+    f"{_et_quiet_entry.options.get('silent_mode_power_fraction')!r}",
+)
+# The same rule at the fraction's two sibling folds, so a what-if previews
+# what the save stores and a parameter write's live config equals the options
+# it persists: simulate_plan's `overridden_config` and set_thermal_parameters'
+# `apply_config_keys`. Each with its absent-field null control.
+from heatpump_optimizer import quiet_windows as _et_qw  # noqa: E402
+
+_et_frac_stored = {"silent_mode_power_fraction": 0.6}
+_et_frac_live = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live, {"silent_mode_power_fraction": 1.0})
+_et_frac_live_absent = dict(_et_frac_stored)
+_et_qw.apply_config_keys(_et_frac_live_absent, {"quiet_off_windows": ""})
+_et_frac_folds = {
+    "simulate 1.0": _et_qw.overridden_config(
+        _et_frac_stored, {"silent_mode_power_fraction": 1.0}
+    ).get("silent_mode_power_fraction"),
+    "simulate absent": _et_qw.overridden_config(
+        _et_frac_stored, {"quiet_off_windows": ""}
+    ).get("silent_mode_power_fraction"),
+    "live 1.0": _et_frac_live.get("silent_mode_power_fraction"),
+    "live absent": _et_frac_live_absent.get("silent_mode_power_fraction"),
+}
+R.check(
+    "the what-if and live-config folds apply an explicit 1.0 over a stored 0.6 and keep it when absent",
+    _et_frac_folds == {
+        "simulate 1.0": 1.0, "simulate absent": 0.6,
+        "live 1.0": 1.0, "live absent": 0.6,
+    },
+    f"{_et_frac_folds}",
+)
+# set_thermal_parameters' disinfection temperature stops at the 70 °C hard
+# maximum (`ThermalParameters.dhw_hard_max_temp`) that caps every cycle, the
+# config flow's own top (carry bde9263f); 70 itself is the null control.
+
+
+def _et_leg_call(temp_c):
+    """set_thermal_parameters with one disinfection temperature; what it raised."""
+    try:
+        return _et_call(
+            _et_quiet_hass, "set_thermal_parameters",
+            {"dhw_legionella_temperature": temp_c},
+        )
+    except _ger_vol.Invalid as err:
+        return err
+
+
+_et_leg_71 = _et_leg_call(71)
+_et_leg_70 = _et_leg_call(70)
+R.check(
+    "set_thermal_parameters refuses a 71 °C disinfection temperature and accepts 70",
+    isinstance(_et_leg_71, _ger_vol.Invalid) and _et_leg_70 is None,
+    f"71 raised {_et_leg_71!r}; 70 raised {_et_leg_70!r}",
+)
+_et_leg_55 = _et_leg_call(55)
+_et_leg_54 = _et_leg_call(54)
+R.check(
+    "set_thermal_parameters accepts a 55 °C disinfection temperature and refuses 54",
+    _et_leg_55 is None and isinstance(_et_leg_54, _ger_vol.Invalid),
+    f"55 raised {_et_leg_55!r}; 54 raised {_et_leg_54!r}",
+)
 _et_quiet_set = _et_call(
     _et_quiet_hass,
     "set_thermal_parameters",

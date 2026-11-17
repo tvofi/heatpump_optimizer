@@ -4584,6 +4584,7 @@
    "dev/audit/harnesses/r11_owner_criteria.py",
    "dev/audit/harnesses/r11_plan_page_inventory.py",
    "dev/audit/harnesses/r11_relay_3358_skip.py",
+   "dev/audit/harnesses/r11_selftest_static_edge.py",
    "dev/audit/harnesses/r11_toolchain_mutants.py",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
