@@ -1,3 +1,4 @@
 1794876350 INIT r11-service-schema-p2
 1794876360 HB alive
 1794876367 CKPT setup done, worktree at base 38bf516 snapshot 9dcbf398d632
+1794876429 CKPT BLOCKED.md pushed to handoff-wip snapshot b029cf06d333
