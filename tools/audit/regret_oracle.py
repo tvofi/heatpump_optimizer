@@ -632,7 +632,10 @@ def self_test():
         arm("installs: the reason is derived from ATTRIBUTE_KEYS", "ATTRIBUTE_KEYS keeps no forecast as issued" in why,
             not any("forecast" in k for k in attribute_keys(repo)))
         arm("installs: RESULT", one[-1], f"RESULT read=regret-installs universe={len(universe(repo, 'd15-installs'))} examined=1 value=NO-READ")
-        arm("installs: no bundle is not read, examined 0", read_installs(repo)[-1].split()[3], "examined=0")
+        bare = read_installs(repo)
+        arm("installs: no bundle is not read, examined 0", (bare[0].split("\t", 1)[1], bare[-1].split()[3]),
+            (f"not read: no --bundle for {label}", "examined=0"))
+        arm("installs: the MEAN line", one[-2], f"MEAN model_gap={field(r1, 'model_gap')} 2se=nan over 1 install-days; regret NO-READ per install-day")
         arm("installs planted: twice the metered power is twice the metered cost", field(r2, "metered"), f"{2 * float(field(r1, 'metered')):.4f}")
         for name, edit, want in SYNTH:
             path = Path(tmp, f"synth-{name}.json")
