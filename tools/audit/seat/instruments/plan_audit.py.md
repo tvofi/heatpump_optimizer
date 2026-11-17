@@ -30,8 +30,8 @@
   rank-2 group no rank-1 group reaches through `after`, written under the
   draft's basename. The floor cost is A less B; lead time is finish less the
   pinned start, 0018's roster-entry clock. `--write` puts the derived figures
-  and the pin, never the plans or `VERSION`, in `PROJECTION.json` beside the
-  plan; without it a record unequal to the re-run's bytes refuses. Refusals:
+  and the pin, never the plans or `VERSION`, in the projection record
+  beside the plan (its basename PROJECTION.json); without it a record unequal to the re-run's bytes refuses. Refusals:
   no block, a key outside the grammar (a time-shaped one as authored time), a
   verified bug deferred with no card, an unknown or doubly closed finding, an
   unknown class, a rank its keys contradict, a rank-2 group with no
