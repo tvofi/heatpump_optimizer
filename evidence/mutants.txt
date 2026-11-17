@@ -1,12 +1,13 @@
-Reviewer mutants at 5356706e02cd174793004a041059c090eb15efba, each run alone on a clean worktree, restored after (git checkout).
-M8 STAMP back to column-0 (verdict_audit.py): verdict_audit self-test 18 checks, 2 failed (FIRED-prefixed..., '- FIRED' prefix...)  KILLED
-M6 cap line re-prefixed "OWED handoffs CAPPED at" (orchestrator_tick.py orphans): 374 checks, 2 failed  KILLED
-M9 _carries(...) -> False (mut:carriedverdict): 374 checks, 1 failed (P657 arm)  KILLED
-M5 empty-output branch disabled (mut:redlog): 374 checks, 2 failed (both P541 arms)  KILLED
-M5b ANSI_ESC.sub dropped: 374 checks, 1 failed (P541 escapes-stripped arm)  KILLED
-S1 drop `m.group(1) == "merge" and` in Tick._bucket (P657 arm): 374 checks, 0 failed  SURVIVES
-   probe arm added by the reviewer (oboard2 with last line `Fix review: blocked <h(1095)> x: y`, carries=True,
-   expect not verdicted and an OWED line): at head 375 checks, 0 failed; with S1 applied 375 checks, 1 failed
-   ("REVIEWER PROBE: a carried *blocked* verdict is not verdicted"). So the guard is load-bearing and unpinned.
-S2 drop `m.group(2) != head and`: 374 checks, 0 failed  SURVIVES (equivalent in outcome: a merge verdict at the head is verdicted by the later arm; costs only a needless fetch)
-Self-tests unmutated at head: orchestrator_tick 374/0 failed, verdict_audit 18/0, owed_unactioned 60/0. structure.py: STRUCTURE RATCHET PASSED.
+## mutant A: delete 'm.group(1) == "merge" and' conjunct (previous block)
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL OWED buckets: P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED
+orchestrator_tick self-test: 375 checks, 1 failed
+## mutant B: invert merge -> blocked
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL OWED buckets: P657: a red PR whose head carries an older merge verdict is verdicted, no RED-UNOWNED line
+  FAIL OWED buckets: P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED
+orchestrator_tick self-test: 375 checks, 2 failed
+## restored
+orchestrator_tick self-test: 375 checks, 0 failed
