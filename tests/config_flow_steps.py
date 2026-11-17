@@ -7966,6 +7966,21 @@ async def options_cleared_price_entity_is_refused():
     )
 
 
+# r11-service-schema: option_range answers a number field's own selector range, and refuses a key whose row is no
+# number field or that has no row, rather than answering another row's range or None (simulate_plan reads it).
+_or_weight = next(r.widget.config for r in config_flow._OPTION_FIELDS if r.key == const.CONF_COMFORT_WEIGHT)
+R.check("option_range reads the options table's own number selector for its key",
+        config_flow.option_range(const.CONF_COMFORT_WEIGHT) == (_or_weight["min"], _or_weight["max"])
+        and config_flow.option_range(const.CONF_MIN_TEMP) != config_flow.option_range(const.CONF_MAX_TEMP))
+for _or_key in (const.CONF_PREFILL_OFFER, "no_such_option_key"):
+    try:
+        config_flow.option_range(_or_key)
+        _or_raised = False
+    except KeyError:
+        _or_raised = True
+    R.check(f"option_range refuses {_or_key!r}, which has no number field", _or_raised)
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()

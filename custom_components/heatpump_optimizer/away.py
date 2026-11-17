@@ -625,6 +625,7 @@ def _parse_return_time(raw: str | None) -> datetime | None:
     value = str(raw).strip()
     if value.lower() in ("unknown", "unavailable", ""):
         return None
-    # A typed time has no offset (the card's datetime-local, services.yaml's
-    # example): it is the user's wall clock, so it loads in their zone.
+    # A typed time has no offset (the card's datetime-local, a time typed
+    # into the service form): it is the user's wall clock, so it loads in
+    # their zone.
     return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)
