@@ -1,0 +1,21 @@
+== python3 -I tools/audit/seat/beat_jobs.py --self-test
+  ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+beat_jobs self-test: 291 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/postmerge.py --self-test
+  ok   mutant stage_not_queued killed by: (i) a refused or raced stage queues exactly one terminated line for the merge, owing nothing
+postmerge self-test: 40 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/carry_fold.py --self-test
+carry_fold self-test: 11 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/roster_lib.py --self-test
+roster_lib self-test: 103 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/record_beat.py --self-test
+record_beat self-test: 18 checks, 0 failed
+rc=0
+== bash tools/audit/seat/cloud_relay.sh --self-test
+  ok   null control: a PREDICTOR refusal naming no owed red adds no text and reads no check
+cloud_relay self-test: 521 checks, 0 failed
+rc=0

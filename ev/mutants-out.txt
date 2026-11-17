@@ -1,0 +1,14 @@
+M9: KILLED rc=1 anchors=1 :: TypeError: cannot unpack non-iterable function object
+M10 anchor lines: ['return {"sha": full, "branch": d.get("headRefName") or "", "issues": issues, "body": d.get("body") or ""}']
+M10: KILLED rc=1 anchors=1 :: record_beat self-test: 18 checks, 1 failed
+    FAIL the merged body is asked of gh and returned (postmerge derives its marks from it) (got: {'sha': 'a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4', 'branch': 'fix/r9-fr-1', 'issues': [3, 9], '_nobody': 0
+M11: KILLED rc=1 anchors=1 :: record_beat self-test: 18 checks, 1 failed
+    FAIL the merged body is asked of gh and returned (postmerge derives its marks from it) (got: {'sha': 'a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4', 'branch': 'fix/r9-fr-1', 'issues': [3, 9], 'body': ''})
+M16-empty-queue: KILLED rc=1 anchors=1 :: postmerge self-test: 41 checks, 3 failed
+    FAIL a clean sync with no roster group owes nothing, queues nothing and opens no ledger event (got: ['main classify said', 'OWED mark: queue: no group to queue'])
+    FAIL mutant null passes whole
+    FAIL mutant empty_queue_owed: its site appears once (got: 0)
+M9-exact: rc, lines = leased(...lambda: fold(...)) -> rc, lines = fold(...)
+FAIL main folds holding the lease: a lease the drain holds refuses before any roster read
+carry_fold self-test: 11 checks, 1 failed
+rc=1
