@@ -1,0 +1,6 @@
+git diff b6e52b059811d186bfcecc9e6489a511a447b86c...c12695cff70ec25c45085b1dae7a4044c0287087 -- custom_components/ VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md:
+(end; empty = untouched)
+
+ dev/programme/delivery/3667.md |  1 +
+ tests/features.py              | 12 ++++++++++++
+ 2 files changed, 13 insertions(+)

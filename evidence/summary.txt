@@ -1,0 +1,18 @@
+== features head
+ALL 5833 FEATURE CHECKS PASSED
+rc=0
+== features m1
+1 of 5833 FEATURE CHECKS FAILED
+rc=1
+== features m2
+1 of 5833 FEATURE CHECKS FAILED
+rc=1
+== entities
+ALL 2731 ENTITY CHECKS PASSED
+rc=0
+== structure
+STRUCTURE RATCHET PASSED
+rc=0
+== scope
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+rc=0
