@@ -1,0 +1,16 @@
+emit-prelude rc=0
+base rc=0 0 FAIL: 
+ custom_components/heatpump_optimizer/ledger.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M1-L80-REFBASIS8 rc=1 2 FAIL:   FAIL a month's first savings booking stamps the reference in force, once  [({'sum': 8.0, 'count': 1}, {'month': '2026-02', 'baseline_sek':|  FAIL a month stamped 4, the reference in force, keeps stating its saving as it books on  [({'month': '2026-02', 'baseline_sek': 3.0, 'actu|
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2-2280-GUARD_OFF rc=1 4 FAIL:   FAIL the booked reference reproduces its recorded digest on every pinned install (a change re-records it and bumps REFERENCE_BASIS)  [{'in|  FAIL single-zone valve: the plant at its pump, settled, holds the curve's own target within 0.02 K  [target 23.0: +5 C 20.662, -5 C 19.115|  FAIL single-zone valve: a thermostat set to 21 C holds 21 C behind it  [+5 C 20.6616, -5 C 19.1146, -15 C 17.5677]|  FAIL single-zone valve: where the house's gains cover its loss the curve sits at its target, never below  [gains 0.300 kW, loss 0.0750 kW,|
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M3-3504-GUARD_OFF rc=1 1 FAIL:   FAIL single-zone valve: the curve the model reports is the plant's own, at zero wind and rain  [{('one-tank', 5.0): (22.714285714285715, 2|
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M4-4312-GUARD_OFF rc=1 1 FAIL:   FAIL the booked reference reproduces its recorded digest on every pinned install (a change re-records it and bumps REFERENCE_BASIS)  [{'in|
+tree after: 0 changed
+done

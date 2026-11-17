@@ -1,0 +1,7 @@
+same custom_components/heatpump_optimizer/ledger.py
+same custom_components/heatpump_optimizer/mixing_valve.py
+same custom_components/heatpump_optimizer/thermal_model.py
+same dev/audit/harnesses/r10_sav_held_install.py
+same dev/programme/delivery/3685.md
+same tests/features.py
+DIFF tests/structure_budgets.json

@@ -1,9 +1,0 @@
-tests / mutation job 133685347675 (run 43966035605, head_sha abe961e6e56432e27cd2ea56ac22fd8e37338b50):
-    ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:80 CONST: REFERENCE_BASIS = 4
-    ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:2280 GUARD_OFF: if not p.two_zone_enabled:
-    ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3504 GUARD_OFF: if not p.two_zone_enabled and p.mixing_valve_mode in mixing_valve.THROTT
-    ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:4312 GUARD_OFF: if p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
-MUTATION TABLE REFUSED -- 2169 unpinned site(s) against 2165 at the ratchet base 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, 4 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
-
-mutation-autofix 133678186863 success 23:02:17Z; mutation-pins (1) 133647500408 success 23:01:08Z; PR head still:
-abe961e6e56432e27cd2ea56ac22fd8e37338b50	refs/pull/3685/head

@@ -1,5 +1,0 @@
-Contamination disclosure: the first head run of r10_sav_held_install.py (one-tank/combi settled 23.446/23.470)
-ran in /home/user/wt-head while the mutation driver had M2/M3 applied there; discarded and re-taken in a
-separate clean worktree (wt-clean, abe961e6). The re-take is ev/sav_held_head.txt and matches the body.
-Base = e352724335c136b65562cd3e71f728549ad04a82 (the body's stated merge base for the fix); PR merge base with
-origin/main now is 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (no production change between them on these files).
