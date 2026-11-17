@@ -83,7 +83,7 @@ never credited for dS alone (`fixer.md` step 17).
 Decision 0018's objective ranks the work and the target is its floor: the
 plan's `objective` block predicts each term, ranks and keys each group and
 pins the projection; `plan_audit.py objective-check` passes before the
-push, and its guide holds the grammar.
+push; its guide holds the grammar.
 
 **You do not** write production code, dispatch seats, edit the scorer, or
 carry a target for any single pull request.
