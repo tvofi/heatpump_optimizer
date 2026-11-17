@@ -36,6 +36,8 @@ from .drift import utc_shift
 from .const import (
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
+    CONF_COMFORT_TEMP_NIGHT,
+    CONF_COMFORT_WEIGHT,
     CONF_DAY_END_HOUR,
     CONF_DAY_START_HOUR,
     CONF_DHW_ENABLED,
@@ -49,10 +51,11 @@ from .const import (
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
-    DEFAULT_SILENT_MODE_FRACTION,
     CONF_WOOD_FURNACE_ENABLED,
     DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
+    CONF_MAX_TEMP,
+    CONF_MIN_TEMP,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
@@ -81,7 +84,7 @@ from .const import (
     POSITIVE_PARAM_FLOOR,
     topology_layout_valid,
 )
-from .config_flow import identity_update
+from .config_flow import identity_update, option_range
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
@@ -103,16 +106,33 @@ _LOGGER = logging.getLogger(__name__)
 
 SERVICE_SCHEMA_RUN_OPTIMIZATION = vol.Schema({})
 
+
+def _float_range(minimum: float, maximum: float) -> vol.All:
+    return vol.All(vol.Coerce(float), vol.Range(min=minimum, max=maximum))
+
+
+# One validator per setting, shared by the service that saves it and the
+# what-if that prices it, so a what-if prices exactly what its save would
+# store. The card saves its what-if draft through apply_schedule; a field
+# only the options flow writes takes that flow's own selector range.
+_COMFORT_TEMP_C = _float_range(5, 30)
+_DHW_SETPOINT_C = _float_range(30, 75)
+# The coarse range matches the options flow; apply_schedule checks the real
+# ceiling, which depends on the entry's own ``dhw_setpoint``, per entry.
+_DHW_MIN_TEMP_C = _float_range(35, 55)
+
 # What-if simulator (item 21). Every field is optional: the card sends only the
 # one the user is dragging, and anything absent keeps its configured value.
 SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
     {
-        vol.Optional("target_temp"): vol.Coerce(float),
-        vol.Optional("min_temp"): vol.Coerce(float),
-        vol.Optional("max_temp"): vol.Coerce(float),
-        vol.Optional("comfort_temp_day"): vol.Coerce(float),
-        vol.Optional("comfort_temp_night"): vol.Coerce(float),
-        vol.Optional("comfort_weight"): vol.Coerce(float),
+        vol.Optional("target_temp"): _COMFORT_TEMP_C,
+        vol.Optional("min_temp"): _float_range(*option_range(CONF_MIN_TEMP)),
+        vol.Optional("max_temp"): _float_range(*option_range(CONF_MAX_TEMP)),
+        vol.Optional("comfort_temp_day"): _COMFORT_TEMP_C,
+        vol.Optional("comfort_temp_night"): _float_range(
+            *option_range(CONF_COMFORT_TEMP_NIGHT)
+        ),
+        vol.Optional("comfort_weight"): _float_range(*option_range(CONF_COMFORT_WEIGHT)),
         # The heating schedule: which hours get the day comfort temperature.
         vol.Optional("day_start_hour"): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=23)
@@ -120,8 +140,8 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
         vol.Optional("day_end_hour"): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=24)
         ),
-        vol.Optional("dhw_setpoint"): vol.Coerce(float),
-        vol.Optional("dhw_min_temperature"): vol.Coerce(float),
+        vol.Optional("dhw_setpoint"): _DHW_SETPOINT_C,
+        vol.Optional("dhw_min_temperature"): _DHW_MIN_TEMP_C,
         # An empty string is meaningful here: it simulates having no demand
         # windows at all, so it must survive the "drop empty values" filter in
         # the handler below.
@@ -236,24 +256,13 @@ SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
         vol.Optional("silent_mode_power_fraction"): vol.All(
             vol.Coerce(float), vol.Range(min=0.0, max=1.0)
         ),
-        vol.Optional("comfort_temp_day"): vol.All(
-            vol.Coerce(float), vol.Range(min=5, max=30)
-        ),
+        vol.Optional("comfort_temp_day"): _COMFORT_TEMP_C,
         # The inbox Apply and the what-if save. Both are options keys, so a
         # reload keeps them; set_thermal_parameters writes the same keys but
         # the card's Apply goes through this service.
-        vol.Optional(CONF_DHW_SETPOINT): vol.All(
-            vol.Coerce(float), vol.Range(min=30, max=75)
-        ),
-        vol.Optional(CONF_TARGET_TEMP): vol.All(
-            vol.Coerce(float), vol.Range(min=5, max=30)
-        ),
-        # The coarse range matches the options flow; the real ceiling depends
-        # on the entry's own ``dhw_setpoint`` and so is checked per entry in
-        # the handler, where that setpoint is in hand.
-        vol.Optional("dhw_min_temperature"): vol.All(
-            vol.Coerce(float), vol.Range(min=35, max=55)
-        ),
+        vol.Optional(CONF_DHW_SETPOINT): _DHW_SETPOINT_C,
+        vol.Optional(CONF_TARGET_TEMP): _COMFORT_TEMP_C,
+        vol.Optional("dhw_min_temperature"): _DHW_MIN_TEMP_C,
         # Restrict the write to one config entry. Omitted means every entry,
         # which matches how simulate_plan behaves and is what the card wants
         # on a single-heat-pump install.
@@ -330,7 +339,7 @@ SERVICE_SCHEMA_DEBUG_COLLECT = vol.Schema(
 # NumberSelector minimums and ThermalParameters.clamp() so the same "not
 # zero" line holds on every path a value can arrive by.
 def _positive(upper: float) -> vol.All:
-    return vol.All(vol.Coerce(float), vol.Range(min=POSITIVE_PARAM_FLOOR, max=upper))
+    return _float_range(POSITIVE_PARAM_FLOOR, upper)
 
 
 # #1910 (SW-1): one canonicalisation and one cross-spec rule for the quiet
@@ -372,12 +381,11 @@ def _quiet_schedule_fields(data: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = _refuse_quiet(
         data, "apply_schedule_invalid_quiet_windows", "", "", ""
     )
-    # The fraction stores only when the call moved it off its default --
-    # absent and an explicit 1.0 are the same setting, so an untouched
-    # page's default post changes nothing.
-    fraction = data.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-    if fraction != DEFAULT_SILENT_MODE_FRACTION:
-        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+    # A fraction the call names is stored as named, the default included:
+    # an explicit 1.0 resets a stored lower fraction (carry 56724b85), and
+    # only an absent field leaves the stored one alone.
+    if CONF_SILENT_MODE_FRACTION in data:
+        out = {**out, CONF_SILENT_MODE_FRACTION: data[CONF_SILENT_MODE_FRACTION]}
     return out
 
 
@@ -477,9 +485,7 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         ),
         # DHW parameters
         vol.Optional("dhw_tank_volume"): _positive(2000),
-        vol.Optional("dhw_setpoint"): vol.All(
-            vol.Coerce(float), vol.Range(min=30, max=75)
-        ),
+        vol.Optional("dhw_setpoint"): _DHW_SETPOINT_C,
         vol.Optional("dhw_min_temperature"): vol.All(
             vol.Coerce(float), vol.Range(min=10, max=70)
         ),
@@ -499,8 +505,10 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
             vol.Coerce(float), vol.Range(min=5, max=60)
         ),
         vol.Optional("dhw_legionella_enabled"): cv.boolean,
+        # Tops out at the 70 °C hard maximum every cycle is capped to
+        # (`ThermalParameters.dhw_hard_max_temp`), as the config flow does.
         vol.Optional("dhw_legionella_temperature"): vol.All(
-            vol.Coerce(float), vol.Range(min=55, max=75)
+            vol.Coerce(float), vol.Range(min=55, max=70)
         ),
         vol.Optional("dhw_legionella_interval_days"): _positive(60),
         # Weather sensitivity parameters

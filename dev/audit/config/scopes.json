@@ -481,6 +481,7 @@
   "mode": "files",
   "universe": [
    "README.md",
+   "ROADMAP.md",
    "DISCLAIMER.md",
    "RELEASE_NOTES.md",
    "docs/index.html",
@@ -497,8 +498,9 @@
    "CLAUDE.md",
    "AGENTS.md",
    "SECURITY.md",
+   "CODE_OF_CONDUCT.md",
    "dev/README.md",
-   "dev/governance/{dimensions,roles,rules}/*.md",
+   "dev/governance/{dimensions,dimensions/criteria,roles,rules}/*.md",
    "dev/programme/HANDOVER.md",
    "dev/programme/RULINGS.md",
    "dev/programme/plan-*.md",
@@ -538,6 +540,7 @@
     {
      "files": [
       "README.md",
+      "ROADMAP.md",
       "DISCLAIMER.md",
       "RELEASE_NOTES.md",
       "docs/index.html",
@@ -559,7 +562,7 @@
       "hacs.json",
       "blueprints/**",
       "docs/img/**",
-      "dev/governance/{dimensions,roles}/*.md"
+      "dev/governance/{dimensions,dimensions/criteria,roles}/*.md"
      ],
      "steps": [
       "M1",
@@ -600,6 +603,7 @@
       "CLAUDE.md",
       "AGENTS.md",
       "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
       "dev/README.md",
       "dev/governance/rules/*.md",
       "dev/programme/HANDOVER.md",
@@ -1173,6 +1177,130 @@
       "M7",
       "M8",
       "M9"
+     ]
+    }
+   ]
+  }
+ },
+ "D16": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D17": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/{services.yaml,strings.json}",
+   "blueprints/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "axis": {
+   "kind": [
+    "option",
+    "options-step",
+    "config-field",
+    "config-step",
+    "service",
+    "entity",
+    "blueprint"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "option",
+      "options-step"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "config-field",
+      "config-step"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ],
+     "axis": [
+      "service",
+      "entity",
+      "blueprint"
      ]
     }
    ]

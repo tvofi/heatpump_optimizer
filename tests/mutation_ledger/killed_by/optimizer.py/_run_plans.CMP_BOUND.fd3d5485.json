@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_run_plans CMP_BOUND fd3d5485",
+  "killed_by": "tests/features.py",
+  "old": "        forced=np.where((other > 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`forced=np.where((other >= 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8. Each of the 3 sites under this anchor was killed."
+}

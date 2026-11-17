@@ -15,7 +15,11 @@
   `set-after <group> <G1,G2,...|->` (replaces the after-edges whole, `-` for
   none), `set-source <group> <outside|->` (a word of `roster_lib.SOURCES`, or
   `-` to drop the key; queue-only, like `set-after`; the plan's top tier reads
-  `outside` through `roster_lib.is_outside`), and `set-resume <group> --field
+  `outside` through `roster_lib.is_outside`), `set-field <group> <field> <value>`
+  (the P268 mapping fields, and the convergence record `loop_ledger.py` reads:
+  `found_by`, `owned_by`, `caused_by`, `family`, `cm_kind`, `parent`,
+  `follows`, each refused outside `roster_lib.convergence_why`'s vocabulary),
+  and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
   fields a session restarts from. When: any roster change — never a string
   splice, which unbalanced the file twice. Refusals: the lint gate (run from

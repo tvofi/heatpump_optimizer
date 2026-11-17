@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 24 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 25 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -323,7 +323,7 @@ opens this screen. Enter a valid token and price updates resume.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **24 pages**: eight on the first menu, and sixteen more behind
+There are **25 pages**: eight on the first menu, and seventeen more behind
 **Advanced settings**. One of the eight — *Your system, as configured* — is
 read-only, and the last advanced page, *Reset to factory defaults*, is an
 action behind a confirmation rather than settings. Each page saves on its own, so changing one setting never touches
@@ -350,6 +350,7 @@ control, described once here rather than twenty-three times below:
 | Sensors and entities | Price source, weather, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
+| Room thermometers | Optional room thermostats or temperature sensors: their average and spread, and whether a cold room raises the planned minimum |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | The questionnaire again, plus windows and weather sensitivity |
 | Thermal model (expert) | The raw single-zone masses, losses, COP and power limits |
@@ -489,7 +490,7 @@ warmth.
 | How hard to chase low prices | 1.0 | 0.1–10 | Higher moves more heating into cheap hours and allows more swing. |
 | How strictly to hold the temperature | 5.0 | 0.1–20 | The most effective knob you have. It is weighed against the range you allow, so widening that range makes the optimizer bolder. |
 | Recalculate every | 30 min | 10–120, 5 steps | More often reacts quicker and does more work. |
-| Cost of one compressor start | 0.0 | 0–10, 0.05 steps | In the same currency as your prices. Discourages plans that switch on and off repeatedly. The **Compressor Starts** sensor counts *realised* starts and needs a power meter; the plan's own projected start count is not published on any entity. |
+| Cost of one compressor start | 0.0 | 0–10, 0.05 steps | In the same currency as your prices. Discourages plans that switch on and off repeatedly: above 0, the plan runs the pump in whole runs at or above its minimum power instead of averaging a lower level within a step. The **Compressor Starts** sensor counts *realised* starts and needs a power meter; the plan's own projected start count is not published on any entity. |
 | Caution with guessed prices | 0.0 | 0.0–2.0, 0.05 steps | Beyond the published horizon prices come from your learned daily shape. This adds a premium proportional to how wrong those guesses have tended to be. 0 trusts them at face value. |
 | Hold a safety margin where the model is unsure | off | on/off | Raises the comfort floor by the model's own expected error at that horizon, capped at 0.8 °C and shrinking as accuracy improves. |
 | Compressor replacement cost | 0 | 0–100 000, 100 steps | What a compressor swap costs including labour, in your price currency. Divided by the rated starts below it prices each realised start. 0 keeps the start counter pure observation. |
@@ -965,6 +966,13 @@ whether *Control* is worth turning on: the share of *delivered* steps is how
 often the pump already does what the plan wanted. *Off* (the default) does
 neither.
 
+### Room thermometers
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Room thermometers | none | up to 32 `climate` entities or `temperature` sensors | Optional, one per room. A room thermostat's own room temperature (its `current_temperature`) is read, not its HVAC mode; a temperature sensor's state is read as it is. Two sensors appear once the list is saved: **Room Average Temperature**, the mean over the rooms that read, and **Room Temperature Spread**, the warmest room less the coldest, in K. A room that is unavailable, older than six hours (times the staleness scale) or outside -30 to 60 °C is left out and listed under the average's `dropped` attribute; it never raises an input problem. With fewer than half the rooms readable both sensors read unknown. The indoor temperature sensor on **Sensors and entities** is still the one the model runs on, and the plan uses the rooms only with the setting below. Clearing the list removes it; a factory reset keeps it, as it keeps every sensor. |
+| Let a cold room raise the planned minimum | off | on / off | Off, a room list changes nothing in the plan. On, a room thermostat that reads further below its own target than the house reads below yours raises the minimum temperature the plan holds. Only a `climate` in `heat` or `auto` mode counts: a room switched off or cooling, a plain temperature sensor (it has no target) and a dropped room do not. The raise is the coldest such room's shortfall less the house's own, at most 1 °C, and it never lifts the minimum above your comfort target for that hour — so the plan holds the house at its target while a room is short, and never plans the house above it; raise the target for more. It rises from where the house is now by 0.25 °C an hour, moves only when the rooms ask for 0.2 °C more or less, and drops at once when it yields: in Economy mode, while a window is detected open, while away, on a holiday, while a heating slot is planned by hand, and in two-zone mode (the list does not say which floor a room is on). **Room Temperature Spread**'s `lift` attribute shows the size asked for, the room that set it and, when it yielded, to what. |
+
 ### Heating system and heat storage
 
 Everything between the heat sources and the emitters. Leave the valve at *No
@@ -1382,7 +1390,7 @@ would otherwise divide by zero inside the model:
   `dhw_min_temperature` (10–70), `dhw_daily_consumption` (0.01–2000),
   `dhw_cooling_rate` (0.01–5), `buffer_cooling_rate` (0.01–50),
   `dhw_schedule_enabled`, `dhw_windows`, `dhw_idle_min_temperature` (5–60),
-  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–75),
+  `dhw_legionella_enabled`, `dhw_legionella_temperature` (55–70),
   `dhw_legionella_interval_days` (0.01–60).
 - **Weather:** `wind_sensitivity_factor` (0–1),
   `rain_heat_loss_multiplier` (1–2).
@@ -1412,7 +1420,8 @@ same failure the live solve would report.
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
 would never open is rejected — checked against the values that *would* be
-stored, not only against the ones in the call.
+stored, not only against the ones in the call. A `silent_mode_power_fraction`
+of 1.0 replaces a stored lower fraction; leave the field out to keep it.
 
 **`assign_entity`** assigns or clears one optional sensor slot: `key` is one of
 the 21 assignable configuration keys (`outdoor_temp_entity`,

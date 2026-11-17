@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_descent_pair RETURN_DEL 80e8593e",
+  "killed_by": "tests/features.py",
+  "old": "    return partial(objective, descent=descent), partial(objective_batch, descent=descent)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

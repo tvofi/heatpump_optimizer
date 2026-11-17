@@ -16,8 +16,14 @@
   tvofi 2026-11-07, triage P420, and 2026-11-08); an omitted topic slots by
   default class (hotfix `R10-HOTFIX-*`, outside or critical,
   `triage-*`/`roster-*`, the rest). State under `$HPO_STATE_DIR/open-driver/`: a (topic, sha) is seen only
-  on rc=0, a failed one retries after 5 min doubling to 2 h and prints `OWED
-  <utc> open-refused <topic> <sha8> rc=<n> <reason>` each pass. Prints `START`,
+  on rc=0, a failed one retries after 30 min doubling to 2 h, three runs in all,
+  and prints `OWED <utc> open-refused <topic> <sha8> rc=<n> <reason>` each pass.
+  A `REFUSE: STALE CHECKOUT <head>` result is the environment's: no backoff, no
+  count, `SKIP ... stale-checkout` until the tools checkout HEAD changes, then
+  retried on the next pass. After any other environment failure is fixed, run
+  `open_driver.py retry <topic> [<sha>]` (prints `RETRY <topic> <sha8> n= next=
+  why=`, refuses a topic with no entry); never edit `fails.json` by hand, every
+  pass loads and rewrites it. Prints `START`,
   `RESULT`, `SKIP`, `NEEDS-TITLE`, `STARVED <topic> <sha8> <h>h` (unstarted
   over 2 h). When: each tick, after the board is written. Not here yet (the
   next part of R10-OPENER-REUSE): the tick printing the OWED lines, and the

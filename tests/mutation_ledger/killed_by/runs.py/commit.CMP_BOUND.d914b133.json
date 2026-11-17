@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CMP_BOUND d914b133",
+  "killed_by": "tests/features.py",
+  "old": "        mask[k] = u < min_on",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`mask[k] = u <= min_on`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}
