@@ -1,0 +1,27 @@
+
+=== Stress and economics ===
+FILE custom_components/heatpump_optimizer/batchmath.py median_share=0.0142 max_share=0.0186 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/const.py median_share=0.0000 max_share=0.0000 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/dhw_planner.py median_share=0.0009 max_share=0.0036 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/dhw_schedule.py median_share=0.0000 max_share=0.0029 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/drift.py median_share=0.0000 max_share=0.0002 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/duty_legs.py median_share=0.0000 max_share=0.0000 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/manual_plan.py median_share=0.0000 max_share=0.0000 in_scenarios=1/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/mixing_valve.py median_share=0.0000 max_share=0.0001 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/optimizer.py median_share=0.0288 max_share=0.0583 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/presets.py median_share=0.0000 max_share=0.0000 in_scenarios=1/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/runs.py median_share=0.0000 max_share=0.0037 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/slot_drivers.py median_share=0.0001 max_share=0.0014 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/tariff.py median_share=0.0002 max_share=0.0006 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/thermal_model.py median_share=0.0078 max_share=0.0652 in_scenarios=5/5 whole_solve_sees_2x=0
+FILE custom_components/heatpump_optimizer/wood_fuel.py median_share=0.0000 max_share=0.0000 in_scenarios=5/5 whole_solve_sees_2x=0
+RESULT scenarios=5 scenarios
+RESULT files_profiled=15 files
+RESULT files_whose_2x_trips_whole_solve=0 files
+RESULT kernel_median_share=0.7254 ratio provisional
+RESULT top_file=custom_components/heatpump_optimizer/optimizer.py
+RESULT top_file_median_share=0.0288 ratio provisional
+RESULT whole_solve_factor=1.4142 ratio
+RESULT thread_factor=1.000
+RESULT load1=14.33
+RESULT swapins=0

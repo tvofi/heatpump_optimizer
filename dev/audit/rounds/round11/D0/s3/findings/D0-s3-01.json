@@ -1,0 +1,45 @@
+{
+  "id": "D0-s3-01",
+  "scope": "D0-s3",
+  "step": "D0.M8",
+  "title": "The finder export strips the evidence bundles.json names, so enumerate.py d15-installs refuses in every finder tree",
+  "severity": "medium",
+  "claim": "After tools/audit/prepare_baseline.sh --strip, `enumerate.py d15-installs` prints 0 lines and exits 2 where the same tree printed 1 line before the strip, because strip_earlier_rounds keeps only closure- and tests-referenced round files and dev/audit/config/bundles.json's evidence paths are neither.",
+  "mechanism": "strip_earlier_rounds builds `keep` from tests/closures.json and round-path literals in tests/*.py|*.mjs|*.sh; enumerate.py:d15 refuses any bundle whose `evidence` file is absent. bundles.json's evidence (dev/audit/rounds/round10/D15/s1/intake.py) is under an earlier round and in neither set, so it is deleted and D0.M8's per-install-day universe (and its coverage row) cannot be printed by any seat working in an export.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+    "harness_path": "dev/audit/rounds/round11/D0/s3/wall_d15.py",
+    "value": "before_strip_lines=1 rc=0; after_strip_lines=0 rc=2",
+    "unit": "enumerator lines",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3 (4 cores, shared by three seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two D0-s3 grid runs and two other seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 13.4,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/prepare_baseline.sh:strip_earlier_rounds",
+  "perturbation": {
+    "change": "--perturb keep_bundles: one line after the keep set, `keep |= {b['evidence'] for b in bundles.json's bundles}` (in a temp copy of the script)",
+    "expected_direction": "up",
+    "observed_value": "after_strip_lines=1 rc=0"
+  },
+  "metric_definition": "Lines `enumerate.py --repo <tree> d15-installs` prints after `prepare_baseline.sh --strip <tree> 11`, beside the same count before the strip.",
+  "phenomenon_property": "Every file an audit enumerator requires to exist (bundles.json evidence, and any other path an enumerator refuses on) survives the finder export's strip, so each step's universe prints in the tree a finder works in.",
+  "seam_rule": "grep -n 'is not in the tree\\|exists()' tools/audit/enumerate.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+    "value": "before_strip_lines=1",
+    "note": "the same tree before the strip prints the line: the refusal is the strip's, not the config's"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py --perturb keep_bundles",
+    "python3 tools/audit/enumerate.py d15-installs   # in this export: REFUSE, rc 2"
+  ],
+  "proposed_fix_scope": "tools/audit/prepare_baseline.sh strip_earlier_rounds: add bundles.json evidence paths (or every path an enumerator refuses on) to keep; a --strip self-test arm planting a bundle",
+  "files": ["tools/audit/prepare_baseline.sh", "tools/audit/enumerate.py", "dev/audit/config/bundles.json"],
+  "stop_rule_class": "bug",
+  "class_guess": "I2"
+}
