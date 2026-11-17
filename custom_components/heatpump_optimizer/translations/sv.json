@@ -2030,6 +2030,9 @@
       "room_average_temperature": {
         "name": "Rummens medeltemperatur"
       },
+      "room_separability": {
+        "name": "Rummens separerbarhet"
+      },
       "room_temperature_spread": {
         "name": "Rummens temperaturspridning"
       },

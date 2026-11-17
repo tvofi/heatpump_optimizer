@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import duty_switch, narrative
+from . import duty_switch, narrative, room_history
 from . import topology
 from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
@@ -274,10 +274,11 @@ async def async_setup_entry(
         WoodBurnAdvisorSensor(coordinator, entry),
         ModelRestartAdvisorSensor(coordinator, entry),
     ]
-    # The room list's two sensors exist only where a list is configured
+    # The room list's three sensors exist only where a list is configured
     # (#3616); an options save reloads the entry, so the set holds for its life.
     if EntryConfig.from_mapping(coordinator.effective_config).room_temperature_entities:
-        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry)]
+        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry),
+                     RoomSeparabilitySensor(coordinator, entry)]
 
     async_add_entities(entities)
 
@@ -753,6 +754,29 @@ class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         block = _mapping(self._data().get("rooms"))
         return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
+
+
+class RoomSeparabilitySensor(HeatPumpOptimizerSensorBase):
+    """How many rooms the room history can model apart (#3616, phase 3a).
+
+    The state counts the rooms whose verdict is ``separable``; the attributes
+    carry each room's verdict and the house line (``room_history.report``).
+    Unknown until the history is loaded on the first cycle.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_separability", "room_separability")
+
+    @property
+    def native_value(self) -> int | None:
+        return room_history.separable_count(room_history.report_of(self.coordinator))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        view = room_history.report_of(self.coordinator) or {}
+        return {"rooms": view.get("rooms"), "house": view.get("house"), "rows": view.get("rows")}
 
 
 class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):

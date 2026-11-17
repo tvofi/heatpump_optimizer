@@ -513,6 +513,15 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
             **{t: Domain("int", 0, 10**9, whole=_DUTY_SWITCH) for t in ("stopped", "kept", "void", "censored")},
         }.items()
     },
+    # room_history.py: comma-joined centi-unit columns, one per room and field and
+    # one per house field; ``room_history.loaded`` checks each cell's range and length.
+    "room_history": {
+        "times": Domain("text", whole="a bad row time empties the ring"),
+        "rooms/~": _TEXT,
+        **{f"rooms/*/{f}": Domain("text", whole="a bad cell drops that room's ring") for f in ("t", "target", "call")},
+        **{f"house/{f}": Domain("text", whole="a bad cell nulls the house columns")
+           for f in ("outdoor", "return", "power", "space")},
+    },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},
         **{f"{k}_slots/#/{e}": _AT for k in ("space", "dhw") for e in ("start", "end")},

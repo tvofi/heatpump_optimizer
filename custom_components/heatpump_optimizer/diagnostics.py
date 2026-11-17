@@ -77,7 +77,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import heat_curve
-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
+from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc, room_history
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
@@ -357,6 +357,8 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     if state:
         snap.update(state.learner_summaries)
     snap.update({key: _never_breaks(view, coord) for key, view in _VIEWS})
+    if room_history.record_of(coord) is not None:  # only an install with a room list keeps one (#3616)
+        snap["room_history"] = _never_breaks(room_history.report_of, coord)
     return snap
 
 

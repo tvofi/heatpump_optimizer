@@ -262,7 +262,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
-from . import rooms, slab_seed
+from . import room_history, rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -6067,7 +6067,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
-            # Fetch weather forecast (full 24h for solar, wind, rain, temp)
             await self._fetch_weather_forecast()
 
             # Refresh Open-Meteo irradiance, if that is the selected source.
@@ -6079,7 +6078,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # which is what fills the horizon past the published data.
             await self._async_learn_price_shape()
 
-            # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
             elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
@@ -6118,6 +6116,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             await _best_effort_cycle_step(
                 self._record_accuracy, "Accuracy pairing skipped: %s"
             )
+            await _best_effort_cycle_step(lambda: room_history.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_history.House(  # #3616 phase 3a
+                ctx._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
             await _best_effort_cycle_step(
                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
             )

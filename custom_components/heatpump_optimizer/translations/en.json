@@ -2030,6 +2030,9 @@
       "room_average_temperature": {
         "name": "Room Average Temperature"
       },
+      "room_separability": {
+        "name": "Room Separability"
+      },
       "room_temperature_spread": {
         "name": "Room Temperature Spread"
       },

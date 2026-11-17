@@ -560,13 +560,13 @@ _ROOM_BLOCK = {
 _room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
 _room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
 _room_all = collect(sensor, coordinator=_room_coord)
-_room_keys = ("room_average_temperature", "room_temperature_spread")
+_room_keys = ("room_average_temperature", "room_temperature_spread", "room_separability")
 room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
 _room_by_key = {e._attr_translation_key: e for e in room_sensors}
 R.check(
-    "a configured room list adds exactly the room average and spread sensors; null control, the "
-    "default roster with no list holds neither",
-    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    "a configured room list adds exactly the room average, spread and separability sensors; null "
+    "control, the default roster with no list holds none of them",
+    len(_room_all) == len(sensors) + 3 and set(_room_by_key) == set(_room_keys)
     and not any(e._attr_translation_key in _room_keys for e in sensors),
     f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
 )
