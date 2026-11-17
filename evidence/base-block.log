@@ -1,0 +1,12 @@
+
+=== features block ===
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   apply_schedule whose off window overlaps the hot-water windows the same call stores raises a translatable error
+  ok   apply_schedule accepts valid quiet rows and the fraction, canonicalised into the entry's options
+  ok   apply_schedule without the fraction keeps a stored 0.6
+  FAIL apply_schedule with an explicit 1.0 resets a stored 0.6 to 1.0  [raised None, stored 0.6]
+  FAIL the what-if and live-config folds apply an explicit 1.0 over a stored 0.6 and keep it when absent  [{'simulate 1.0': 0.6, 'simulate absent': 0.6, 'live 1.0': 0.6, 'live absent': 0.6}]
+  FAIL set_thermal_parameters refuses a 71 °C disinfection temperature and accepts 70  [71 raised None; 70 raised None]
+  ok   set_thermal_parameters accepts a 55 °C disinfection temperature and refuses 54
+
+3 of 7 FEATURES BLOCK FAILED
