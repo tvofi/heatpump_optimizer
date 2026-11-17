@@ -1,4 +1,0 @@
-plan_audit self-test: 27 checks, 0 failed
-plan_audit.py: error: argument cmd: invalid choice: 'objective-check' (choose from 'end-to-end', 'ledger', 'snapshot', 'compare')
-rc=0
-249 passed, 0 failed

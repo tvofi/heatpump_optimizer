@@ -1,3 +1,0 @@
-## fixture F1=0e1e47eade6cfd65ff7de80632796fedd4db135f (local commit on head 2eee862d2d61b2fe2431c979048360d1b4392cfa + roster from origin/handoff/audit-r10-roster cfafa28d3edf8169db080d1cccd7970e3fa8bf41; every roster group ranked, done ones too)
-replan.py refused (rc=2): refused: R10-DRAW-MAP-EVIDENCE: after-edge names no group: R10-COP-LEARNER-DRAW-FLOOR
-rc=0

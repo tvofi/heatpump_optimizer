@@ -1,0 +1,42 @@
+=== CASE A base commit 55147768b8f88f71dbadcd4e624e50237027a9da
+write rc=0
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+--- check commit b5bcf28393a5fa002d687a629e34ced920406728
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+rc=0
+=== CASE B base commit 4f14019d4165a45a9b5217924a86430c205e85fe
+write rc=1
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL BASELINE edited: dev/audit/yardstick/round10/OBJECTIVE.json is not one blob at the plan SHA, its tree and main's merge base (main 745c2a99e7c916a1b3d7ed4a4b7a1f2f7f23fb2c, plan e03d2e4a21054fd751b5e73cd36455ddbf6e4069)
+OBJECTIVE FAIL
+--- check commit 4f14019d4165a45a9b5217924a86430c205e85fe
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+  FAIL BASELINE edited: dev/audit/yardstick/round10/OBJECTIVE.json is not one blob at the plan SHA, its tree and main's merge base (main 745c2a99e7c916a1b3d7ed4a4b7a1f2f7f23fb2c, plan e03d2e4a21054fd751b5e73cd36455ddbf6e4069)
+OBJECTIVE FAIL
+rc=1
+=== CASE D base commit a658dcb0868360e590977644b22987b762abea7d
+write rc=0
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+--- check commit a658dcb0868360e590977644b22987b762abea7d
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+rc=0
+=== CASE C base commit e3def466ff98ed1dd3080a1e4d093973f5fa0c30
+write rc=0
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+--- check commit 1864b7d975ec6b23879e2df37593340b702d282e
+projection A: critical path 88.7 h, wall 90.7 h, closure 2026-11-21T02:42:00Z, lead time p50/p90 26.8/86.47 h
+floor cost (A less B): critical path 0.0 h, wall 0.0 h, dropped 43
+OBJECTIVE PASS
+rc=0

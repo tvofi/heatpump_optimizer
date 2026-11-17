@@ -1,0 +1,81 @@
+863 STMT_DEL | run = subprocess.run([sys.executable, str(tree / "tools/audit/check_scopes.py"), "--repo", str(ROOT),
+865 CONST_SWAP | cwd=str(tree), capture_output=True, text=True)
+866 CONST_SWAP | if run.returncode not in (0, 1):
+866 GUARD_OFF | if run.returncode not in (0, 1):
+867 STMT_DEL | raise SystemExit(f"check_scopes.py --open-cards refused (rc={run.returncode}): "
+869 CONST_SWAP | return set(json.loads(run.stdout.strip().splitlines()[-1]).get("open_cards") or [])
+869 RETURN_DEL | return set(json.loads(run.stdout.strip().splitlines()[-1]).get("open_cards") or [])
+878 STMT_DEL | durations = Path(tmp) / "durations.json"
+879 CALL_DEL | durations.write_text(git("cat-file", "blob", pin["durations_blob"]) + "\n")
+880 STMT_DEL | common = ("--durations", str(durations), "--start", pin["start"])
+881 STMT_DEL | a = _replan(tree, Path(tmp) / "a.json", "--roster-ref", ref,
+885 STMT_DEL | floor = Path(tmp) / "floor" / Path(pin["roster_path"]).name
+886 CALL_DEL | floor.parent.mkdir()
+887 STMT_DEL | floor.write_text(json.dumps(reduced_roster(roster, kept_in_floor(block, a["groups"])),
+888 CONST_SWAP | indent=1))
+889 STMT_DEL | b = _replan(tree, Path(tmp) / "b.json", "--roster-file", str(floor), *common)
+890 RETURN_DEL | return a, b
+911 STMT_DEL | bad = check_block(plan, [], {}, [], None, {}, {}) if not isinstance(block, dict) else []
+923 CONST_SWAP | rnd = plan.get("round") or 0
+923 STMT_DEL | rnd = plan.get("round") or 0
+924 CONST_SWAP | path = BASELINE.format(rnd - 1)
+924 STMT_DEL | path = BASELINE.format(rnd - 1)
+925 STMT_DEL | blobs = {"plan": _blob(ref, path),
+927 GUARD_OFF | if (block.get("baseline") or {}).get("tree"):
+928 STMT_DEL | blobs["tree"] = _blob(block["baseline"]["tree"], path)
+929 STMT_DEL | baseline = _json_at(ref, path) if blobs["plan"] else {}
+931 STMT_DEL | ledger = (((baseline.get("terms") or {}).get("escapes") or {}).get("by_hand") or {}).get("ledger")
+933 STMT_DEL | tree = _worktree(ref)
+935 STMT_DEL | known = {"classes": {k for k in _json_at(ref, str(BUGCLASSES)) if not k.startswith("_")},
+938 STMT_DEL | a, b = run_projections(tree, ref, block, roster)
+940 CALL_DEL | _drop_worktree(tree)
+942 STMT_DEL | bad = (baseline_refusals(plan, baseline, blobs)
+972 CONST_SWAP | baseline = json.loads((ROOT / BASELINE.format((plan.get("round") or 0) - 1)).read_text())
+972 STMT_DEL | baseline = json.loads((ROOT / BASELINE.format((plan.get("round") or 0) - 1)).read_text())
+1330 STMT_DEL | t("lead time reads production groups only",
+1362 STMT_DEL | t(f"a rank-1 `{kind}` id no register holds is refused by name",
+1364 STMT_DEL | t("an escape row ruled `in` makes a group rank 1",
+1366 STMT_DEL | t("every rank-1 key derived_rank reads is a REGISTERED key, checked against its register",
+1370 STMT_DEL | t("the escapes ledger yields its `in` rows' groups; a ledger with no header yields none",
+1374 STMT_DEL | t("the baseline is the previous round's record, one blob everywhere: passes",
+1376 STMT_DEL | t("a baseline path the plan chose is refused (#3703 review item 2)",
+1379 STMT_DEL | t("a record of another round is refused",
+1382 STMT_DEL | t("a record edited on the plan's branch, or at its tree, is refused; an absent one too",
+1386 STMT_DEL | t("a ranked done group is refused by name (#3703 review item 4)",
+1391 STMT_DEL | t("and the floor keeps a done group whatever its rank",
+1392 CONST_SWAP | "OLD" in kept_in_floor({"groups": {"OLD": {"rank": 2}}}, proj_a))
+1393 STMT_DEL | t("an objective entry that is not an object is refused by shape and read no further",
+1395 STMT_DEL | t("a rank-2 group waiting on a rank-2 group owes no edge",
+1397 STMT_DEL | t("a rank-1 group waiting on a rank-1 group owes no edge",
+1402 STMT_DEL | t("the floor drops a rank-2 group only another rank-2 group reaches",
+1465 STMT_DEL | t("perturbation: the flipped line's status flips, HELD to MISSED (a move against `down`)",
+1471 STMT_DEL | t("a move the other way than an `up` prediction is MISSED",
+1475 CONST_SWAP | tie = {**rec11, "terms": {**rec11["terms"], "escapes": {"value": 22}}}
+1476 STMT_DEL | t("`hold` settles MISSED on a worse move, HELD on a tie and on a credited better move",
+1482 STMT_DEL | t("`undecided` on a read term settles UNDECIDED, whichever way it moved",
+1485 STMT_DEL | lt["objective"]["terms"]["lead_time"] = {"direction": "down", "basis": "x"}
+1486 CONST_SWAP | lead = {"lead_time": {"value": 10.0}}
+1487 STMT_DEL | t("a term no band reads settles UNDECIDED, named so",
+1489 CONST_SWAP | {**rec11, "terms": {"lead_time": {"value": 2.0}}}, set(),
+1492 STMT_DEL | t("only a rank-2 group owes an examining pass: UNDECIDED with no rows",
+1496 STMT_DEL | t("and with rows, HELD where a row names the group, MISSED where none does",
+1501 STMT_DEL | t("escape and class keys settle at the next close on their own rows",
+1507 STMT_DEL | t("the next close settles no term and no own-close effect",
+1509 STMT_DEL | t("only a production group owes an `injected` line",
+1511 STMT_DEL | t("a plan with no round is round 0, so a round-1 record is its next close",
+1514 STMT_DEL | t("a share reads off its counts to four places; a zero denominator is no share",
+1519 STMT_DEL | t("a count's band is twice the root of the two counts",
+1520 CONST_SWAP | moved("escapes", 20, 32, thresholds) == "tie" and moved("escapes", 20, 36, thresholds) == "up"
+1521 CONST_SWAP | and moved("escapes", 40, 20, thresholds) == "down")
+1522 STMT_DEL | t("a share's band is twice the pooled standard error",
+1523 CONST_SWAP | moved("first_pass", (50, 100), (65, 100), thresholds) == "up"
+1524 CONST_SWAP | and moved("first_pass", (50, 100), (63, 100), thresholds) == "tie")
+1525 STMT_DEL | t("a value that is neither a count nor a share has no band",
+1526 CONST_SWAP | moved("escapes", 2.5, 9.0, thresholds) is None and moved("escapes", True, 9, thresholds) is None)
+1528 STMT_DEL | t("a ledger row too short to hold its ruling is skipped, not an index error",
+1530 STMT_DEL | t("a plan with no round is round 0: its baseline is round -1's record",
+1534 STMT_DEL | t("a count move equal to its band is a tie",
+1535 CONST_SWAP | moved("escapes", 4, 12, thresholds) == "tie" and moved("escapes", 4, 13, thresholds) == "up")
+1536 STMT_DEL | t("a blob reads off the checkout, and an absent path reads None",
+1573 STMT_DEL | obj.add_argument("--main", default="origin/main",
+1616 STMT_DEL | return objective_check(args.ref, args.plan, args.register, args.previous, args.write,

@@ -1,0 +1,81 @@
+SURVIVED tools/audit/seat/plan_audit.py:865 CONST_SWAP  cwd=str(tree), capture_output=False, text=True)
+SURVIVED tools/audit/seat/plan_audit.py:866 GUARD_OFF  if False:
+SURVIVED tools/audit/seat/plan_audit.py:866 CONST_SWAP  if run.returncode not in (1, 1):
+SURVIVED tools/audit/seat/plan_audit.py:869 RETURN_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:869 CONST_SWAP  return set(json.loads(run.stdout.strip().splitlines()[-2]).get("open_cards") or [])
+SURVIVED tools/audit/seat/plan_audit.py:879 CALL_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:886 CALL_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:888 CONST_SWAP  indent=2))
+SURVIVED tools/audit/seat/plan_audit.py:890 RETURN_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:923 CONST_SWAP  rnd = plan.get("round") or 1
+SURVIVED tools/audit/seat/plan_audit.py:924 CONST_SWAP  path = BASELINE.format(rnd - 2)
+SURVIVED tools/audit/seat/plan_audit.py:927 GUARD_OFF  if False:
+SURVIVED tools/audit/seat/plan_audit.py:940 CALL_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:972 CONST_SWAP  baseline = json.loads((ROOT / BASELINE.format((plan.get("round") or 1) - 1)).read_text())
+SURVIVED tools/audit/seat/plan_audit.py:1392 CONST_SWAP  "OLD" in kept_in_floor({"groups": {"OLD": {"rank": 3}}}, proj_a))
+SURVIVED tools/audit/seat/plan_audit.py:1475 CONST_SWAP  tie = {**rec11, "terms": {**rec11["terms"], "escapes": {"value": 23}}}
+SURVIVED tools/audit/seat/plan_audit.py:1486 CONST_SWAP  lead = {"lead_time": {"value": 20.0}}
+SURVIVED tools/audit/seat/plan_audit.py:1489 CONST_SWAP  {**rec11, "terms": {"lead_time": {"value": 4.0}}}, set(),
+SURVIVED tools/audit/seat/plan_audit.py:1520 CONST_SWAP  moved("escapes", 21, 32, thresholds) == "tie" and moved("escapes", 20, 36, thresholds) == "up"
+SURVIVED tools/audit/seat/plan_audit.py:1521 CONST_SWAP  and moved("escapes", 41, 20, thresholds) == "down")
+SURVIVED tools/audit/seat/plan_audit.py:1523 CONST_SWAP  moved("first_pass", (51, 100), (65, 100), thresholds) == "up"
+SURVIVED tools/audit/seat/plan_audit.py:1524 CONST_SWAP  and moved("first_pass", (51, 100), (63, 100), thresholds) == "tie")
+SURVIVED tools/audit/seat/plan_audit.py:1526 CONST_SWAP  moved("escapes", 5.0, 9.0, thresholds) is None and moved("escapes", True, 9, thresholds) is None)
+SURVIVED tools/audit/seat/plan_audit.py:1535 CONST_SWAP  moved("escapes", 5, 12, thresholds) == "tie" and moved("escapes", 4, 13, thresholds) == "up")
+SURVIVED tools/audit/seat/plan_audit.py:863 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:867 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:878 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:880 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:881 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:885 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:887 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:889 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:911 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:923 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:924 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:925 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:928 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:929 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:931 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:933 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:935 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:938 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:942 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:972 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1330 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1362 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1364 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1366 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1370 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1374 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1376 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1379 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1382 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1386 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1391 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1393 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1395 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1397 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1402 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1465 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1471 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1476 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1482 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1485 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1487 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1492 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1496 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1501 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1507 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1509 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1511 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1514 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1519 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1522 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1525 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1528 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1530 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1534 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1536 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1573 STMT_DEL  pass
+SURVIVED tools/audit/seat/plan_audit.py:1616 STMT_DEL  pass

@@ -1,24 +1,3 @@
-## head 2eee862d2d61b2fe2431c979048360d1b4392cfa audit-plan.js mutants
-m1 throw line deleted:
-  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
-  FAIL a plan the objective check refuses is not published (P3 stops) did not throw
-  FAIL (probe, expected) threw: deliberate
-253 passed, 1 failed
-m2 objective_rc dropped from required:
-  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
-  FAIL and the publish schema requires objective_rc, so a publish that reports no check is refused 
-  FAIL (probe, expected) threw: deliberate
-253 passed, 1 failed
-m3 (reviewer) objective dropped from the moves schema's required:
-  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
-  FAIL (probe, expected) threw: deliberate
-254 passed, 0 failed
-m4 (reviewer) planJson drops the block:
-  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
-  FAIL and the PLAN.json written carries the block the architect returned 
-  FAIL (probe, expected) threw: deliberate
-253 passed, 1 failed
-restored:
-254 passed, 0 failed
-base grader over head workflow:
-249 passed, 0 failed
+base: 255 passed, 0 failed
+mut1 plan/moves required minus objective: 254 passed, 1 failed
+mut2 plan/publish required minus objective_rc: 254 passed, 1 failed

@@ -1,0 +1,11 @@
+a | plan_audit self-test: 112 checks, 1 failed
+b | plan_audit self-test: 112 checks, 2 failed
+c | plan_audit self-test: 112 checks, 1 failed
+d | plan_audit self-test: 112 checks, 1 failed
+e | plan_audit self-test: 112 checks, 1 failed
+f | plan_audit self-test: 112 checks, 1 failed
+g | plan_audit self-test: 112 checks, 4 failed
+h | KeyError: 'cards'
+i | plan_audit self-test: 112 checks, 0 failed
+i2 | plan_audit self-test: 112 checks, 0 failed
+i note: first form (leading comma) did not match; i2 form applied: self-test 0 failed => SURVIVED (self-test does not exercise main blob)
