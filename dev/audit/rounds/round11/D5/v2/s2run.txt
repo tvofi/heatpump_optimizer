@@ -1,0 +1,296 @@
+=== structure.py
+   menu_twin_drift: Self-learning and diagnostics: README='Staleness watchdog, comfort learning, identification, price prior' | configuration='The staleness watchdog and the three core learners'
+   menu_twin_drift: Sensors and entities: README='Tibber token, weather entity, room and tank sensors, the on/off switch' | configuration='Price source, weather, room and tank sensors, the on/off switch'
+   menu_twin_drift: Thermal model (expert): README='The raw single-zone numbers — heat pump power and COP, masses, losses' | configuration='The raw single-zone masses, losses, COP and power limits'
+   menu_twin_drift: Your system, as configured: README='A read-only picture of what is set up and what is missing' | configuration="A read-only picture of your setup, drawn from the same description the card's setup tab uses"
+RESULT dup_fence=4 count
+   dup_fence: README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0
+   dup_fence: README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+   dup_fence: README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18
+   dup_fence: docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== structure.py --perturb
+   menu_twin_drift: Self-learning and diagnostics: README='Staleness watchdog, comfort learning, identification, price prior' | configuration='The staleness watchdog and the three core learners'
+   menu_twin_drift: Sensors and entities: README='Tibber token, weather entity, room and tank sensors, the on/off switch' | configuration='Price source, weather, room and tank sensors, the on/off switch'
+   menu_twin_drift: Thermal model (expert): README='The raw single-zone numbers — heat pump power and COP, masses, losses' | configuration='The raw single-zone masses, losses, COP and power limits'
+   menu_twin_drift: Your system, as configured: README='A read-only picture of what is set up and what is missing' | configuration="A read-only picture of your setup, drawn from the same description the card's setup tab uses"
+RESULT dup_fence=4 count
+   dup_fence: README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0
+   dup_fence: README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+   dup_fence: README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18
+   dup_fence: docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== structure.py --plant
+   menu_twin_drift: Self-learning and diagnostics: README='Staleness watchdog, comfort learning, identification, price prior' | configuration='The staleness watchdog and the three core learners'
+   menu_twin_drift: Sensors and entities: README='Tibber token, weather entity, room and tank sensors, the on/off switch' | configuration='Price source, weather, room and tank sensors, the on/off switch'
+   menu_twin_drift: Thermal model (expert): README='The raw single-zone numbers — heat pump power and COP, masses, losses' | configuration='The raw single-zone masses, losses, COP and power limits'
+   menu_twin_drift: Your system, as configured: README='A read-only picture of what is set up and what is missing' | configuration="A read-only picture of your setup, drawn from the same description the card's setup tab uses"
+RESULT dup_fence=4 count
+   dup_fence: README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0
+   dup_fence: README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+   dup_fence: README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18
+   dup_fence: docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== structure.py --dedupe
+RESULT external_bad=0 count
+RESULT wall_removed=1 count
+   wall_removed: docs/how-it-works.md:1454 ../dev/archive/backlog.md
+RESULT menu_twin_drift=0 count
+RESULT dup_fence=4 count
+   dup_fence: README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0
+   dup_fence: README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+   dup_fence: README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18
+   dup_fence: docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== structure.py --link-orphans
+   menu_twin_drift: Self-learning and diagnostics: README='Staleness watchdog, comfort learning, identification, price prior' | configuration='The staleness watchdog and the three core learners'
+   menu_twin_drift: Sensors and entities: README='Tibber token, weather entity, room and tank sensors, the on/off switch' | configuration='Price source, weather, room and tank sensors, the on/off switch'
+   menu_twin_drift: Thermal model (expert): README='The raw single-zone numbers — heat pump power and COP, masses, losses' | configuration='The raw single-zone masses, losses, COP and power limits'
+   menu_twin_drift: Your system, as configured: README='A read-only picture of what is set up and what is missing' | configuration="A read-only picture of your setup, drawn from the same description the card's setup tab uses"
+RESULT dup_fence=4 count
+   dup_fence: README.md:425 ~ docs/configuration.md:29 shared=1.00 differing_lines=0
+   dup_fence: README.md:425 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+   dup_fence: README.md:851 ~ docs/how-it-works.md:54 shared=0.62 differing_lines=18
+   dup_fence: docs/configuration.md:29 ~ docs/setup.md:56 shared=1.00 differing_lines=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== basis.py
+RESULT zone_total_kw_per_c=0.1900 kW/degC
+RESULT basis_gap_pct=18.9 %
+RESULT sysid_loss_units=5 units
+   names README.md#ef10b86051:623
+   names docs/how-it-works.md#870737849b:1199
+   names docs/how-it-works.md#935aacc505:1233
+   names docs/how-it-works.md#e0e07bfa93:1242
+   names docs/how-it-works.md#6bbc6f0350:1257
+RESULT basis_stated=0 units
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== basis.py --ratio 1.0
+RESULT zone_total_kw_per_c=0.1900 kW/degC
+RESULT basis_gap_pct=0.0 %
+RESULT sysid_loss_units=5 units
+   names README.md#ef10b86051:623
+   names docs/how-it-works.md#870737849b:1199
+   names docs/how-it-works.md#935aacc505:1233
+   names docs/how-it-works.md#e0e07bfa93:1242
+   names docs/how-it-works.md#6bbc6f0350:1257
+RESULT basis_stated=0 units
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== basis.py --doc-fix
+RESULT sysid_loss_units=6 units
+   names README.md#ef10b86051:623
+   names docs/how-it-works.md#870737849b:1199
+   names docs/how-it-works.md#935aacc505:1233
+   names docs/how-it-works.md#e0e07bfa93:1242
+   names docs/how-it-works.md#6bbc6f0350:1257
+   names docs/how-it-works.md#a5735da6a9:1267
+RESULT basis_stated=1 units
+   states docs/how-it-works.md#a5735da6a9:1267
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== comments.py
+RESULT true=53
+RESULT unverifiable=1
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=0 planted_units=0 in README.md
+RESULT check_rc=1
+RESULT plant_refused_d5_first=1 planted_units=1 in docs/img/card/make_card_figures.mjs
+RESULT check_rc_d5_first=0
+RESULT thread_factor=1.000
+RESULT load1=0.64
+RESULT swapins=0
+=== comments.py --perturb-closure
+RESULT true=54
+RESULT unverifiable=1
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=0 planted_units=0 in README.md
+RESULT check_rc=1
+RESULT plant_refused_d5_first=1 planted_units=1 in docs/img/card/make_card_figures.mjs
+RESULT check_rc_d5_first=0
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== comments.py --perturb-text
+RESULT true=55
+RESULT unverifiable=1
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=0 planted_units=0 in README.md
+RESULT check_rc=1
+RESULT plant_refused_d5_first=1 planted_units=1 in docs/img/card/make_card_figures.mjs
+RESULT check_rc_d5_first=0
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== plant.py
+RESULT first_file=README.md
+RESULT plant_refused=0 planted_units=0 in README.md
+RESULT rc=1
+RESULT plant_refused_d6=1 planted_units=1 in README.md
+RESULT rc_d6=0
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== plant.py --perturb
+RESULT first_file=docs/img/card/make_card_figures.mjs
+RESULT plant_refused=1 planted_units=1 in docs/img/card/make_card_figures.mjs
+RESULT rc=0
+RESULT plant_refused_d6=1 planted_units=1 in README.md
+RESULT rc_d6=0
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== defaults.py
+   ok  docs/configuration.md:876 rail: doc 90 vs ThermalParameters().mod:pump_arbiter.LEASE_MINUTES 90
+   ok  docs/configuration.md:876 cold rail: doc 30 vs ThermalParameters().mod:pump_arbiter.COLD_LEASE_MINUTES 30
+   ok  docs/configuration.md:891 boost duration: doc 2 vs ThermalParameters().words:boost.BOOST_HOURS 2
+   BAD docs/configuration.md:900 hold echo grace: doc 60 vs ThermalParameters().mod:pump_arbiter.ECHO_GRACE_S 20
+   ok  docs/configuration.md:919 retry: doc 5 vs ThermalParameters().mod:pump_arbiter.RETRY_MINUTES 5
+   ok  docs/configuration.md:959 ledger tank rise: doc 0.5 vs ThermalParameters().mod:pump_arbiter.TANK_RISE_C 0.5
+RESULT pairs=57 pairs
+RESULT mismatches=7 pairs
+RESULT const_default_legionella_interval=10 days
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== defaults.py --perturb-code
+   ok  docs/configuration.md:876 rail: doc 90 vs ThermalParameters().mod:pump_arbiter.LEASE_MINUTES 90
+   ok  docs/configuration.md:876 cold rail: doc 30 vs ThermalParameters().mod:pump_arbiter.COLD_LEASE_MINUTES 30
+   ok  docs/configuration.md:891 boost duration: doc 2 vs ThermalParameters().words:boost.BOOST_HOURS 2
+   BAD docs/configuration.md:900 hold echo grace: doc 60 vs ThermalParameters().mod:pump_arbiter.ECHO_GRACE_S 20
+   ok  docs/configuration.md:919 retry: doc 5 vs ThermalParameters().mod:pump_arbiter.RETRY_MINUTES 5
+   ok  docs/configuration.md:959 ledger tank rise: doc 0.5 vs ThermalParameters().mod:pump_arbiter.TANK_RISE_C 0.5
+RESULT pairs=57 pairs
+RESULT mismatches=3 pairs
+RESULT const_default_legionella_interval=7 days
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== defaults.py --perturb-age
+   ok  docs/configuration.md:876 rail: doc 90 vs ThermalParameters().mod:pump_arbiter.LEASE_MINUTES 90
+   ok  docs/configuration.md:876 cold rail: doc 30 vs ThermalParameters().mod:pump_arbiter.COLD_LEASE_MINUTES 30
+   ok  docs/configuration.md:891 boost duration: doc 2 vs ThermalParameters().words:boost.BOOST_HOURS 2
+   BAD docs/configuration.md:900 hold echo grace: doc 60 vs ThermalParameters().mod:pump_arbiter.ECHO_GRACE_S 20
+   ok  docs/configuration.md:919 retry: doc 5 vs ThermalParameters().mod:pump_arbiter.RETRY_MINUTES 5
+   ok  docs/configuration.md:959 ledger tank rise: doc 0.5 vs ThermalParameters().mod:pump_arbiter.TANK_RISE_C 0.5
+RESULT pairs=57 pairs
+RESULT mismatches=5 pairs
+RESULT const_default_legionella_interval=10 days
+RESULT thread_factor=1.000
+RESULT load1=0.74
+RESULT swapins=0
+=== defaults.py --perturb-echo
+   ok  docs/configuration.md:876 rail: doc 90 vs ThermalParameters().mod:pump_arbiter.LEASE_MINUTES 90
+   ok  docs/configuration.md:876 cold rail: doc 30 vs ThermalParameters().mod:pump_arbiter.COLD_LEASE_MINUTES 30
+   ok  docs/configuration.md:891 boost duration: doc 2 vs ThermalParameters().words:boost.BOOST_HOURS 2
+   ok  docs/configuration.md:900 hold echo grace: doc 60 vs ThermalParameters().mod:pump_arbiter.ECHO_GRACE_S 60
+   ok  docs/configuration.md:919 retry: doc 5 vs ThermalParameters().mod:pump_arbiter.RETRY_MINUTES 5
+   ok  docs/configuration.md:959 ledger tank rise: doc 0.5 vs ThermalParameters().mod:pump_arbiter.TANK_RISE_C 0.5
+RESULT pairs=57 pairs
+RESULT mismatches=6 pairs
+RESULT const_default_legionella_interval=10 days
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== defaults.py --perturb-doc
+   ok  docs/configuration.md:876 rail: doc 90 vs ThermalParameters().mod:pump_arbiter.LEASE_MINUTES 90
+   ok  docs/configuration.md:876 cold rail: doc 30 vs ThermalParameters().mod:pump_arbiter.COLD_LEASE_MINUTES 30
+   ok  docs/configuration.md:891 boost duration: doc 2 vs ThermalParameters().words:boost.BOOST_HOURS 2
+   BAD docs/configuration.md:900 hold echo grace: doc 60 vs ThermalParameters().mod:pump_arbiter.ECHO_GRACE_S 20
+   ok  docs/configuration.md:919 retry: doc 5 vs ThermalParameters().mod:pump_arbiter.RETRY_MINUTES 5
+   ok  docs/configuration.md:959 ledger tank rise: doc 0.5 vs ThermalParameters().mod:pump_arbiter.TANK_RISE_C 0.5
+RESULT pairs=57 pairs
+RESULT mismatches=3 pairs
+RESULT const_default_legionella_interval=10 days
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== cycling.py
+RESULT start_cost_swing=2.000 currency
+RESULT start_cost_flat=2.000 currency
+RESULT swing_minus_flat=0.000 currency
+RESULT doc_smooth_units=1 units
+   smooth docs/how-it-works.md#670d865c2c:827
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== cycling.py --null
+RESULT start_cost_swing=24.000 currency
+RESULT start_cost_flat=2.000 currency
+RESULT swing_minus_flat=22.000 currency
+RESULT doc_smooth_units=1 units
+   smooth docs/how-it-works.md#670d865c2c:827
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== cycling.py --perturb
+RESULT start_cost_swing=24.667 currency
+RESULT start_cost_flat=1.167 currency
+RESULT swing_minus_flat=23.500 currency
+RESULT doc_smooth_units=1 units
+   smooth docs/how-it-works.md#670d865c2c:827
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== dhw_enable.py
+RESULT configurations=7 configs
+RESULT contradicted=7 configs
+RESULT doc_presence_units=1 units
+   presence docs/how-it-works.md#1fbfbd685f:300
+RESULT wizard_writes_switch=1
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== dhw_enable.py --null
+RESULT configurations=7 configs
+RESULT contradicted=0 configs
+RESULT doc_presence_units=1 units
+   presence docs/how-it-works.md#1fbfbd685f:300
+RESULT wizard_writes_switch=1
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== dhw_enable.py --perturb
+RESULT configurations=7 configs
+RESULT contradicted=0 configs
+RESULT doc_presence_units=1 units
+   presence docs/how-it-works.md#1fbfbd685f:300
+RESULT wizard_writes_switch=1
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== menu_order.py
+RESULT menu_entries=9 entries
+RESULT quick_setup_from_end=2
+RESULT last_entry=advanced
+RESULT setup_overview_index=0
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
+=== menu_order.py --perturb
+RESULT menu_entries=8 entries
+RESULT quick_setup_from_end=1
+RESULT last_entry=quick_setup
+RESULT setup_overview_index=0
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=0
