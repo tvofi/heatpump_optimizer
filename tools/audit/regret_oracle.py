@@ -217,6 +217,13 @@ class Loop:
     def in_limits(self, *series):
         return all(bool(self.np.all((s >= -EPS) & (s <= self.pmax + EPS))) for s in series)
 
+    def admits(self, space, dhw, ref, terminal=True):
+        """A candidate is inside the pump's limits and no further outside the bounds than the executed plan
+        (`ref`, its `score`); an open-loop one (`terminal`) also ends the window with no less heat stored."""
+        v, end = self.score(space, dhw)
+        return (self.in_limits(space, dhw) and v <= ref[0] + VIOL_TOL
+                and (not terminal or all(e >= e0 - VIOL_TOL for e, e0 in zip(end, ref[1]))))
+
 
 def greedy(space, price, pmax, np):
     """optimality.py challenger 1: the same energy moved to the cheapest steps, at most pmax each."""
@@ -229,32 +236,10 @@ def greedy(space, price, pmax, np):
     return out
 
 
-def read_cell(repo, cell, plant_error, days):
-    lv = cell_levels(cell)
-    if lv["plant"] not in LOOP_PLANTS:
-        return dict(cell=cell, line=f"{cell}\tNO-READ: no plant model for {lv['plant']} in the loop", examined=False)
-    L = Loop(repo, lv, plant_error, days)
-    np = L.np
-    space, dhw, booked = L.closed(1.0)
-    c_real = L.cost(space, dhw)
-    v0, end0 = L.score(space, dhw)
-    cands = [("executed", c_real)]
-    if plant_error == 1.0:
-        same_info = None  # the plant's parameters are the model's: this candidate is the executed loop
-    else:
-        s2, d2, _ = L.closed(plant_error)
-        if L.in_limits(s2, d2) and L.score(s2, d2)[0] <= v0 + VIOL_TOL:
-            cands.append(("plant-model", L.cost(s2, d2)))
-        same_info = "run"
-
-    def open_loop_ok(s):
-        v, end = L.score(s, dhw)
-        return L.in_limits(s) and v <= v0 + VIOL_TOL and all(e >= e0 - VIOL_TOL for e, e0 in zip(end, end0))
-    price = L.price[:L.T]
-    g = greedy(space, price, L.pmax, np)
-    if open_loop_ok(g):
-        cands.append(("greedy", L.cost(g, dhw)))
-    rng, best, best_c = np.random.default_rng(PERTURB_SEED), space.copy(), c_real
+def perturbed(L, space, dhw, ref):
+    """optimality.py challenger 2, energy-preserving: random moves between two steps, each kept only when it
+    is cheaper and admitted. Returns (series, cost)."""
+    rng, best, best_c = L.np.random.default_rng(PERTURB_SEED), space.copy(), L.cost(space, dhw)
     for _ in range(PERTURB_TRIES):
         i, j = (int(x) for x in rng.integers(0, L.T, 2))
         m = min(float(rng.uniform(0, L.pmax)), best[i], L.pmax - best[j])
@@ -264,8 +249,30 @@ def read_cell(repo, cell, plant_error, days):
         c[i] -= m
         c[j] += m
         cc = L.cost(c, dhw)
-        if cc < best_c - EPS and open_loop_ok(c):
+        if cc < best_c - EPS and L.admits(c, dhw, ref):
             best, best_c = c, cc
+    return best, best_c
+
+
+def read_cell(repo, cell, plant_error, days):
+    lv = cell_levels(cell)
+    if lv["plant"] not in LOOP_PLANTS:
+        return dict(cell=cell, line=f"{cell}\tNO-READ: no plant model for {lv['plant']} in the loop", examined=False)
+    L = Loop(repo, lv, plant_error, days)
+    space, dhw, booked = L.closed(1.0)
+    c_real, ref = L.cost(space, dhw), L.score(space, dhw)
+    cands = [("executed", c_real)]
+    if plant_error == 1.0:
+        same_info = None  # the plant's parameters are the model's: this candidate is the executed loop
+    else:
+        s2, d2, _ = L.closed(plant_error)
+        if L.admits(s2, d2, ref, terminal=False):
+            cands.append(("plant-model", L.cost(s2, d2)))
+        same_info = "run"
+    g = greedy(space, L.price[:L.T], L.pmax, L.np)
+    if L.admits(g, dhw, ref):
+        cands.append(("greedy", L.cost(g, dhw)))
+    best_c = perturbed(L, space, dhw, ref)[1]
     if best_c < c_real - EPS:
         cands.append(("perturbed", best_c))
     winner, c_same = cands[0]
@@ -412,6 +419,37 @@ def read_installs(repo, bundles=None):
     return out
 
 
+ROLLING = "tests/rolling.py"
+ROLLING_NAMES = ("START", "REPLAN_HOURS", "DAYS", "tile", "run_rolling")
+
+
+def rolling_loop(repo):
+    """`tests/rolling.py`'s own `run_rolling`, its imports and constants, without the checks its module runs."""
+    _paths(repo)
+    tree = ast.parse((Path(repo) / ROLLING).read_text())
+    keep = [n for n in tree.body if (isinstance(n, (ast.Import, ast.ImportFrom)) and getattr(n, "module", "") not in
+                                     ("harness", "heatpump_optimizer.coordinator"))
+            or (isinstance(n, ast.FunctionDef) and n.name in ROLLING_NAMES)
+            or (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id in ROLLING_NAMES for t in n.targets))]
+    ns = {"__name__": "rolling_extract"}
+    exec(compile(ast.Module(body=keep, type_ignores=[]), ROLLING, "exec"), ns)
+    return ns
+
+
+def parity(repo, cell, plant_error, oracle_error=None):
+    """The oracle's executed loop beside run_rolling's on one cell: (same space series, same dhw series, same
+    cost). `oracle_error` runs the oracle's side on another plant, the comparison's own null control."""
+    import numpy as np
+    lv = cell_levels(cell)
+    ns = rolling_loop(repo)
+    got = ns["run_rolling"](days=1, dhw=lv["dhw"], two_zone=lv["two_zone"], plant_error=plant_error,
+                            price_profile=lv["price"], weather_profile=lv["weather"], horizon_hours=lv["horizon_h"])["history"]
+    L = Loop(repo, lv, plant_error if oracle_error is None else oracle_error, 1)
+    space, dhw, _ = L.closed(1.0)
+    return (bool(np.array_equal(space, got["space_power"])), bool(np.array_equal(dhw, got["dhw_power"])),
+            abs(L.cost(space, dhw) - float(np.sum(got["cost"]))) < 1e-9 * max(1.0, abs(L.cost(space, dhw))))
+
+
 # ---------------------------------------------------------------------------------------------- self-test
 
 SELF_CELLS = ("winter_typical/winter_cold/single-zone/no-dhw/plain/6h",
@@ -422,6 +460,8 @@ SELF_CELLS = ("winter_typical/winter_cold/single-zone/no-dhw/plain/6h",
 # summer_typical/winter_mild the greedy challenger does, the solver's share, which this null does not read)
 NULL_CELLS = SELF_CELLS[:2] + SELF_CELLS[3:]
 FLAT_CELL = "flat/winter_cold/single-zone/no-dhw/plain/6h"
+DHW_CELL = "winter_typical/winter_cold/single-zone/dhw/plain/6h"
+TWO_ZONE_CELL = "shoulder/winter_mild/two-zone/no-dhw/plain/6h"
 NO_PLANT_CELL = "winter_typical/winter_cold/single-zone/no-dhw/wood/6h"
 BUNDLE_GEN = "tools/replay/dbg_bundle_gen.py"
 
@@ -471,7 +511,7 @@ def self_test():
         arm("planted: the plant-model candidate runs in every cell", all("plant-model" in l.split("C_same=")[1].split(")")[0] for l in rows), True)
         arm("planted: and wins where no challenger is cheaper", sum("(plant-model of" in l for l in rows) >= len(NULL_CELLS), True)
         arm("planted: RESULT counts the examined cells", planted[-1].split()[3], f"examined={len(SELF_CELLS)}")
-        null = read_grid(repo, "all", list(SELF_CELLS) + [FLAT_CELL, NO_PLANT_CELL], plant_error=1.0, jobs=4)
+        null = read_grid(repo, "all", list(SELF_CELLS) + [FLAT_CELL, NO_PLANT_CELL, DHW_CELL], plant_error=1.0, jobs=4)
         nrows = {l.split("\t")[0]: l for l in null if "\t" in l}
         arm("null: the plant equal to the model reads regret 0 where no challenger wins",
             [field(nrows[c], "regret") for c in NULL_CELLS], ["0.0000"] * len(NULL_CELLS))
@@ -482,11 +522,37 @@ def self_test():
         arm("null: the model gap is 0 where the loop meters the command", field(nrows[FLAT_CELL], "model_gap"), "0.0000")
         arm("NO-READ: a plant level the loop does not model", nrows[NO_PLANT_CELL].split("\t", 1)[1],
             "NO-READ: no plant model for wood in the loop")
-        arm("NO-READ is not examined", null[-1].split()[3], f"examined={len(SELF_CELLS) + 1}")
+        arm("NO-READ is not examined", null[-1].split()[3], f"examined={len(SELF_CELLS) + 2}")
         arm("a cell outside --cells is printed not run", sum("not run: outside --cells" in l for l in null),
-            len(universe(repo, "d0-grid")) - len(SELF_CELLS) - 2)
-        # the candidate set, unit by unit
+            len(universe(repo, "d0-grid")) - len(SELF_CELLS) - 3)
+        # the loop is run_rolling's: its own function, extracted from tests/rolling.py, drives the same series
+        arm("parity: a hot-water cell's executed loop is run_rolling's", parity(repo, DHW_CELL, 1.25), (True, True, True))
+        arm("parity: a two-zone cell's", parity(repo, TWO_ZONE_CELL, 0.8), (True, True, True))
+        arm("parity null: another plant on the oracle's side differs", parity(repo, DHW_CELL, 1.25, 1.0)[0], False)
+        arm("a challenger wins where the solver leaves cost: greedy", "(greedy of" in nrows[SELF_CELLS[2]], True)
+        arm("and perturbed", "(perturbed of" in nrows[DHW_CELL], True)
+        # admission: bounds, limits, stored heat
         import numpy as np
+        L = Loop(repo, cell_levels(SELF_CELLS[0]), 1.0, 1)
+        sp, dh, _ = L.closed(1.0)
+        ref = L.score(sp, dh)
+        g = greedy(sp, L.price[:L.T], L.pmax, np)
+        arm("score: the executed plan holds the bounds", ref[0], 0.0)
+        arm("score: all off breaks the floor, all on the ceiling", (L.score(sp * 0, dh)[0] > 0, L.score(sp * 0 + L.pmax, dh)[0] > 0), (True, True))
+        arm("admits: greedy holds the bounds but ends colder: refused for the heat it borrowed",
+            (L.score(g, dh)[0], L.admits(g, dh, ref), L.admits(g, dh, ref, terminal=False)), (0.0, False, True))
+        arm("in_limits: 0..pmax, nothing below or above", (L.in_limits(np.array([0.0, L.pmax])), L.in_limits(np.array([-1e-6])),
+                                                          L.in_limits(np.array([L.pmax + 1e-6]))), (True, False, False))
+        D = Loop(repo, cell_levels(DHW_CELL), 1.0, 1)
+        dsp, ddh, _ = D.closed(1.0)
+        dref = D.score(dsp, ddh)
+        arm("score: hot water off breaks the tank minimum in its windows", D.score(dsp, ddh * 0)[0] > dref[0] + 1.0, True)
+        best, best_c = perturbed(D, dsp, ddh, dref)
+        arm("perturbed: cheaper, admitted, the same energy", (best_c < D.cost(dsp, ddh), D.admits(best, ddh, dref),
+                                                            round(float(best.sum() - dsp.sum()), 9)), (True, True, 0.0))
+        arm("cell_levels: a plane cell runs at PLANE_LEVELS", cell_levels("a/b"),
+            dict(price="a", weather="b", two_zone=False, dhw=True, plant="plain", horizon_h=24))
+        arm("mean_2se: no cell is a mean of 0", mean_2se([])[0], 0.0)
         g = greedy(np.array([1.0, 2.0, 0.0, 3.0]), np.array([3.0, 1.0, 2.0, 0.5]), 4.0, np)
         arm("greedy: the same energy at the cheapest steps, capped at pmax", g.tolist(), [0.0, 2.0, 0.0, 4.0])
         arm("band: undecided while null", judge_gap(1.0, 10.0, None), "undecided (thresholds.band_model_gap is null)")
@@ -521,6 +587,11 @@ def self_test():
         (fake / "tests/profiles.py").write_text("def prices(profile, s):\n    pass\ndef weather(profile, s):\n    pass\n")
         (fake / census.BUNDLES).write_text(json.dumps({"bundles": []}))
         shutil.copy(repo / census.OBJECTIVE, fake / census.OBJECTIVE)
+        arm("band: the owner's value read from objective.json, None while null", band(fake), band(repo))
+        obj = json.loads((fake / census.OBJECTIVE).read_text())
+        obj["thresholds"]["band_model_gap"]["value"] = 0.1
+        (fake / census.OBJECTIVE).write_text(json.dumps(obj))
+        arm("band: a set value is read", band(fake), 0.1)
         arm("refuse: an emptied d0-grid source", _exit("grid", "--repo", str(fake)), (2, False))
         arm("refuse: an emptied d15-installs source", _exit("installs", "--repo", str(fake)), (2, False))
         arm("refuse: a --cells item outside the universe", _exit("grid", "--repo", str(repo), "--cells", "nope/nope"), (2, False))
