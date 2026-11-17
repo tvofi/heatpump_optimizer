@@ -1227,10 +1227,10 @@
     "Proposal PC-1113-22, with moved TICK carry 27, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P783 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-22 (2026-11-14T08:06:43Z): no tracked instrument prints \"GREEN at the live head with a posted merge verdict that names or carries to it\"; the dispatch seat's scratch watch counted verdict shas and missed #3564 for an hour and #3574/#3569/#3561 until read by hand. The tick's MERGE-READY line reads only a verdict AT the head, not a carried one. Candidate: extend MERGE-READY (or verdict_audit) with the review_carry CARRY arm. [moved: R11-CARRY-TICK-OWED]",
     "The prototype wake_filtered.sh ($HPO_STATE_DIR/s14/wake_filtered.sh, kept running until this group lands), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P791 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nIts NOISE pattern is the acceptance list: each level it filters must close or escalate upstream (no repeat line), not be filtered a second time. [moved: R11-CARRY-TICK-OWED]",
     "From r11-pre-ack-completion, body item 8bd8b42f: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): the 9 DEBT kinds of carry 1's census need their own repair-discharges arms. Carry: R11-PRE-ACK-COMPLETION (items 8bd8b42f) [moved: R11-CARRY-TICK-OWED]",
-    "From r11-pre-ack-completion, body item 8b860179: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): `UNDISPATCHED` does not print for a not-started group (UNBLOCKED already does); whether UNBLOCKED should read the seat refs is the same seam as carry 3 (a) and is left to a later part. Carry: R11-PRE-ACK-COMPLETION (items 8b860179)"
+    "From r11-pre-ack-completion, body item 8b860179: dev/programme/rosters/wave-r10-groups.json (group R11-PRE-ACK-COMPLETION, parts 2 and 3): `UNDISPATCHED` does not print for a not-started group (UNBLOCKED already does); whether UNBLOCKED should read the seat refs is the same seam as carry 3 (a) and is left to a later part. Carry: R11-PRE-ACK-COMPLETION (items 8b860179) [moved: R11-CARRY-TICK-OWED]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-pre-ack-completion",
     "commit": "31255c328918573ef29007dac22d7184a0f0247c",
     "last_step": null,
