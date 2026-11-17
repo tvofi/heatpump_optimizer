@@ -55,6 +55,48 @@
    "reachable": "yes: real loop thread, no stub involvement",
    "class": "P10",
    "seam_rule_enumerates": "partial: grep lists callers of reference_day; only demonstrated site is whatif.schedule_days via async_simulate"
+  },
+  {
+   "id": "D9-s2-01",
+   "vote": "verify",
+   "severity": "low",
+   "value": "retained rows slope 1448/day (log 476, actionLog 152, seen 628, memo 192); covered 60 chunks at day 30 vs 4-5 in 48 h reach; heap slope 140 kB/day (provisional)",
+   "metric_definition": "rows held by HistorySource (log, actionLog, seen, covered, memo) per simulated day of one card element panned past once/day",
+   "method": "reran finder .mjs in worktree (30 days, trim, nopan arms); read HistorySource source (card.js 7127-7470): no trimming statement on log/seen/covered/actionLog",
+   "attacks": "null nopan arm 0 rows/day; trim perturbation drops log slope 476 to 0 and total to 780; only grows when user pans past once a day; heap growth 140 kB/day is ~51 MB/yr, small; page reload resets; load1 0.10 thread_factor 1.0",
+   "reproduced": "1448 rows/day exact (finder 1,448)",
+   "independent_value": "source read: 0 trimming sites on this.log/actionLog/seen/covered in HistorySource; constructor lists 5 growing containers; heap 140 kB/day",
+   "reachable": "yes: browser code is the production card; fetch via hass.callApi real, rig only stubs the recorder",
+   "class": "new (class_guess N-no-expiry mismatches: that class is a published last-known value without age bound; this is unbounded in-memory history retention)",
+   "seam_rule_enumerates": "yes: grep names all six HistorySource containers"
+  },
+  {
+   "id": "D9-s3-01",
+   "vote": "weaken",
+   "severity": "low",
+   "value": "6 of 54 scenarios probed by the gate (3 top traced + 3 top rss); 48 blind; null ballast 0 flagged a clean scenario (1 of 2 sampled)",
+   "metric_definition": "scenarios where the gate's own memory thresholds fire on a ballast of the scenario's recorded traced peak retained inside HeatPumpOptimizer.optimize, and the scenario is in _memory_probe_labels",
+   "method": "reran finder harness default (universe 54, detected 6, blind 48, flagged_if_probed 54), --ballast-factor 0 and --top-n 108 on 2 scenarios; own count from tests/stress_budgets.json: 54 recorded rows, top-3 traced and top-3 rss labels are the 6",
+   "attacks": "null control: factor 0 on summer/1z/space,flat/1z/space flags 1 of 2 (clean false positive, traced_x 1.28-1.69), so 54/54 includes about 9 clean positives and true separation is lower; top-n 108 gives detected 2/2; injection is artificial confined leak, a general optimizer regression raises the probed top scenarios too; load1 2.0 thread_factor 1.05, bytes final",
+   "reproduced": "detected 6, blind 48, flagged_if_probed 54",
+   "independent_value": "54 rows in stress_budgets.json, probe set 6, 48 unprobed",
+   "reachable": "yes: CI gate in tests/stress.py, not HA-dependent",
+   "class": "I1",
+   "seam_rule_enumerates": "not read in the harness header; instrument seam is the gate selection _memory_probe_labels (one place), demonstrated seam is complete"
+  },
+  {
+   "id": "D9-s3-02",
+   "vote": "verify",
+   "severity": "low",
+   "value": "solves/cycle 2->4, payload 87,804->175,053 B, retained +210,628 B/cycle, GIL yields 472.7->0; gate evals/simulate/calls dev 0.0000, traced dev max 0.0037 on five scenarios",
+   "metric_definition": "per-cycle metric from real coordinator _async_update_data per injected arm vs the stress gate's solver_evals, simulate_steps, calls and tracemalloc peak in build_case on five sweep scenarios",
+   "method": "reran percycle.py in worktree; independent: stress.py does not import coordinator (grep shows only a comment)",
+   "attacks": "clean arm is null control; every arm's own metric moves while all gate readings unchanged; numbers differ from finder (payload 89,220 vs 87,804; yields 394 vs 472.7; retained 205 vs 211 kB) by under 20 percent, same conclusion; other gates (tests/features.py _st_tiles) pin solves per tile caller but not main solves per cycle, so a gate elsewhere may catch part; mutation named: double the optimize_in_process call in coordinator.py, not tested against full suite; load1 1.0 thread_factor 1.0",
+   "reproduced": "solves 2.00->4.00; max gate dev 0.0000 (traced 0.0037)",
+   "independent_value": "0 coordinator imports in tests/stress.py",
+   "reachable": "yes: gate-level, coordinator code is production",
+   "class": "new",
+   "seam_rule_enumerates": "not shown: four demonstrated levers, no rule enumerating other per-cycle metrics"
   }
  ]
 }
