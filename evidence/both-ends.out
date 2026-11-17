@@ -1,0 +1,18 @@
+== wt-base 38bf516bdd73f926ee9639ffda7b9ca5163fd50e
+d12 level lines tank/house: 0
+ledger rc=2 REFUSE: /root/led.tsv:1: 'level tank_volume=min' is no item of this universe as printed (check its options)
+LEVELS: 195
+PAIRS: 18696
+NO-READ AXES: 2
+briefs rc=0 ok=17
+3f88fb3f705cb20cfd3442999dc890d5  -
+check_scopes rc=0
+== wt-h2 fe298a641f0da65a76394a24cb693bb44480f4c4
+d12 level lines tank/house: 6
+ledger rc=0 NO-READ axis house_size: its cells are the levels dev/audit/config/objective.json declares, which no reader compares with their source
+LEVELS: 195
+PAIRS: 18696
+NO-READ AXES: 2
+briefs rc=0 ok=17
+3f88fb3f705cb20cfd3442999dc890d5  -
+check_scopes rc=0

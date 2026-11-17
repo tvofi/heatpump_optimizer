@@ -1,0 +1,40 @@
+== check-wave-script
+
+249 passed, 0 failed
+== closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+== structure
+STRUCTURE RATCHET PASSED
+== archscore
+Architecture score: dS +0.0000 NULL
+== class rule
+dev/audit/rounds/round9/D13/s1/dora_by_job.py:93:    merges = population(snap)
+tools/audit/check_scopes.py:767:    pop = lambda *axes: population(list(axes), set(files), lambda f: files[f])
+tools/audit/check_scopes.py:852:        lines, ok = population(json.loads(show(OBJECTIVE)).get("population", []), tree, show)
+tools/audit/enumerate.py:412:    lines, ok = check_scopes.population(spec, tracked(repo), lambda f: (repo / f).read_text())
+tools/audit/enumerate.py:460:                pop = pop or population_axes(repo)[0]
+tools/audit/enumerate.py:547:    axes, totals = population_axes(repo)
+tools/audit/product_reads.py:508:        axes, _ = census.population_axes(Path(repo))
+tools/audit/seat/plant_recall.py:230:        pop = population(a.population.read_text())
+tools/audit/seat/plant_recall.py:258:    pop = m.population("layout\t2\tno_valve,slab_shunt\ntank_volume\tNO-READ\tcontinuous\nLEVELS: 2\n")
+== plant_recall population
+67:def population(text: str) -> set[str]:
+68-    """`check_scopes.py --population` lines `axis<TAB>count<TAB>a,b,c` -> {"axis=a", ...}."""
+69-    cells = set()
+70-    for ln in text.splitlines():
+71-        parts = ln.split("\t")
+72-        if len(parts) == 3 and parts[1].isdigit():
+73-            cells |= {f"{parts[0]}={lv}" for lv in parts[2].split(",") if lv}
+74-    return cells
+75-
+76-
+77-def refusals(doc: dict, plants_path: Path, trees: list[Path], pop: set[str], banned: list[str]) -> list[str]:
+78-    bad = []
+79-    plants = doc.get("plants") or []
+80-    if not plants:
+81-        bad.append("the plant list is empty")
+== diff names
+dev/programme/delivery/3694.md
+tools/audit/enumerate.py

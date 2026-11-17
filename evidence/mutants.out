@@ -1,0 +1,14 @@
+MUTANT declared branch off: KILLED rc=1 fails=[] last="SELF-TEST FAILED: d12 a NO-READ axis whose levels are declared is one cell per level: got [], want ['level size=max\\tnot run', 'level size=min\\tnot run']; d12 a declared level pairs with every level o"
+MUTANT PAIRS raise deleted: KILLED rc=1 fails=[] last="SELF-TEST FAILED: live d12-cells {'pairs': True}: 19875 pair cells against the population's PAIRS: 18696; live d12-cells {'pairs': True}: got (False, True, True), want (True, True, True); d12 a declar"
+MUTANT cross-declared term deleted: KILLED rc=1 fails=[] last="SELF-TEST FAILED: live d12-cells {'pairs': True}: 19875 pair cells against the population's PAIRS: 19866; live d12-cells {'pairs': True}: got (False, True, True), want (True, True, True); d12 two decl"
+MUTANT LEVELS raise deleted: KILLED rc=1 fails=[] last="Refuse: 6 level cells against the population's LEVELS: 4"
+MUTANT raises swapped: KILLED rc=1 fails=[] last="SELF-TEST FAILED: live d12-cells {'pairs': True}: 19875 pair cells against the population's PAIRS: 19911; live d12-cells {'pairs': True}: got (False, True, True), want (True, True, True); d12 a declar"
+MUTANT R: added.append deleted: KILLED rc=1 fails=[] last="Refuse: 6 level cells against the population's LEVELS: 4"
+MUTANT R: name-in-declared guard dropped: KILLED rc=1 fails=[] last="KeyError: 'size'"
+MUTANT R: cells are values not names: KILLED rc=1 fails=[] last="SELF-TEST FAILED: d12 a NO-READ axis whose levels are declared is one cell per level: got ['level size=1\\tnot run', 'level size=9\\tnot run'], want ['level size=max\\tnot run', 'level size=min\\tnot run'"
+MUTANT R: cross term not halved: KILLED rc=1 fails=[] last="SELF-TEST FAILED: live d12-cells {'pairs': True}: 19875 pair cells against the population's PAIRS: 19884; live d12-cells {'pairs': True}: got (False, True, True), want (True, True, True); d12 two decl"
+MUTANT R: cross term keeps same-axis pairs: KILLED rc=1 fails=[] last="SELF-TEST FAILED: live d12-cells {'pairs': True}: 19875 pair cells against the population's PAIRS: 19884; live d12-cells {'pairs': True}: got (False, True, True), want (True, True, True); d12 a declar"
+MUTANT R: an empty levels row counts as declared: SURVIVED rc=0 fails=[] last='SELF-TEST passed (166 arms)'
+MUTANT R: only the first level kept: KILLED rc=1 fails=[] last="Refuse: 5 level cells against the population's LEVELS: 6"
+RESTORED: SELF-TEST passed (166 arms) rc 0
+RESULT reviewer-mutants total=12 survived=1

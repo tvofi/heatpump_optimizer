@@ -1,0 +1,7 @@
+GREEN fe298a641f0da65a76394a24cb693bb44480f4c4 pending: none red: none
+classify rc=0
+introduced: 0 at fe298a641f0da65a76394a24cb693bb44480f4c4 against 38bf516bdd73f926ee9639ffda7b9ca5163fd50e: head job 133764362812 failure base job 133732070457 failure
+introduced rc=0
+fe298a641f0da65a76394a24cb693bb44480f4c4	refs/heads/fix/r11-pre-briefs-census-p2
+dab3b0e042f080c347729d27969bb6cbcb8a81ad
+merge-tree rc=0
