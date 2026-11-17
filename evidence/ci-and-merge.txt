@@ -1,4 +1,18 @@
-GREEN 5356706e02cd174793004a041059c090eb15efba pending: none red: none
+## role-contract diff merge-base..origin/main
+0
+## merge-tree
+LEDGER-MERGE: resolved tests/closures.json
+f5130d2b85fb1e72f7fe000fa65739596c346b2d
 rc=0
-a4a91c3dfff424a217539c9202fb8b2a8116571c
-merge-tree rc=0
+origin/main=54cb7211642364d762ba47f42d5f7b8a5953f742 merge-base=b98c78e0f6144a5ea5b48a032e30bf2d085c2d61
+## delta paths
+ tools/audit/seat/orchestrator_tick.py | 6 ++++++
+ 1 file changed, 6 insertions(+)
+## three-dot paths
+ dev/programme/delivery/3689.md        |  1 +
+ tests/closure.py                      |  4 +++
+ tests/closures.json                   |  1 +
+ tools/audit/seat/orchestrator_tick.py | 66 ++++++++++++++++++++++++++++++++---
+ tools/audit/seat/owed_unactioned.py   | 18 +++++-----
+ tools/audit/seat/verdict_audit.py     | 13 +++++--
+ 6 files changed, 87 insertions(+), 16 deletions(-)
