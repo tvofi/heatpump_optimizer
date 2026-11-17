@@ -33,3 +33,4 @@
 1794887468 HB alive
 1794887617 CKPT r2 start: verdict read, worktree at 3fe03e1480 snapshot 7f129faf9baa
 1794887657 CKPT item 1: four fixtures + MUTANTS rows, self-test 0 failed; pushed to handoff-wip (stale round-1 BLOCKED tip b5fb726267 removed first) snapshot 415d4a74ccea
+1794887687 CKPT item 1: four fixtures + MUTANTS rows, self-test 0 failed; step-pushed to handoff-wip as a fast-forward over the round-1 tip (its deletion is refused 403) snapshot 0a805490887b
