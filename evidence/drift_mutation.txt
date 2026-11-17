@@ -1,0 +1,9 @@
+measured field-coverage shell_hazard True ancestry_calls False
+measured pr-args shell_hazard True ancestry_calls True
+HEAD table refusals: 120
+BASE table (null control) refusals: 122
+   UNDER-SCOPED step field-coverage: files misses ['tools/audit/seat/shell_hazard.py']
+   UNDER-SCOPED step pr-args: files misses ['tools/audit/seat/ancestry_calls.sh', 'tools/audit/seat/shell_hazard.py']
+MUTANT head table (drop shell_hazard from field-coverage, ancestry_calls from pr-args) refusals: 122
+   UNDER-SCOPED step field-coverage: files misses ['tools/audit/seat/shell_hazard.py']
+   UNDER-SCOPED step pr-args: files misses ['tools/audit/seat/ancestry_calls.sh']
