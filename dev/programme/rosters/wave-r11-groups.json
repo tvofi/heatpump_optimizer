@@ -2528,9 +2528,9 @@
    "architect_note": "",
    "source": "user",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-owner-community-standards",
-    "commit": null,
+    "commit": "ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae",
     "last_step": null,
     "next_step": "fixer (size S, docs/community files only; design exempt)",
     "note": "owner item tvofi 2026-11-15, folded into round 11; not finder-critical",
