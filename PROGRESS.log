@@ -31,3 +31,4 @@
 1794882541 CKPT body_push exit 4 CARRY-LANDED; BLOCKED.md pushed to handoff-wip snapshot f17d3823db1a
 1794882546 DONE part D at 921ce17487 on handoff/; prepr clean; body held at handoff-wip/...-body bb9385ea7f: body_push exit 4 CARRY-LANDED, BLOCKED.md on handoff-wip for the relay; part C waits on R11-PRE-TOKEN-LEDGER
 1794887468 HB alive
+1794887617 CKPT r2 start: verdict read, worktree at 3fe03e1480 snapshot 7f129faf9baa
