@@ -50,3 +50,4 @@
 1794889002 CKPT prepr second run at 36af54c383 snapshot 9fa05410bcf8
 1794889606 HB alive
 1794890210 HB alive
+1794890944 DONE blocked: code at handoff/r11-outside-honest-dhw-runs 36af54c383, prepr rc=0; body_push exit 4 REFUSED CARRY-LANDED, BLOCKED.md on handoff-wip, body kept at handoff-wip/...-body b8ef24299e
