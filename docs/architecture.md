@@ -182,7 +182,7 @@ custom_components/heatpump_optimizer/
 ├── snapshots.py          # Weekly learner snapshots and the rollback alarm
 ├── learner_progress.py   # Each thermal learner's phase, progress and wait; a day count only to a counting gate
 ├── comfort_learning.py   # Revealed-preference comfort-weight tuning
-├── curve_learning.py     # Standing cool-only bias on the ECL110 heat curve
+├── curve_learning.py     # Standing cool-only bias on the heat-curve displace
 ├── sysid.py              # Active step-response identification
 ├── presets.py            # Building archetypes to thermal parameters
 ├── external_heat.py      # Wood-furnace detection with hysteresis and decay
@@ -204,8 +204,8 @@ custom_components/heatpump_optimizer/
 │                         #   estimate is what the solve prices that switch by
 │                         #   and what orders the legs of a both step the
 │                         #   arbiter serves
-├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
-│                         #   topics and an offset number entity
+├── heat_curve.py         # The heat-curve displace's outputs: the MQTT topics
+│                         #   and a number entity, kind offset or persistent
 ├── off_restore.py        # The one owner of the off and unload restore: what
 │                         #   a writer restores when the optimizer lets go
 ├── early_cutoff.py       # Switches a space-heating pump off inside the

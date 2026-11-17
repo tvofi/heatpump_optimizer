@@ -2,7 +2,7 @@
 """carry_fold.py -- the orchestrator writes each `Carry: <GROUP>` body item into its destination brief.
 
     python3 tools/audit/seat/carry_fold.py --body FILE --pr '#N' --topic T --worktree DIR
-        [--checkout DIR] [--roster-ref REF] [--branch BR]
+        [--checkout DIR] [--roster-ref REF] [--branch BR] [--state-dir D]
     python3 tools/audit/seat/carry_fold.py --self-test
 
 WHY. A seat that cannot write the roster strands its carry: `body_push.sh` refuses a body whose
@@ -17,6 +17,10 @@ Refusals (rc 1, nothing written for the first): a body item whose destination is
 (`bad destination`); an item still missing after the fold. rc 0: nothing missing, or all folded and
 asserted. rc 3: the roster is unreadable. The merge-time writer is `roster_sync.py`; this runs
 before it and `roster_edit.py` refuses an exact repeat, so the two never double-write.
+THE LEASE. The fold writes while holding roster_lib's writer lease in the beat's state directory
+(`--state-dir`, default `$HPO_STATE_DIR`), waiting up to LEASE_WAIT_S for the drain's op in flight;
+the drain starts no op while the fold holds it, so the two no longer race one push loop against the
+other. A lease still held past the wait is rc 1, `REFUSED`, nothing written.
 `--self-test` prints `carry_fold self-test: N checks, 0 failed`.
 """
 from __future__ import annotations
@@ -32,6 +36,21 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 import carry_audit  # noqa: E402
 import roster_lib  # noqa: E402
+
+#: One drain op is a lint and a push loop (1.5-4 min a lint, triage sweep 1520); two ops' worth.
+LEASE_WAIT_S = 600
+
+
+def leased(state_dir, wait_s: float, write, lease=roster_lib.writer_lease) -> tuple[int, list[str]]:
+    """`write()`'s (rc, lines), run holding the roster writer lease; a refusal when it stays held."""
+    fd = lease(state_dir, wait_s)
+    if fd is None:
+        return 1, [f"carry_fold: REFUSED the roster writer lease in {state_dir} is still held after {wait_s:.0f} s "
+                   "(the drain's op in flight); nothing written"]
+    try:
+        return write()
+    finally:
+        os.close(fd)
 
 
 def fold(body: str, load, apply, pr: str = "", topic: str = "") -> tuple[int, list[str]]:
@@ -69,6 +88,7 @@ def main(argv=None) -> int:
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default=None)
     p.add_argument("--branch", default=None)
+    p.add_argument("--state-dir", default=os.environ.get("HPO_STATE_DIR") or str(Path.home() / ".local/state/hpo"))
     a = p.parse_args(argv)
     git = roster_lib.git_in(a.checkout)
     branch = a.branch or a.roster_ref or roster_lib.round_ref(git)
@@ -88,7 +108,8 @@ def main(argv=None) -> int:
                                          "--branch", branch, "--push"])
 
     try:
-        rc, lines = fold(Path(a.body).read_text(), load, apply, a.pr, a.topic)
+        body = Path(a.body).read_text()
+        rc, lines = leased(a.state_dir, LEASE_WAIT_S, lambda: fold(body, load, apply, a.pr, a.topic))
     except (roster_lib.RosterNotFound, ValueError, OSError) as e:
         print(f"carry_fold: UNREAD the roster: {e}")
         return 3
@@ -148,6 +169,48 @@ def _self_test() -> int:
     state["R10-DEST"]["carry"].clear()
     rc, out = fold(body, load, lambda op: 2, "#9", "r10-x")
     check("a failed write refuses and says so", rc == 1 and "REFUSED" in out[-1])
+    import tempfile
+    with tempfile.TemporaryDirectory() as st:
+        inside = []
+
+        def write():  # a drain op starting now takes the lease without waiting
+            fd = roster_lib.writer_lease(st, 0)
+            inside.append(fd is None)
+            if fd is not None:
+                os.close(fd)
+            return 0, ["wrote"]
+        check("the fold writes holding the lease: a drain op cannot start meanwhile",
+              leased(st, 0, write) == (0, ["wrote"]) and inside == [True])
+        drain = roster_lib.writer_lease(st, 0)
+        inside.clear()
+        rc, out = leased(st, 0, write)
+        check("a lease the drain holds past the wait refuses the fold, nothing written",
+              rc == 1 and "REFUSED" in out[0] and inside == [])
+        os.close(drain)
+        check("null control: a free lease runs the fold once", leased(st, 0, write)[0] == 0 and inside == [True])
+    import contextlib
+    import io
+    global LEASE_WAIT_S
+    wait, LEASE_WAIT_S = LEASE_WAIT_S, 0
+    try:
+        with tempfile.TemporaryDirectory() as st, tempfile.TemporaryDirectory() as co:
+            (Path(st) / "body.md").write_text(body)
+            argv = ["--body", str(Path(st) / "body.md"), "--worktree", co, "--checkout", co,
+                    "--branch", "handoff/audit-r10-roster", "--state-dir", st]
+            drain = roster_lib.writer_lease(st, 0)
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said):
+                rc = main(argv)
+            check("main folds holding the lease: a lease the drain holds refuses before any roster read",
+                  rc == 1 and "REFUSED the roster writer lease" in said.getvalue())
+            os.close(drain)
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said):
+                rc = main(argv)
+            check("null control: with the lease free, main goes on to read the roster",
+                  "REFUSED the roster writer lease" not in said.getvalue())
+    finally:
+        LEASE_WAIT_S = wait
     print(f"carry_fold self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

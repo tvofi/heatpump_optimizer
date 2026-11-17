@@ -1102,6 +1102,41 @@ def critical_path_groups(repo: str, ref: str) -> set[str] | None:
     return groups or None
 
 
+# ------------------------------------------------------------- the writer lease
+#
+# ROSTER-PUSH-LEASE (triage s6-batch233 P706): the beat's roster drain and an
+# out-of-queue writer (carry_fold.py) both push the round's roster branch through
+# `roster_edit.py --push`, each re-applying across a lint window, and with no
+# shared lock each lost the other's races (a fold lost 3 of 3 tries against a
+# 21-op drain). One flock in the beat's state directory makes one writer of
+# record: the drain takes it per op without waiting and yields the rest of its
+# pass while it is held; carry_fold waits for it. flock is released when the
+# holder's process ends, so a killed holder leaves no stale lease.
+WRITER_LEASE = "roster-writer.lease"
+
+
+def writer_lease(state_dir, wait_s: float, sleep=None, clock=None):
+    """An fd holding the exclusive flock on `<state_dir>/roster-writer.lease`,
+    or None when another holder kept it for `wait_s` seconds; `os.close(fd)`
+    releases it."""
+    import fcntl
+    import os
+    import time
+    sleep, clock = sleep or time.sleep, clock or time.monotonic
+    Path(state_dir).mkdir(parents=True, exist_ok=True)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    end = clock() + wait_s
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except BlockingIOError:
+            if clock() >= end:
+                os.close(fd)
+                return None
+            sleep(1)
+
+
 # ------------------------------------------------------------------ self-test
 def _self_test() -> int:
     """Which roster, offline in a throwaway repository: the newest of two
@@ -1602,6 +1637,18 @@ def _self_test() -> int:
         check("an override behind an unreadable tree refuses with git's read, "
               "not 'is not a file'",
               "cannot read" in why and "is not a file" not in why, why)
+    import os
+    with tempfile.TemporaryDirectory() as st:
+        held = writer_lease(st, 0)
+        other = writer_lease(st, 0)
+        waits = []
+        late = writer_lease(st, 3, sleep=waits.append, clock=lambda t=iter(range(0, 99)): next(t))
+        check("writer_lease: a held lease refuses a second holder, at once or after its wait",
+              held is not None and other is None and late is None and waits == [1, 1], (other, late, waits))
+        os.close(held)
+        again = writer_lease(st, 0)
+        check("writer_lease: a released lease is taken (null control)", again is not None, again)
+        os.close(again)
     # gates_finders (R11-PRE-ROUND-CHECK-GATE part 2, tvofi 2026-11-15): every
     # open group the finders do not wait for is the architect's input when they
     # finish; an unmarked one is listed and flagged, never read as gating.

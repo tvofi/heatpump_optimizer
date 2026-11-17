@@ -1,6 +1,6 @@
 # Automations
 
-Without a heat pump on/off switch — and without the ECL110 or
+Without a heat pump on/off switch — and without the heat-curve or
 frequency-control paths — the optimizer's plan is published on sensors for
 your own automations to act on ([configuration.md](configuration.md) says
 exactly that where the trade-off is made). The examples below are complete and
