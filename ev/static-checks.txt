@@ -1,0 +1,16 @@
+== version/manifest/notes/claims touched:
+(end)
+== live head:
+2abb0ac85babec8f3cab4d42d6988d747cfca737 open mergeable=true
+== e8a2260 vs head code delta:
+ .../audit/seat/instruments/cancel_superseded.py.md |  10 ++
+ tools/audit/seat/instruments/open_driver.py.md     |  10 +-
+ tools/audit/seat/open_driver.py                    |  72 ++++++++-
+ tools/audit/seat/open_driver_selftest.py           | 164 +++++++++++++++++++++
+ tools/pr/cancel_superseded.py                      | 151 ++++++++++++++++++-
+ 5 files changed, 400 insertions(+), 7 deletions(-)
+
+STRUCTURE RATCHET PASSED
+  ok   nonproduction_merges 480 <= 478 + band 5
+  ok   churn_per_kilo_product_lines 14236 <= 14797 + band 3636
+  info target nonproduction_merges 480 <= 478 + band 5 (37 merge(s) past anchor b3831ff64eca, 48 down per 290)

@@ -1,0 +1,33 @@
+Fix review: merge 2abb0ac85babec8f3cab4d42d6988d747cfca737
+
+bus-nonce: 8ceacac563dff0a80d2021ca8676a7ed
+
+## Round
+
+Round 2, a later round over the reviewed head 2abb0ac85babec8f3cab4d42d6988d747cfca737 with an empty delta: the live PR head is still 2abb0ac85babec8f3cab4d42d6988d747cfca737 (`refs/pull/3675/head`), so `git diff 2abb0ac85babec8f3cab4d42d6988d747cfca737 2abb0ac85babec8f3cab4d42d6988d747cfca737` is empty and nothing widens the scope (fix-review.md step 12). The previous verdict (review/3675, 7db70e9b) blocked only on CI: run 43914056033 was cancelled mid-coverage. It found no code block, and its findings below are carried unchanged, since the code they measure has not moved.
+
+## Findings
+
+- Residual: carry 3's repair makes `Train.review_settle` unbounded when the review-run listing stays unreadable. Probe `ev/unread_forever.py` (every `gh` call answers `HTTP 401`): at the base the wait returns after 1 sleep; at the head it is still waiting after 2000 sleeps (599115 s simulated, cap 915 s), every line `not counted (0 s of 915 s)` (`ev/unread-forever-*.txt`). This follows the carry's text ("neither ends the wait nor counts toward the cap") and does not block, but nothing ends it on a credential that stays broken, and the rejoin's `idle` grows the same way. The later part should add an outer bound or a release, such as a count of consecutive unread polls that ends in a SKIP. Control: the same probe must return or SKIP at the head. Carry: R11-PRE-PARALLEL-PIPELINE
+- Residual: surviving mutant, `Train.counted_poll` with `if now is None: return False` deleted (an unreadable `actions_mark` listing then counts the poll). All three self-tests stay green (`ev/mutants.txt`; re-run alone against orchestrator_tick and merge_throughput: both still green). This is the outage this carry targets: the Actions listing failing while the review listing reads. The body's unpinned-sites list does not disclose it. Needs one arm in which `actions/runs?per_page=30` answers non-zero and the cap does not move. Carry: R11-PRE-PARALLEL-PIPELINE
+- Residual: surviving mutant, `Train.pre_approval_refusal` with its `self.head(pr) != h` check removed. No P628 arm drives a head that moved between queue read and batch start, so an approval at a stale sha goes unpinned. The body does not disclose it. Carry: R11-PRE-PARALLEL-PIPELINE
+- Residual: surviving mutant, `Train.pre_approval_refusal` with its `BOT_ROUTE in a["route"]` check removed. No arm feeds a bot-tip entry to pre-approval. The body does not disclose it. Carry: R11-PRE-PARALLEL-PIPELINE
+- Residual: surviving mutant, `Train._batch` passing `serial` to `pre_approve` without filtering out the entries already SKIPped this batch. No arm pre-approves while a serial entry is skipped. The body does not disclose it. Carry: R11-PRE-PARALLEL-PIPELINE
+- Residual: surviving mutant, `Tick.one_pr` printing `GREEN` instead of `UNJUDGED` when no classify reading exists. The body claims "with the ruleset unreadable `UNJUDGED`, never GREEN", but no arm drives an unreadable ruleset, so that claim is untested. The body does not disclose it. Carry: R11-PRE-PARALLEL-PIPELINE
+
+## Notes
+
+- Note: figure: the body's "27 modules" for `blind_sites` is right at the code commit e8a2260861 (27 tools modules name merge_train). At the head it is 28, because main's merge brought in `tools/audit/seat/open_driver.py`; the head's self-test line reads `(28 modules scanned) -- []`. Carry: dismissed: a figure correct at its own commit, moved by main's merge
+- Note: carry-path: the body says both forward-carries land in `dev/programme/rosters/wave-r10-groups.json`. On the roster branch tip 997083e81c they are in `wave-r11-groups.json` (body items 4c94356f and c5d7f7ba), each stating its control as a precondition. Carry: dismissed: the carries landed with their controls, only the named file differs
+
+## Evidence
+
+- Head: `git ls-remote origin refs/pull/3675/head` prints 2abb0ac85babec8f3cab4d42d6988d747cfca737, the head the previous round measured and the head this verdict names (`ev/HEAD.txt`).
+- Delta: empty (the packet's `## Delta diff: git diff 2abb0ac85babec8f3cab4d42d6988d747cfca737 2abb0ac85babec8f3cab4d42d6988d747cfca737`). Every measurement of the previous round is valid at this head unchanged, and its evidence is copied into `ev/` (from 7db70e9b `evidence/`, same names): the mutation proof (31 targeted mutants, 25 killed, 6 survived, `ev/mutants.txt`), the self-test counts (merge_train base 825 / head 838, orchestrator_tick base 368 / head 372, all 0 failed; merge_throughput ok at both), the null controls, the class enumeration, the static checks (claims, VERSION, manifest, notes, budgets, closures.json untouched; STRUCTURE RATCHET PASSED) and the unbounded-wait probe.
+- Roles: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` now shows one change, to COMMON.md (the finder's contract: D16/D17 added to two lists, one clause shortened). It does not touch fix-review.md, so the review rules applied are current.
+- Merge with main: `git merge-tree --write-tree origin/main 2abb0ac85babec8f3cab4d42d6988d747cfca737` exits 0, no conflict.
+- PR body: the live body's figures are those the previous round checked (825/838, 372, 27 modules, MODE: SCOPED -- 2 script(s) run, 31 scoped out); the figure notes above still apply.
+- Orchestrator NOTE (comms CMD 1): the CI runs at this head were cancelled by the orchestrator at 17:45-18:00Z to free runners and are re-run; a cancelled check here is a wait, not a red of the PR.
+- Owed reds: `tests / nightly-status` is the only red read in the packet digest, and it is not in `merge_train.py owed-reds`, so it owes no answer.
+- CI: `merge_train.py classify 2abb0ac85babec8f3cab4d42d6988d747cfca737 --pr 3675` polled from 01:27:36Z, WAIT (`pending: gate`) while the edit run 43916066997's gate stood red from 20:53Z (`FAIL pr-contract: no run at this head judged base 'main'`, `ev/edit-run-gate.txt`), then exited 0 at 01:52:54Z: `GREEN 2abb0ac85babec8f3cab4d42d6988d747cfca737 pending: none red: none` (`ev/classify-r2.log`). Live check runs at the head (`ev/check-runs-r2.txt`): every gate suite reads success (00:22:31Z, 01:46:06Z, 01:51:21Z); code run 43914056033's re-run concluded with `tests / coverage` success (23:15:55Z-23:59:41Z) and `coverage-ratchet`, `graders-head-copy`, `lane-proofs` success. The only red is `tests / nightly-status`, outside the owed set (`ev/owed-reds-r2.txt`), so it owes no answer and does not block.
+- Self-audit: `carry_audit.py check` over the live PR body and this verdict: 8 finding items, 8 routed, 0 unrouted, 0 bad destinations, rc 0.

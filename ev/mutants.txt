@@ -1,0 +1,31 @@
+KILLED counted_poll readable guard dropped :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+SURVIVED counted_poll None mark counted
+KILLED review_settle unread ends wait :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED counted_poll moved=True :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED _gate_busy mints Busy() :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED wait_ci classify on None busy :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED rejoin idle never accrues :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED blind_sites FINAL arm off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approve dropped :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approve includes first serial :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED blind_sites Busy arm off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+SURVIVED pre_approval head-moved check off
+KILLED pre_approval GREEN off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approval CARRY off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approval main-inside off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approval policy off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED pre_approval unverdicted off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+SURVIVED pre_approval bot route off
+KILLED one_pr GREEN always :: orchestrator_tick rc=1 first: FAIL carry 2 one_pr state line: a required context with no run reads WAIT: the line reads WAIT:closures
+SURVIVED one_pr unjudged->GREEN
+KILLED bench margin <= :: merge_throughput rc=1 first: FAIL carry 0 bench: chains 25% below the train clear the 20% margin; exactly 20% below does not (the rule is MORE than BENCH_MARGIN below): got ('prop
+KILLED bench min prs dropped :: merge_throughput rc=1 first: FAIL carry 0 bench null: nine pull requests each are retired, whatever the margin: got 'proposal into P750 and P754', want 'retire the chains'
+KILLED bench train path by any key :: merge_throughput rc=1 first: FAIL carry 0 bench: the wait starts at the later of verdict and GREEN; chains 50% below the train over 10 each, no wrong merge: a proposal: got ({'tra
+SURVIVED bench self-test call dropped
+SURVIVED _batch skipped not filtered
+KILLED pre_approval raise off :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED replan stall ignores classify :: orchestrator_tick rc=1 first: FAIL carry 2 throughput stall: a required context with no run is no stall: STALL not raised
+KILLED bench green start dropped :: merge_throughput rc=1 first: FAIL carry 0 bench: the wait starts at the later of verdict and GREEN; chains 50% below the train over 10 each, no wrong merge: a proposal: got ({'tra
+KILLED _batch lead always False :: merge_train rc=1 first: ok   fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+KILLED flow wrong False :: merge_throughput rc=1 first: FAIL carry 0: a merge after a newer blocked verdict is a WRONG merge (its wait still reads the merge verdict): got [(1, 0.08, False)], want [(1, 0.08,
+KILLED bench wrong ignored :: merge_throughput rc=1 first: FAIL carry 0 bench: one wrong chain merge retires the chains and is counted: got ('proposal into P750 and P754', {'train': 0, 'chain': 1}), want ('ret

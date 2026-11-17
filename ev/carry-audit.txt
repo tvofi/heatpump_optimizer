@@ -1,0 +1,9 @@
+NOTE body item 4c94356f: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE body item c5d7f7ba: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item fd6f794e: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 235923bb: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 9c080aad: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 80584aaf: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 1a53a63e: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item d42eb510: R11-PRE-PARALLEL-PIPELINE: R11-PRE-PARALLEL-PIPELINE resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
