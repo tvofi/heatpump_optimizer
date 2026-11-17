@@ -1,0 +1,5 @@
+# at head 3099d416f4
+== cloud_dispatch-15 cloud_dispatch.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+RESULT survivors=1
+== cloud_dispatch-16 cloud_dispatch.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+RESULT survivors=1

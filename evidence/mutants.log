@@ -1,0 +1,45 @@
+RESULT mutant=M0 file=tools/audit/seat/toolchain.py failed=0 verdict=null-ok
+RESULT mutant=M0 file=tools/audit/seat/prune_refs.py failed=0 verdict=null-ok
+RESULT mutant=M0 file=tools/ci/gate.py failed=0 verdict=null-ok
+RESULT mutant=M0 file=tools/audit/seat/cloud_dispatch.py failed=0 verdict=null-ok
+RESULT mutant=M0 file=tools/audit/seat/cloud-setup.sh failed=0 verdict=null-ok
+RESULT mutant=M-absent-behind failed=2 verdict=killed
+RESULT mutant=M-paths failed=6 verdict=killed
+RESULT mutant=M-from failed=4 verdict=killed
+RESULT mutant=M-fetch failed=2 verdict=killed
+RESULT mutant=M-direction failed=7 verdict=killed
+RESULT mutant=M-absent-promote failed=2 verdict=killed
+RESULT mutant=M-init-present failed=1 verdict=killed
+RESULT mutant=M-offmain failed=10 verdict=killed
+RESULT mutant=M-ff failed=2 verdict=killed
+RESULT mutant=M-green-sha failed=1 verdict=killed
+RESULT mutant=M-green-walk failed=7 verdict=killed
+RESULT mutant=M-concluded failed=2 verdict=killed
+RESULT mutant=M-stop-at-ref failed=4 verdict=killed
+RESULT mutant=M-machinery failed=13 verdict=killed
+RESULT mutant=M-held-count failed=3 verdict=killed
+RESULT mutant=M-held-any failed=1 verdict=killed
+RESULT mutant=M-readback failed=1 verdict=killed
+RESULT mutant=M-current-sha failed=1 verdict=killed
+RESULT mutant=M-sha-filter failed=3 verdict=killed
+RESULT mutant=M-keep failed=1 verdict=killed
+RESULT mutant=G-empty failed=10 verdict=killed
+RESULT mutant=G-unread-green failed=2 verdict=killed
+RESULT mutant=G-skip-required failed=1 verdict=killed
+RESULT mutant=G-cancelled-red failed=1 verdict=killed
+RESULT mutant=G-na failed=1 verdict=killed
+RESULT mutant=G-neither failed=5 verdict=killed
+RESULT mutant=D-design-line failed=2 verdict=killed
+RESULT mutant=D-part-clause failed=1 verdict=killed
+RESULT mutant=D-part-always failed=2 verdict=killed
+RESULT mutant=D-order failed=1 verdict=killed
+RESULT mutant=D-stale-approval failed=2 verdict=killed
+RESULT mutant=D-no-verdict failed=1 verdict=killed
+RESULT mutant=K-pin-kept failed=2 verdict=killed
+RESULT mutant=K-probe failed=3 verdict=killed
+RESULT mutant=K-red failed=1 verdict=killed
+RESULT mutant=K-none failed=1 verdict=killed
+RESULT mutant=K-list failed=3 verdict=killed
+RESULT mutants=37
+RESULT survived=0
+rc=0
