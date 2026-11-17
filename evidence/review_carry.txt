@@ -1,0 +1,11 @@
+review_carry: 69dc1cd4f -> 815ebab2a  main=origin/main
+  branch-only commits: 7
+  why: 7f7bbc5cb4d484e3ffb6c2fd2896c5900e53ae83 is not the automatic merge of its parents
+  e78cd86ab  Pin the five sites the room lift added: both ends of the staleness clamp, the margin clip and the lift's floor and cap
+  846a1e10f  Record the five sites' killing driver in the mutation ledger
+  7f7bbc5cb  Merge origin/main into fix/r11-outside-rooms-p2
+  59047cf34  docs/architecture.md: 96 modules after the merge, and the D6 register re-run
+  3a16b7a93  docs/architecture.md: 62 HA-free modules after the merge
+  a7ef838e3  Merge commit '3a16b7a938b10b66a49c5c9fceb20835e9d06785' into fix/r11-outside-rooms-p2
+  815ebab2a  Merge remote-tracking branch 'origin/main' into fix/r11-outside-rooms-p2
+review_carry: FRESH-REVIEW
