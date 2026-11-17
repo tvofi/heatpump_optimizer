@@ -22,3 +22,22 @@ MUTATION TABLE -- scope full: every production module
   baseline tests/entities.py: rc=1 failed=2 1369s
   tests/features.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_features.py.pkl
   baseline tests/features.py: rc=0 failed=0 2105s
+  tests/finite_boundary.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_finite_boundary.py.pkl
+  baseline tests/finite_boundary.py: rc=0 failed=0 282s
+  tests/guard_pins.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_guard_pins.py.pkl
+  baseline tests/guard_pins.py: rc=0 failed=0 11s
+  tests/manual_plan.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_manual_plan.py.pkl
+  baseline tests/manual_plan.py: rc=0 failed=0 13s
+  tests/plan_view.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_plan_view.py.pkl
+  baseline tests/plan_view.py: rc=0 failed=0 2s
+  tests/solar_alignment.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_solar_alignment.py.pkl
+  baseline tests/solar_alignment.py: rc=0 failed=0 2s
+  tests/structure.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_structure.py.pkl
+  baseline tests/structure.py: rc=0 failed=0 54s
+  tests/typing_ruler.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_typing_ruler.py.pkl
+  baseline tests/typing_ruler.py: rc=0 failed=0 46s
+  tests/wood_advisor.py: baseline reused from /root/d3s3-tmp/d3s3-baseline-cache/tests_wood_advisor.py.pkl
+  baseline tests/wood_advisor.py: rc=0 failed=0 2s
+  tests/doc_claims.py: baseline red ONLY on the finder-wall artifact (dev/archive/backlog.md absent); tolerated, kill = >1 FAIL
+  tests/entities.py: baseline red ONLY on two machinery checks of this export (closure partial re-derive, PR-template acceptance); tolerated, kill = >2 FAIL
+  null control custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT survived every driver
