@@ -6,3 +6,4 @@
 1794852119 DONE blocked merge-conflict: roster_edit.py vs main #3657; verdict at probe/rev-3633-e77914aa 74bfef0aa0
 1794873318 HB alive
 1794873378 CKPT packet rendered, reading delta snapshot 227f2f82017d
+1794873719 CKPT self-tests green, 4 resolution mutants killed snapshot c813f2c95054
