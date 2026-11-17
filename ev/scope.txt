@@ -1,0 +1,19 @@
+merge-base b98c78e0f6144a5ea5b48a032e30bf2d085c2d61, origin/main 54cb7211642364d762ba47f42d5f7b8a5953f742
+roles diff since merge-base:
+three-dot files:
+dev/governance/roles/architect-planner.md
+dev/programme/delivery/3633.md
+tools/audit/check_scopes.py
+tools/audit/seat/instruments/check_scopes.py.md
+tools/audit/seat/roster_edit.py
+tools/audit/seat/roster_lib.py
+tools/policy/brief_lint.mjs
+tools/policy/check-wave-script.mjs
+tools/policy/fixtures/shape-defects.json
+VERSION/manifest/notes/claims touched:
+(end)
+own diff vs reviewed head, excluding main:
+  2cb653f2d  roster_edit self-test: set gates_finders and a convergence field in one run
+  3e2b3f9a3  Merge commit '2cb653f2dddc258386bddd7dc097bb9c0e323c17' into fix/r11-pre-round-check-gate-p2
+  39174541f  Merge remote-tracking branch 'origin/main' into fix/r11-pre-round-check-gate-p2
+review_carry: FRESH-REVIEW

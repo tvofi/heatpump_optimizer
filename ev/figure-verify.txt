@@ -1,0 +1,3 @@
+$ figure_block.py verify <the body's ## Figures block, copied from the PR> --base b98c78e0f6144a5ea5b48a032e30bf2d085c2d61 --head 39174541fd3707da591f62d5c08e21af06235d0f
+figure_block verify: 1 block(s), 0 refused
+rc=0

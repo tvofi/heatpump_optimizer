@@ -1,0 +1,31 @@
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index 9f4aa37f54..b295b3c962 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -16,12 +16,8 @@
+     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+     python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
+     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
+-<<<<<<< 2061e87b067922853a5f890dad9ea21d835f593e
+-    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class|gates_finders> <value>
+-=======
+-    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class
++    python3 tools/audit/seat/roster_edit.py set-field   <group> <source|hotfix|hotfix_by|savings|savings_source|class|gates_finders
+                                                          |found_by|owned_by|caused_by|family|cm_kind|parent|follows> <value>
+->>>>>>> 30f9caac90735c402c8e3ae60fbaa80c45dc6d26
+     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
+         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
+         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
+@@ -465,11 +461,7 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
+ 
+ 
+ #: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
+-<<<<<<< 2061e87b067922853a5f890dad9ea21d835f593e
+-SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class", "gates_finders")
+-=======
+-SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class") + roster_lib.CONVERGENCE_FIELDS
+->>>>>>> 30f9caac90735c402c8e3ae60fbaa80c45dc6d26
++SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class", "gates_finders") + roster_lib.CONVERGENCE_FIELDS
+ CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
+ REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
+ 
