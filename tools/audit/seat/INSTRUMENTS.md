@@ -31,6 +31,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
 - [`enumerate.py`](instruments/enumerate.py.md) — prints one audit universe, one item per line, so a finder reports examined over a command's output
 - [`product_reads.py`](instruments/product_reads.py.md) — reads `operation` and `generality` off a cell ledger, counting a row only on the read's own witness
+- [`regret_oracle.py`](instruments/regret_oracle.py.md) — reads `regret` per grid cell against the same-information oracle, and the cost record per install-day from a bundle
 - [`text_ledger.py`](instruments/text_ledger.py.md) — enumerates every unit a D5 or D6 seat judges and refuses a ledger that skips one
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
