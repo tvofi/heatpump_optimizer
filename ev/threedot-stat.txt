@@ -1,0 +1,9 @@
+ dev/programme/delivery/3676.md         |   1 +
+ tools/audit/seat/beat_jobs.py          |   9 +-
+ tools/audit/seat/beat_jobs_selftest.py |  12 +-
+ tools/audit/seat/plan_page.py          | 290 ++++++++++++++++++++++++++++++---
+ tools/audit/seat/plan_phases.py        |  25 ++-
+ tools/audit/seat/roster_lib.py         |  35 +++-
+ tools/audit/seat/sweep_template.md     |   4 +-
+ tools/plan/replan.py                   |  69 +++++++-
+ 8 files changed, 406 insertions(+), 39 deletions(-)

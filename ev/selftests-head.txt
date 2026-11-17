@@ -1,0 +1,3 @@
+plan_page self-test: 152 checks, 0 failed
+beat_jobs self-test: 284 checks, 0 failed
+self-test: 0 failed

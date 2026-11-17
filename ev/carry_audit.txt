@@ -1,0 +1,8 @@
+NOTE stale tree: 8e76c192d269e0837a80d0606f3ac12ebecb223d lacks origin/main 91674d15cdd6a66924ed45eced7a808f7ae3f62e; roster read at origin/main
+NOTE body item 6e450f02: dismissed:the orchestrator rules whether a further part is dispatched
+NOTE body item 6333b3d0: dismissed:the next round's plan does not exist to measure against until a round-11 roster does, and the claim has no instance in the tree to re-run.
+NOTE body item 0ed6be77: dismissed:both live in `$HPO_STATE_DIR`, which a cloud seat cannot read or write.
+NOTE body item 34adcada: dismissed:R11-PRE-ROUND-METRICS is carries-open and receives none; a figure written to `durations.json`'s `phase_hours` reaches the page at the next `replan.py` run, through `generated.model
+NOTE review 0 item b7c8cfb8: dismissed:paperwork at a head whose code is verified; the count is re-derived above.
+NOTE review 0 item fd3a1bea: dismissed:unreachable at this tree; any malformed value fails loudly or prints as nan/inf, never as a believable duration
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
