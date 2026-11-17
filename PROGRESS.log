@@ -1,3 +1,4 @@
 1794887161 INIT r11-rev-3698
 1794887172 HB alive
 1794887226 CKPT worktrees at head and base snapshot 72f209f08a65
+1794887313 CKPT mutants run: 4 killed 2 survived; classify polled snapshot ea95f06c6cc2
