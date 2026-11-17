@@ -1041,7 +1041,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run",
+    "pr": 3708
    }
   },
   {
@@ -2399,9 +2400,9 @@
    "architect_note": "",
    "source": "user",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-owner-generic-control-text",
-    "commit": null,
+    "commit": "8e76c192d269e0837a80d0606f3ac12ebecb223d",
     "last_step": null,
     "next_step": "fixer (size M, user-facing text only; design exempt: no behaviour change)",
     "note": "owner item tvofi 2026-11-15, folded into round 11; not finder-critical; overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-HONEST-METERED-FLOOR): text-only pass over user-facing strings and docs, no behaviour change; the outside groups change behaviour in config_flow.py and rows of docs/configuration.md; whichever merges second rebases onto the first",
@@ -3571,8 +3572,8 @@
    "brief": "Root-cause record, S. The root-cause seat beside R11-HOTFIX-MAIN-SELFTEST-DRIFT, under defect-root-cause.md: why main's instrument self-test read-set drift step goes red one merge after a pull request adds a read to a gated step, six hand re-record hotfixes in 48 h. It adds the analysis under dev/audit/rca/ and the harness behind its measurements, and changes no production code, tool or policy. Process state (c). Its countermeasure is process proposal P-R11-41, ruled at round end. Handoff de8325b3259a356758dd306101744a47a1400dff.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "done",
+    "commit": "b6e52b059811d186bfcecc9e6489a511a447b86c",
     "branch": "fix/r11-rca-selftest-table-drift",
     "last_step": "handoff pushed",
     "next_step": "open, review, merge",
