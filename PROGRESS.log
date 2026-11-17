@@ -8,3 +8,4 @@
 1794876263 CKPT mutants running; found inherited main red: product_reads.py --self-test fails since 54cb721164 (#3665 vs enumerate d16 refusal), carrying to R11-PRE-PRODUCT-READS snapshot 5a899927a6ac
 1794876838 HB alive
 1794876896 CKPT mutants done (instrument lines all killed); head 93f45781be pushed to handoff-wip; running prepr snapshot bfec88c09e3b
+1794877401 CKPT body drafted; prepr.sh running at 93f45781be snapshot 20a2f2df71b5
