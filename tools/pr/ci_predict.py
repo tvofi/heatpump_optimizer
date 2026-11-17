@@ -699,6 +699,17 @@ def selftest_scope_self_test() -> int:
             1, "OK       0.1s a\n  UNDER-SCOPED step a-b: files misses ['docs/d.md']\n  PARTIAL trace x\n"
                "selftest_scope precheck: 1 step(s) traced ['a-b'], 2 refusal(s)\n"))
         skip = selftest_scope_preds(root, "b", notes, fake(3, "selftest_scope precheck: skip, 1 step(s) untraced\n"))
+        rc2 = selftest_scope_preds(root, "b", [], lambda argv, **kw: R(returncode=2, stderr="",
+                                                                      stdout="  UNDER-SCOPED step a: files misses ['x']\n"))
+        try:  # not a repository: past the arm check, no merge base
+            only_ok = predict(root, "HEAD", only="selftest-scope")[:2]
+        except SystemExit:
+            only_ok = None
+        try:
+            predict(root, "HEAD", only="no-such-arm")
+            only_bad = False
+        except SystemExit:
+            only_bad = True
         cases = [
             ("selftest-scope: a tree without the tool predicts nothing and runs nothing", none == [] and len(calls) == 2),
             ("selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command",
@@ -717,6 +728,13 @@ def selftest_scope_self_test() -> int:
              == [("instrument", "SELFTEST SCOPE UNREADABLE precheck rc 2: git cannot diff")]
              and selftest_scope_preds(root, "b", notes, fake(1, "no refusal line\n"))
              == [("instrument", "SELFTEST SCOPE UNREADABLE precheck rc 1: no refusal line")]),
+            ("selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable",
+             [j for j, _ in rc2] == ["instrument"] and rc2[0][1].startswith("SELFTEST SCOPE UNREADABLE precheck rc 2")),
+            ("selftest-scope: --only selftest-scope runs that arm alone; a default call every ungated arm",
+             arm_runs("selftest-scope", "selftest-scope", False) and not arm_runs("graders", "selftest-scope", True)
+             and all(arm_runs(a, None, False) for a in ARMS if a not in GATED_ARMS)),
+            ("selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)",
+             only_ok == (2, []) and only_bad),
         ]
     for label, ok in cases:
         print(f"  {'ok  ' if ok else 'FAIL'} {label}")
@@ -1306,6 +1324,16 @@ def unpinned(base):
 ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads",
         "step-replay", "selftest-scope")
+# The arms that run a gate's programs, minutes where they are keyed: run on
+# --record-self-tests (prepr 6d) or by name, never on a default call, so
+# body_push.sh's seconds-budget run leaves them to prepr (R10-RCA-PREPR-HEAD-GRADERS).
+GATED_ARMS = ("self-test-reads", "graders", "step-replay", "selftest-scope")
+
+
+def arm_runs(name: str, only: str | None, record: bool) -> bool:
+    """Whether `predict` runs arm ``name``: the one arm ``only`` names, else
+    every arm, a gated one only under ``record``."""
+    return name == only if only is not None else (record or name not in GATED_ARMS)
 
 
 def is_red(job: str, line: str) -> bool:
@@ -1355,11 +1383,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     )
     preds: list[tuple[str, str]] = []
     for name, arm in arms:
-        # The arms that run a gate's programs: on --record-self-tests (prepr 6d)
-        # or by name. `graders` takes minutes where it is keyed, so body_push.sh's
-        # seconds-budget run leaves it to prepr (R10-RCA-PREPR-HEAD-GRADERS).
-        if (only is None and (name not in ("self-test-reads", "graders", "step-replay", "selftest-scope")
-                                  or record)) or name == only:
+        if arm_runs(name, only, record):
             preds += arm()
     if body:
         preds += carry_preds(root, body)
@@ -1769,6 +1793,7 @@ def self_test() -> int:
     bad += graders_self_test(root)
     bad += step_replay_self_test(root)
     bad += selftest_scope_self_test()
+    bad += gated_arms_self_test(root)
     bad += roundref_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
@@ -1782,6 +1807,33 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def gated_arms_self_test(root: Path) -> int:
+    """`predict` itself over an empty diff, each gated arm's function stubbed to
+    record that it ran: a default call (body_push.sh's seconds budget) runs none
+    of them, `precheck`'s minutes under strace included; --record-self-tests runs
+    each (null control)."""
+    stubbed = {"self-test-reads": "self_test_reads", "graders": "grader_preds",
+               "step-replay": "step_replay_preds", "selftest-scope": "selftest_scope_preds"}
+    g, ran = globals(), []
+    saved = {f: g[f] for f in stubbed.values()}
+    try:
+        for arm, f in stubbed.items():
+            g[f] = lambda *a, _arm=arm, **k: ran.append(_arm) or []
+        predict(root, "HEAD", notes=[])
+        default = list(ran)
+        ran.clear()
+        predict(root, "HEAD", record=True, notes=[])
+        recorded = list(ran)
+    finally:
+        g.update(saved)
+    cases = [("gated arms: the stubs name every gated arm", set(stubbed) == set(GATED_ARMS)),
+             ("gated arms: a default predict call runs none, the selftest-scope arm among them", default == []),
+             ("gated arms: null: --record-self-tests runs each of them", sorted(recorded) == sorted(GATED_ARMS))]
+    for label, ok in cases:
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+    return sum(not ok for _, ok in cases)
 
 
 def roundref_self_test(root: Path) -> int:
