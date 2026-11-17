@@ -1273,6 +1273,36 @@ def self_test() -> int:
                                  + "\n", record), "PROJECTION differs")
       and has(projection_differs(None, record), "PROJECTION missing"))
 
+    # Arms the diff's mutants named (prepr step 6d): each pins one line by value.
+    shape = planted(lambda p: p["objective"]["terms"].__setitem__("escapes", "down"))
+    t("a term entry that is not an object is refused by shape, once, not read key by key",
+      has(shape, "SHAPE terms.escapes") and not has(shape, "UNKNOWN key terms.escapes."), repr(shape))
+    t("the grammar reaches a term's and an edge's keys",
+      has(planted(lambda p: p["objective"]["terms"]["first_pass"].__setitem__("weight", 2)),
+          "UNKNOWN key terms.first_pass.weight")
+      and has(planted(lambda p: p["objective"]["edges"][0].__setitem__("why", "x")),
+              "UNKNOWN key edges[0].why"))
+    t("a card alone makes a group rank 1 (no examining pass owed)",
+      planted(lambda p: p["objective"]["groups"].__setitem__("G3", {"rank": 1, "cards": ["E11-1"]})) == [])
+    t("the rank edge reads the whole `after` closure, not the first hop",
+      has(refused(good_plan, projected={**proj_a, "G2": {**proj_a["G2"], "after": ["G3"]}}),
+          "RANK edge G1 after G3"))
+    t("hours are seconds over 3600, to the hundredth",
+      _hours("2026-11-21T04:00:00Z", when(0)) == 100.0
+      and _hours(when(1), "2026-11-17T00:00:20Z") == round(3580 / 3600, 2))
+    t("a percentile over no value is None, not an index error", _rank_pct([], 50) is None)
+    fine = projection_record(block, plan_of(proj_a, 9.125, 10.0), plan_of(proj_a, 7.0, 8.004), set())
+    t("the floor cost is rounded to the hundredth",
+      fine["floor_cost"]["critical_path_hours"] == 2.12 and fine["floor_cost"]["wall_hours"] == 2.0,
+      repr(fine["floor_cost"]))
+    late = plan_of({k: v for k, v in proj_a.items() if k != "G3"}, 7.0, 8.0)
+    late["generated"]["start"] = when(1)
+    t("a projection started at another instant than the pin is refused",
+      has(projection_refusals(block, a, late), "STALE pin: the projections start"))
+    t("a B missing a group the floor keeps is refused",
+      has(projection_refusals(block, a, plan_of({k: v for k, v in proj_a.items() if k not in ("G3", "G2")},
+                                                7.0, 8.0)), "REDUCED roster drops G2"))
+
     # The settlement: only a HELD keyed effect is credit.
     thresholds = {"band_lead_time": {"value": None}}
     base10 = {"round": 10, "terms": {**baseline["terms"], "escapes": {"value": 20}}}
