@@ -1,6 +1,23 @@
-roster_lib self-test: 95 checks, 0 failed
-roster_edit self-test: 313 checks, 0 failed
-check_scopes rc=0
+$ python3 tools/audit/seat/roster_lib.py --self-test
+roster_lib self-test: 101 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/roster_edit.py --self-test
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed edit-1 at fcaf3d707fcd81acd9e6798cbb512595c2d3f2b5
+roster_edit self-test: 318 checks, 0 failed
+rc=0
+$ python3 tools/audit/check_scopes.py --repo . --self-test
    evaluation arms: 66/66 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']
-brief_lint rc=0
+   population arms: 13/13 held
+SELF-TEST passed (every perturbed scope refused)
+rc=0
+$ node tools/policy/brief_lint.mjs
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+rc=0
+$ node tools/policy/check-wave-script.mjs
+  ok   a throwing block is reported as a failure rather than ending the run
+
 249 passed, 0 failed
+rc=0
