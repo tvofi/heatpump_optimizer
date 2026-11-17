@@ -55,6 +55,8 @@ from .const import (
     PRICE_ENERGY_TO_KWH,
     PRICE_MAJOR_SYMBOLS,
     PRICE_MINOR_UNITS,
+    QUIET_STORE_MAX_AGE_MINUTES,
+    ROOM_AIR_RANGE_C,
     STALENESS_SCALE_MAX,
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
@@ -63,6 +65,7 @@ from .const import finite_float
 from .entry_config import EntryConfig
 from .log_latch import log_held
 from .payload import InputProblem
+from .rooms import RoomReading
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -276,8 +279,12 @@ def max_age_for(
     base = table.get(key)
     if base is None or math.isinf(base):
         return None
-    scale = min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
-    return base * scale
+    return _scaled(base, scale)
+
+
+def _scaled(base_minutes: float, scale: float) -> float:
+    """An age limit times the user's staleness scale, clamped to its range."""
+    return base_minutes * min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
 
 
 #: Per ``hass``, the entity ids seen re-reporting an unchanged value: sources
@@ -1244,6 +1251,55 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
+
+
+#: The key a room reading carries: it names no configuration slot and no
+#: table entry, because a room never enters ``InputHealth`` (#3616).
+ROOM_READING_KEY = "room_temperature"
+
+
+def read_room(reader: InputReader, entity_id: str) -> RoomReading:
+    """One room thermometer (#3616), through ``reader``'s entity and age stages.
+
+    A ``climate``'s state is its HVAC mode, so its temperature and target are
+    the ``current_temperature`` and ``temperature`` attributes in the
+    instance's unit system -- :func:`setpoint_and_unit`'s rule -- and calling
+    is ``hvac_action == "heating"``; a ``sensor`` reads its state in its own
+    unit. The age limit is the indoor sensor's, a thermostat reporting on
+    change; the range is a room's, :data:`~.const.ROOM_AIR_RANGE_C`.
+
+    A module function beside the reader rather than a method of it, and never
+    recorded in ``reader.health`` on any path: one dead thermostat among
+    twenty is the room list's to report, not an input problem.
+    """
+    reading, state = reader._begin(
+        ROOM_READING_KEY, _scaled(QUIET_STORE_MAX_AGE_MINUTES, reader.scale), entity_id)
+    if state is None:
+        return RoomReading(entity_id, None, problem=reading.problem)
+    attrs = getattr(state, "attributes", None) or {}
+    target, calling, mode = None, None, None
+    if entity_id.startswith("climate."):
+        unit = _instance_unit(reader.hass)
+        value = temperature_c(attrs.get("current_temperature"), unit)
+        target = temperature_c(attrs.get("temperature"), unit)
+        action = attrs.get("hvac_action")
+        calling = None if action is None else action == "heating"
+        mode = str(state.state)
+    else:
+        value = temperature_c(getattr(state, "state", None), state_unit(state))
+    if value is None:
+        reading.problem = "not_numeric"
+    else:
+        reader._age_gate(reading, state)
+        if not ROOM_AIR_RANGE_C[0] <= value <= ROOM_AIR_RANGE_C[1]:
+            value = None
+            _set_problem(reading, "implausible")
+    return RoomReading(entity_id, value, target, calling, mode, reading.problem)
+
+
+def read_rooms(reader: InputReader, entity_ids: Collection[str]) -> tuple[RoomReading, ...]:
+    """:func:`read_room` over the configured list, in its order."""
+    return tuple(read_room(reader, entity_id) for entity_id in entity_ids)
 
 
 def has_value(state: Any) -> bool:

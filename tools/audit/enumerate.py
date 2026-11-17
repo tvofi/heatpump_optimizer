@@ -21,7 +21,8 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
   d9-collections         coordinator.py `self.<attr>` bound to a container, once per class and attribute
   d9-attributes          classes defining or assigning extra_state_attributes
   d9-solves              calls of the solver entry, then of each function holding one, to a fixed point
-  d12-cells [--pairs]    every level `check_scopes.py --population` reads, the card and the blueprints
+  d12-cells [--pairs]    every level `check_scopes.py --population` reads, each level one of its NO-READ
+                         axes declares in objective.json, the card and the blueprints
                          (--pairs: every pair of levels from two axes), each `not run` until a ledger row
   --ledger TSV           with any universe: each line beside its ledger row's asserting test, or `not run`
                          (rows: item, test; for d12-cells: cell, source, test); a row naming no item,
@@ -401,14 +402,18 @@ def tracked(repo):
 
 def population_axes(repo):
     """{axis: [levels]} as `check_scopes.py --population` reads them, by its own reader, and the
-    two totals it prints; a binary axis key is its own axis with levels present and absent."""
+    two totals it prints; a binary axis key is its own axis with levels present and absent. An
+    axis it prints NO-READ is an axis all the same once its row declares `levels` (the continuous
+    ones: no source holds them), and both totals are raised by what those levels add."""
     obj = repo / OBJECTIVE
     sys.path.append(str(Path(__file__).resolve().parent))
     import check_scopes
-    lines, ok = check_scopes.population(json.loads(obj.read_text()).get("population", []), tracked(repo), lambda f: (repo / f).read_text())
+    spec = json.loads(obj.read_text()).get("population", [])
+    lines, ok = check_scopes.population(spec, tracked(repo), lambda f: (repo / f).read_text())
     if not ok:
         raise Refuse("the population is unreadable: " + "; ".join(l for l in lines if l.startswith("UNREADABLE")))
-    axes, totals = {}, {}
+    declared = {a.get("axis"): [str(k) for k in a["levels"]] for a in spec if a.get("levels")}
+    axes, totals, added = {}, {}, []
     for l in lines:
         if "\t" not in l:
             k, _, v = l.partition(": ")
@@ -416,12 +421,18 @@ def population_axes(repo):
             continue
         name, _, rest = l.partition("\t")
         n, _, lv = rest.partition("\t")
-        if n == "NO-READ":
+        if n == "NO-READ" and name in declared:
+            axes[name] = declared[name]
+            added.append(len(declared[name]))
+            print(f"NO-READ axis {name}: its cells are the levels {OBJECTIVE} declares, which no reader compares with their source", file=sys.stderr)
+        elif n == "NO-READ":
             print(f"NO-READ axis {name}: no cell until {OBJECTIVE} declares its levels", file=sys.stderr)
         elif n.endswith("binary axes"):
             axes.update({k: ["absent", "present"] for k in lv.split(",")})
         else:
             axes[name] = lv.split(",")
+    totals["PAIRS"] += totals["LEVELS"] * sum(added) + (sum(added) ** 2 - sum(n * n for n in added)) // 2
+    totals["LEVELS"] += sum(added)
     return axes, totals
 
 
@@ -925,6 +936,17 @@ def self_test():
             msg = str(e)
         arm("a ledger refusal names the row's line", f"{led}:2:" in msg, True)
         arm("d12 a missing ledger is refused", count("d12-cells", t, ledger=str(t / "none.tsv")), "Refuse")
+        edit_json(OBJECTIVE, lambda d: d["population"][2].update(levels={"min": 1, "max": 9}))(t)
+        with contextlib.redirect_stderr(io.StringIO()):
+            arm("d12 a NO-READ axis whose levels are declared is one cell per level", [l for l in run("d12-cells", t) if "size" in l],
+                ["level size=max\tnot run", "level size=min\tnot run"])
+        arm("d12 a declared level pairs with every level of another axis", count("d12-cells", t, pairs=True), (4 + 2) + (4 + 4 * 2) + 2)
+        led.write_text("level size=min\tsimulation\ttests/x.py::t\n")
+        arm("d12 ledger: a declared level's row is joined", count("d12-cells", t, ledger=str(led)), 4 + 2 + 2)
+        edit_json(OBJECTIVE, lambda d: d["population"].append({"axis": "area", "kind": None, "levels": {"lo": 1, "hi": 2}, "no_read": "r", "builder": "G"}))(t)
+        arm("d12 two declared axes pair with each other once", count("d12-cells", t, pairs=True), (4 + 4) + (4 + 4 * 4 + 2 * 2) + 2)
+        edit_json(OBJECTIVE, lambda d: (d["population"].pop(), d["population"][2].update(levels={})))(t)
+        arm("d12 a NO-READ axis declaring no level is no cell", count("d12-cells", t), 4 + 2)
         arm("with no ledger a census prints its items alone", run("d1-inputs", t)[:2], ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
         for label, text, want in (("a census line is joined to its driving test, the rest not run", "# c\n\ninput CONF_A_ENTITY\ttests/x.py::t\n",
                                    ["input CONF_A_ENTITY\ttests/x.py::t"] + [f"input {k}\tnot run" for k in ("CONF_B_ENTITY", "CONF_F_SENSOR", "CONF_H1", "CONF_H2", "CONF_W_SENSOR")]),

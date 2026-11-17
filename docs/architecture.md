@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 95 modules, of which 33 import the
+knows nothing about Home Assistant: 96 modules, of which 33 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -118,7 +118,7 @@ custom_components/heatpump_optimizer/
 │                         #   and one coercion per key
 ├── store.py              # The store-load boundary: a Store whose loads refuse
 │                         #   non-finite numeric leaves
-├── config_flow.py        # Setup flow plus 24 option pages behind two menus
+├── config_flow.py        # Setup flow plus 25 option pages behind two menus
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── payload.py            # The typed contract of the payload the coordinator publishes
 ├── notifier.py           # The documented events, fired from the payload on each update
@@ -138,6 +138,8 @@ custom_components/heatpump_optimizer/
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
+├── rooms.py              # The room thermometer list: its reading record, mean and spread
+│                         #   and the lift a cold room gives the planned comfort floor
 ├── issues.py             # The repair-notice writer: raise, clear, the docs link
 ├── log_latch.py          # The transition latch for persisting conditions logged at WARNING
 ├── comfort_band.py       # The band's cross-field rules, shared by the config
@@ -282,7 +284,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-33 of the 95 modules import `homeassistant` at module level: `__init__`,
+33 of the 96 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
@@ -291,7 +293,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, 
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 61 modules are deliberately free of it, so each can be driven
+The other 62 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output

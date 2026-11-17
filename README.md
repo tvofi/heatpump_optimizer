@@ -931,7 +931,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 24 pages — 23 you can edit plus a read-only overview — and each can be
+menu of 25 pages — 24 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -951,6 +951,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Sensors and entities | Tibber token, weather entity, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
+| Room thermometers | Optional room thermostats or sensors, one per room: their average and the spread between the coldest and warmest room, as two sensors; optionally a room below its own target raises the planned minimum |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
 | Thermal model (expert) | The raw single-zone numbers — heat pump power and COP, masses, losses |
