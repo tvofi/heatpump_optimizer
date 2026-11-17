@@ -31,7 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-DRAW-MAP-EVIDENCE (stage carries-open, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (stage carries-open, branch `handoff/r11-outside-contributor-cycle-p3`): `git fetch origin handoff/r11-outside-contributor-cycle-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-HOTFIX-SELFTEST-FLAKE-ARMS (stage carries-open, branch `handoff/r11-hotfix-selftest-flake-arms`): `git fetch origin handoff/r11-hotfix-selftest-flake-arms && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-HONEST-STARTS-RUNS-P2 (stage in-progress, branch `handoff/r11-outside-honest-starts-runs-p2`): `git fetch origin handoff/r11-outside-honest-starts-runs-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-HONEST-STARTS-RUNS-P2 (stage carries-open, branch `handoff/r11-outside-honest-starts-runs-p2`): `git fetch origin handoff/r11-outside-honest-starts-runs-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (stage in-progress, branch `handoff/r11-outside-honest-starts-runs-p3`): `git fetch origin handoff/r11-outside-honest-starts-runs-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-METERED-FLOOR (stage in-progress, branch `handoff/r11-outside-honest-metered-floor`): `git fetch origin handoff/r11-outside-honest-metered-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-FINDER-CONTRACT (stage carries-open, branch `handoff/r11-pre-finder-contract`): `git fetch origin handoff/r11-pre-finder-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
