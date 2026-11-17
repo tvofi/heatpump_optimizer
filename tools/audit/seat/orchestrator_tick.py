@@ -1299,8 +1299,13 @@ class Tick:
                                  f"({latest[name]['conclusion']}) -- not red, "
                                  "not pending, but it blocks the merge "
                                  "invisibly", flag=True)
-        state = "GREEN" if not run and not red else (
-            f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
+        # GREEN is `classify_at`'s reading over the required contexts (P436's barrier;
+        # carry 2): every lane concluded green also reads WAIT while a required one has no run.
+        reading = (self._classify_reading(head, runs, getattr(self, "_req_pr", None) or required)
+                   if not run and not red and runs and required is not None else None)
+        state = (f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}" if red else
+                 "GREEN" if reading is not None and reading[0] == "green" else
+                 f"WAIT:{','.join(reading[1])}" if reading is not None else "UNJUDGED")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
         # Only a red in the set `merge_train.py owed-reds` prints is owed an
         # answer (defect-root-cause.md); an unreadable set keeps every red.
@@ -2532,10 +2537,8 @@ class Tick:
                 if not v or h is None or v != h:
                     continue
                 runs = self.check_runs(h)
-                if runs is None:
-                    continue
-                green, run, red = self.judge(self.latest(runs))
-                if run or red:
+                req = getattr(self, "_req_pr", None) or self.required(S)
+                if not runs or req is None or self._classify_reading(h, runs, req)[0] != "green":
                     continue
                 code, o = self.git(["log", "-1", "--format=%cI", "origin/main"])
                 try:
@@ -4405,6 +4408,31 @@ def self_test() -> int:
                 total, failed = total + a_, failed + f_
         finally:
             mt.Train.classify_at = _was_ca
+        # Carry 2 (P436 residual a): GREEN on the board and in the throughput stall is classify_at's
+        # reading over the required contexts, never the per-lane run_state alone: every lane at the
+        # head concluded green while a required context has no run yet is WAIT, not GREEN.
+        both = [run_obj("tests"), run_obj("closures")]
+        for label, runs, want in (("a required context with no run reads WAIT", [run_obj("tests")], "WAIT:closures"),
+                                  ("null: every required context green reads GREEN", both, "GREEN")):
+            t = tick(prs=[pr_obj(78, H1)], runs_at={H1: runs})
+            t.one_pr("PRS", pr_obj(78, H1), None, t.required("PRS"))
+            got = [l["text"] for l in t.sections["PRS"] if l["text"].startswith("#78 [fix/78] ")]
+            a_, f_ = check(f"carry 2 one_pr state line: {label}", [
+                (f"the line reads {want}", got == [f"#78 [fix/78] {want}"])])
+            total, failed = total + a_, failed + f_
+        q78 = tmp / "q78.json"
+        q78.write_text(json.dumps([{"pr": 78, "verdict": H1}]))
+        for label, runs, want in (("a required context with no run is no stall", [run_obj("tests")], False),
+                                  ("null: verdicted and green at the head, no train, main idle: STALL", both, True)):
+            t = tick(prs=[pr_obj(78, H1)], queue=str(q78), states={78: ("open", H1)}, runs_at={H1: runs},
+                     procs=lambda pattern: [])
+            t._git.h[:0] = [(("log", "-1", "--format=%cI", "origin/main"), 0,
+                             iso(NOW - datetime.timedelta(hours=2)))]
+            t.replan()
+            st = [x["text"] for x in t.findings if x["text"].startswith("THROUGHPUT STALL: #78")]
+            a_, f_ = check(f"carry 2 throughput stall: {label}", [
+                ("STALL " + ("raised" if want else "not raised"), bool(st) == want)])
+            total, failed = total + a_, failed + f_
         # Carry 8: a reviewer's `merge_train.py --self-test` is not a second train; a null
         # started_at cannot bound a run, so stuck() reads True (split_absent then reads ABSENT).
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
