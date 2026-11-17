@@ -471,16 +471,16 @@ async def _save_debug(coord):
 
 async def _save_room_history(coord):
     """Seed every column: two rooms, one a thermostat, one a sensor, three closed rows."""
-    from heatpump_optimizer import room_history
+    from heatpump_optimizer import room_history, room_record
     from heatpump_optimizer.rooms import RoomReading
-    rec = room_history._record_for(coord)
+    rec = room_record._record_for(coord)
     rec.loaded, start = True, int(_dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc).timestamp()) // 60
     for k in range(4):
         rec.period, _ = room_history.note(
             rec.history, rec.period, start + 30 * k,
             [RoomReading("climate.a", 20.5, 21.0, k % 2 == 0, "heat"), RoomReading("sensor.b", 19.5)],
             room_history.House(-3.0, 28.0, 1.5, 2.0, 0.0))
-    await room_history._persist(rec)
+    await room_record._persist(rec)
 
 
 # The reach arm's wiring: which real loader consumes which store. This is the
@@ -504,7 +504,7 @@ LOADERS = {
     "notifier": _load_notifier,
     "debug": _load_debug,
     "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c.hass, c.entry),
-    "room_history": lambda c: (lambda m: m._load(m._record_for(c)))(__import__("heatpump_optimizer.room_history", fromlist=["x"])),
+    "room_history": lambda c: (lambda m: m._load(m._record_for(c)))(__import__("heatpump_optimizer.room_record", fromlist=["x"])),
 }
 
 R.check(
@@ -1893,7 +1893,7 @@ def _a6_savers():
         "notifier": _save_notifier,
         "debug": _save_debug,
         "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._RECORDS[c.entry]),
-        "room_history": lambda c: mod("room_history")._persist(mod("room_history")._record_for(c)),
+        "room_history": lambda c: mod("room_record")._persist(mod("room_record")._record_for(c)),
     }
 
 

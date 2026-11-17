@@ -95302,6 +95302,7 @@ import asyncio as _rh_aio  # noqa: E402
 from datetime import datetime as _rh_dt, timedelta as _rh_td, timezone as _rh_tz  # noqa: E402
 from homeassistant.helpers import storage as _rh_storage  # noqa: E402
 from heatpump_optimizer import room_history as _rh  # noqa: E402
+from heatpump_optimizer import room_record as _rr  # noqa: E402
 from heatpump_optimizer.rooms import RoomReading as _RhReading  # noqa: E402
 
 _RH_T0 = _rh_dt(2026, 1, 5, tzinfo=_rh_tz.utc)
@@ -95403,33 +95404,33 @@ class _RhOwner:
 
 async def _rh_cycles(owner, n, readings, first=0):
     for k in range(first, first + n):
-        await _rh.async_note_cycle(owner, _RH_T0 + _rh_td(minutes=30 * k), readings, _rh_house())
+        await _rr.async_note_cycle(owner, _RH_T0 + _rh_td(minutes=30 * k), readings, _rh_house())
 
 
 _rh_storage._DISK.clear()
 _rh_none = _RhOwner("rh_none")
 _rh_aio.run(_rh_cycles(_rh_none, 30, []))
-_rh_aio.run(_rh.async_flush(_rh_none))
+_rh_aio.run(_rr.async_flush(_rh_none))
 R.check(
     "no room list: no record, no store file and no row (invariant i); the report and the sensor state read None",
-    _rh.record_of(_rh_none) is None and not any("room_history" in k for k in _rh_storage._DISK)
-    and _rh.report_of(_rh_none) is None and _rh.separable_count(None) is None,
+    _rr.record_of(_rh_none) is None and not any("room_history" in k for k in _rh_storage._DISK)
+    and _rr.report_of(_rh_none) is None and _rh.separable_count(None) is None,
     f"{sorted(_rh_storage._DISK)}",
 )
 _rh_owner = _RhOwner("rh_save")
 _RH_KEY = "heatpump_optimizer_rh_save_room_history"
-_rh_aio.run(_rh_cycles(_rh_owner, _rh.SAVE_EVERY_ROWS, [_RhReading("sensor.a", 20.0)]))
+_rh_aio.run(_rh_cycles(_rh_owner, _rr.SAVE_EVERY_ROWS, [_RhReading("sensor.a", 20.0)]))
 _rh_before = _RH_KEY in _rh_storage._DISK
-_rh_aio.run(_rh_cycles(_rh_owner, 5, [_RhReading("sensor.a", 20.0)], first=_rh.SAVE_EVERY_ROWS))
+_rh_aio.run(_rh_cycles(_rh_owner, 5, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS))
 _rh_saved = _RH_KEY in _rh_storage._DISK
 _rh_storage._DISK.clear()
-_rh_aio.run(_rh.async_flush(_rh_owner))
+_rh_aio.run(_rr.async_flush(_rh_owner))
 _rh_flushed = _fi_json.loads(_rh_storage._DISK.get(_RH_KEY, "{}"))
 R.check(
     "a save every SAVE_EVERY_ROWS closed rows, not before (the 12th cycle closes the 11th row); unload's "
     "flush writes what the last save missed",
     _rh_before is False and _rh_saved is True
-    and len(_rh_flushed.get("data", _rh_flushed).get("times", "").split(",")) == len(_rh.record_of(_rh_owner).history.times),
+    and len(_rh_flushed.get("data", _rh_flushed).get("times", "").split(",")) == len(_rr.record_of(_rh_owner).history.times),
     f"before={_rh_before} saved={_rh_saved} flushed={sorted(_rh_flushed)}",
 )
 

@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import duty_switch, narrative, room_history
+from . import duty_switch, narrative, room_history, room_record
 from . import topology
 from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
@@ -771,11 +771,11 @@ class RoomSeparabilitySensor(HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> int | None:
-        return room_history.separable_count(room_history.report_of(self.coordinator))
+        return room_history.separable_count(room_record.report_of(self.coordinator))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        view = room_history.report_of(self.coordinator) or {}
+        view = room_record.report_of(self.coordinator) or {}
         return {"rooms": view.get("rooms"), "house": view.get("house"), "rows": view.get("rows")}
 
 

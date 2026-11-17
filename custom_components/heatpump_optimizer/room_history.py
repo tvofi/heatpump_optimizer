@@ -8,40 +8,27 @@ return temperatures, measured power and the share of cycles spent on space
 heating -- and reads that ring into a per-room verdict and one house line, the
 evidence the loop-capacity limit (phase 3b) will be fitted on.
 
-The ring, the row builder and the report are pure (numpy only). The glue holds
-one record per coordinator in a ``WeakKeyDictionary`` with its own
-``QuarantiningStore`` (``duty_switch.py``'s pattern), loaded on first use and
-saved every :data:`SAVE_EVERY_ROWS` closed rows and at unload. Nothing here is
-read by the plan: the report goes to diagnostics and one sensor only.
-
-An install with no room list makes no record, no store file and no row.
+The ring, the row builder, the store document and the report are pure (numpy
+only); ``room_record.py`` keeps one ring per coordinator and its store. Nothing
+here is read by the plan: the report goes to diagnostics and one sensor only.
 """
 from __future__ import annotations
 
-import logging
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
-from weakref import WeakKeyDictionary
 
 import numpy as np
 
-from .accuracy import HISTORY_LENGTH
-from .const import DOMAIN, FLOOR_WATER_RANGE_C, OUTDOOR_AIR_RANGE_C, ROOM_AIR_RANGE_C
+from .const import FLOOR_WATER_RANGE_C, OUTDOOR_AIR_RANGE_C, ROOM_AIR_RANGE_C
 from .rooms import RoomReading, usable_c
-from .store import QuarantiningStore
 
-_LOGGER = logging.getLogger(__name__)
-
-ROOM_HISTORY_STORE_VERSION = 1
 #: One row per half hour whatever the entry's interval (10 to 120 min), so the
-#: row count, and the 14 days :data:`HISTORY_LENGTH` rows span, never depend on it.
+#: row count, and the 14 days the ring spans, never depend on it.
 PERIOD_MIN = 30
-#: Saved every 12th closed row (6 h): a crash loses at most that much of a
-#: 14-day record, and the Pi's card is written four times a day, not 48.
-SAVE_EVERY_ROWS = 12
+#: 14 days of half hours: the span accuracy.HISTORY_LENGTH keeps of a 30-minute entry.
+HISTORY_LENGTH = 14 * 24 * 60 // PERIOD_MIN
 
 #: Every stored value is an integer in hundredths of its unit; a share is in
 #: hundredths of a percent, so 10000 is "every sample".
@@ -98,7 +85,7 @@ class History:
 
 
 @dataclass
-class _Period:
+class Period:
     """The open half hour's running tallies."""
 
     start: int
@@ -122,7 +109,7 @@ def _share(hits: int, samples: int) -> int | None:
     return round(FULL_SHARE * hits / samples) if samples else None
 
 
-def _accumulate(period: _Period, readings: Sequence[RoomReading], house: House) -> None:
+def _accumulate(period: Period, readings: Sequence[RoomReading], house: House) -> None:
     for reading in readings:
         tally = period.rooms.setdefault(reading.entity_id, [None, None, 0, 0])
         if tally[0] is None:  # the period's first reading: its calling acts from there on
@@ -161,7 +148,7 @@ def _append(history: History, start: int, rooms: Mapping[str, list[Any]] | None,
         history.house[name].append(None if house is None else house[name])
 
 
-def _close(history: History, period: _Period) -> None:
+def _close(history: History, period: Period) -> None:
     """The open period as a row, null rows for any half hour missed before it,
     then everything older than the ring's 14 days dropped."""
     cut = period.start - (HISTORY_LENGTH - 1) * PERIOD_MIN
@@ -182,8 +169,8 @@ def _close(history: History, period: _Period) -> None:
                 del columns[name][:keep]
 
 
-def note(history: History, period: _Period | None, now_min: int,
-         readings: Sequence[RoomReading], house: House) -> tuple[_Period | None, int]:
+def note(history: History, period: Period | None, now_min: int,
+         readings: Sequence[RoomReading], house: House) -> tuple[Period | None, int]:
     """Fold one cycle in: ``(the open period, rows closed)``.
 
     A sample whose half hour lies before the open period, or at or before the
@@ -198,7 +185,7 @@ def note(history: History, period: _Period | None, now_min: int,
     if period is not None and start > period.start:
         _close(history, period)
         period, closed = None, 1
-    period = period or _Period(start)
+    period = period or Period(start)
     _accumulate(period, readings, house)
     return period, closed
 
@@ -278,15 +265,12 @@ def _pairs(history: History, column: Sequence[int | None]) -> list[tuple[int, in
 
 def _fit(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
     """Least squares coefficients and their t-statistics, or None when degenerate."""
-    if len(y) <= x.shape[1]:
-        return None
-    coef, _res, rank, _sv = np.linalg.lstsq(x, y, rcond=None)
+    dof = len(y) - x.shape[1]
+    coef, squares, rank, _sv = np.linalg.lstsq(x, y, rcond=None) if dof > 0 else (None, None, 0, None)
     if rank < x.shape[1]:
         return None
-    resid = y - x @ coef
-    sigma2 = float(resid @ resid) / (len(y) - x.shape[1])
-    se = np.sqrt(np.maximum(np.diag(np.linalg.inv(x.T @ x)) * sigma2, 1e-300))
-    return coef, coef / se
+    variance = np.diag(np.linalg.inv(x.T @ x)) * float(squares[0]) / dof
+    return coef, coef / np.sqrt(np.maximum(variance, 1e-300))
 
 
 def _calls(column: Sequence[int | None]) -> np.ndarray:
@@ -299,13 +283,13 @@ def _correlations(calls: Mapping[str, np.ndarray]) -> np.ndarray:
     held = np.array([~np.isnan(c) for c in calls.values()], dtype=float).reshape(len(calls), -1)
     x = np.nan_to_num(np.array(list(calls.values()), dtype=float).reshape(len(calls), -1))
     n = held @ held.T
-    with np.errstate(divide="ignore", invalid="ignore"):
-        mean_i, mean_sq_i = (x @ held.T) / n, (x * x @ held.T) / n
-        cov = (x @ x.T) / n - mean_i * mean_i.T
-        var = mean_sq_i - mean_i ** 2
-        r = np.abs(cov / np.sqrt(var * var.T))
-    r[(n < 3) | ~(var > 1e-12) | ~(var.T > 1e-12)] = np.nan
-    np.fill_diagonal(r, np.nan)
+    rows = np.maximum(n, 1.0)
+    mean, mean_sq = (x @ held.T) / rows, (x * x @ held.T) / rows
+    cov, var = (x @ x.T) / rows - mean * mean.T, mean_sq - mean ** 2
+    ok = (n >= 3) & (var > 1e-12) & (var.T > 1e-12)
+    np.fill_diagonal(ok, False)
+    r = np.full(n.shape, np.nan)
+    r[ok] = np.abs(cov[ok] / np.sqrt((var * var.T)[ok]))
     return r
 
 
@@ -380,83 +364,6 @@ def report(history: History) -> dict[str, Any]:
         "rooms": {e: _room_verdict(history, e, calls, r) for e in history.rooms},
         "house": _house_line(history, calls),
     }
-
-
-# --- the glue
-
-@dataclass
-class _Record:
-    store: QuarantiningStore
-    history: History = field(default_factory=History)
-    period: _Period | None = None
-    loaded: bool = False
-    unsaved: int = 0
-    cached: tuple[tuple[int, int], dict[str, Any]] | None = None
-
-
-_RECORDS: WeakKeyDictionary[Any, _Record] = WeakKeyDictionary()
-
-
-def record_of(coord: Any) -> _Record | None:
-    """The record, None until a cycle with a room list made one."""
-    return _RECORDS.get(coord)
-
-
-def _record_for(coord: Any) -> _Record:
-    rec = _RECORDS.get(coord)
-    if rec is None:
-        rec = _RECORDS[coord] = _Record(QuarantiningStore(
-            coord.hass, ROOM_HISTORY_STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_room_history"))
-    return rec
-
-
-async def _load(rec: _Record) -> None:
-    try:
-        raw = await rec.store.async_load()
-    except Exception as err:  # noqa: BLE001 - an unreadable record starts empty
-        _LOGGER.debug("Could not load the room history: %s", err)
-        raw = None
-    rec.history, rec.loaded = loaded(raw), True
-
-
-async def _persist(rec: _Record) -> None:
-    try:
-        await rec.store.async_save(stored(rec.history))
-    except Exception as err:  # noqa: BLE001 - still unsaved: saved on the next pass
-        _LOGGER.debug("Could not persist the room history: %s", err)
-        return
-    rec.unsaved = 0
-
-
-async def async_note_cycle(coord: Any, now: datetime, readings: Sequence[RoomReading], house: House) -> None:
-    """One cycle's step: nothing at all without a room list."""
-    if not readings:
-        return
-    rec = _record_for(coord)
-    if not rec.loaded:
-        await _load(rec)
-    rec.period, closed = note(rec.history, rec.period, int(now.timestamp()) // 60, readings, house)
-    rec.unsaved += closed
-    if rec.unsaved >= SAVE_EVERY_ROWS:
-        await _persist(rec)
-
-
-async def async_flush(coord: Any) -> None:
-    """Save what the last save missed (unload, a Home Assistant stop included)."""
-    rec = _RECORDS.get(coord)
-    if rec is not None and rec.loaded and rec.unsaved:
-        await _persist(rec)
-
-
-def report_of(coord: Any) -> dict[str, Any] | None:
-    """The report of ``coord``'s ring, recomputed only when the ring has grown."""
-    rec = _RECORDS.get(coord)
-    if rec is None or not rec.loaded:
-        return None
-    key = (len(rec.history.times), rec.history.times[-1] if rec.history.times else 0)
-    if rec.cached is None or rec.cached[0] != key:
-        rec.cached = (key, report(rec.history))
-    return rec.cached[1]
 
 
 def separable_count(view: Mapping[str, Any] | None) -> int | None:

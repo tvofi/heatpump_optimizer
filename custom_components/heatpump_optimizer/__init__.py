@@ -426,7 +426,7 @@ async def async_unload_entry(
         await (await _async_lazy(hass, "off_restore")).async_restore(
             hass, entry, coordinator.effective_config, "unload"
         )
-        await (await _async_lazy(hass, "room_history")).async_flush(coordinator)
+        await (await _async_lazy(hass, "room_record")).async_flush(coordinator)
         await coordinator.async_shutdown()
 
     return unload_ok
