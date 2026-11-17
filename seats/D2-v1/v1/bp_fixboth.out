@@ -1,0 +1,48 @@
+### bp_fixboth load1=0.40
+arm space_only     1z               mismatched_elements=     0 max_abs_diff=0
+arm space_only     1z-flowcurve-partload mismatched_elements=     0 max_abs_diff=0
+arm space_only     1z-stiff         mismatched_elements=     0 max_abs_diff=0
+arm valve          1z               mismatched_elements=     0 max_abs_diff=0
+arm dhw            1z-combi         mismatched_elements=     0 max_abs_diff=0
+arm dhw            1z-sep           mismatched_elements=     0 max_abs_diff=0
+arm external_heat  1z               mismatched_elements=     0 max_abs_diff=0
+arm external_heat  1z-valve         mismatched_elements=     0 max_abs_diff=0
+arm pv             1z               mismatched_elements=     0 max_abs_diff=0
+arm pv             1z-valve         mismatched_elements=     0 max_abs_diff=0
+arm space_only     2z               mismatched_elements=     0 max_abs_diff=0
+arm space_only     2z-flowcurve-partload mismatched_elements=     0 max_abs_diff=0
+arm space_only     2z-stiff         mismatched_elements=     0 max_abs_diff=0
+arm valve          2z               mismatched_elements=     0 max_abs_diff=0
+arm dhw            2z-combi         mismatched_elements=     0 max_abs_diff=0
+arm dhw            2z-sep           mismatched_elements=     0 max_abs_diff=0
+arm external_heat  2z               mismatched_elements=     0 max_abs_diff=0
+arm external_heat  2z-valve         mismatched_elements=     0 max_abs_diff=0
+arm pv             2z               mismatched_elements=     0 max_abs_diff=0
+arm pv             2z-valve         mismatched_elements=     0 max_abs_diff=0
+arm valve          2z-direct-slab   mismatched_elements=     0 max_abs_diff=0
+arm wood           2z               mismatched_elements=     0 max_abs_diff=0
+arm wood           2z-noburn        mismatched_elements=     0 max_abs_diff=0
+arm coil           2z               mismatched_elements=     0 max_abs_diff=0
+RESULT batch_parity_mismatch[space_only]=0 elements
+RESULT batch_parity_maxdiff[space_only]=0 K
+RESULT batch_parity_mismatch[dhw]=0 elements
+RESULT batch_parity_maxdiff[dhw]=0 K
+RESULT batch_parity_mismatch[valve]=0 elements
+RESULT batch_parity_maxdiff[valve]=0 K
+RESULT batch_parity_mismatch[wood]=0 elements
+RESULT batch_parity_maxdiff[wood]=0 K
+RESULT batch_parity_mismatch[coil]=0 elements
+RESULT batch_parity_maxdiff[coil]=0 K
+RESULT batch_parity_mismatch[external_heat]=0 elements
+RESULT batch_parity_maxdiff[external_heat]=0 K
+RESULT batch_parity_mismatch[pv]=0 elements
+RESULT batch_parity_maxdiff[pv]=0 K
+RESULT batch_parity_mismatch_total=0 elements
+RESULT batch_parity_mismatch_1z_valve_arms=0 elements
+RESULT batch_parity_mismatch_2z_valve_arms=0 elements
+RESULT perturbation_fix_lift=1
+RESULT perturbation_fix_emitter=1
+RESULT thread_factor=1.0
+RESULT load1=0.4
+RESULT swapins=0
+### rc=0 wall=0s

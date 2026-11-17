@@ -1,0 +1,52 @@
+### ps_p load1=0.40
+# perturbed copy at /tmp/d2s2_perturb_7d_sc3ta: [('thermal_model.py', 'True if mode == const.COMPRESSOR_MODULATION_ON_OFF', 'False if mode == const.COMPRESSOR_MODULATION_ON_OFF')]
+RESULT unit=indoor,mod=auto.declared_modulation=None
+RESULT unit=indoor,mod=auto.probe_on_off=False
+RESULT unit=indoor,mod=auto.clamp=True
+RESULT unit=indoor,mod=auto.clamp_mismatch=0 count
+RESULT unit=indoor,mod=auto.sub_pmin_steps=0 count
+RESULT unit=indoor,mod=on_off.declared_modulation=False
+RESULT unit=indoor,mod=on_off.probe_on_off=True
+RESULT unit=indoor,mod=on_off.clamp=True
+RESULT unit=indoor,mod=on_off.clamp_mismatch=0 count
+RESULT unit=indoor,mod=on_off.sub_pmin_steps=0 count
+RESULT unit=indoor,mod=modulating.declared_modulation=True
+RESULT unit=indoor,mod=modulating.probe_on_off=False
+RESULT unit=indoor,mod=modulating.clamp=False
+RESULT unit=indoor,mod=modulating.clamp_mismatch=0 count
+RESULT unit=indoor,mod=modulating.sub_pmin_steps=32 count
+RESULT unit=flow,mod=auto.declared_modulation=None
+RESULT unit=flow,mod=auto.probe_on_off=False
+RESULT unit=flow,mod=auto.clamp=True
+RESULT unit=flow,mod=auto.clamp_mismatch=0 count
+RESULT unit=flow,mod=auto.sub_pmin_steps=0 count
+RESULT unit=flow,mod=on_off.declared_modulation=False
+RESULT unit=flow,mod=on_off.probe_on_off=True
+RESULT unit=flow,mod=on_off.clamp=True
+RESULT unit=flow,mod=on_off.clamp_mismatch=0 count
+RESULT unit=flow,mod=on_off.sub_pmin_steps=0 count
+RESULT unit=flow,mod=modulating.declared_modulation=True
+RESULT unit=flow,mod=modulating.probe_on_off=False
+RESULT unit=flow,mod=modulating.clamp=False
+RESULT unit=flow,mod=modulating.clamp_mismatch=0 count
+RESULT unit=flow,mod=modulating.sub_pmin_steps=32 count
+RESULT unit=return,mod=auto.declared_modulation=None
+RESULT unit=return,mod=auto.probe_on_off=False
+RESULT unit=return,mod=auto.clamp=True
+RESULT unit=return,mod=auto.clamp_mismatch=0 count
+RESULT unit=return,mod=auto.sub_pmin_steps=0 count
+RESULT unit=return,mod=on_off.declared_modulation=False
+RESULT unit=return,mod=on_off.probe_on_off=True
+RESULT unit=return,mod=on_off.clamp=True
+RESULT unit=return,mod=on_off.clamp_mismatch=0 count
+RESULT unit=return,mod=on_off.sub_pmin_steps=0 count
+RESULT unit=return,mod=modulating.declared_modulation=True
+RESULT unit=return,mod=modulating.probe_on_off=False
+RESULT unit=return,mod=modulating.clamp=False
+RESULT unit=return,mod=modulating.clamp_mismatch=0 count
+RESULT unit=return,mod=modulating.sub_pmin_steps=32 count
+RESULT total.clamp_mismatch=0 count
+RESULT thread_factor=1.0
+RESULT load1=0.529296875
+RESULT swapins=0
+### rc=0 wall=6s
