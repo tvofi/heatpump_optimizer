@@ -1,0 +1,4 @@
+RESULT injected=5 handlers
+RESULT thread_factor=1.062
+RESULT load1=351.98
+RESULT swapins=0

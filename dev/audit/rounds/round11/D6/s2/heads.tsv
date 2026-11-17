@@ -1,0 +1,10 @@
+https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist	200
+https://github.com/ossf/scorecard	403
+https://github.com/tvofi/heatpump_optimizer	200
+https://github.com/tvofi/heatpump_optimizer/issues	200
+https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml	200
+https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml	200
+https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml	200
+https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml	200
+https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_wood_cheaper_window.yaml	200
+https://slsa.dev	200

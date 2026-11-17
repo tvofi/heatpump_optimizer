@@ -1,0 +1,426 @@
+{
+ "dimension": "D11",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D11/s1/REPORT.md",
+ "exposure": "GitHub REST API (unauthenticated) read 2026-11-16: repos/tvofi/heatpump_optimizer/rulesets and rulesets 22628467, 23698884, 23937752 (snapshots in api/). Tree text carrying earlier findings met in passing: comments in tools/policy/counts.mjs and tools/policy/field_coverage.mjs naming round-9 D11-s1-01 and D11-s2-01/02; one grep line each of dev/audit/rca/R9-I3.md and dev/programme/plan-2026-09-open-issues.md (on dismiss_stale_reviews_on_push). Resumed this seat's own checkpointed round-11 work (findings 01-04 and harnesses in this directory, written before a box restart); every harness was re-run this session.",
+ "coverage": [
+  {
+   "step": "D11.M1",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D11-s1",
+   "universe": 1387,
+   "examined": 1387,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "inventory.py classifies all 1387 cells (inventory.tsv, RESULT examined=1387). C1: denominator now 1387/1387. C2: ruleset rows from the API (3 rulesets, ruleset_reach.mjs) and required-check-to-job map (required_map.py: 21 names, 0 unresolved, 1 gate job); policy_lint classes with controls (policy_lint_mutants.mjs 25 arms PIN + DRIVEN exit-status; class_controls.mjs: citations/no-gh unlaned but acceptance refuses both emptied); brief_lint.mjs rc=0 in a clean baseline worktree with its embedded fixture arms; tests/structure.py (structure_control.py refused=15/15, perturb 0; meter_boundary.py D11-s1-05); claim files (claim_control.py D11-s1-04); prepr.sh (--self-test wired in instrument-self-tests, inventory row); session-start and stop hooks (--self-test 24/0 and 29/0; stop_hook_reach.py D11-s1-01); tools/audit/seat (seat_selftest_sweep.py, 113 scripts, D11-s1-06)."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D11-s1-01",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "Stop hook lets a turn end red on 2 of 65 policy-corpus files (AGENTS.md, dev/audit/README.md)",
+   "severity": "low",
+   "claim": "With the policy linter red and the turn's only change one policy-corpus file, the production Stop hook exits 0 (turn ends unrefused) for 2 of the 65 files policy_lint --corpus-filter prints: AGENTS.md and dev/audit/README.md.",
+   "mechanism": "stop-selfcheck.sh decides whether to run policy_lint by a hand-kept prefix list (POLICY_PREFIXES). It covers the old home of the audit README (tools/audit/) but not its new one (dev/audit/README.md, moved in the reorganisation), and it never listed AGENTS.md, which CLAUDE.md names as binding and policy_lint measures. The hook's own comment says a prefix list that is too narrow is 'the failure that matters'; its self-test pins only the paths it lists.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+    "value": 2,
+    "unit": "corpus files the hook lets through red",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other seats' runs; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.74,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/hooks/stop-selfcheck.sh:POLICY_PREFIXES (touches_policy), driven end to end through the hook's main path in a scratch repo",
+   "perturbation": {
+    "change": "POLICY_PREFIXES gains `AGENTS\\.md|dev/audit/` (harness --perturb, applied to the copy the scratch repo runs)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Corpus files (policy_lint --corpus-filter) for which the Stop hook exits 0 when that file is the turn's only change and the linter stub exits 1.",
+   "phenomenon_property": "Every file policy_lint measures as policy is inside the set of paths whose change makes the Stop hook run the linter; the hook's trigger set is derived from, or checked against, the linter's corpus rather than kept by hand.",
+   "seam_rule": "git ls-files | node tools/policy/policy_lint.mjs --corpus-filter | grep -vE \"$(sed -n \"s/^POLICY_PREFIXES='\\(.*\\)'$/\\1/p\" .claude/hooks/stop-selfcheck.sh)\"",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+    "value": "production-only change rc=0; CLAUDE.md change rc=2",
+    "note": "same scratch repo, same red linter stub: the hook refuses a listed path and ignores a non-policy path, so the 2 misses are the prefix list's, not the drive's"
+   },
+   "reproduction_steps": [
+    "run the harness: MISSED AGENTS.md, MISSED dev/audit/README.md, RESULT missed=2",
+    "run with --perturb: RESULT missed=0"
+   ],
+   "proposed_fix_scope": "Have stop-selfcheck.sh take its trigger set from `policy_lint.mjs --corpus-filter` (or add a self-test arm asserting every corpus file matches POLICY_PREFIXES); add AGENTS.md and dev/audit/README.md.",
+   "files": [
+    ".claude/hooks/stop-selfcheck.sh"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-move-stale-path"
+  },
+  {
+   "id": "D11-s1-02",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "Ruleset drift detector reads 1 of 3 live rulesets; main-protect and release-tags-protect change unseen",
+   "severity": "medium",
+   "claim": "Adding an `always` bypass actor to ruleset 22628467 (main-protect: deletion, non_fast_forward on main) or 23937752 (release-tags-protect: v* tags) produces 0 findings from the tree's only ruleset drift detector, while the same change to 23698884 produces 6.",
+   "mechanism": "counts.mjs liveRequiredContexts collects ruleset ids only from branch rules of type required_status_checks, so the ruleset objects it fetches and policy_lint's required-contexts class compares against the recorded fixture are 23698884's alone. main-protect's force-push/deletion rules and the tag ruleset that guards releases are never read; decision 0011 records a past undocumented bypass on 22628467 that this reach could not have seen, and the plan of record noted 'fixture covers 23698884 only'.",
+   "evidence": {
+    "command": "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+    "value": 2,
+    "unit": "rulesets whose change the detector reports with 0 findings",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+    "cpu_or_wall": "count",
+    "contention_note": "gh is a shim over the committed API snapshot (api/); no live call; a count",
+    "tolerance": "exact",
+    "load1": 5.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/policy/counts.mjs:liveRequiredContexts (and requiredContextsDrift on its output, against tools/policy/fixtures/required-contexts.json)",
+   "perturbation": {
+    "change": "liveRequiredContexts adds r.ruleset_id for every branch rule before the required_status_checks filter, with the temp fixture recording 22628467's ids and object (harness --perturb, temp copies of counts.mjs and the fixture)",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "Of the 3 active rulesets, the number whose bypass_actors can gain an `always` actor while requiredContextsDrift(fixture, liveRequiredContexts()) adds no finding over the unperturbed snapshot.",
+   "phenomenon_property": "Every active ruleset that guards main or release tags is read and compared field by field against a recorded copy, so any change to its rules or bypass actors reddens policy-docs within one push.",
+   "seam_rule": "gh api repos/tvofi/heatpump_optimizer/rulesets --jq '.[] | select(.enforcement==\"active\") | .id' | grep -vxFf <(python3 -c \"import json;print('\\n'.join(map(str,json.load(open('tools/policy/fixtures/required-contexts.json'))['rulesets'])))\")",
+   "null_control": {
+    "command": "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+    "value": "snapshot as read: 0 findings; 23698884 + bypass: delta 6",
+    "note": "the detector is alive on the ruleset it reads, so the blindness is its reach. Under --perturb 22628467's change adds 4 findings (0 on the null arm) and 23937752, on no branch's rules, stays unread: 2 -> 1."
+   },
+   "reproduction_steps": [
+    "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs -> RESULT unmonitored=2",
+    "node dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs --perturb -> RESULT unmonitored=1"
+   ],
+   "proposed_fix_scope": "Read every active ruleset (GET repos/{o}/{r}/rulesets, then each object), record all three in required-contexts.json's ruleset_objects, and compare each the way 23698884 is compared; the acceptance gains one drift arm per ruleset.",
+   "files": [
+    "tools/policy/counts.mjs",
+    "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I3"
+  },
+  {
+   "id": "D11-s1-03",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "rules_sync.mjs --check: a required refusal with no control; its --self-test rewrites the drift and exits 0",
+   "severity": "medium",
+   "claim": "rules_sync.mjs --check (governance.yml policy-docs, inside the required gate) has no positive control: nothing in the tree drives it against a drifted rule, and the control D11.M1 names for an instrument, `--self-test`, on a tree with one drifted .mdc exits 0 having rewritten that file.",
+   "mechanism": "rules_sync.mjs treats every argument but --check as regenerate mode, so `--self-test` silently regenerates (writes) the generated rules and reports success. field_coverage.mjs records it as 'none' (byte compare, no field) and no acceptance, mutant arm or self-test step drives the refusal; emptying `process.exit(drift ? 1 : 0)` would leave every control green.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+    "value": 0,
+    "unit": "control_red_on_drift (1 = the --self-test control goes red on a drifted tree)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+    "cpu_or_wall": "count",
+    "contention_note": "temp copies only; exit statuses and file bytes, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.33,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/policy/rules_sync.mjs:main",
+   "perturbation": {
+    "change": "`const check = process.argv.includes('--check') || process.argv.includes('--self-test')` (harness --perturb, on the temp copy)",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "Whether `node tools/policy/rules_sync.mjs --self-test` exits non-zero on a copy whose .cursor/rules/brief-citations.mdc has one appended line (1) or exits 0 (0).",
+   "phenomenon_property": "Every refusal a required job runs has a positive control that goes red when the refusal is emptied, and an instrument asked for a control it does not have refuses the flag rather than running its production (writing) mode.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/inventory.py && awk -F'\\t' '$3==\"ci-required\" && $4!=\"self-test\" && $4!=\"acceptance\"' dev/audit/rounds/round11/D11/s1/inventory.tsv",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+    "value": "in-sync copy: --check rc=0, --self-test wrote 0 files; drifted copy: --check rc=1",
+    "note": "the refusal itself is alive (check_refuses_drift=1); only its control is missing"
+   },
+   "reproduction_steps": [
+    "run the harness: --check on drift rc=1; --self-test on drift rc=0 and 'RULES-SYNC: 1 file(s) written'",
+    "run with --perturb: control_red_on_drift=1"
+   ],
+   "proposed_fix_scope": "Give rules_sync.mjs a --self-test that builds a temp tree, drifts and orphans one generated rule, and asserts --check refuses both and passes the in-sync tree; refuse unknown flags; add the step to governance.yml instrument-self-tests (selftest_scope ids).",
+   "files": [
+    "tools/policy/rules_sync.mjs",
+    ".github/workflows/governance.yml",
+    "tools/ci/selftest_scope.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I1"
+  },
+  {
+   "id": "D11-s1-04",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "Claim-file merge driver's mutation control is dead: its null control fails, 0 of 16 mutants reached",
+   "severity": "medium",
+   "claim": "dev/audit/harnesses/claim_merge_mutants.py, the one control that empties each rule of the claimnotes merge driver, fails its own null control at the baseline (baseline_pass=0) and so reaches 0 of its 16 mutants; giving its copy custom_components/ restores 16 of 16 killed.",
+   "mechanism": "The harness copies only tests/ and .gitattributes into its temp tree, then imports tests/harness.py, which since aa631f7c5d (2026-11-11) lists custom_components/heatpump_optimizer/translations at import. The import raises FileNotFoundError, the null control exits 1, and main() returns before any mutant. Nothing wires the harness (no workflow, no self-test step), so the break was silent.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/claim_control.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/claim_control.py",
+    "value": 0,
+    "unit": "mutants reached by the claim driver's mutation control",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu, node 22.23.4)",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared (load1 10.3); return codes and kill counts, contention-immune",
+    "tolerance": "exact",
+    "load1": 10.34,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "dev/audit/harnesses/claim_merge_mutants.py:main (run_section), over tests/entities.py's claim-file merge-driver section and tests/env_drift.py:merge_claim_file",
+   "perturbation": {
+    "change": "the harness's temp copy also takes custom_components/ (claim_control.py --perturb wraps its shutil.copytree)",
+    "expected_direction": "up",
+    "observed_value": 16
+   },
+   "metric_definition": "Mutants of tests/env_drift.py's claimnotes driver that claim_merge_mutants.py actually runs (killed + survived) after its unmutated null control.",
+   "phenomenon_property": "A control that copies a partial tree carries every path its imports read at load time, and a control nobody runs on a schedule is wired somewhere that reddens when its null control fails.",
+   "seam_rule": "grep -ln 'copytree(ROOT / \"tests\"' dev/audit/harnesses/*.py tools/audit/seat/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/claim_control.py --perturb",
+    "value": "baseline_pass=1, killed=16, survived=0",
+    "note": "with the missing directory supplied, the same control kills every mutant, so 0 is the copy's defect and not the driver's"
+   },
+   "reproduction_steps": [
+    "claim_control.py -> RESULT baseline_pass=0, mutants_reached=0",
+    "claim_control.py --perturb -> RESULT baseline_pass=1, mutants_reached=16"
+   ],
+   "proposed_fix_scope": "Copy custom_components/ (or the translations directory) into the harness's temp tree, and wire the harness as a governance.yml instrument-self-tests step (or a tests/entities.py arm) so a red null control is seen.",
+   "files": [
+    "dev/audit/harnesses/claim_merge_mutants.py",
+    "tests/harness.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I1"
+  },
+  {
+   "id": "D11-s1-05",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "Structure ratchet's meter is neither owned nor base-pinned in the required jobs that run it",
+   "severity": "medium",
+   "claim": "Of the 8 meters grading the budget files budget_raise_gate.SCHEMA protects, exactly 1, tests/structure.py, is executed from the pull request's own copy by required jobs (tests / fast (3.14), tests / arch-instrument, via ./tests/run.sh) and matched by no owner-carrying CODEOWNERS pattern, so a pull request can weaken what the structural ratchet measures with no owner review.",
+   "mechanism": "Decision 0013 (amendment 2026-09-24) lets a grader leave the owner only where a base restore replaces the owner as the barrier, and lists the test-side files kept owned (run.sh, env_drift.py, golden.py, harness.py, profiles.py, stress.py, plan_view.py, card_browser.mjs, mutation_table.py, typing_ruler.py, closure.py, derive_closures.sh) and those pinned (coverage_ratchet.py, nightly_status.py, delivery_status.py). tests/structure.py is in neither list: CODEOWNERS has no line for it and `fast` runs it through tests/run.sh with no restore. codeowners_gap.py --check reads it PINNED because governance / wave-script restores it (for agreement_py's import closure, not to grade the ratchet), and its rule does not enter run.sh's body. budget_raise_gate grades only the JSON values, so a raise of tests/structure_budgets.json needs the owner while an edit to the meter that makes the same growth read as no growth needs only the fix reviewer; the base-copy arch-score check flags the rise but passes on a 30-character body explanation.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+    "value": 1,
+    "unit": "budget meters run from the PR copy in a required job with no owner",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu)",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with other seats; a count over tree text, contention-immune",
+    "tolerance": "exact",
+    "load1": 6.5,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/pr/outside.py:owner_patterns over .github/CODEOWNERS, and tools/ci/gate.py:gate_required (the required job set) over .github/workflows/tests.yml jobs and tests/run.sh",
+   "perturbation": {
+    "change": "append `/tests/structure.py @tvofi` to the CODEOWNERS text owner_patterns reads (meter_boundary.py --perturb); equivalently, restore tests/structure.py from $PINNED in fast before ./tests/run.sh",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Meters of budget_raise_gate.SCHEMA's budget files that a gate.py-required job executes from the PR's copy (no PINNED restore of it in that job) and that no owner CODEOWNERS pattern matches.",
+   "phenomenon_property": "Every grader of a budget cap is either owned by the owner or restored from the base in every required job that runs it, so no pull request can change how a cap is measured without the review a cap raise needs (decision 0013's rule).",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py | grep '^EXPOSED'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+    "value": "null_coverage_ratchet_exposed=0",
+    "note": "tests/coverage_ratchet.py is also unowned but pinned in its job, so the same rule reads it safe; stress.py, typing_ruler.py and mutation_table.py run from the PR copy but are owned"
+   },
+   "reproduction_steps": [
+    "meter_boundary.py -> EXPOSED tests/structure.py via tests / arch-instrument, tests / fast (3.14); RESULT pr_copy_unowned=1",
+    "meter_boundary.py --perturb -> RESULT pr_copy_unowned=0"
+   ],
+   "proposed_fix_scope": "Add `/tests/structure.py @tvofi` to .github/CODEOWNERS (the suite cannot pin it: fast runs the PR's code), name it in decision 0013's kept-owned list, and extend codeowners_gap.py --check to follow tests/run.sh's `run \"$PYTHON\" tests/X.py` lines for the scripts that read a *_budgets.json.",
+   "files": [
+    ".github/CODEOWNERS",
+    "tests/structure.py",
+    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D11-s1-06",
+   "scope": "D11-s1",
+   "step": "D11.M1",
+   "title": "wt_sync.sh asked for its --self-test force-pushes every dirty worktree of the box to origin",
+   "severity": "medium",
+   "claim": "Of the 113 tools/audit/seat scripts driven as `<interp> <script> --self-test` under shims, 18 print no self-test verdict, and 1 (wt_sync.sh) attempts a `git push -f origin <snapshot>:refs/heads/wip-sync/<slug>` from the real shared repository, because it ignores every argument but --scratch and runs its production snapshot-and-push path.",
+   "mechanism": "dev/audit/README.md states tools/audit/seat/ holds instruments that 'each carries --self-test', and D11.M1 and decision 0018 name `--self-test` as the positive control a seat runs. wt_sync.sh has no argument check: any first argument other than --scratch is ignored, so the control call fetches, snapshots every worktree of the shared git dir that is dirty or unpushed (other seats' included) and force-pushes each to origin/wip-sync/<slug>. selftest_wiring.py --check counts only files that match --self-test, so a script lacking one is outside its rule; codeql-triage-poll.sh is the same shape (its production poll runs, with PATCH dismissals when alerts exist). The sweep's shims rewrote every github.com URL to a dead path, so no push left the box.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py --jobs 3",
+    "harness_path": "dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py",
+    "value": 1,
+    "unit": "seat scripts whose --self-test pushes from the real repository (real_repo_writes_on_selftest); no_selftest=18 alongside",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (linux 6.18, 4 cpu)",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared; counts from the shim log the production processes write, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/seat/wt_sync.sh (its argument handling and snap()), driven as a process with git/gh/curl/sleep shimmed",
+   "perturbation": {
+    "change": "insert as line 2 of wt_sync.sh: `[ \"${1:-}\" = --self-test ] && { echo \"self-test ok\"; exit 0; }` (seat_selftest_sweep.py --perturb, in the temp copy)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "tools/audit/seat scripts that, run with --self-test, attempt a git push to a github.com remote from a repository outside every temp root.",
+   "phenomenon_property": "Every instrument a seat may be told to self-test either runs a self-test that touches only temp state, or refuses an argument it does not know; no instrument's production write path is reachable through `--self-test`.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py | grep -E '^(REAL-REPO-WRITE|NO-SELFTEST)'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py --only pr_cap.py heartbeat.sh",
+    "value": "pr_cap.py logs no shim write; heartbeat.sh's self-test pushes only from its own temp repo (counted in github_writes_on_selftest, not real_repo)",
+    "note": "the shim detector sees a real self-test's fixture pushes and keeps them apart from the real repository's"
+   },
+   "reproduction_steps": [
+    "seat_selftest_sweep.py -> REAL-REPO-WRITE wt_sync.sh; RESULT real_repo_writes_on_selftest=1; RESULT no_selftest=18",
+    "seat_selftest_sweep.py --perturb --only wt_sync.sh -> RESULT real_repo_writes_on_selftest=0"
+   ],
+   "proposed_fix_scope": "Make wt_sync.sh (and codeql-triage-poll.sh, remerge_main.sh, a1_dispatch_arms.sh, the other NO-SELFTEST shell scripts) refuse unknown arguments and carry a --self-test over a temp repo; extend selftest_wiring.py --check to refuse a tools/audit/seat script with neither a --self-test nor an argument guard, matching the README's 'each carries --self-test'.",
+   "files": [
+    "tools/audit/seat/wt_sync.sh",
+    "tools/audit/seat/codeql-triage-poll.sh",
+    "tools/audit/seat/selftest_wiring.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every name gate.py can require resolves to a workflow job, and the ruleset's one required context `gate` to exactly one job (ci.yml gate, if: !cancelled())",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/required_map.py",
+   "value": "required=21 unresolved=0 gate_jobs=1; --perturb unresolved=1"
+  },
+  {
+   "claim": "Every policy_lint corpus and loop check turns the acceptance red when emptied",
+   "command": "node tools/policy/policy_lint_mutants.mjs",
+   "value": "25 PIN, entry exit-status DRIVEN, MUTANTS ok"
+  },
+  {
+   "claim": "The two per-file classes outside the mutant lanes (citations, no-gh) still have a live control: the acceptance refuses each emptied",
+   "command": "node dev/audit/rounds/round11/D11/s1/class_controls.mjs",
+   "value": "unlaned=2, acceptance_refuses_emptied=2, null_rc=0 (hygiene: not laned)"
+  },
+  {
+   "claim": "The structure ratchet refuses every lowerable metric tightened by one",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/structure_control.py",
+   "value": "refused=15 of lowerable=15 (floor 3), null_rc=0; --perturb refused=0"
+  },
+  {
+   "claim": "The required-contexts class reaches every moved assertion site",
+   "command": "node dev/audit/rounds/round11/D11/s1/required_sites_reach.mjs",
+   "value": "sites=4 unreached=0 null_findings=0"
+  },
+  {
+   "claim": "Each wired hook's self-test passes and policy_lint --hooks reads all four; the deliberate always-fails control fails",
+   "command": "bash .claude/hooks/<hook>.sh --self-test; node tools/policy/policy_lint.mjs --hooks",
+   "value": "pre-bash 46/0, pre-edit 22/0, session-start 24/0, stop-selfcheck 29/0, always-fails 0/1 rc=2; HOOKS ok 4 wired"
+  },
+  {
+   "claim": "Every self-testing tools/ file is wired into a workflow step",
+   "command": "python3 -I tools/audit/seat/selftest_wiring.py --check",
+   "value": "144 self-testing, 144 wired, 0 unwired, 0 index gaps; --self-test 26 checks 0 failed"
+  },
+  {
+   "claim": "rules_sync.mjs --check itself refuses a drifted generated rule (only its control is missing, D11-s1-03)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+   "value": "check_refuses_drift=1, null_check_rc=0"
+  },
+  {
+   "claim": "brief_lint.mjs exits 0 at the baseline; its rc=1 in the finder export is the wall (translation_keys cited by carry-1668 resolves only in walled round dirs) -- a harness gap, not a defect",
+   "command": "node tools/policy/brief_lint.mjs (clean git worktree of the baseline vs the export)",
+   "value": "worktree rc=0; export rc=1 with 1 ERROR in dev/archive/carries/carry-1668.json"
+  },
+  {
+   "claim": "main-protect (22628467) no longer carries the always bypass decision 0011 asked removed",
+   "command": "curl -s https://api.github.com/repos/tvofi/heatpump_optimizer/rulesets/22628467",
+   "value": "bypass_actors=[] (rules deletion, non_fast_forward)"
+  },
+  {
+   "claim": "main-protect-checks' dismiss_stale_reviews_on_push=false and require_last_push_approval=false let an approval at an older head count after a push; not re-reported: the flip was declined by the owner (recorded in dev/programme/plan-2026-09-open-issues.md, #1196/#1236), merge_train.py refuses an approval not on the head for train merges, and required-contexts.json records the field, which counts.mjs diffs",
+   "command": "curl -s https://api.github.com/repos/tvofi/heatpump_optimizer/rulesets/23698884",
+   "value": "dismiss_stale_reviews_on_push=false, require_last_push_approval=false, bypass DeployKey+App 5094721 always"
+  },
+  {
+   "claim": "No CI-required instrument is without any control by the inventory screen",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s1/inventory.py",
+   "value": "cells=1387 examined=1387 ci_required_scripts=186 ci_required_instruments_no_control=0 (screen; hand reads gave D11-s1-03, -04)"
+  },
+  {
+   "claim": "codeowners_gap.py --check finds every enforcement-surface file owned or pinned (but see D11-s1-05: it does not enter tests/run.sh)",
+   "command": "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check",
+   "value": "surface=229 owned=76 pinned=153 uncovered=0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D11/s1/inventory.py",
+  "dev/audit/rounds/round11/D11/s1/required_map.py",
+  "dev/audit/rounds/round11/D11/s1/meter_boundary.py",
+  "dev/audit/rounds/round11/D11/s1/stop_hook_reach.py",
+  "dev/audit/rounds/round11/D11/s1/ruleset_reach.mjs",
+  "dev/audit/rounds/round11/D11/s1/rules_sync_control.py",
+  "dev/audit/rounds/round11/D11/s1/claim_control.py",
+  "dev/audit/rounds/round11/D11/s1/class_controls.mjs",
+  "dev/audit/rounds/round11/D11/s1/structure_control.py",
+  "dev/audit/rounds/round11/D11/s1/required_sites_reach.mjs",
+  "dev/audit/rounds/round11/D11/s1/seat_selftest_sweep.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s2",
+   "file": "dev/governance/decisions/0008-a-seat-identity-distinct-from-the-owner.md",
+   "symbol": "step 3(d)",
+   "what": "States dismiss_stale_reviews_on_push: true as GitHub's enforcement of fix-review step 12; the live ruleset and its recorded copy hold false (owner-declined flip). Stale record (M3)."
+  },
+  {
+   "owner_seat": "D11-s2",
+   "file": "dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md",
+   "symbol": "What a pin does not reach",
+   "what": "Says none of coverage-ratchet / nightly-status / delivery-status is a required context; gate.py REQUIRED['push'] includes `tests / coverage-ratchet`. Stale (M3)."
+  },
+  {
+   "owner_seat": "D11-s2",
+   "file": ".github/workflows/tests.yml",
+   "symbol": "coverage-ratchet job comment",
+   "what": "Says tests/coverage_ratchet.py 'is @tvofi's, so that review keeps it true'; .github/CODEOWNERS has no line owning it (outside.owner_patterns: unowned). Stale comment (M3)."
+  },
+  {
+   "owner_seat": "D11-s3",
+   "file": "dev/audit/harnesses/",
+   "symbol": "r10_carry_parser_mutants.py, mutant_run_diff_shards.py, r10_gh_read_retry_mutants.py",
+   "what": "Run bare with --self-test at the baseline these exit nonzero (PATTERN NOT FOUND ONCE I-blank-para; IndexError; EQUIVALENT entries no rule generates). Check whether CI invokes them with other arguments; a mutant driver whose pattern no longer applies is a dead control (M4/M5)."
+  },
+  {
+   "owner_seat": "D11-s3",
+   "file": "dev/audit/harnesses/",
+   "symbol": "mutant drivers editing production in place",
+   "what": "An unshimmed --self-test run of the harness set left tools/audit/seat/merge_train.py modified in the tree after a kill; at least one driver mutates the checked-out file rather than a copy (README trap). Candidate for mechanisation."
+  }
+ ]
+}

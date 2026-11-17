@@ -1,0 +1,45 @@
+{
+  "id": "D7-s1-01",
+  "scope": "D7-s1",
+  "step": "D7.M1",
+  "title": "const_modules_over_50 counts names on from-import statements: entry_config.py reads 118 const names and counts 3",
+  "severity": "low",
+  "claim": "tests/structure.py's const_modules_over_50 reads 3 while 4 modules read more than 50 distinct names of const: entry_config.py reads 118 (115 as const.X off `from . import const`) and is counted as 3, and re-spelling thermal_model.py's from-import the same way lowers the row to 2 with the coupling unchanged.",
+  "mechanism": "measure() builds const_fanout by summing len(node.names) over ImportFrom nodes naming .const; a read through a module binding (`from . import const`, then const.X) adds nothing. thermal_model.py is counted 67 while it reads 135 distinct names (67 imported, 75 through the binding); entry_config.py is counted 3 and reads 118. The architecture score's own planted case N4_const_namespace_import (tools/audit/archscore/planted/perturb/) labels that re-spelling NULL -- 'identical dependency, different spelling' -- so the ratchet pays a change the score calls no change.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "value": 1,
+    "unit": "const_unseen_modules (modules over the limit by distinct names read that the ratchet's table holds at or under it); ratchet_const_modules_over_50=3, any_spelling_const_modules_over_50=4",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 about 150; the value is a static count and does not depend on load",
+    "tolerance": "exact",
+    "load1": 150.27,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/structure.py:measure",
+  "perturbation": {
+    "change": "--perturb const-respell: in memory, thermal_model.py's 67 names on `from .const import` are read as const.X (the module already binds const). The ratchet's row falls 3 -> 2 and const_unseen_modules rises 1 -> 2 while any_spelling_const_modules_over_50 stays 4. Repair arm --perturb const-count-reads (the table fed the distinct names read): const_unseen_modules 1 -> 0 and the row reads 4.",
+    "expected_direction": "up",
+    "observed_value": 2
+  },
+  "metric_definition": "Modules reading >50 distinct .const names by any spelling whose structure.py const_fanout entry is <=50. Key: distinct const names read, not the import statement.",
+  "phenomenon_property": "A module's const fan-out is the number of distinct const names it reads, whichever way the read is spelled; a ratchet row over that fan-out must not move when a from-import is re-spelled as a module-binding read, and must count a module that reads through the binding.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py | grep '^CONST'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb const-count-reads",
+    "value": 0,
+    "note": "with the table fed distinct reads the unseen count vanishes and the eight recounted rows still agree with measure() (recount_mismatches=0)"
+  },
+  "reproduction_steps": [
+    "Run the harness: CONST lines print each module over the limit by distinct names read, with the ratchet's own count beside it.",
+    "Run it with --perturb const-respell: RESULT ratchet_const_modules_over_50 falls from 3 to 2, RESULT any_spelling_const_modules_over_50 stays 4.",
+    "Run it with --perturb const-count-reads: RESULT const_unseen_modules=0 and RESULT ratchet_const_modules_over_50=4."
+  ],
+  "proposed_fix_scope": "tests/structure.py measure(): count, per module, the distinct const names read through a from-import or through a binding of the const module (the Package / import_bindings machinery already resolves module bindings); re-record const_modules_over_50 at 4 with the reason, or pay it by narrowing entry_config.py's reads. One self-check case beside the existing ones (a from-import re-spelled as a binding read must not move the row).",
+  "files": ["tests/structure.py", "tests/structure_budgets.json", "custom_components/heatpump_optimizer/entry_config.py", "custom_components/heatpump_optimizer/thermal_model.py"],
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-structure-blind"
+}

@@ -1,0 +1,192 @@
+{
+ "dimension": "D13",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D13/s3/REPORT.md",
+ "exposure": "GitHub REST API for the window 2026-11-09T12:00Z..2026-11-16T12:00Z: /commits/<sha>/pulls, /commits/<sha>/check-runs (default and filter=all), /pulls/<n>/commits, /actions/jobs/<id>/logs for four governance / instrument-self-tests failures; main's git history and version tags. No comments, reviews or bodies read.",
+ "coverage": [
+  {
+   "step": "D13.M4",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+   "universe": 271,
+   "examined": 271,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py -> merges=271 releases_per_day=1.71 lead_time_median_h=6.94 lead_time_p90_h=16.86 cfr_raw_merge_keyed=0.808 cfr_job_merge_keyed=0.797 cfr_raw_head_keyed=0.439 reverted_merges=0 ttr_names=17 api_failures=0 (C1: DF, LT and TTR computed per check-run name)"
+  },
+  {
+   "step": "D13.M5",
+   "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/enum_merges.py",
+   "universe": 271,
+   "examined": 271,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py -> merges=271 gov_missing_from_GOV=none gov_extra_in_GOV=none head_total_seconds_mean=11442 full_total_seconds_mean=106627 head_governance_share=0.204 full_governance_share=0.186 omitted_share=0.893 api_failures=0"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D13-s3-01",
+   "scope": "D13-s3",
+   "step": "D13.M4",
+   "title": "dora_keys.cfr_keyings exclusion is inert: `record` never equals the check-run name `governance / record`",
+   "severity": "medium",
+   "claim": "dora_keys.cfr_keyings drops an exclusion key only when it equals the full check-run name (`names - drop`). Since the layout cut-over every governance job reports as `<unit> / <job>`, so cfr_exclusions.json's only key `record` matches nothing: over the window's 271 merges cfr_merge_keyed equals cfr_merge_unexcluded (0.808, delta 0.0), while keying the same list on the job id drops the 3 merges whose only red is `governance / record` (0.797, delta 0.011). The brief's own control -- one job added to the exclusion list moves the rate by exactly that job's count -- fails on the instrument: --exclude record leaves the instrument's rate at 0.808.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+    "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+    "value": 0.0,
+    "unit": "cfr_raw_excl_delta_merge (rate delta the exclusion buys in dora_keys.cfr_keyings); job-keyed delta 0.011 (3 merges)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.04,
+    "thread_factor": 1.009
+   },
+   "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:cfr_keyings (with :load_exclusions and :latest_by_name), driven on the window's live check-run listings",
+   "perturbation": "`--exclude 'governance / record'` (the full name as a key, in memory): cfr_raw_excl_delta_merge moves 0.0 -> 0.011 (up, by exactly the 3 merges); `--exclude record` leaves it at 0.0 while cfr_job_excl_delta_merge reads 0.011",
+   "metric_definition": "cfr_raw_excl_delta_merge = dora_keys.cfr_keyings(...)['merge_unexcluded'] - ['merge_keyed'] over the window's 271 first-parent merges, latest run per check-run name at the merge commit",
+   "phenomenon_property": "An exclusion key removes a check run from the change-failure rate exactly when it equals the job id the run's name carries, whatever `<unit> / ` prefix or ` (<matrix leg>)` suffix the name has",
+   "seam_rule": "grep -nE 'names - drop|name in names|in excl' dev/audit/rounds/round4/D11/dora_keys.py",
+   "stop_rule_class": "bug",
+   "class_guess": "N-vocabulary-drift",
+   "files": [
+    "dev/audit/rounds/round4/D11/dora_keys.py",
+    "dev/governance/config/cfr_exclusions.json"
+   ],
+   "proposed_fix_scope": "key the exclusion comparison in cfr_keyings on the job id (strip the unit prefix and matrix leg, as governance_cost.bare does) and pin it with a unit-prefixed name; S"
+  },
+  {
+   "id": "D13-s3-02",
+   "scope": "D13-s3",
+   "step": "D13.M4",
+   "title": "instrument-self-tests red on main at 200 of 271 merges, green at 186 of their heads; time to restore 106 h, still open",
+   "severity": "medium",
+   "claim": "Per check-run name, `governance / instrument-self-tests` concluded failure at 200 of the window's 271 merge commits (0.738) and at 18 of their 271 pull-request heads; at 186 merges it failed at the merge commit after passing at the head. Its red episodes on main: 2, median 65.82 h, max 106.19 h, one still open at the window's end, against the required `gate`'s 19 episodes of median 0.34 h. It is the only failing name at 162 merges, so it alone carries the merge-keyed change-failure rate from 0.24 to 0.808. The logs read at four failures show the drift check (`tools/ci/selftest_scope.py check`, which its docstring runs only on a push to main) refusing 11 then 27 steps: a red that no pull-request head can see, which then stands on main for days and masks any new red of the job.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+    "harness_path": "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+    "value": 186,
+    "unit": "merges whose instrument-self-tests failed at the merge commit and passed at the PR head (ist_fail_merge_pass_head); ttr max 106.19 h, still_open=True",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.04,
+    "thread_factor": 1.009
+   },
+   "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:latest_by_name driven on the check runs of .github/workflows/governance.yml job `instrument-self-tests` (whose push-only step is tools/ci/selftest_scope.py `check`)",
+   "perturbation": "`--exclude 'governance / instrument-self-tests'` (in memory): cfr_raw_merge_keyed falls 0.808 -> 0.24 and merges_failing_only_excluded_jobs_merge rises 3 -> 165 (the 162 merges whose only red it is, plus the 3 `record`-only)",
+   "metric_definition": "ist_fail_merge_pass_head = count of window merges whose latest `governance / instrument-self-tests` run concluded failure at the merge commit and success at the PR head; TTR = completed_at of the first failing run at a merge to completed_at of the next succeeding run at a later merge, first-parent order",
+   "phenomenon_property": "A job whose check runs on a push to main also runs, with the same verdict, at the pull-request head that produced the merge, so its red is answered before the merge rather than restored after it",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py | grep \"per name\" | grep 'head=0.0 (0)'   (every name failing at merge commits and at no head)",
+   "stop_rule_class": "bug",
+   "class_guess": "R10-SELFTEST-RED-INTRODUCED",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/ci/selftest_scope.py"
+   ],
+   "proposed_fix_scope": "run selftest_scope.py's drift `check` (or an equivalent table-staleness test) on the pull-request event of a diff that reaches tools/, or auto-commit the unioned table on main the way record-autofix answers `record`; M; frozen machinery -- needs the owner's instrument window"
+  },
+  {
+   "id": "D13-s3-03",
+   "scope": "D13-s3",
+   "step": "D13.M5",
+   "title": "governance_cost.py reads 10.7% of the CI seconds a merge pays: final head only, latest attempt only",
+   "severity": "medium",
+   "claim": "governance_cost.py sums check-run durations at a pull request's FINAL head from the default check-runs listing, which returns the latest attempt only. Over the window's 271 merges that surface reads 3,100,885 s of the 28,895,795 s their CI ran at every commit of the pull request (filter=all) plus the merge commit: omitted_share 0.893 (by day 0.857..0.921 over 8 day-cells; 0.896 with the lowest day dropped; 0.887 with runs deduplicated across stacked PRs). Mean seconds per merge read 11,442 against 106,627 paid, a 9.3x under-read. At the final heads alone the default listing hides 37,189 run attempts (5,331,965 s) that filter=all returns, although d11lib.check_runs's docstring says the listing shows a re-run. The governance share barely moves (0.204 vs 0.186), so the split survives; the per-merge cost the instrument reports does not.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+    "harness_path": "dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+    "value": 0.893,
+    "unit": "omitted_share = 1 - head-surface seconds / all seconds paid",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.26,
+    "thread_factor": 1.012
+   },
+   "instrumented_symbol": "tools/audit/round4/D11/governance_cost.py:GOV, :bare and :dur (every second is classified and timed by the instrument's own symbols); tools/audit/round4/D11/d11lib.py:check_runs's listing reproduced (default filter)",
+   "perturbation": "D13S3_HEAD_ONLY=1 (the full surface collapses onto governance_cost.py's): omitted_share moves 0.893 -> 0.0; --gov-drop pr-contract moves governance share 0.204 -> 0.197 (the instrument's own control)",
+   "metric_definition": "omitted_share = 1 - sum over merges of concluded check-run seconds at the final PR head (default listing) / sum of concluded check-run seconds at every PR commit (filter=all) plus the merge commit",
+   "phenomenon_property": "A per-merge CI-cost reading sums every concluded check-run attempt the merge triggered: every head the pull request had, every re-run attempt, and the push run at its merge commit",
+   "seam_rule": "grep -nE 'check_runs\\(|check-runs\\?' tools/audit/round4/D11/*.py dev/audit/rounds/round4/D11/*.py tools/audit/seat/*.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "tools/audit/round4/D11/governance_cost.py",
+    "tools/audit/round4/D11/d11lib.py"
+   ],
+   "proposed_fix_scope": "read check runs with filter=all at each commit of pulls/<n>/commits and at the merge commit, report the head-only figure beside it; correct check_runs's docstring; S. Null control: single-commit, no-rerun merges still omit 0.492 (the merge-commit push run alone)"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "governance_cost.py's GOV equals the set its own rule re-derives from the workflow files at the baseline",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+   "value": "gov_missing_from_GOV=none gov_extra_in_GOV=none"
+  },
+  {
+   "claim": "The brief's revert rule fails no window merge (dora_keys omits the rule; it costs nothing here); the fixture control moves the count",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py [--fixture-revert e02c7015b57ab95a59871bccb6d1001536e85673]",
+   "value": "reverted_merges=0 (fixture: 1)"
+  },
+  {
+   "claim": "Scheduled nightly-job reds attached to merge commits inflate the merge-keyed rate by at most one merge",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+   "value": "merges_failing_only_schedule_jobs_merge=1 of 271"
+  },
+  {
+   "claim": "The required gate's red on main is restored quickly",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+   "value": "ttr gate: episodes=19 median_h=0.34 max_h=9.25 still_open=False"
+  },
+  {
+   "claim": "Deployment frequency and lead time are computable and bounded in the window",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+   "value": "releases_per_day=1.71 lead_time_median_h=6.94 p90=16.86 n=260 unreleased=11"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D13/s3/d13s3lib.py",
+  "dev/audit/rounds/round11/D13/s3/enum_merges.py",
+  "dev/audit/rounds/round11/D13/s3/dora_by_job.py",
+  "dev/audit/rounds/round11/D13/s3/ci_seconds.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s2",
+   "file": "tools/ci/selftest_scope.py",
+   "symbol": "check",
+   "what": "the drift check runs only on a push to main, so instrument-self-tests passed at 186 PR heads whose merge commits it failed (D13-s3-02); whether the pull-request event should run it is the mechanism question"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": "dev/governance/config/cfr_exclusions.json",
+   "symbol": "excluded_jobs.record.reason",
+   "what": "states `record` concludes failure at EVERY merge; in the window it failed at 16 of 271 merge commits, so the recorded reason no longer describes the job"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": "tools/audit/round4/D11/d11lib.py",
+   "symbol": "merged_prs / api(paginate=True)",
+   "what": "merged_prs is GraphQL-only and --paginate follows repositories/<id> Link headers; a REST-only session's proxy refuses both, so dora_keys.py and governance_cost.py cannot run there"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": ".github/workflows/tests.yml",
+   "symbol": "nightly-status",
+   "what": "fails at 107 of 271 PR heads (0.395), the largest head-keyed red name in the window"
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+RESULT ci_skipped[docs-only (class F)]=8 switches
+RESULT ci_skipped[package-only (class F)]=5 switches
+RESULT ci_skipped[tests script (class O)]=8 switches
+RESULT ci_skipped_switches=21 switches
+RESULT ci_null_push=0 switches
+RESULT class_files_compared=9722 files
+RESULT class_mismatch_paths=3 path classes
+RESULT class_mismatch_delivery=1788 files
+RESULT class_mismatch[CODEOWNERS-owned path outside tests/ and docs/: page R, code O]=4 files  e.g. dev/audit/config/objective.json, dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json, dev/audit/yardstick/round10/OBJECTIVE.json
+RESULT class_mismatch[dev/programme/delivery/<its own N>.md: page R, code F]=1788 files  e.g. dev/programme/delivery/1059.md, dev/programme/delivery/1065.md, dev/programme/delivery/1076.md
+RESULT class_mismatch[policy file under tests/ (POLICY_GLOBS): page O, code R]=1 files  e.g. tests/README.md
+RESULT class_probe_mismatch=0 probes
+RESULT branch_name_disagree=0 of 12 names
+RESULT base_not_main_refused=1
+RESULT check_null_admitted_rc=0
+RESULT second_pull_refused_rc=1
+RESULT manifest_version_refused_rc=1 VERSION_rc=1 RELEASE_NOTES_rc=1
+RESULT not_allowlisted_rc=3
+RESULT owner_plain_admitted=1
+RESULT agent_words_refused=3 of 3
+RESULT later_changes_or_dismissal_refused=2 of 2
+RESULT body_all_na_but_head_rc=0
+RESULT head_na_refused=1
+RESULT stranger_author_refused=1
+RESULT units=40 rows=40 unmapped=0
+RESULT false_rows=4 rows
+RESULT unverifiable_rows=3 rows
+RESULT thread_factor=1.000
+RESULT load1=4.10
+RESULT swapins=0

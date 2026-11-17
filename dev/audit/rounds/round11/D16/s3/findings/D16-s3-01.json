@@ -1,0 +1,47 @@
+{
+  "id": "D16-s3-01",
+  "scope": "D16-s3",
+  "step": "D16.M6",
+  "title": "Entering Off leaves the arbiter's mode and tank set-point at the optimizer's last write",
+  "severity": "high",
+  "claim": "After the optimizer is set to Off, the pump-mode select stays on the last step's duty (Tuya: 'DHW (Hot Water)') and a Modbus pump's tank set-point stays on the space-step gate (40 against the configured 50), through three later cycles, where the brief's off row owes each written entity its baseline once (both circuits allowed, the configured tank set-point).",
+  "mechanism": "pump_arbiter._arbitrate's MODE_OFF branch only _forget()s the record; the baseline row (desired(coord, inp, None, now)) is written by pump_arbiter.release on unload alone, and off_restore.async_mode_change restores only registered consumers (the space set-point, the heat curve, MQTT). The module docstring states 'The mode, the hot-water set-point and the silent switch are not restored' and tests/features.py pins 'switching the optimizer off writes the space set-point's baseline back, once, and nothing else', so the fix changes a pinned rule against the D16 owner ruling of 2026-11-15.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": 1,
+    "unit": "entity (RESULT unrestored_off__select.pump_mode; unrestored_off_modbus__number.dhw_set is 1 too)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared, up to three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.87,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "pump_arbiter:_arbitrate (via coordinator:HeatPumpOptimizerCoordinator.async_set_mode and off_restore:async_mode_change)",
+  "perturbation": {
+    "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb arbiter: off_restore.async_mode_change, on the change into Off, also writes release()'s baseline row (desired(...None...) with space_setpoint=None) through pump_arbiter._command",
+    "expected_direction": "to_zero",
+    "observed_value": "unrestored_off__select.pump_mode=0, unrestored_off_modbus__number.dhw_set=0"
+  },
+  "metric_definition": "Per arm and entity: 1 when the entity's state, after Off and three cycles, differs from its pre-write baseline (mode Heating + DHW, tank 50); key = state the delivered service calls left.",
+  "phenomenon_property": "Every arbiter slot written under Control (mode, tank set-point, and the silent and night-mode slots) is returned to its baseline once on the change into Off, as unload's release() already does, not only the space set-point.",
+  "seam_rule": "python3 dev/audit/rounds/round11/D16/s3/enum_m6.py | grep 'pump_arbiter.py:1610 _write' | grep '| off$'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": "null_unrestored_off=0, null_unrestored_off_modbus=0",
+    "note": "the same plant and trigger with a plan starting two hours ahead: the arbiter served its baseline row, so nothing is owed and nothing is counted"
+  },
+  "reproduction_steps": [
+    "run the command; read RESULT unrestored_off__select.pump_mode and unrestored_off_modbus__number.dhw_set",
+    "re-run with --perturb arbiter: both read 0"
+  ],
+  "proposed_fix_scope": "pump_arbiter: on the transition into MODE_OFF under Control, write the baseline row's mode and tank set-point (the unload release's row, space excluded) once before forgetting the record; re-pin the features.py check that asserts Off writes nothing else.",
+  "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/off_restore.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

@@ -1,0 +1,49 @@
+{
+ "id": "D17-s1-04",
+ "scope": "D17-s1",
+ "step": "D17.M3",
+ "title": "Compressor modulation 'On/off' is read as 'Modulating': the plan keeps sub-minimum steps",
+ "severity": "high",
+ "claim": "With compressor_modulation=on_off and a 1.5 kW minimum saved through the thermal model page, 60 of 96 planned steps lie strictly between 0 and the minimum power, exactly as with 'modulating', although the option's description says on/off plans every step as off or between min and max power.",
+ "mechanism": "thermal_model.declared_modulation returns True (modulating) for COMPRESSOR_MODULATION_ON_OFF ('True if mode == ON_OFF else True if mode == MODULATING'), contradicting its own docstring ('on_off -> False'); ThermalParameters.on_off = declared_modulation(cfg) is False is therefore never set by the user's choice.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_modulation.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s1/h_modulation.py",
+  "value": 60,
+  "unit": "planned steps (of 96) with 0.01 kW < power < min power under on_off",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (vm, 4 cpu, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; immune to load",
+  "tolerance": "exact",
+  "load1": 1.83,
+  "thread_factor": 1.001
+ },
+ "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation",
+ "perturbation": {
+  "change": "--perturb-docstring: declared_modulation returns False for on_off, as its docstring states",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of data['schedule'][i]['power'] with 0.01 < p < heat_pump_min_power after saving on_off + min 1.5 kW, restart, one cycle",
+ "phenomenon_property": "Each value of the compressor_modulation option maps to the model's on/off flag as its description says: on_off -> on/off planning, modulating -> modulating, auto -> the probe.",
+ "seam_rule": "grep -n 'declared_modulation(' custom_components/heatpump_optimizer/*.py (its three readers: ThermalParameters on_off and the two probe sites at thermal_model.py:1570 and :1633)",
+ "null_control": {
+  "command": "same harness, modulating arm (RESULT modulating_sub_min_steps)",
+  "value": 60,
+  "note": "sub-minimum averaged steps are documented for modulating; on_off is identical to it"
+ },
+ "reproduction_steps": [
+  "Options > Advanced > Thermal model: Min power 1.5, Compressor modulation On/off; save",
+  "data['schedule'] holds 60 steps between 0 and 1.5 kW"
+ ],
+ "proposed_fix_scope": "thermal_model.declared_modulation: on_off -> False; failing test through the options page on the planned levels, null control modulating; the two probe sites re-checked.",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "expected_golden_drift": [
+  "any golden scenario storing compressor_modulation=on_off"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

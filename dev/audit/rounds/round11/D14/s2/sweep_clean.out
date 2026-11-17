@@ -1,0 +1,19 @@
+RESULT classes=36
+RESULT norow=0
+ROW N-body-lint-bounce rc=0 wall_s=547.6 cpu_s=552.5 wired=.github/workflows/governance.yml,.github/workflows/pr-contract.yml,tests/run.sh,tests/features.py,tests/entities.py note=
+TAIL N-body-lint-bounce [1]-  Done                    "$@" >> "$log" 2>&1 | [1]-  Done                    "$@" >> "$log" 2>&1 | tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file
+ROW N-solve-recompute rc=1 wall_s=210.1 cpu_s=204.7 wired=.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=production-call channel
+TAIL N-solve-recompute ok   suppression lowers total electric DHW energy, not just moves it |  | 7 of 113 STRESS CHECKS FAILED
+ROW P2 rc=0 wall_s=641.4 cpu_s=654.9 wired=.github/workflows/ci.yml,.github/workflows/codeql.yml,.github/workflows/governance.yml,.github/workflows/marketplace.yml,.github/workflows/nightly.yml,.github/workflows/pages.yml,.github/workflows/pr-contract.yml,.github/workflows/release.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=section 'P2: one fact, one owner'
+TAIL P2 reading the recorder: SQLite database /tmp/tmpj53ggxma/home-assistant_v2.db | reading the recorder: SQLite database /tmp/tmpvzwya5dj/home-assistant_v2.db | Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+ROW P3 rc=0 wall_s=1022.7 cpu_s=963.1 wired=.github/workflows/codeql.yml,.github/workflows/nightly.yml,.github/workflows/tests.yml,tests/run.sh,tests/features.py,tests/entities.py note=block R9-P3
+TAIL P3 /tmp/claude-0/-home-user-heatpump-optimizer/26276ae7-8c00-51ec-ba9f-cd21c95ceee0/scratchpad/clean/tests/features.py:88327: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited | _ap_unload() | RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+ROW P4 rc=0 wall_s=158.2 cpu_s=152.7 wired=.github/workflows/kernel-points.yml,tests/run.sh,tests/entities.py note=
+TAIL P4 ok   the warm start adds one candidate and refines it (refined == candidates) |  | ALL 84 OPTIMALITY CHECKS PASSED
+ROW P9 rc=1 wall_s=0.5 cpu_s=0.6 wired=.github/workflows/tests.yml,tests/run.sh,tests/entities.py note=needs Playwright/Chromium
+TAIL P9 FAIL: plan payload /tmp/plandata-38c1eef81ffb.json not found — run tests/plan_view.py first
+ROW R9-ROW-STALE rc=0 wall_s=0.7 cpu_s=0.8 wired=.github/workflows/governance.yml,.github/workflows/nightly.yml,tests/entities.py note=delivery_status.py reads the live PR list (gh); the barrier's guard self-test instead
+TAIL R9-ROW-STALE gh_read self-test: 146 checks, 0 failed | record_row self-test: all checks passed
+RESULT thread_factor=1.000
+RESULT load1=1.27
+RESULT swapins=0

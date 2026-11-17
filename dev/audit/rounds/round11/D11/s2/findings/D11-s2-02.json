@@ -1,0 +1,48 @@
+{
+ "id": "D11-s2-02",
+ "scope": "D11-s2",
+ "step": "D11.M2",
+ "title": "The human oversight point is not provable from GitHub's records: 0 of 52 window merges carry the owner's own approval",
+ "severity": "medium",
+ "claim": "In round 11's window, 31 of 52 merges carry an approval at head under the owner's account and all 31 are agent-declared; 0 carry one `budget_raise_gate.approval` reads as the owner's own, 49 of 52 were merged by the owner's account, and the agent/human split is made by review-body text alone (deleting the AGENT_DECLARED words turns all 31 into the owner's own with no GitHub-recorded field changed).",
+ "mechanism": "Mandate 6893738184 (scope all, decision 0013) lets the orchestrator approve and merge as tvofi. GitHub's record (login, id, type) is identical for the agent and the owner, so the code-owner review that main-protect-checks requires, the only human-in-the-loop point GitHub enforces, is satisfied by an agent; whether a human acted is recoverable only from what the agent wrote, which is the 'comment's word' D11's NIST AI 600-1 bar excludes.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py",
+  "harness_path": "dev/audit/rounds/round11/D11/s2/oversight.py",
+  "value": 0,
+  "unit": "window merges with an owner-own approval at head (of 52; 31 owner-account approvals all agent-declared)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7 (4 vCPU, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; counts over fixed snapshots, contention-immune",
+  "tolerance": "exact",
+  "load1": 9.13,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/budget_raise_gate.py:approval",
+ "perturbation": {
+  "change": "--perturb: delete every AGENT_DECLARED match from the owner-account review bodies (an undeclared agent)",
+  "expected_direction": "up",
+  "observed_value": "owner_own_at_head 0 -> 31"
+ },
+ "metric_definition": "window merges with an APPROVED review at merged head under login tvofi that budget_raise_gate.approval (no mandate reader) reads as the owner's own",
+ "phenomenon_property": "Every merge's required human approval is attributable to a human from GitHub-recorded identity, not from body text an agent writes.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py (per window; the seams are every reader that keys on AGENT_DECLARED: grep -rn AGENT_DECLARED tools/)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py --perturb",
+  "value": 31,
+  "note": "the classifier is not blind: with the declaration text gone it reads all 31 as the owner's own, which is the text-keyed dependence the finding states"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/oversight.py",
+  "the same with --perturb"
+ ],
+ "proposed_fix_scope": "For the owner to rule: a separate GitHub identity for agent approvals under mandate (an App or a machine user listed as code owner only while a mandate is in force) so records alone separate agent from owner; or record per merge an owner act GitHub signs (the owner's own review) at a sampled rate.",
+ "files": [
+  "tools/policy/budget_raise_gate.py",
+  "tools/audit/seat/merge_pr.sh",
+  "dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

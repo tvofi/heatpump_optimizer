@@ -1,0 +1,42 @@
+{
+ "id": "D5-s5-04",
+ "scope": "D5-s5",
+ "step": "D5.M4",
+ "title": "open_pr.sh's usage line names openpr.sh, a script that does not exist",
+ "severity": "low",
+ "claim": "The first comment line of tools/audit/seat/open_pr.sh documents its usage as `openpr.sh [--over-cap <reason>] <topic> ...`; no openpr.sh exists in tools/audit/seat/ (or anywhere in the tree), so the documented command fails.",
+ "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The usage line kept a name the script no longer has.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+  "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+  "value": 1,
+  "unit": "units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.55,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/open_pr.sh: the header usage comment (line 2)",
+ "perturbation": {
+  "change": "--edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+ "phenomenon_property": "A script's usage comment names the script by the file name it has at the ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/open_pr.sh"
+ ],
+ "proposed_fix_scope": "One comment line of tools/audit/seat/open_pr.sh (line 2).",
+ "reproduction_steps": [
+  "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+  "read the `false` line(s) it prints",
+  "perturb: --edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['"
+ ]
+}

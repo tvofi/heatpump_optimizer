@@ -1,0 +1,55 @@
+{
+ "id": "D7-s3-05",
+ "scope": "D7-s3",
+ "step": "D7.M6",
+ "title": "Dead state inside live code: 50 constants, parameters, locals, attributes and fields nothing in production reads",
+ "severity": "low",
+ "claim": "No definition of the package is unreachable by name (dead = 0 of 6969), but 50 pieces of state are stored by production and read by no production code: 6 config-key constants named only by tests, 4 unused imports, 16 parameters their function never loads, 7 locals stored and never loaded (beside the one in D7-s3-02), 8 instance attributes and 8 dataclass fields only tests read, and 1 dataclass field nothing reads.",
+ "mechanism": "Each is what a refactor left behind: const.py keeps CONF_BUFFER_TANK_LOSS, CONF_SOLAR_UPPER_FRACTION, CONF_HOUSE_HEAT_LOSS_SCALE and CONF_LOWER_FLOOR_LOSS_RATIO though production reads those keys by their string or through ThermalParameters; PVConfig.export_price_entity is set at coordinator.py:9796 while the coordinator reads the entity straight from the entry config (9802); optimizer._power_to_setpoints takes outdoor_temps and zips room_temps it never uses; tariff.window_factors takes dt_hours, optimizer._solve_space n_steps, sysid.slab_mode_identifiability config, dhw_planner._baseline_dhw_economics initial_state, coordinator._observe_frequency and CurveLearner.record_miss a `now` -- callers compute and pass each. The attributes (_last_manual_setpoint, _slab_fit_used, _step_dhw_draw_kw, _step_dhw_floor_injected, _step_dhw_refused, draws_dirty, last_return_c, manual_pins_active) are production writes whose only readers are tests: test hooks living as coordinator, model and optimizer state.",
+ "evidence": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_inner.py && python3 dev/audit/rounds/round11/D7/s3/m6_dead.py --trace <trace dir>",
+  "harness_path": "dev/audit/rounds/round11/D7/s3/m6_inner.py",
+  "value": 50,
+  "unit": "definitions (m6_dead.py: test_only constants 6, unused imports 4; m6_inner.py: unread_params 16, unread_locals 8 less the one of D7-s3-02, test_read_only attributes 8 and fields 8, unread_fields 1)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "Apple M1 (8 cores), Darwin 27.2.0 arm64, Python 3.14.7 (venv-ci)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out, load1 150-270; the number is a static or behavioural count, contention-immune",
+  "tolerance": "exact",
+  "load1": 224.17,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_setpoints",
+ "perturbation": {
+  "change": "m6_inner.py --perturb and m6_dead.py --perturb: a reader of every reported name appended to an in-memory copy of its module takes write_only and dead to 0; one planted unreferenced definition raises each census by exactly 1 (planted_delta=1)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "definitions stored by production with no production load of their name (Name, Attribute or whole-string constant), by kind; framework-read names (`_attr_*`, Home Assistant stub members) excluded",
+ "phenomenon_property": "Every parameter a production function declares, every local and attribute it stores and every constant a module defines has a production reader; state kept for a test is read through a seam the test owns, not stored on the production object.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D7/s3/m6_inner.py | grep '^ROW' ; python3 dev/audit/rounds/round11/D7/s3/m6_dead.py | grep '^ROW'",
+ "null_control": {
+  "command": "cd <export root> && PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s3/m6_stmt.py --perturb",
+  "value": 0,
+  "note": "the statement census over the same 2678 function bodies finds 0 dead stores, 0 no-effect statements, 0 constant conditions, 0 duplicate dict keys, 0 repeated tests and 0 identical arms; its two self_operand rows are the `x != x` NaN test, and its one exhausted_else row is D7-s3-09"
+ },
+ "proposed_fix_scope": "Delete the four constants and four imports; drop the eight dead parameters at their call sites; move the test-only attributes behind the tests' own seams or delete them with the checks that read them. No behaviour changes; structure.py could ratchet the two counts.",
+ "files": [
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "custom_components/heatpump_optimizer/tariff.py",
+  "custom_components/heatpump_optimizer/sysid.py",
+  "custom_components/heatpump_optimizer/dhw_planner.py",
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/curve_learning.py",
+  "custom_components/heatpump_optimizer/pv.py",
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "custom_components/heatpump_optimizer/accuracy.py",
+  "custom_components/heatpump_optimizer/external_heat.py",
+  "custom_components/heatpump_optimizer/dhw_learning.py",
+  "custom_components/heatpump_optimizer/flow_lift.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

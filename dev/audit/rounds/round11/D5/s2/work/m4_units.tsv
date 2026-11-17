@@ -1,0 +1,75 @@
+README.md#8ec9a00bfd	0	file	README.md
+docs/CONTRIBUTING.md#ed96d3a2ff	0	file	docs/CONTRIBUTING.md
+docs/architecture.md#f48b101bb9	0	file	docs/architecture.md
+docs/automations.md#0e0d3f0b38	0	file	docs/automations.md
+docs/configuration.md#d6dd35ea7c	0	file	docs/configuration.md
+docs/dashboard-card.md#f112dfdb12	0	file	docs/dashboard-card.md
+docs/ecl110.md#3e23a3286a	0	file	docs/ecl110.md
+docs/how-it-works.md#fd8ccb6b7f	0	file	docs/how-it-works.md
+docs/img/card/make_card_figures.mjs#372771bf95	1	comment	// Generates the docs/ figures that are pictures OF THE CARD, by running the // shipped card through the same rig tests/card.mjs uses and annotating what it // drew. Nothing here draws a chart: every 
+docs/img/card/make_card_figures.mjs#088c5b509d	34	comment	// Same default-path derivation as tests/card.mjs and tests/plan_view.py, so a // run here cannot be satisfied by another checkout's stale payload.
+docs/img/card/make_card_figures.mjs#6ca989a69a	56	comment	// --- Render ---------------------------------------------------------------
+docs/img/card/make_card_figures.mjs#30d5ee5d04	58	comment	/** Render the card at a fixed instant and return its plan chart's SVG. * * The instant matters. The plotted window is `[now, now + horizon]` * (`defaultWindow`), so the now marker sits at the plot's 
+docs/img/card/make_card_figures.mjs#53bfb71326	83	comment	// The card emits several SVGs (the expand glyph among them); the chart is // the big one. Picked by size rather than by a class name the card is free // to rename.
+docs/img/card/make_card_figures.mjs#d37ed691ab	95	comment	/** The chart's drawing, with theme variables resolved to their own fallbacks. * * A figure is viewed outside Home Assistant, where `var(--primary-text-color)` * resolves to nothing and the text disap
+docs/img/card/make_card_figures.mjs#826bc2b5da	110	comment	// The card's `<defs>` ids (the shared-compressor hatch) are unique inside one // card, not inside a figure that pastes two renders into one document, where // the second `url(#id)` would silently bin
+docs/img/card/make_card_figures.mjs#98a6669fcb	117	comment	// --- Reading geometry back out of the render ------------------------------
+docs/img/card/make_card_figures.mjs#de8f55d1fa	119	comment	/** On-curve vertices of an SVG path, for the M/L/C the card emits. */
+docs/img/card/make_card_figures.mjs#9414443025	132	comment	// the two control points
+docs/img/card/make_card_figures.mjs#8bd806970f	133	comment	// the endpoint is on the curve
+docs/img/card/make_card_figures.mjs#3b65749229	135	comment	// no coordinates
+docs/img/card/make_card_figures.mjs#e9339fd3b7	137	comment	// an unexpected command: skip a token rather than spin
+docs/img/card/make_card_figures.mjs#54c582aae3	143	comment	/** Every `<path class="series" data-key=K>` in the render, split by dashedness. * * `data-key` is the card's own handle on a series, and the extras (the house * zones, the hot-water band edges) come 
+docs/img/card/make_card_figures.mjs#0e17869968	154	comment	// A series is painted with its `--hpo-series-<key>` token (R9-UI-4); // the literal after the comma is the light-card colour.
+docs/img/card/make_card_figures.mjs#1a47ffb9b8	159	comment	// The filled area under a stepped series carries no stroke; the line does.
+docs/img/card/make_card_figures.mjs#1973336a9d	166	comment	/** The vertex nearest a given fraction across the plot, for one path. */
+docs/img/card/make_card_figures.mjs#afcb7c5460	174	comment	/** Only one series visible, as a real card config would ask for it. * `series: {key: false}` is the documented option, and hiding the rest makes * the card rescale the axes to what is left -- so each
+docs/img/card/make_card_figures.mjs#0a81d06eab	186	comment	/** The panel frames the card draws (R9-UI-4), together, widened to take in * the axis beside them and the unit above the first. */
+docs/img/card/make_card_figures.mjs#10837a1443	211	comment	// The one font stack, matching the hero in README.md.
+docs/img/card/make_card_figures.mjs#785abc26f4	216	comment	// --- B6: the anatomy figure ------------------------------------------------
+docs/img/card/make_card_figures.mjs#1ce2bf7764	223	comment	/** A badge sitting on the feature it names. Leader lines were tried first and * are worse here: ten of them cross a plot that is already seven series deep, * and the key below reads in one pass inste
+docs/img/card/make_card_figures.mjs#96d3212a17	236	comment	/** One row of the key under the drawing. */
+docs/img/card/make_card_figures.mjs#57a70250af	248	comment	// C1 draws solar with stroke-dasharray so it is not the price series. // seriesPaths buckets that into dashed; the series is still present.
+docs/img/card/make_card_figures.mjs#6311765aa6	257	comment	// The now marker, by the class the card gives it. Its x is where "now" is.
+docs/img/card/make_card_figures.mjs#76bd24b21d	266	comment	// The editable slot lanes under the plot, and the time-axis labels.
+docs/img/card/make_card_figures.mjs#490a61c26a	273	comment	// Highest point of a series, which is where a power band is worth pointing // at: a stepped band spends most of the day on its own baseline, and a badge // parked there names the axis rather than the
+docs/img/card/make_card_figures.mjs#52e02872eb	302	comment	// Below the tick labels, not on top of them: the badge is 20 px across and // the labels are 10 px tall, so anything level with them hides one.
+docs/img/card/make_card_figures.mjs#89f646de78	308	comment	// Key: two columns under the drawing, filled down then across.
+docs/img/card/make_card_figures.mjs#b648eedcce	334	comment	// --- B7: the two kinds of dashed line --------------------------------------
+docs/img/card/make_card_figures.mjs#a6ded5298a	336	comment	/** A cropped view of one render, as a nested viewport that clips to a box. */
+docs/img/card/make_card_figures.mjs#19b1d7026c	403	comment	// --- Run -------------------------------------------------------------------
+docs/img/model/make_card_weekly_figure.mjs#7a6d89f1e6	1	comment	// Regenerates docs/img/model/card-dhw-band-weekly.png: the shipped card's enlarged // Plan page across a Friday and a Saturday, with a per-weekday hot-water // schedule (`weekdays 07:30-08:30, weeken
+docs/img/model/make_card_weekly_figure.mjs#a442fb738e	36	comment	// Local wall-clock strings, as the payload writes them: read them as UTC and // shift by whole days, so the Friday start is independent of the machine's zone.
+docs/img/model/make_card_weekly_figure.mjs#bc784f2613	40	comment	// 2026-01-16 is a Friday
+docs/img/model/make_card_weekly_figure.mjs#d0e6eea402	50	comment	// The tank stays at or above the minimum while the model's lower edge dips // under it: only then does the card floor the edge (a tank already under the // minimum is drawn as it is).
+docs/img/model/make_card_weekly_figure.mjs#6a560eb47f	103	comment	// The caption's numbers, read from the card's own built series: the plotted // lower edge against the published one, per window.
+docs/img/model/make_card_weekly_figure.mjs#37d6a645b0	119	comment	// The picture is the dialog down to the bottom of the chart; the slot editor under it is another figure.
+docs/img/model/make_model_figures.py#3220470584	1	docstring	Generate the docs/ figures that are pictures OF THE SHIPPED MODEL. Every curve here is produced by calling production code -- ``ThermalModel``, ``dhw_schedule.parse_windows``, and the plan payload ``t
+docs/img/model/make_model_figures.py#2c6dfe0581	55	docstring	The shipped model under the shared test profile's configuration.
+docs/img/model/make_model_figures.py#ff6fc03108	78	docstring	One set of axes at a fixed place on the canvas.
+docs/img/model/make_model_figures.py#2284e92eee	356	docstring	"Each store converts at its own marginal COP" -- drawn by asking it.
+docs/img/model/make_model_figures.py#bac64a0538	427	docstring	Measured, not re-derived: perturb the shipped tank simulation. ``docs/how-it-works.md`` states the linear program's store as ``a kWh delivered k steps ago still contributes (1 - UA*dt/C)^k / C degrees
+docs/img/model/make_model_figures.py#c6820d7c21	146	docstring	A stepped filled area from the baseline, for a power schedule.
+docs/img/model/make_model_figures.py#5eaef3e4d3	35	comment	# noqa: E402 (after sys.path) # noqa: E402
+docs/img/model/make_model_figures.py#9f842d1935	40	comment	# noqa: E402
+docs/img/model/make_model_figures.py#41e095f7df	45	comment	# The payload path tests/plan_view.py, tests/card.mjs and the card figure # generator all derive the same way, so a figure cannot be built from another # checkout's stale plan.
+docs/img/model/make_model_figures.py#e80f5347f5	62	comment	# -------------------------------------------------------------------------- # A very small SVG plotter. Hand-rolled rather than matplotlib: the gate # installs no plotting library, and an SVG built h
+docs/img/model/make_model_figures.py#86de3d924f	211	comment	# -------------------------------------------------------------------------- # B8 -- the hot-water demand-window timeline # --------------------------------------------------------------------------
+docs/img/model/make_model_figures.py#5efa24b69d	256	comment	# The curve meets the minimum line close enough to the morning frame's edge # that the eye cannot tell which side of it the crossing is on. State the # measurement instead of leaving the reader to jud
+docs/img/model/make_model_figures.py#292a3cd1a9	292	comment	# The wrapping-frame strip: `22:00-02:00` is one frame the user writes and # two the model plans against, and only the parser can say where it splits.
+docs/img/model/make_model_figures.py#d4fee4f728	348	comment	# -------------------------------------------------------------------------- # B11 -- the curve claims in docs/how-it-works.md # -----------------------------------------------------------------------
+docs/img/model/make_model_figures.py#c9d9c34c87	448	comment	# nobody drawing: standby loss alone # small enough that no clamp or ceiling engages
+docs/img/model/make_model_figures.py#b87b6ff9c8	468	comment	# Step 0 is the state before the injection, identical in both runs; the # kWh is in the tank from step 1 on, so that is lag zero. # deg C still present per thermal kWh
+docs/img/readme/make_readme_figures.py#197c3c3705	1	docstring	README graphics: banner, "how it works" figure (light and dark) and the social preview. Every glyph is outlined (fontTools), so the SVGs are byte-stable and need no font at view time. Needs: Python wi
+docs/img/readme/make_readme_figures.py#3f24d150b6	29	docstring	The dusk mark (dark-background colours; only 'dark' is used here).
+docs/img/readme/make_readme_figures.py#b7d9ff266d	72	docstring	A day of prices as a step profile; the cheapest slots carry heat bars (the plan).
+docs/img/readme/make_readme_figures.py#819fb591f4	91	comment	# the measured field: faint lattice + one day of prices, cheap hours carrying heat
+docs/img/readme/make_readme_figures.py#c896a840aa	98	comment	# lockup
+docs/img/readme/make_readme_figures.py#a552080363	135	comment	# ember as 12 px text: 6.48 / 5.12:1
+docs/img/readme/make_readme_figures.py#05f920449e	138	comment	# inputs column
+docs/img/readme/render.mjs#23a27f71c4	1	comment	// node render.mjs <in.html|svg> <out.png> <width> <height> [scale] [transparent]
+docs/img/readme/render.mjs#f8a8943817	5	comment	// createRequire, not a static import: resolves playwright from NODE_PATH or a global install, as tests/card_browser.mjs does
+docs/img/readme/render_mermaid.mjs#c5c61444a2	1	comment	// Pre-renders each ```mermaid block of README.md to a light and a dark PNG and records a source-hash manifest beside them. // // Why: the Home Assistant Marketplace renders README.md without mermaid,
+docs/img/readme/render_mermaid.mjs#5437d966e6	27	comment	// one entry per block, in README order; the count is checked against the README below
+docs/img/readme/render_mermaid.mjs#09ed61ec39	31	comment	// the block body is what tests/doc_claims.py hashes: the text between the fence lines, trailing newline included
+docs/setup.md#25cf989882	0	file	docs/setup.md

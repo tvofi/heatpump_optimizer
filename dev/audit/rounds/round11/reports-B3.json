@@ -1,0 +1,1542 @@
+{
+  "box": "B3",
+  "missing": [
+    "D3-s3"
+  ],
+  "reports": {
+    "D10-s3": {
+      "dimension": "D10",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D10/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D10.M1",
+          "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+          "universe": 114,
+          "examined": 114,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined",
+              "note": "gold-tier item; examined this round by D10-s2 (the seat holding the gold cells), per the orchestrator's message; not re-measured by this platinum seat. Its 'HA rule pages not fetched' half is done here for the platinum pages."
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py prints one CELL line per file (114) with the per-file platinum checks; RESULT cells_examined=114. Rule pages fetched: checklist, rules/async-dependency, rules/inject-websession, rules/strict-typing, rules/runtime-data."
+        },
+        {
+          "step": "D10.M2",
+          "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+          "universe": 114,
+          "examined": 114,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "platinum tier table in REPORT.md; draft register dev/audit/rounds/round11/D10/s3/quality_scale.draft.yaml (54 rows); minimum-HA-release column: none needed beyond hacs.json 2025.2.0"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D10-s3-01",
+          "scope": "D10-s3",
+          "step": "D10.M1",
+          "title": "strict-typing row reads done while manifest requirement threadpoolctl ships no py.typed and has no stub package",
+          "severity": "low",
+          "claim": "quality_scale.yaml marks strict-typing done, but one of the three manifest requirements, threadpoolctl, ships no py.typed (3.7.0 installed, 3.8.0 as pinned in tests/requirements-typing.txt) and has no types-/-stubs distribution, which the rule (no exceptions) and its hassfest check require.",
+          "mechanism": "The row's comment reads the rule's py.typed half as the integration's own marker (qs_py_typed_files=1), but the rule page says 'Its library must be typed as well, and ship a py.typed file' and hassfest checks 'every requirement in its manifest must ship a py.typed file, or have a separate types- stubs package'. optimizer.py:1447 itself records that threadpoolctl publishes no py.typed and no stub distribution exists, and resolves it by importlib to dodge import-untyped. tests/entities.py derives the manifest tier from these rows, so the manifest's quality_scale: platinum rests on the false row. Fails D10-criteria Q2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "value": 1,
+            "unit": "requirements",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 260.47,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/manifest.json:requirements (via quality_scale.yaml:rules.strict-typing)",
+          "perturbation": {
+            "change": "--perturb req (threadpoolctl dropped from the manifest requirements in memory) or --perturb row (strict-typing read as todo)",
+            "expected_direction": "to_zero",
+            "observed_value": "0 under either perturbation"
+          },
+          "metric_definition": "untyped_requirements_under_done_row: manifest requirements with no py.typed and no types-/-stubs dist (installed or typing-lock pinned) while strict-typing is done",
+          "phenomenon_property": "A done strict-typing row holds only if every manifest requirement is typed (py.typed in the distribution, or a stub distribution).",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^REQ'   (add --pinned to judge the typing lock's versions)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row",
+            "value": 0,
+            "note": "with the row at todo the claim vanishes; numpy (py.typed) and scipy (scipy-stubs pinned) count 0 at baseline"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --pinned",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb req",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I5",
+          "files": [
+            "custom_components/heatpump_optimizer/quality_scale.yaml",
+            "custom_components/heatpump_optimizer/manifest.json",
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "Either make the requirement typed (upstream py.typed / a stub package, or drop threadpoolctl for a typed equivalent) or set strict-typing to todo with the reason, letting tests/entities.py re-derive the manifest tier (gold). Correct the row comment's reading of the py.typed half."
+        },
+        {
+          "id": "D10-s3-02",
+          "scope": "D10-s3",
+          "step": "D10.M1",
+          "title": "Coordinator has no config_entry: HeatPumpOptimizerConfigEntry annotation under a done strict-typing row",
+          "severity": "low",
+          "claim": "HeatPumpOptimizerCoordinator (the integration's one DataUpdateCoordinator subclass) declares no config_entry annotation anywhere in its in-package MRO, so its config_entry is the base's bare ConfigEntry | None, while strict-typing is done and its comment claims every attribute annotation is typed.",
+          "mechanism": "The rule pages (strict-typing: 'use a typed config entry everywhere you get one'; runtime-data: 'A coordinator that gets the config entry should use the typed entry too: config_entry: MyConfigEntry', pylint home-assistant-coordinator-untyped-config-entry) ask for the class annotation. The coordinator receives the typed entry (coordinator.py:3514) and passes config_entry=entry (3536) but never re-annotates the attribute; coordinator.py:7022 then reads it through getattr(self, 'config_entry', None). The doc_claims census (qs_entry_param_bare) counts parameters, not this attribute. Fails D10-criteria Q2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "value": 1,
+            "unit": "classes",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 260.47,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator (inspect.get_annotations over its MRO)",
+          "perturbation": {
+            "change": "--perturb coord (class annotation config_entry: HeatPumpOptimizerConfigEntry patched in memory) or --perturb row",
+            "expected_direction": "to_zero",
+            "observed_value": "0 under either perturbation"
+          },
+          "metric_definition": "coordinator_untyped_under_done_row: in-package DataUpdateCoordinator subclasses lacking a config_entry annotation naming the typed alias, while strict-typing is done",
+          "phenomenon_property": "Every DataUpdateCoordinator subclass of the integration annotates config_entry with the typed entry alias.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^COORD'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord",
+            "value": 0,
+            "note": "the honest fix's shape moves the count to 0; entry-point parameters (12 sites) already read typed (entry_point_bare=0)"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/quality_scale.yaml"
+          ],
+          "proposed_fix_scope": "Add 'config_entry: HeatPumpOptimizerConfigEntry' to HeatPumpOptimizerCoordinator's class body (no newer HA API needed: config_entry= is already passed at the 2025.2.0 floor) and extend tests/doc_claims.py's census to the attribute."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every checklist platinum rule (3: async-dependency, inject-websession, strict-typing; checklist fetched 2026-11-16, 54 rules total) has a row (Q1)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+          "value": "platinum_rows_missing=0; draft register parses to 54 rows"
+        },
+        {
+          "claim": "inject-websession holds at every HTTP site: 0 aiohttp.ClientSession/httpx client constructions; Tibber (coordinator.py:6965 -> price_model._tibber_post), Open-Meteo (open_meteo.py:352) and the config-flow token check (config_flow.py:518) all use async_get_clientsession",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py  (control: --perturb session -> 1)",
+          "value": "unshared_http_sessions=0"
+        },
+        {
+          "claim": "async-dependency holds: no blocking network library imported; executor jobs are CPU solves and local file I/O, not library network calls; requirements numpy/scipy/threadpoolctl do no I/O (the row would be more exactly 'exempt' under the page's exception, which the draft records)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep BLOCKING",
+          "value": "blocking_io_imports=0"
+        },
+        {
+          "claim": "Typed config entry at every entry point the runtime-data page lists: __init__ setup/unload/migrate/remove, 6 platform async_setup_entry, diagnostics, async_get_options_flow",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py  (control: --perturb entry -> 1)",
+          "value": "entry_point_bare=0 over 12 parameters"
+        },
+        {
+          "claim": "scipy is typed for strict-typing purposes via scipy-stubs 1.18.1.1 pinned in the project's typing lock; numpy ships py.typed",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --pinned",
+          "value": "REQ scipy typed=True; REQ numpy typed=True"
+        },
+        {
+          "claim": "M2: no todo platinum rule needs an HA API newer than the hacs.json floor 2025.2.0 (DataUpdateCoordinator config_entry= is already used at the floor; the threadpoolctl gap is library-side)",
+          "command": "grep -n 'config_entry=entry' custom_components/heatpump_optimizer/coordinator.py; cat hacs.json",
+          "value": "minimum HA release needed: none (floor 2025.2.0)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D10/s3/platinum_rules.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D10-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator",
+          "what": "runtime-data (bronze) names pylint home-assistant-coordinator-untyped-config-entry for the same missing config_entry annotation as D10-s3-02; runtime-data row's done may be affected."
+        },
+        {
+          "owner_seat": "D10-s1",
+          "file": "custom_components/heatpump_optimizer/",
+          "symbol": "mypy --strict (D10.M3)",
+          "what": "strict-typing's mypy-strict half (error count by category) was not measured here; it is M3, D10-s1's cell."
+        }
+      ]
+    },
+    "D0-s3": {
+      "dimension": "D0",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D0/s3/REPORT.md",
+      "exposure": "none (docs/ and GitHub not read); the seat resumed its own round-11 directory after a box restart",
+      "coverage": [
+        {
+          "step": "D0.M4",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --list",
+          "universe": 1220,
+          "examined": 1220,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --summary: universe=1220 examined=1220 gap_cells=555; offstart.py --cells dev/audit/rounds/round11/D0/s3/offstart_cells_all.txt: 600/600"
+        },
+        {
+          "step": "D0.M5",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --list | grep -E '^flat/|/flat$'",
+          "universe": 305,
+          "examined": 305,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "race gap_cells_flat=154/305 max 0.877 (1 cell > 1 %); offstart flat 40/300 max rel 0.27 %; loop --mask flat 152/152 masked"
+        },
+        {
+          "step": "D0.M6",
+          "enumerator": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --list",
+          "universe": 555,
+          "examined": 546,
+          "not_reached": [
+            "coord/coord_two_zone/summer_negative",
+            "coord/coord_minimal/shoulder",
+            "coord/coord_dhw/shoulder",
+            "coord/coord_minimal/summer_negative",
+            "coord/coord_dhw/summer_negative",
+            "coord/coord_all_features/summer_typical",
+            "coord/coord_all_features/summer_negative",
+            "coord/coord_dhw/flat",
+            "coord/coord_all_features/flat"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "examined"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001: examined=546 head_same=358 masked 512/546; closed loop 24 cells (loop_out/cells.d1e4.jsonl, cells.famA.d1e4.jsonl), 3-day loop 2 cells (cells.d3e4.jsonl)"
+        },
+        {
+          "step": "D0.M7",
+          "enumerator": "python3 tools/audit/enumerate.py d0-grid",
+          "universe": 2400,
+          "examined": 2400,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary: examined=2400 decomp_positive_cells=0 terminal_tail_breach_cells=0 terminal_tail_dump_cells=1659"
+        },
+        {
+          "step": "D0.M8",
+          "enumerator": "python3 tools/audit/enumerate.py d0-grid; python3 tools/audit/enumerate.py d15-installs",
+          "universe": 2401,
+          "examined": 2400,
+          "not_reached": [
+            "install-1 2026-10-14 (d15-installs; refused in the export, D0-s3-01)"
+          ],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary: examined=2400; oracle_nonflat_regret_settled mean=0.4213 (n=1638), flat 0.3736 (n=218); d15-installs prints 1 line before the strip, 0 in this export"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D0.M6",
+          "what": "the one-re-plan masking test on the 9 coordinator-capture gap cells (step-0 read: differs on 0 of 9)"
+        },
+        {
+          "step": "D0.M8",
+          "what": "the per-install-day oracle for install-1 2026-10-14: enumerate.py d15-installs refuses in the export and the bundle evidence is stripped (D0-s3-01)"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D0-s3-01",
+          "scope": "D0-s3",
+          "step": "D0.M8",
+          "title": "The finder export strips the evidence bundles.json names, so enumerate.py d15-installs refuses in every finder tree",
+          "severity": "medium",
+          "claim": "After tools/audit/prepare_baseline.sh --strip, `enumerate.py d15-installs` prints 0 lines and exits 2 where the same tree printed 1 line before the strip, because strip_earlier_rounds keeps only closure- and tests-referenced round files and dev/audit/config/bundles.json's evidence paths are neither.",
+          "mechanism": "strip_earlier_rounds builds `keep` from tests/closures.json and round-path literals in tests/*.py|*.mjs|*.sh; enumerate.py:d15 refuses any bundle whose `evidence` file is absent. bundles.json's evidence (dev/audit/rounds/round10/D15/s1/intake.py) is under an earlier round and in neither set, so it is deleted and D0.M8's per-install-day universe (and its coverage row) cannot be printed by any seat working in an export.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+            "harness_path": "dev/audit/rounds/round11/D0/s3/wall_d15.py",
+            "value": "before_strip_lines=1 rc=0; after_strip_lines=0 rc=2",
+            "unit": "enumerator lines",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3 (4 cores, shared by three seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "two D0-s3 grid runs and two other seats running; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 13.4,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/prepare_baseline.sh:strip_earlier_rounds",
+          "perturbation": {
+            "change": "--perturb keep_bundles: one line after the keep set, `keep |= {b['evidence'] for b in bundles.json's bundles}` (in a temp copy of the script)",
+            "expected_direction": "up",
+            "observed_value": "after_strip_lines=1 rc=0"
+          },
+          "metric_definition": "Lines `enumerate.py --repo <tree> d15-installs` prints after `prepare_baseline.sh --strip <tree> 11`, beside the same count before the strip.",
+          "phenomenon_property": "Every file an audit enumerator requires to exist (bundles.json evidence, and any other path an enumerator refuses on) survives the finder export's strip, so each step's universe prints in the tree a finder works in.",
+          "seam_rule": "grep -n 'is not in the tree\\|exists()' tools/audit/enumerate.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+            "value": "before_strip_lines=1",
+            "note": "the same tree before the strip prints the line: the refusal is the strip's, not the config's"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/wall_d15.py --perturb keep_bundles",
+            "python3 tools/audit/enumerate.py d15-installs   # in this export: REFUSE, rc 2"
+          ],
+          "proposed_fix_scope": "tools/audit/prepare_baseline.sh strip_earlier_rounds: add bundles.json evidence paths (or every path an enumerator refuses on) to keep; a --strip self-test arm planting a bundle",
+          "files": [
+            "tools/audit/prepare_baseline.sh",
+            "tools/audit/enumerate.py",
+            "dev/audit/config/bundles.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I2"
+        },
+        {
+          "id": "D0-s3-02",
+          "scope": "D0-s3",
+          "step": "D0.M4",
+          "title": "No all-off start: negative-price storage plants ship plans 1.8-8.6 % worse than off; MPC masks most",
+          "severity": "low",
+          "claim": "On the 60 d0-grid cells summer_negative/summer_warm/*, production ships on 16 (every one a storage plant: valve-storage, wood, manual-valve-buffer, flow-setpoint-behind-valve; 0 of 12 plain) a space plan whose true objective exceeds the plan production's own _multi_start_minimize reaches from the all-off (lower-bound) start by 273-3204 objective units (1.8-7.4 % of the objective), heating an above-ceiling house 2.9-35.6 more degree-steps for 0.03-1.65 SEK of negative-price revenue; on the 60 flat-price twins the gap is 0. D0.M6: in a 24 h closed loop re-planned hourly (loop.py, plant == model, production's warm seed), the augmented arm (structured seeds incl. the lower bound) realises < 1 objective unit better on 12 of the 16 gap cells, 30-85 units better on 3 (all flow-setpoint-behind-valve) and 128 units worse on 1; mean realised gap 1.59 units/day, -3.95 with the most favourable cell dropped, energy money within 0.75 SEK/day either way: the shipped (published) plan is wrong, the realised loss is small and not robust.",
+          "mechanism": "Every production start set (_solve_space and the space-only path in optimizer.py: the guess, _price_ranked_start at the baseline/low/deep-low energy, headroom*0.5, the seed power) carries energy, and none is the lower bound. Through a buffer and mixing valve the room's response to pump power saturates: past a small threshold extra power no longer raises the room (the overshoot penalty is flat in power: J at 0.5x and 1.0x the shipped plan differ by 0.3 units, at 0.01x it is the off value), while the negative price keeps paying for more. Every start descends onto that plateau, so L-BFGS-B never sees the off basin the objective prefers by thousands of units. Masking: the shipped plan's heating sits after step 0 (step0_prod = 0 on every gap cell), so a re-plan an hour later re-derives it and the closed loop on most cells coasts at the off trajectory anyway.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+            "harness_path": "dev/audit/rounds/round11/D0/s3/offstart.py",
+            "value": "summer_negative_gap_cells=16/60; gap_off max=3204.33 (rel 0.0543), rel max 0.0739, mean rel over gap cells 0.0372",
+            "unit": "cells / objective units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3 (4 cores shared by three seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "race, decomp and loop runs of this seat plus D3-s3/D9-s3 runs; counts and objective values are contention-immune",
+            "tolerance": "exact count; objective values +-1e-6 relative",
+            "load1": 8.31,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (candidates captured and run; shipped plan scored through optimizer:_commit_runs)",
+          "perturbation": {
+            "change": "--perturb off_in_prod: append the lower-bound vector to the candidate list of every production _multi_start_minimize call (in memory)",
+            "expected_direction": "down",
+            "observed_value": "summer_negative_gap_cells=2/60 (14 of 16 close to 0.0000; shipped J falls by the gap, ceiling breach falls, no cell worse); the 2 left are the no-DHW flow-setpoint-behind-valve cells, where the descent objective ranks the off run below the shipped one"
+          },
+          "metric_definition": "gap_off = J(shipped) - J(off-arm) on _commit_runs' true objective, off-arm = production's _multi_start_minimize from the lower bound alone, committed; count of cells with gap_off > 1e-4.",
+          "phenomenon_property": "The shipped plan's true objective is no worse than the plan the same solver reaches from the all-off (lower-bound) start, on every cell, so a saturating storage chain cannot hold the plan on a plateau that heats against the comfort ceiling for negative-price revenue.",
+          "seam_rule": "grep -n 'starts = \\[\\|starts.append\\|extra_starts' custom_components/heatpump_optimizer/optimizer.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+            "value": "summer_warm twins: flat_gap_cells=0/60; all 300 flat cells: 40 gaps, max 0.587 units, max rel 0.27 %, 0 above 1 %",
+            "note": "the same 60 cells at profiles.prices('flat'): with no price that pays to run, the plan is off and the gap vanishes; the gap is price-driven"
+          },
+          "leave_one_out": {
+            "cells": 300,
+            "min": -1217.0096633911162,
+            "max": 3204.3327384753284,
+            "drop_most_favourable": 55.524878917507664
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 --perturb off_in_prod",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --cells <gap cells>  # the full race reaches the same gaps (seeds/de_block/warm arms)"
+          ],
+          "proposed_fix_scope": "optimizer.py start sets (_solve_space and the space-only path): add the lower-bound (all-off / minimum-level) start; check the 2 flow-setpoint no-DHW cells where descent and true objective rank the off run differently; add DHW storage cells at negative prices to the certification cells (_CERT_CELLS holds space-only cells); low priority: the published plan and its forecast overheat are what the user sees, the realised money is within 0.75 SEK/day",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "expected_golden_drift": [
+            "golden plans on storage plants at negative prices may move (none of the stock golden scenarios was checked)"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P4",
+          "m6_masking": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --cells dev/audit/rounds/round11/D0/s3/loop_cells_famA.txt --tag famA.d1e4 --workers 1",
+            "value": "same_nonflat n=16 realised_gap_pos=10 (>1e-4) neg=2 mean=1.588 min=-128.48 max=84.70 loo_drop_max_mean=-3.95; mis (plant heat loss x1.2, mass x0.85): mean=10.32 max=127.0 loo=2.54",
+            "note": "perturbation --perturb no_seeds makes the augmented arm production itself: realised_gap 0 by construction"
+          },
+          "population_all_summer_negative": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 2 --cells dev/audit/rounds/round11/D0/s3/offstart_cells_all.txt",
+            "value": "summer_negative_gap_cells=44/300 (rel > 1 %: 22); flat_gap_cells=40/300 with max gap_off 0.587, max rel 0.0027, mean -0.14 (rel > 1 %: 0)",
+            "note": "every summer_negative and flat line of enumerate.py d0-grid; beyond summer_warm the same mechanism reaches summer_cool 48h DHW storage cells (rel 8.5 %, 0.38-0.44 units, 42-45 kWh shipped vs 14 kWh); the flat arm's 40 cells are noise-sized and the off arm is worse on average there"
+          },
+          "m6_one_replan": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001 --workers 4",
+            "value": "of 546 grid race gap cells 512 masked after one hourly re-plan; 34 unmasked, 18 of them > 1 % of the re-plan objective, every one an off-start cell (15 summer_negative/summer_warm, 3 summer_negative/summer_cool 48h DHW storage); flat 152/152 masked",
+            "note": "one re-plan does not mask the off-start gap; the 24 h closed loop (m6_masking) masks most of it on 12 of 16 cells"
+          }
+        },
+        {
+          "id": "D0-s3-03",
+          "scope": "D0-s3",
+          "step": "D0.M7",
+          "title": "_terminal_cost docstring: no credit breaches the tail floor; at any learnable weight it never does",
+          "severity": "low",
+          "claim": "With HeatPumpOptimizer._terminal_cost zeroed, the shipped plan's last-2-h degree-steps below the per-step comfort floor are no worse than with it on 0 of 40 committed cells at the default comfort_weight (5.0) and 0 of 40 at the comfort learner's minimum (1.0), while tail energy falls on 40/40 and 39/40; the floor-breach half of the docstring holds only at comfort_weight 0.05 (13 of 40), outside what comfort_learning can reach. On every d0-grid line (2400, decomp_oracle.py) zeroing the credit moves 1811 plans and lowers tail energy on 1659, and worsens the tail floor breach on 0.",
+          "mechanism": "The comfort floor is held by the objective's own floor terms (_comfort_terms: squared undershoot x10 plus the L1 term _COMFORT_FLOOR_L1 x comfort_weight), which at any learnable weight (comfort_learning.COMFORT_WEIGHT_MIN..MAX = 1..40) already price a tail undershoot above the energy the credit would save. Removing the credit does dump the last hours (tail kWh 3.6-10.7 -> 0), but the room coasts down without crossing the floor inside the horizon. The docstring states the floor breach as the reason the term exists; a reader (or a fixer weighing a change to the credit) is told the credit guards comfort when it guards only the end-state value.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+            "harness_path": "dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+            "value": "tail_breach_worse_cells=0/40; tail_dump_cells=40/40; at --perturb learned_min 0/40 and 39/40",
+            "unit": "cells",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3 (4 cores shared by three seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "race, decomp_oracle and loop runs of this seat plus D3-s3/D9-s3 mutation and drift runs; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 13.06,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._terminal_cost (replaced by a zero closure pair in memory; plans read from HeatPumpOptimizer.optimize's OptimizationResult.room_temp_trajectory)",
+          "perturbation": {
+            "change": "--perturb weak_floor: optimizer config.comfort_weight x0.01 (both arms), so the floor penalty no longer holds the tail",
+            "expected_direction": "up",
+            "observed_value": "tail_breach_worse_cells=13/40, max tail breach without credit 6.08 K-steps (0.24 with it)"
+          },
+          "metric_definition": "Cells where zeroing _terminal_cost raises degree-steps below the per-step floor over the plan's last 8 steps (model room trajectory) by > 1e-3; beside it, cells where tail kWh falls.",
+          "phenomenon_property": "What _terminal_cost's docstring says the term prevents is what removing it causes at the weights production runs; a stated comfort consequence holds on the shipped weight range or is not stated.",
+          "seam_rule": "grep -n 'comfort floor at the tail\\|dumps the last' custom_components/heatpump_optimizer/optimizer.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb weak_floor",
+            "value": "13/40",
+            "note": "the harness can see a tail breach when one exists: with the floor penalty weakened below the learnable range, dropping the credit breaches on 13 cells and keeping it holds the floor to 0.24 K-steps"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb learned_min",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/terminal_claim.py --perturb weak_floor",
+            "full grid: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary (RESULT terminal_tail_breach_cells over every d0-grid line)"
+          ],
+          "proposed_fix_scope": "optimizer.py _terminal_cost docstring: state what the term does at the learnable weights (prices the end-state deficit so the plan does not dump the tail and the reported saving is not borrowed heat) and drop or condition the floor-breach claim; no plan change",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "full_grid": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary",
+            "value": "terminal_plan_moved_cells=1811 terminal_tail_dump_cells=1659 terminal_tail_reversed_cells=19 terminal_tail_breach_cells=0 (of 2400)"
+          },
+          "leave_one_out": {
+            "cells": 2400,
+            "min": 0,
+            "max": 0,
+            "drop_most_favourable": 0
+          }
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "M4: off the summer_negative off-start family the race gaps are SEK-scale amounts on 2-17 SEK days; no L-BFGS-B run is budget-bound",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --summary",
+          "value": "non-summer_negative max gap 1.567 units, mean 0.0128 (n=920); binding 0/1220"
+        },
+        {
+          "claim": "M4 coordinator captures: no material gap",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --summary",
+          "value": "9/20 gap cells, max 0.200 units (coord_all_features/summer_negative, rel 2.5 %)"
+        },
+        {
+          "claim": "M4 flow-setpoint-behind-valve: the plan leaves the minimum level when price pays and total power is never sub-minimum",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --list (race_out flow_* fields)",
+          "value": "above-min cells 53/60 summer_negative, 46/60 summer_typical, 46/60 shoulder, 47/60 flat; total sub-min 0/217"
+        },
+        {
+          "claim": "M4 manual-valve-buffer: the plan differs from the no-buffer plan",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py (no_buffer_plan_l1_kwh)",
+          "value": "195/240 differ by > 0.01 kWh; median 6.2 kWh"
+        },
+        {
+          "claim": "M5: the flat-surviving race gap is a storage-plant seed basin, not price optimality",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/race.py --summary; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001",
+          "value": "flat 1/305 cells > 1 %; 152/152 flat grid gap cells masked by one re-plan"
+        },
+        {
+          "claim": "M6: race gaps outside the off-start family are masked by re-planning",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/loop.py --mask --min-gap 0.0001",
+          "value": "512/546 masked; every unmasked cell > 1 % is an off-start cell; 24 h loop on 9 other cells: mean realised gap -21.5 (non-flat), -0.68 (flat)"
+        },
+        {
+          "claim": "M7a: iterating DHW <-> space more than once changes nothing",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary",
+          "value": "decomp_positive_cells=0/2400, extra passes adopted 0, co_optimize_cells=1200"
+        },
+        {
+          "claim": "M7b: without the terminal credit the plan dumps the tail, as the docstring says",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary",
+          "value": "tail energy lower on 1659 of 1811 moved plans"
+        },
+        {
+          "claim": "M8: the price-attributable same-information regret is small; the rest is model mismatch present at flat prices",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s3/decomp_oracle.py --summary",
+          "value": "settled regret mean 0.421 SEK/horizon non-flat vs 0.374 flat; plant floor breaches 459/2100 non-flat, 82/300 flat"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D0/s3/race.py",
+        "dev/audit/rounds/round11/D0/s3/offstart.py",
+        "dev/audit/rounds/round11/D0/s3/loop.py",
+        "dev/audit/rounds/round11/D0/s3/decomp_oracle.py",
+        "dev/audit/rounds/round11/D0/s3/terminal_claim.py",
+        "dev/audit/rounds/round11/D0/s3/wall_d15.py",
+        "dev/audit/rounds/round11/D0/s3/d0s3_lib.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "_multi_start_minimize start set (_solve_space)",
+          "what": "A gap survives flat prices on storage plants (wood/valve-storage, two-zone, no-DHW): a coarse differential_evolution challenger heating 6 kWh beats the shipped 3.2 kWh plan by 0.877 units (rel 4.4 %) on flat/summer_cool/two-zone/no-dhw/wood/24h. A 3-day closed loop on flat/shoulder/two-zone/no-dhw/valve-storage/6h realises 2.0 units (1.3 %). This is a comfort-objective seed basin, not price (D0.M5), so it is outside D0."
+        }
+      ]
+    },
+    "D5-s3": {
+      "dimension": "D5",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D5/s3/REPORT.md",
+      "exposure": "Read only production .py sources in the cells plus the policy/brief files named by the task; comments in the cells cite earlier finding ids (e.g. D1-s5-51, D6-03, D2-s2-02, D12-s3-01, R9 D9-s1-01) as context. No earlier round report, register or docs/ page was read.",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "outline prints nothing for .py files (text_ledger.outline returns [] for any suffix but .md/.mdc/.html/.htm): 0 document rows over D5-s3's 45 cells, so reader paths x documents = 0. C4 (reader paths over code cells) examined: the universe is measured and empty. C2 (feature reader paths in docs/) lies in README.md/docs/** cells, D5-s1's M1, not D5-s3's: left to that seat."
+        },
+        {
+          "step": "D5.M2",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "0 heading and 0 link rows over the 45 .py cells (outline is document-only). C5 (structure over code cells) examined: universe measured, empty."
+        },
+        {
+          "step": "D5.M3",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "M3's units are those of outline's documents; D5-s3's cells hold none, so the step's denominator here is 0 (recorded, closing C1 for this seat). C3 (how-it-works.md / configuration.md mechanism paragraphs) is D5-s2's M3 cell, not ours. C6 (mechanism paragraphs in docstrings) are D5 units, ranged by M4: 70 of 2855 judged against the code this round, the rest not reached (see M4)."
+        },
+        {
+          "step": "D5.M4",
+          "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "universe": 2855,
+          "examined": 70,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/__init__.py (36 units)",
+            "custom_components/heatpump_optimizer/accuracy.py (85 units)",
+            "custom_components/heatpump_optimizer/away.py (38 units)",
+            "custom_components/heatpump_optimizer/battery.py (25 units)",
+            "custom_components/heatpump_optimizer/binary_sensor.py (14 units)",
+            "custom_components/heatpump_optimizer/boost.py (59 units)",
+            "custom_components/heatpump_optimizer/button.py (14 units)",
+            "custom_components/heatpump_optimizer/climate.py (24 units)",
+            "custom_components/heatpump_optimizer/comfort_learning.py (24 units)",
+            "custom_components/heatpump_optimizer/config_flow.py (246 units)",
+            "custom_components/heatpump_optimizer/const.py (265 units)",
+            "custom_components/heatpump_optimizer/coordinator.py (920 units)",
+            "custom_components/heatpump_optimizer/curve_learning.py (12 units)",
+            "custom_components/heatpump_optimizer/debugger.py (49 units)",
+            "custom_components/heatpump_optimizer/defrost.py (61 units)",
+            "custom_components/heatpump_optimizer/device_prefill.py (15 units)",
+            "custom_components/heatpump_optimizer/dhw_draws.py (15 units)",
+            "custom_components/heatpump_optimizer/dhw_learning.py (46 units)",
+            "custom_components/heatpump_optimizer/dhw_planner.py (129 units)",
+            "custom_components/heatpump_optimizer/dhw_schedule.py (48 units)",
+            "custom_components/heatpump_optimizer/diagnosis.py (8 units)",
+            "custom_components/heatpump_optimizer/diagnostics.py (25 units)",
+            "custom_components/heatpump_optimizer/disinfection.py (27 units)",
+            "custom_components/heatpump_optimizer/draw_range.py (65 units)",
+            "custom_components/heatpump_optimizer/drift.py (30 units)",
+            "custom_components/heatpump_optimizer/driving_grade.py (12 units)",
+            "custom_components/heatpump_optimizer/duty_legs.py (18 units)",
+            "custom_components/heatpump_optimizer/duty_switch.py (49 units)",
+            "custom_components/heatpump_optimizer/early_cutoff.py (29 units)",
+            "custom_components/heatpump_optimizer/entity.py (27 units)",
+            "custom_components/heatpump_optimizer/entry_config.py (30 units)",
+            "custom_components/heatpump_optimizer/external_heat.py (44 units)",
+            "custom_components/heatpump_optimizer/flow_lift.py (19 units)",
+            "custom_components/heatpump_optimizer/freq_control.py (25 units)",
+            "custom_components/heatpump_optimizer/frontend.py (14 units)",
+            "custom_components/heatpump_optimizer/grid_fee.py (26 units)",
+            "custom_components/heatpump_optimizer/heat_curve.py (49 units)",
+            "custom_components/heatpump_optimizer/heat_energy.py (66 units)",
+            "custom_components/heatpump_optimizer/inputs.py (97 units)"
+          ],
+          "redispatched": [
+            {
+              "item": "C7",
+              "state": "examined"
+            }
+          ],
+          "evidence": "Ledger dev/audit/rounds/round11/D5/s3/LEDGER.tsv rows all 2855 units; `python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s3/LEDGER.tsv --plant --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692`: units=2855 rows=2855 true=67 false=2 stale=1 unverifiable=2785 unrowed=0 orphan=0 malformed=0 plant_refused=1. Mechanical criteria ran on all 2855 (dev/audit/rounds/round11/D5/s3/scan.py: C2 unresolved identifiers 3 units, all resolving outside the tree; C5 >40-word sentence 363 units; C7 cited-number-vs-adjacent-constant 49 candidates, all reviewed, 0 conflicts). C1 truth was executed on 70 units (six whole files: batchmath, currency, datetime, flow_meter, issues, comfort_band; plus every HA-free claim, the numeric-relation units and named docstrings); the 2785 others are rowed unverifiable, not_reached by file. C7 examined for its in-cell part (automated in scan.py); its www/*.js and README parts are D5-s4's and D5-s2's cells."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M4",
+          "what": "C1 truth (executed check against the code) on 2785 of 2855 units, grouped by file in coverage.not_reached; mechanical C2/C5/C7 ran on all. C3/C4 (restatement, history share) were judged only on the 70 examined units."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s3-01",
+          "scope": "D5-s3",
+          "step": "D5.M4",
+          "title": "grid_fee docstrings say the module is free of Home Assistant imports; it cannot import without homeassistant",
+          "severity": "low",
+          "claim": "grid_fee.py's module docstring (line 27, 'Kept free of Home Assistant imports so it can be unit-tested directly') and max_abs_component's docstring ('Pure and HA-free') are false: importing grid_fee with homeassistant absent raises ImportError, through currency.py's module-level `from homeassistant.core import HomeAssistant`.",
+          "mechanism": "grid_fee imports currency.money_scale; currency imports homeassistant.core at module level for an annotation only (from __future__ import annotations makes it a string), so the HA-free property the docstring promises, and the reason it gives, fail transitively. The ten other HA-free claims in the cells hold.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s3/ha_free.py",
+            "value": 1,
+            "unit": "modules claiming HA-free that need homeassistant to import",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3, x86_64 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats running on the shared box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 0.62,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee (module import, homeassistant refused by a meta-path finder; package __init__ bypassed)",
+          "perturbation": {
+            "change": "currency.py: move `from homeassistant.core import HomeAssistant` under `if TYPE_CHECKING:` (applied in memory by --perturb)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of cell modules whose comment claims freedom from Home Assistant imports yet whose import fails with every homeassistant module refused.",
+          "phenomenon_property": "A comment that states a module is free of Home Assistant imports is true of the module's transitive import closure: the module imports with homeassistant absent.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+            "value": "10 of 11 claimed modules import OK with homeassistant refused (flow_meter, flow_lift, diagnosis, freq_control, heat_energy, comfort_band, device_prefill, disinfection, inputs)",
+            "note": "same refusal, same run: the instrument passes honest claims"
+          },
+          "reproduction_steps": [
+            "run the command; read RESULT claimed_but_needs_ha=1 modules grid_fee",
+            "re-run with --perturb; read 0"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/grid_fee.py",
+            "custom_components/heatpump_optimizer/currency.py"
+          ],
+          "proposed_fix_scope": "Either move currency.py's HomeAssistant import under TYPE_CHECKING (it is annotation-only) so the claim becomes true, or narrow the two grid_fee docstrings to 'no direct Home Assistant import'. The text_ledger row grid_fee.py#(module docstring) flips to true."
+        },
+        {
+          "id": "D5-s3-02",
+          "scope": "D5-s3",
+          "step": "D5.M4",
+          "title": "comfort_band docstring says the climate slider's maximum sits one degree above the ceiling; it equals the ceiling",
+          "severity": "low",
+          "claim": "comfort_band.py's module docstring states, in the present tense, that the climate entity's slider has 'its own maximum sitting one degree *above* the configured ceiling'; the real HeatPumpOptimizerClimate publishes max_temp equal to the configured max_temperature (overshoot 0.0 \u00b0C).",
+          "mechanism": "climate.py:124 sets _attr_max_temp = config.max_temperature since v5.1.7 removed the + 1 (its own comment at climate.py:110 says so); the comfort_band bullet still describes the old slider as current, so a reader of comfort_band alone believes the slider can still store a target above the ceiling.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+            "value": 1,
+            "unit": "stale rows (docstring claims +1.0 \u00b0C, measured overshoot 0.0 \u00b0C)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3, x86_64 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats running on the shared box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 5.2,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.climate:HeatPumpOptimizerClimate.__init__ (_attr_max_temp) via climate.EntryConfig.from_mapping",
+          "perturbation": {
+            "change": "climate.EntryConfig.from_mapping wrapped (mock.patch.object, --perturb) to hand the entity max_temperature + 1, the pre-v5.1.7 slider",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "stale_rows = 1 when HeatPumpOptimizerClimate max_temp minus the configured max_temperature differs from the docstring's +1.0 \u00b0C, else 0.",
+          "phenomenon_property": "A docstring that describes another component's current behaviour in the present tense matches what that component does at the same ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py --perturb",
+            "value": "overshoot_c=1.0, stale_rows=0",
+            "note": "the instrument reads the docstring as true when the slider does overshoot"
+          },
+          "reproduction_steps": [
+            "run the command: overshoot_c=0.0, stale_rows=1",
+            "--perturb: overshoot_c=1.0, stale_rows=0"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/comfort_band.py"
+          ],
+          "proposed_fix_scope": "Rewrite the bullet in the past tense or drop the history (C4): the slider now offers exactly the band (climate.py:110-124)."
+        },
+        {
+          "id": "D5-s3-03",
+          "scope": "D5-s3",
+          "step": "D5.M4",
+          "title": "363 of 2855 comment units in the D5-s3 cells carry a sentence over 40 words (criterion C5)",
+          "severity": "low",
+          "claim": "363 of the 2855 D5 units (comments and docstrings) of custom_components/heatpump_optimizer/{_,a..i}*.py contain at least one sentence over 40 words, failing D5-criteria C5; 43 of 45 files carry one, coordinator.py the most (91).",
+          "mechanism": "Comments accrete clauses (history, cross-references, issue ids) into single sentences; the longest measured run past 100 words (const.py VENT_CUSUM_REFERENCE_HOURS block).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s3/c5_long.py",
+            "value": 363,
+            "unit": "units with a sentence over 40 words",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3, x86_64 4 vCPU container",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats running on the shared box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 6.87,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "inspect.getsource(custom_components.heatpump_optimizer.<module>) for each cell module, split by tools/audit/text_ledger.py:units_of/sentences",
+          "perturbation": {
+            "change": "--perturb: in dhw_planner's source, a full stop after word 30 of every over-long sentence (in memory)",
+            "expected_direction": "down",
+            "observed_value": 343
+          },
+          "metric_definition": "Count of D5 units in the seat's cells with any sentence (text_ledger.sentences, comment markers stripped) longer than 40 whitespace-separated words.",
+          "phenomenon_property": "No comment or docstring sentence in production exceeds 40 words (D5-criteria C5).",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/c5_long.py",
+          "leave_one_out": {
+            "cells": 45,
+            "min": 0,
+            "max": 91,
+            "drop_most_favourable": 272
+          },
+          "reproduction_steps": [
+            "run the command: RESULT long_units=363",
+            "--perturb: long_units=343 (dhw_planner 29 -> 9)"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/const.py",
+            "custom_components/heatpump_optimizer/config_flow.py",
+            "custom_components/heatpump_optimizer/dhw_planner.py"
+          ],
+          "proposed_fix_scope": "Split sentences file by file as files are touched; the per-file list the harness prints is the work order. The splitter is textual: an abbreviation splitting early only lowers the count."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Ten of eleven HA-free claims in the cells hold (comfort_band, device_prefill (x2), diagnosis, disinfection, flow_lift, flow_meter, freq_control, heat_energy, inputs)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/ha_free.py",
+          "value": "claimed=11, claimed_but_needs_ha=1 (grid_fee only)"
+        },
+        {
+          "claim": "climate.py:110 'The slider offers exactly the band' holds",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+          "value": "overshoot_c=0.0"
+        },
+        {
+          "claim": "No comment sitting on a numeric constant cites a number contradicting it (C7, automated)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/scan.py",
+          "value": "num=49 candidates; all 49 reviewed: issue numbers or consistent derivations (e.g. HISTORY_LENGTH 672x30 min=14 d, STEP_K 3x0.5/7=0.21, FREQ_MAX_KW_PER_HZ 20 kW/20 Hz, _DHW_MIN_RUN_CHUNK 2 h/15 min=8, SPAN_CLOSE_ALLOWANCE_H 0.05 h=3 min, SCORE_FREE_SPAN_RESET=1/SCORE_ALPHA=20, QUIET_STORE 360 min=six hours); 0 conflicts"
+        },
+        {
+          "claim": "Backticked identifiers and paths in the cells resolve (C2)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s3/scan.py",
+          "value": "ident=3 units unresolved in tree: const.py BODY.md (resolves: git cat-file -e 52f5a442:BODY.md), device_prefill.py's two references into the external tvofi/tuya_heat_pump repository at fda9bed (out of tree by design)"
+        },
+        {
+          "claim": "module.symbol references in comments resolve (137 references)",
+          "command": "ad-hoc import walk over ``module.symbol`` refs in D5 units (see REPORT.md)",
+          "value": "33 unresolved by attribute walk, all false positives: file names (x.py), datetime.weekday(), or coordinator methods (_fold_measured_cop, _cop_reference_curve exist on the class)"
+        },
+        {
+          "claim": "binary_sensor and button module docstrings' 'Six' counts hold",
+          "command": "grep -c '^class .*(_OptimizerBinarySensorBase)' binary_sensor.py; grep -c '^class .*(_OptimizerButtonBase)' button.py",
+          "value": "6 and 6"
+        },
+        {
+          "claim": "comfort_band comment 'minimum reaches 25 on its own slider while night stops at 24' holds",
+          "command": "grep -n COMFORT_TEMP_NIGHT_SELECTOR_MAX const.py; grep -n 'CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number' config_flow.py",
+          "value": "24; _number(14, 25, ...)"
+        },
+        {
+          "claim": "coordinator PLAN_STALE comment: the 90-min floor covers the shortest interval the options allow",
+          "command": "grep -n CONF_OPTIMIZATION_INTERVAL config_flow.py",
+          "value": "_number(10, 120): 3x10=30 < 90"
+        },
+        {
+          "claim": "M1/M2/M3 universes over the code cells are empty",
+          "command": "python3 tools/audit/text_ledger.py outline --seat D5-s3 --repo $REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | wc -l",
+          "value": "0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D5/s3/scan.py",
+        "dev/audit/rounds/round11/D5/s3/ledger.py",
+        "dev/audit/rounds/round11/D5/s3/ha_free.py",
+        "dev/audit/rounds/round11/D5/s3/slider_ceiling.py",
+        "dev/audit/rounds/round11/D5/s3/c5_long.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D5-s1",
+          "file": "docs/how-it-works.md, docs/configuration.md, docs/ecl110.md",
+          "symbol": "C2 (round-10 carry)",
+          "what": "Feature reader paths (two-tank storage, ECL110, capacity tariff) still owe a paragraph-by-paragraph dead-end/forward-reference walk; handed over to D5-s3 but outside its .py cells."
+        },
+        {
+          "owner_seat": "D5-s2",
+          "file": "docs/how-it-works.md, docs/configuration.md",
+          "symbol": "C3 (round-10 carry)",
+          "what": "Mechanism paragraphs not traced one by one against code paths; D5-s2 owns M3 over README/docs."
+        },
+        {
+          "owner_seat": "D5-s4",
+          "file": "custom_components/heatpump_optimizer/www/*.js",
+          "symbol": "C7 (round-10 carry)",
+          "what": "www/*.js comments not scanned for symbols/cited numbers; D5-s3's scan.py is the reusable pattern (it reads .py only)."
+        },
+        {
+          "owner_seat": "D5-s2",
+          "file": "README.md, docs/*.md",
+          "symbol": "C7 (round-10 carry)",
+          "what": "README/docs M4 cell (comment units in docs) not run in round 10."
+        },
+        {
+          "owner_seat": "D5-s6",
+          "file": "tools/audit/text_ledger.py",
+          "symbol": "py_units",
+          "what": "A trailing comment on a code line ('# kW') is merged with the comment block that starts on the next line (const.py unit at line 1353 begins '# kW # kW #: COP share lost...'), so two trailing unit comments and a doc comment share one unit id; instrument defect."
+        },
+        {
+          "owner_seat": "D6-s3",
+          "file": "custom_components/heatpump_optimizer/grid_fee.py",
+          "symbol": "IMPLAUSIBLE_FEE_SEK_PER_KWH comment",
+          "what": "for D6: 'real ToU transfer fees run 0.05-1.5 per kWh in every currency Tibber prices in' - in EUR fees are an order of magnitude below SEK/NOK figures; claim unverified."
+        }
+      ]
+    },
+    "D6-s3": {
+      "dimension": "D6",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D6/s3/REPORT.json",
+      "exposure": "No docs/ or README read. Read en.json and the cells' Python (the seat's own cells). Ran git archive/diff of commit 92d38ec against the export once, for wood_fuel.py's provenance; it listed which files differ, and the seat did not open the other diffs.",
+      "coverage": [
+        {
+          "step": "D6.M1",
+          "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/en.json $(ls custom_components/heatpump_optimizer/*.py | grep -v '/\\._')",
+          "universe": 3331,
+          "examined": 1796,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/translations/en.json#options.step (624 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.step (268 units)",
+            "custom_components/heatpump_optimizer/topology.py (60 units)",
+            "custom_components/heatpump_optimizer/coordinator.py (60 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_thermal_parameters (53 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#options.error (31 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.simulate_plan (29 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_schedule (23 units)",
+            "custom_components/heatpump_optimizer/sysid.py (16 units)",
+            "custom_components/heatpump_optimizer/store.py (14 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_topology (12 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.error (12 units)",
+            "custom_components/heatpump_optimizer/entry_config.py (11 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.assign_entity (10 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_manual_plan (9 units)",
+            "custom_components/heatpump_optimizer/heat_curve.py (8 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.restore_learned_snapshot (7 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.reset_heat_loss_learners (7 units)",
+            "custom_components/heatpump_optimizer/services.py (7 units)",
+            "custom_components/heatpump_optimizer/pump_mode.py (7 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_away (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.factory_reset (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.diagnose_interval (6 units)",
+            "custom_components/heatpump_optimizer/legionella.py (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.debug_collect (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#options.abort (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.store_version (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.solve_worker_fallback (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.pump_mode_unreadable (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_currency_mismatch (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_magnitude (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_implausible (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_mode_blocked (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.comfort_band_contradiction (5 units)",
+            "custom_components/heatpump_optimizer/pump_schedule.py (5 units)",
+            "custom_components/heatpump_optimizer/optimizer.py (5 units)",
+            "custom_components/heatpump_optimizer/config_flow.py (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.valve_target_above_comfort (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.solve_failures (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_unit_unrecognised (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_feed_stale (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.lower_floor_modelled (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_sign (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_off_step (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_above_setpoint (4 units)",
+            "custom_components/heatpump_optimizer/sensor.py (4 units)",
+            "custom_components/heatpump_optimizer/dhw_learning.py (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.clear_manual_plan (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.space_setpoint_unreadable (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.pump_write_ignored (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.freq_watchdog (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_silent (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_minimum_above_start (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unverified (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unreachable (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_overdue (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_write_failed (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.cop_degradation (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift_rolled_back (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.abort (3 units)",
+            "custom_components/heatpump_optimizer/mixing_valve.py (3 units)",
+            "custom_components/heatpump_optimizer/manual_plan.py (3 units)",
+            "custom_components/heatpump_optimizer/inputs.py (3 units)",
+            "custom_components/heatpump_optimizer/boost.py (3 units)",
+            "custom_components/heatpump_optimizer/wood_fuel.py (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.run_optimization (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.peak_window (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.building_era (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.quiet_silent_not_enforced (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_setpoint_below_disinfection (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#entity.sensor (2 units)",
+            "custom_components/heatpump_optimizer/replay_doc.py (2 units)",
+            "custom_components/heatpump_optimizer/pump_arbiter.py (2 units)",
+            "custom_components/heatpump_optimizer/frontend.py (2 units)",
+            "custom_components/heatpump_optimizer/dhw_schedule.py (2 units)",
+            "custom_components/heatpump_optimizer/defrost.py (2 units)",
+            "custom_components/heatpump_optimizer/curve_learning.py (2 units)",
+            "custom_components/heatpump_optimizer/comfort_band.py (2 units)",
+            "custom_components/heatpump_optimizer/climate.py (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_mode (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.heat_curve_target_kind (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.dso_product (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_switch_lost (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.update_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_fetch_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_auth_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_prices (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_plan (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_dhw_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_dhw_min_no_deadband (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_temperature_comfort_band_violation (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_solve_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_no_prices (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_snapshot (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_refit (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.quiet_windows_overlap (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_unusable (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_timeout (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.no_loaded_config_entry (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_slots (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_expires_at (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.factory_reset_not_applied (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.diagnose_interval_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.debug_collect_inactive (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_loaded (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_found (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_wrong_domain (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_missing (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_topology_unsupported (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_dhw_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_dhw_min_no_deadband (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_comfort_band_violation (1 units)",
+            "custom_components/heatpump_optimizer/thermal_model.py (1 units)",
+            "custom_components/heatpump_optimizer/tariff.py (1 units)",
+            "custom_components/heatpump_optimizer/snapshots.py (1 units)",
+            "custom_components/heatpump_optimizer/pump_signals.py (1 units)",
+            "custom_components/heatpump_optimizer/price_model.py (1 units)",
+            "custom_components/heatpump_optimizer/open_meteo.py (1 units)",
+            "custom_components/heatpump_optimizer/off_restore.py (1 units)",
+            "custom_components/heatpump_optimizer/narrative.py (1 units)",
+            "custom_components/heatpump_optimizer/ledger.py (1 units)",
+            "custom_components/heatpump_optimizer/grid_fee.py (1 units)",
+            "custom_components/heatpump_optimizer/external_heat.py (1 units)",
+            "custom_components/heatpump_optimizer/entity.py (1 units)",
+            "custom_components/heatpump_optimizer/early_cutoff.py (1 units)",
+            "custom_components/heatpump_optimizer/disinfection.py (1 units)",
+            "custom_components/heatpump_optimizer/debugger.py (1 units)",
+            "custom_components/heatpump_optimizer/comfort_learning.py (1 units)"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "dev/audit/rounds/round11/D6/s3/ledger.py -> ledger.tsv: 1796 units rowed (145 claim rows, 1651 no-claim rows by rules L0-L4 in ledger.py's header); 1535 units unrowed, listed unit by unit in not_reached.tsv and here by file / en.json section. C2: the 'optimizer will...' behaviour sentences of en.json are numbered as units by text_ledger and those registered in claims.py are rowed, the rest are in the unrowed remainder. C3: how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md are D6-s1's cells, not this seat's (lead filed)."
+        },
+        {
+          "step": "D6.M2",
+          "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/en.json $(ls custom_components/heatpump_optimizer/*.py | grep -v '/\\._')",
+          "universe": 3331,
+          "examined": 1796,
+          "not_reached": [
+            "custom_components/heatpump_optimizer/translations/en.json#options.step (624 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.step (268 units)",
+            "custom_components/heatpump_optimizer/topology.py (60 units)",
+            "custom_components/heatpump_optimizer/coordinator.py (60 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_thermal_parameters (53 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#options.error (31 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.simulate_plan (29 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_schedule (23 units)",
+            "custom_components/heatpump_optimizer/sysid.py (16 units)",
+            "custom_components/heatpump_optimizer/store.py (14 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_topology (12 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.error (12 units)",
+            "custom_components/heatpump_optimizer/entry_config.py (11 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.assign_entity (10 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.apply_manual_plan (9 units)",
+            "custom_components/heatpump_optimizer/heat_curve.py (8 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.restore_learned_snapshot (7 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.reset_heat_loss_learners (7 units)",
+            "custom_components/heatpump_optimizer/services.py (7 units)",
+            "custom_components/heatpump_optimizer/pump_mode.py (7 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_away (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.factory_reset (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.diagnose_interval (6 units)",
+            "custom_components/heatpump_optimizer/legionella.py (6 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.debug_collect (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#options.abort (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.store_version (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.solve_worker_fallback (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.pump_mode_unreadable (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_currency_mismatch (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_magnitude (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_implausible (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_mode_blocked (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.comfort_band_contradiction (5 units)",
+            "custom_components/heatpump_optimizer/pump_schedule.py (5 units)",
+            "custom_components/heatpump_optimizer/optimizer.py (5 units)",
+            "custom_components/heatpump_optimizer/config_flow.py (5 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.valve_target_above_comfort (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.solve_failures (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_unit_unrecognised (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.price_feed_stale (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.lower_floor_modelled (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.grid_fee_sign (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_off_step (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_above_setpoint (4 units)",
+            "custom_components/heatpump_optimizer/sensor.py (4 units)",
+            "custom_components/heatpump_optimizer/dhw_learning.py (4 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.clear_manual_plan (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.space_setpoint_unreadable (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.pump_write_ignored (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.freq_watchdog (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.floor_return_silent (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_minimum_above_start (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unverified (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_unreachable (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_legionella_overdue (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_write_failed (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.cop_degradation (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift_rolled_back (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.accuracy_drift (3 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#config.abort (3 units)",
+            "custom_components/heatpump_optimizer/mixing_valve.py (3 units)",
+            "custom_components/heatpump_optimizer/manual_plan.py (3 units)",
+            "custom_components/heatpump_optimizer/inputs.py (3 units)",
+            "custom_components/heatpump_optimizer/boost.py (3 units)",
+            "custom_components/heatpump_optimizer/wood_fuel.py (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.run_optimization (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.peak_window (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.building_era (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.quiet_silent_not_enforced (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_setpoint_below_disinfection (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#entity.sensor (2 units)",
+            "custom_components/heatpump_optimizer/replay_doc.py (2 units)",
+            "custom_components/heatpump_optimizer/pump_arbiter.py (2 units)",
+            "custom_components/heatpump_optimizer/frontend.py (2 units)",
+            "custom_components/heatpump_optimizer/dhw_schedule.py (2 units)",
+            "custom_components/heatpump_optimizer/defrost.py (2 units)",
+            "custom_components/heatpump_optimizer/curve_learning.py (2 units)",
+            "custom_components/heatpump_optimizer/comfort_band.py (2 units)",
+            "custom_components/heatpump_optimizer/climate.py (2 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#services.set_mode (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.heat_curve_target_kind (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#selector.dso_product (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#issues.dhw_disinfection_switch_lost (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.update_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_fetch_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.tibber_auth_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_prices (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_no_plan (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.simulate_plan_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_invalid_dhw_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_thermal_params_dhw_min_no_deadband (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.set_temperature_comfort_band_violation (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_solve_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.run_optimization_no_prices (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_snapshot (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.restore_learned_snapshot_no_refit (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.quiet_windows_overlap (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_unusable (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.process_worker_timeout (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.no_loaded_config_entry (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_slots (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.manual_plan_invalid_expires_at (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.factory_reset_not_applied (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.diagnose_interval_failed (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.debug_collect_inactive (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_loaded (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.config_entry_not_found (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_wrong_domain (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.assign_entity_missing (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_topology_unsupported (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_quiet_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_invalid_dhw_windows (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_dhw_min_no_deadband (1 units)",
+            "custom_components/heatpump_optimizer/translations/en.json#exceptions.apply_schedule_comfort_band_violation (1 units)",
+            "custom_components/heatpump_optimizer/thermal_model.py (1 units)",
+            "custom_components/heatpump_optimizer/tariff.py (1 units)",
+            "custom_components/heatpump_optimizer/snapshots.py (1 units)",
+            "custom_components/heatpump_optimizer/pump_signals.py (1 units)",
+            "custom_components/heatpump_optimizer/price_model.py (1 units)",
+            "custom_components/heatpump_optimizer/open_meteo.py (1 units)",
+            "custom_components/heatpump_optimizer/off_restore.py (1 units)",
+            "custom_components/heatpump_optimizer/narrative.py (1 units)",
+            "custom_components/heatpump_optimizer/ledger.py (1 units)",
+            "custom_components/heatpump_optimizer/grid_fee.py (1 units)",
+            "custom_components/heatpump_optimizer/external_heat.py (1 units)",
+            "custom_components/heatpump_optimizer/entity.py (1 units)",
+            "custom_components/heatpump_optimizer/early_cutoff.py (1 units)",
+            "custom_components/heatpump_optimizer/disinfection.py (1 units)",
+            "custom_components/heatpump_optimizer/debugger.py (1 units)",
+            "custom_components/heatpump_optimizer/comfort_learning.py (1 units)"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "dev/audit/rounds/round11/D6/s3/claims.py: 109 rules, 139 claim units, each against the production symbol it names (constants, rendered config/options forms, validators, parsers, silent_mode.caps, ThermalModel.effective_heat_loss_coefficient, services._quiet_schedule_fields, the device pre-fill flow); links.py HEADed the one link the cells' text names (https://developer.tibber.com: 200, 6 units). 2 false (D6-s3-01, D6-s3-02), 143 true. C1: of its five claims only the 20 manual-plan hours sits in this seat's cells (en.json services.apply_manual_plan, 2 units, true: const.MANUAL_PLAN_WINDOW_HOURS=20 < OptimizationConfig.horizon_hours=24); 23 options pages, 8 weekly snapshots and +-12 % are README/docs claims in D6-s1's cells, so C1 stays not_reached here (lead filed). C4: the cells' only link was HEADed (examined part); behavioural claims against golden scenarios were not run (not_reached)."
+        },
+        {
+          "step": "D6.M3",
+          "enumerator": "ls custom_components/heatpump_optimizer/translations/en.json custom_components/heatpump_optimizer/*.py | grep -v '/\\._'",
+          "universe": 96,
+          "examined": 96,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "python3 tools/audit/text_ledger.py check --dim D6 --plant dev/audit/rounds/round11/D6/s3/ledger.tsv <the 96 files> -> check.out: units=3331 rows=1796 claims=145 false=2 stale=0 true=143 unverifiable=0 unrowed=1535 orphan=0 malformed=0 plant_refused=1; exit 1 on the 1535 unrowed units, which is the instrument refusing the skipped remainder as designed."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D6.M1",
+          "what": "1535 of 3331 units unrowed: 897 en.json config/options step descriptions (behaviour prose), 239 en.json services/issues/errors/abort sentences, and 399 Python string literals carrying a claim word or digit (coordinator.py 60, topology.py 60, sysid.py 16, store.py 14, ...); not_reached.tsv lists every one."
+        },
+        {
+          "step": "D6.M2",
+          "what": "The claims among those 1535 units have no executed check; behavioural claims were not run against golden scenarios (carry C4)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D6-s3-01",
+          "scope": "D6-s3",
+          "step": "D6.M2",
+          "title": "Setup-wizard device pre-fill refusal renders its description without the placeholders its text reads",
+          "severity": "medium",
+          "claim": "When the setup wizard's device pre-fill page refuses a save (e.g. dhw_min_too_close), the re-rendered form supplies only name_matched/matched_sources, so en.json's config.step.device_prefill description, which reads {found} and {backup_heater_type}, cannot render, and matched_sources is re-told as '\u2013' for a device the preview resolved; the options flow's sibling page keeps them.",
+          "mechanism": "config_flow.HeatPumpOptimizerConfigFlow.async_step_device_prefill's refusal branch calls self._device_prefill_form(_prefill_schema(keys, saved), {}, errors): the notes the preview computed (modbus_prefill.notes + device_prefill.disclaimer(resolution)) are not kept, so only device_prefill.disclaimer()'s empty-resolution defaults reach description_placeholders. The options sibling (async_step_modbus_prefill) keeps notes in self._prefill and passes them on refusal. Home Assistant's frontend formats the description with IntlMessageFormat and shows 'Translation error: ...' when a variable is missing.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+            "harness_path": "dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+            "value": 2,
+            "unit": "missing placeholders on the config refusal render (found, backup_heater_type); 1 en.json string fails str.format_map; 3 placeholders changed vs the preview",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3, linux x86_64, 4 cpu",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 5.51,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_device_prefill",
+          "perturbation": {
+            "change": "--perturb: mock.patch.object HeatPumpOptimizerConfigFlow._device_prefill_form so the refusal keeps the page's read-notes ({**modbus_prefill.notes({}), **notes}), the shape of the options page's kept self._prefill notes",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Placeholders named by en.json config.step.device_prefill (plus the rendered error strings) absent from the returned form's description_placeholders, on the refusal render.",
+          "phenomenon_property": "Every render of a flow step (first show, preview and every refusal re-render) supplies every placeholder that step's en.json strings and its rendered error strings name, with the same values the page last showed for the read it describes.",
+          "seam_rule": "dev/audit/rounds/round11/D6/s3/prefill_placeholders.py (arms: config pick/preview/refusal, options refusal); the call sites are `grep -n \"_device_prefill_form(\\|_prefill_form(\" custom_components/heatpump_optimizer/config_flow.py`",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+            "value": "options_refusal_missing=0; config_pick_missing=0; config_preview_missing=0",
+            "note": "The same device and the same refused value on the options flow's modbus_prefill page supply every placeholder; the config page's own pick and preview renders do too. Only the config refusal drops them."
+          },
+          "reproduction_steps": [
+            "Seed a FakeHass with the tuya_heat_pump_000004k4z6 fixture device (dev_rotenso) and its live states.",
+            "Config flow: async_step_device_prefill(None), then pick the device, then submit {dhw_setpoint: 49} (45 degC minimum + 5 K margin refuses it).",
+            "Compare result['description_placeholders'] against the {..} names in en.json config.step.device_prefill: found and backup_heater_type are missing; matched_sources reads '\u2013'."
+          ],
+          "proposed_fix_scope": "config_flow.py: keep the preview's notes (and sourced disclaimer) on the config flow's pre-fill state the way the options flow's self._prefill tuple does, and pass them to _device_prefill_form on refusal.",
+          "files": [
+            "custom_components/heatpump_optimizer/config_flow.py",
+            "custom_components/heatpump_optimizer/translations/en.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D6-s3-02",
+          "scope": "D6-s3",
+          "step": "D6.M2",
+          "title": "Wood packing text says loose is 0.60 of packed; the birch row prices loose above packed",
+          "severity": "high",
+          "claim": "en.json's wood_packing description ('loose ... billed at 0.60 of packed') is false for birch in the audited tree: wood_fuel.useful_kwh_m3 gives birch packed 1140 and loose 1900 kWh/m3 (ratio 1.667), so packed birch is priced at 1.4035 SEK/kWh instead of 0.8421 at 1200 SEK/m3 and 75 % efficiency.",
+          "mechanism": "wood_fuel.WOOD_KWH_M3['birch'] holds its two entries exchanged relative to the other rows (pine 1500/900, mixed 1700/1020, both 0.60) and to tests/features.py's 'birch packed is 1900 kWh/m3' pin; useful_kwh_m3 -> liters_to_kwh -> wood_sek_per_kwh carry the swapped figure into the published wood price, the cheaper-than-pump verdict and the wood advice for every birch user. Provenance: commit 92d38ec holds packed 1900 / loose 1140; the export the seat was dispatched on holds the swap.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+            "harness_path": "dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+            "value": 1,
+            "unit": "wood types whose loose/packed useful-kWh ratio differs from the text's 0.60 (birch: 1.667)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B3, linux x86_64, 4 cpu (export $HOME/audit-r11-baseline, which differs from the commit in wood_fuel.py)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 6.13,
+            "thread_factor": 1.006
+          },
+          "instrumented_symbol": "heatpump_optimizer.wood_fuel:useful_kwh_m3",
+          "perturbation": {
+            "change": "--perturb: mock.patch.dict wood_fuel.WOOD_KWH_M3 with birch's packed and loose entries exchanged",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of wood types where useful_kwh_m3(t,'loose',100)/useful_kwh_m3(t,'packed',100) differs from the ratio en.json's wood_packing description states.",
+          "phenomenon_property": "For every wood type, loose firewood yields 0.60 of the packed useful energy per cubic metre, as the options text states, so the published wood price per kWh of loose and packed wood follows the user's packing choice in the stated proportion.",
+          "seam_rule": "dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py (iterates every key of wood_fuel.WOOD_KWH_M3)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+            "value": "pine_ratio=0.600, mixed_ratio=0.600",
+            "note": "The two other wood types hold the stated ratio through the same seam."
+          },
+          "reproduction_steps": [
+            "From the export root, run the harness; read RESULT birch_ratio and packed_birch_sek_per_kwh.",
+            "Compare with commit 92d38ec's wood_fuel.py (git show 92d38ec:custom_components/heatpump_optimizer/wood_fuel.py), which holds packed 1900 / loose 1140."
+          ],
+          "proposed_fix_scope": "wood_fuel.py: birch packed 1900.0, loose 1140.0 (the commit's values); no text change.",
+          "files": [
+            "custom_components/heatpump_optimizer/wood_fuel.py",
+            "custom_components/heatpump_optimizer/translations/en.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every other registered numeric/default/validator/parser claim of en.json and the cells' Python strings holds (economy 1.5 K / 15 degC floor, night 0.5 K, floor-return 12 K, buffer 100 L, quick-setup 500 L / default 35 L, wood margins 2 / 5 degC, DHW margin 5 K, cooling reference 45/20 degC, flow 55/30/25/70 degC, feedback 5 min / 10 %, duty split 5 min, lease 90/30 min at -10 degC, re-send 5 min, hysteresis 0-20 K, flow-curve 15 K / 75 degC, confidence cap 0.8, tiles 75 % / 30 days, writes 12, dwell 60, band 3 K, partload 0.44/0.17, capacity 60 %, outage 2 h / 45 min, self-test 15 min, week-long collection, three settled days, silent floor 0.6 and 1.0-unset, rain 2 / 0.1 mm/h, COP at 7 degC, 24 h horizon, 20 h manual plan, every on/off-by-default sentence, every comfort/power/window validator sentence, every example input a reader is told to type)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/claims.py",
+          "value": "claims_checked=139, claims_false=2 (both reported as findings), 137 true"
+        },
+        {
+          "claim": "The one link the cells' text names resolves",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/links.py",
+          "value": "https://developer.tibber.com HTTP 200; links_dead=0"
+        },
+        {
+          "claim": "Every repair-issue raise site supplies the placeholders its en.json issue text reads",
+          "command": "static AST pass over set_issue/_create_issue/create_issue call sites (not committed; exploratory)",
+          "value": "24 sites OK, 0 mismatched, 3 dynamic (not resolved)"
+        },
+        {
+          "claim": "Every config/options step's first render supplies the description placeholders its en.json text reads",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/prefill_placeholders.py (pick/preview arms) and an exploratory render of all 44 steps",
+          "value": "config_pick_missing=0, config_preview_missing=0, options_refusal_missing=0; all first renders complete"
+        },
+        {
+          "claim": "debugger.py's 'the store keeps the newest 192 samples; the live tracker more'",
+          "command": "claims.py rule on debugger.py",
+          "value": "accuracy.HISTORY_LENGTH=672 > 192 (AccuracyTracker.as_dict slices [-192:])"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+        "dev/audit/rounds/round11/D6/s3/wood_packing_ratio.py",
+        "dev/audit/rounds/round11/D6/s3/claims.py",
+        "dev/audit/rounds/round11/D6/s3/ledger.py",
+        "dev/audit/rounds/round11/D6/s3/links.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D6-s1",
+          "file": "README.md",
+          "symbol": "README Options / snapshot / ECL110 sections",
+          "what": "Round-10 carry C1: '23 options pages', '8 weekly snapshots' and 'within +-12 %' are README/docs claims, not in D6-s3's cells; not measured here. The 20-hour manual-plan claim was checked in en.json (true)."
+        },
+        {
+          "owner_seat": "D6-s1",
+          "file": "docs/how-it-works.md",
+          "symbol": "prose claims in how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md",
+          "what": "Round-10 carry C3 (prose claims: behaviour, units, performance, version) sits in D6-s1's cells, not D6-s3's."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+          "symbol": "export provenance",
+          "what": "The export $HOME/audit-r11-baseline is not byte-identical to commit 92d38ec: git archive of the commit vs the export differs in 17 production .py files, translations/de.json and www/heatpump-optimizer-card.js, and the export carries macOS AppleDouble '._*' files beside them (owner 501:staff, mtime 2026-11-16 19:07). Found while verifying D6-s3-02 (wood_fuel.py's birch row is swapped in the export, correct at the commit). The seat did not read the other diffs. Whoever owns the dispatch should say which tree binds the round."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tools/audit/text_ledger.py",
+          "symbol": "seat_files / units_of over a glob",
+          "what": "An AppleDouble '._x.py' in the tree matches custom_components/heatpump_optimizer/*.py; read() returns '' on its undecodable bytes and units_of then yields one 'file' unit for it, so a glob-based enumerator over this export prints more files than check_scopes.py does at the commit (D6-s3 filtered them out)."
+        }
+      ]
+    },
+    "D9-s3": {
+      "dimension": "D9",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D9/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D9.M2",
+          "enumerator": "python3 tools/audit/check_scopes.py --repo . --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D9-s3",
+          "universe": 96,
+          "examined": 96,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "reach.py executed per file over all 54 sweep scenarios: 16 files reached, 80 blind (out_reach.txt). Reached files are judged by cpu_share.py (whole-solve channel), mem_confined.py (memory channel, all 54 scenarios, injected, null and top-n arms) and percycle.py (work/traced readings under 4 per-cycle injections). The blind files are covered by D9-s3-02. The card .js is never loaded by a Python gate, so it is blind. C1: mem_confined.py injects a 2x retained ballast. The traced arm detects it on 6/6 probed scenarios and the RSS arm on 0/54. It goes unseen on 48 unprobed scenarios (D9-s3-01). A per-cycle retained regression is unseen everywhere (D9-s3-02)."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D9-s3-01",
+          "scope": "D9-s3",
+          "step": "D9.M2",
+          "title": "Stress memory channel probes 6 of 54 scenarios: a 2x retained-bytes regression in any of the other 48 passes",
+          "severity": "medium",
+          "claim": "With a ballast equal to each scenario's recorded traced peak retained inside HeatPumpOptimizer.optimize (a 2x traced regression), the gate's own thresholds flag 54/54 probe readings, but the memory pass only probes the 6 labels _memory_probe_labels selects, so a 2x confined to any of the other 48 scenarios passes green, while the pass's detection check ('budgets tight enough to see a 2x') reports green on multiples computed over all recorded rows.",
+          "mechanism": "tests/stress.py's memory pass (check mode) probes MEMORY_TOP_N=6 labels chosen from the committed table (3 by traced_peak_mb, 3 by rss_peak_mb); the other rows of stress_budgets.json are never measured in a gate run. The detection-sizing check computes rss/traced threshold multiples (1.5x) over every recorded row and prints them 'over the 6 scenario(s) this pass probes', so it holds the thresholds to DETECTION_TARGET but never the sampling. Corollary from the null arm: on this box's clean tree 9 of the 48 unprobed rows already read 1.6-2.3x their record (their records are never re-read), so the table's unprobed half is unverified.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2",
+            "harness_path": "dev/audit/rounds/round11/D9/s3/mem_confined.py",
+            "value": 48,
+            "unit": "scenarios where an injected 2x traced regression is flagged by the gate's thresholds but never probed (blind_confined); detected_confined=6 of 54",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats on the box, load1 11.3; the count is of bytes-based verdicts and does not depend on timing",
+            "tolerance": "exact (probe set is a pure function of the committed table)",
+            "load1": 11.33,
+            "thread_factor": 1.034
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (ballast retained there, read through stress._run_memory_probe / traced_fail_threshold / rss_attrib_fail_threshold and the gate's _memory_probe_labels exec'd from tests/stress.py)",
+          "perturbation": {
+            "change": "--top-n 108 (the gate's STRESS_MEMORY_TOP_N raised past the scenario count, so the pass probes every scenario)",
+            "expected_direction": "down",
+            "observed_value": "--top-n 108: probed_by_gate=54, detected_confined=54, blind_confined=0 (out_mem_topn108.txt)"
+          },
+          "metric_definition": "Per sweep scenario: detected = in the gate's memory probe set AND the gate's own traced/RSS thresholds fire on the probe reading with a retained ballast of 1x the recorded traced peak.",
+          "phenomenon_property": "Every scenario whose memory peak is recorded in tests/stress_budgets.json must be re-measured by a gate run (or the detection check must count only the rows it re-measures), so that a 2x memory regression confined to any recorded scenario fails the gate.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --ballast-factor 1.0  (BLIND line lists every recorded scenario the pass does not probe)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2 --ballast-factor 0",
+            "value": "detected_confined=0, flagged_if_probed=9 (all 9 unprobed)",
+            "note": "No injection: the 6 probed scenarios read inside 1.5x (no false positive); the injection is what moves the probed set to flagged. 9 unprobed rows read 1.6-2.3x their record clean on this box, so 39 of the 48 blind scenarios are blind to the injection alone."
+          },
+          "leave_one_out": {
+            "cells": 54,
+            "min": 1.538,
+            "max": 3.29,
+            "drop_most_favourable": 1.538
+          },
+          "reproduction_steps": [
+            "Run the harness with default args: RESULT detected_confined=6, blind_confined=48.",
+            "Run with --ballast-factor 0: detected_confined=0 (null).",
+            "Run with --top-n 108: detected_confined rises to the scenarios flagged."
+          ],
+          "proposed_fix_scope": "tests/stress.py memory pass: probe every recorded scenario in check mode (or rotate a deterministic subset with a per-run budget and make the detection check judge only the probed rows); re-record the memory half on the CI platform after.",
+          "files": [
+            "tests/stress.py",
+            "tests/stress_budgets.json"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        },
+        {
+          "id": "D9-s3-02",
+          "scope": "D9-s3",
+          "step": "D9.M2",
+          "title": "Stress gate runs no coordinator cycle: 2x solves/cycle, payload, retained growth or lost GIL yields read unchanged",
+          "severity": "medium",
+          "claim": "Four injected per-cycle regressions -- the coordinator's solve run twice (2 -> 4 _multi_start_minimize entries per cycle), the published dict doubled (89,220 -> 177,853 JSON bytes), each cycle's dict retained (+~205 kB/cycle), and every optimizer GIL yield removed (394 -> 0 sleeps per cycle) -- leave the stress gate's solver_evals, solver_simulate_steps and solver_calls bit-identical and its traced peak within 0.55% on five sweep scenarios, because build_case executes 0 of coordinator.py's 835 functions and 80 of the 96 D9 universe files at all.",
+          "mechanism": "tests/stress.py measures only HeatPumpOptimizer.optimize called directly by build_case; it never drives HeatPumpOptimizerCoordinator._async_update_data, the process-worker submission, _build_data_dict or the event loop. Of D9.md's six metrics only sse_per_gradient (and the per-solve CPU/memory) has a stress channel; solves_per_cycle, gil_hold, loop_thread_work, retained_bytes (per-cycle slope) and payload_bytes have none, and nothing else in the gate budgets them (the owner's 'whether the stress budget should become a real gate' for the cycle).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py",
+            "harness_path": "dev/audit/rounds/round11/D9/s3/percycle.py",
+            "value": 0.0,
+            "unit": "max |ratio-1| of the gate's solver_evals/simulate/calls readings, injected arm over clean, across 5 scenarios and 4 arms (traced peak max 0.0055)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+            "cpu_or_wall": "count",
+            "contention_note": "load1 14 from other seats; counts and bytes are contention-immune",
+            "tolerance": "exact for counts; traced +/-1%",
+            "load1": 14.0,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (optimize_in_process, _build_data_dict) and heatpump_optimizer.optimizer:_multi_start_minimize; gate side stress.build_case/SolverWork",
+          "perturbation": {
+            "change": "each arm (solves2x, payload2x, retain, noyield) is the perturbation; the per-cycle metric it targets must move while the gate readings stay flat",
+            "expected_direction": "up",
+            "observed_value": "solves/cycle 2.00->4.00; payload 89220->177853 B; retained growth 9136->213862 B/cycle; yields/cycle 394->0 (direction to_zero); gate deviations 0.0000 counts, <=0.0055 traced"
+          },
+          "metric_definition": "Per arm: the targeted per-cycle metric on a real coordinator cycle vs the ratio of the gate's build_case readings (evals, simulate steps, calls, traced peak) to the clean arm.",
+          "phenomenon_property": "Each D9 per-cycle metric (solves per cycle, loop-thread work, GIL hold, retained bytes per cycle, payload bytes) has a gate channel that fails on a 2x regression of it; a metric no channel reads cannot regress green unseen.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/reach.py  (FILE ... blind=1 lists every universe file whose code no stress channel executes)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py --arms clean,noyield",
+            "value": "clean arm: gate deviations 0.0000; same-tree re-solve is deterministic",
+            "note": "The clean arm against itself fixes the gate-reading noise floor at 0 for counts and the traced peak's ~0.5% jitter."
+          },
+          "leave_one_out": {
+            "cells": 5,
+            "min": 0.0,
+            "max": 0.0,
+            "drop_most_favourable": 0.0
+          },
+          "reproduction_steps": [
+            "Run percycle.py: each ARM line shows the per-cycle metric moved; each RESULT <arm>_gate_*_max_dev reads 0.0000 for counts.",
+            "Run reach.py: RESULT coordinator_executed=0, files_blind=80 of 96."
+          ],
+          "proposed_fix_scope": "A per-cycle stress lane (tests/): drive N coordinator cycles on the in-process worker, record solves/cycle, payload bytes, retained growth slope and loop-thread time per scenario in a budgets file, and fail at DETECTION_TARGET like the solve channels.",
+          "files": [
+            "tests/stress.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No single reached production file holds enough of the solve CPU outside the metered kernels for a file-confined 2x to be an over-DETECTION_TARGET solve regression. Kernels hold a median 0.73, judged per call by kernel_cost_over_verdict. The top non-kernel file is optimizer.py at a median 0.036 (max 0.106), against the 0.414 the sqrt 2 whole-solve median needs. 0 of 16 files trip it, so the gap is by design. Provisional CPU shares, load1 9.5. Perturbation --double optimizer:_fd_rows moved optimizer.py 0.0288 -> 0.0304.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/cpu_share.py",
+          "value": "files_whose_2x_trips_whole_solve=0/16; top median share 0.0363; kernel median share 0.7316"
+        },
+        {
+          "claim": "On the scenarios it does probe, the memory channel catches an injected 2x traced regression with no false positive. Traced arm 1.95-2.11x against the 1.5x threshold, flagged 6/6. The null arm flags 0/6.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2 [--ballast-factor 0]",
+          "value": "detected_confined 6 (inject) vs 0 (null)"
+        },
+        {
+          "claim": "The gate's work-count readings are deterministic on an unchanged tree, so a flat reading under injection is not noise.",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py --arms clean,noyield",
+          "value": "clean_gate_{evals,simulate,calls}_max_dev=0.0000"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D9/s3/mem_confined.py",
+        "dev/audit/rounds/round11/D9/s3/percycle.py",
+        "dev/audit/rounds/round11/D9/s3/reach.py",
+        "dev/audit/rounds/round11/D9/s3/cpu_share.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D9-s2",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_update_data",
+          "what": "The clean coordinator's tracemalloc current grows 5-9 kB per cycle over cycles 2-4 (FakeHass, in-process worker, dhw config; percycle.py clean and noyield arms), against B4's 199 B per cycle. Not taken after 200 warm-up cycles, so it needs the retained-bytes harness's slope."
+        }
+      ]
+    }
+  }
+}

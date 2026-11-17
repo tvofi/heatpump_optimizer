@@ -1,0 +1,48 @@
+{
+  "id": "D14-s1-03",
+  "scope": "D14-s1",
+  "step": "D14.M4",
+  "title": "P8: the options dialog labels and bounds money in the instance currency while every published figure is in the feed's",
+  "severity": "medium",
+  "claim": "On a SEK instance priced by a EUR/kWh entity feed, 5 of 20 money surfaces at 92d38ecb resolve to SEK while the feed and all 13 entity surfaces resolve to EUR: the four options-flow money fields built by config_flow._money (grid_fee_fixed, contract_fixed_price, wood_price_sek_m3, compressor_replacement_cost) and the grid-fee page's currency placeholder; on a HUF instance the grid-fee validation bound (config_flow._fee_placeholders -> grid_fee.fee_bound) is 500 against a feed-scaled 10, a sixth seam; a SEK/kWh feed (null) reads 0.",
+  "mechanism": "#1657 moved the coordinator to feed-first precedence (coordinator._feed_currency or resolve_currency) but config_flow._money, _fee_placeholders and _grid_fee_errors still call currency.resolve_currency (instance-first). The value typed into those fields is added unconverted to feed-denominated prices (grid_fee.GridFeeSchedule.from_config), so the label names the wrong currency and the implausible-fee bound is scaled by the wrong currency; the price_currency repair names the disagreement but does not remove it.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s1/currency_precedence.py",
+    "value": 5,
+    "unit": "money surfaces disagreeing with the feed currency (of 20)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, x86_64, 4 vCPU, Python 3.14.7 (venv-ci)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other D14 seats on the box; the count is contention-immune",
+    "tolerance": "exact",
+    "load1": 4.86,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_money / _fee_placeholders (via config_flow.resolve_currency), coordinator:_feed_currency, the live sensor entities' native_unit_of_measurement",
+  "perturbation": {
+    "change": "--perturb: config_flow.resolve_currency bound to the coordinator's precedence (coordinator._feed_currency(hass, cfg) or the instance currency), one line",
+    "expected_direction": "to_zero",
+    "observed_value": "money_seams 5 -> 0"
+  },
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py --null",
+    "value": 0,
+    "note": "a SEK/kWh feed on the SEK instance: every surface agrees, so the count is the precedence, not the enumeration"
+  },
+  "metric_definition": "count of money surfaces (entity unit/currency attr, options money-field unit, grid-fee placeholder and bound, coordinator.currency) whose delivered currency code differs from the feed's declared code",
+  "phenomenon_property": "Every surface that shows, accepts or bounds a money amount resolves its currency by one precedence: the price feed's declared currency first, the instance currency only where the feed declares none.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D14/s1/currency_precedence.py --instance HUF",
+  "reproduction_steps": [
+    "run the command: SEAM lines list the 4 options fields and the placeholder",
+    "--instance HUF adds options:grid_fees:fee_bound (500 vs 10)",
+    "pre-fix re-find: T=$(mktemp -d); git archive 3490cb16 custom_components tests | tar -x -C $T; cd $T && $HOME/venv-ci/bin/python3 <abs path>/currency_precedence.py --tree $T -> money_seams=18 (13 entity surfaces, 4 options fields, coordinator.currency)"
+  ],
+  "proposed_fix_scope": "one resolver for money surfaces that takes the entry config (feed first) used by config_flow._money, _fee_placeholders, _grid_fee_errors and the coordinator; barrier: this detector as a tests/config_flow_steps.py or tests/entities.py check (one coordinator build, about 3 s, provisional)",
+  "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/currency.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P8"
+}

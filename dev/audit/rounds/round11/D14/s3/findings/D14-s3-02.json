@@ -1,0 +1,48 @@
+{
+  "id": "D14-s3-02",
+  "scope": "D14-s3",
+  "step": "D14.M4",
+  "title": "N-reap-lock: an entry unload cancels its refresh but not the solve, so the reloaded entry's first solve waits out every orphan",
+  "severity": "medium",
+  "claim": "When an entry is unloaded (an options save reloads it) while a solve is in flight, async_shutdown cancels the refresh task awaiting coordinator._await_process but the executor thread keeps running _run_in_process under _PROCESS_LOCK, and nothing on the unload path reaps the worker, so the new entry's first job waits out the orphan's remaining time (ratio 1.00) and, after three reloads, out three whole orphaned solves (17.0 s behind 6 s jobs, 2.83x one job).",
+  "mechanism": "Teardown ordered behind the lock a solve holds, on the unload seam: the stop path (_shutdown_process_pool, HA stop only) kills first and bounds its lock wait to 5 s (guarded, 0.00 s measured), but async_unload_entry -> async_shutdown only cancels the asyncio side; run_in_executor cannot cancel a started thread, and each orphan job still queued on _PROCESS_LOCK runs its full solve after acquiring it, its result discarded.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "harness_path": "dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "value": 17.0,
+    "unit": "s wall for a 0 s job submitted after 3 cancelled 6 s refreshes (reload3_first_job_wall_s); single reload 5.00 s = 1.00 x the orphan's remaining time",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU Linux container, /root/venv-ci python, real process_worker child",
+    "cpu_or_wall": "wall",
+    "contention_note": "provisional: two other finder seats on the box (load1 ~9); the jobs are time.sleep in the real worker, so the wall is set by the job length, not by CPU contention",
+    "tolerance": "+-0.3 s",
+    "load1": 8.87,
+    "thread_factor": 1.573
+  },
+  "instrumented_symbol": "heatpump_optimizer.coordinator:_await_process / _run_in_process / _PROCESS_LOCK / _shutdown_process_pool (cancel semantics of HeatPumpOptimizerCoordinator.async_shutdown's refresh.cancel())",
+  "perturbation": {
+    "change": "--reap-on-unload: after the cancel, the unload also runs coordinator._shutdown_process_pool on the executor (what HA's stop already does)",
+    "expected_direction": "down",
+    "observed_value": "reload3 17.00 s -> 0.04 s; reload 5.00 s -> 0.03 s"
+  },
+  "metric_definition": "Wall seconds from submitting a 0 s job through coordinator._await_process to its return, after N refreshes awaiting 6 s jobs were cancelled as async_shutdown cancels them.",
+  "phenomenon_property": "No teardown of an entry (stop, unload, reload) leaves a solve it no longer wants holding _PROCESS_LOCK or the worker: the next entry's first solve never waits on an orphaned one, and orphaned solves never run.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  (stop and reload seams); grep -n '_PROCESS_LOCK\\|_shutdown_process_pool\\|refresh.cancel' custom_components/heatpump_optimizer/*.py lists the lock's holders and the teardown paths",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py",
+    "value": "reload_null_wall_s=0.04 s, stop_null_wall_s=0.01 s",
+    "note": "the same calls with no job in flight. The stop seam is guarded: stop_wall_s=0.00 s with a 6 s job in flight, and 5.00 s when the kill is made a no-op (--perturb), the _SHUTDOWN_LOCK_TIMEOUT_S bound."
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s3/reap_lock.py  -> reload_first_job_wall_s=5.00, reload3_first_job_wall_s=17.00, stop_wall_s=0.00",
+    "... --reap-on-unload -> 0.03 / 0.04",
+    "... --perturb -> stop_wall_s=5.00 (the stop seam's own guard moves)"
+  ],
+  "proposed_fix_scope": "async_unload_entry (or async_shutdown) reaps the worker the way the stop path does when a refresh it cancelled had a job in the worker -- kill first, bounded swap -- so the orphan's read breaks and its queued siblings fail fast; or a per-job generation token checked after acquiring _PROCESS_LOCK so a job whose awaiter was cancelled is dropped before it runs. Real cost on a Raspberry Pi: solves of median 18 s, max 426 s (the constants' own comment), one discarded per options save during a solve.",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/__init__.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-reap-lock"
+}

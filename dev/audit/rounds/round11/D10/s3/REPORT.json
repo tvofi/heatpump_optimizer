@@ -1,0 +1,181 @@
+{
+ "dimension": "D10",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D10/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D10.M1",
+   "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+   "universe": 114,
+   "examined": 114,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined",
+     "note": "gold-tier item; examined this round by D10-s2 (the seat holding the gold cells), per the orchestrator's message; not re-measured by this platinum seat. Its 'HA rule pages not fetched' half is done here for the platinum pages."
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py prints one CELL line per file (114) with the per-file platinum checks; RESULT cells_examined=114. Rule pages fetched: checklist, rules/async-dependency, rules/inject-websession, rules/strict-typing, rules/runtime-data."
+  },
+  {
+   "step": "D10.M2",
+   "enumerator": "python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo /Users/timmalmstrom/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D10-s3",
+   "universe": 114,
+   "examined": 114,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "platinum tier table in REPORT.md; draft register dev/audit/rounds/round11/D10/s3/quality_scale.draft.yaml (54 rows); minimum-HA-release column: none needed beyond hacs.json 2025.2.0"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D10-s3-01",
+   "scope": "D10-s3",
+   "step": "D10.M1",
+   "title": "strict-typing row reads done while manifest requirement threadpoolctl ships no py.typed and has no stub package",
+   "severity": "low",
+   "claim": "quality_scale.yaml marks strict-typing done, but one of the three manifest requirements, threadpoolctl, ships no py.typed (3.7.0 installed, 3.8.0 as pinned in tests/requirements-typing.txt) and has no types-/-stubs distribution, which the rule (no exceptions) and its hassfest check require.",
+   "mechanism": "The row's comment reads the rule's py.typed half as the integration's own marker (qs_py_typed_files=1), but the rule page says 'Its library must be typed as well, and ship a py.typed file' and hassfest checks 'every requirement in its manifest must ship a py.typed file, or have a separate types- stubs package'. optimizer.py:1447 itself records that threadpoolctl publishes no py.typed and no stub distribution exists, and resolves it by importlib to dodge import-untyped. tests/entities.py derives the manifest tier from these rows, so the manifest's quality_scale: platinum rests on the false row. Fails D10-criteria Q2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "value": 1,
+    "unit": "requirements",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 260.47,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/manifest.json:requirements (via quality_scale.yaml:rules.strict-typing)",
+   "perturbation": {
+    "change": "--perturb req (threadpoolctl dropped from the manifest requirements in memory) or --perturb row (strict-typing read as todo)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 under either perturbation"
+   },
+   "metric_definition": "untyped_requirements_under_done_row: manifest requirements with no py.typed and no types-/-stubs dist (installed or typing-lock pinned) while strict-typing is done",
+   "phenomenon_property": "A done strict-typing row holds only if every manifest requirement is typed (py.typed in the distribution, or a stub distribution).",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^REQ'   (add --pinned to judge the typing lock's versions)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row",
+    "value": 0,
+    "note": "with the row at todo the claim vanishes; numpy (py.typed) and scipy (scipy-stubs pinned) count 0 at baseline"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --pinned",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb req",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "files": [
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    "custom_components/heatpump_optimizer/manifest.json",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "proposed_fix_scope": "Either make the requirement typed (upstream py.typed / a stub package, or drop threadpoolctl for a typed equivalent) or set strict-typing to todo with the reason, letting tests/entities.py re-derive the manifest tier (gold). Correct the row comment's reading of the py.typed half."
+  },
+  {
+   "id": "D10-s3-02",
+   "scope": "D10-s3",
+   "step": "D10.M1",
+   "title": "Coordinator has no config_entry: HeatPumpOptimizerConfigEntry annotation under a done strict-typing row",
+   "severity": "low",
+   "claim": "HeatPumpOptimizerCoordinator (the integration's one DataUpdateCoordinator subclass) declares no config_entry annotation anywhere in its in-package MRO, so its config_entry is the base's bare ConfigEntry | None, while strict-typing is done and its comment claims every attribute annotation is typed.",
+   "mechanism": "The rule pages (strict-typing: 'use a typed config entry everywhere you get one'; runtime-data: 'A coordinator that gets the config entry should use the typed entry too: config_entry: MyConfigEntry', pylint home-assistant-coordinator-untyped-config-entry) ask for the class annotation. The coordinator receives the typed entry (coordinator.py:3514) and passes config_entry=entry (3536) but never re-annotates the attribute; coordinator.py:7022 then reads it through getattr(self, 'config_entry', None). The doc_claims census (qs_entry_param_bare) counts parameters, not this attribute. Fails D10-criteria Q2.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "value": 1,
+    "unit": "classes",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 260.47,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator (inspect.get_annotations over its MRO)",
+   "perturbation": {
+    "change": "--perturb coord (class annotation config_entry: HeatPumpOptimizerConfigEntry patched in memory) or --perturb row",
+    "expected_direction": "to_zero",
+    "observed_value": "0 under either perturbation"
+   },
+   "metric_definition": "coordinator_untyped_under_done_row: in-package DataUpdateCoordinator subclasses lacking a config_entry annotation naming the typed alias, while strict-typing is done",
+   "phenomenon_property": "Every DataUpdateCoordinator subclass of the integration annotates config_entry with the typed entry alias.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^COORD'",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord",
+    "value": 0,
+    "note": "the honest fix's shape moves the count to 0; entry-point parameters (12 sites) already read typed (entry_point_bare=0)"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/quality_scale.yaml"
+   ],
+   "proposed_fix_scope": "Add 'config_entry: HeatPumpOptimizerConfigEntry' to HeatPumpOptimizerCoordinator's class body (no newer HA API needed: config_entry= is already passed at the 2025.2.0 floor) and extend tests/doc_claims.py's census to the attribute."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every checklist platinum rule (3: async-dependency, inject-websession, strict-typing; checklist fetched 2026-11-16, 54 rules total) has a row (Q1)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+   "value": "platinum_rows_missing=0; draft register parses to 54 rows"
+  },
+  {
+   "claim": "inject-websession holds at every HTTP site: 0 aiohttp.ClientSession/httpx client constructions; Tibber (coordinator.py:6965 -> price_model._tibber_post), Open-Meteo (open_meteo.py:352) and the config-flow token check (config_flow.py:518) all use async_get_clientsession",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py  (control: --perturb session -> 1)",
+   "value": "unshared_http_sessions=0"
+  },
+  {
+   "claim": "async-dependency holds: no blocking network library imported; executor jobs are CPU solves and local file I/O, not library network calls; requirements numpy/scipy/threadpoolctl do no I/O (the row would be more exactly 'exempt' under the page's exception, which the draft records)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep BLOCKING",
+   "value": "blocking_io_imports=0"
+  },
+  {
+   "claim": "Typed config entry at every entry point the runtime-data page lists: __init__ setup/unload/migrate/remove, 6 platform async_setup_entry, diagnostics, async_get_options_flow",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py  (control: --perturb entry -> 1)",
+   "value": "entry_point_bare=0 over 12 parameters"
+  },
+  {
+   "claim": "scipy is typed for strict-typing purposes via scipy-stubs 1.18.1.1 pinned in the project's typing lock; numpy ships py.typed",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --pinned",
+   "value": "REQ scipy typed=True; REQ numpy typed=True"
+  },
+  {
+   "claim": "M2: no todo platinum rule needs an HA API newer than the hacs.json floor 2025.2.0 (DataUpdateCoordinator config_entry= is already used at the floor; the threadpoolctl gap is library-side)",
+   "command": "grep -n 'config_entry=entry' custom_components/heatpump_optimizer/coordinator.py; cat hacs.json",
+   "value": "minimum HA release needed: none (floor 2025.2.0)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D10/s3/platinum_rules.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator",
+   "what": "runtime-data (bronze) names pylint home-assistant-coordinator-untyped-config-entry for the same missing config_entry annotation as D10-s3-02; runtime-data row's done may be affected."
+  },
+  {
+   "owner_seat": "D10-s1",
+   "file": "custom_components/heatpump_optimizer/",
+   "symbol": "mypy --strict (D10.M3)",
+   "what": "strict-typing's mypy-strict half (error count by category) was not measured here; it is M3, D10-s1's cell."
+  }
+ ]
+}

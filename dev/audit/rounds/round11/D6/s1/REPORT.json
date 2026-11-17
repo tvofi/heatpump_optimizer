@@ -1,0 +1,251 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s1/REPORT.md",
+ "exposure": "Read the docs in my cells (required by D6). No earlier-round findings read. DISCLOSURE: the export is not byte-identical to the baseline commit. While chasing tests/doc_claims.py's crash on an AppleDouble file (docs/._configuration.md, owner 501:staff), I ran `git archive 92d38ecb | diff -r` against the export and saw the list of differing files and their hunks: 18 production modules (const, defrost, grid_fee, heat_curve, inputs, legionella, mixing_valve, optimizer, power_guard, presets, price_model, pump_arbiter, sensor, store, tariff, thermal_model, wood_fuel), translations/de.json, www/heatpump-optimizer-card.js, and docs/configuration.md line 901 (20 -> 60 seconds). These look like decision 0018's planted defects, so this seat's planted-defect recall is contaminated and should be discounted. The configuration.md echo-grace row in D6-s1-01 and the D1-s1 echo lead were checked after I saw that diff. The legionella rows and the learner divergence came out of the ledger and redispatched-item harnesses. I measured everything against the export, which is the tree under test, never the archive, and I deleted the extracted archive. I list no other plant as a lead.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/text_ledger.py units --dim D6 --seat D6-s1 --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "universe": 3970,
+   "examined": 3970,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Each of the 3970 units has a row in dev/audit/rounds/round11/D6/s1/ledger.tsv, written by ledger.py from text_ledger.enumerate_units on the export, with each unit's full text. A committed rule classes them: 3340 claim and 630 no-claim (headings, imperatives, questions, code fences, the DISCLAIMER's legal text, fragments under 4 words). C2 and C3: every behavioural and prose sentence in how-it-works, architecture, dashboard-card, ecl110, setup and automations now has its own numbered claim row (unit id). Live Pages site: live_page.py fetched it. The product page has 0 diff lines against docs/index.html, all 9 live sub-pages answer 200, and they have 0 unresolved anchors."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "awk -F'\\t' 'NR>1 && $3==\"claim\" {print $1}' dev/audit/rounds/round11/D6/s1/ledger.tsv",
+   "universe": 3340,
+   "examined": 634,
+   "not_reached": [
+    "README.md: 392 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "RELEASE_NOTES.md: 312 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "ROADMAP.md: 9 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/architecture.md: 29 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/automations.md: 17 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/configuration.md: 796 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/dashboard-card.md: 362 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/ecl110.md: 95 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/how-it-works.md: 468 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/index.html: 115 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "docs/setup.md: 96 claim rows marked NOT-REACHED (behavioural or prose, no executed check)",
+    "tools/site/build_docs.mjs: 15 claim rows marked NOT-REACHED (behavioural or prose, no executed check)"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "634 claims have an executed check. Breakdown: about 113 settings-table defaults and ranges against config_flow._OPTION_FIELDS and the wizard/const defaults; backticked identifiers, paths, services and entity ids resolved against production, tests, tools and the baseline tree; relative links against the tree; 13 external URLs by HEAD, all 200 (GitHub URLs resolved in-tree, 7 outside the tree left unverifiable because GitHub is not read); build_docs.mjs PASS with 0 FAIL lines; d6_page_anchors.py over index.html and the 9 built pages, 0 unresolved; 14 behavioural rows from claims.py. C1: 24 menu pages (23 editable plus the overview), true; the 20 h manual-plan window, true (an expiry of 30 h clamps to 20 h, a slot starting at +20.25 h is refused); 8 weekly snapshots, true; ±12 %, true (scale 0.979). The link HEADs were run. C4 is only partial: the HEADs were run and 8 behavioural claims were driven against production and tests/rolling.py's closed loop, but golden.py scenarios were not used and 2706 behavioural rows are still unchecked."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D6-s1",
+   "universe": 14,
+   "examined": 14,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "text_ledger.py --dim D6 --seat D6-s1 check ledger.tsv: units=3970 rows=3970 claims=3340 true=622 false=5 stale=0 unverifiable=2713 unrowed=0 orphan=0 malformed=0. --plant: plant_refused=1 in DISCLAIMER.md. The false rows sit in 2 of the 14 files: docs/configuration.md (3, D6-s1-01) and README.md (2, D6-s1-02). The other 12 files hold no false or stale row among their checked claims."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M2",
+   "what": "2706 claim rows have no executed check, by file: README.md 392, RELEASE_NOTES.md 312, ROADMAP.md 9, docs/architecture.md 29, docs/automations.md 17, docs/configuration.md 796, docs/dashboard-card.md 362, docs/ecl110.md 95, docs/how-it-works.md 468, docs/index.html 115, docs/setup.md 96, tools/site/build_docs.mjs 15. These are mostly behavioural 'the optimizer will...' prose and numbers in prose. RELEASE_NOTES history claims were not checked against the code at each version. C4 (checking behaviour against golden scenarios) is not done."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s1-01",
+   "scope": "D6-s1",
+   "step": "D6.M3",
+   "title": "docs/configuration.md: three rows contradict the code (legionella interval 7 vs 10 days; 60 s echo grace not applied)",
+   "severity": "medium",
+   "claim": "docs/configuration.md holds 3 ledger rows whose executed check contradicts production: two settings-table rows give the anti-legionella interval default as 7 days while every _OPTION_FIELDS row and ThermalParameters default to 10, and line 894's sentence says readings in the first 60 s after a write are not counted while pump_arbiter.hold counts a differing reading at +5 s (and ECHO_GRACE_S is 20 s).",
+   "mechanism": "The table cell and the prose were written against a default and a grace the code does not carry: DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS is 10.0 (config_flow _OPTION_FIELDS hot_water row, thermal_model.ThermalParameters), and hold() drops the write record (counts a miss) on the first differing reading with no time gate, so no window of 60 s (or 20 s) is honoured.",
+   "evidence": {
+    "command": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py && PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt && PYTHONPATH=tests/hastub python3 tools/audit/text_ledger.py --dim D6 --seat D6-s1 --repo REPO --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 check dev/audit/rounds/round11/D6/s1/ledger.tsv",
+    "harness_path": "dev/audit/rounds/round11/D6/s1/ledger.py",
+    "value": 3,
+    "unit": "false rows in docs/configuration.md (ledger.py FILE line; check RESULT false=5 over the seat)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B1 (export /home/user/audit-r11-baseline)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 8.08,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_OPTION_FIELDS; heatpump_optimizer.pump_arbiter:hold",
+   "perturbation": {
+    "change": "claims.py --perturb-grace 60 (in-memory one-line edit of pump_arbiter.hold: `if observed is None:` -> `if observed is None or utc_elapsed_seconds(now, at) < 60:`) plus ledger.py --perturb-default dhw_legionella_interval_days=7 (with claims.py --perturb-legionella 7)",
+    "expected_direction": "to_zero",
+    "observed_value": "configuration.md false rows 3 -> 0; echo_grace_contradictions 6 -> 0 (6 -> 3 at --perturb-grace 20)"
+   },
+   "metric_definition": "Count of docs/configuration.md ledger rows whose executed check (option-row default/bounds, driven pump_arbiter.hold at +5..+90 s) contradicts the sentence.",
+   "phenomenon_property": "Every default, range and timing that docs/configuration.md states for a setting or a write path equals what the production seam delivers: the _OPTION_FIELDS row's default and selector bounds, and the arbiter's actual non-counting window after a write.",
+   "seam_rule": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt  (rows FILE docs/configuration.md; FALSE lines)",
+   "null_control": {
+    "command": "same pipeline with the perturbations above",
+    "value": 0,
+    "note": "rows the code agrees with stay true: 243 true rows in configuration.md, among them 92+ settings-table defaults/ranges"
+   },
+   "reproduction_steps": [
+    "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py --skip-rolling  -> CLAIM echo_grace_60s FALSE, RESULT echo_grace_contradictions=6",
+    "git ls-tree -r --name-only 92d38ecb > TREE.txt; PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt -> FALSE docs/configuration.md#f452785306 L287, #f452785306.1 L478, #5c31343a33 L894"
+   ],
+   "proposed_fix_scope": "Decide the intended values (owner): either the legionella default returns to 7 days or both configuration.md rows say 10; and either hold() honours an echo window after a write (pump_arbiter) or line 894's sentence states the real window; then align the sentence to the measured value.",
+   "files": [
+    "docs/configuration.md",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  },
+  {
+   "id": "D6-s1-02",
+   "scope": "D6-s1",
+   "step": "D6.M3",
+   "title": "README.md: legionella 'every 7 days' (code 10) and the closed-loop learner sentence (learner diverges) are false",
+   "severity": "medium",
+   "claim": "README.md holds 2 ledger rows whose executed check contradicts the tree: line 499 says anti-legionella runs every 7 days by default while ThermalParameters() defaults to 10 days, and line 916 says the learned correction converges toward a 35 % heavier true loss over three days and strictly cuts the comfort breach, while the driven closed loop takes the scale from 1.000 to 0.300 and raises the breach from 0.00 to 5.42 K·h.",
+   "mechanism": "The README states a default and a learner outcome; the code delivers DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS = 10.0, and tests/rolling.py's own closed loop (run_rolling, real HeatPumpOptimizerCoordinator learner) at plant_error 1.35 drives _house_heat_loss_scale away from the truth to 0.30 in the tree under test.",
+   "evidence": {
+    "command": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py && PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt",
+    "harness_path": "dev/audit/rounds/round11/D6/s1/claims.py",
+    "value": 2,
+    "unit": "false rows in README.md (claims.py RESULT legionella_default_days=10, learned_scale_end=0.300)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B1 (export /home/user/audit-r11-baseline)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out (load1 8.45); counts and ratios, not timings",
+    "tolerance": "exact for the count; learned_scale_end ±0.02 (solver/BLAS-dependent)",
+    "load1": 8.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters (dhw_legionella_interval_days); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._house_heat_loss_scale via tests/rolling.py:run_rolling",
+   "perturbation": {
+    "change": "claims.py --perturb-legionella 7 (ThermalParameters/const default -> 7) for the legionella row; for the learner row, the arm's plant_error 1.35 -> 1.0 (the correct-model arm, run by the same harness)",
+    "expected_direction": "down",
+    "observed_value": "legionella_contradictions 1 -> 0; correct-model arm scale 0.979 (|drift| 0.021) against 0.300 at 1.35"
+   },
+   "metric_definition": "Count of README.md ledger rows whose executed check (ThermalParameters default; run_rolling learned arm scale/breach) contradicts the sentence.",
+   "phenomenon_property": "Every default and every learner outcome README.md states equals what the production code delivers when driven: the parameter default, and the closed-loop learner's direction, overshoot and breach effect.",
+   "seam_rule": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt  (FILE README.md; FALSE lines)",
+   "null_control": {
+    "command": "claims.py (learner_left_alone_12pct arm, plant_error 1.0)",
+    "value": "0.979",
+    "note": "with a correct model the learner stays within ±12 % (0.021), so the 1.35 arm's 0.300 is the learner's response to the error, not a harness artefact"
+   },
+   "reproduction_steps": [
+    "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py  (about 6 min; CLAIM legionella_default FALSE, CLAIM learner_converges_35pct FALSE)"
+   ],
+   "proposed_fix_scope": "Legionella: align README line 499 with the decided default (see D6-s1-01). Learner: the README sentence is false because the learner diverges in this tree (lead to D2-s1); fix the learner, then re-run claims.py; only if the behaviour is intended does the sentence change.",
+   "files": [
+    "README.md",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "README: the options menu has 24 pages, 23 you can edit plus a read-only overview",
+   "command": "claims.py",
+   "value": "24 pages (8 top + 16 advanced), 1 read-only (setup_overview)"
+  },
+  {
+   "claim": "README, index.html, configuration.md: manual pins for up to 20 hours; expires_at defaults to and clamps at 20 h",
+   "command": "claims.py",
+   "value": "expiry of 30 h clamps to 20 h; a slot at +20.25 h is refused"
+  },
+  {
+   "claim": "README and how-it-works: weekly learner snapshots, the last 8 kept",
+   "command": "claims.py",
+   "value": "13 taken over 12 weeks, 8 kept, gaps of 7 days"
+  },
+  {
+   "claim": "README: a model that is already correct is left alone (within ±12 %)",
+   "command": "claims.py",
+   "value": "2-day closed loop at plant_error 1.0: scale 0.979 (|drift| 0.021)"
+  },
+  {
+   "claim": "README and how-it-works: the peak guard needs two agreeing samples to engage and two to clear",
+   "command": "claims.py",
+   "value": "suppressing after over,over,clear,clear = [False, True, True, False]"
+  },
+  {
+   "claim": "README: comfort_weight defaults to 5, on Savings vs comfort",
+   "command": "claims.py",
+   "value": "_OPTION_FIELDS ('tuning', 5.0)"
+  },
+  {
+   "claim": "configuration.md and README settings tables: defaults and ranges",
+   "command": "ledger.py --tree tree_92d38ecb.txt",
+   "value": "113 rows keyed; every one agrees except the 2 legionella-interval rows in D6-s1-01"
+  },
+  {
+   "claim": "Links and anchors in README and every rendered doc page",
+   "command": "ledger.py (build_docs.mjs + d6_page_anchors.py)",
+   "value": "build_docs PASS, 0 FAIL lines; 0 unresolved anchors over 10 pages"
+  },
+  {
+   "claim": "External links",
+   "command": "ledger.py (HEAD)",
+   "value": "13 non-GitHub URLs all 200; in-tree repo URLs all tracked"
+  },
+  {
+   "claim": "The live Pages site equals the tree's page",
+   "command": "live_page.py",
+   "value": "live_vs_tree_diff_lines=0; 9 of 9 sub-pages 200; 0 unresolved anchors"
+  },
+  {
+   "claim": "Backticked identifiers, paths, services and entity ids name things that exist",
+   "command": "ledger.py",
+   "value": "0 false after the harness rules for served paths, hosts, other repositories, name fragments, negations and third-party integrations. These rule changes were harness gaps, not doc defects: the 18 first-pass false rows were all harness false positives"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s1/ledger.py",
+  "dev/audit/rounds/round11/D6/s1/claims.py",
+  "dev/audit/rounds/round11/D6/s1/live_page.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D2-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._house_heat_loss_scale (driven by tests/rolling.py:run_rolling)",
+   "what": "On the export, the closed-loop learner at plant_error 1.35 (4.25 kW pump, 3 days) drives the heat-loss scale from 1.000 to 0.300, away from the truth, and the comfort breach rises from 0.00 to 5.42 K·h. With a correct model it stays at 0.979. tests/rolling.py's 'moves towards the real error' check would fail. Command: claims.py, CLAIM learner_converges_35pct."
+  },
+  {
+   "owner_seat": "D1-s1",
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "hold",
+   "what": "hold() counts a differing reading as a miss at +5 s after a write (the write record is dropped), with no echo-grace gate. ECHO_GRACE_S (20 s) is applied only in _edited. A Tuya echo inside the 8 s sent-value window would read as 'the pump does not hold'. Seen after the baseline diff (see exposure); measured by claims.py echo_grace_60s."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/doc_claims.py",
+   "symbol": "DOCS glob / plan_view arm",
+   "what": "In this export tests/doc_claims.py crashes on the non-UTF-8 AppleDouble docs/._configuration.md, which is an export artefact. On a clean copy it fails in tests/plan_view.py: 'space slot energy 46.595 kWh != schedule 46.621 kWh'. So the registered doc claims could not be read from it this round."
+  }
+ ]
+}

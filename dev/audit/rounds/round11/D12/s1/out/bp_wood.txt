@@ -1,0 +1,9 @@
+== none
+RESULT bp_pairs=54 count
+RESULT bp_fail_pairs=0 count
+== cheaper_windows
+RESULT bp_pairs=54 count
+RESULT bp_fail_pairs=12 count
+== lighting_start
+RESULT bp_pairs=54 count
+RESULT bp_fail_pairs=12 count

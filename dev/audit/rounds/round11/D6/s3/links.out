@@ -1,0 +1,3 @@
+LINK 200 https://developer.tibber.com <- custom_components/heatpump_optimizer/translations/en.json#6c186549fc, custom_components/heatpump_optimizer/translations/en.json#6c186549fc.1, custom_components/heatpump_optimizer/translations/en.json#3cf872f82d, custom_components/heatpump_optimizer/translations/en.json#6c186549fc.2, custom_components/heatpump_optimizer/translations/en.json#3cf872f82d.1, custom_components/heatpump_optimizer/config_flow.py#37565eb5f1
+RESULT links=1 count
+RESULT links_dead=0 count

@@ -1,0 +1,157 @@
+SELFCHECK histogram keys equal to per-entry keys: yes
+WINDOW v7.1.0..92d38ecb640b merges=569 budgets_paths=55
+RESULT accepted_entries=174 entries
+RESULT unparsed_entries=0 entries
+RESULT one_file=69 entries
+RESULT one_file_share=0.397 ratio
+RESULT ambiguous=0 entries
+RESULT no_file=105 entries
+RESULT no_file_ids=84 ids
+
+per file: entries, distinct PRs, each spelling (count) -- and the production key(s) those entries got
+  tools/audit/briefs/fixer.md  38 entries 20 PRs
+      spellings: fixer.md 32 | fixer 5 | fixer.md#2 1
+      production keys: tools/audit/briefs/fixer.md 33 | fixer 5
+  .claude/rules/finding-propagation.md  5 entries 5 PRs
+      spellings: finding-propagation.md 3 | finding-propagation 2
+      production keys: .claude/rules/finding-propagation.md 5
+  .claude/rules/gate-scoping.md  5 entries 5 PRs
+      spellings: gate-scoping 3 | gate-scoping.md 2
+      production keys: .claude/rules/gate-scoping.md 5
+  .claude/rules/ci-autofix.md  4 entries 4 PRs
+      spellings: ci-autofix 2 | ci-autofix.md 1 | .claude/rules/ci-autofix.md 1
+      production keys: .claude/rules/ci-autofix.md 4
+  tools/audit/briefs/orchestrator.md  3 entries 3 PRs
+      spellings: orchestrator.md 2 | orchestrator 1
+      production keys: tools/audit/briefs/orchestrator.md 2 | orchestrator 1
+  .claude/rules/defect-root-cause.md  3 entries 3 PRs
+      spellings: defect-root-cause 2 | defect-root-cause.md 1
+      production keys: .claude/rules/defect-root-cause.md 3
+  .claude/rules/ratchet-budgets.md  2 entries 2 PRs
+      spellings: ratchet-budgets 1 | ratchet-budgets.md 1
+      production keys: .claude/rules/ratchet-budgets.md 2
+  dev/governance/roles/designer.md  2 entries 2 PRs
+      spellings: designer 1 | designer.md 1
+      production keys: dev/governance/roles/designer.md 2
+  .claude/rules/brief-citations.md  2 entries 2 PRs
+      spellings: brief-citations 1 | brief-citations.md 1
+      production keys: .claude/rules/brief-citations.md 2
+  dev/governance/roles/design-review.md  1 entries 1 PRs
+      spellings: design-review.md 1
+      production keys: dev/governance/roles/design-review.md 1
+  tools/audit/briefs/fix-review.md  1 entries 1 PRs
+      spellings: fix-review.md 1
+      production keys: tools/audit/briefs/fix-review.md 1
+  .claude/rules/writing-for-agents.md  1 entries 1 PRs
+      spellings: writing-for-agents 1
+      production keys: .claude/rules/writing-for-agents.md 1
+  dev/governance/roles/standing.md  1 entries 1 PRs
+      spellings: standing.md 1
+      production keys: dev/governance/roles/standing.md 1
+  .claude/rules/claim-files.md  1 entries 1 PRs
+      spellings: claim-files.md 1
+      production keys: .claude/rules/claim-files.md 1
+
+ambiguous rows:
+
+no-file rows (all, by count):
+  brief 4  (production key: brief)
+  review-packet-brief-carries 3  (production key: review-packet-brief-carries)
+  handoff-wip 3  (production key: handoff-wip)
+  fixer-step-push 3  (production key: fixer-step-push)
+  frugal-inline-budget 3  (production key: frugal-inline-budget)
+  PROMPT.md 3  (production key: PROMPT.md)
+  fixer.md-step-3 3  (production key: tools/audit/briefs/fixer.md)
+  frugal-routing 3  (production key: frugal-routing)
+  frugal-inline-guard 3  (production key: frugal-inline-guard)
+  frugal-routing-hook 2  (production key: frugal-routing-hook)
+  fixer-brief 2  (production key: fixer-brief)
+  brief-roster-ref 1  (production key: brief-roster-ref)
+  part-cut 1  (production key: part-cut)
+  gh-refused 1  (production key: gh-refused)
+  policy-docs-timeout 1  (production key: policy-docs-timeout)
+  ha_floor.py 1  (production key: ha_floor.py)
+  D6-claims-harness 1  (production key: D6-claims-harness)
+  r10-process-slim-1 1  (production key: r10-process-slim-1)
+  r10-process-slim-2 1  (production key: r10-process-slim-2)
+  r10-process-slim-3 1  (production key: r10-process-slim-3)
+  r10-process-slim-4 1  (production key: r10-process-slim-4)
+  r10-process-slim-5 1  (production key: r10-process-slim-5)
+  figure_block.py 1  (production key: figure_block.py)
+  prepr-ci-predict 1  (production key: prepr-ci-predict)
+  fixer-step-6 1  (production key: fixer-step-6)
+  prepr-6d 1  (production key: prepr-6d)
+  policy-loop 1  (production key: policy-loop)
+  selftest_wiring 1  (production key: selftest_wiring)
+  frugal-guard 1  (production key: frugal-guard)
+  step-ref 1  (production key: step-ref)
+  review 1  (production key: review)
+  measure 1  (production key: measure)
+  harness-docs 1  (production key: harness-docs)
+  prepr.sh 1  (production key: prepr.sh)
+  tests/entities.py 1  (production key: tests/entities.py)
+  scorecard 1  (production key: scorecard)
+  stale-premise 1  (production key: stale-premise)
+  harness-stale 1  (production key: harness-stale)
+  handoff-wip-step-push 1  (production key: handoff-wip-step-push)
+  acceptance-d 1  (production key: acceptance-d)
+  tests/arch_score.py 1  (production key: tests/arch_score.py)
+  brief-stop-restore 1  (production key: brief-stop-restore)
+  pin-killed-timeout 1  (production key: pin-killed-timeout)
+  wip-ref-not-ff 1  (production key: wip-ref-not-ff)
+  main-vendor-census 1  (production key: main-vendor-census)
+  mutation-proof 1  (production key: mutation-proof)
+  r10-outside-diag-redact-location 1  (production key: r10-outside-diag-redact-location)
+  selftest-scope-record 1  (production key: selftest-scope-record)
+  base-churn 1  (production key: base-churn)
+  i18n-crossing 1  (production key: i18n-crossing)
+  design-note 1  (production key: design-note)
+  pr-contract-base-restore 1  (production key: pr-contract-base-restore)
+  merge-tree 1  (production key: merge-tree)
+  stress-memory-probe 1  (production key: stress-memory-probe)
+  mutant-cmd-scope 1  (production key: mutant-cmd-scope)
+  review_packet.py 1  (production key: review_packet.py)
+  rounds.py 1  (production key: rounds.py)
+  policy_budgets.json 1  (production key: policy_budgets.json)
+  review-packet-deferral-read 1  (production key: review-packet-deferral-read)
+  failure_logs 1  (production key: failure_logs)
+  cloud-seat-bash-env 1  (production key: cloud-seat-bash-env)
+  fixer-pi-measurement 1  (production key: fixer-pi-measurement)
+  fixer-wip-ref 1  (production key: fixer-wip-ref)
+  fixer.md-step5 1  (production key: tools/audit/briefs/fixer.md)
+  ci-predict-inprocess-import 1  (production key: ci-predict-inprocess-import)
+  cloud-setup 1  (production key: cloud-setup)
+  seat-output-refs 1  (production key: seat-output-refs)
+  nightly-dispatch-instrument 1  (production key: nightly-dispatch-instrument)
+  brief-cause 1  (production key: brief-cause)
+  handoff-wip-stale 1  (production key: handoff-wip-stale)
+  concurrent-seat 1  (production key: concurrent-seat)
+  harness-listing-cap 1  (production key: harness-listing-cap)
+  tools/audit/seat/cloud-setup.sh 1  (production key: tools/audit/seat/cloud-setup.sh)
+  R10-POLICY-ROLE-PACK 1  (production key: R10-POLICY-ROLE-PACK)
+  body_push.sh 1  (production key: body_push.sh)
+  fixer.md-preamble 1  (production key: tools/audit/briefs/fixer.md)
+  fixer.md-step-5 1  (production key: tools/audit/briefs/fixer.md)
+  carry-audit 1  (production key: carry-audit)
+  census-width 1  (production key: census-width)
+  payload-identity 1  (production key: payload-identity)
+  payload-role 1  (production key: payload-role)
+  R10-PIN-DRIVE-INCONCLUSIVE 1  (production key: R10-PIN-DRIVE-INCONCLUSIVE)
+  R10-RCA-MUTATION-SURVIVOR 1  (production key: R10-RCA-MUTATION-SURVIVOR)
+  main-checkout-guard 1  (production key: main-checkout-guard)
+
+RESULT rule_file_prod_other=6 entries (one file by the rule, another key in production)
+  tools/audit/briefs/orchestrator.md: orchestrator -> orchestrator (1)
+  tools/audit/briefs/fixer.md: fixer -> fixer (5)
+RESULT prod_file_rule_none=6 entries (no file by the rule, a --budgets file in production)
+  #3308 fixer.md-step5 -> tools/audit/briefs/fixer.md
+  #3275 fixer.md-step-3 -> tools/audit/briefs/fixer.md
+  #3077 fixer.md-preamble -> tools/audit/briefs/fixer.md
+  #3077 fixer.md-step-5 -> tools/audit/briefs/fixer.md
+  #3063 fixer.md-step-3 -> tools/audit/briefs/fixer.md
+  #2992 fixer.md-step-3 -> tools/audit/briefs/fixer.md
+RESULT files_at_threshold_split_below=1 files
+  tools/audit/briefs/orchestrator.md (3 PRs by the rule, best production key 2)
+RESULT thread_factor=1.00
+RESULT load1=0.83
+RESULT swapins=0

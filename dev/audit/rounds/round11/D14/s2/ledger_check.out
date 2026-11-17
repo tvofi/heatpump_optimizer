@@ -1,0 +1,64 @@
+CLASS I1 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS I2 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS I3 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS I4 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS I5 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-approval-rebuy status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-body-lint-bounce status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-confounded-learner status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-dispatch-overreach status=open det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-finally-return status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-future-clamp status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-future-instant status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-gate-yield status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-leaf-imports-solver status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-livehead-operator-cancel status=detector det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-log-flood status=barriered det=n bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-move-stale-path status=barriered det=n bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-name-sort status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-no-expiry status=barriered det=n bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-order-coupling status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-orphaned-handoff status=prototype-only det=n bar=n status_vocab=FAIL detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-p2b-assembly-reader status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-period-rollover status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-postreview-merge-red status=open det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-provisional-gate-red-read-final status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-reap-lock status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-registry-leak status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-relay-handoff-starvation status=detector det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-restart status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-restore-race status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-shared-config status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-silent-stop status=detector det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-silent-zero status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-solve-recompute status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-staleness status=barriered det=n bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-stamp-claim-conflict status=open det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-step-grid status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-structure-blind status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-train-only-predicate status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-unmetered-reference status=detector det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS N-vocabulary-drift status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P1 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P10 status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P11 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P2 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P3 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P4 status=detector det=y bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P5 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P6 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P7 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P8 status=open det=n bar=n status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS P9 status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS R10-SELFTEST-RED-INTRODUCED status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS R10-SELFTEST-TABLE-SHRINK status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS R10-TOPIC-FAMILY status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+CLASS R9-ROW-STALE status=barriered det=y bar=y status_vocab=ok detector_cmd=ok paths_exist=ok counts=ok
+RESULT classes=56
+RESULT status_vocab_fail=1 N-orphaned-handoff
+RESULT detector_cmd_fail=0 
+RESULT paths_exist_fail=0 
+RESULT counts_fail=0 
+RESULT thread_factor=0.998
+RESULT load1=3.81
+RESULT swapins=0

@@ -1,0 +1,52 @@
+{
+ "id": "D17-s2-01",
+ "scope": "D17-s2",
+ "step": "D17.M3",
+ "title": "Two-zone mode \"auto\" is always on: finish-now and questionnaire entries are planned as two-zone houses",
+ "severity": "high",
+ "claim": "An entry created by Finish setup now (no zone value saved) or by the building questionnaire (never asked the two-zone question) runs the two-zone model, because ThermalParameters.from_config treats the default mode 'auto' exactly like 'on'.",
+ "mechanism": "thermal_model.py:1122 tests `two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`; DEFAULT_TWO_ZONE_MODE is 'auto', so the presence rule in the else branch (the documented meaning of auto: 'two-zone as soon as any zone value has ever been saved', and the comment two lines above) is unreachable. config_flow._derive_preset then reads that verdict through presets.preset_from_config and writes two-zone keys for every questionnaire answer, contrary to its own docstring ('derives a single-zone model').",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+  "value": 1,
+  "unit": "entries (finish_now entry with no zone value planned two-zone)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+  "tolerance": "exact",
+  "load1": 3.3,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.from_config",
+ "perturbation": {
+  "change": "ThermalParameters.from_config wrapped so mode 'auto' (or absent) answers by zone-key presence -- the one-line fix of dropping DEFAULT_TWO_ZONE_MODE from the tuple at thermal_model.py:1122 (`two_zone_auto.py --perturb`)",
+  "expected_direction": "to_zero",
+  "observed_value": "auto_two_zone_without_values 1->0, questionnaire_two_zone_unasked 1->0, upper_emitter_moves_single_zone_answer 1->0; features_e2e.py items_held 109->112"
+ },
+ "metric_definition": "Created entries whose published two_zone_enabled is True while the entry holds no zone value and never answered the two-zone question (mode absent = auto).",
+ "phenomenon_property": "An entry whose two-zone mode is 'auto' (or absent) is planned two-zone exactly when it carries a zone value; a setup path that never asks the question yields a single-zone model.",
+ "seam_rule": "grep -n \"DEFAULT_TWO_ZONE_MODE\\|TWO_ZONE_MODE_AUTO\" custom_components/heatpump_optimizer/*.py  (every reader of the auto default; plus PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py over the create_entry paths)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+  "value": "explicit_off_two_zone=0, explicit_on_two_zone=1",
+  "note": "an explicit on/off answer is honoured in both arms; only the auto default is wrong"
+ },
+ "reproduction_steps": [
+  "Walk user -> user_sensors -> finish_setup -> finish_now -> setup_overview -> create_entry",
+  "Build HeatPumpOptimizerCoordinator on the entry; run one cycle",
+  "two_zone_enabled is True and the plan carries upper/lower trajectories although no zone value exists"
+ ],
+ "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: let 'auto' fall to the presence rule; re-check presets.preset_from_config / config_flow._derive_preset so a fresh questionnaire derives single-zone keys only; golden fixtures of default entries will drift.",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "custom_components/heatpump_optimizer/presets.py",
+  "custom_components/heatpump_optimizer/config_flow.py"
+ ],
+ "expected_golden_drift": [
+  "tests/golden coordinator fixtures built from entries without two_zone_mode (coord_minimal and similar)"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}
