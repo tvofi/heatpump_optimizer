@@ -708,6 +708,7 @@ INERT_EXCEPT = (
     # dependency, not inert prose, whatever directory it lives in.
     "docs/dashboard-card.md",
     "docs/ecl110.md",
+    "docs/heat-curve.md",
     "docs/how-it-works.md",
     "docs/setup.md",
     # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc

@@ -808,3 +808,10 @@
 # advisor_empty move on advisor.step_grid, advisor_page also on
 # advisor.basis_history, savings_page on receipt.covers; the other 18 render
 # the What-if panel and move on whatif.no_windows_hint. Text nodes only.
+
+# R11-OWNER-GENERIC-CONTROL-TEXT carry (#3643): dearer becomes pricier in stats.dearer
+# (the what-if delta hint) and in why.sub_dearer (the hover's Because line), the short
+# form because "more expensive" wraps both at 375 px. Text nodes only.
+draft_dirty_menu_open  # what-if delta hint: "pricier than the saved plan"
+draft_mid_drag  # what-if delta hint: "pricier than the saved plan"
+tooltip_hover  # the hovered idle step's Because line: "this hour is pricier than the hours the plan uses"

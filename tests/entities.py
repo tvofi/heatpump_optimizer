@@ -6712,9 +6712,9 @@ R.check(
 # Two the audit brief flagged and this PR deliberately leaves alone, pinned so
 # a future "consistency" pass does not add a device class to either.
 R.check(
-    "ECL110 Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["ECL110 Displace"], "_attr_device_class", None) is None
-    and by_name["ECL110 Displace"]._attr_native_unit_of_measurement == "°C",
+    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
+    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
+    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
     "a TEMPERATURE device class would have HA convert a delta as an absolute",
 )
 R.check(
