@@ -4,3 +4,4 @@
 1794876429 CKPT BLOCKED.md pushed to handoff-wip snapshot b029cf06d333
 1794876433 DONE blocked: carries 0-1 already landed in #3677 (6d369cd68f); carries 2-3 asked of owner in BLOCKED.md
 1794877433 HB alive
+1794877720 CKPT fix + failing-first tests committed, wip pushed snapshot d3b19c769367
