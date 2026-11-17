@@ -2387,6 +2387,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -5400,7 +5401,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 1217.7
+   "seconds": 422.7
   },
   "tests/finite_boundary.py": {
    "rc": 0,
