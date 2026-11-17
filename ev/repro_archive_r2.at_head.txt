@@ -1,0 +1,8 @@
+null control: one deflated member: returned ''
+the member's encrypted flag is set: returned 'a member cannot be read (RuntimeError)'
+the member's compression method is one zipfile does not implement (99): returned 'a member cannot be read (NotImplementedError)'
+the member's deflate stream is corrupt: returned 'a member cannot be read (error)'
+the member's stream ends early: returned 'a member cannot be read (BadZipFile)'
+scan, run 901's logs archive where the member's encrypted flag is set: rc 0, state complete, run logs {'902': 'ok', '901': 'refused: a member cannot be read (RuntimeError)', '900': 'ok'}
+scan, run 901's logs archive where the member's compression method is one zipfile does not implement (99): rc 0, state complete, run logs {'902': 'ok', '901': 'refused: a member cannot be read (NotImplementedError)', '900': 'ok'}
+rc=0

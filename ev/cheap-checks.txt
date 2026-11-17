@@ -1,0 +1,3 @@
+mb=2d7161a4b70923da910f9997e18db632c0d4ec2d
+untouched-check-done (empty stat above = untouched)
+roles-diff-done

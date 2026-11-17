@@ -1,0 +1,11 @@
+KILLED   archive boundary narrowed (corpus_mirror.py:184) planted at line 184 by repro_archive_r2.py | rc 0
+    the member's encrypted flag is set: RAISED RuntimeError (uncaught by safe_extract)
+    the member's compression method is one zipfile does not implement (99): RAISED NotImplementedError (uncaught by safe_extract)
+    the member's deflate stream is corrupt: RAISED error (uncaught by safe_extract)
+    scan, run 901's logs archive where the member's encrypted flag is set: RAISED RuntimeError out of scan(); in-memory state 'running'
+    scan, run 901's logs archive where the member's compression method is one zipfile does not implement (99): RAISED NotImplementedError out of scan(); in-memory state 'running'
+KILLED   gh any non-zero exit passes (owner_only.py:250) planted at line 250 by repro_probe_r2.py | rc 0
+    a second gh on PATH that exits 2: probe OK
+KILLED   host failure in each() is an answer (corpus_mirror.py:402) planted at line 402 by repro_local_failure.py | rc 1
+        raise OSError(errno.ENOSPC, "No space left on device")
+    OSError: [Errno 28] No space left on device

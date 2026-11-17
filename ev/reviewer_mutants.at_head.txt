@@ -1,0 +1,18 @@
+SKIP tools/audit/seat/owner_only.py: work tree: or read as and: anchor found 0 times
+killed   owner_only.py: reach: a denied stat read as absent  [owner_only self-test: FAIL host: reach reads a stat the kernel refuses as denied, and one that fails any other way as no answer]
+killed   owner_only.py: reach: any OSError read as denied  [owner_only self-test: FAIL host: reach reads a stat the kernel refuses as denied, and one that fails any other way as no answer]
+killed   owner_only.py: owner path: the names loop dropped  [owner_only self-test: FAIL probe: an unlistable identity directory whose key file is readable by name is refused]
+killed   owner_only.py: credential fill: a failure with no stderr passes  [owner_only self-test: FAIL probe: a `git credential fill` that cannot be run, or fails without saying it has no credential, is refused; host: with no ]
+killed   owner_only.py: home dir: unlistable only when open  [owner_only self-test: FAIL probe: a directory under the home that is there and cannot be listed is refused]
+SKIP tools/audit/seat/owner_only.py: model exemption widened to any KEY name: anchor found 2 times
+SKIP tools/audit/seat/owner_only.py: gh: timeout read as no login: anchor found 0 times
+killed   owner_only.py: run: OSError only  []
+killed   corpus_mirror.py: directory itself: a directory entry too  [corpus_mirror self-test: FAIL archives null: nested files, a directory entry and a repeated ancestor extract whole]
+killed   corpus_mirror.py: every member counted a file  [corpus_mirror self-test: FAIL archives: a member that is the directory itself, or a path that is both a file and a directory, is refused whole by rule]
+killed   corpus_mirror.py: every member counted a directory  [corpus_mirror self-test: FAIL archives: a member that is the directory itself, or a path that is both a file and a directory, is refused whole by rule]
+SKIP tools/audit/seat/corpus_mirror.py: write failure: ValueError uncaught: anchor found 0 times
+SKIP tools/audit/seat/corpus_mirror.py: write failure: BadZipFile uncaught: anchor found 0 times
+SKIP tools/audit/seat/corpus_mirror.py: new pass: only error states dropped: anchor found 3 times
+SKIP tools/audit/seat/corpus_mirror.py: size is no answer: anchor found 0 times
+RESULT reviewer mutants survived=0
+rc=0

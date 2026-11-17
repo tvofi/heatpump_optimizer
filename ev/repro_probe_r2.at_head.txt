@@ -1,0 +1,25 @@
+null control (sound account, real git): probe OK
+control: root inside a git work tree: REFUSED the private root <td>/ingit/root is inside a git work tree
+same root, GIT_DIR names a path that is no repository: REFUSED the private root <td>/ingit/root is inside a git work tree
+same root, GIT_CEILING_DIRECTORIES names the work tree: REFUSED the private root <td>/ingit/root is inside a git work tree
+a second gh on PATH that exits 0 (control): REFUSED a gh on PATH reports a login: <td>/ghbinexits0(/gh
+a second gh on PATH that exits 1: REFUSED a gh on PATH did not answer whether it holds a login: <td>/ghbinexits1/gh (exit 1 is neither answer)
+a second gh on PATH that exits 2: REFUSED a gh on PATH did not answer whether it holds a login: <td>/ghbinexits2/gh (exit 2 is neither answer)
+a second gh on PATH that is killed by a signal: REFUSED a gh on PATH did not answer whether it holds a login: <td>/ghbiniskilled/gh (exit -9 is neither answer)
+a second gh on PATH that exits 127 (its interpreter missing a command): REFUSED a gh on PATH did not answer whether it holds a login: <td>/ghbinexits127/gh (exit 127 is neither answer)
+variable PUSH_AUTH set: REFUSED the credential variable PUSH_AUTH is set
+variable DEPLOYKEY set: REFUSED the credential variable DEPLOYKEY is set
+variable SSHKEY set: REFUSED the credential variable SSHKEY is set
+variable PRIVATEKEY set: REFUSED the credential variable PRIVATEKEY is set
+variable ACCESS_TOKENS set: REFUSED the credential variable ACCESS_TOKENS is set
+variable PUSH_SECRETS set: REFUSED the credential variable PUSH_SECRETS is set
+variable SIGNING_KEYS set: REFUSED the credential variable SIGNING_KEYS is set
+variable GH_PASS set: REFUSED the credential variable GH_PASS is set
+variable PUSH_BEARER set: REFUSED the credential variable PUSH_BEARER is set
+variable SESSION_COOKIE set: REFUSED the credential variable SESSION_COOKIE is set
+variable PUSH_JWT set: REFUSED the credential variable PUSH_JWT is set
+variable PUSH_AUTHORIZATION set: REFUSED the credential variable PUSH_AUTHORIZATION is set
+variable NETRC set: REFUSED the credential variable NETRC is set
+variable GIT_CONFIG_COUNT set: REFUSED `git credential fill` did not answer for github.com (exit 128 is neither answer)
+variable MODEL_KEY set: probe OK
+rc=0

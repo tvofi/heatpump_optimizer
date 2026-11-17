@@ -1,0 +1,4 @@
+  ok   gitignore self-test: rule 'config/': 2 finding(s), want 2
+  ok   gitignore self-test: rule '/config/': 0 finding(s), want 0
+layout self-test: ok
+rc=0
