@@ -32,3 +32,4 @@
 1794881599 HB alive
 1794882203 HB alive
 1794882317 CKPT code at handoff/ 3a16b7a; body_push refused figure block on base mismatch; BLOCKED.md pushed snapshot 45da52121edf
+1794882321 DONE blocked: code 3a16b7a on handoff/, prepr rc=0; body_push refused figure block (PR base 6f42281 vs mb 2d7161a); body kept at handoff-wip/r11-outside-rooms-p2-body ff038a8
