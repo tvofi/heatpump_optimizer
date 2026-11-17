@@ -1584,6 +1584,21 @@ async def options_room_list():
         and entry4.options.get(key) == too_many[:32],
         f"errors={refused.get('errors')!r}",
     )
+    # R11-OUTSIDE-ROOMS-P2: the page's opt-in toggle for the floor lift.
+    lift = const.CONF_ROOM_LIFT_ENABLED
+    lift_default = next(k for k in shown["data_schema"].schema if str(k) == lift).default()
+    flow5, entry5, _ = fresh_options()
+    await flow5.async_step_rooms(None)
+    await submit(flow5, "rooms", {key: ["climate.a"], lift: True})
+    check(
+        "opt_rooms",
+        "happy",
+        "the room page offers the lift toggle, off by default, and saves it on beside the list; "
+        "null control, the untouched page above stored no toggle",
+        lift_default is False and entry5.options.get(lift) is True
+        and entry5.options.get(key) == ["climate.a"] and lift not in entry3.options,
+        f"default={lift_default!r} saved={entry5.options.get(lift)!r}",
+    )
 
 
 async def options_menus():
@@ -8024,6 +8039,21 @@ async def options_cleared_price_entity_is_refused():
         f"token={entry.options.get(const.CONF_TIBBER_TOKEN)!r} "
         f"price_entity={entry.options.get(const.CONF_PRICE_ENTITY, 'ABSENT')!r}",
     )
+
+
+# r11-service-schema: option_range answers a number field's own selector range, and refuses a key whose row is no
+# number field or that has no row, rather than answering another row's range or None (simulate_plan reads it).
+_or_weight = next(r.widget.config for r in config_flow._OPTION_FIELDS if r.key == const.CONF_COMFORT_WEIGHT)
+R.check("option_range reads the options table's own number selector for its key",
+        config_flow.option_range(const.CONF_COMFORT_WEIGHT) == (_or_weight["min"], _or_weight["max"])
+        and config_flow.option_range(const.CONF_MIN_TEMP) != config_flow.option_range(const.CONF_MAX_TEMP))
+for _or_key in (const.CONF_PREFILL_OFFER, "no_such_option_key"):
+    try:
+        config_flow.option_range(_or_key)
+        _or_raised = False
+    except KeyError:
+        _or_raised = True
+    R.check(f"option_range refuses {_or_key!r}, which has no number field", _or_raised)
 
 
 async def main() -> int:

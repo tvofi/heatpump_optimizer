@@ -16,4 +16,11 @@
   failure (401, a permission 403, 404, 422, an unclassified one) after its one
   call, a spent budget with its last error and the attempt count; a write is
   never retried. Its `self_test()` runs inside `record_row.py`'s. A workflow
-  step reads through `gh_read_run.py`.
+  step reads through `gh_read_run.py`. `conditional_get` is the one ETag-conditional
+  read of a single-page GET (`gh api -i`, `If-None-Match` from the ETag stored under
+  `$HPO_STATE_DIR/gh-etag/`, shared by every process under that same state directory, not
+  across state directories): a 304 serves the stored body, a 200
+  replaces it, any other failure is UNREADABLE as a plain read's; `ruleset_checks` reads
+  the required-status-checks rule through it for `merge_train.py` and `orchestrator_tick.py`,
+  and the tick's comment and check-run reads go through it too. When: a seat instrument's
+  repeated read of an object that changes rarely.

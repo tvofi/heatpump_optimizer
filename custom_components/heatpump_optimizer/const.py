@@ -53,6 +53,9 @@ CONF_FLOOR_RETURN_TEMP_ENTITY: Final = "floor_return_temp_entity"
 CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
 # A list of room thermometers, climate or sensor entities (#3616); optional.
 CONF_ROOM_TEMPERATURE_ENTITIES: Final = "room_temperature_entities"
+# Opt-in: a room short of its own target raises the planned comfort floor.
+CONF_ROOM_LIFT_ENABLED: Final = "room_lift_enabled"
+DEFAULT_ROOM_LIFT_ENABLED: Final = False
 
 # Solar irradiance forecast source.
 #

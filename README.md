@@ -947,7 +947,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Sensors and entities | Tibber token, weather entity, room and tank sensors, the on/off switch |
 | Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
 | Heat pump telemetry | Mode, defrost, online, fault |
-| Room thermometers | Optional room thermostats or sensors, one per room: their average and the spread between the coldest and warmest room, as two sensors |
+| Room thermometers | Optional room thermostats or sensors, one per room: their average and the spread between the coldest and warmest room, as two sensors; optionally a room below its own target raises the planned minimum |
 | Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
 | Thermal model (expert) | The raw single-zone numbers — heat pump power and COP, masses, losses |

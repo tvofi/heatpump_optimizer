@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:IrradianceSeries.mean_over CLAMP_DROP 6c88c87d",
+  "killed_by": "tests/open_meteo.py",
+  "old": "            overlap = min(end, t) - max(start, sample_start)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`overlap = (end) - max(start, sample_start)`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=8. Each of the 2 sites under this anchor was killed."
+}

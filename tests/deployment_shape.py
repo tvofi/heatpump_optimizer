@@ -58,12 +58,12 @@ the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
 recording finds 167 of the 528 script pairs (33 choose 2) sharing 0.80 or more
-of their production-module closure (162 before #3616 re-recorded the closures
-that import the coordinator; 163 before R11-OUTSIDE-HONEST-STARTS-RUNS's recordings joined
-config_flow_steps.py/debug_collect.py at 0.80, a pair R11-OUTSIDE-ROOMS-P1's rooms.py
-recordings joined alike; 164 until the two sides' recordings met, which joined
-card.mjs/doc_claims.py, card.mjs/harness_headers.py and
-config_flow_steps.py/wood_advisor.py), all 167 among the 406 pairs whose two
+of their production-module closure (164 on each side before the merge joining
+R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
+coordinator, the input reader, the config flow or the sensor platform, and
+R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
+config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
+closures that import the coordinator), all 167 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
@@ -109,8 +109,7 @@ input read puts the pump's start hysteresis on the state builds a coordinator,
 which grew that script's closure from 74 to 91 production files (75 to 92
 beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
 count from 154 to 162; #3616's re-record moved it to 163, and
-R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164;
-the merge of those recordings with R11-OUTSIDE-ROOMS-P1's, which add rooms.py, to 167).
+R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (98 shared production files each), doc_claims.py/harness_headers.py
