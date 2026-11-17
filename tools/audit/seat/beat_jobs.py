@@ -425,7 +425,7 @@ def roster_drain(ctx: Ctx) -> None:
             "roster-hold.json, roster-queue-lines.json and roster-shrank.json under the digest state"])
     def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not
         refused.add(key)
-        n, text = key.split("\t", 1)
+        n, _, text = key.partition("\t")
         event(ctx, f"ROSTER-REFUSED #{n} {text}")
     start = ctx.clock()
     for raw in whole:

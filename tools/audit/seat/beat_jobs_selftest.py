@@ -345,8 +345,9 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"roster_queue.py": probe})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\nset-stage G2 done\n")
     fold_fd = roster_lib.writer_lease(c.state, 0)
+    t0 = time.monotonic()
     bj.roster_drain(c)
-    yielded = f.ran("roster_queue.py") == 0 and not digest(c)
+    yielded = f.ran("roster_queue.py") == 0 and not digest(c) and time.monotonic() - t0 < 0.5  # yields, never waits
     os.close(fold_fd)
     bj.roster_drain(c)
     res["roster-drain: no op starts while an out-of-queue writer holds the roster lease; the next pass runs them"] = (
@@ -373,7 +374,8 @@ def cases(bj) -> dict[str, bool]:
         held and stale and f.ran("roster_queue.py") == 1 and "pushed" in digest(c))
     one = bj.read(c.digest / "state" / "roster-one.queue")
     res["roster-drain: a released hold hands roster_queue the held op, not the hold line"] = (
-        one == "#done set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
+        one == "#done set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n"
+        and c.memory("roster-hold.json", {}) == {})
 
     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
     q = c.state / "roster-drain.queue"
