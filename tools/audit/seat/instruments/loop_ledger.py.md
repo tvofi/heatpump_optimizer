@@ -52,6 +52,14 @@
   pull request, a head naming none) and `uncleared` (no later green) are read
   states beside them. A derived row is never written to a roster and feeds no
   other read. The order of the tests and the null controls are the script's
-  docstring. Limits: a red cleared by a body edit or a review at the same head
-  reads `external`, as a re-run does; a fork's run whose `pull_requests[]` is
-  empty at every run of its sha reads `unread`.
+  docstring. Each row ends with the attempt's failed jobs and a
+  product/machinery column: on a push run, `tools/ci/gate.py`'s `status` over
+  that attempt's jobs (`product <v>, machinery <v>`, each green, red or
+  unread); on any other run `unread`, because `status` takes an event class
+  and `pr` or `pr-cc` is not derivable from a cached run row. Limits: a red
+  cleared by a body edit or a review at the same head reads `external`, as a
+  re-run does; a fork's run whose `pull_requests[]` is empty at every run of
+  its sha reads `unread`; a main red spell already open at the first main run
+  in the directory reads `unread` on every row it reaches until a green main
+  run is read, because the run that opened it is before the window `produce`
+  lists.

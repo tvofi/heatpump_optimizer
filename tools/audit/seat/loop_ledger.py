@@ -55,7 +55,9 @@ red, its cause the first of these that holds:
              push run at or before it, each main run read at its latest
              attempt): n is the pull request merged at main's first red push
              run after its last green one, parsed from that commit's subject in
-             `--repo`; a subject naming none reads unread;
+             `--repo`; a subject naming none reads unread, and so does a spell
+             already open at the first main run read (no green main run read
+             before it: its opener is outside the directory);
   external   a later run at the same head_sha went green;
   #<pr>      (a head row) a later run of the same pull request went green. The
              pull request is the run's `pr`, else the `pr` of a run at its
@@ -65,8 +67,11 @@ red, its cause the first of these that holds:
   states printed beside the causes, never cause words: a derived cause is held
   to roster_lib.is_cause, the test a written caused_by.cause passes, and one it
   refuses reads unread. Each row lists the attempt's failed jobs as
-  tools/ci/gate.py's machinery_line splits them (required, then the rest); its
-  product/machinery column is unread while gate.py holds no verdict function.
+  tools/ci/gate.py's machinery_line splits them (required, then the rest). Its
+  product/machinery column is gate.py's `status` over the attempt's own jobs
+  on a push run, the one event class a cached row names; on any other run it
+  is unread, because `status` takes the class and pr or pr-cc is the pull
+  request's diff, which the row does not hold.
   NO-READ: a run with no job listing at its latest attempt can hold a red no one
   read (a first-attempt success aside): it prints its own unread row, and the
   count is then `gate_reds unread (k of n runs ...)` with the reds read beside it.
@@ -98,6 +103,10 @@ HOTFIX_FIELDS = ("found_by", "caused_by")
 CM_FIELDS = ("caused_by", "family", "cm_kind")
 SHOWN = 5  # unrecorded names printed per read
 UNREAD, UNCLEARED = "unread", "uncleared"  # a red's read states: printed beside the causes, never cause words
+#: the column of a red whose run is no push: gate.status's event class (pr or pr-cc) is the pull request's diff, not the row
+NO_CLASS = ("product/machinery unread (gate.status takes an event class, and pr or pr-cc is not derivable from a "
+            "cached run row)")
+EDGE = {"id": None}  # the red spell main may be in before the first green main run read: its opener is unread
 FOUND_MAIN = "ci-main"  # the found_by word of a red on main's push; a red on a pull-request head is no escape
 _GROUP_LINE = re.compile(r'^\s*"group":\s*"([^"]+)"')
 
@@ -264,6 +273,15 @@ def _gates(doc: dict) -> dict:
     return {j.get("run_attempt") or 1: j.get("conclusion") for j in doc["jobs"] if j.get("name") == "gate"}
 
 
+def _gate():
+    """tools/ci/gate.py, imported at the call: scorecard.py imports this module for owned_split alone."""
+    ci = str(Path(__file__).resolve().parents[2] / "ci")
+    if ci not in sys.path:
+        sys.path.insert(0, ci)
+    import gate
+    return gate
+
+
 def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
     """One row per red (a run attempt whose `gate` job concluded failure) and per run
     that cannot be read, and the run count; None when `d` holds no ci_runs.json.
@@ -287,7 +305,7 @@ def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
         if r.get("head_sha"):
             by_sha[r["head_sha"]].append(r)
     mains = [r for r in runs if _on_main(r) and green.get(r["id"]) is not None]
-    opener, spell = {}, None  # a main run -> the first red main run after main's last green one
+    opener, spell = {}, EDGE  # a main run -> the first red main run after main's last green one read, or EDGE
     for r in mains:
         spell = None if green[r["id"]] else (spell or r)
         opener[r["id"]] = spell
@@ -301,6 +319,8 @@ def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
             return "external", "a later attempt of the run went green"
         before = [m for m in mains if _when(m) <= _when(r)]
         op = opener.get(r["id"]) if _on_main(r) else opener[before[-1]["id"]] if before else None
+        if op is EDGE:
+            return UNREAD, "main red at the first main run read, no green main run read before it"
         if op is not None:
             m = round_metrics.SUBJECT.match(subject(op.get("head_sha")) or "")
             return (f"#{m.group(1)}", f"main red since run {op['id']}") if m else (
@@ -317,8 +337,7 @@ def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
             return f"#{k}", "its later commit went green"
         return UNCLEARED, "no later green"
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ci"))
-    import gate  # here, not at import: scorecard.py imports this module for owned_split alone
+    gate = _gate()
     owed = set(gate.gate_required()) | {"prelude", "gate"}
     for r in runs:
         base = {"id": r["id"], "main": _on_main(r), "sha": (r.get("head_sha") or "-")[:10]}
@@ -331,9 +350,13 @@ def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
             word, why = cause(r, attempt, gates)
             if word not in (UNREAD, UNCLEARED) and not roster_lib.is_cause(word, ()):
                 word, why = UNREAD, f"derived {word} is no caused_by cause"
-            failed = sorted({j["name"] for j in docs[r["id"]]["jobs"] if j.get("run_attempt") == attempt
-                             and j.get("conclusion") == "failure" and j.get("name") != "gate"})
-            rows.append({**base, "attempt": attempt, "cause": word, "why": why,
+            at = [j for j in docs[r["id"]]["jobs"] if j.get("run_attempt") == attempt]
+            failed = sorted({j["name"] for j in at
+                             if j.get("conclusion") == "failure" and j.get("name") != "gate"})
+            # gate.status over the attempt's jobs in run_jobs' shape; "push" is the one class a row names (gate.event_class)
+            pair = gate.status({j["name"]: ("completed" if j.get("conclusion") else "in_progress", j.get("conclusion"))
+                                for j in at}, "push") if r.get("event") == "push" else None
+            rows.append({**base, "attempt": attempt, "cause": word, "why": why, "status": pair,
                          "required": [n for n in failed if n in owed],
                          "machinery": gate.machinery_line({n: ("completed", "failure") for n in failed}, owed)})
     return rows, len(runs)
@@ -353,7 +376,10 @@ def red_lines(d: "Path | None", subject) -> list[str]:
     value = (f"(main {sum(x['main'] for x in reds)}, heads {sum(not x['main'] for x in reds)}) "
              f"caused {_counts(caused)}; cause unread {sum(x['cause'] == UNREAD for x in reds)}; "
              f"uncleared {sum(x['cause'] == UNCLEARED for x in reds)}")
-    column = "product/machinery unread (tools/ci/gate.py holds no verdict function)"
+    pairs = [x["status"] for x in reds if x["status"]]
+    column = (f"product red {sum(a == _gate().RED for a, _ in pairs)}, machinery red {sum(b == _gate().RED for _, b in pairs)} "
+              f"of {len(pairs)} push reds (gate.status); "
+              + NO_CLASS.replace(" unread ", f" unread on {len(reds) - len(pairs)} ", 1))
     out = [f"gate_reds unread ({blind} of {n} runs have no job listing at their latest attempt; beside: "
            f"{len(reds)} reds read {value}; {column})" if blind else f"gate_reds {len(reds)} {value}; {column}"]
     for x in rows:
@@ -364,7 +390,8 @@ def red_lines(d: "Path | None", subject) -> list[str]:
             continue
         out.append(f"  red run {x['id']} attempt {x['attempt']} {where} cause {x['cause']} ({x['why']})"
                    + (f" found_by {FOUND_MAIN}" if x["main"] else "")
-                   + f"; required failed: {', '.join(x['required']) or 'none'}; {x['machinery']}; product/machinery unread")
+                   + f"; required failed: {', '.join(x['required']) or 'none'}; {x['machinery']}; "
+                   + ("product {}, machinery {}".format(*x["status"]) if x["status"] else NO_CLASS))
     return out
 
 
@@ -441,6 +468,7 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
         return next((ln for ln in got[1:] if ln.startswith(f"  red run {i} attempt {attempt} ")), "")
 
     A, B, C, M = "a" * 40, "b" * 40, "c" * 40, "d" * 40
+    edge = "main red at the first main run read, no green main run read before it"
     ON_MAIN = {"event": "pu" + "sh", "branch": "main"}  # spelt apart: ref_privacy.py reads the word as a push site
     green, red = jobs("success"), jobs("failure")
     got = lines([run(1, 1, sha=A, pr=5), run(2, 2, "success", sha=A, pr=5)], {1: red, 2: green})
@@ -500,6 +528,14 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           " found_by ci-main;" in row(got, 11) and "found_by" not in row(got, 12)
           and roster_lib.convergence_why("found_by", FOUND_MAIN, {}, ()) is None)
     check("reds: a head red after main went green again is not main's", " cause uncleared " in row(got, 16))
+    got = lines(spell[1:3], listed, subj)
+    check("reds: a main red spell already open at the first main run read has no opener: unread on the main row and on "
+          "a head row after it, never the first pull request merged in the window",
+          got[0].startswith("gate_reds 2 (main 1, heads 1) caused {}; cause unread 2; uncleared 0")
+          and f" cause unread ({edge}) found_by ci-main;" in row(got, 11) and f" cause unread ({edge});" in row(got, 12))
+    got = lines(spell[1:], listed, subj)
+    check("reds: the edge spell ends at the first green main run read, and the next red after it opens a spell",
+          f" cause unread ({edge})" in row(got, 14) and " cause uncleared " in row(got, 16))
     got = lines(spell, listed, {**subj, M: "v7.1.9: stamp"})
     check("reds: a merge subject naming no pull request reads unread: the row stays and the count is whole",
           got[0].startswith("gate_reds 4 (main 2, heads 2) caused {}; cause unread 3; uncleared 1")
@@ -528,8 +564,8 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           " cause #8 " in row(got, 22) and " cause #8 " in row(got, 23))
     got = lines([run(30, 1, "success", sha=A, pr=5), run(31, 2, "success", sha=M, **ON_MAIN)], {})
     check("NULL reds: a green-only directory reads 0 and no row; a first-attempt success needs no listing",
-          got == ["gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product/machinery unread "
-                  "(tools/ci/gate.py holds no verdict function)"])
+          got == ["gate_reds 0 (main 0, heads 0) caused {}; cause unread 0; uncleared 0; product red 0, machinery red 0 "
+                  "of 0 push reds (gate.status); " + NO_CLASS.replace(" unread ", " unread on 0 ", 1)])
     check("NULL reds: no --runs directory reads unread, and so does a directory with no ci_runs.json",
           red_lines(None, {}.get) == ["gate_reds unread (no --runs directory)"]
           and red_lines(tmp / "empty", {}.get) == ["gate_reds unread (no ci_runs.json in the --runs directory)"])
@@ -547,14 +583,37 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     check("reds: a main run red at an earlier attempt and unconcluded at its latest joins no red spell: uncleared, "
           "never the spell's pull request",
           " cause uncleared (no later green) found_by ci-main;" in row(got, 18) and " cause #41 " in row(got, 11))
-    req = sys.modules["gate"].gate_required()[0]  # gate_reds put tools/ci on the path and imported it
+    gate = _gate()
+    req = gate.gate_required()[0]
     got = lines([run(40, 1, attempt=2, sha=A, pr=5)],
                 {40: jobs("failure", "failure", failed=((1, req), (1, "zz / report"), (2, "zz / report")))})
-    check("reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread",
+    check("reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; a head row's column "
+          "unread, naming gate.status and the class it lacks",
           row(got, 40).endswith(f"; required failed: {req}; machinery (report-only, never gating): zz / report=failure; "
-                                "product/machinery unread")
+                                + NO_CLASS)
           and row(got, 40, 2).endswith("; required failed: none; machinery (report-only, never gating): "
-                                       "zz / report=failure; product/machinery unread"))
+                                       "zz / report=failure; " + NO_CLASS))
+    members = tuple(dict.fromkeys((*gate.REQUIRED["push"], *gate.MACHINERY_JOBS)))
+    prod = next(n for n in gate.REQUIRED["push"] if n not in gate.MACHINERY_JOBS)
+    mach = next(n for n in gate.MACHINERY_JOBS if n in gate.REQUIRED["push"])
+
+    def listing(attempt, **over):  # every member of gate.status's two verdicts on a push run, green but `over`
+        return tuple((attempt, n, over.get(n, "success")) for n in members)
+    both = jobs("failure", "failure", done=listing(1, **{prod: "failure"}) + listing(2, **{mach: "failure"}))
+    got = lines([run(60, 1, attempt=2, sha=M, **ON_MAIN)], {60: both})
+    check("reds: a push run's row prints gate.status's pair over the red attempt's own jobs",
+          row(got, 60).endswith("; product red, machinery green") and row(got, 60, 2).endswith("; product green, machinery red")
+          and got[0].endswith("; product red 1, machinery red 1 of 2 push reds (gate.status); "
+                              + NO_CLASS.replace(" unread ", " unread on 0 ", 1)))
+    got = lines([run(60, 1, attempt=2, sha=A, pr=5)], {60: both})
+    check("NULL reds: the same listing on a pull-request run reads the column unread, never a verdict of the push class",
+          row(got, 60).endswith("; " + NO_CLASS) and row(got, 60, 2).endswith("; " + NO_CLASS)
+          and got[0].endswith("; product red 0, machinery red 0 of 0 push reds (gate.status); "
+                              + NO_CLASS.replace(" unread ", " unread on 2 ", 1)))
+    got = lines([run(61, 1, sha=M, **ON_MAIN), run(62, 2, sha="e" * 40, **ON_MAIN)],
+                {61: jobs("failure", done=listing(1, **{prod: None})), 62: red})
+    check("reds: a member with no conclusion, or not listed at the attempt, reads unread in its verdict, never red or green",
+          row(got, 61).endswith("; product unread, machinery green") and row(got, 62).endswith("; product unread, machinery unread"))
     from throwaway_git import throwaway_git_environ  # self_test put tests/ on the path
     with throwaway_git_environ():
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
@@ -607,13 +666,18 @@ MUTANTS = {
                        "reds: a main red with no later green"),
     "gate job by name": ('for j in doc["jobs"] if j.get("name") == "gate"}', 'for j in doc["jobs"]}',
                          "reds: a failed job that is not `gate`"),
-    "failed jobs failed": ('and j.get("conclusion") == "failure" and j.get("name") != "gate"})', 'and j.get("name") != "gate"})',
+    "failed jobs failed": ('if j.get("conclusion") == "failure" and j.get("name") != "gate"})', 'if j.get("name") != "gate"})',
                            "reds: a job that did not fail at the red attempt"),
     "prelude and gate owed": ('owed = set(gate.gate_required()) | {"prelude", "gate"}', "owed = set(gate.gate_required())",
                               "reds: a failed prelude is a required failure"),
     "main row's own spell": ('op = opener.get(r["id"]) if _on_main(r) else opener[before[-1]["id"]] if before else None',
                              'op = opener[before[-1]["id"]] if before else None',
                              "reds: a main run red at an earlier attempt and unconcluded at its latest"),
+    "edge spell": ("opener, spell = {}, EDGE", "opener, spell = {}, None", "reds: a main red spell already open at the first main run read"),
+    "column class from the event": ('"push") if r.get("event") == "push" else None', '"push") if True else None',
+                                    "NULL reds: the same listing on a pull-request run"),
+    "column member unconcluded": ('("completed" if j.get("conclusion") else "in_progress", j.get("conclusion"))',
+                                  '("completed", j.get("conclusion"))', "reds: a member with no conclusion"),
     "stale listing": ('doc.get("attempt") == r["attempt"]:', "True:", "reds: a listing cached at an older attempt"),
     "listing owed past one attempt": ('elif r["c"] == "success" and r["attempt"] == 1:', 'elif r["c"] == "success":',
                                       "reds: the same run with no job listing"),
@@ -621,7 +685,7 @@ MUTANTS = {
                                   "reds: a failed first attempt with no job listing"),
     "blind count": ('if blind else f"gate_reds {len(reds)}', 'if False else f"gate_reds {len(reds)}',
                     "reds: the same run with no job listing"),
-    "failed jobs per attempt": ('if j.get("run_attempt") == attempt\n', "if True\n", "reds: a red attempt's failed jobs"),
+    "failed jobs per attempt": ('if j.get("run_attempt") == attempt]', "if True]", "reds: a red attempt's failed jobs"),
     "required split": ('"required": [n for n in failed if n in owed],', '"required": failed,', "reds: a red attempt's failed jobs"),
     "found_by on main alone": (' if x["main"] else "")', ")", "reds: found_by ci-main on a main row"),
     "subject of a missing commit": ("if r is not None and r.returncode == 0 else None", "if r is not None else None",
