@@ -1101,7 +1101,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "branch": "handoff/r11-pre-handoff-bookkeeping",
+    "branch": "fix/r11-pre-handoff-bookkeeping-p2",
     "commit": "ef6363d5f291e2eaa60620b5ea12d8d5fb902478",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
