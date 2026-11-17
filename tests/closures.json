@@ -259,6 +259,8 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -1179,6 +1181,8 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -1653,6 +1657,8 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -2189,6 +2195,8 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -2388,6 +2396,7 @@
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
    "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -2701,6 +2710,8 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
@@ -5392,8 +5403,8 @@
    "seconds": 21.5
   },
   "tests/entities.py": {
-   "rc": 1,
-   "seconds": 867.9
+   "rc": 0,
+   "seconds": 2.8
   },
   "tests/env_drift.py": {
    "rc": 0,
