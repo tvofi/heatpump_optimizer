@@ -13,3 +13,4 @@
 1794878245 HB alive
 1794878684 CKPT prepr in its mutant step; body carries re-routed (carry_audit 6 routed 0 bad); main red product_reads --self-test carried to R11-INTAKE-R10-RESIDUE snapshot ed4cf435b81e
 1794878849 HB alive
+1794879198 DONE blocked on CARRY-LANDED (body_push exit 4): code at handoff/r11-pre-briefs-census-p2 93f45781be, body kept at handoff-wip/...-p2-body 3f5b3c3e2e, BLOCKED.md at handoff-wip 8dc7f97e54; main red found: product_reads.py --self-test fails since 54cb721164
