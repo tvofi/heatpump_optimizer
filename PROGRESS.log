@@ -46,3 +46,4 @@
 1794882081 HB alive
 1794882685 HB alive
 1794882836 CKPT prepr refused body only (owed governance reds from main, figure block); body repaired, rerunning prepr PREPR_SKIP_CODE=1 snapshot e6000a5bc64c
+1794883098 DONE returned: handoff dcedcd330c, body 9dc6b1fd85; CLAMP_DROP killed+pinned; stale wip refs not deletable from this seat
