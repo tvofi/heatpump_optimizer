@@ -6247,4 +6247,50 @@ if __name__ == "__main__":
     )
 
 
-    sys.exit(R.close("STRESS CHECKS"))
+    # R11-OUTSIDE-ROOMS-P3 (#3616): the room history at its largest -- the options
+# page's 32 rooms (rooms.ROOMS_MAX) by the ring's 14 days of half hours -- in
+# memory, on disk and through the report, beside one reference solve.
+def _room_history_at_scale():
+    import json as _rh_json
+    import tracemalloc
+    from heatpump_optimizer import room_history as rh
+    from heatpump_optimizer.rooms import ROOMS_MAX
+    rng = np.random.default_rng(3616)
+    width = rh.HISTORY_LENGTH
+    tracemalloc.start()
+    history = rh.History(
+        times=[rh.PERIOD_MIN * k for k in range(width)],
+        rooms={f"climate.room_{r}": {
+            "t": [int(v) for v in rng.integers(1800, 2300, width)],
+            "target": [2100] * width,
+            "call": [int(v) for v in rng.choice([0, 3333, 6667, 10000], width)],
+        } for r in range(ROOMS_MAX)},
+        house={"outdoor": [int(v) for v in rng.integers(-1500, 1000, width)], "return": [3000] * width,
+               "power": [int(v) for v in rng.integers(0, 500, width)], "space": [10000] * width},
+    )
+    held_bytes = tracemalloc.get_traced_memory()[0]
+    tracemalloc.stop()
+    stored_bytes = len(_rh_json.dumps(rh.stored(history), indent=2))
+    spent = []
+    for _ in range(3):  # the median of three: the first call pays numpy's warm-up
+        started = time.perf_counter()
+        rh.report(history)
+        spent.append((time.perf_counter() - started) * 1000.0)
+    return held_bytes, stored_bytes, sorted(spent)[1]
+
+
+_rh_held, _rh_stored, _rh_report_ms = _room_history_at_scale()
+_rh_solve_ms = reference_solve()[0]
+R.check(
+    "the room history at 32 rooms by 672 rows stores under 0.5 MB at indent 2 and holds under 8 MB",
+    _rh_stored < 512 * 1024 and _rh_held < 8 * 1024 * 1024,
+    f"stored {_rh_stored / 1024:.0f} KiB, held {_rh_held / 1024:.0f} KiB",
+)
+timing_check(
+    "its report costs less than one reference solve",
+    _rh_report_ms < _rh_solve_ms,
+    f"report {_rh_report_ms:.1f} ms vs reference solve {_rh_solve_ms:.1f} ms",
+)
+
+
+sys.exit(R.close("STRESS CHECKS"))

@@ -293,22 +293,32 @@ def _calls(column: Sequence[int | None]) -> np.ndarray:
     return np.array([np.nan if v is None else v / FULL_SHARE for v in column], dtype=float)
 
 
-def _collinear(entity: str, calls: Mapping[str, np.ndarray]) -> tuple[str, float] | None:
-    """The other room whose calling moves most with ``entity``'s, at or above
+def _correlations(calls: Mapping[str, np.ndarray]) -> np.ndarray:
+    """|r| of every pair of rooms' calling shares over the rows both hold, NaN
+    where fewer than three rows are common or a share does not move there."""
+    held = np.array([~np.isnan(c) for c in calls.values()], dtype=float).reshape(len(calls), -1)
+    x = np.nan_to_num(np.array(list(calls.values()), dtype=float).reshape(len(calls), -1))
+    n = held @ held.T
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mean_i, mean_sq_i = (x @ held.T) / n, (x * x @ held.T) / n
+        cov = (x @ x.T) / n - mean_i * mean_i.T
+        var = mean_sq_i - mean_i ** 2
+        r = np.abs(cov / np.sqrt(var * var.T))
+    r[(n < 3) | ~(var > 1e-12) | ~(var.T > 1e-12)] = np.nan
+    np.fill_diagonal(r, np.nan)
+    return r
+
+
+def _collinear(index: int, names: Sequence[str], r: np.ndarray) -> tuple[str, float] | None:
+    """The other room whose calling moves most with room ``index``'s, at or above
     :data:`COLLINEAR_R`; None when none does."""
-    best: tuple[str, float] | None = None
-    mine = calls[entity]
-    for other, theirs in calls.items():
-        common = ~np.isnan(mine) & ~np.isnan(theirs)
-        if other == entity or common.sum() < 3 or mine[common].std() == 0 or theirs[common].std() == 0:
-            continue
-        r = abs(float(np.corrcoef(mine[common], theirs[common])[0, 1]))
-        if r >= COLLINEAR_R and (best is None or r > best[1]):
-            best = (other, r)
-    return best
+    row = np.where(np.isnan(r[index]), -1.0, r[index])
+    best = int(np.argmax(row)) if len(row) else 0
+    return (names[best], float(row[best])) if len(row) and row[best] >= COLLINEAR_R else None
 
 
-def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]) -> dict[str, Any]:
+def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray],
+                  r: np.ndarray) -> dict[str, Any]:
     columns = history.rooms[entity]
     share = calls[entity]
     if np.isnan(share).all():
@@ -321,7 +331,7 @@ def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]
         return {"code": "never_calling", "calling_fraction": round(on, 3)}
     if on > ALWAYS_FRACTION:
         return {"code": "always_calling", "calling_fraction": round(on, 3)}
-    if (twin := _collinear(entity, calls)) is not None:
+    if (twin := _collinear(list(calls).index(entity), list(calls), r)) is not None:
         return {"code": "collinear", "with": twin[0], "r": round(twin[1], 3)}
     temp, outdoor = columns["t"], history.house["outdoor"]
     dt_h = np.array([(history.times[j] - history.times[i]) / 60.0 for i, j in pairs])
@@ -364,9 +374,10 @@ def report(history: History) -> dict[str, Any]:
     """Per room the first verdict that applies, in the order the codes are tried,
     and the house line."""
     calls = {e: _calls(c["call"]) for e, c in history.rooms.items()}
+    r = _correlations(calls)
     return {
         "rows": len(history.times),
-        "rooms": {e: _room_verdict(history, e, calls) for e in history.rooms},
+        "rooms": {e: _room_verdict(history, e, calls, r) for e in history.rooms},
         "house": _house_line(history, calls),
     }
 
