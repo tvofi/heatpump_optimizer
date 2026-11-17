@@ -2444,7 +2444,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r11-pre-round-check-gate",
-    "commit": "4b6b576e0e5b60100489b5f9e849ab68bec11d9a",
+    "commit": "9fb327ecb3d544822071daee6201ff09f4827793",
     "last_step": null,
     "next_step": "local fixer building on topic r11-pre-round-check-gate; handoff to review at its first clean prepr",
     "note": "start-record-gating (0018:500); finder-critical: tvofi 2026-11-15 (the round-start check gates on finder-critical cards only); folds in evaluation card E11-N-NULL-REVIEWER",
