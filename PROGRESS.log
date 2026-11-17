@@ -9,3 +9,4 @@
 1794873719 CKPT self-tests green, 4 resolution mutants killed snapshot c813f2c95054
 1794873778 CKPT body figures re-derived; waiting CI snapshot 9e2f970db1ef
 1794873922 HB alive
+1794874002 DONE Fix review: merge 39174541fd returned on probe/rev-3633-7bdb5071 at d37fd43478
