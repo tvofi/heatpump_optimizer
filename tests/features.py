@@ -95637,6 +95637,34 @@ R.check(
     _rr.record_of(_rh_load_owner).history.times == _rh_two.times,
     f"{_rr.record_of(_rh_load_owner).history.times[:3]}",
 )
+_rh_bh2 = _rh.History()
+_rh_bp2 = _rh.note(_rh_bh2, _rh.note(_rh_bh2, None, _RH_M0, [_RhReading("sensor.a", 20.0)], _rh.House(None, None, None, 0.0, 0.0))[0],
+                   _RH_M0 + 30, [_RhReading("sensor.a", 20.0)], _rh_house())
+R.check(
+    "a period with no house value measured stores nulls: no outdoor, no floor return, no power, no space heating",
+    _rh_bh2.house == {"outdoor": [None], "return": [None], "power": [None], "space": [0]},
+    f"{_rh_bh2.house}",
+)
+R.check(
+    "the save cadence is 12 rows (6 h) and pairs never span more than two hours: 121 minutes apart is two stretches",
+    _rr.SAVE_EVERY_ROWS == 12 and _rh.PAIR_GAP_MIN == 120
+    and _rh_code(_rh_grid([0, 10000] * 72, gap=121))["pairs"] == 0,
+)
+R.check(
+    "three common rows are enough to read a correlation; the always-calling fraction is published to three decimals",
+    _rh._correlations({"a": np.array([0.0, 0.5, 1.0]), "b": np.array([0.0, 0.5, 1.0])})[0, 1] == 1.0
+    and _rh_code(_rh_grid([0] * 7 + [10000] * 194))["calling_fraction"] == 0.965,
+)
+_rh_flat144 = _rh.History(
+    times=[30 * k for k in range(144)],
+    rooms={f"climate.{c}": {"t": [2000] * 144, "target": [2100] * 144,
+                            "call": [10000] * 144 if c != "d" else [0, 10000] * 72} for c in "abcd"},
+    house={"outdoor": [0] * 144, "return": [3000] * 144, "power": [300, 400] * 72, "space": [10000] * 144})
+R.check(
+    "the house line needs MIN_PAIRS periods and no more: 144 read enough",
+    _rh.report(_rh_flat144)["house"]["verdict"] == "enough",
+    f"{_rh.report(_rh_flat144)['house']}",
+)
 R.check(
     "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
     "room_history" not in {n for n, _ in _r9f13_cmod._FACTORY_VOID},
