@@ -1,0 +1,28 @@
+== mutant A: first opener instead of last
+FAIL a closed test before the compare does not hide it: the test holding the substitution is the last opener: got [], want ['wc-compare']
+shell_hazard self-test: FAILED
+rc=1
+== mutant B: drop break
+shell_hazard self-test: ok
+rc=0
+== null control: delta row removed from head (e0238c1fe8 file)
+Traceback (most recent call last):
+  File "/tmp/tmp.P1k5C2yfan/prev.py", line 247, in <module>
+    sys.exit(self_test())
+             ~~~~~~~~~^^
+  File "/tmp/tmp.P1k5C2yfan/prev.py", line 202, in self_test
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/pathlib/__init__.py", line 68, in __getitem__
+    raise IndexError(idx)
+IndexError: 3
+prev-file first-opener rc=1
+== null control (in place): e0238c1fe8 file + first-opener mutant
+shell_hazard self-test: ok
+rc=0
+restored clean
+== head self-test after restore
+shell_hazard self-test: ok
+rc=0
+== the delta row is actually the probe line
+159:       "a closed test before the compare does not hide it: the test holding the substitution is the last opener")

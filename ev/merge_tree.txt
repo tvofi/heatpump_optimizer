@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (89 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: dev/audit/config/bugclasses.json: text merge (a side is not in its writer's own JSON format)
+1cc70cec46544888d682cc30955ceda82b311ea1
+merge-tree rc=0
