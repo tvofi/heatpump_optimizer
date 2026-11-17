@@ -2804,6 +2804,8 @@ def check_product_page() -> None:
 # building nothing. The pages are then scanned for a third-party request.
 
 SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+# Old document path -> its new one; both addresses must resolve (build_docs.mjs's MOVED is the site half).
+MOVED_PAGES = {"docs/ecl110.md": "docs/heat-curve.md"}
 SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
 _BUILD_CACHE: dict[str, dict] = {}
 
@@ -2816,7 +2818,7 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
     key = str(root)
     if key in _BUILD_CACHE:
         return _BUILD_CACHE[key]
-    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}}
+    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}, "moved": {}}
     if not SITE_BUILD.is_file():
         res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
     else:
@@ -2839,6 +2841,8 @@ def docs_build(root: pathlib.Path = ROOT) -> dict:
                 if man.is_file():
                     res["pages"] = {b["src"]: b["out"] for b in json.loads(man.read_text())["built"]}
                     res["html"] = {b["out"]: (out / b["out"]).read_text() for b in json.loads(man.read_text())["built"]}
+                    res["moved"] = {m["src"]: (m["to"], (out / m["out"]).read_text())
+                                    for m in json.loads(man.read_text()).get("moved", [])}
     _BUILD_CACHE[key] = res
     return res
 
@@ -2873,6 +2877,17 @@ def check_docs_subpages() -> None:
     rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
     missing = sorted((rows | {"README.md"}) - set(b["pages"]))
     R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
+    # A renamed page keeps its old address (R11-OWNER-GENERIC-CONTROL-TEXT): on GitHub the old file stays as a
+    # pointer to the new one, and on the site the build writes the old page name as a redirect to the new page.
+    for old, new in MOVED_PAGES.items():
+        to, page = b["moved"].get(old, ("", ""))
+        stub = (ROOT / old).read_text() if (ROOT / old).is_file() else ""
+        # The meta refresh drops the fragment; only the script line keeps it, so a deep link still lands.
+        keeps = f"location.replace({json.dumps(to)} + location.hash)" in page
+        R.check(f"{old} still resolves: a pointer to {new} in the tree, a redirect to its page on the site",
+                to == b["pages"].get(new) and f'url={to}"' in page and keeps and f"]({os.path.basename(new)})" in stub,
+                f"site redirect to {to or 'nothing'}, fragment kept: {keeps}; "
+                f"the in-tree file links {new}: {f']({os.path.basename(new)})' in stub}")
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
@@ -3272,7 +3287,7 @@ def check_image_dimensions() -> None:
 WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
 # The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
 USER_PAGES = ("README.md", "docs/setup.md", "docs/configuration.md", "docs/how-it-works.md", "docs/automations.md",
-              "docs/dashboard-card.md", "docs/ecl110.md")
+              "docs/dashboard-card.md", "docs/heat-curve.md")
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
 # (e) reads every reader doc that draws a mermaid block, plus the onboarding.
 MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",

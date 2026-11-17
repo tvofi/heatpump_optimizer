@@ -55,7 +55,7 @@ survivable — a wrong guess about hour 20 is corrected forty times before hour
 sequenceDiagram
     autonumber
     participant C as Coordinator
-    participant P as Prices (Tibber + learned prior)
+    participant P as Prices (Tibber or a price sensor, + learned prior)
     participant W as Weather entity (HA)
     participant S as Your sensors
     participant M as Thermal model
@@ -74,7 +74,7 @@ sequenceDiagram
     O->>O: solve: hot water first (LP + repair),<br/>then space heating around it,<br/>then one co-optimization pass
     O-->>C: space + DHW slot plan
     C->>C: apply manual-plan pins (≤20 h),<br/>safety releases pinned-off slots
-    C->>E: publish plan sensors, switch heat pump,<br/>ECL110 displace / frequency advice
+    C->>E: publish plan sensors, switch heat pump,<br/>heat-curve displace / frequency advice
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree engage / 2 clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction vs reality,<br/>nudge learned parameters
 ```
@@ -88,8 +88,8 @@ repair passes against the real tank simulation — and space heating is then
 optimized around the fixed DHW blocks by multi-start L-BFGS-B.
 
 Solving them in sequence would let hot water fill the cheapest hours to the
-compressor ceiling and push space heating into dearer ones. Two things prevent
-that:
+compressor ceiling and push space heating into more expensive ones. Two
+things prevent that:
 
 - **A congestion premium** inside the DHW program. Taking compressor capacity
   in a step where space heating also wants it is charged the extra price of
@@ -748,7 +748,8 @@ zero confidence.
 
 Added per kWh moved through the grid, and increasingly by time of day: several
 Swedish grid companies charge roughly 25 öre/kWh more on winter weekdays 06–22.
-Tibber's price does not include it. Configure it on the Grid costs page — as
+Tibber's price does not include it, and a price sensor includes it only if you
+added it there yourself. Configure it on the Grid costs page — as
 time-of-use rules like `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure,
 or as a live sensor — and every planned hour is priced at spot *plus* fee, which
 moves load to nights and weekends in winter even when spot alone would not. The
@@ -1452,5 +1453,5 @@ does raising your minimum temperature. Both work.
 - [architecture.md](architecture.md) — module layout and the internal data flow.
 - [dashboard-card.md](dashboard-card.md) — the card, its options, the plan
   editor and the Setup page.
-- [ecl110.md](ecl110.md) — the optional ECL110 MQTT control path.
+- [heat-curve.md](heat-curve.md) — the optional heat-curve control path, three ways: MQTT topics (for example a Danfoss ECL110), an offset entity, a stored curve parameter.
 - [the archive](../dev/archive/backlog.md) — the delivered archive and the open findings.
