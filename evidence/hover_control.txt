@@ -1,0 +1,9 @@
+ref=HEAD step=2026-01-15T16:00:00 reason=idle_dearer
+tile natural W=375 cap=142 height=255 block=true lines=[30,30] first="this hour is more expensive than the hours the plan uses"
+tile natural W=500 cap=195 height=255 block=true lines=[30,30] first="this hour is more expensive than the hours the plan uses"
+tile fitted W=375 cap=142 height=152 block=false lines=[] first=""
+tile fitted W=500 cap=195 height=152 block=false lines=[] first=""
+dialog natural W=375 cap=173 height=197 block=true lines=[12,24] first="this hour is more expensive than the hours the plan uses"
+dialog natural W=500 cap=224 height=197 block=true lines=[12,24] first="this hour is more expensive than the hours the plan uses"
+dialog fitted W=375 cap=173 height=173 block=true lines=[12] first="this hour is more expensive than the hours the plan uses"
+dialog fitted W=500 cap=224 height=197 block=true lines=[12,24] first="this hour is more expensive than the hours the plan uses"

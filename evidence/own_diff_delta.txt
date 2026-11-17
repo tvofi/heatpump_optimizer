@@ -1,0 +1,23 @@
+1245c1245
+< index 10eb88d242..02a960b4c8 100644
+---
+> index f587694b94..5d804356ab 100644
+2199c2199
+< index c7c9764cb2..7bf4c5744e 100644
+---
+> index 8704e9318e..ee6cca54eb 100644
+2227,2228c2227
+< @@ -4552,6 +4554,7 @@
+<     "dev/audit/harnesses/r11_owner_criteria.py",
+---
+> @@ -4556,6 +4558,7 @@
+2230a2230
+>     "dev/audit/harnesses/r11_toolchain_mutants.py",
+2235c2235
+< @@ -4574,6 +4577,7 @@
+---
+> @@ -4578,6 +4581,7 @@
+2334c2334
+< index 54890ec847..7cb5a112ef 100644
+---
+> index a9072f00db..cb0f1d72ef 100644
