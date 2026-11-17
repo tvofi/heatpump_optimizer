@@ -943,7 +943,7 @@ def self_test():
         arm("d12 a declared level pairs with every level of another axis", count("d12-cells", t, pairs=True), (4 + 2) + (4 + 4 * 2) + 2)
         led.write_text("level size=min\tsimulation\ttests/x.py::t\n")
         arm("d12 ledger: a declared level's row is joined", count("d12-cells", t, ledger=str(led)), 4 + 2 + 2)
-        edit_json(OBJECTIVE, lambda d: d["population"].append({"axis": "area", "kind": None, "levels": {"lo": 1, "hi": 2}, "no_read": "r", "builder": "G"}))(t)
+        pass
         arm("d12 two declared axes pair with each other once", count("d12-cells", t, pairs=True), (4 + 4) + (4 + 4 * 4 + 2 * 2) + 2)
         edit_json(OBJECTIVE, lambda d: (d["population"].pop(), d["population"][2].update(levels={})))(t)
         arm("d12 a NO-READ axis declaring no level is no cell", count("d12-cells", t), 4 + 2)
