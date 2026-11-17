@@ -1,14 +1,9 @@
 ==========================================================================
-DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
-  key       0bb9986197d6a0adcf6e101d96ba4c7f20e9aeba020ebdc8ff60e6146b634fca
-  entry     /root/.cache/heatpump_optimizer/drift-baseline/0bb9986197d6a0adcf6e101d96ba4c7f20e9aeba020ebdc8ff60e6146b634fca.json
-  ref       origin/main -> e352724335c136b65562cd3e71f728549ad04a82
-  tree      4507bfc1e5d46b95e4d21eb3467f19faca4ccc1e
-  mode      all
-  captured  3 s ago
-  key covers:
-    baseline_commit  27ab24f195d7
-    baseline_tree    f27f71468b73
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from scratch
+  key       a682f26935c892efcafb496a8077d28ed6ac0e58b12223b2526e2757ba82f73b
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/a682f26935c892efcafb496a8077d28ed6ac0e58b12223b2526e2757ba82f73b.json
+    baseline_commit  d7eb3c58958e
+    baseline_tree    3015bf82ae1f
     cache_format     391552c099c1
     driver_sha256    b1cf91aa5f06
     environment      6c0b911d7e89
@@ -17,17 +12,17 @@ DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
     numeric_probe    554d2f4cd907
     numpy_build      7d455919a5ef
     packages         8ed25f7e2f3a
-    platform         902687261aa0
+    platform         9d4a37ac9c3b
     sensitive        541346c5f2b4
-  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
 ==========================================================================
   captured 56 scenarios from branch
-  reused   56 scenarios for baseline from cache key 0bb9986197d6a0ad (see the banner above)
+  captured 56 scenarios from baseline
+  cached   the origin/main baseline under key a682f26935c892ef in /root/.cache/heatpump_optimizer/drift-baseline/a682f26935c892efcafb496a8077d28ed6ac0e58b12223b2526e2757ba82f73b.json
 
 ########## committed fixtures: staleness (#347) ##########
   56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
 
-  values (reported, never failed): 55 fixture(s), 34414 leaf/leaves differ from the committed files in value alone.
+  values (reported, never failed): 55 fixture(s), 34445 leaf/leaves differ from the committed files in value alone.
   A float-bearing fixture can only be re-recorded honestly in the environment
   that records them all; a dev box would poison it. Nothing here is failed on.
   no committed fixture is stale
@@ -48,13 +43,13 @@ DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
   ok    coord_minimal is byte-identical to origin/main here
   ok    coord_two_zone is byte-identical to origin/main here
   ok    cop_scale_learned is byte-identical to origin/main here
-  may-drift cycling_cost: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    cycling_cost is byte-identical to origin/main here
   ok    dhw_cold_tank is byte-identical to origin/main here
   ok    dhw_large_tank is byte-identical to origin/main here
   ok    dhw_learned_windows is byte-identical to origin/main here
   ok    dhw_schedule_off is byte-identical to origin/main here
   may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
-  may-drift everything_on: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    everything_on is byte-identical to origin/main here
   ok    external_heat_active is byte-identical to origin/main here
   ok    extreme_prices is byte-identical to origin/main here
   may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
@@ -93,3 +88,4 @@ DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
 
 NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
 NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0

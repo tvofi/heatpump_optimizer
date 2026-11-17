@@ -1,1 +1,0 @@
-tree=head b0c7114dd6ce636514983b1e685c38e46096f35d RoomReading(entity_id='sensor.f', temperature_c=20.0, target_c=None, calling=None, hvac_mode=None, problem=None)

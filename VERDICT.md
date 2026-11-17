@@ -1,44 +1,33 @@
-Fix review: blocked b0c7114dd6ce636514983b1e685c38e46096f35d mutation-vacuous: read_room sensor-unit mutant (state_unit(state) -> None, inputs.py:1290) survives the whole of tests/features.py
+Fix review: blocked 4fba42d0851101ef4f3994060e2cd092eac2bb2c mutation-vacuous: inputs.py:287 CLAMP_DROP survives at the head; mutation-autofix left it alive and the head is RED on gate
 
-bus-nonce: fea914900c8c77f3a774848e51cfc1b8
+bus-nonce: 3ce80db00e8a01fc1a2eeb5d420686f7
 
-Round 1 (first review of #3667), from detached worktrees at the head b0c7114dd6ce636514983b1e685c38e46096f35d.
+Round 2 of #3667: a delta review over the reviewed head b0c7114dd6ce636514983b1e685c38e46096f35d, from detached worktrees at the head 4fba42d0851101ef4f3994060e2cd092eac2bb2c.
 
 ## Block
 
-- `inputs.read_room`'s sensor branch converts a room's reading by the sensor's own unit: `value = temperature_c(getattr(state, "state", None), state_unit(state))`. Replacing `state_unit(state)` with `None` leaves the PR's block passing (`ALL 16 FEATURES BLOCK PASSED`) and the whole of `tests/features.py` passing (`ALL 5735 FEATURE CHECKS PASSED`, ev/m6-features-full.log). No other script calls `read_room`: `grep` finds it only in `tests/features.py`. The mutant changes behaviour that users will hit. Home Assistant reports every temperature-class sensor in the instance's unit, so on a °F instance every sensor room would be dropped as `implausible`. A °F sensor reading 68.0 reads `temperature_c=20.0, problem=None` at the head and `temperature_c=None, problem='implausible'` under the mutant (ev/m6-probe-head.txt, ev/m6-probe-mutant.txt). The block's Fahrenheit check drives only the `climate` path, and every sensor room it builds is in °C. This is not equivalent and nothing pins it. The fix is one check: a °F temperature sensor room reads as degC, with a °C sensor as the null control. The CI mutation lane's operators (GUARD_OFF, CMP_BOUND, RETURN_DEL ...) generate no argument-replacement mutant at this site, so `mutation-autofix` will not pin it.
+- `custom_components/heatpump_optimizer/inputs.py:287 CLAMP_DROP` survives at this head. The line is `_scaled`'s `return base_minutes * min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)`. This PR added it in `822ba6fcf2` when it moved the clamp out of `max_age_for` (ev/clamp-site.txt). CI's `tests / mutation-autofix` (job 133708893138) measured the pin shard and printed `AUTOFIX: skip-nothing-killed -- 1 added site(s) left alive: custom_components/heatpump_optimizer/inputs.py:287 CLAMP_DROP`. `tests / mutation` is red, and `gate` (job 133716327240) prints `FAIL tests / mutation: failure (this run)`. `merge_train.py classify ... --pr 3667` exits 1 with `RED 4fba42d0851101ef4f3994060e2cd092eac2bb2c pending: none red: gate` (ev/ci-mutation-autofix-133708893138.txt, ev/classify.log). A red head takes no `merge` (C8).
+- The body's `## Unpinned sites` says `inputs.py:287 CLAMP_DROP*2: pinned by mutation-autofix`, and its `## Red checks` gives the lane's own pinning step as the cause of the `tests / mutation` red. CI shows that answer is wrong. Autofix pins only killed mutants, and this one was not killed, so no autofix commit will turn the head green. The clamp sat in `max_age_for` at the merge base with no `CLAMP_DROP` entry in the ledger, so this is a pre-existing unpinned clamp that the move turned into an `ADDED UNPINNED` site. It needs one of two things from a seat (`ci-autofix.md`): a check that drives a staleness scale outside `[STALENESS_SCALE_MIN, STALENESS_SCALE_MAX]` through `max_age_for` or `read_room` and reads the clamped limit, with an in-range scale as the null control; or a `survivor_triage` verdict if out-of-range scales cannot be reached. The site was already in the PR's diff at the reviewed head b0c7114dd6. Round 1 missed it because it accepted the same answer in the body.
 
 ## Findings
 
-- Follow-up: `rooms.ROOMS_MAX` is enforced only in the options flow (`_room_list_errors`). `read_rooms` reads whatever list is stored, so the docstring's "a bound on one cycle's reads" holds only while the options page is the only writer of `room_temperature_entities`. Carry: dismissed: the options page is that key's only writer at this head (seam enumeration, ev/seam-enum.txt); worth a line in P2's brief only if P2 adds another writer.
-- The coordinator payment folds the ECL110 displace read from four lines to three. Dropping the dead default is a real improvement, and so is skipping a present-but-None displace, which previously raised in `float(None)` (M12 shows that path is pinned). Inlining the two temporaries into one long line is the kind of move a physical-line metric rewards with nothing improved. This is a known property of `max_class_loc`, not new here. Carry: dismissed: a known shape of the line-count ratchet, not new to this PR; the rewrite itself is sound and pinned.
+- Follow-up (round 1, still open): `rooms.ROOMS_MAX` is enforced only in the options flow (`_room_list_errors`), and `read_rooms` reads whatever list is stored. The bound holds only while the options page is the only writer of `room_temperature_entities`. This delta adds no writer. Carry: dismissed: the options page is that key's only writer at this head; it matters only if P2 adds another writer.
+- Follow-up (round 1, still open): the coordinator payment joins the ECL110 displace read's two temporaries into one long line. That is the kind of move a physical-line metric rewards with nothing improved. The delta does not change it. Carry: dismissed: a known shape of the line-count ratchet, not new to this PR; the rewrite itself is sound and pinned.
 
 ## Evidence
 
-- Head: `git ls-remote` shows `fix/r11-outside-rooms-p1` at b0c7114dd6ce636514983b1e685c38e46096f35d, the head I measured. `dev/governance/roles/` is unchanged between the merge base and origin/main (empty diff).
-- Merge with main: `git merge-tree --write-tree origin/main b0c7114dd6…` exits 0, so no conflict (ev/merge-tree.txt).
-- `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched (empty `git diff --stat` against the merge base 367c3b9cac).
-- Re-run at the head with `PYTHONPATH=tests/hastub`. The features block printed `ALL 16 FEATURES BLOCK PASSED`, `tests/config_flow_steps.py` printed `ALL 595 checks PASSED` and `tests/structure.py` printed `STRUCTURE RATCHET PASSED`. All three match the body.
-- Golden fixtures: `GOLDEN_MODE=drift` printed `NO UNCLAIMED DRIFT: 56 scenario(s)`. `CLAIMED config_flow: 4 leaves moved` matches the body's four leaves. `env_drift.py --all` printed `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`. Every moved fixture is claimed and the one claim moved. The reference was origin/main e352724335, which is newer than the body's merge base. The result is the same.
-- Scope: `tests/closure.py select` at the head printed `MODE: SCOPED -- 30 script(s) run, 3 scoped out.`, which matches the body.
-- Architecture score: `score.py --diff 367c3b9cac` printed `Architecture score: dS -0.0023 WORSENS (inadmissible: coord_footprint 2496->2500)`, which matches the body (ev/archscore.log). `arch-score` CI is green.
-- `_registry_step`'s derived `clear` equals the six replaced steps' constants: `entities_pump`, `hot_water_pumps`, `solar_pv` and `away` are True; `tuning` and `learning_features` are False. The derivation is sound. The `class_excess_loc` 17446 -> 17424 drop comes from removing six near-identical step methods, not from moving them around.
-- Reviewer mutants at the head (ev/mutants.txt): M6 survived and the other 13 were killed.
-  - M1: a room read recorded into `InputHealth`.
-  - M2: the sensor-setup guard forced true.
-  - M3: `ROOMS_MAX` raised to 33.
-  - M4: the spread zeroed.
-  - M5: the `rooms.published` line deleted.
-  - M7: the quorum changed from `<` to `<=`.
-  - M8: the average sensor reading the spread path.
-  - M9: calling set to `!= "off"`.
-  - M10: `hvac_mode` dropped.
-  - M11: the per-room target dropped.
-  - M12: the ECL110 guard turned off.
-  - M13: an implausible room keeping its value.
-  - M14: `dropped` not published.
-- The body's thirteen mutants were not re-run one by one. My M1, M4, M5, M7, M9 and M13 overlap or neighbour them, and each was killed.
-- Seam enumeration: the body's rule finds the sites the body lists (ev/seam-enum.txt). No seam is outside the diff.
-- Note: stale-body: the enumeration rule in `## Figures` still greps `rooms\.view`, which the head renamed to `rooms.published`. It still finds every site through `room_temperature_entities` and `read_room`.
-- CI: `merge_train.py classify … --pr 3667` read WAIT for about 32 minutes, last line `15:54:19 rc=3 WAIT … pending: gate red: none` (ev/classify.log). I stopped polling once the block was established. `tests / mutation` is red at the head, and its log shows the pin shards `mutation-pins (1..6)` being launched. The body's `## Red checks` answers this as the lane's own pinning step, predicted by `prepr.sh` step 6d.
-- Finder's harness: none. #3616 is an owner/outside report and the design names none. The body says so, and this review used the PR's r9f12 coordinator rig plus its own probes. The M6 probe is the reviewer's own instrument.
+- Scope: the packet's `## Review scope` reads `delta`. `review_carry.py b0c7114dd6 4fba42d085` prints `FRESH-REVIEW`. The PR's own commits since the reviewed head are `e874fd394f` (one check added to `tests/features.py`), `339648c0d0` (mutation-autofix ledger pins), `3193a58a41` (the delivery row) and merges of main. The production part of the PR's own diff is unchanged. The PR's own `custom_components/` diffs, `git diff 367c3b9cac...b0c7114dd6` and `git diff cc2a14d02e...4fba42d085`, differ only in three coordinator hunk offsets (ev/prod-own-diff-delta.txt). There is no production delta, so the review is not widened.
+- Merge resolutions: `git show --remerge-diff` on the four merges shows resolutions only in `tests/closures.json`, `tests/structure_budgets.json`, `tests/golden/claimed_drift.txt` (`MERGE-CLAIM: resolved`) and the D6 claims harness and its regenerated output (ev/remerge-diff.txt). None touch `custom_components/`.
+- Round 1's block is resolved. Its M6 mutant (`state_unit(state)` -> `None` at `inputs.py:1289`, ev/m6-mutant.diff) is now killed by the whole of `tests/features.py`: `1 of 5797 FEATURE CHECKS FAILED`, the new check `a degF sensor room converts by its own unit to degC ...`. The °F arm reads `temperature_c=None, problem='implausible'` (ev/features-m6.log). Unmutated at the head, the suite prints `ALL 5797 FEATURE CHECKS PASSED` (ev/features-head.log). The body's second mutant (`state_unit(state)` -> `_instance_unit(reader.hass)`, ev/m6b-instance-unit.diff) fails the same check, `1 of 17 FEATURES BLOCK FAILED` (ev/block-m6b.log). The block unmutated prints `ALL 17 FEATURES BLOCK PASSED` (ev/block-head.log), which matches the body. The new check's null control is a °C sensor at 20.0, which reads 20.0 under both mutants, so only the unit conversion separates the runs.
+- Merge with main: `git merge-tree --write-tree origin/main 4fba42d085` exits 0 against origin/main 54cb721164 (ev/merge-tree.txt).
+- `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched (an empty three-dot diff against the merge base cc2a14d02e, ev/version-untouched.txt). `dev/governance/roles/` does not differ between the merge base and origin/main.
+- Claims: `tests/golden/claimed_drift.txt` holds the same single `config_flow` line as round 1 (ev/claim-diff.txt). `env_drift.py --all` at the head against origin/main prints `CLAIMED config_flow: 4 leaves moved`, `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE` (ev/env_drift.log).
+- Forward-carry: the body's four `## Forward-carry` items are in the `carry` arrays of `R11-OUTSIDE-ROOMS-P2` (items 6299917a, 534b419e, 41c5c696) and `R11-OUTSIDE-ROOMS-P3` (item b92176a2) in `dev/programme/rosters/wave-r11-groups.json` on `handoff/audit-r10-roster` at 1303ed51c8. Each carries its control or re-measurement instruction.
+- Head: `git ls-remote` shows `fix/r11-outside-rooms-p1` at 4fba42d0851101ef4f3994060e2cd092eac2bb2c, and the body's `## Head` names it.
+- Note: stale-body: the body's `## Mutation proof` lead-in still says `Unmutated at the head: CMD F ALL 16 FEATURES BLOCK PASSED`, while the later paragraph and this head give 17. Carry: dismissed: paperwork; the current figure is stated in the same body.
+
+## Red checks
+
+- `gate` and `tests / mutation`, both in the `owed-reds` set (ev/owed-reds.txt), are red at this head for the reason under `## Block`. Note: root-cause-detectable: tests / mutation: `prepr.sh` step 6d named `inputs.py:287` as `ADDED UNPINNED` before the handoff, and the body gave the site to `mutation-autofix`, which cannot pin a survivor. Carry: dismissed: answered by this verdict's block, which the fixer's next round settles.
+- `tests / replay` and `tests / nightly-status` are red, but they are not in the owed set. They are neither answered nor a block.
+- `tests / mutation-pins (1)` succeeded. `pr-contract / pr-contract` succeeded.
