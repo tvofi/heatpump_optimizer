@@ -92220,7 +92220,13 @@ R.check(
 )
 # The switch term reads the shipped level: on the fixed-speed plan the
 # delivered draw of a charged step is under the floor and would be no leg.
-_dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+# The unpriced reference is clamped at a start price of zero, which since
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P3 only a clamped default patched to zero
+# reaches (a clamped install configured at zero plans at the default).
+from unittest import mock as _dsp_mock  # noqa: E402
+
+with _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0):
+    _dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
 _dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
 _dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
 _dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
@@ -92673,10 +92679,14 @@ R.check(
 # zero price, no mask buys anything, so every band's mask is the relaxed
 # plan's own runs and each candidate of the stage is that plan. Corpus: 60
 # realizable plans of 24 steps, one charge each, from a stopped and a running
-# compressor. At a flat price the same plans get another candidate.
+# compressor. At a flat price the same plans get another candidate. A
+# clamped install prices no start only with the clamped default patched to
+# zero (R11-OUTSIDE-HONEST-STARTS-RUNS-P3).
 _dsp_tie_rng = np.random.default_rng(3602)
 _dsp_tie_opt = _dsp_opt(clamp=True, cyc=0.0)
 _dsp_tie_moved = {"zero price": 0, "flat price": 0}
+_dsp_tie_zero = _dsp_mock.patch.object(_dsp_om, "CLAMPED_DEFAULT_START_PRICE", 0.0)
+_dsp_tie_zero.start()
 for _dsp_tie_i in range(60):
     _dsp_tie_space = np.where(_dsp_tie_rng.random(24) < 0.5, 0.0, _dsp_tie_rng.uniform(1.5, 3.0, 24))
     _dsp_tie_dhw = np.zeros(24)
@@ -92688,6 +92698,7 @@ for _dsp_tie_i in range(60):
                 _dsp_tie_opt,
                 _DspNS(prices=np.full(24, _dsp_tie_price), dt=0.25, compressor_running=bool(_dsp_tie_i % 2)),
                 _dsp_tie_space, _dsp_tie_dhw, np.zeros(24), 5.5 - _dsp_tie_dhw, np.zeros(24, dtype=bool)))
+_dsp_tie_zero.stop()
 R.check(
     "beside a hot-water charge, at a zero price on an install that prices no "
     "start, every candidate of the stage is the realizable relaxed plan itself; "
