@@ -33,3 +33,4 @@
 1794861798 DONE blocked: code handed off at 92de1bee (merge of main, prepr rc=0); body_push refused figure-block base mismatch (PR base e3527243 vs mb 92d38ecb); BLOCKED.md on handoff-wip
 1794877263 HB alive
 1794877270 CKPT worktree at 4fba42d0, role pack read snapshot 79312301726b
+1794877402 CKPT check committed 7860872aea; block 18 pass, both CLAMP_DROP mutants fail it; wip ref non-ff (stale 841877cd), not forced snapshot e707eb27be60
