@@ -272,7 +272,10 @@ read 60.54-63.48 SEK across four BLAS kernels (same tree and wheels)
 against a 0.1% bound, while the production arm held 61.24-61.28: a bound
 set from two environments). Instrument:
 `dev/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
-`OPENBLAS_CORETYPE`; the AVX-512 point is CI's own green logs. Prefer a
+`OPENBLAS_CORETYPE`; the AVX-512 point is CI's own green logs. A cloud seat
+is pinned to one kernel class (`tools/audit/seat/cloud-setup.sh`, `CORETYPE`),
+so a check green there has been read on that class alone:
+`bash tools/audit/seat/cloud-setup.sh --kernels <command>` runs it under each. Prefer a
 same-run quantity whose basin choice cancels (`env_drift.py`'s capture-twice)
 or an arm measured bit-stable across kernels. `run.sh` prints the kernel class each run, so a red coinciding with a pool
 change reads off the log's first block.
