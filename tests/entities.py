@@ -10754,6 +10754,131 @@ except _ut_vol.Invalid as err:
 R.check("the probe a field-set read does not name: set_thermal_parameters' schema refuses an unknown key, so its "
         "field set is the set it accepts", _ut_probe_refused)
 
+# r11-service-schema: simulate_plan's number fields bound what their selectors offer, and each field takes the range
+# of the path that saves the setting: apply_schedule's validator for a field that service writes (the card's what-if
+# save), the options flow's selector for one only that flow writes. A design choice: the what-if prices only a value
+# a save would store. The three fields outside it are dispositioned by name, so a new number field must be too.
+from heatpump_optimizer import config_flow as _ss_config_flow
+
+_SS_SAVED_BY_SCHEDULE = {"target_temp": _ut_const.CONF_TARGET_TEMP, "comfort_temp_day": "comfort_temp_day",
+                         "dhw_setpoint": _ut_const.CONF_DHW_SETPOINT, "dhw_min_temperature": "dhw_min_temperature"}
+_SS_SAVED_BY_OPTIONS = {"min_temp": _ut_const.CONF_MIN_TEMP, "max_temp": _ut_const.CONF_MAX_TEMP,
+                        "comfort_weight": _ut_const.CONF_COMFORT_WEIGHT,
+                        "comfort_temp_night": _ut_const.CONF_COMFORT_TEMP_NIGHT}
+# silent_mode_power_fraction: the schema holds apply_schedule's 0..1, the selector the narrower usable 0.6..1;
+# the wood price and efficiency: wood_fuel._wood_override_fuel answers wood_fuel_not_ready outside its range, and the
+# options flow scales the price ceiling by currency, so no SEK bound is the saved one.
+_SS_EXEMPT = {"silent_mode_power_fraction", "wood_price_sek_m3", "wood_furnace_efficiency"}
+
+
+def _ss_range(validator) -> tuple | None:
+    for inner in getattr(validator, "validators", ()):
+        if isinstance(inner, _ut_vol.Range):
+            return (inner.min, inner.max)
+    return None
+
+
+def _ss_findings(catalog: dict, schemas: dict) -> list[str]:
+    sim = _ut_fields(schemas["simulate_plan"])
+    sched = _ut_fields(schemas["apply_schedule"])
+    options = {row.key: row.widget for row in _ss_config_flow._OPTION_FIELDS}
+    out = []
+    numbers = {f: s["selector"]["number"] for f, s in catalog["simulate_plan"]["fields"].items()
+               if "number" in ((s or {}).get("selector") or {})}
+    if not set(_SS_SAVED_BY_SCHEDULE) | set(_SS_SAVED_BY_OPTIONS) <= set(numbers) - _SS_EXEMPT:
+        out.append("a mapped field is no longer a simulate_plan number field")
+    for field, number in sorted(numbers.items()):
+        if field in _SS_EXEMPT:
+            continue
+        lo, hi, step = number.get("min"), number.get("max"), number.get("step", 1)
+        for probe in (lo - step, hi + step):
+            try:
+                _ut_vol.Schema(sim[field])(probe)
+                out.append(f"simulate_plan.{field}: accepts {probe}, past its selector {lo}..{hi}")
+            except _ut_vol.Invalid:
+                pass
+        if field in _SS_SAVED_BY_SCHEDULE:
+            saved = _ss_range(sched[_SS_SAVED_BY_SCHEDULE[field]])
+        elif field in _SS_SAVED_BY_OPTIONS:
+            cfg = options[_SS_SAVED_BY_OPTIONS[field]].config
+            saved = (cfg["min"], cfg["max"])
+        else:
+            continue
+        if not (saved == _ss_range(sim[field]) == (lo, hi)):
+            out.append(f"simulate_plan.{field}: selector {lo}..{hi}, schema {_ss_range(sim[field])}, saved {saved}")
+    return out
+
+
+R.check("simulate_plan: every number field refuses one step past its selector, and each mapped field's selector and "
+        "schema range are its save path's (r11-service-schema)",
+        not (_ss_bad := _ss_findings(services, _UT_SCHEMAS)), "; ".join(_ss_bad[:4]))
+_ss_planted_schemas = dict(_UT_SCHEMAS)
+_ss_planted_schemas["simulate_plan"] = _ut_vol.Schema({**_UT_SCHEMAS["simulate_plan"].schema,
+                                                       _ut_vol.Optional("comfort_weight"): _ut_vol.Coerce(float)})
+_ss_planted = json.loads(json.dumps(services))
+_ss_planted["simulate_plan"]["fields"]["min_temp"]["selector"]["number"]["max"] = 24
+R.check("null control: an unbounded comfort_weight and a min_temp selector narrower than its saved range are both "
+        "refused, and nothing else", {f.split(":")[0] for f in _ss_findings(_ss_planted, _ss_planted_schemas)}
+        == {"simulate_plan.comfort_weight", "simulate_plan.min_temp"}, repr(_ss_findings(_ss_planted, _ss_planted_schemas)))
+
+
+# r11-service-schema: an example is sent verbatim by the service form's "fill example data", and an absolute instant
+# ages: apply_manual_plan's 2024 expiry was refused as not in the future, set_away's return turned away off at once.
+# A leaf is an instant when either production parser reads it (manual_plan's slots and expiry, away's return time),
+# so the check is keyed on what a call would do; no relative datetime form exists to keep in its place.
+from heatpump_optimizer import manual_plan as _ss_manual
+
+_SS_NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _ss_instant(leaf) -> bool:
+    if isinstance(leaf, bool):
+        return False
+    try:
+        _ss_manual._parse_dt(leaf, _SS_NOW)
+        return True
+    except _ss_manual.ManualPlanError:
+        return _away_mod._parse_return_time(leaf) is not None
+
+
+def _ss_absolute(value) -> bool:
+    if isinstance(value, dict):
+        return any(_ss_absolute(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_ss_absolute(v) for v in value)
+    return _ss_instant(value)
+
+
+def _ss_dated_examples(catalog: dict) -> list[str]:
+    return [f"{svc}.{field}" for svc, body in catalog.items()
+            for field, spec in ((body or {}).get("fields") or {}).items()
+            if "example" in (spec or {}) and _ss_absolute(spec["example"])]
+
+
+R.check("no services.yaml example is a date or datetime either production parser reads (r11-service-schema)",
+        not (_ss_dated := _ss_dated_examples(services)), repr(_ss_dated))
+# The spelling corpus: each raw spelling wrapped unquoted, single- and double-quoted, alone and as a slot's start and
+# end, then YAML-loaded as Home Assistant loads services.yaml (an unquoted stamp arrives as a date, a datetime or an
+# int). The oracle is production reading the raw text; the classifier sees only the loaded value.
+_ss_spellings = [f"{d}{t}{z}" for d in ("2024-01-02", "20240102") for t in ("", "T00:00", "T00:00:00", " 00:00:00",
+                 "T00:00:00.500") for z in (("",) if not t else ("", "Z", "+01:00", "-05:30"))]
+_ss_spellings += [s.lower() for s in _ss_spellings if "T" in s]
+_ss_cases = []
+for _ss_raw in _ss_spellings:
+    for _ss_q in ("", "'", '"'):
+        _ss_v = f"{_ss_q}{_ss_raw}{_ss_q}"
+        _ss_cases.append((_ss_raw, yaml.safe_load(f"example: {_ss_v}")["example"]))
+        _ss_cases.append((_ss_raw, yaml.safe_load(f"example:\n- start: {_ss_v}\n  end: {_ss_v}")["example"]))
+_ss_wrong = [(raw, loaded) for raw, loaded in _ss_cases if _ss_absolute(loaded) != _ss_instant(raw)]
+_ss_negatives = ["06:00-08:30, 17:00-22:00", "22:00-06:00", "weekend 23:00-07:00", "01JABCDEFGHJKMNPQRSTVWXYZ0",
+                 "snapshot", "settings", "two_tank_4way", "sensor.buffer_tank", 20, 0.7, -20, True, ["house_heat_loss_scale"]]
+R.check(f"the dated-example check agrees with production on all {len(_ss_cases)} generated spellings (date, time, "
+        "zone, case, YAML quoting, nested in a slot), both outcomes present, and flags none of the tree's undated "
+        "example shapes",
+        not _ss_wrong and {_ss_instant(r) for r, _ in _ss_cases} == {True, False}
+        and not any(map(_ss_absolute, _ss_negatives)),
+        repr(_ss_wrong[:3] + [v for v in _ss_negatives if _ss_absolute(v)]))
+
 # The wood price selector's floor is a price the what-if accepts: `_wood_override_fuel` refuses a price <= 0.
 _ut_wood_ok = {_ut_const.CONF_WOOD_TYPE: "birch", _ut_const.CONF_WOOD_PACKING: "packed",
                _ut_const.CONF_WOOD_FURNACE_EFFICIENCY: 75.0}
@@ -11042,14 +11167,6 @@ R.check(
     ],
     "omitting a channel entirely must stay a legal call (leave it automatic)",
 )
-# D6-02 (#172): the documented example is what a user pastes into Developer
-# Tools. Folded into a string it read as JSON and failed the schema's own
-# ``[dict]`` the moment it was submitted.
-_manual_examples = {
-    field: spec["example"]
-    for field, spec in services["apply_manual_plan"]["fields"].items()
-    if "example" in spec
-}
 
 
 def _example_passes(schema, payload) -> tuple[bool, str]:
@@ -11060,22 +11177,9 @@ def _example_passes(schema, payload) -> tuple[bool, str]:
     return True, ""
 
 
-_manual_ok, _manual_why = _example_passes(
-    integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN, _manual_examples
-)
-R.check(
-    "the documented apply_manual_plan example passes the service's own schema",
-    bool(_manual_examples) and _manual_ok,
-    _manual_why,
-)
-R.check(
-    "and its slot examples are structured lists, not folded strings",
-    all(
-        isinstance(_manual_examples.get(f), list) and _manual_examples[f]
-        for f in ("space_slots", "dhw_slots")
-    ),
-    str({f: type(_manual_examples.get(f)).__name__ for f in ("space_slots", "dhw_slots")}),
-)
+# D6-02 (#172) pinned apply_manual_plan's slot examples here as structured lists; r11-service-schema removed them and
+# the expiry's, since each is an absolute instant that ages into a refusal. A re-added one is held by the
+# every-example-passes-its-schema check (a folded string fails ``[dict]``) and the no-dated-example check.
 
 R.check("clear_manual_plan is documented", "clear_manual_plan" in services)
 R.check(

@@ -1988,6 +1988,18 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
 )
 
 
+def option_range(key: str) -> tuple[float, float]:
+    """The ``(min, max)`` the options flow's number field for ``key`` offers.
+
+    The options table owns a setting's editable range; a service pricing the
+    same setting reads it here rather than carrying a copy that can drift.
+    """
+    for row in _OPTION_FIELDS:
+        if row.key == key and isinstance(row.widget, selector.NumberSelector):
+            return row.widget.config["min"], row.widget.config["max"]
+    raise KeyError(key)
+
+
 def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
     """The voluptuous marker one registry row renders for this configuration."""
     default = row.default
