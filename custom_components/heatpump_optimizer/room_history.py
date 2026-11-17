@@ -35,7 +35,7 @@ from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
 
-STORE_VERSION = 1
+ROOM_HISTORY_STORE_VERSION = 1
 #: One row per half hour whatever the entry's interval (10 to 120 min), so the
 #: row count, and the 14 days :data:`HISTORY_LENGTH` rows span, never depend on it.
 PERIOD_MIN = 30
@@ -406,7 +406,7 @@ def _record_for(coord: Any) -> _Record:
     rec = _RECORDS.get(coord)
     if rec is None:
         rec = _RECORDS[coord] = _Record(QuarantiningStore(
-            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_room_history"))
+            coord.hass, ROOM_HISTORY_STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_room_history"))
     return rec
 
 

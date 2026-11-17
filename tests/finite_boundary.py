@@ -1228,6 +1228,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     held = run(off._armed_record(coord.hass, coord.entry))
     held.armed.update({"heat_curve": None, "stand_in": 21.5})
     run(off._save(held))
+    run(_save_room_history(coord))
     run(_save_notifier(coord))
     run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
