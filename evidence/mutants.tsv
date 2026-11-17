@@ -1,0 +1,6 @@
+M1-no-duty-gate	exit=1	KILLED	SELF-TEST FAILED
+M2-planstate-no-first	exit=1	KILLED	SELF-TEST FAILED
+M3-observe-off-false	exit=0	SURVIVED	
+M4-first-ignores-unavailable	exit=1	KILLED	SELF-TEST FAILED
+M5-first-ignores-ordinal	exit=1	KILLED	SELF-TEST FAILED
+M6-observe-off-true	exit=0	SURVIVED	
