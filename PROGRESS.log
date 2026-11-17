@@ -13,3 +13,4 @@
 1794878763 HB alive
 1794878768 INBOX acked through 1
 1794878854 CKPT packet rendered: delta empty, merge-tree clean, classify WAIT (gate pending re-run); poller started snapshot 25681d2a686d
+1794878891 CKPT verdict body drafted, waiting on classify snapshot 4b5e9994ed7f
