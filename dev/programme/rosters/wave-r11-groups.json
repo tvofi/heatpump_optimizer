@@ -2141,7 +2141,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r11-pre-briefs-text",
-    "commit": "511cf165f77359be8daf2b402e754d9dc0b6a5a2",
+    "commit": "585a879dac8265686cfcabba3da90d298a31b8c0",
     "last_step": null,
     "next_step": "fire now on the cards at the approved eval/r11 sha",
     "note": "finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" Cards E11-D3/D4/D5/D6/D7/D10/D11/D14, ruled \"Accept all 14 (Recommended)\". Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.; overlap admitted (R11-PRE-FINDER-CONTRACT, R11-PRE-BRIEFS-CENSUS): text dimension briefs; distinct files; policy_budgets.json by rows",
