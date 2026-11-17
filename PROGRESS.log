@@ -12,3 +12,4 @@
 1794877114 CKPT harness three-end table re-derived at base and head; mutants running snapshot 4aa071f261d0
 1794877357 CKPT sweep re-derived 2730 rows matches body; reviewer mutants 17/20 killed in block; full-script survivor runs + attack rows running snapshot bc35914a049f
 1794877388 HB alive
+1794877634 CKPT null sweep 2730/2730 pending; attack rows 0/80 selfset follows; awaiting full features survivor run + CI snapshot bdf627dda00b
