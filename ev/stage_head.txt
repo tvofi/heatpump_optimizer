@@ -1,0 +1,20 @@
+descents cells: 12 solves, 20 engaged stage calls; with two relaxed plans, both against the first alone: 20 calls, below 6, equal 14, above 0
+descents cells: a realizable first relaxed plan in 1 calls, shipped changed 1 (1 pricing a start), unchanged 0 (0 pricing a start)
+  fixed-speed price phase 30 outdoor -4.0: priced True, gain 0.0000 against the relaxed plan clipped 1.100 kW into the shipped scope's box, edges 6 to 6
+generated cells, seed 1: 140 solves, 149 engaged stage calls; with two relaxed plans, both against the first alone: 64 calls, below 16, equal 48, above 0
+generated cells, seed 1: a realizable first relaxed plan in 18 calls, shipped changed 13 (11 pricing a start), unchanged 5 (5 pricing a start)
+  ('duty0', 0.25, True, (0.0, 0.0), False, 'sine', 'none', -4.0): priced True, gain 0.0000 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 4 to 4
+  ('duty0', 0.25, False, (0.0, 0.0), True, 'sine', 'caps', 4.0): priced True, gain 0.1733 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 2 to 2
+  ('duty0', 0.25, True, (0.0, 0.0), True, 'spiky', 'caps', 4.0): priced True, gain 2.5492 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 19 to 20
+  ('clamp1.5', 0.0, True, (0.0, 0.0), False, 'sine', 'caps', 4.0): priced False, gain 0.3267 against the relaxed plan clipped 1.374 kW into the shipped scope's box, edges 2 to 1
+  ('clamp1.5', 2.0, True, (0.0, 0.0), False, 'sine', 'off_steps', -4.0): priced True, gain 5.3771 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 6 to 3
+  ('duty0', 2.0, True, (0.0, 0.0), False, 'sine', 'pins_on', -4.0): priced True, gain 6.9432 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 4 to 4
+  ('duty0', 2.0, True, (0.0, 0.0), False, 'sine', 'pins_on', -4.0): priced True, gain 3.9881 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 4 to 4
+  ('clamp1.5', 0.0, True, (1.0, 0.0), True, 'spiky', 'pins_off', 10.0): priced False, gain 0.0023 against the relaxed plan clipped 0.600 kW into the shipped scope's box, edges 13 to 13
+  ('duty0', 2.0, False, (0.0, 0.0), True, 'flat', 'none', 10.0): priced True, gain 1.8524 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 2 to 2
+  ('duty0', 0.25, False, (0.0, 0.0), False, 'spiky', 'pins_on', 4.0): priced True, gain 1.1052 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 10 to 10
+  ('duty0', 2.0, True, (1.0, 0.0), True, 'spiky', 'off_steps', 10.0): priced True, gain 15.3964 against the relaxed plan clipped 3.062 kW into the shipped scope's box, edges 11 to 10
+  ('duty0', 2.0, True, (1.0, 0.0), True, 'spiky', 'off_steps', 10.0): priced True, gain 15.4278 against the relaxed plan clipped 2.359 kW into the shipped scope's box, edges 11 to 10
+  ('duty0', 0.25, False, (0.0, 0.0), True, 'spiky', 'caps', 4.0): priced True, gain 1.0675 against the relaxed plan clipped 0.000 kW into the shipped scope's box, edges 11 to 10
+calls whose two plans scored above the first alone, or a changed realizable plan scored above it 0
+rc=0

@@ -1,0 +1,7 @@
+descents cells: 12 solves, 22 engaged stage calls; with two relaxed plans, both against the first alone: 0 calls, below 0, equal 0, above 0
+descents cells: a realizable first relaxed plan in 2 calls, shipped changed 1 (1 pricing a start), unchanged 1 (1 pricing a start)
+  fixed-speed price phase 30 outdoor -4.0: priced True, gain 0.0000 against the relaxed plan clipped 1.100 kW into the shipped scope's box, edges 6 to 6
+generated cells, seed 1: 0 solves, 0 engaged stage calls; with two relaxed plans, both against the first alone: 0 calls, below 0, equal 0, above 0
+generated cells, seed 1: a realizable first relaxed plan in 0 calls, shipped changed 0 (0 pricing a start), unchanged 0 (0 pricing a start)
+calls whose two plans scored above the first alone, or a changed realizable plan scored above it 0
+rc=0
