@@ -504,6 +504,15 @@ jobs:
         if: steps.scope.outputs.scorecard == 'true'
         run: python3 -I tools/audit/seat/scorecard.py --self-test
 
+      # The stable tools ref (R11-PRE-TOOLCHAIN-PIN): behind's count over the
+      # seat paths and promote's refusals (absent, off main, not a fast-forward,
+      # machinery not green, a push that moved nothing), each beside the case
+      # that moves the ref, over a throwaway origin; GitHub is a fake.
+      - name: Show the stable tools ref promoting only a machinery-green commit of main, fast-forward
+        id: toolchain
+        if: steps.scope.outputs.toolchain == 'true'
+        run: python3 -I tools/audit/seat/toolchain.py --self-test
+
       # Decision 0018's flow reads per round and week (R11-PRE-ROUND-METRICS):
       # lead_time from the roster-entry commit, product_green with the gate's
       # check count, restore, runner seconds and tokens; an empty input reads
@@ -526,6 +535,14 @@ jobs:
         id: finder-overlap
         if: steps.scope.outputs.finder-overlap == 'true'
         run: python3 -I tools/audit/seat/finder_overlap.py --self-test
+
+      # The convergence record's loop ledger (R11-PRE-ROUND-METRICS part 2; cards
+      # P7 and L1): escapes by found_by and owning dimension, injected, refix and
+      # the countermeasure loop per round and week; a partial ledger reads unread.
+      - name: Show the loop ledger reading unread on an empty or partial ledger and each read on a recorded one
+        id: loop-ledger
+        if: steps.scope.outputs.loop-ledger == 'true'
+        run: python3 -I tools/audit/seat/loop_ledger.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
@@ -746,6 +763,7 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/bare_array.py --self-test
           python3 -I tools/audit/seat/bare_array.py --check
+          python3 -I tools/audit/seat/shell_hazard.py --self-test
 
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
@@ -849,6 +867,29 @@ jobs:
           python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
           grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
+      # Decision 0018's regret oracle solves, so its self-test needs the
+      # pinned solver stack this job's python3 lacks: an interpreter of its
+      # own (update-environment false, so every other step keeps the job's),
+      # installed from the same hashes as the test gate, both gated by the
+      # step's measured read set like every step here.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: regret-oracle-python
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        with:
+          python-version: "3.14"
+          update-environment: false
+
+      - name: Show the regret oracle reading its planted and null controls
+        id: regret-oracle
+        if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
+        env:
+          PY: ${{ steps.regret-oracle-python.outputs.python-path }}
+        run: |
+          set -euo pipefail
+          PY=${PY:-python3}  # the set-up interpreter; unset only where a tool replays this step outside CI
+          "$PY" -m pip install --quiet --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+          "$PY" -I tools/audit/regret_oracle.py --self-test
+
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
       # a step here or it reddens that check; four that the carry's weaker
@@ -864,6 +905,7 @@ jobs:
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
           python3 -I tools/audit/enumerate.py --self-test
+          python3 -I tools/audit/product_reads.py --self-test
           python3 -I tools/audit/text_ledger.py --self-test
           # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
           # this same self-test: the fixture's exact counts, the unchanged

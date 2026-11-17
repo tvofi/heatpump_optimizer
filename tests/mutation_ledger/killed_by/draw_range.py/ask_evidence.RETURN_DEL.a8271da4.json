@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:ask_evidence RETURN_DEL a8271da4",
+  "killed_by": "tests/structure.py",
+  "old": "    return ASK_FOLLOWS if slope >= FOLLOW_SLOPE_MIN and level_moves <= DISAGREE_FACTOR else ASK_IGNORED",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

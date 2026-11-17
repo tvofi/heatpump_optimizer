@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit CLAMP_DROP 54895a3e",
+  "old": "    fine = OUT_OF_BAND * max(float(np.max(np.abs(price))), 1e-6)",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The floor of 1e-6 under the out-of-band price matters only where every price of the horizon is zero: there the mutant's penalty is zero and a balance outside the band is free. No fixture commits at an all-zero price with a mask that would leave its band. A leaf check like the block's late-cheap trickle at price zero and a start price would kill it; none is recorded.",
+  "verdict": "gap"
+}

@@ -311,7 +311,7 @@ def _self_test() -> int:
         own_sha, own_mb = context(tmp, "main", "HEAD")
         check("null: a file the instrument's run leaves changed in the head's tree is still listed",
               run_instrument(tmp, "main", own_sha, own_mb, "seen",
-                             {**load_registry(tmp, "main"), "seen": {"argv": ["sh", "-c", "echo x > f; " + seen.strip()], "files": []}})
+                             {**load_registry(tmp, "main"), "seen": {"argv": ["sh", "-e", "-c", "echo x > f; " + seen.strip()], "files": []}})
               == "f\nran:mine")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

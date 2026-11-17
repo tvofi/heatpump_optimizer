@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_run_plans CMP_BOUND eaf0d1e3",
+  "old": "    heats = (hi >= floor) & ((other <= 0.0) | (space >= floor / 2.0))",
+  "reason": "Survived tests/features.py, the one driver run, under `mutation_table.py --pin-killed --scripts tests/features.py` at 3f0149a81b (R11-OUTSIDE-HONEST-STARTS-RUNS, repair round 4; pull request 3602, the build of Bankaifan's pull request 3529); the other drivers of the file's closure were not run. The heats predicate's three boundaries: a cap exactly at the floor, hot water exactly at zero, a space level exactly at half the floor. One of the three variants is killed by tests/features.py; the fixtures hold no step on the other two equalities. A killing check is in R11-OUTSIDE-HONEST-STARTS-RUNS-P2's brief (item i).",
+  "verdict": "gap"
+}

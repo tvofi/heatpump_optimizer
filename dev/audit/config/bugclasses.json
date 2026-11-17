@@ -37,6 +37,7 @@
     "rca": [
       "R9-RC-POSTREVIEW-MERGE"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -75,6 +76,7 @@
     "rca": [
       "R9-RCA-ROW-STALE"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -169,6 +171,7 @@
       "R9-P1",
       "RCA-R8-P1"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -329,6 +332,7 @@
       "RCA-R8-P2",
       "R10-RCA-BUFFER-STORE"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F1.11"
     ],
@@ -416,6 +420,7 @@
       "RCA-R8-P3",
       "RCA-coil-drain"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F1.10"
     ],
@@ -486,6 +491,7 @@
     "rca": [
       "BULK-1-P4"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F2.4"
     ],
@@ -565,6 +571,7 @@
       "RCA-1525",
       "RCA-R8-P5-1523"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -643,6 +650,7 @@
       "R9-P6",
       "RCA-R8-P6-1526"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F1.11"
     ],
@@ -684,6 +692,7 @@
     "rca": [
       "BULK-1-P7"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F10.1c"
     ],
@@ -741,6 +750,7 @@
       "BULK-1-P8",
       "RCA-R8-P8-1513"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F1.8"
     ],
@@ -831,6 +841,7 @@
       "R9-P9",
       "RCA-R8-P9-1522"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F6.3"
     ],
@@ -893,6 +904,7 @@
       "BULK-3-v660-freeze",
       "PRE-70-v511-freeze"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F1.7",
       "R9-F10.7"
@@ -1051,6 +1063,7 @@
       "RCA-R8-I1a-kill-rule",
       "RCA-vacuous-acceptance-arm"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F10.2"
     ],
@@ -1106,6 +1119,9 @@
       "BULK-2-I2",
       "R9-RCA-stress-recording",
       "R10-RCA-INERT-CLOSURE-RECORDING"
+    ],
+    "rules": [
+      "dev/governance/rules/ci-autofix.md"
     ],
     "rca_planned": [],
     "trigger": {
@@ -1201,6 +1217,9 @@
       "R10-RCA-2671-WAVE-SCRIPT",
       "R10-RCA-PREPR-HEAD-GRADERS"
     ],
+    "rules": [
+      "dev/governance/rules/defect-root-cause.md"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -1272,6 +1291,7 @@
       "R9-I4",
       "R10-RCA-TRAIN-RAISE-HOLD"
     ],
+    "rules": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
@@ -1433,6 +1453,7 @@
       "RCA-1546",
       "RCA-R8-I5b"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F10.4"
     ],
@@ -1482,6 +1503,7 @@
     "rca": [
       "R9-N-future-instant"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -1545,6 +1567,9 @@
       "V6612-bug7-card-history",
       "V6612-listener-callback"
     ],
+    "rules": [
+      "dev/governance/rules/finding-propagation.md"
+    ],
     "rca_planned": [
       "R9-F11.7"
     ],
@@ -1589,6 +1614,7 @@
       "R9-1638-clobbered-store",
       "R9-RC2-bug5-reboot"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -1651,6 +1677,7 @@
     "rca": [
       "R9-N-solve-recompute"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F10.2"
     ],
@@ -1718,6 +1745,7 @@
       "BULK-2-N-structure-blind",
       "R10-N-structure-blind"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F10.4"
     ],
@@ -1775,6 +1803,7 @@
     "rca": [
       "BULK-4-N-name-sort"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F7.4"
     ],
@@ -1845,6 +1874,9 @@
       "R9-RCA-1736",
       "RCA-R8-P12-1517-1529"
     ],
+    "rules": [
+      "dev/governance/rules/defect-root-cause.md"
+    ],
     "rca_planned": [
       "R9-EG-B9",
       "R9-EG-B10",
@@ -1881,6 +1913,7 @@
       "new: an approval bound to an exact head is re-bought on a diff-identical move"
     ],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -1913,6 +1946,7 @@
       "new: return inside finally"
     ],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -1945,6 +1979,7 @@
       "new: selector minimum off its own step grid"
     ],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -1980,6 +2015,7 @@
     "rca": [
       "R10-RCA-PROCESS-WORKER-HANG"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -2022,6 +2058,7 @@
     "rca": [
       "R10-N-staleness"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -2063,6 +2100,7 @@
       "BULK-3-1041-rerun",
       "RCA-1041-silent-zero"
     ],
+    "rules": [],
     "rca_planned": [
       "R9-F11.4"
     ],
@@ -2103,6 +2141,7 @@
       "R9-ORPHAN-HANDOFF",
       "N-orphaned-handoff"
     ],
+    "rules": [],
     "rca_planned": [],
     "detector_idea": "the three-juncture predicate in the RCA: a handoff-body ref, no pull request at fix/<topic> or fix/<topic>-pr, no ancestry in main or a live head, older than a measured window",
     "trigger": {
@@ -2326,6 +2365,7 @@
     "rca": [
       "R10-RCA-ORCH-CONTINUITY"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -2369,6 +2409,7 @@
       "R10-RCA-BODY-LINT",
       "R10-RCA-BODY-CHECK-PARITY"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -2407,6 +2448,7 @@
     "rca": [
       "R10-RCA-RAISE-GATE-GRAMMAR"
     ],
+    "rules": [],
     "rca_planned": [],
     "per_round": {
       "R10": 3
@@ -5009,6 +5051,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-FEATURES-WEEKEND-CLOCK.md"
       ]
+    },
+    "R10-RCA-PREPR-DARWIN-SELFTEST": {
+      "class": "N-host-platform-unrun",
+      "level": "class",
+      "subject": "prepr.sh --self-test fails only on the macOS seat, three times in round 10",
+      "trigger": "class (3 instances)",
+      "date": "2026-11-15",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the self-test ran green on Linux CI, the only host CI has; the divergent host is the operator's seat",
+      "countermeasure": "the paid macOS lane refused (triage r10-round-end P761); shell_hazard.py over added tools shell lines in prepr step 3f8 as the pre-merge detector, the post-merge detector being the darwin-selftest beat row",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-PREPR-DARWIN-SELFTEST.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-PREPR-DARWIN-SELFTEST.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5033,6 +5091,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5063,6 +5122,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5097,6 +5157,7 @@
     "rca": [
       "R10-N-no-expiry"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5135,6 +5196,7 @@
     "rca": [
       "R10-N-log-flood"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5165,6 +5227,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5232,6 +5295,7 @@
     "rca": [
       "R10-N-move-stale-path"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5262,6 +5326,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5297,6 +5362,7 @@
     "rca": [
       "R10-N-confounded-learner"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5329,6 +5395,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5359,6 +5426,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5389,6 +5457,7 @@
     "minted": "R10",
     "aliases": [],
     "rca": [],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5424,6 +5493,7 @@
     "rca": [
       "R10-RCA-CI-RATCHET-RUN-NAME"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5462,6 +5532,7 @@
     "rca": [
       "R10-N-vocabulary-drift"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5502,6 +5573,7 @@
     "rca": [
       "R10-RCA-SAV-ESTIMATE"
     ],
+    "rules": [],
     "rca_planned": [],
     "non_round_note": "PR #2 and PR #32 fixed inflated savings before the register's rounds; listed, not counted",
     "trigger": {
@@ -5537,6 +5609,7 @@
     "rca": [
       "R10-RCA-LIVEHEAD-CANCEL"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5570,6 +5643,7 @@
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5605,6 +5679,7 @@
     "rca": [
       "R10-RCA-RELAY-HANDOFF-STARVATION"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5640,6 +5715,7 @@
     "rca": [
       "R10-RCA-TOPIC-FAMILY"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
@@ -5673,6 +5749,7 @@
     "rca": [
       "R10-RCA-PUSHER-CENSUS-ESCAPE"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5708,6 +5785,7 @@
     "rca": [
       "R10-RCA-STAMP-CLAIM-CONFLICT"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5744,6 +5822,7 @@
     "rca": [
       "R10-RCA-GATE-DEFER-READ-FINAL"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5778,6 +5857,7 @@
     "rca": [
       "R10-RCA-SELFTEST-SCOPE-DRIFT"
     ],
+    "rules": [],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -5785,5 +5865,39 @@
       "barriered_any": false,
       "class_rca_on_record": true
     }
+  },
+  "N-host-platform-unrun": {
+    "kind": "instrument",
+    "mechanism": "A shell self-test asserts on output of a host program that differs between the operator's macOS seat and every Linux host that runs it before merge (BSD wc pads its count; the seat's python3 is a shim resolved under HOME), so it is green on Linux CI and red only on the macOS seat, at the opener, the dearest point: three prepr.sh --self-test failures in round 10",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 tools/audit/seat/shell_hazard.py --check, demonstrated red at 003f89cf9c^..003f89cf9c (wc-compare) and 1386441425^..1386441425 (wc-stub) and green at 1386441425..c8780ea33d's repaired stub line",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/shell_hazard.py, run over the lines a branch adds to the tools shell scripts by tools/pr/prepr.sh step 3f8; the paid macOS CI lane was refused (triage r10-round-end P761)",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "no check is wrong or skipped: the process ran on a host whose userland differs from the one the self-test is graded on",
+    "aliases": [
+      "a macOS-only prepr self-test failure"
+    ],
+    "rca": [
+      "R10-RCA-PREPR-DARWIN-SELFTEST"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    },
+    "non_round_instances": [
+      "R10-HOTFIX-PREPR-SELFTEST-DARWIN: the seat python3 shim under a planted HOME (cb5512741638)",
+      "#3455: a raw wc -l string compare (003f89cf9c)",
+      "R10-HOTFIX-PREPR-WC-PAD: a stub padding an already padded host wc (1386441425)"
+    ],
+    "non_round_note": "Process incidents on the operator's macOS seat counted by the root-cause seat (3 in round 10); not audit findings, not counted in total."
   }
 }

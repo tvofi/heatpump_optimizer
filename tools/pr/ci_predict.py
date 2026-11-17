@@ -551,6 +551,26 @@ def names_changed(root: Path, run: str, changed: set[str]) -> bool:
     return False
 
 
+def recorded_readers(root: Path, changed: set[str]) -> set[str]:
+    """The instrument-self-tests steps whose recorded closure in `root`'s
+    tools/ci/selftest_closures.json holds a changed path in `files` -- the
+    readers a step's run text does not name: queue_pre_flight.py's step reads
+    merge_train.py, which 23b943c987 reddened unnamed. Parsed by
+    selftest_scope's own `job_steps` and `covers`; an unreadable table is none."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
+    try:
+        import selftest_scope as ss
+    finally:
+        sys.path.pop(0)
+    table = ss.load_table(root / ss.TABLE)
+    wf = root / INSTRUMENT_WF
+    if table is None or not wf.is_file():
+        return set()
+    return {st.name for st in ss.job_steps(wf.read_text(), INSTRUMENT_JOB)
+            if st.id in table["steps"]
+            and any(ss.covers(table["steps"][st.id].get("files", ()), c) for c in changed)}
+
+
 # A replay that ran out of time measured nothing about the tree: a loaded host
 # (load average 100+) timed out clean branches at 180 s while CI was green.
 STEP_REPLAY_TIMEOUT_ENV = "HPO_STEP_REPLAY_TIMEOUT_S"
@@ -584,14 +604,16 @@ def replay_step(tree: Path, run: str) -> int:
 
 def step_replay_preds(root: Path, base: str, changed: set[str],
                       notes: list | None = None) -> list[tuple[str, str]]:
-    """Each instrument-self-tests step whose run text names a changed file,
-    replayed at the head; one red there is replayed again, as the base's step of
+    """Each instrument-self-tests step whose run text names a changed file, or
+    whose recorded closure reads one (`recorded_readers`), replayed at the
+    head; one red there is replayed again, as the base's step of
     that name, in a detached worktree of the base, and predicted only where the
     base's is green -- so a step this container cannot run (a missing binary,
     an unset variable: red at both ends) is a note left to CI, never the branch's."""
     import tempfile
     head = instrument_steps(root)
-    hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}
+    readers = recorded_readers(root, changed)  # mut:readers
+    hit = {n: r for n, r in head.items() if n in readers or names_changed(root, r, changed)}
     ran = {n: replay_step(root, r) for n, r in hit.items()}
     for n, rc in ran.items():
         if rc == TIMED_OUT:
@@ -720,7 +742,15 @@ def step_replay_self_test(root: Path) -> int:
                 "          grep -Eq '^{n} self-test: [1-9][0-9]* checks, 0 failed$' \"$RUNNER_TEMP/{n}.txt\"\n")
         (t / INSTRUMENT_WF).write_text(f"jobs:\n  {INSTRUMENT_JOB}:\n    steps:\n"
                                        + step.format(n="a") + step.format(n="b")
-                                       + "      - name: c\n        run: bash tools/c.sh\n")
+                                       + "      - name: c\n        run: bash tools/c.sh\n"
+                                       + "      - name: d\n        id: d\n        run: bash tools/d.sh\n")
+        # d's run text and d.sh name no file of tools/lib/: only its recorded closure reads x.sh.
+        (t / "tools" / "lib").mkdir()
+        (t / "tools" / "lib" / "x.sh").write_text("true\n")
+        (t / "tools" / "d.sh").write_text("set -e; for f in tools/lib/*.sh; do . \"$f\"; done\n")
+        (t / "tools" / "ci").mkdir()
+        table = t / "tools" / "ci" / "selftest_closures.json"
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh", "tools/lib/x.sh"]}}}))
         # c's step names only c.sh, whose text drives a.sh (ref_privacy.py over body_push.sh).
         (t / "tools" / "c.sh").write_text("bash tools/a.sh --self-test | grep -q '^a self-test:'\n")
         ok = "echo '{n} self-test: 3 checks, 0 failed'\n"
@@ -766,6 +796,24 @@ def step_replay_self_test(root: Path) -> int:
                 os.environ.pop(STEP_REPLAY_TIMEOUT_ENV, None)
             else:
                 os.environ[STEP_REPLAY_TIMEOUT_ENV] = was
+        (t / "tools" / "lib" / "x.sh").write_text("exit 1\n")
+        got = [l for _, l in step_replay_preds(t, base, {"tools/lib/x.sh"})]
+        good = len(got) == 1 and got[0].startswith("STEP REPLAY d:")
+        print(f"  {'ok  ' if good else 'FAIL'} a step whose recorded closure reads the changed file, "
+              f"its run text naming none, is replayed and predicted red")
+        bad += not good
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/d.sh"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} null control: a closure not holding the changed file is not replayed")
+        bad += got != 0
+        table.write_text(json.dumps({"steps": {"d": {"files": ["tools/lib/**"]}}}))
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 1 else 'FAIL'} a closure's `tools/lib/**` entry covers the changed file")
+        bad += got != 1
+        table.unlink()
+        got = len(step_replay_preds(t, base, {"tools/lib/x.sh"}))
+        print(f"  {'ok  ' if got == 0 else 'FAIL'} no table: no recorded reader, nothing replayed, nothing raised")
+        bad += got != 0
     g = globals()
     real = g["step_replay_preds"]
     g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
@@ -939,6 +987,24 @@ BOOTSTRAP = ("BOOTSTRAP: no change in this pull request reaches the base's copy;
 
 def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
+
+
+ROUND_ROSTERS = "+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster"
+
+
+def refresh_round_rosters(root: Path) -> str | None:
+    """pr-contract fetches the round rosters before its carry check; a seat's
+    remote-tracking ref is as old as its last fetch, so a group the roster
+    gained since reads as a bad destination. Fetch them into `root` as CI does
+    (the grader arm's clone then takes them, `fetch_round_rosters`). None when
+    fetched, else the note that the roster read may be stale."""
+    try:
+        out = subprocess.run(["git", "fetch", "-q", "--no-tags", "origin", ROUND_ROSTERS],
+                             cwd=root, capture_output=True, text=True, timeout=60)
+        why = f"failed: {' '.join(out.stderr.split())[:240] or 'no output'}" if out.returncode else None
+    except subprocess.TimeoutExpired:
+        why = "timed out"
+    return None if why is None else f"ROSTER UNFETCHED: git fetch of the round rosters {why}; the carry check read this clone's refs"
 
 
 def fetch_round_rosters(run) -> None:
@@ -1257,6 +1323,10 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
+    if body:  # the carry arm, and the graders arm's pr-contract run, read the round roster
+        stale = refresh_round_rosters(root)  # mut:roundfetch
+        if stale and notes is not None:
+            notes.append(stale)
     sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
     import closure
     names = git(root, "diff", "--name-only", "--no-renames", f"{base}...HEAD") or ""
@@ -1765,6 +1835,75 @@ def roundref_self_test(root: Path) -> int:
         shutil.rmtree(tmp, ignore_errors=True)
     line = [l for l in inspect.getsource(ci_tree_run).splitlines() if "fetch_round_rosters" in l]
     check("ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line", len(line) == 1 and "# mut:roundrefs" in line[0])
+    return bad + roundfetch_self_test(root)
+
+
+def roundfetch_self_test(root: Path) -> int:
+    """refresh_round_rosters moves a seat's stale remote-tracking round ref to
+    origin's branch, as pr-contract's fetch does; null: an unreachable origin
+    leaves the ref, raises nothing and returns the note; predict refreshes
+    when given a body and only then."""
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundfetch-"))
+    bad = 0
+
+    def check(label, ok):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    try:
+        o = tmp / "o"  # origin: its branches are what pr-contract fetches
+        oenv = throwaway_git_init(o, "-q", "-b", "main")
+
+        def sgit(*a):
+            return subprocess.run(a, cwd=o, env=oenv, capture_output=True, text=True, check=True).stdout.strip()
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "main")
+        sgit("git", "branch", "handoff/audit-r10-roster")
+        stale = sgit("git", "rev-parse", "HEAD")
+        r = tmp / "seat"
+        env = throwaway_git_clone(o, r, "-q")
+        sgit("git", "checkout", "-q", "handoff/audit-r10-roster")
+        sgit("git", "commit", "-q", "--allow-empty", "-m", "the roster gains a group")
+        newer = sgit("git", "rev-parse", "HEAD")
+
+        def got():
+            return subprocess.run(["git", "rev-parse", "-q", "--verify", ref], cwd=r, env=env,
+                                  capture_output=True, text=True).stdout.strip()
+        check("the seat's round ref is stale before the refresh", got() == stale)
+        note = refresh_round_rosters(r)
+        check("refresh_round_rosters moves it to origin's branch and returns no note",
+              note is None and got() == newer)
+        subprocess.run(["git", "update-ref", ref, stale], cwd=r, env=env, check=True)
+        subprocess.run(["git", "remote", "set-url", "origin", str(tmp / "absent.git")], cwd=r, env=env, check=True)
+        try:
+            note, raised = refresh_round_rosters(r), False
+        except Exception:
+            note, raised = None, True
+        check("an unreachable origin leaves the ref, raises nothing and notes ROSTER UNFETCHED with git's "
+              "reason (null control)", not raised and got() == stale
+              and (note or "").startswith("ROSTER UNFETCHED") and "absent.git" in (note or ""))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    g = globals()
+    real, calls = g["refresh_round_rosters"], []
+    g["refresh_round_rosters"] = lambda r: calls.append(r) or "ROSTER UNFETCHED sentinel"
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as f:
+            f.write("## Forward-carry\n\nnone\n")
+            f.flush()
+            notes: list[str] = []
+            predict(root, "HEAD", body=f.name, only="orphans", notes=notes)
+            check("predict with a body refreshes the round rosters and notes a failed refresh",
+                  len(calls) == 1 and "ROSTER UNFETCHED sentinel" in notes)
+            calls.clear()
+            predict(root, "HEAD", only="orphans", notes=[])
+            check("predict without a body fetches nothing (null control)", not calls)
+    finally:
+        g["refresh_round_rosters"] = real
     return bad
 
 

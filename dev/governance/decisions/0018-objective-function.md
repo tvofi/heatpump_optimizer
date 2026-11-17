@@ -54,7 +54,7 @@ is what no reader of this record can remove.
 
 | dimension | its perfect result | decided by | enumerator of the distance | floor |
 |---|---|---|---|---|
-| D0 price optimality | zero `regret` on every cell of its grid | measurement | NO-READ: the same-information oracle of this section, raced per cell of `tests/profiles.py`'s price shapes and climates; R11-INTAKE-R10-RESIDUE. Proxy: `tests/optimality.py` reads the solver against its own model | `regret`'s |
+| D0 price optimality | zero `regret` on every cell of its grid | measurement | the same-information oracle of this section, raced per cell of `tests/profiles.py`'s price shapes and climates: `python3 -I tools/audit/regret_oracle.py grid`; R11-PRE-PRODUCT-READS. Proxy: `tests/optimality.py` reads the solver against its own model | `regret`'s |
 | D1 robustness | no wedge, leak, race, stale read or lost store on any enumerated lifecycle path, store, timer, listener or guard | measurement | NO-READ: a census printing each path, store, timer, listener and guard with the test that drives it; R11-INTAKE-R10-RESIDUE | none |
 | D2 mathematical and physical sanity | every identity holds over its stated operating grid; every constant justified | measurement | NO-READ: the identities and their grid are named in no tracked list; R11-INTAKE-R10-RESIDUE | none |
 | D3 test-suite gaps | every guard site pinned by a test that imports the production symbol and whose oracle is not the code under test | measurement | `python3 tests/mutation_table.py --scope full`: surviving mutants and unpinned sites | equivalent mutants, each triaged by name |
@@ -66,7 +66,7 @@ is what no reader of this record can remove.
 | D9 efficiency | every cost centre inside the owner's Pi-class budget | the owner's budget | undecided until `owner_criteria.D9` is set; `tests/stress.py` then reads the cost | the solver's work at the planning horizon |
 | D10 quality scale | every rule of the owner's target tier met at every site | the owner's tier | undecided until `owner_criteria.D10` is set; `quality_scale.yaml` in the integration's directory then lists each rule's state | rules Home Assistant adds after the baseline |
 | D11 governance mechanisms | every mechanism fires when it should and only then | measurement | `node tools/policy/policy_lint_mutants.mjs` and each instrument's `--self-test`; NO-READ for a mechanism with neither: R11-INTAKE-R10-RESIDUE | none |
-| D12 generalization | `generality` at 1 | measurement over the supported population | the denominator: `python3 tools/audit/check_scopes.py --population`; the examined count NO-READ: the cell ledger, R11-INTAKE-R10-RESIDUE | `generality`'s |
+| D12 generalization | `generality` at 1 | measurement over the supported population | the denominator: `python3 tools/audit/check_scopes.py --population`; the examined count: the cell ledger, each row counted only on the read's own witness, `python3 -I tools/audit/product_reads.py generality --ledger <ledger>`; R11-PRE-PRODUCT-READS | `generality`'s |
 | D13 process yield and cost | the process terms of section 2 at their end state | measurement | section 2's enumerators | section 2's residuals |
 | D14 recurring bug classes | no open class, no instance of a barriered class | measurement | `python3 tools/audit/fold_ledger.py check` over `dev/audit/config/bugclasses.json` | none |
 | D15 live diagnostics | every bundle replays with no unexplained divergence | measurement | `python3 tools/replay/debug_replay.py --bundle` per bundle; the bundle set is NO-READ (no tracked list of the installs that sent one): R11-INTAKE-R10-RESIDUE | installs that send no bundle |
@@ -118,8 +118,8 @@ tunable the evaluated round may loosen.
   install that the owner's install could not have shown. D12's brief must
   name the command as its universe, add the card and the blueprints to it,
   declare the levels of each NO-READ axis, and keep a cell ledger printing
-  each cell with its source, its asserting test, or `not run`:
-  R11-INTAKE-R10-RESIDUE.
+  each cell with its source, its asserting test, or `not run`; the examined
+  count is R11-PRE-PRODUCT-READS'.
 - **`operation`**: on each install the executed plan is the right one and is
   executed as planned: every actuator write happens, holds and releases as
   intended, and no comfort or safety bound is violated. Its universe is every
@@ -131,8 +131,8 @@ tunable the evaluated round may loosen.
   read from the plan and never from a document; every refusal has a release
   that needs no person; and replayed bundles show no bound violated. It
   belongs to the actuator-write dimension (write safety and liveness), which
-  has no brief at this record's landing: R11-INTAKE-R10-RESIDUE drafts
-  it with the cell ledger, and D8 owns the published reason.
+  has no brief at this record's landing: R11-PRE-NEW-DIMENSIONS drafts
+  it, R11-PRE-PRODUCT-READS reads its cell ledger, and D8 owns the published reason.
 - **`regret`**: what the install paid above the best plan its information
   allowed. **The comfort bounds are those the product already enforces for
   the person**: the configured comfort range, the hot-water minimum, the mold
@@ -185,11 +185,11 @@ class.
 
 | term | layer | definition | unit; denominator | target; direction | enumerator |
 |---|---|---|---|---|---|
-| `regret` | 1 | section 1: `C_real - C_same`, mean over the grid cells and install-days read; beside it the floor `C_same - C_fore` and the model gap | currency per day and share of `C_same`; cells and install-days | 0 with each cell's model gap inside `thresholds.band_model_gap`; down | none. The oracle harness (D0's step), the realised-cost record per install-day from a bundle (D15's step) and the model gap beside both: R11-INTAKE-R10-RESIDUE writes the two steps and their denominators into the briefs |
-| `operation` | 1 | section 1: cells where the write, its hold and its release equal the plan's target | share; write and hold sites times plan states | 1; up | none. The actuator-write dimension's cell ledger: R11-INTAKE-R10-RESIDUE |
-| `generality` | 1 | section 1: share of population cells examined; beside it defects the owner's install could not have shown | share; the levels and pairs `check_scopes.py --population` prints | 1 and 0; up and down | the denominator: that command. The examined count: none; D12's cell ledger, R11-INTAKE-R10-RESIDUE |
-| `unowned` | 1 | escapes and owner reports in the window that belong to no dimension | items per round | 0; down | none; read off `escapes` once it records its owner: R11-INTAKE-R10-RESIDUE |
-| `escapes` | 1 | objective bugs in a released product version, reported in the window by anyone but the round's finder seats, each with who found it and the owning dimension (`none` is a value) | bugs per round; beside it the removed count (verified findings whose group merged) and removed / (removed + escapes), whole and per dimension | 0; down | none. R11-INTAKE-R10-RESIDUE records found-by and owner; R11-PRE-ROUND-METRICS prints the series. `scorecard.py` line `E` is a proxy with no window and no owner |
+| `regret` | 1 | section 1: `C_real - C_same`, mean over the grid cells and install-days read; beside it the floor `C_same - C_fore` and the model gap | currency per day and share of `C_same`; cells and install-days | 0 with each cell's model gap inside `thresholds.band_model_gap`; down | the oracle harness (D0's step), `python3 -I tools/audit/regret_oracle.py grid`, and the realised-cost record per install-day from a bundle (D15's step), `regret_oracle.py installs --bundle`, each with the model gap beside it: R11-PRE-PRODUCT-READS; the two steps are D0's step 8 and D15's step 9. NO-READ: `C_same` per install-day, no bundle keeping the forecast as issued and no code identifying the measured house from a window |
+| `operation` | 1 | section 1: cells where the write, its hold and its release equal the plan's target | share; write and hold sites times plan states | 1; up | none. The actuator-write dimension's cell ledger, each row counted only on the read's own witness: `python3 -I tools/audit/product_reads.py operation --ledger <ledger>`; R11-PRE-PRODUCT-READS |
+| `generality` | 1 | section 1: share of population cells examined; beside it defects the owner's install could not have shown | share; the levels and pairs `check_scopes.py --population` prints | 1 and 0; up and down | the denominator: that command. The examined count: D12's cell ledger, read by `python3 -I tools/audit/product_reads.py generality --ledger <ledger>`; R11-PRE-PRODUCT-READS |
+| `unowned` | 1 | escapes and owner reports in the window that belong to no dimension | items per round | 0; down | none; read off `escapes` once it records its owner: R11-PRE-ROUND-METRICS |
+| `escapes` | 1 | objective bugs in a released product version, reported in the window by anyone but the round's finder seats, each with who found it and the owning dimension (`none` is a value) | bugs per round; beside it the removed count (verified findings whose group merged) and removed / (removed + escapes), whole and per dimension | 0; down | none. R11-PRE-ROUND-METRICS records found-by and owner and prints the series. `scorecard.py` line `E` is a proxy with no window and no owner |
 | `injected` | 1 | objective bugs whose cause is a pull request merged in this window or the previous one, named on the fixing group | bugs per 100 production merges | 0; down | none; same two groups. Proxy: production hotfix merges over production merges (`scorecard.py` line `H`) |
 | `product_green` | 1 | share of main's concluded `CI` push runs in the window whose `gate` job succeeded | share; concluded runs, the cancelled count beside it | `thresholds.product_green_floor`; up | `scorecard.py report` line `A_gate`, which reads the last 20 and has no input producer: R11-PRE-ROUND-METRICS feeds it and adds the window |
 | `coverage` | 1 | per dimension, the least examined / universe over its steps, each universe printed by a named command; a step reporting none, and a dimension not run, count 0 | share; the dimension count | 1 in every dimension; up | none. R11-INTAKE-R10-RESIDUE (the denominator rule) |
@@ -429,9 +429,9 @@ ranking a change.
 | term | the cheapest false move | what catches it |
 |---|---|---|
 | `escapes` | rule a report not objective, or own it by `none`; release less often | beside: the owner's reports count unless the owner rules otherwise; `none` is a `change` verdict on the dimension list; releases per day. NO-READ: the overlap estimate, R11-PRE-ROUND-METRICS |
-| `regret` | choose easy grid cells; score against the optimizer's own model of itself | live: the oracle's inputs exclude the integration's model by definition (section 1), and the flat-price null. NO-READ: the grid's denominator and the model gap from a bundle, R11-INTAKE-R10-RESIDUE |
-| `operation` | drive only the idle plan; edit the documented target to match the code | the plan states are part of the cell, and the target is the plan's computed value, which no document edit moves. NO-READ: the cell ledger, R11-INTAKE-R10-RESIDUE |
-| `generality` | narrow the supported population; count a stub run as an install; examine a cell with a run that asserts nothing | live: the population is `check_scopes.py --population` over the code's own tuples, so narrowing it is a product change. NO-READ: the cell ledger naming each cell's source and asserting test, R11-INTAKE-R10-RESIDUE; planted configuration defects, R11-PRE-ROUND-METRICS |
+| `regret` | choose easy grid cells; score against the optimizer's own model of itself | live: the oracle's inputs exclude the integration's model by definition (section 1), and the flat-price null; the grid's denominator is `enumerate.py d0-grid` and the model gap from a bundle is `regret_oracle.py installs`, R11-PRE-PRODUCT-READS |
+| `operation` | drive only the idle plan; edit the documented target to match the code | the plan states are part of the cell, and the target is the plan's computed value, which no document edit moves; a row counts only when the read moved its site in a pass of the cell's plan state, `python3 -I tools/audit/product_reads.py operation --ledger <ledger>`, R11-PRE-PRODUCT-READS |
+| `generality` | narrow the supported population; count a stub run as an install; examine a cell with a run that asserts nothing | live: the population is `check_scopes.py --population` over the code's own tuples, so narrowing it is a product change. a level row counts only when the read's own run with that level switched moves its asserting test, `python3 -I tools/audit/product_reads.py generality --ledger <ledger>`, R11-PRE-PRODUCT-READS; planted configuration defects, R11-PRE-ROUND-METRICS |
 | `unowned` | assign every report to the nearest dimension | beside: the dimension's `escapes` then rises and its brief owes the step; the reviewer attacks the attribution |
 | `unexamined` | relabel a feature as a fix; mark a late merge examined by a pass that only says it read it | beside: a fix names the judged finding it closes. NO-READ: an examining pass reports its universe and denominator over the late diff like any step (`coverage`'s rule), R11-INTAKE-R10-RESIDUE |
 | `first_pass` | approve weakly; settle a block outside the verdict bus | beside: real-catch incidence (`review_strength.py --window`). NO-READ: `injected` and `escapes`, its two catchers; until both are read `first_pass` ranks nothing (section 2) |
@@ -507,7 +507,7 @@ request).
 - Round 11 cannot start until round 10's objective record and round 11's
   evaluation are on main; with no enumerator built most terms are NO-READ,
   which is the baseline.
-- R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER and R11-INTAKE-R10-RESIDUE
+- R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER, R11-PRE-PRODUCT-READS and R11-INTAKE-R10-RESIDUE
   build to the definitions above; a definition an instrument cannot meet
   returns here as a card, never as a quiet redefinition.
 - Round 11's first evaluation holds a card per unset value of
