@@ -2196,10 +2196,10 @@
     "From r11-pre-new-dimensions, body item d5b80788: R11-PRE-FINDER-CONTRACT's p2 is not on main either (#3621 is its grader alone); this group's p2 was built against main's driver and schema as they are, and its body states the three places that differs from the approved design. decision: orchestrator, which of the two p2s merges last. Carry: R11-PRE-NEW-DIMENSIONS (items d5b80788) [dismissed: obsolete: both p2s merged, 46466bf42b and 4632a10bff on origin/main]",
     "E11-U5 (round-11 start evaluation card, accepted; names dev/governance/dimensions/D16.md): build it in part 2 with the D16/D17 briefs; its paths are the card's in dev/audit/yardstick/round11/EVALUATION.json on origin/eval/r11. Carry: R11-PRE-NEW-DIMENSIONS [implemented: 18f4da32415264d69286291829e8cbd657b1649a]",
     "E11-U6 (round-11 start evaluation card, accepted; names dev/governance/dimensions/D16.md): build it in part 2 with the D16/D17 briefs; its paths are the card's in dev/audit/yardstick/round11/EVALUATION.json on origin/eval/r11. Carry: R11-PRE-NEW-DIMENSIONS [implemented: 18f4da32415264d69286291829e8cbd657b1649a]",
-    "E11-U7 (round-11 start evaluation card, accepted; names dev/governance/dimensions/D16.md): build it in part 2 with the D16/D17 briefs; its paths are the card's in dev/audit/yardstick/round11/EVALUATION.json on origin/eval/r11. Carry: R11-PRE-NEW-DIMENSIONS"
+    "E11-U7 (round-11 start evaluation card, accepted; names dev/governance/dimensions/D16.md): build it in part 2 with the D16/D17 briefs; its paths are the card's in dev/audit/yardstick/round11/EVALUATION.json on origin/eval/r11. Carry: R11-PRE-NEW-DIMENSIONS [implemented: 18f4da32415264d69286291829e8cbd657b1649a]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-pre-new-dimensions",
     "commit": "47f0f18a7ecebaa0f6ff0e4948b4f8d82e616e1a",
     "last_step": null,
