@@ -1,0 +1,35 @@
+mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e
+version-files diff above (empty = untouched)
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 0c54d4baee..bea04e235a 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -69,6 +69,7 @@
+ #
+ cycling_cost  # space steps under the floor 5 -> 0, starts 5 -> 4, energy 44.96 -> 40.97 kWh, predicted_cost 34.48 -> 32.07, lowest room 17.20 -> 17.16
+ everything_on  # space steps under the floor 12 -> 0, starts 4 -> 5, energy 67.18 -> 68.83 kWh, predicted_cost 60.27 -> 61.48, lowest room 17.78 -> 17.88
++config_flow # R11-OUTSIDE-ROOMS-P1 (#3616): the advanced menu gains the rooms page (room_temperature_entities, a multiple entity selector), so the menu, the plain render, the seeded render and the seed each gain it; every leaf that moves is "present on one side only" or the advanced menu length 16 -> 17, ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads an unset room list: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null. R11-OUTSIDE-ROOMS-P2 (#3616) adds the opt-in room_lift_enabled toggle to that page: the seed, the seeded render and the plain render each gain the key, every moved leaf again "present on one side only", ADDED at this head, re-recorded the same way; the toggle defaults off and no solve fixture stores it, so every other fixture is byte-identical to the merge base.
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+ tests/structure_budgets.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 92990e3b2a..bd99fb286b 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17407,
++ "class_excess_loc": 17385,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 136,
+  "coordinator_multiassigned_attrs": 104,
+@@ -16,6 +16,6 @@
+  "methods_over_150": 14,
+  "methods_over_200": 7,
+  "name_kept_members": 38,
+- "recorded_at": "a39627da59acbfdcd576e87349167603e9dec734",
++ "recorded_at": "4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc",
+  "seam_cut_total": 415
+ }

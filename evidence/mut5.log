@@ -1,0 +1,20 @@
+== unmutated
+  [old_features.py] rc=0 ALL 38 FEATURES BLOCK PASSED|
+  [new_features.py] rc=0 ALL 41 FEATURES BLOCK PASSED|
+== scaled_min
+  [old_features.py] rc=0 ALL 38 FEATURES BLOCK PASSED|
+  [new_features.py] rc=1 1 of 41 FEATURES BLOCK FAILED|
+== scaled_max
+  [old_features.py] rc=0 ALL 38 FEATURES BLOCK PASSED|
+  [new_features.py] rc=1 1 of 41 FEATURES BLOCK FAILED|
+== margins_clip
+  [old_features.py] rc=0 ALL 38 FEATURES BLOCK PASSED|
+  [new_features.py] rc=1 1 of 41 FEATURES BLOCK FAILED|
+== resolve_floor
+  [old_features.py] rc=0 ALL 38 FEATURES BLOCK PASSED|
+  [new_features.py] rc=1 1 of 41 FEATURES BLOCK FAILED|
+== resolve_cap
+  [old_features.py] rc=1 6 of 38 FEATURES BLOCK FAILED|
+  [new_features.py] rc=1 6 of 41 FEATURES BLOCK FAILED|
+RESTORED
+MUT5_DONE
