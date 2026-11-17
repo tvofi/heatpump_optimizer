@@ -36,3 +36,4 @@
 1794877719 HB alive
 1794877741 CKPT worktree at abe961e6e5; read verdict snapshot 000e629892ba
 1794877766 CKPT start mutation_table --pin-killed snapshot 9ef14f83526c
+1794878320 CKPT pin-killed and reviewer mutants running snapshot 3570339829db
