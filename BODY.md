@@ -59,7 +59,7 @@ Each production predicate deleted or replaced, the named self-test run, the fail
 
 ## Red checks
 
-none
+- `tests / closures` (predicted, not run red): `tools/pr/prepr.sh` step 6d at 4b0091b631 prints `PREDICT tests / closures SELF-TEST READS UNDER-SCOPED tests/entities.py: tools/audit/seat/owed_unactioned.py (its run of tools/audit/seat/orchestrator_tick.py's self-test, recorded by closure._exec_record)`. Inherited, not this repair's: the same command at d5ba8b8c (detached worktree, clean) prints the same line, and at d5ba8b8c CI's `tests / closures` concluded `success` (check-runs read) and `merge_train.py classify d5ba8b8c... --pr 3682` read `GREEN ... red: none`. Its named repair is a no-op: `bash tests/derive_closures.sh --single tests/entities.py` (Linux, rc 0, "updated 1 closure(s)") leaves tests/closures.json byte-identical and the arm predicts the same red after it. Not re-recorded (orchestrator ruling; CI is the authority by `gate-scoping.md`). Every other prepr step at this head is ok or skip.
 
 ## Forward-carry
 
@@ -67,6 +67,8 @@ none
 - Cold-run bar of item 4: the per-commit reads of a first prepr run still grow with the branch's commits (520 over 520; the bar is met only by repeat runs). A cold bound needs a per-branch runs listing, which cannot say a commit without a run is empty, and `ancestry_reds`'s fail-closed rule (an unread commit stays UNCHECKED) forbids skipping it; it would turn the arm's refusal into a skip. Carry: R11-INTAKE-R10-RESIDUE
 - The ETag cache is shared state with no expiry: a ruleset changed by the owner is a 200 on the next read (an ETag changes with the object), so nothing stale is served; the `gh-etag` directory only grows by one file per path read. Carry: dismissed: one file per distinct path (a handful), bounded by the paths the instruments read.
 - `R11-PRE-TOKEN-LEDGER` reads the host log this change fixes: the log is now one file at the install-time home, and `--top` reads a second distinct state-dir log only for logs an older shim left. Carry: R11-PRE-TOKEN-LEDGER
+
+- `ci_predict.py`'s self-test-reads arm predicts a `tests / closures` UNDER-SCOPED red on tests/entities.py that CI does not produce (green at d5ba8b8c) and that its named `--single` re-record does not clear: a false positive of the arm (likely the subprocess-run tick self-test's reads, recorded directly by the arm but not attributed by `--single`). Carry: R11-PRE-HANDOFF-BOOKKEEPING
 
 ## Friction
 
