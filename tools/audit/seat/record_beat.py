@@ -85,9 +85,9 @@ def load_roster(run=sh) -> "dict | None":
 
 
 def facts(pr: int, repo: str, run=sh) -> dict:
-    """{sha, branch, issues} of a MERGED pull request, the sha full and from git."""
+    """{sha, branch, issues, body} of a MERGED pull request, the sha full and from git."""
     code, o = run(["gh", "pr", "view", str(pr), "--repo", repo, "--json",
-                   "state,mergeCommit,headRefName,closingIssuesReferences"])
+                   "state,mergeCommit,headRefName,closingIssuesReferences,body"])
     try:
         d = json.loads(o) if code == 0 else None
     except ValueError:
@@ -106,7 +106,7 @@ def facts(pr: int, repo: str, run=sh) -> dict:
     if code != 0 or not SHA.match(full):
         raise Owed(f"#{pr}'s merge commit {oid[:12]} does not resolve to a full sha in git")
     issues = sorted(n["number"] for n in d.get("closingIssuesReferences") or ())
-    return {"sha": full, "branch": d.get("headRefName") or "", "issues": issues}
+    return {"sha": full, "branch": d.get("headRefName") or "", "issues": issues, "body": d.get("body") or ""}
 
 
 def render(pr: int, sha: str, group: str, issues: list) -> str:
