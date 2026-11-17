@@ -1,0 +1,6 @@
+drop-upper rc=1
+1 of 18 FEATURES BLOCK FAILED
+drop-lower rc=1
+1 of 18 FEATURES BLOCK FAILED
+drop-both rc=1
+1 of 18 FEATURES BLOCK FAILED

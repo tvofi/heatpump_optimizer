@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/product_reads.py", line 1017, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/product_reads.py", line 1001, in main
+    return self_test()
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/product_reads.py", line 753, in self_test
+    cells = universe(root, "d16-writes", cells=True)
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/product_reads.py", line 316, in universe
+    items = census.run(name, repo, **kw)
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/enumerate.py", line 598, in run
+    lines = joined(name, sorted(_dedupe(UNIVERSES[name](Path(repo), **kw))), ledger)
+                                        ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.W9KljfT3wI/wtmain/tools/audit/enumerate.py", line 139, in d16
+    raise Refuse(f"const.py PUMP_DUTY_MODES {sorted(modes)} are not the duty modes STATES names {sorted(named)}: "
+                 "a duty mode with no plan state is unrowed, and a state under no duty mode cannot run")
+enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']: a duty mode with no plan state is unrowed, and a state under no duty mode cannot run

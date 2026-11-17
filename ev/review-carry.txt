@@ -1,0 +1,3 @@
+  dcedcd330  tests: pin inputs.py _scaled CLAMP_DROP, killed by tests/features.py (#3616)
+  064b60f7b  Merge commit 'dcedcd330cd38145dfeea1a2f07d4a295717036e' into fix/r11-outside-rooms-p1
+review_carry: FRESH-REVIEW

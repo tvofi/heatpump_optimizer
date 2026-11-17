@@ -1,0 +1,2 @@
+RED 064b60f7b25d8e92aaa843915ef1cff9feb79da4 pending: gate red: none introduced: 1
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
