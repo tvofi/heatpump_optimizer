@@ -6,3 +6,4 @@
 1794873357 CKPT verdict drafted, carry audit rc 0; waiting on CI snapshot 41c6b9206ac7
 1794873829 HB alive
 1794874433 HB alive
+1794874567 DONE Fix review: merge d11b0cb1b2 pending-ci: gate; verdict e43f458d4a on probe/rev-3690-fae70b4e
