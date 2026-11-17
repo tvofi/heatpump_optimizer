@@ -1,2 +1,0 @@
-# production own-diff, 5b33358e80 vs bca2e138252ed1176e517aca6f3bcb47588cd2af, each three-dot against its own merge base, index/@@ lines stripped
-diff exit=0
