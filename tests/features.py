@@ -42138,6 +42138,13 @@ R.check(
     isinstance(_et_leg_71, _ger_vol.Invalid) and _et_leg_70 is None,
     f"71 raised {_et_leg_71!r}; 70 raised {_et_leg_70!r}",
 )
+_et_leg_55 = _et_leg_call(55)
+_et_leg_54 = _et_leg_call(54)
+R.check(
+    "set_thermal_parameters accepts a 55 °C disinfection temperature and refuses 54",
+    _et_leg_55 is None and isinstance(_et_leg_54, _ger_vol.Invalid),
+    f"55 raised {_et_leg_55!r}; 54 raised {_et_leg_54!r}",
+)
 _et_quiet_set = _et_call(
     _et_quiet_hass,
     "set_thermal_parameters",
