@@ -3,3 +3,4 @@
 1794875630 HB alive
 1794875688 CKPT setup done; worktree cut from origin/main 38bf516bdd; measuring what p1 (#3625) left open snapshot 4c46d7e9ffc7
 1794875810 CKPT measured: all seven cards merged at f1520e3539 and unchanged at approved eval 83dc948818; one gap left: d12-cells omits the declared tank_volume/house_size levels; building that snapshot e7434fb9b6d6
+1794876018 CKPT fix + arms committed bde53a1a4e, pushed to handoff-wip; next: mutants, scope, prepr snapshot 49a12f00004d
