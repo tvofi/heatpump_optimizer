@@ -25,3 +25,4 @@
 1794871153 DONE verdict pushed: blocked c0bc81e0a1 ci-red (probe 371ea27ef9, replaced stale 20:25Z pending-ci merge 944bf2641c)
 1794876192 HB alive
 1794876270 CKPT delta read: 95e70c96 drops whole= on floor leaves; merges clean snapshot b2387218187f
+1794876606 CKPT reviewer mutants M1-M4 killed, null survives snapshot fe56a9f00f82
