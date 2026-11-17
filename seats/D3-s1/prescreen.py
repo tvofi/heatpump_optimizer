@@ -38,6 +38,7 @@ import argparse
 import hashlib
 import json
 import queue
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -97,6 +98,20 @@ def tree(i: int) -> Path:
                         str(d), "HEAD"], cwd=mt.ROOT, check=True,
                        capture_output=True)
     return d
+
+
+FRESH = os.environ.get("D3S1_FRESH_TREE", "0") == "1"
+
+
+def recycle(i: int) -> Path:
+    """Box D3R (disk rule): delete a worker's tree after each mutant and
+    re-add it, so no mutant leaves files behind for the next one."""
+    d = WT_ROOT / f"w{i}"
+    subprocess.run(["git", "worktree", "remove", "--force", str(d)],
+                   cwd=mt.ROOT, capture_output=True)
+    shutil.rmtree(d, ignore_errors=True)
+    subprocess.run(["git", "worktree", "prune"], cwd=mt.ROOT, capture_output=True)
+    return tree(i)
 
 
 def spec(script):
@@ -352,6 +367,8 @@ def cmd_run(args) -> int:
                 return
             r = drive(t, m, base, args.full)
             (RESULTS / sub / (key(m) + ".json")).write_text(json.dumps(r))
+            if FRESH:
+                t = recycle(i + args.tree_offset)
             log(f"{sub.upper()} {r['verdict']} {m['anchor']} L{m['line']} "
                 f"by={','.join(r['killed_by']) or '-'} ran={len(r['runs'])} "
                 f"skip={len(r['skipped'])} wall={r['wall']}s")
