@@ -1525,6 +1525,17 @@ def self_test() -> int:
     t("a value that is neither a count nor a share has no band",
       moved("escapes", 2.5, 9.0, thresholds) is None and moved("escapes", True, 9, thresholds) is None)
 
+    t("a ledger row too short to hold its ruling is skipped, not an index error",
+      escape_rows("group\tpr\truling\nG-X\t1\n") == set())
+    t("a plan with no round is round 0: its baseline is round -1's record",
+      has(baseline_refusals({"objective": {"baseline": {"record": BASELINE.format(10)}}}, {"round": -1},
+                            same), "BASELINE 'dev/audit/yardstick/round10/OBJECTIVE.json': the "
+                                   "baseline is the previous round's record, dev/audit/yardstick/round-1"))
+    t("a count move equal to its band is a tie",
+      moved("escapes", 4, 12, thresholds) == "tie" and moved("escapes", 4, 13, thresholds) == "up")
+    t("a blob reads off the checkout, and an absent path reads None",
+      bool(_blob("HEAD", "tools/audit/seat/plan_audit.py")) and _blob("HEAD", "no/such/path") is None)
+
     print(f"plan_audit self-test: {checks} checks, {failures} failed")
     return 1 if failures else 0
 
