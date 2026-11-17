@@ -24,3 +24,4 @@
 1794885742 HB alive
 1794885744 CKPT merged origin/main (roster_lib conflict), re-verifying at 76c4aca7 snapshot 1c24ba589d9e
 1794886337 HB alive
+1794886475 CKPT post-merge self-tests and gate green; prepr at 76c4aca7 running snapshot ee0225afb211
