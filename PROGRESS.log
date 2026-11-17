@@ -49,3 +49,4 @@
 1794893027 HB alive
 1794893631 HB alive
 1794893775 CKPT prepr full run: code steps ok, body refusals repaired (carry wording, figure block); body-check clean; body-delta prepr running; draft body on handoff-wip/...-body snapshot 29e169ba37af
+1794893972 DONE returned: code ad36eefec0 on handoff/, body 538d1bb0b0 on handoff-body/ (body_push rc 0); prepr rc=0; step ref handoff-wip left in place (its deletion is refused)
