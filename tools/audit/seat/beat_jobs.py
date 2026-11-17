@@ -148,6 +148,13 @@ ROWS (the job table's `interval_s` in brackets):
                      `scorecard: UNREADABLE produce rc=<n>` (the report then does not
                      run, so scorecard.txt keeps its last dated read) or
                      `scorecard: UNREADABLE rc=<n>` when an instrument fails.
+  toolchain-promote [600] toolchain.py `promote --repo <repo> --dir <checkout>`: moves the
+                     stable tools ref `toolchain/stable` along main to the newest commit
+                     whose push run reads MACHINERY green, and keeps the instrument's
+                     last answer in `S/beatd/toolchain.txt`. A promotion or nothing newer
+                     leaves the digest empty; `PROMOTE-HELD` (the newest three concluded
+                     main runs past the ref machinery red or unread) is the row's line, and
+                     a refusal or failed read is `toolchain-promote: rc=<n>: <why>`.
   ci-attempt [1800]  one `gh api` read of ci.yml's newest 100 runs: `CI-ATTEMPT: run
                      <id> at attempt >= CI_ATTEMPT_ALARM on <branch> (#<pr>)` per run
                      re-attempted that often (R10-RCA-SWEEP-SETTLE-LOOP countermeasure
@@ -176,7 +183,7 @@ from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
         "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
-        "scorecard", "ci-attempt", "darwin-selftest")
+        "scorecard", "ci-attempt", "toolchain-promote", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -744,6 +751,20 @@ def scorecard(ctx: Ctx) -> None:
     write_job(ctx, "scorecard", [])
 
 
+def toolchain_promote(ctx: Ctx) -> None:
+    """toolchain.py promote; the digest hears a hold, a refusal or a failed read, never a promotion."""
+    got = ctx.need("toolchain-promote", "repo")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/toolchain.py", "promote", "--repo", got[0], "--dir", str(ctx.repo))
+    if out.strip():
+        atomic(ctx.state / "beatd" / "toolchain.txt", out)
+    held = [ln for ln in out.splitlines() if ln.startswith("PROMOTE-HELD ")]
+    if rc != 0 and not held:
+        held = [f"toolchain-promote: rc={rc}: {(err.strip().splitlines() or [''])[-1]}"]
+    write_job(ctx, "toolchain-promote", held)
+
+
 #: ci-attempt flags a run at this attempt or more; gate.py's ATTEMPT_CAP (45) is where the hooks stop.
 CI_ATTEMPT_ALARM = 20
 CI_RUN = re.compile(r"(\d+) (\d+) (\S+) ?([\d,]*)")
@@ -847,7 +868,7 @@ RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": ros
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
        "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
-       "ci-attempt": ci_attempt,
+       "ci-attempt": ci_attempt, "toolchain-promote": toolchain_promote,
        "darwin-selftest": darwin_selftest}
 
 

@@ -32,12 +32,15 @@ its self-test drives both over its alternatives table and compares them.
 from __future__ import annotations
 
 import email.utils
+import hashlib
 import json
+import os
 import http.client
 import re
 import sys
 import time
 import urllib.error
+from pathlib import Path
 from typing import Callable
 
 READ_TRIES = 4
@@ -238,6 +241,118 @@ def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pag
         if len(page) < per_page:  # mut:short-page
             return 0, items, ""
     return 1, None, f"{path}: more than {max_pages} pages of {per_page}: refused, not truncated"
+
+
+# ----------------------------------------------------- conditional (ETag) reads
+# (no module-level re.compile here: ALTERNATIVES() reads those as the bash twin's table)
+#: A conditional read the server answers 304 costs no core-bucket call (P596 measured
+#: five of them moving `used` by 0, five plain reads by 6). The stored ETag and body sit
+#: under the caller's state directory ($HPO_STATE_DIR, default ~/.local/state/hpo), one file
+#: per path, shared by every process reading under that same directory; a process under
+#: another state directory keeps its own store and pays its own first plain read per path.
+
+
+def etag_dir() -> Path:
+    return Path(os.environ.get("HPO_STATE_DIR") or Path.home() / ".local/state/hpo") / "gh-etag"
+
+
+def parse_include(out: str) -> "tuple[int | None, dict, str]":
+    """`gh api -i`'s output -> (status, lower-cased headers, body); status None when the
+    output holds no response status line (a transport failure, or an error gh printed itself)."""
+    head, _, body = out.replace("\r\n", "\n").partition("\n\n")
+    lines = head.splitlines()
+    m = re.match(r"HTTP/\S+ (?P<code>[0-9]{3})\b", lines[0]) if lines else None
+    if m is None:
+        m2 = [GH_STATUS.search(x) for x in out.splitlines()]
+        code = next((int(x.group("code")) for x in reversed(m2) if x), None)
+        return code, {}, ""
+    headers = {k.strip().lower(): v.strip() for k, _, v in (x.partition(":") for x in lines[1:])}
+    return int(m.group("code")), headers, body
+
+
+def _etag_file(path: str, cache: Path) -> Path:
+    return cache / (hashlib.sha256(path.encode()).hexdigest()[:32] + ".json")
+
+
+def conditional_get(run, path: str, cache: "Path | None" = None) -> "tuple[int, str]":
+    """The body of the single-page GET at <path> -> (code, body); code != 0 is UNREADABLE and
+    the body then holds gh's output. `run(argv)` -> (code, output) is the caller's runner.
+
+    With an ETag stored for <path> the read sends If-None-Match: a 304 serves the stored
+    body, a 200 replaces both. With none stored (or a stored file that does not parse) it
+    is the plain read. Any other status, or a transport failure, is UNREADABLE as a plain
+    read's: a stale body is never served on a failure. A page past one page is no caller's:
+    it reads one page and no Link header is followed."""
+    cache = cache or etag_dir()
+    f = _etag_file(path, cache)
+    stored = None
+    try:
+        got = json.loads(f.read_text())
+        if isinstance(got.get("etag"), str) and isinstance(got.get("body"), str) and got["etag"]:
+            stored = got
+    except (OSError, ValueError, AttributeError):
+        pass
+    argv = ["gh", "api", "-i"] + (["-H", f"If-None-Match: {stored['etag']}"] if stored else []) + [path]
+    code, out = run(argv)
+    status, headers, body = parse_include(out)
+    if status == 304 and stored:
+        return 0, stored["body"]
+    if code or status != 200:
+        return code or 1, out
+    etag = headers.get("etag", "")
+    if etag:
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            tmp = f.with_name(f"{f.name}.{os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"etag": etag, "body": body}))
+            os.replace(tmp, f)
+        except OSError:
+            pass  # an unwritable state dir is the plain read, never a failure
+    return 0, body
+
+
+def ruleset_checks(run, repo: str, name: str, cache: "Path | None" = None) -> "tuple[bool, dict]":
+    """(read ok, the `required_status_checks` rule's parameters) of the ruleset called <name>,
+    both reads conditional (`conditional_get`). A ruleset list holding the name other than
+    once, or a body that is not the shape GitHub sends, is not read."""
+    code, out = conditional_get(run, f"repos/{repo}/rulesets", cache)
+    try:
+        ids = [r["id"] for r in json.loads(out) if r.get("name") == name] if not code else []
+        if len(ids) != 1 or not isinstance(ids[0], int):
+            return False, {}
+        code, out = conditional_get(run, f"repos/{repo}/rulesets/{ids[0]}", cache)
+        if code:
+            return False, {}
+        rules = [r for r in json.loads(out)["rules"] if r.get("type") == "required_status_checks"]
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return False, {}
+    return True, (rules[0].get("parameters") or {}) if rules else {}
+
+
+def required_contexts(params: dict) -> "set[str]":
+    """The context names a `required_status_checks` rule's parameters require."""
+    return {c["context"].strip() for c in params.get("required_status_checks") or []
+            if isinstance(c, dict) and isinstance(c.get("context"), str) and c["context"].strip()}
+
+
+def fake_ruleset(argv, rid: str, contexts: str, strict: "str | None" = None, name: str = "main-protect-checks"):
+    """The self-tests' GitHub for the two ruleset paths: <contexts> (newline-separated, "" the
+    ruleset unreadable, a 404) answered as `gh api -i`, with an ETag a matching If-None-Match
+    turns into a 304 -- gh's own rc 1. The one fake both instruments' self-tests share."""
+    if not contexts:
+        return 1, "gh: Not Found (HTTP 404)"
+    path = next(a for a in argv if a.startswith("repos/"))
+    if path.endswith("/rulesets"):
+        body = json.dumps([{"id": int(rid), "name": name}])
+    else:
+        params = {"required_status_checks": [{"context": c} for c in contexts.splitlines() if c.strip()]}
+        if strict in ("true", "false"):  # anything else: the key absent, an unreadable policy
+            params["strict_required_status_checks_policy"] = strict == "true"
+        body = json.dumps({"rules": [{"type": "required_status_checks", "parameters": params}]})
+    etag = '"' + hashlib.sha256(body.encode()).hexdigest()[:16] + '"'
+    if f"If-None-Match: {etag}" in argv:
+        return 1, f"HTTP/2.0 304 Not Modified\nEtag: {etag}\n\ngh: HTTP 304"
+    return 0, f"HTTP/2.0 200 OK\nEtag: {etag}\nContent-Type: application/json\n\n{body}"
 
 
 def one_line(failure) -> str:
@@ -632,6 +747,83 @@ def self_test() -> int:
     check("an unparseable page is a failure (rc 1), never an empty list",
           code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
 
+
+    # ---- conditional reads (P596, P625): one helper, the ETag and body under the state dir
+    import tempfile
+    with tempfile.TemporaryDirectory() as cd:
+        cache = Path(cd)
+        seen: list = []
+        world = {"body": '{"v": 1}', "etag": '"e1"', "rc": 0}
+
+        def gh_(argv):
+            seen.append(list(argv))
+            inm = next((a for a in argv if a.startswith("If-None-Match: ")), None)
+            if world["rc"]:
+                return 1, "gh: Bad Gateway (HTTP 502)"
+            if inm == f"If-None-Match: {world['etag']}":
+                return 1, f"HTTP/2.0 304 Not Modified\nEtag: {world['etag']}\n\ngh: HTTP 304"
+            return 0, f"HTTP/2.0 200 OK\r\nEtag: {world['etag']}\r\nX-A: b\r\n\r\n{world['body']}"
+
+        P = "repos/o/r/rulesets"
+        check("null control: with no stored ETag the plain read is made (no If-None-Match)",
+              conditional_get(gh_, P, cache) == (0, '{"v": 1}') and not any("If-None-Match" in a for a in seen[0]))
+        code, body = conditional_get(gh_, P, cache)
+        check("a 304 serves the stored body, from one request that carried the stored ETag",
+              (code, body) == (0, '{"v": 1}') and len(seen) == 2 and "If-None-Match: \"e1\"" in seen[1])
+        world.update(body='{"v": 2}', etag='"e2"')
+        check("a 200 replaces the stored body and ETag", conditional_get(gh_, P, cache) == (0, '{"v": 2}')
+              and json.loads(_etag_file(P, cache).read_text()) == {"etag": '"e2"', "body": '{"v": 2}'})
+        check("and the next read is the 304 of the new ETag", conditional_get(gh_, P, cache) == (0, '{"v": 2}')
+              and "If-None-Match: \"e2\"" in seen[-1])
+        world["rc"] = 1
+        code, out = conditional_get(gh_, P, cache)
+        check("any other failure is UNREADABLE, the stored body never served", code != 0 and "502" in out)
+        world["rc"] = 0
+        _etag_file(P, cache).write_text("{not json")
+        n0 = len(seen)
+        check("a corrupt stored file is the plain read", conditional_get(gh_, P, cache)[0] == 0
+              and not any("If-None-Match" in a for a in seen[n0]))
+        check("one stored file per path", conditional_get(gh_, P + "/7", cache)[0] == 0
+              and len(list(cache.glob("*.json"))) == 2)
+        check("a 304 with nothing stored is UNREADABLE, never an empty body",
+              conditional_get(lambda argv: (1, "HTTP/2.0 304 Not Modified\n\ngh: HTTP 304"), "repos/o/r/x", cache)[0] != 0)
+        # the ruleset reads: two reads each cold, none warm; the shared fake is the server
+        calls = []
+
+        def srv(argv):
+            calls.append(argv)
+            return fake_ruleset(argv, "7", "tests\nclosures\n", "true")
+        with tempfile.TemporaryDirectory() as cd2:
+            ok, params = ruleset_checks(srv, "o/r", "main-protect-checks", Path(cd2))
+            ok2, params2 = ruleset_checks(srv, "o/r", "main-protect-checks", Path(cd2))
+            check("ruleset_checks reads the required set and the strict flag",
+                  ok and [c["context"] for c in params["required_status_checks"]] == ["tests", "closures"]
+                  and params["strict_required_status_checks_policy"] is True and (ok2, params2) == (ok, params))
+            check("a warm ruleset read serves both reads as 304s: 4 calls, the second pair conditional",
+                  len(calls) == 4 and all("If-None-Match" in " ".join(c) for c in calls[2:])
+                  and not any("If-None-Match" in " ".join(c) for c in calls[:2]))
+            check("a ruleset by another name is not read",
+                  ruleset_checks(srv, "o/r", "other", Path(cd2)) == (False, {}))
+            check("an unreadable ruleset is not read", ruleset_checks(lambda a: (1, "HTTP 404"), "o/r", "x", Path(cd2)) == (False, {}))
+        # the store's scope is the caller's $HPO_STATE_DIR (etag_dir), not the host
+        saved = os.environ.get("HPO_STATE_DIR")
+        try:
+            def under(state):
+                os.environ["HPO_STATE_DIR"] = str(state)
+                n0 = len(seen)
+                conditional_get(gh_, P)
+                return any("If-None-Match" in a for a in seen[n0])
+            (cache / "s1").mkdir()
+            (cache / "s2").mkdir()
+            cold1, warm1, other = under(cache / "s1"), under(cache / "s1"), under(cache / "s2")
+            check("the ETag store is $HPO_STATE_DIR/gh-etag: a second read under the same state dir is conditional",
+                  not cold1 and warm1 and etag_dir() == cache / "s2" / "gh-etag")
+            check("and a read under another state dir finds nothing stored: its first read is plain", not other)
+        finally:
+            if saved is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

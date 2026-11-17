@@ -21,7 +21,9 @@
   - `S` — size: `machinery_ratchet.py --measure` (non-production merges per
     window, churn per 1 000 product lines) and machinery lines over product lines.
   - `E` — roster groups whose source is `outside` and hotfix or bug groups
-    touching the product, and how many of both are still open.
+    touching the product, and how many of both are still open; beside them
+    both sets by owning dimension (`loop_ledger.owned_split`), unread while
+    any of them records no `owned_by`.
   - `C` — the longest run of consecutive cancelled main runs in the last 50.
   - `K` — `recycle` lines of the standing dispatch and triage seats in the
     day's sweep record.

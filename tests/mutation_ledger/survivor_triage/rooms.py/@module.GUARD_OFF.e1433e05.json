@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/rooms.py:<module> GUARD_OFF e1433e05",
+  "old": "if TYPE_CHECKING:",
+  "reason": "Equivalent (GUARD_OFF, `if TYPE_CHECKING:` -> `if False:`): TYPE_CHECKING is False at runtime, so both tests skip the block, which holds only the type-checking import of optimizer.OptimizationConfig; under `from __future__ import annotations` nothing evaluates that name, and the block is what keeps rooms a pure module (no scipy reach). Measured by the R11-OUTSIDE-ROOMS-P2 fixer on a git-archive copy of the package: every module-level name of rooms with its type and annotations hashes the same under the mutant as at the head, where the control `if True:` hashes differently (it binds OptimizationConfig); and mutant_run.py --diff over phase 2's added lines, driven by the R11-OUTSIDE-ROOMS-P2 block of tests/features.py: SURVIVED.",
+  "verdict": "equivalent"
+}

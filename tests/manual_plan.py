@@ -1034,9 +1034,9 @@ def test_quiet_window_arms(R: Results) -> None:
         and peak_attrs.get("fuse_advisor") == {"ok": 1},
         f"got {peak_attrs!r}",
     )
-    # The default fraction is the one the fold must treat as unset.
+    # The default fraction is the one an absent field leaves in force.
     R.check(
-        "the default silent fraction is the unset value the fold compares against",
+        "the default silent fraction is 1.0, the value an absent field leaves in force",
         DEFAULT_SILENT_MODE_FRACTION == 1.0,
     )
 
