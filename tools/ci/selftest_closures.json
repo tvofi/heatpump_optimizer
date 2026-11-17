@@ -8115,8 +8115,11 @@
    "run_sha": "e9a4011f002b3591593de2307fd743aa0477052bc058be6cff2970467a11f0b9",
    "files": [
     "tests/throwaway_git.py",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/prune_refs.py",
-    "tools/audit/seat/ref_privacy.py"
+    "tools/audit/seat/ref_privacy.py",
+    "tools/audit/seat/toolchain.py"
    ],
    "probes": [
     ".",
@@ -9634,6 +9637,39 @@
     "maintenance",
     "rev-list"
    ]
+  },
+  "toolchain": {
+   "run_sha": "58a9dcb43610f2fb8ff4466f1623dd23eff5bec9e8fdfd1cf4ca65cfa4bc6b54",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
+    "tools/audit/seat/toolchain.py",
+    "tools/audit/seat/toolchain_selftest.py",
+    "tools/ci/gate.py",
+    "tools/ci/ghapi.py",
+    "tools/ci/prelude.py"
+   ],
+   "probes": [
+    ".",
+    "config",
+    "objects",
+    "packed-refs",
+    "refs",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat",
+    "tools/ci"
+   ],
+   "dirs": [
+    "tests",
+    "tools/audit/seat",
+    "tools/ci"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "topic-grammar": {
    "run_sha": "40ac264ceeb40c59d850cd2d025f52a4c92776ec61b0806bd6c52bd159cec58d",
