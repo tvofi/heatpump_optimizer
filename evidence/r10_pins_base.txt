@@ -1,5 +1,0 @@
-# at merge base 174e78cebf
-== cloud_dispatch-15 cloud_dispatch.py: KILLED rc=1 | roster_lib: origin/handoff/audit-r10-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
-RESULT survivors=0
-== cloud_dispatch-16 cloud_dispatch.py: KILLED rc=1 | roster_lib: origin/handoff/audit-r10-roster is absent in this clone (fetch it); reading origin/main, which lags the round's roster edits
-RESULT survivors=0

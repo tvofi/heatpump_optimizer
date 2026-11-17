@@ -1,0 +1,4 @@
+M0 none: PASS 3/3 runs 0 failed
+M8 variables' OPENBLAS_CORETYPE line: KILLED 3/3 runs red; check is OK under the printed variables; check refuses without them, naming each variable; cloud-setup.sh --check exits 0 under the printed variables; the check's OK line names the pinned class and the per-class run
+RESULT survivors=0
+exit=0
