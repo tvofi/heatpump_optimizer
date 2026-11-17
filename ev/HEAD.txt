@@ -1,0 +1,2 @@
+cfef1ef4afadbe8ee8501ad9fe827e7108b61da6
+ls-remote fix/r11-service-schema-p2 at verdict: cfef1ef4afadbe8ee8501ad9fe827e7108b61da6	refs/heads/fix/r11-service-schema-p2

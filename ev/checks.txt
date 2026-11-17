@@ -1,0 +1,48 @@
+$ git merge-tree --write-tree origin/main cfef1ef4af  (origin/main d218fa6ce0)
+21ded85e1da148dc729572bb0e6dec289a8716b5
+rc=0
+
+$ merge_train.py owed-reds
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+
+$ git diff 4ecca4cc58...cfef1ef4af --stat -- VERSION manifest.json RELEASE_NOTES.md tests/golden
+(empty)
+
+$ class enumeration (body step 8 rule) at 38bf516bdd
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/config_flow.py:364:    CONF_SILENT_MODE_FRACTION,
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/config_flow.py:1923:    _F("grid_connection", CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION, _number(CAPACITY_FLOOR_FRACTION, 1.0, 0.05, slider=True)),
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:70:    CONF_SILENT_MODE_FRACTION,
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:420:            config.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:556:        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:559:        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:575:        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/quiet_windows.py:578:        config.update({CONF_SILENT_MODE_FRACTION: fraction})
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/sensor.py:127:    out["silent_mode_power_fraction"] = cfg.silent_mode_power_fraction
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:53:    CONF_SILENT_MODE_FRACTION,
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:155:        vol.Optional("silent_mode_power_fraction"): vol.All(
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:257:        vol.Optional("silent_mode_power_fraction"): vol.All(
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:388:    fraction = data.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:390:        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+38bf516bdd73f926ee9639ffda7b9ca5163fd50e:custom_components/heatpump_optimizer/services.py:503:        vol.Optional("silent_mode_power_fraction"): vol.All(
+carry_audit check (body: the PR body's Red checks/Forward-carry/Friction sections, all 'none'; comments: this verdict): CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s) rc=0
