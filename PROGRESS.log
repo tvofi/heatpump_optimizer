@@ -4,3 +4,4 @@
 1794898298 CKPT packet read snapshot 2bbdbec2fb7a
 1794898498 CKPT body mutants 21/21 killed; reviewer mutants 10 survive; full diff driver running snapshot 4ff3befb7c84
 1794898760 HB alive
+1794898791 CKPT real run + attacks done; full mutant run read; drafting blocked verdict snapshot 1956a4149b06
