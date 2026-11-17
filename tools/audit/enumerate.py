@@ -947,7 +947,6 @@ def self_test():
         arm("d12 two declared axes pair with each other once", count("d12-cells", t, pairs=True), (4 + 4) + (4 + 4 * 4 + 2 * 2) + 2)
         edit_json(OBJECTIVE, lambda d: (d["population"].pop(), d["population"][2].update(levels={})))(t)
         arm("d12 a NO-READ axis declaring no level is no cell", count("d12-cells", t), 4 + 2)
-        edit_json(OBJECTIVE, lambda d: d["population"][2].pop("levels"))(t)
         arm("with no ledger a census prints its items alone", run("d1-inputs", t)[:2], ["input CONF_A_ENTITY", "input CONF_B_ENTITY"])
         for label, text, want in (("a census line is joined to its driving test, the rest not run", "# c\n\ninput CONF_A_ENTITY\ttests/x.py::t\n",
                                    ["input CONF_A_ENTITY\ttests/x.py::t"] + [f"input {k}\tnot run" for k in ("CONF_B_ENTITY", "CONF_F_SENSOR", "CONF_H1", "CONF_H2", "CONF_W_SENSOR")]),
