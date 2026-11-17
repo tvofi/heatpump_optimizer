@@ -290,7 +290,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r10-prepr-darwin-selftest-lane",
-    "commit": "a57433c661a56cbcd7a892a4c13a0fec9161464a",
+    "commit": "a57433c661",
     "last_step": null,
     "next_step": "fixer (sonnet, size S, no design step), then sonnet review",
     "note": "orchestrator brief to s14-36 2026-11-12: P684 barrier group; overlap admitted (R10-HOTFIX-PREPR-WC-PAD): P684: third Darwin-only prepr self-test red triggers the class barrier",
