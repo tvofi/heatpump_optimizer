@@ -94394,7 +94394,8 @@ from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _HDR_RUNS_AT
 _HDR_N = 32
 
 
-def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None, t0=50.0, p_min=1.0, n=_HDR_N, dt=0.25):
+def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None, t0=50.0, p_min=1.0, n=_HDR_N, dt=0.25,
+             p_run=4.8):
     """A planner that plans runs, on the default 200 l tank, and its context."""
     params = ThermalParameters(min_electrical_power=p_min, max_electrical_power=6.0)
     planner = DhwPlanner(
@@ -94402,7 +94403,7 @@ def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None
         charge_runs=_hdr_dp.ChargeRuns(start, running, clamped))
     prices = np.full(n, 1.0) if prices is None else np.asarray(prices, dtype=float)
     ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt, c_dhw=params.dhw_store.capacity_kwh_per_c,
-                   p_dhw_max=4.8, params=params, min_run_power=0.6, max_lead_steps=n)
+                   p_dhw_max=p_run, params=params, min_run_power=0.6, max_lead_steps=n)
     draws = np.zeros(n) if draws is None else np.asarray(draws, dtype=float)
     return SimpleNamespace(
         planner=planner, ctx=ctx, tank=(t0, draws), floor=_hdr_runs.floor_kw(p_min),
@@ -94975,6 +94976,74 @@ R.check(
     "solve stops short of the cap",
     0 < len(_hdr_x_free.rounds) < _hdr_om._COMBI_EXCHANGE_ROUNDS,
     f"{len(_hdr_x_free.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}; engaged {len(_hdr_x.rounds)}",
+)
+
+# The kernel hands an action whether the cells it leaves were running, and
+# the cell rule whether the arrival is in a run: one step from a pause.
+_hdr_g_cost = np.array([[np.inf], [0.0]])
+_hdr_g = _hdr_runs.advance(
+    _hdr_g_cost, np.zeros((2, 1)), _hdr_runs.moves(1, 1, np.nan),
+    ([lambda v, ran: (v, np.inf if ran else 1.0)], [lambda v, ran: (v, 5.0 if ran else 2.0)]), 0.0,
+    lambda v, charged: (np.zeros(v.size, dtype=np.int64), np.full(v.size, 10.0 if charged else 20.0)), 1)[0]
+R.check(
+    "from a pause the kernel tells a running and a pausing action their cells were not running, and "
+    "tells the cell rule which arrival is in a run",
+    _hdr_g[0, 0] == 11.0 and _hdr_g[1, 0] == 22.0,
+    f"{_hdr_g.ravel()}",
+)
+# Run and pause lengths are two numbers: with a 30-minute shortest pause at
+# a 15-minute step, a charge may be one step and no pause between two is.
+_hdr_m_real = _hdr_runs.MIN_PAUSE
+_hdr_runs.MIN_PAUSE = timedelta(minutes=30)
+try:
+    _hdr_m_rig = _hdr_rig(draws=np.full(_HDR_N, 0.9), running=True)
+    _hdr_m_plan = np.where(np.arange(_HDR_N) % 2 == 1, 0.8, 0.0)
+    _hdr_m_out = _hdr_commit(_hdr_m_rig, _hdr_m_plan, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:]))
+finally:
+    _hdr_runs.MIN_PAUSE = _hdr_m_real
+_hdr_m_on = "".join("1" if v else "0" for v in _hdr_m_out > 0.0)
+R.check(
+    "the shortest run and the shortest pause are held apart: with a two-step pause at a one-step run, "
+    "every pause between two committed charges is two steps or more, the plan charges on its first step "
+    "(the compressor runs, so that is no start and waits for no pause), and its charges hold the floors",
+    not np.array_equal(_hdr_m_out, _hdr_m_plan) and "101" not in _hdr_m_on and _hdr_m_on[0] == "1"
+    and _hdr_under(_hdr_m_out, 1.0) == 0
+    and _hdr_dp.charge_refusal(
+        _hdr_m_out, None, _hdr_m_rig.temps, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:])) is None,
+    _hdr_m_on,
+)
+# The program says so where no mask keeps the store in bounds; a program
+# plan refused for anything but a start is not asked for again; and a plan
+# the rating leaves with a step under the floor inside a charge is refused.
+_hdr_n_prog = _hdr_dp._StoreProgram(
+    _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, (50.0, np.zeros(_HDR_N)),
+    (np.full(_HDR_N, 70.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+_hdr_n_low = np.zeros(_HDR_N)
+_hdr_n_low[[17, 18, 19]] = [1.0, 0.7, 1.0]
+_hdr_n_out, _hdr_n_seen = _hdr_programs(
+    lambda: _hdr_commit(_hdr_rig(start=0.0), _hdr_l_plan, _hdr_l_req, start_below=np.full(_HDR_N, 80.0)),
+    lambda *_a: _hdr_n_low.copy())
+_hdr_n_cold, _hdr_n_cold_seen = _hdr_programs(
+    lambda: _hdr_commit(_hdr_rig(), _hdr_l_plan, _hdr_l_req, start_below=np.full(_HDR_N, 80.0)),
+    lambda *_a: np.zeros(_HDR_N))
+R.check(
+    "the store program returns no plan where a floor is over the ceiling; a program plan with a step "
+    "under the floor inside a charge does not ship though it is the cheapest and holds every floor, and "
+    "neither it nor one refused for a floor is asked for a second time",
+    _hdr_n_prog.plan(np.ones(_HDR_N, dtype=bool)) is None
+    and _hdr_dp.charge_refusal(_hdr_n_low, None, _hdr_rig().temps, np.minimum(_hdr_l_req, _hdr_rig().temps(_hdr_l_plan)[1:])) is None
+    and float(np.sum(_hdr_n_low)) < float(np.sum(_hdr_n_out)) and not np.array_equal(_hdr_n_out, _hdr_n_low)
+    and len(_hdr_n_seen) == 1 and len(_hdr_n_cold_seen) == 1 and bool(np.any(_hdr_n_cold > 0.0)),
+    f"{len(_hdr_n_seen)} {len(_hdr_n_cold_seen)} {np.round(_hdr_n_out[_hdr_n_out > 0], 2)}",
+)
+# A pump whose run power is its floor still commits: one level.
+_hdr_o_out = _hdr_commit(_hdr_rig(p_run=1.0), _hdr_l_plan, _hdr_l_req)
+_hdr_o_none = _hdr_commit(_hdr_rig(p_run=0.9), _hdr_l_plan, _hdr_l_req)
+R.check(
+    "a run power equal to the floor commits at that one level; a run power under the floor ships the "
+    "plan as it is, the same object",
+    bool(np.any(_hdr_o_out > 0.0)) and bool(np.all(_hdr_o_out[_hdr_o_out > 0.0] == 1.0)) and _hdr_o_none is _hdr_l_plan,
+    f"{np.round(_hdr_o_out[_hdr_o_out > 0], 2)}",
 )
 
 

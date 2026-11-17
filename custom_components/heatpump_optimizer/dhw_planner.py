@@ -1768,7 +1768,7 @@ class DhwPlanner:
 
         requirement, max_temp = _within_ceiling(requirement, max_temp)
         params = self.model.params
-        decay = ctx.tank_decay[0]
+        decay, _gain = ctx.tank_decay
 
         # Free trajectory: the tank with no heating (in combi, under the space side's flux).
         free = np.zeros(n_steps + 1)
