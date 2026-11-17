@@ -1,0 +1,24 @@
+RESULT s3-02 150.0 öre/kWh -> 150.0 (want 1.5) WRONG
+RESULT s3-02 25.0 c/kWh -> 25.0 (want 0.25) WRONG
+RESULT s3-02 25.0 cent/kWh -> 25.0 (want 0.25) WRONG
+RESULT s3-02 30.0 p/kWh -> 30.0 (want 0.3) WRONG
+RESULT s3-02 150000.0 öre/MWh -> 150.0 (want 1.5) WRONG
+RESULT s3-02 1.5 SEK/kWh -> 1.5 (want 1.5) ok
+RESULT s3-02 80.0 EUR/MWh -> 0.08 (want 0.08) ok
+RESULT s3-02 1.2 kr/kWh -> 1.2 (want 1.2) ok
+RESULT s3-02 wrong=5 of 8 (5 minor, 3 major)
+RESULT s3-03 tibber rows in=192 out=96; tomorrow rows kept=0
+RESULT s3-04 rule-applies mismatches 192 of 672 quarter steps; by day {'Fri': 96, 'Sun': 96}; parse_day_range('Mon-Fri')=[0, 1, 2, 3, 4]
+RESULT s3-05 _one_per_day([(4.0, '2026-02-03'), (1.0, '2026-02-03'), (3.0, '2026-02-04'), (0.5, '2026-02-04'), (2.0, '')]) -> [(0.5, '2026-02-04'), (1.0, '2026-02-03'), (2.0, '')] ; documented per-day highest -> [(2.0,''),(3.0,'2026-02-04'),(4.0,'2026-02-03')]
+RESULT s3-06 _exact_topk_sum([0.1, 5.0, 0.2, 3.0, 0.0, 4.0], 3) = 0.30000000000000004 ; k largest = 12.0
+RESULT s3-07 2026-03: month_hours=744.0 real=743.0 coverage_factor(full settle)=1.001346
+RESULT s3-07 2026-10: month_hours=744.0 real=745.0 coverage_factor(full settle)=1.000000
+RESULT s3-07 2026-01: month_hours=744.0 real=744.0 coverage_factor(full settle)=1.000000
+RESULT s3-08 ChargeSettle dip taken back: one-sample charge 4.00 K of 4; four-sample charge 0.00 K of 4
+RESULT s3-09 takes_ceiling(1.5 kW at ceiling)=True; idle_kw=0.0; learned_max_kw after 14 floor samples=1.5
+RESULT s3-01 lambda=0.0: predicted_cost=40.5564166061562 baseline_cost=41.7144930602077 savings=7.288879837593125 sum(power*published price*dt)=40.5564
+RESULT s3-01 lambda=1.0: predicted_cost=40.5564166061562 baseline_cost=41.7144930602077 savings=7.288879837593125 sum(power*published price*dt)=40.5564
+RESULT s3-01 max |published step price(lambda 1) - published step price(lambda 0)| = 0.0000 (raw feed identical)
+RESULT s3-02 reach unit=SEK/kWh feed 1.0: published current_price=1.0 first step=1.0
+RESULT s3-02 reach unit=öre/kWh feed 100.0: published current_price=100.0 first step=100.0
+RESULT thread_factor=1.000 load1=1.32

@@ -1,0 +1,50 @@
+### tariff load1=0.64
+CELL price-folding price_shape=flat resolution=15min fold_err=0.000e+00 fold_sum_err=3.553e-14 known_steps=96
+CELL price-folding price_shape=flat resolution=hourly fold_err=0.000e+00 fold_sum_err=3.553e-14 known_steps=96
+CELL price-folding price_shape=shoulder resolution=15min fold_err=1.110e-16 fold_sum_err=2.487e-14 known_steps=96
+CELL price-folding price_shape=shoulder resolution=hourly fold_err=1.110e-16 fold_sum_err=2.487e-14 known_steps=96
+CELL price-folding price_shape=summer_negative resolution=15min fold_err=0.000e+00 fold_sum_err=9.770e-15 known_steps=96
+CELL price-folding price_shape=summer_negative resolution=hourly fold_err=0.000e+00 fold_sum_err=9.770e-15 known_steps=96
+CELL price-folding price_shape=summer_typical resolution=15min fold_err=0.000e+00 fold_sum_err=7.105e-15 known_steps=96
+CELL price-folding price_shape=summer_typical resolution=hourly fold_err=0.000e+00 fold_sum_err=7.105e-15 known_steps=96
+CELL price-folding price_shape=winter_extreme resolution=15min fold_err=8.882e-16 fold_sum_err=7.105e-14 known_steps=96
+CELL price-folding price_shape=winter_extreme resolution=hourly fold_err=8.882e-16 fold_sum_err=7.105e-14 known_steps=96
+CELL price-folding price_shape=winter_moderate resolution=15min fold_err=2.220e-16 fold_sum_err=2.842e-14 known_steps=96
+CELL price-folding price_shape=winter_moderate resolution=hourly fold_err=2.220e-16 fold_sum_err=2.842e-14 known_steps=96
+CELL price-folding price_shape=winter_narrow resolution=15min fold_err=0.000e+00 fold_sum_err=5.684e-14 known_steps=96
+CELL price-folding price_shape=winter_narrow resolution=hourly fold_err=0.000e+00 fold_sum_err=5.684e-14 known_steps=96
+CELL price-folding price_shape=winter_typical resolution=15min fold_err=1.110e-16 fold_sum_err=1.421e-14 known_steps=96
+CELL price-folding price_shape=winter_typical resolution=hourly fold_err=1.110e-16 fold_sum_err=1.421e-14 known_steps=96
+CELL dst-and-month-days day=23h 15min:steps=92/92,err=0.00e+00 hourly:steps=92/92,err=0.00e+00 month_real_hours=743 month_hours=744 coverage_full=1.001346
+CELL dst-and-month-days day=25h 15min:steps=100/100,err=0.00e+00 hourly:steps=100/100,err=0.00e+00 month_real_hours=745 month_hours=744 coverage_full=1.000000
+CELL dst-and-month-days day=month_boundary 15min:steps=96/96,err=2.22e-16 hourly:steps=96/96,err=2.22e-16 month_real_hours=744 month_hours=744 coverage_full=1.000000
+CELL capacity-peak-once price_shape=flat peak_cost=0.2970 expect=23.1733 peak_cost_err=22.8763 tracker_billed=3.2525 expect_billed=3.7511 tracker_peak_err=0.4986 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=shoulder peak_cost=3.3380 expect=24.5643 peak_cost_err=21.2263 tracker_billed=3.0877 expect_billed=3.7506 tracker_peak_err=0.6629 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=summer_negative peak_cost=0.0000 expect=27.3854 peak_cost_err=27.3854 tracker_billed=3.1164 expect_billed=4.0503 tracker_peak_err=0.9340 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=summer_typical peak_cost=0.0000 expect=27.5550 peak_cost_err=27.5550 tracker_billed=3.0928 expect_billed=3.8319 tracker_peak_err=0.7391 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=winter_extreme peak_cost=0.0000 expect=41.4976 peak_cost_err=41.4976 tracker_billed=1.9345 expect_billed=4.0613 tracker_peak_err=2.1268 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=winter_moderate peak_cost=0.4150 expect=23.1584 peak_cost_err=22.7434 tracker_billed=2.9317 expect_billed=3.7786 tracker_peak_err=0.8469 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=winter_narrow peak_cost=0.7790 expect=25.6462 peak_cost_err=24.8672 tracker_billed=3.1932 expect_billed=3.7786 tracker_peak_err=0.5853 capacity_line_err=0.00e+00
+CELL capacity-peak-once price_shape=winter_typical peak_cost=2.5670 expect=23.4902 peak_cost_err=20.9232 tracker_billed=3.3068 expect_billed=3.7786 tracker_peak_err=0.4718 capacity_line_err=0.00e+00
+CELL grid-fee-windows grid_fee_mode=entity fee_mismatch_steps=0/672 by_day={} abs_fee_err_per_kwh_hour_sum=0.000
+CELL grid-fee-windows grid_fee_mode=none fee_mismatch_steps=0/672 by_day={} abs_fee_err_per_kwh_hour_sum=0.000
+CELL grid-fee-windows grid_fee_mode=rules fee_mismatch_steps=192/672 by_day={'Fri': 96, 'Sun': 96} abs_fee_err_per_kwh_hour_sum=5.600
+CELL currency-pv-export price_source=entity unit_mismatches=8 ['öre/kWh:153.8!=1.638', 'ore/kWh:153.8!=1.638', 'øre/kWh:153.8!=1.638', 'c/kWh:153.8!=1.638', 'ct/kWh:153.8!=1.638', 'cent/kWh:153.8!=1.638', 'p/kWh:153.8!=1.638', 'öre/MWh:0.2538!=0.1015'] pv_piecewise_err=1.42e-14
+CELL currency-pv-export price_source=tibber tibber_rows_dropped=96/192 known_steps_at_14h=40/96 pv_piecewise_err=1.42e-14
+RESULT fold_err_max=8.882e-16 currency/kWh
+RESULT fold_sum_err_max=7.105e-14 currency
+RESULT coverage_full_23h=1.001346 ratio
+RESULT coverage_full_25h=1.000000 ratio
+RESULT coverage_full_month_boundary=1.000000 ratio
+RESULT peak_cost_err_max=41.4976 currency
+RESULT tracker_peak_err_max=2.1268 kW
+RESULT capacity_line_err_max=0.00e+00 currency
+RESULT fee_mismatch_steps=192 count
+RESULT unit_mismatches=8 count
+RESULT tibber_rows_dropped=96 count
+RESULT tibber_known_steps_at_14h=40 count
+RESULT pv_piecewise_err=1.42e-14 currency
+RESULT thread_factor=1.0002
+RESULT load1=1.56
+RESULT swapins=0
+### rc=0 wall=33s load1_end=1.56

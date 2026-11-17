@@ -1,0 +1,78 @@
+### sysid_p load1=2.43
+/home/user/audit-r11-px-D2-2/dev/audit/rounds/round11/D2/s3/m5_sysid.py:134: RuntimeWarning: All-NaN slice encountered
+  f"over_bar={over}/{adm} bias_median={np.nanmedian(b):+.4f} bias_min={np.nanmin(b):+.4f} "
+/home/user/audit-r11-px-D2-2/dev/audit/rounds/round11/D2/s3/m5_sysid.py:135: RuntimeWarning: All-NaN slice encountered
+  f"bias_max={np.nanmax(b):+.4f} completed_bias_median={np.median(cb) if cb else np.nan:+.4f} "
+CELL sysid-bias noise=none s_true=0.8 cr_mult=0.7 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0000 completed_absbias_max=0.0000 hw_median=0.0816 weighted_bias_max=+nan
+CELL sysid-bias noise=none s_true=0.8 cr_mult=1.4 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0000 completed_absbias_max=0.0000 hw_median=0.0840 weighted_bias_max=+nan
+CELL sysid-bias noise=none s_true=1.0 cr_mult=0.7 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0000 completed_absbias_max=0.0000 hw_median=0.0647 weighted_bias_max=+nan
+CELL sysid-bias noise=none s_true=1.0 cr_mult=1.4 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0000 completed_absbias_max=0.0000 hw_median=0.0668 weighted_bias_max=+nan
+CELL sysid-bias noise=none s_true=1.25 cr_mult=0.7 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0000 completed_absbias_max=0.0000 hw_median=0.0512 weighted_bias_max=+nan
+CELL sysid-bias noise=none s_true=1.25 cr_mult=1.4 completed=1/1 admitted=0/1 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0000 completed_absbias_max=0.0000 hw_median=0.0528 weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=0.8 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0098 completed_absbias_max=0.0610 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=0.8 cr_mult=1.4 completed=38/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0168 completed_absbias_max=0.1358 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=1.0 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0073 completed_absbias_max=0.0506 hw_median=0.0717 weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=1.0 cr_mult=1.4 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0008 completed_absbias_max=0.0768 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=1.25 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0011 completed_absbias_max=0.0254 hw_median=0.0545 weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.005 s_true=1.25 cr_mult=1.4 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0007 completed_absbias_max=0.0565 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=0.8 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0223 completed_absbias_max=0.2656 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=0.8 cr_mult=1.4 completed=25/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0998 completed_absbias_max=0.2919 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=1.0 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0196 completed_absbias_max=0.1515 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=1.0 cr_mult=1.4 completed=33/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0123 completed_absbias_max=0.2550 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=1.25 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0087 completed_absbias_max=0.1024 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.02 s_true=1.25 cr_mult=1.4 completed=37/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0457 completed_absbias_max=0.2026 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=0.8 cr_mult=0.7 completed=30/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0610 completed_absbias_max=0.3714 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=0.8 cr_mult=1.4 completed=15/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.2694 completed_absbias_max=0.4752 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=1.0 cr_mult=0.7 completed=36/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0563 completed_absbias_max=0.3728 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=1.0 cr_mult=1.4 completed=30/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.1235 completed_absbias_max=0.5404 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=1.25 cr_mult=0.7 completed=38/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0142 completed_absbias_max=0.3575 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=white_0.05 s_true=1.25 cr_mult=1.4 completed=32/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.1294 completed_absbias_max=0.3579 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=0.8 cr_mult=0.7 completed=29/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0027 completed_absbias_max=0.1314 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=0.8 cr_mult=1.4 completed=24/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.1111 completed_absbias_max=0.2140 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=1.0 cr_mult=0.7 completed=38/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.0024 completed_absbias_max=0.3597 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=1.0 cr_mult=1.4 completed=30/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0634 completed_absbias_max=0.2236 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=1.25 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0016 completed_absbias_max=0.3890 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=quantised_0.1C s_true=1.25 cr_mult=1.4 completed=28/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=+0.0187 completed_absbias_max=0.1639 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=0.8 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.3153 completed_absbias_max=0.3729 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=0.8 cr_mult=1.4 completed=10/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.4376 completed_absbias_max=0.4648 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=1.0 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.2504 completed_absbias_max=0.2752 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=1.0 cr_mult=1.4 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.3477 completed_absbias_max=0.3941 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=1.25 cr_mult=0.7 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.2145 completed_absbias_max=0.2326 hw_median=inf weighted_bias_max=+nan
+CELL sysid-bias noise=drifting s_true=1.25 cr_mult=1.4 completed=40/40 admitted=0/40 miss_rate=nan over_bar=0/0 bias_median=+nan bias_min=+nan bias_max=+nan completed_bias_median=-0.2824 completed_absbias_max=0.3273 hw_median=inf weighted_bias_max=+nan
+RESULT white_0.005_admitted=0 count
+RESULT white_0.005_miss_rate=nan ratio
+RESULT white_0.005_over_bar=0 count
+RESULT white_0.005_misses=0 count
+RESULT white_0.005_weighted_abs_bias_max=nan ratio
+RESULT white_0.005_abs_bias_max=nan ratio
+RESULT white_0.02_admitted=0 count
+RESULT white_0.02_miss_rate=nan ratio
+RESULT white_0.02_over_bar=0 count
+RESULT white_0.02_misses=0 count
+RESULT white_0.02_weighted_abs_bias_max=nan ratio
+RESULT white_0.02_abs_bias_max=nan ratio
+RESULT white_0.05_admitted=0 count
+RESULT white_0.05_miss_rate=nan ratio
+RESULT white_0.05_over_bar=0 count
+RESULT white_0.05_misses=0 count
+RESULT white_0.05_weighted_abs_bias_max=nan ratio
+RESULT white_0.05_abs_bias_max=nan ratio
+RESULT quantised_0.1C_admitted=0 count
+RESULT quantised_0.1C_miss_rate=nan ratio
+RESULT quantised_0.1C_over_bar=0 count
+RESULT quantised_0.1C_misses=0 count
+RESULT quantised_0.1C_weighted_abs_bias_max=nan ratio
+RESULT quantised_0.1C_abs_bias_max=nan ratio
+RESULT drifting_admitted=0 count
+RESULT drifting_miss_rate=nan ratio
+RESULT drifting_over_bar=0 count
+RESULT drifting_misses=0 count
+RESULT drifting_weighted_abs_bias_max=nan ratio
+RESULT drifting_abs_bias_max=nan ratio
+/home/user/audit-r11-px-D2-2/dev/audit/rounds/round11/D2/s3/m5_sysid.py:153: RuntimeWarning: All-NaN slice encountered
+  print(f"RESULT null_abs_bias_max={max(float(np.nanmax(np.abs(r[7]))) for r in null):.2e} ratio")
+RESULT null_abs_bias_max=nan ratio
+RESULT thread_factor=1.0000
+RESULT load1=1.15
+RESULT swapins=0
+### rc=0 wall=166s load1_end=1.15
