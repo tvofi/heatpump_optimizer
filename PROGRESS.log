@@ -1,3 +1,4 @@
 1794873518 INIT r11-rev-3691
 1794873527 HB alive
 1794873564 CKPT packet rendered snapshot a67b8074ec34
+1794873644 CKPT mutants probed: M1 M2 M4 killed, M3 M5 M6 survive snapshot f0b9e84e607d
