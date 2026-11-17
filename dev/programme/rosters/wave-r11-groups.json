@@ -4279,6 +4279,60 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-PLAN-PAGE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/plan_page.py",
+    "tools/plan/replan.py",
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/gantt_drift.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "The round plan page in tools/audit/seat/plan_page.py, built to the two-tab the plan page's tab builder script prototype: next-round groups on a second tab with a preliminary Gantt, the round's closure figure excluding them, running groups not shown as not started, serial pricing, numbered-list descriptions rendered whole (one_line_brief cuts at the first period then space), the plan beat passing --live-refs/--in-flight with the local render-timeout raise retired, and gantt_drift.py's accept on CLOSURE lapsing after the slip it accepted. Null control: a fixture roster with one next-round group must change the closure figure only when the exclusion is reverted. Done when each carry is built with a self-test arm or dismissed with a number. Sources: R11-PRE-ACK-COMPLETION (PR #3635), R11-PRE-PLAN-RENDER (PR #3622). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Moved from R10-TICK-RESIDUE-P3 carry 32 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nR10-TICK-RESIDUE-P3 (triage: dev/programme/triage/s6-batch229.md#P695 at 45adb0c3b4), line numbers at 45adb0c3b4. tools/audit/seat/gantt_drift.py:20-22 and :95: an ack of kind \"accept\" on key CLOSURE silences the key and re-baselines it with no expiry, so the 2026-11-05T06:31Z accept (acks.txt line 104, one slip of about a day) re-baselined every later closure slip and printed only \"GANTT-BASELINE re-baselined (accepted: CLOSURE ...)\": on 2026-11-12 baseline 2026-11-14T14:51Z against live 2026-11-16T11:12Z, a 44 h slip never surfaced as CLOSURE. Change: an accept lapses after the one slip it accepted (record the accepted closure value with the ack, or an until=; a later forecast past it prints CLOSURE again). Failing test first in the self-test beside :200-205: an accept recorded at closure X, a forecast at X+1 h prints CLOSURE; null control: a forecast at or before X stays silent. Severity high. Carry: R10-TICK-RESIDUE-P3",
+    "Owner instruction 2026-11-13 (tvofi, verbatim: \"The plan html for round 10 should also not show the round 11 groups\"): a round s plan page and its closure figure cover that round s groups only. Groups that belong to the next round (its pre-finder groups, its intake group, groups deferred to it) are neither drawn nor counted in closure; at most one line says how many are queued for the next round. Null control: a roster with a next-round group renders the same closure and the same lanes as the roster without it.",
+    "Owner instruction 2026-11-13, amending the round-filter carry on this group (tvofi, verbatim: \"for the permanent fix, future round items should be possible to view on a separate tab with a separate preliminary gantt\"): the next round s groups are not dropped from the page but moved to a second tab of their own, with a preliminary Gantt of their own built from the same duration model, starting at the current round s planned closure and labelled preliminary. The current round s tab, its lanes and its closure figure stay free of them. Null control: adding a next-round group changes nothing on the current round s tab and adds one bar on the other.",
+    "Owner 2026-11-13 (tvofi, verbatim: \"The copy you send me tonight is the prototype of the permanent one, future round tab included\"): the prototype is the two-tab page the round-10 orchestrator sent him that evening, built by the wrapper script the plan page's tab builder script in the session scratch s14/seat/replan-2000 (named in the handover); build the permanent page to that prototype, as rulings on it stand at the time.",
+    "Moved from R10-TICK-RESIDUE-P3 carry 10 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P753 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom the s13 plan pre-read of PLAN.html at the 2026-11-10T01:14Z snapshot (plan_page.py over plan-live.json): (1) a group description holding markdown (RCA-FRICTION, RCA-STRUCTURE-BLIND) renders raw headings and loose lines, and one starting with a numbered list renders as \"1.\" alone (PUMP-MODEL, TARIFF), so descriptions need a first-sentence or escaped rendering; (2) the slot strip prints \"0 part merged\" while 8 held rows read \"part merged\"; (3) the critical-path note says 46 open groups while the ledger rows sum 65 open. Control: render the page from that plan.json and count each figure against the rows; a fix makes each count equal its rows and leaves a page with no such groups unchanged. Carry: R10-TICK-RESIDUE",
+    "Proposal PC-1113-05, routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P771 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- PC-1113-05 plan: closure figure counts post-closure R11-PRE groups; running groups shown as not started (stage words only); a serial after-edge prices parallel work as a sum",
+    "Plan beat items (the batch's entries P753 and P794), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P753 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nThe plan beat passes `--live-refs` and `--in-flight` (sweep line 1131); the local render-timeout raise in $HPO_STATE_DIR/s14/beat_extras.sh (150 to 420 s, sweep line 1196) is retired by this group; the plan page's tab builder script is the REPLACE target (this group's carry 2). The PLAN-CAP3 refusal after a stamp is by design and is answered by the round-11 roster file existing, not by code."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-plan-page",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-ACK-COMPLETION carries 12; R11-PRE-PLAN-RENDER carries 0,1,2,3,4,5; overlap admitted (R11-PRE-TOKEN-LEDGER, R11-CARRY-ROSTER-WRITE, R11-CARRY-BEAT-RECORD): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
