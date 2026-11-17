@@ -4147,26 +4147,25 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def _checks_rule(self, field: str) -> "tuple[bool, str]":
-        """RULESET's required_status_checks rule's <field> (a jq path under
-        .parameters), read live: (read ok, the jq output)."""
-        code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
-                              f'.[] | select(.name == "{RULESET}") | .id'])
-        code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
-                             '.rules[] | select(.type == "required_status_checks") | .parameters' + field])
-        return not (code or code2 or not rid.strip().isdigit()), o
+    def _checks_rule(self) -> "tuple[bool, dict]":
+        """RULESET's required_status_checks rule's parameters, read live through
+        `gh_read.ruleset_checks`: both reads conditional, their ETag and body shared
+        with every process under the same $HPO_STATE_DIR (`gh_read.etag_dir`; a 304
+        costs no core-bucket call)."""
+        return gh_read.ruleset_checks(self.run, self.repo, RULESET)
 
     def strict_update(self) -> "bool | None":
         """Whether RULESET requires a branch up to date before its merge
         (`strict_required_status_checks_policy`), read live; None unreadable."""
-        ok, o = self._checks_rule(".strict_required_status_checks_policy")
-        return {"true": True, "false": False}.get(o.strip()) if ok else None
+        ok, params = self._checks_rule()
+        got = params.get("strict_required_status_checks_policy")
+        return got if ok and isinstance(got, bool) else None
 
     def required(self, pr_head: bool = False) -> list[str]:
         """The ruleset's required contexts, read live; less PR_ONLY unless
         <pr_head> (a pull request's head carries those; main and a proof never)."""
-        ok, o = self._checks_rule(".required_status_checks[].context")
-        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
+        ok, params = self._checks_rule()
+        names = sorted(gh_read.required_contexts(params) - set(() if pr_head else PR_ONLY))
         if not ok or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
@@ -5340,10 +5339,8 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
                 # every record issue is read; the fixture's thread is #201's
                 return 0, _jl(world.get("thread", []) if "/issues/201/" in a else [])
-            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
-            if "rulesets/7" in a:
-                return 0, world.get("required", "fast\n")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", world.get("required", "fast\n"))
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "api", "user"]:  # the acting account
@@ -7050,6 +7047,7 @@ def _self_test() -> int:
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
+    _ruleset_etag_self_test(check)
     _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
@@ -7057,6 +7055,39 @@ def _self_test() -> int:
     _introduced_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _ruleset_etag_self_test(check) -> None:
+    """R10-GH-READ-RESIDUE-P3 item 1: the train's two ruleset reads are conditional and shared
+    through the state dir (P625: 235 reads an hour from 120 processes, each reading once)."""
+    calls: list = []
+
+    def srv(argv, cwd=ROOT, stdin=None):
+        calls.append(list(argv))
+        return gh_read.fake_ruleset(argv, "7", "fast\npr-contract\n", "true")
+
+    def train(d):
+        return Train("o/r", Path(d), None, "", (), 1, run=srv, sleep=lambda s: None, log=lambda s: None)
+    with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as st:
+        saved = os.environ.get("HPO_STATE_DIR")
+        os.environ["HPO_STATE_DIR"] = st
+        try:
+            first = train(d).required(pr_head=True)
+            cold = len(calls)
+            second = Train("o/r", Path(d), None, "", (), 1, run=srv, sleep=lambda s: None, log=lambda s: None)
+            warm_names, warm_strict = second.required(pr_head=True), second.strict_update()
+            warm = calls[cold:]
+        finally:
+            if saved is None:
+                os.environ.pop("HPO_STATE_DIR", None)
+            else:
+                os.environ["HPO_STATE_DIR"] = saved
+    check("a cold required() makes two plain ruleset reads (null control: no stored ETag, no If-None-Match)",
+          first == ["fast", "pr-contract"] and cold == 2 and not any("If-None-Match" in " ".join(c) for c in calls[:2]))
+    check("a second train process (a fresh object, the shared state dir) reads both rulesets conditionally "
+          "and gets the same set and the strict flag from the stored bodies",
+          warm_names == first and warm_strict is True and len(warm) == 4
+          and all("If-None-Match" in " ".join(c) for c in warm))
 
 
 def _introduced_self_test(check) -> None:
@@ -7093,10 +7124,8 @@ def _introduced_self_test(check) -> None:
             calls.append(a)
             if argv[:2] == ["git", "merge-base"]:
                 return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return 0, "7"
-            if "rulesets/7" in a:
-                return 0, "fast\n"
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", "fast")
             for sha, runs in ((H, head_runs), (B, base_runs)):
                 if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
                     return (1, "HTTP 502") if runs is None else (0, json.dumps(
@@ -8780,10 +8809,8 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
 
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
-            if a.endswith("rulesets --jq " + argv[-1]) and argv[2] == "repos/o/r/rulesets":
-                return 0, "7\n"
-            if "repos/o/r/rulesets/7" in argv:
-                return 0, GATE + "\n"
+            if "repos/o/r/rulesets" in argv or "repos/o/r/rulesets/7" in argv:
+                return gh_read.fake_ruleset(argv, "7", GATE)
             if "actions/workflows/ci.yml/runs" in a:
                 return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
             if "check-runs" in a:
@@ -9266,9 +9293,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             a = " ".join(argv)
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if ruleset else (1, "HTTP 404")
-            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", ruleset)
+            return 1, "unexpected"
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
         try:
@@ -9281,9 +9308,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     def owed_cli(ruleset) -> "tuple[int, str]":  # `owed-reds` through main, the ruleset faked as `cli` fakes it
         def fake_run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if ruleset else (1, "HTTP 404")
-            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", ruleset)
+            return 1, "unexpected"
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
         try:
@@ -9338,10 +9365,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                 return 0, ""
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
-            if a.endswith("rulesets --jq " + argv[-1]):
-                return 0, "7"
-            if "rulesets/7" in a:
-                return 0, "gate\n"
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", "gate")
             if argv[:2] == ["git", "merge-base"]:
                 return 0, BASE + "\n"
             if argv[:4] == ["git", "diff", "--no-renames", "--name-only"]:
@@ -9865,18 +9890,14 @@ def _batch_self_test(check) -> None:
                 return 0, '2026-10-07T00:00:00Z >>> FAILED: "$PYTHON" tests/ratchet.py'
             if "/actions/jobs/" in a:
                 return 0, "no script here"
-            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
-                return (0, "7") if w["required"] else (1, "HTTP 404")
+            if "/rulesets" in a:
+                return gh_read.fake_ruleset(argv, "7", w["required"], w.get("strict", "true"))
             if argv[:3] == ["gh", "api", "graphql"] and "statusCheckRollup" in a:  # A5's rollup: GitHub agrees
                 n = int(next(x for x in argv if x.startswith("pr="))[3:])
                 return 0, json.dumps({"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
                     "oid": w["heads"][n], "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False},
                         "nodes": [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED",
                                    "conclusion": "SUCCESS", "isRequired": True}]}}}}]}}}}})
-            if "rulesets/7" in a and "strict_required_status_checks_policy" in a:
-                return 0, w.get("strict", "true")  # today's world: an up-to-date branch is required
-            if "rulesets/7" in a:
-                return 0, w["required"]
             if argv[:3] == ["gh", "workflow", "run"]:
                 w["dispatched"].append((argv[3], argv[argv.index("--ref") + 1]))
                 return 0, ""
@@ -11311,6 +11332,7 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         st_g = spool3()
         (st_g / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
         spooled0 = lines_of(st_g)
+        prev_state = os.environ.get("HPO_STATE_DIR")
         os.environ.update(HPO_STATE_DIR=str(gd), HPO_SEAT_GEN="roster=1")
         try:
             gsaid: list[str] = []
@@ -11323,7 +11345,11 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
             check("seat_gen null: an add under the current generation spools as before",
                   rc == 0 and len(lines_of(st_g)) == len(spooled0) + 1)
         finally:
-            del os.environ["HPO_SEAT_GEN"], os.environ["HPO_STATE_DIR"]
+            del os.environ["HPO_SEAT_GEN"]
+            if prev_state is None:
+                del os.environ["HPO_STATE_DIR"]
+            else:
+                os.environ["HPO_STATE_DIR"] = prev_state
         said: list[str] = []
         live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 15}), log=said.append)
         rc = train_add(live, {"pr": 15, "verdict": H, "verdict_comment": "42"}, ["train.sh"], front=True)
@@ -11764,7 +11790,9 @@ def main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
-        return _self_test()
+        with tempfile.TemporaryDirectory() as st:  # the fakes' ETag files never reach the host's state dir
+            os.environ["HPO_STATE_DIR"] = st
+            return _self_test()
     if argv[:1] == ["job-log"]:  # `job-log <job id> <owner/repo>`: job_log for a shell caller
         if len(argv) != 3:
             print("usage: merge_train.py job-log <job id> <owner/repo>", file=sys.stderr)
