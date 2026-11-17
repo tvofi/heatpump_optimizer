@@ -528,6 +528,7 @@
           "entities": "Givare och entiteter",
           "entities_metering": "Effekt- och solgivare",
           "entities_pump": "Värmepumps telemetri",
+          "rooms": "Rumstermometrar",
           "building": "Värmesystem och värmelagring",
           "building_preset": "Hustyp och värmesystem",
           "thermal_model": "Termisk modell (expert)",
@@ -1253,6 +1254,20 @@
           }
         }
       },
+      "rooms": {
+        "title": "Rumstermometrar",
+        "description": "Rumstermostater eller temperatursensorer, en per rum. Optimeraren publicerar deras medelvärde och spridningen mellan det kallaste och det varmaste rummet. Om du vill kan ett rum under sitt eget termostatbörvärde höja den temperatur planen håller. Lämna tomt om du inte har några.",
+        "data": {
+          "room_temperature_entities": "Rumstermometrar",
+          "room_lift_enabled": "Låt ett kallt rum höja planens minimum",
+          "after_save": "Efter sparande"
+        },
+        "data_description": {
+          "room_temperature_entities": "Högst 32 klimatentiteter (rumstermostater) eller temperatursensorer. Ett rum som är otillgängligt, inaktuellt eller utanför intervallet lämnas utanför medelvärdet och ger aldrig ett indataproblem.",
+          "room_lift_enabled": "Av som standard. När det är på höjer en rumstermostat i läge heat eller auto, som ligger längre under sitt eget börvärde än huset ligger under ditt, planens minimitemperatur – med högst 1 °C, aldrig över ditt komfortbörvärde och gradvis. Ett rum som är avstängt eller kyler ignoreras. Det ger vika för Ekonomiläge, öppet fönster, borta, helgdag, en manuellt planerad värmeperiod och tvåzonsmodellen. Sensorn för rumstemperaturspridning visar rummet och storleken.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        }
+      },
       "entities_pump": {
         "title": "Värmepumps telemetri",
         "description": "Vad värmepumpen rapporterar om sig själv.",
@@ -1608,7 +1623,8 @@
       "heat_curve_not_offset": "Den entitetens eget intervall innehåller inte 0, så den är ingen förskjutning: den ser ut som en absolut kurvpunkt. Välj styrningens förskjutningsentitet.",
       "heat_curve_unreadable": "Den entiteten har inget värde just nu, så värdet den skulle återställas till vid avstängning är okänt. Välj en entitet som rapporterar ett värde, eller spara igen när den gör det.",
       "heat_curve_out_of_range": "Den entiteten visar ett värde utanför sitt eget angivna intervall, så den kan inte förskjutas säkert. Kontrollera entiteten i dess integration först.",
-      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem."
+      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem.",
+      "too_many_rooms": "Högst 32 rumstermometrar kan anges."
     },
     "abort": {
       "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
@@ -2010,6 +2026,12 @@
           "system_identification": "Systemidentifiering",
           "unknown": "Okänt"
         }
+      },
+      "room_average_temperature": {
+        "name": "Rummens medeltemperatur"
+      },
+      "room_temperature_spread": {
+        "name": "Rummens temperaturspridning"
       },
       "indoor_temperature_optimizer": {
         "name": "Inomhustemperatur (optimeraren)"

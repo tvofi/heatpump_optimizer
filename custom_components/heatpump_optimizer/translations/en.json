@@ -528,6 +528,7 @@
           "entities": "Sensors and entities",
           "entities_metering": "Power and solar sensors",
           "entities_pump": "Heat pump telemetry",
+          "rooms": "Room thermometers",
           "building": "Heating system and heat storage",
           "building_preset": "Building type and emitters",
           "thermal_model": "Thermal model (expert)",
@@ -1253,6 +1254,20 @@
           }
         }
       },
+      "rooms": {
+        "title": "Room thermometers",
+        "description": "Room thermostats or temperature sensors, one per room. The optimizer publishes their average and the spread between the coldest and the warmest room. Optionally, a room below its own thermostat target can raise the temperature the plan holds. Leave empty if you have none.",
+        "data": {
+          "room_temperature_entities": "Room thermometers",
+          "room_lift_enabled": "Let a cold room raise the planned minimum",
+          "after_save": "After saving"
+        },
+        "data_description": {
+          "room_temperature_entities": "Up to 32 climate entities (room thermostats) or temperature sensors. A room that is unavailable, stale or out of range is left out of the average, and never raises an input problem.",
+          "room_lift_enabled": "Off by default. When on, a room thermostat in heat or auto mode that reads further below its own target than the house reads below yours raises the plan's minimum temperature, by at most 1 °C and never above your comfort target, rising gradually. A room that is off or cooling is ignored. It yields to Economy mode, an open window, away, a holiday, a manually planned heating slot and the two-zone model. The Room Temperature Spread sensor shows the room and the size.",
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        }
+      },
       "entities_pump": {
         "title": "Heat pump telemetry",
         "description": "What the heat pump reports about itself.",
@@ -1608,7 +1623,8 @@
       "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
       "heat_curve_unreadable": "That entity holds no reading now, so the value it would be returned to on off is unknown. Choose an entity that reports a value, or save again once it does.",
       "heat_curve_out_of_range": "That entity reads a value outside its own declared range, so it cannot be displaced safely. Check the entity in its integration first.",
-      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them.",
+      "too_many_rooms": "At most 32 room thermometers can be listed."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
@@ -2010,6 +2026,12 @@
           "system_identification": "System identification",
           "unknown": "Unknown"
         }
+      },
+      "room_average_temperature": {
+        "name": "Room Average Temperature"
+      },
+      "room_temperature_spread": {
+        "name": "Room Temperature Spread"
       },
       "indoor_temperature_optimizer": {
         "name": "Indoor Temperature (Optimizer)"
