@@ -9,3 +9,4 @@
 1794875640 CKPT self-tests green at head; waiting CI snapshot 92791d3b53cc
 1794875781 HB alive
 1794876385 HB alive
+1794877067 DONE returned: Fix review: merge f7f45193ae (pending-ci: gate) on probe/rev-3679-6a37736b @984da649
