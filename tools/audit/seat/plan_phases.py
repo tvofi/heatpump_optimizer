@@ -286,9 +286,11 @@ ul.items li{margin:2px 0;break-inside:avoid}
 </style>"""
 
 
-#: The phases whose duration the plan's model prices (`durations.json`'s
-#: `phase_hours`, keyed by these ids). One the model has no figure for is
-#: printed "duration unmeasured", never a typed constant or a zero.
+#: The phases whose duration the plan's model prices: `phase_hours`, keyed by
+#: these ids, which `replan.build_plan` copies from `durations.json` into
+#: `generated.model` (`replan.MODEL_FIELDS`) and `plan_page.render` hands to
+#: `section`. One the model has no figure for is printed "duration
+#: unmeasured", never a typed constant or a zero.
 MODEL_TIMED = ("finders", "verify-judge", "plan")
 
 

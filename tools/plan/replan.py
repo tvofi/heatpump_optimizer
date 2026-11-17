@@ -585,12 +585,14 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
     return hours, why
 
 
-#: The measured fields (`tools/plan/size_durations.py`) a plan records and
-#: `--check` requires: the rounds model and the held-stage model.
+#: The fields of `durations.json` a plan records in `generated.model`: the
+#: measured rounds and held-stage models (`tools/plan/size_durations.py`;
+#: `model_refusals` names the ones `--check` requires) and `phase_hours`, the
+#: round phases' durations the plan page prints (`plan_phases.MODEL_TIMED`).
 MODEL_FIELDS = ("first_round_hours", "first_round_by_class_hours", "review_rounds",
                 "review_rounds_by_class", "round_hours", "carry_baseline", "carry_hours",
                 "carry_part_hours", "carries_per_part", "sizes_percentile",
-                "carry_provenance")
+                "carry_provenance", "phase_hours")
 SIZE_ORDER = ("XS", "S", "M", "L", "XL")
 
 
