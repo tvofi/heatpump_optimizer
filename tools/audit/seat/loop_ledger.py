@@ -383,9 +383,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--dir")
     ap.add_argument("--runs")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--no-mutants", action="store_true", help=argparse.SUPPRESS)  # a mutant copy runs the checks alone
     a = ap.parse_args(argv)
     if a.self_test:
-        return self_test()
+        return self_test(not a.no_mutants)
     if a.dir:
         lines = report(load_dir(Path(a.dir)), None)
     else:
@@ -506,6 +507,9 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     got = lines(spell, listed, {**subj, M: "Merge pull request #0 from o/fix/x"})
     check("reds: a derived word the cause test refuses reads unread, never the word",
           " cause unread (derived #0 is no caused_by cause)" in row(got, 11) and "{#" not in got[0])
+    check("is_cause: a pull request, external, original or another roster group; never the group itself or a bare word",
+          all(roster_lib.is_cause(c, {"G", "H"}, "G") for c in ("#41", "external", "original", "H"))
+          and not any(roster_lib.is_cause(c, {"G", "H"}, "G") for c in ("G", "#0", "41", UNREAD, UNCLEARED, None)))
     got = lines(spell[:2] + [run(17, 3, "success", sha=M, event="workflow_dispatch", branch="main")], {11: red}, subj)
     check("reds: main's red spell outranks a green run at the same head_sha", " cause #41 " in row(got, 11))
     got = lines([run(11, 2, attempt=2, sha=M, event="push", branch="main")], {11: jobs("failure", "failure")}, subj)
@@ -554,7 +558,77 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           and got[-1] == "gate_reds unread (no --runs directory)")
 
 
-def self_test() -> int:
+#: The gate-reds read's mutants: name -> (needle, occurring once in this file; its replacement; the check that
+#: must then fail). `--self-test` runs each on a copy of this file and fails on a survivor or a stale needle.
+MUTANTS = {
+    "later attempt": ('if any(k > attempt and c == "success" for k, c in gates.items()):', "if False:",
+                      "reds: a gate red at attempt 1 and green at attempt 2"),
+    "attempt order": ("k > attempt and c ==", "k != attempt and c ==", "reds: a green attempt before the red one"),
+    "red is failure": ('for attempt in sorted(a for a, c in gates.items() if c == "failure"):',
+                       'for attempt in sorted(a for a, c in gates.items() if c != "success"):',
+                       "reds: a gate that did not conclude failure"),
+    "cause call": ("and not roster_lib.is_cause(word, ()):", "and False:", "reds: a derived word the cause test refuses"),
+    "pr key from head_branch": ('for x in by_sha.get(r.get("head_sha"), ()) if x.get("pr") is not None), None)',
+                                'for x in runs if x.get("head_branch") == r.get("head_branch") and x.get("pr") is not None), None)',
+                                "reds: a reused head_branch never lends"),
+    "pr key without sibling": ('return r["pr"] if r.get("pr") is not None else next(', 'return r["pr"] if True else next(',
+                               "reds: a red naming no pull request takes"),
+    "own commit, any pull request": ("if any(key(x) == k for x in later):", "if later:",
+                                     "reds: another pull request's green"),
+    "clearing run later": ('later = [x for x in runs if _when(x) > _when(r) and green', "later = [x for x in runs if x is not r and green",
+                           "reds: a green run before the red at its head_sha"),
+    "clearing run green": ('_when(x) > _when(r) and green.get(x["id"])]', "_when(x) > _when(r)]",
+                           "reds: a red naming no pull request takes"),
+    "clearing run same head": ('if any(x.get("head_sha") == r.get("head_sha") for x in later', "if any(True for x in later",
+                               "reds: a red cleared by a later commit"),
+    "spell opener": ('spell = None if green[r["id"]] else (spell or r)', 'spell = None if green[r["id"]] else r',
+                     "reds: a red inherited from main"),
+    "spell closes": ('spell = None if green[r["id"]] else (spell or r)', 'spell = spell or (None if green[r["id"]] else r)',
+                     "reds: a head red after main went green again"),
+    "main at the red": ("before = [m for m in mains if _when(m) <= _when(r)]", "before = list(mains)",
+                        "reds: a red inherited from main"),
+    "main is a push": ('return r.get("event") == "push" and r.get("head_branch") == "main"', 'return r.get("head_branch") == "main"',
+                       "reds: a run on the branch main that is no push"),
+    "main uncleared": ('        if _on_main(r):\n            return UNCLEARED, "no later green"\n', "",
+                       "reds: a main red with no later green"),
+    "stale listing": ('doc.get("attempt") == r["attempt"]:', "True:", "reds: a listing cached at an older attempt"),
+    "listing owed past one attempt": ('elif r["c"] == "success" and r["attempt"] == 1:', 'elif r["c"] == "success":',
+                                      "reds: the same run with no job listing"),
+    "listing owed on a failure": ('elif r["c"] == "success" and r["attempt"] == 1:', 'elif r["attempt"] == 1:',
+                                  "reds: a failed first attempt with no job listing"),
+    "blind count": ('if blind else f"gate_reds {len(reds)}', 'if False else f"gate_reds {len(reds)}',
+                    "reds: the same run with no job listing"),
+    "failed jobs per attempt": ('if j.get("run_attempt") == attempt\n', "if True\n", "reds: a red attempt's failed jobs"),
+    "required split": ('"required": [n for n in failed if n in owed],', '"required": failed,', "reds: a red attempt's failed jobs"),
+    "found_by on main alone": (' if x["main"] else "")', ")", "reds: found_by ci-main on a main row"),
+    "subject of a missing commit": ("if r is not None and r.returncode == 0 else None", "if r is not None else None",
+                                    "reds: git_subject reads"),
+}
+_MUTANT_RUN = ("import runpy, sys; p, *dirs = sys.argv[1:]; sys.path[:0] = dirs; "
+               "sys.argv = [p, '--self-test', '--no-mutants']; runpy.run_path(p, run_name='__main__')")
+
+
+def _mutants(check) -> None:
+    """Each MUTANTS row on a copy of this file, at this file's depth so its relative paths miss and the real
+    seat, tools/ci and tests directories (passed on the path) answer its imports."""
+    here = Path(__file__).resolve()
+    head, tail = here.read_text().split("\nMUTANTS = {", 1)  # the code above the table, and the rest
+    dirs = [str(here.parent), str(here.parents[2] / "ci"), str(here.parents[3] / "tests")]
+    for name, (old, new, case) in MUTANTS.items():
+        if head.count(old) != 1:
+            check(f"mutant {name}: its needle occurs once above the table", False)
+            continue
+        with tempfile.TemporaryDirectory() as td:
+            copy = Path(td, "tools", "audit", "seat", here.name)
+            copy.parent.mkdir(parents=True)
+            copy.write_text(head.replace(old, new) + "\nMUTANTS = {" + tail)
+            p = subprocess.run([sys.executable, "-I", "-c", _MUTANT_RUN, str(copy), *dirs],
+                               capture_output=True, text=True, timeout=120)
+        check(f"mutant killed: {name} (by '{case}')",
+              p.returncode != 0 and any(ln.startswith("FAIL") and case in ln for ln in p.stdout.splitlines()))
+
+
+def self_test(mutants: bool = True) -> int:
     fails = []
 
     def check(name, ok):
@@ -651,6 +725,8 @@ def self_test() -> int:
         check("--dir has no history: its weeks are unread",
               report(load_dir(rdir), None)[-1].startswith("weeks unread"))
         _self_test_reds(check, Path(tmp), repo)
+    if mutants:
+        _mutants(check)
     print(f"loop_ledger self-test: {len(fails)} failed")
     return 1 if fails else 0
 
