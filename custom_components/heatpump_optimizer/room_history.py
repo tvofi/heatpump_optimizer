@@ -281,7 +281,7 @@ def _calls(column: Sequence[int | None]) -> np.ndarray:
     return np.array([np.nan if v is None else v / FULL_SHARE for v in column], dtype=float)
 
 
-def _units(column: Sequence[int | None]) -> np.ndarray:
+def _scaled(column: Sequence[int | None]) -> np.ndarray:
     """A centi-unit column in its unit, NaN where missing."""
     return np.array([np.nan if v is None else v / SCALE for v in column], dtype=float)
 
@@ -327,7 +327,7 @@ def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]
     if (twin := _collinear(list(calls).index(entity), list(calls), r)) is not None:
         return {"code": "collinear", "with": twin[0], "r": round(twin[1], 3)}
     first, then = (np.array(side) for side in zip(*pairs))
-    temp, outdoor = _units(columns["t"]), _units(history.house["outdoor"])
+    temp, outdoor = _scaled(columns["t"]), _scaled(history.house["outdoor"])
     rate = (temp[then] - temp[first]) / ((np.array(history.times)[then] - np.array(history.times)[first]) / 60.0)
     x = np.column_stack([outdoor[first] - temp[first], share[first], np.ones(len(pairs))])
     fitted = _fit(x, rate)
@@ -356,7 +356,7 @@ def _house_line(history: History, calls: Mapping[str, np.ndarray]) -> dict[str, 
     q1, q3 = np.percentile(xs, [25, 75])
     if q3 - q1 < FLAT_IQR:
         return {"verdict": "calling_fraction_flat", "rows": len(rows)}
-    fitted = _fit(np.column_stack([xs, np.ones(len(rows))]), _units(power)[rows])
+    fitted = _fit(np.column_stack([xs, np.ones(len(rows))]), _scaled(power)[rows])
     if fitted is None:
         return {"verdict": "calling_fraction_flat", "rows": len(rows)}
     return {"verdict": "enough", "rows": len(rows), "slope_kw": round(float(fitted[0][0]), 3),
