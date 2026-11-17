@@ -3399,8 +3399,8 @@
    ],
    "brief": "Single-zone valve behaviour against the thermostat reference, carried below verbatim: the derived valve curve misses its own target on a single-zone house, the thermostat reference misses its setpoint behind a throttling valve, and the booked reference has no digest pin. Designer first: the change moves the plant every plan runs on and valved golden fixtures, which are claimed, never re-recorded. The reference carry needs a reproduction on an install's own valve parameters from a diagnostics bundle before any change.",
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "1da13aafb7c23cf34fbda51bb27cb95132b4089b",
     "branch": "fix/r11-valve-reference",
     "last_step": null,
     "next_step": "designer first (L); the reference carry needs a bundle reproduction",
