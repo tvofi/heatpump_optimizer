@@ -51,7 +51,6 @@ from .const import (
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
-    DEFAULT_SILENT_MODE_FRACTION,
     CONF_WOOD_FURNACE_ENABLED,
     DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -382,12 +381,11 @@ def _quiet_schedule_fields(data: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = _refuse_quiet(
         data, "apply_schedule_invalid_quiet_windows", "", "", ""
     )
-    # The fraction stores only when the call moved it off its default --
-    # absent and an explicit 1.0 are the same setting, so an untouched
-    # page's default post changes nothing.
-    fraction = data.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-    if fraction != DEFAULT_SILENT_MODE_FRACTION:
-        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+    # A fraction the call names is stored as named, the default included:
+    # an explicit 1.0 resets a stored lower fraction (carry 56724b85), and
+    # only an absent field leaves the stored one alone.
+    if CONF_SILENT_MODE_FRACTION in data:
+        out = {**out, CONF_SILENT_MODE_FRACTION: data[CONF_SILENT_MODE_FRACTION]}
     return out
 
 
@@ -507,8 +505,10 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
             vol.Coerce(float), vol.Range(min=5, max=60)
         ),
         vol.Optional("dhw_legionella_enabled"): cv.boolean,
+        # Tops out at the 70 °C hard maximum every cycle is capped to
+        # (`ThermalParameters.dhw_hard_max_temp`), as the config flow does.
         vol.Optional("dhw_legionella_temperature"): vol.All(
-            vol.Coerce(float), vol.Range(min=55, max=75)
+            vol.Coerce(float), vol.Range(min=55, max=70)
         ),
         vol.Optional("dhw_legionella_interval_days"): _positive(60),
         # Weather sensitivity parameters

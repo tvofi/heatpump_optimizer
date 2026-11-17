@@ -549,14 +549,10 @@ def overridden_config(
     for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
         if key in overrides:
             out = {**out, key: overrides[key]}
-    # The fraction folds only when the call moved it off its default, which
-    # is also exactly when folding changes anything: absent and an explicit
-    # 1.0 are the same setting.
-    fraction = overrides.get(
-        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
-    )
-    if fraction != DEFAULT_SILENT_MODE_FRACTION:
-        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+    # A named fraction folds as named, 1.0 included, as apply_schedule
+    # stores it; only an absent one leaves the configured fraction.
+    if CONF_SILENT_MODE_FRACTION in overrides:
+        out = {**out, CONF_SILENT_MODE_FRACTION: overrides[CONF_SILENT_MODE_FRACTION]}
     return out
 
 
@@ -571,11 +567,8 @@ def apply_config_keys(config: dict[str, Any], params: Mapping[str, Any]) -> None
     for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
         if key in params:
             config[key] = params[key]
-    fraction = params.get(
-        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
-    )
-    if fraction != DEFAULT_SILENT_MODE_FRACTION:
-        config.update({CONF_SILENT_MODE_FRACTION: fraction})
+    if CONF_SILENT_MODE_FRACTION in params:
+        config[CONF_SILENT_MODE_FRACTION] = params[CONF_SILENT_MODE_FRACTION]
 
 
 def _parse_spec_pair(

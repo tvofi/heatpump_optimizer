@@ -81,8 +81,8 @@ class OffStepNotice:
     not while this stands. Only a gap: the step above must be writable, inside
     the entity's range (else its maximum binds and ``above_c`` is the write
     itself) and at or under the hard maximum a cycle at that step would hold
-    (``dhw_hard_max_temp``; else, as for a service-set 75 over the 70 °C cap,
-    the cap is the shortfall). Otherwise no step is the remedy and the
+    (``dhw_hard_max_temp``; else, as for a 75 stored before the service
+    stopped at the 70 °C cap, the cap is the shortfall). Otherwise no step is the remedy and the
     unreachable notice's advice stands. Not persistent:
     derived from configuration, and re-raised on the next cycle while it
     stands.
