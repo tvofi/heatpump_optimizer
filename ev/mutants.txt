@@ -1,0 +1,13 @@
+## mutant A: delete 'm.group(1) == "merge" and' conjunct (previous block)
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL OWED buckets: P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED
+orchestrator_tick self-test: 375 checks, 1 failed
+## mutant B: invert merge -> blocked
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL OWED buckets: P657: a red PR whose head carries an older merge verdict is verdicted, no RED-UNOWNED line
+  FAIL OWED buckets: P657 merge guard: a carried *blocked* verdict at an older head is not verdicted, still RED-UNOWNED
+orchestrator_tick self-test: 375 checks, 2 failed
+## restored
+orchestrator_tick self-test: 375 checks, 0 failed
