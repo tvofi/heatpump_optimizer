@@ -203,7 +203,7 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
 
 def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
     """What an engaged solve hands the hot-water planner so its charges ship
-    as runs too (``DhwPlanner._commit_charges``); ``None`` unengaged."""
+    as runs too (``dhw_planner.commit_charges``); ``None`` unengaged."""
     if not _engaged(opt):
         return None
     return ChargeRuns(opt.config.cycling_cost, running, opt.config.clamp_planned_levels)
@@ -2063,9 +2063,10 @@ def _combi_flux_exchange(
     breaches the hot-water floor the space side drains, so its score bounds
     nothing, and a space re-solve would draw the repair straight back out.
 
-    The rounds exchange uncommitted plans, whose levels move with the flux.
-    On a solve that plans runs, one more build on the settled flux commits
-    the charges (``DhwPlanner._commit_charges``), and is kept only where the
+    The rounds exchange uncommitted plans, whose levels move with the flux,
+    from a planner handed no runs to commit. On a solve that plans runs, one
+    more build on the settled flux commits the charges
+    (``dhw_planner.commit_charges``), and is kept only where the
     store, walked under the flux the committed plan itself leaves, falls no
     further under the requirement than the last round's plan did.
     """
@@ -2081,21 +2082,21 @@ def _combi_flux_exchange(
             valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
         return combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
 
-    def build(space_net: np.ndarray, commit: bool) -> np.ndarray:
-        plan, opt._dhw_requirement = _dhw_build(
-            planner, h, p_max, space_demand=space_power, tank_exo_kw=space_net, commit=commit)
+    def build(by: DhwPlanner, space_net: np.ndarray) -> np.ndarray:
+        plan, opt._dhw_requirement = _dhw_build(by, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
         return np.asarray(plan.schedule)
 
+    levels = DhwPlanner(opt.model, opt.config, opt._pv_surplus, opt._price_known)
     space_net = None
     for _ in range(_COMBI_EXCHANGE_ROUNDS):
         space_net = net_under(dhw_power, space_net)
-        plan = build(space_net, False)
+        plan = build(levels, space_net)
         if np.allclose(plan, dhw_power, atol=1e-4):
             break
         dhw_power = plan
     if planner.charge_runs is None or space_net is None:
         return dhw_power
-    committed = build(space_net, True)
+    committed = build(planner, space_net)
 
     def short(schedule: np.ndarray, net: np.ndarray) -> float:
         """How far the store falls under the requirement at worst, K."""
@@ -4409,9 +4410,7 @@ class HeatPumpOptimizer:
         )
         # One hot-water planner per solve, from this solve's inputs (#1743).
         planner = DhwPlanner(
-            self.model, self.config, self._pv_surplus, self._price_known,
-            _charge_runs(self, inputs.compressor_running),
-        )
+            self.model, self.config, self._pv_surplus, self._price_known, _charge_runs(self, inputs.compressor_running))
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(

@@ -360,6 +360,19 @@ def charges_run(plan: np.ndarray, floor: float, tails: bool) -> bool:
     return not bool(np.any(low & ~(ends & tails)))
 
 
+def whole_charges(charge_runs: ChargeRuns | None, plan: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """``mask``, the steps a suppression would zero, without the steps of any
+    charge it does not cover whole, on a solve that plans runs: a committed
+    charge is suppressed whole or kept whole, so no fragment is left shorter
+    than a run or under the floor. ``mask`` itself on a solve that does not."""
+    if charge_runs is None:
+        return mask
+    on, kept = np.r_[False, plan > 0.0, False], mask.copy()
+    for a, b in zip(np.flatnonzero(on[1:] & ~on[:-1]), np.flatnonzero(~on[1:] & on[:-1])):
+        kept[a:b] &= bool(np.all(mask[a:b]))
+    return kept
+
+
 class ChargeRuns(NamedTuple):
     """What a solve that plans runs hands the planner (``optimizer._engaged``):
     a start's price, whether the compressor runs at solve time, and whether
@@ -516,7 +529,7 @@ class _StoreProgram:
     What a start pays inside the program is ``start_cost`` less the share of
     it the space plan's step before already carries (``runs.running_share``):
     an estimate that steers the search. The committed plan is priced by the
-    start count of the combined draw, in ``DhwPlanner._commit_charges``.
+    start count of the combined draw, in :func:`commit_charges`.
     """
 
     def __init__(
@@ -618,6 +631,77 @@ class _StoreProgram:
                     self._to_ceiling(k, at)[0][0])
             at = self._actions(k)[0 if mask[k] else 1][action[k]](at, True)[0]
         return out
+
+
+    def accepted(
+        self, may_start: np.ndarray, fits: Callable[[np.ndarray | None], Any]
+    ) -> np.ndarray | None:
+        """The program's plan as ``fits`` passes it, where the pump would
+        start it: a charge ``fits`` refuses for its start clears that step
+        and the program runs again, at most :data:`STARTABLE_ROUNDS` times."""
+        for _ in range(STARTABLE_ROUNDS):
+            fitted = fits(self.plan(may_start))
+            if fitted is None or isinstance(fitted, np.ndarray):
+                return fitted
+            if fitted[0] != "start":
+                break
+            may_start[fitted[1]] = False
+        return None
+
+
+def commit_charges(
+    planner: DhwPlanner,
+    plan: np.ndarray,
+    store: tuple[_DhwPlanContext, float, np.ndarray],
+    limits: tuple[np.ndarray, np.ndarray],
+    forced_off: np.ndarray | None,
+    start_below: np.ndarray | None,
+    space_demand: np.ndarray | None,
+) -> np.ndarray:
+    """The planner's finished, uncommitted ``plan`` as charges the pump can
+    run, on a solve that plans runs (``planner.charge_runs``); ``plan``
+    itself on one that does not, where its cap is under the floor, and where
+    it already runs and no start has a price. The finding and the program
+    are Bankaifan's (pull request 3529).
+
+    The candidates are the store program's plan and the lifted plan (each
+    step under the floor raised to it), each clamped to the rating and kept
+    only if every charge runs (:func:`charges_run`) and
+    :func:`charge_refusal` passes it on its own walk. The cheapest ships:
+    its energy at the planning prices plus the starts of the combined draw,
+    so a charge beside a space run is no start. With no candidate, ``plan``,
+    which ``place_startable`` already left startable.
+    """
+    charge, floor = planner.charge_runs, runs.floor_kw(planner.model.params.min_electrical_power)
+    ctx, tank = store[0], store[1:]
+    if charge is None or ctx.p_dhw_max < floor or ctx.c_dhw <= 0.0 or not np.any(plan > 0.0):
+        return plan
+    if not charge.start_cost > 0 and charges_run(plan, floor, not charge.clamped):
+        return plan
+    temps_of = partial(planner._ctx_temps, ctx, *tank)
+    walk = temps_of(plan)
+    held = np.minimum(limits[0], walk[1:])
+    space = np.zeros(ctx.n_steps) if space_demand is None else np.clip(space_demand, 0.0, None)
+
+    def fits(candidate: np.ndarray | None) -> np.ndarray | tuple[str, int] | None:
+        """``candidate`` as the rating leaves it, or why it may not ship."""
+        if candidate is None:
+            return None
+        candidate = planner._ctx_clamp(ctx, tank[0], tank[1], limits[1], candidate)
+        if not charges_run(candidate, floor, not charge.clamped):
+            return "level", 0
+        return charge_refusal(candidate, start_below, temps_of, held) or candidate
+
+    def cost(candidate: np.ndarray) -> float:
+        starts = runs.start_count(space + candidate, floor, charge.running)
+        return float(np.sum(ctx.prices * candidate) * ctx.dt) + charge.start_cost * starts
+
+    program = _StoreProgram(planner, ctx, plan, tank, (held, np.maximum(limits[1], walk[1:])), forced_off, space)
+    proposed = (
+        program.accepted(startable_steps(plan, walk, start_below), fits),
+        fits(np.where((plan > 0.0) & (plan < floor), floor, plan)),
+    )
+    return min((c for c in proposed if isinstance(c, np.ndarray)), key=cost, default=plan)
 
 
 class DhwPlanner:
@@ -1266,7 +1350,6 @@ class DhwPlanner:
         wood_temps: np.ndarray | None = None,
         tank_exo_kw: np.ndarray | None = None,
         placement_ban: np.ndarray | None = None,
-        commit: bool = True,
     ) -> tuple[DhwPlan, np.ndarray]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -1497,9 +1580,7 @@ class DhwPlanner:
             max_temp=max_temp,
             forced_off=forced_off,
         ))
-        if commit:
-            schedule = self._commit_charges(
-                ctx, schedule, tank[1:], (requirement, max_temp), forced_off, start_below, space_demand)
+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
@@ -1538,6 +1619,7 @@ class DhwPlanner:
             mask[:horizon] = covered[:horizon]
             if legionella_step is not None:
                 mask[legionella_step] = False
+            mask = whole_charges(self.charge_runs, schedule, mask)
             suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
             schedule = np.where(mask, 0.0, schedule)
 
@@ -1910,72 +1992,6 @@ class DhwPlanner:
             plan, initial_temp, ctx.outdoor_temps, draw_rates, ctx.dt, max_temp,
             ctx.humidity, ctx.tank_exo_kw)
         return np.where(plan < ctx.min_run_power - 1e-9, 0.0, plan)
-
-    def _commit_charges(
-        self,
-        ctx: _DhwPlanContext,
-        plan: np.ndarray,
-        tank: tuple[float, np.ndarray],
-        limits: tuple[np.ndarray, np.ndarray],
-        forced_off: np.ndarray | None,
-        start_below: np.ndarray | None,
-        space_demand: np.ndarray | None,
-    ) -> np.ndarray:
-        """The uncommitted ``plan`` as charges the pump can run, on a solve
-        that plans runs (``charge_runs``); ``plan`` itself on one that does
-        not, where its cap is under the floor, and where it already runs and
-        no start has a price (the finding and the program are Bankaifan's,
-        pull request 3529).
-
-        The candidates are the store program's plan and the lifted plan
-        (each step under the floor raised to it), each clamped to the
-        rating and kept only if every charge runs (:func:`charges_run`) and
-        :func:`charge_refusal` passes it on its own walk. The program is
-        handed where the pump would start (:func:`startable_steps` of
-        ``plan``); a charge the walk then refuses clears that step and the
-        program runs again, at most :data:`STARTABLE_ROUNDS` times. The
-        cheapest candidate ships: its energy at the planning prices plus
-        the starts of the combined draw, so a charge beside a space run is
-        no start. With no candidate, ``plan``, which ``place_startable``
-        already left startable.
-        """
-        charge, floor = self.charge_runs, runs.floor_kw(self.model.params.min_electrical_power)
-        if charge is None or ctx.p_dhw_max < floor or ctx.c_dhw <= 0.0 or not np.any(plan > 0.0):
-            return plan
-        if not charge.start_cost > 0 and charges_run(plan, floor, not charge.clamped):
-            return plan
-        temps_of = partial(self._ctx_temps, ctx, *tank)
-        walk = temps_of(plan)
-        held = np.minimum(limits[0], walk[1:])
-        space = np.zeros(ctx.n_steps) if space_demand is None else np.clip(space_demand, 0.0, None)
-
-        def fits(candidate: np.ndarray | None) -> np.ndarray | tuple[str, int] | None:
-            """``candidate`` as the rating leaves it, or why it may not ship."""
-            if candidate is None:
-                return None
-            candidate = self._ctx_clamp(ctx, tank[0], tank[1], limits[1], candidate)
-            if not charges_run(candidate, floor, not charge.clamped):
-                return "level", 0
-            return charge_refusal(candidate, start_below, temps_of, held) or candidate
-
-        def cost(candidate: np.ndarray) -> float:
-            starts = runs.start_count(space + candidate, floor, charge.running)
-            return float(np.sum(ctx.prices * candidate) * ctx.dt) + charge.start_cost * starts
-
-        candidates: list[np.ndarray] = []
-        may_start = startable_steps(plan, walk, start_below)
-        program = _StoreProgram(self, ctx, plan, tank, (held, np.maximum(limits[1], walk[1:])), forced_off, space)
-        for _ in range(STARTABLE_ROUNDS):
-            fitted = fits(program.plan(may_start))
-            if isinstance(fitted, np.ndarray):
-                candidates.append(fitted)
-            if fitted is None or isinstance(fitted, np.ndarray) or fitted[0] != "start":
-                break
-            may_start[fitted[1]] = False
-        lifted = fits(np.where((plan > 0.0) & (plan < floor), floor, plan))
-        if isinstance(lifted, np.ndarray):
-            candidates.append(lifted)
-        return min(candidates, key=cost, default=plan)
 
     def _repair_dhw_floor(
         self,

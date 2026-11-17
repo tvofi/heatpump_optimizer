@@ -94379,7 +94379,7 @@ _sce_dt.freeze(None)
 # ---------------------------------------------------------------------------
 # R11-OUTSIDE-HONEST-DHW-RUNS (pull request 3529, Bankaifan): hot-water
 # charges ship as runs. On a solve that plans runs the planner commits its
-# plan (DhwPlanner._commit_charges): the store program's plan or the lifted
+# plan (dhw_planner.commit_charges): the store program's plan or the lifted
 # plan, each only if charge_refusal passes it on the planner's own walk; the
 # uncommitted plan is the one unconditional fallback. The finding, the store
 # program and the tail are the contributor's.
@@ -94411,8 +94411,8 @@ def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None
 
 def _hdr_commit(rig, plan, requirement, *, ceiling=55.0, start_below=None, space=None, forced_off=None):
     n = rig.ctx.n_steps
-    return rig.planner._commit_charges(
-        rig.ctx, np.asarray(plan, dtype=float), rig.tank,
+    return _hdr_dp.commit_charges(
+        rig.planner, np.asarray(plan, dtype=float), (rig.ctx, *rig.tank),
         (np.broadcast_to(np.asarray(requirement, dtype=float), (n,)), np.full(n, ceiling)),
         forced_off, start_below, space)
 
@@ -94780,8 +94780,8 @@ _hdr_5_n = 96
 _hdr_5_plan = np.zeros(_hdr_5_n)
 _hdr_5_plan[[20, 40, 60, 80]] = 1.8
 _hdr_5_rig = _hdr_rig(n=_hdr_5_n, dt=1.0 / 12.0, draws=np.full(_hdr_5_n, 0.4))
-_hdr_5_out = _hdr_5_rig.planner._commit_charges(
-    _hdr_5_rig.ctx, _hdr_5_plan, _hdr_5_rig.tank,
+_hdr_5_out = _hdr_dp.commit_charges(
+    _hdr_5_rig.planner, _hdr_5_plan, (_hdr_5_rig.ctx, *_hdr_5_rig.tank),
     (np.minimum(48.5, _hdr_5_rig.temps(_hdr_5_plan)[1:]), np.full(_hdr_5_n, 55.0)), None, None, None)
 _hdr_5_on = _hdr_5_out > 0.0
 _hdr_5_runs = [len(g) for g in "".join("1" if v else "0" for v in _hdr_5_on).split("0") if g]
@@ -94832,23 +94832,22 @@ def _hdr_combi(cost, slack=None):
     real, saved, calls = _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, []
 
     def exchange(o, h, planner, *rest):
-        build, charge = planner._build_dhw_requirements, planner.charge_runs
+        build, charge = DhwPlanner._build_dhw_requirements, planner.charge_runs
 
         def run(runs_planned):
             builds = []
 
-            def counted(*a, **k):
-                got = build(*a, **k)
-                builds.append((k.get("commit", True), np.array(got[0].schedule)))
+            def counted(self, *a, **k):
+                got = build(self, *a, **k)
+                builds.append((self.charge_runs is not None, np.array(got[0].schedule)))
                 return got
 
-            planner._build_dhw_requirements, planner.charge_runs = counted, runs_planned
+            DhwPlanner._build_dhw_requirements, planner.charge_runs = counted, runs_planned
             try:
                 out = real(o, h, planner, *rest)
             finally:
-                planner._build_dhw_requirements, planner.charge_runs = build, charge
-            return SimpleNamespace(
-                rounds=[s for c, s in builds if not c], commits=[s for c, s in builds if c and runs_planned], out=out)
+                DhwPlanner._build_dhw_requirements, planner.charge_runs = build, charge
+            return SimpleNamespace(rounds=[s for c, s in builds if not c], commits=[s for c, s in builds if c], out=out)
 
         # The same exchange with the planner handed no ChargeRuns, then as the solve runs it.
         calls.append((run(None), run(charge)))
@@ -94870,9 +94869,9 @@ def _hdr_combi(cost, slack=None):
 
 (_hdr_x_none, _hdr_x), (_hdr_xr_none, _hdr_x_refused), (_, _hdr_x_free) = _hdr_combi(0.5), _hdr_combi(0.5, slack=-np.inf), _hdr_combi(0.0)
 R.check(
-    "combi: the exchange's rounds build uncommitted plans, the same number and the same last plan as "
-    "the same exchange with the planner handed no ChargeRuns; that one and an unengaged solve make no "
-    "committed build, an engaged one makes one, after the rounds",
+    "combi: the exchange's rounds build with a planner handed no runs to commit, the same number and "
+    "the same last plan as the same exchange with no ChargeRuns at all; that one and an unengaged solve "
+    "make no committed build, an engaged one makes one, after the rounds",
     0 < len(_hdr_x.rounds) == len(_hdr_x_none.rounds) <= _hdr_om._COMBI_EXCHANGE_ROUNDS
     and np.array_equal(_hdr_x.rounds[-1], _hdr_x_none.rounds[-1])
     and not _hdr_x_none.commits and not _hdr_x_free.commits and len(_hdr_x.commits) == 1,
@@ -94887,6 +94886,26 @@ R.check(
     and np.array_equal(_hdr_x_refused.out, _hdr_xr_none.out)
     and not np.array_equal(_hdr_x_refused.out, _hdr_x_refused.commits[0]),
     f"under the floor: committed {_hdr_under(_hdr_x.out, 1.0)}, last round {_hdr_under(_hdr_x_none.out, 1.0)}",
+)
+
+# The external-heat and peak-guard suppression runs after the commit point
+# (design verdict item r3): on a solve that plans runs it takes a committed
+# charge whole or leaves it whole.
+_hdr_s_plan = np.array([0.0, 1.0, 1.0, 0.7, 0.0, 1.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+_hdr_s_mask = np.array([True, True, True, False, False, True, True, True, False, False, False, False])
+_hdr_s_kept = _hdr_dp.whole_charges(_hdr_dp.ChargeRuns(0.5, False, False), _hdr_s_plan, _hdr_s_mask)
+_hdr_s_left = np.where(_hdr_s_kept, 0.0, _hdr_s_plan)
+R.check(
+    "a suppression takes a committed charge whole or leaves it whole: the charge it would cut before its "
+    "tail stays (no lone step under the floor), the one it covers goes, and the steps outside any "
+    "charge stay suppressed; on a solve that plans no runs the mask is returned as it is, which leaves "
+    "the tail alone (the control)",
+    np.array_equal(_hdr_s_left, [0.0, 1.0, 1.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+    and _hdr_dp.charges_run(_hdr_s_left, 1.0, True)
+    and bool(_hdr_s_kept[0] and _hdr_s_kept[7])
+    and _hdr_dp.whole_charges(None, _hdr_s_plan, _hdr_s_mask) is _hdr_s_mask
+    and not _hdr_dp.charges_run(np.where(_hdr_s_mask, 0.0, _hdr_s_plan), 1.0, True),
+    f"{_hdr_s_left}",
 )
 
 
