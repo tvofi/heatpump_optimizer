@@ -1,0 +1,58 @@
+name: Hardware or price source support
+description: A heat pump, controller or tariff source the integration does not support yet.
+title: "[Support]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The integration controls equipment only through ordinary Home Assistant entities (see "Supported heat pumps and controls" in the README). Support for a new device is mostly a question of which entities its own Home Assistant integration exposes, so the fields below ask for exactly that.
+  - type: input
+    id: device
+    attributes:
+      label: Device or source (brand and model)
+      placeholder: e.g. Daikin Altherma 3 H HT, or a regional tariff API
+    validations:
+      required: true
+  - type: input
+    id: ha-integration
+    attributes:
+      label: The Home Assistant integration it uses
+      description: Core integration, HACS integration, Modbus, ESPHome, MQTT… with a link if it has one.
+    validations:
+      required: true
+  - type: textarea
+    id: entities
+    attributes:
+      label: Entities it exposes, with their units
+      description: |
+        Settings > Devices & services > the device > its entities. List the ones that switch, set or report heating: entity id, domain, unit, and whether it is writable.
+        For a price source: the entity and the attributes it carries.
+      placeholder: |
+        number.heatpump_heating_offset   (K, writable, -10..10)
+        sensor.heatpump_compressor_freq  (Hz)
+        switch.heatpump_heating           (on/off)
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What you would like the integration to do with it
+    validations:
+      required: true
+  - type: dropdown
+    id: can-test
+    attributes:
+      label: Can you test changes on this equipment?
+      options:
+        - Yes, including writes to the device
+        - Read-only (observing entities)
+        - "No"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Optional. Manufacturer documentation, limits on write frequency, quirks.
