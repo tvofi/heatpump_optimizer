@@ -101,8 +101,7 @@ class Watch:
         def solve(opt, *, inputs):
             watch.opt = opt
             if watch.hysteresis_k is not None:
-                inputs = replace(inputs, initial_state=replace(
-                    inputs.initial_state, dhw_start_hysteresis_k=watch.hysteresis_k))
+                inputs = replace(inputs, state=replace(inputs.state, dhw_start_hysteresis_k=watch.hysteresis_k))
             return watch.kept["solve"](opt, inputs=inputs)
 
         om.HeatPumpOptimizer.optimize = solve
