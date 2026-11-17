@@ -1,0 +1,4 @@
+  ok   cause, re-report and escape keys are NOT-DUE at the plan's own close
+  ok   at the next close they settle on keyed rows, and with none they are UNDECIDED
+plan_audit self-test: 76 checks, 0 failed
+rc=0
