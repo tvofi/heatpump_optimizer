@@ -1657,6 +1657,9 @@ await block('the P3 plan workflow', async () => {
   const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
   const SHA = (c) => c.repeat(40)
   // What is open when the finders finish: one card, one roster group (tvofi, 2026-11-15).
+  // The stubs carry the --open-cards listing and the plan's open_items/dropped
+  // ahead of the audit-plan.js refusal that reads them, so this grader (pinned
+  // to the base's copy in CI) passes both before and after that refusal lands.
   const OPEN = { open: { open_cards: ['E11-X'], open_groups: ['R11-G'], unmarked: [] }, open_rc: 0 }
   const MOVES = (extra = {}) => ({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }],
     dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })

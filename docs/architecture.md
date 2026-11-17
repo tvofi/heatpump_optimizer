@@ -139,6 +139,7 @@ custom_components/heatpump_optimizer/
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
 ├── rooms.py              # The room thermometer list: its reading record, mean and spread
+│                         #   and the lift a cold room gives the planned comfort floor
 ├── issues.py             # The repair-notice writer: raise, clear, the docs link
 ├── log_latch.py          # The transition latch for persisting conditions logged at WARNING
 ├── comfort_band.py       # The band's cross-field rules, shared by the config

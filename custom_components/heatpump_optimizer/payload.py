@@ -951,11 +951,21 @@ class Room(TypedDict):
     hvac_mode: str | None
 
 
+class RoomLift(TypedDict):
+    """``rooms.HeldLift`` as published: K asked of the floor before the
+    per-step clip, the room that set it, the gate that zeroed it."""
+
+    size: float
+    entity: str | None
+    gate: str | None
+
+
 class Rooms(TypedDict, total=False):
     """The room list's summary (#3616); None leaves under its quorum.
 
     ``per_room`` holds each readable room, ``dropped`` each other room's
-    problem word, both keyed by entity id: no room name is stored.
+    problem word, both keyed by entity id: no room name is stored. ``lift``
+    is None until a solve has run.
     """
 
     configured_count: int
@@ -966,6 +976,7 @@ class Rooms(TypedDict, total=False):
     warmest_entity: str | None
     per_room: dict[str, Room]
     dropped: dict[str, str]
+    lift: RoomLift | None
 
 
 class RoomsView(TypedDict, total=False):

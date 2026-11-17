@@ -1111,6 +1111,7 @@
   "pv_enabled": true,
   "pv_export_price_entity": "sensor.seed_pv_export_price_entity",
   "pv_production_entity": "sensor.seed_pv_production_entity",
+  "room_lift_enabled": true,
   "room_temperature_entities": "sensor.seed_room_temperature_entities",
   "snow_roof_factor_enabled": true,
   "solar_aperture_learning_enabled": true,
@@ -3536,6 +3537,12 @@
     "default": "'menu'",
     "required": "Optional",
     "selector": "SelectSelector"
+   },
+   "room_lift_enabled": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "type"
    },
    "room_temperature_entities": {
     "config": {
@@ -6219,6 +6226,12 @@
    "default": "'menu'",
    "required": "Optional",
    "selector": "SelectSelector"
+  },
+  "room_lift_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
   },
   "room_temperature_entities": {
    "config": {

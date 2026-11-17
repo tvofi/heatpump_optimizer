@@ -527,6 +527,14 @@
    "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D15: 5 judged, 0 stand (0 classed bug), 0 in a roster group at stage done (0 standing ids are in no group's `findings`, so removed is a floor); coverage rows 8 over 8 steps, depth {'none': 2, 'deep': 5, 'spot': 1}, steps no seat ran deep: D15.M5,D15.M7,D15.M8, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 1 escape(s) in the window in this brief's territory (R10-FLY-REPLAY-MASK). In the brief: `No real bundle: every step unfinished, no finding`; the bundle set is in no tracked list (0018 section 1: NO-READ); steps 5, 7 and 8 never ran deep and all five findings were judged unreproduced. Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 36 lines.",
    "card": "E11-D15"
   },
+  "dev/governance/dimensions/D16.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (judged findings that stand, escapes it owns, coverage of its universe) is unread: no round has run this dimension. `python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref c82f014a63 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` prints no D16 row; the record that would read it is round 11's finder reports and coverage rows, read by the same command with `--round 11` at the round's close; its builder is round 11's D16 finder seats (dev/audit/config/scopes.json). The brief was added by b98c78e0f6 (pull request 3672, R11-PRE-NEW-DIMENSIONS part 2): `git merge-base --is-ancestor b98c78e0f6 83dc948818` -> rc 1, after the graded SHA a39627da59 and the review, so it is an object of objective.json at c82f014a63 and not at the graded SHA. Its universe is measured: `python3 -I tools/audit/enumerate.py d16-writes` -> 38 lines, with `--cells` -> 532. Its method names a step and an owed cell for each of the eight round-10 escapes `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` owns by `none` in the actuator-write territory (cards E11-U2, U4 to U10): step 2 cells boost-partial (3562), disinfection (3452), min-cold-tank (R10-SETPOINT-BOOST); step 3 cells for 3478, 3530 and 3512; step 4 cells for 3405 and 3531. Cost: NO-READ for its seats' tokens and wall clock (no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); its standing cost is three seats per round (`python3 -I tools/audit/check_scopes.py --repo . --ref c82f014a63 --round 11` row `ok D16 mode=cells seats=3`) and a brief of 95 lines (`wc -l`)."
+  },
+  "dev/governance/dimensions/D17.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (judged findings that stand, escapes it owns, coverage of its universe) is unread: no round has run this dimension. `python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref c82f014a63 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` prints no D17 row; the record that would read it is round 11's finder reports and coverage rows, read by the same command with `--round 11` at the round's close; its builder is round 11's D17 finder seats (dev/audit/config/scopes.json). The brief was added by b98c78e0f6 (pull request 3672, R11-PRE-NEW-DIMENSIONS part 2): `git merge-base --is-ancestor b98c78e0f6 83dc948818` -> rc 1, after the graded SHA a39627da59 and the review, so it is an object of objective.json at c82f014a63 and not at the graded SHA. Its universe is measured: `python3 -I tools/audit/enumerate.py d17-features --kind <kind>` -> service 15, config-step 15, config-field 102, options-step 26, option 130, entity 14, blueprint 5 lines. Its step 3 names the owed cell for the round-10 escape the hand ledger owns by `none` in the feature-behaviour territory (card E11-U1: the away step's weekend and holiday comfort fields, pull request 3013), and the brief states its boundary with D6 and D16. Cost: NO-READ for its seats' tokens and wall clock (no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); its standing cost is three seats per round (`python3 -I tools/audit/check_scopes.py --repo . --ref c82f014a63 --round 11` row `ok D17 mode=cells seats=3`) and a brief of 37 lines (`wc -l`)."
+  },
   "dev/governance/dimensions/D2.md": {
    "verdict": "change",
    "evidence": "`python3 dev/audit/rounds/round11/evaluation/dimension_read.py --repo . --ref a39627da59 --round 10 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row D2: 6 judged, 5 stand (5 classed bug), 2 in a roster group at stage done (3 standing ids are in no group's `findings`, so removed is a floor); coverage rows 5 over 5 steps, depth {'deep': 2, 'spot': 3}, steps no seat ran deep: D2.M3,D2.M4,D2.M5, rows carrying examined/universe: 0. `python3 dev/audit/rounds/round11/evaluation/escapes.py --repo . --ref a39627da59 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` over `dev/audit/rounds/round11/evaluation/escapes_hand.tsv` (the by-hand read 0018 section 3 allows): 5 escape(s) in the window in this brief's territory (R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-LEARNER-INPUTS, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK), 2 more dated the stamp's own day. In the brief: steps 1 to 5 list identities in prose and `sweep`; no tracked list names the identities and their grid (0018 section 1: NO-READ). Cost: NO-READ (its seats' tokens and wall clock: no ledger keys a seat by dimension; builder R11-PRE-TOKEN-LEDGER); the brief is 53 lines.",
@@ -886,6 +894,10 @@
   "tools/audit/seat/instruments/ledger.py.md": {
    "verdict": "keep",
    "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD). Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/ledger.py` 1359 lines (0 at the window's start), 17 merges touched it in the window, 16 roster group(s) name it, 2 of them hotfix."
+  },
+  "tools/audit/seat/instruments/loop_ledger.py.md": {
+   "verdict": "keep",
+   "evidence": "NO-READ: yield (refusals a fix followed, or lead time removed) is unread: no refusal is logged with its outcome, and no roster group builds that log (card E11-N-INSTRUMENT-YIELD); the guide also landed after the graded window, so no round has run with it. Cost read: `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref 92d38ecb64 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json` row: `tools/audit/seat/loop_ledger.py` 353 lines (0 at the window's start), 0 merges touched it in the window, 0 roster group(s) name it, 0 of them hotfix. The guide was added by 30d545ce63 (R11-PRE-ROUND-METRICS part 2, pull request 3657): `git merge-base --is-ancestor <sha> v10.0.0` -> rc 1, after v10.0.0, so it is an object of objective.json at origin/main 92d38ecb64 and not at the graded SHA a39627da59. The page's claims hold against the script at 92d38ecb64: its seven fields are roster_lib.CONVERGENCE_FIELDS, all in roster_edit.py's SET_FIELDS; its vocabularies are roster_lib.FOUND_BY, CAUSES, CM_KINDS and convergence_why's D<n>, none, bugclasses.json and other-group rules; its owing rules are loop_ledger.owed; scorecard.py's E line calls owned_split. `python3 -I tools/audit/seat/loop_ledger.py --self-test` -> 21 ok, 0 failed, rc 0, covering each self-test claim on the page (empty directory, one dropped field per read, vocabulary refusal, two-commit history). `python3 -I tools/audit/seat/loop_ledger.py --repo . --roster-ref HEAD` -> rc 0, rounds 9 and 10 and weeks 2026-W42 on, with escapes, injected, refix and loop `unread (k of n ...)` wherever an owing group is unrecorded (round 10: escapes 43 of 43), as the page says."
   },
   "tools/audit/seat/instruments/machinery_ratchet.py.md": {
    "verdict": "keep",
@@ -1710,7 +1722,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U2": {
    "paths": [
@@ -1726,7 +1739,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U4": {
    "paths": [
@@ -1742,7 +1756,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U5": {
    "paths": [
@@ -1758,7 +1773,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U6": {
    "paths": [
@@ -1774,7 +1790,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U7": {
    "paths": [
@@ -1790,7 +1807,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U8": {
    "paths": [
@@ -1806,7 +1824,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Both (Recommended)\" (both new dimensions, actuator-write and feature-behaviour; made final by \"Final as given (Recommended)\"). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U9": {
    "paths": [
@@ -1822,7 +1841,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   },
   "E11-U10": {
    "paths": [
@@ -1838,7 +1858,8 @@
    "finder_critical": "yes: the item is owned only when a new dimension brief exists and its finder seats run in round 11",
    "decision": "accepted",
    "ruling": "tvofi: \"Accept all four (Recommended)\" (cards E11-D9, E11-U9, E11-U10, E11-GATE-REDS). Given: tvofi, 2026-11-15, decision card (AskUserQuestion) in the round-11 orchestrator session, logged verbatim in the orchestrator sweep record.",
-   "gates_finders": true
+   "gates_finders": true,
+   "merged": "b98c78e0f6144a5ea5b48a032e30bf2d085c2d61"
   }
  },
  "revision_3": {
@@ -2111,5 +2132,27 @@
   },
   "unset": "`merged` stays unset on the 14 accepted gating cards whose work is open: E11-K-D4, K-D5, K-D9, K-D10 (pull request 3641), E11-N-P744-SCOPE (3657, 3658), E11-U1, U2, U4 to U10 (NEW-DIMENSIONS part 2).",
   "review_owed": "The objects differ from those at the review sha 02a48db212, so check_scopes.py refuses the review until a reviewer approves at a commit holding these objects; a delta review of this revision is owed. A review sha on this line keeps every `merged` above after the review."
+ },
+ "revision_5": {
+  "of": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "by": "r11-evaluator (Opus 5.5)",
+  "why": "`python3 -I tools/audit/check_scopes.py --repo . --ref 92d38ecb64 --round 11` printed `has no keep/change/remove verdict for tools/audit/seat/instruments/loop_ledger.py.md`: pull request 3657 added the guide after revision 4. No existing verdict, card, `decision`, `ruling`, `merged` or `gates_finders` moves.",
+  "changes": {
+   "objects.tools/audit/seat/instruments/loop_ledger.py.md": "row added, `keep` on a NO-READ yield with its cost read and the page checked against the script; objective.json's globs at 92d38ecb64 match no other unrowed object (check_scopes.py names only this one)."
+  },
+  "review_owed": "The objects differ from those at the review sha 83dc948818, so check_scopes.py refuses the review until a reviewer approves at a commit holding this row; a delta review of this revision is owed."
+ },
+ "revision_6": {
+  "of": "c82f014a639954b0f8930f29cf30fed3f0b20a6a",
+  "by": "r11-evaluator (Opus 5.5)",
+  "why": "`python3 -I tools/audit/check_scopes.py --repo . --ref c82f014a63 --round 11` printed `has no keep/change/remove verdict for dev/governance/dimensions/D16.md` and the same for `D17.md` (both added by pull request 3672, merge b98c78e0f6, after revision 4), and `card E11-U1 is accepted and not merged at this ref` and the same for E11-U2 and U4 to U10. No existing verdict, card `decision`, `ruling` or `gates_finders` moves.",
+  "changes": {
+   "objects.dev/governance/dimensions/D16.md": "row added, `keep` on a NO-READ yield (no round has run it) with its cost read, its universe counted and its owed cells checked against cards E11-U2 and U4 to U10.",
+   "objects.dev/governance/dimensions/D17.md": "row added, `keep` on a NO-READ yield (no round has run it) with its cost read, its universe counted and its owed cell checked against card E11-U1.",
+   "cards.*.merged": "9 accepted cards carry `merged` b98c78e0f6144a5ea5b48a032e30bf2d085c2d61 (pull request 3672): E11-U1 (paths D17.md); E11-U2, U4, U5, U6, U7, U8, U9, U10 (paths D16.md). Measured at c82f014a63: the merge is on `git log --first-parent origin/main`; `git merge-base --is-ancestor b98c78e0f6 c82f014a63` rc 0; `git merge-base --is-ancestor b98c78e0f6 83dc9488180379b859042b5f24b87d94a5a02c95` rc 1; `git diff --name-only b98c78e0f6^1 b98c78e0f6` names dev/governance/dimensions/D16.md and D17.md. Each card's paths_note condition holds: both briefs landed under the planned file names, so no path follows.",
+   "cards.E11-N-P744-SCOPE": "untouched: pull request 3658 (R11-PRE-ROUND-METRICS) is not merged at c82f014a63 (`git log --first-parent origin/main` names no merge of #3658), so `merged` stays unset.",
+   "objects": "objective.json's globs at c82f014a63 match no other unrowed object: check_scopes.py names only D16.md and D17.md."
+  },
+  "review_owed": "The objects differ from those at the review sha 83dc948818, so check_scopes.py refuses the review (`at review sha 83dc9488180379b859042b5f24b87d94a5a02c95 is missing or graded other objects than this record`) until the evaluation reviewer, a second seat the orchestrator dispatches at this revision's handoff head, approves at a commit holding these rows; a delta review of this revision is owed. This seat does not clear it."
  }
 }

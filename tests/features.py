@@ -92558,7 +92558,10 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Two duty-cycle days, one where each descent supplies the plan that ships:
+# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
+# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
+# descents mode prints, both and each descent alone (design verdict r2).
 # The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
 # margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
@@ -92592,9 +92595,9 @@ _dsp_days = {
 }
 R.check(
     "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day the unpriced descent's plan, which the operand's descent "
-    "alone scores above; on the cold day the operand's, which the unpriced "
-    "descent alone scores above",
+    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
+    "plan, which the operand's descent alone scores above; on the cold day "
+    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
     _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
     and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
     and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
@@ -93614,6 +93617,157 @@ R.check(
     and _hsr_humidity(np.full(4, np.nan)) is None,
 )
 
+# R11-OUTSIDE-HONEST-STARTS-RUNS-P2: the four lines of the candidate stage the
+# fix review's mutants left unread, and the two halves of the commit's tie
+# break (owner ruling 2026-11-15: of two equal-cost masks the one that agrees
+# with the relaxed plan ships). Each check below kills one mutant of
+# dev/audit/harnesses/r11_honest_starts_runs_mutants.json, named in its comment.
+#
+# Beside a hot-water charge a committed space step heats only where the
+# relaxed plan asked for half the floor (REV_HEATS_HALF_FLOOR): 0.6 kW of a
+# 1.1 kW floor is raised to the floor, 0.5 and 0.3 kW idle.
+_hsr_p2_opt = _hsr_opt(0.25, False, 1.1)
+_hsr_p2_space = np.zeros(12)
+_hsr_p2_space[8], _hsr_p2_space[9], _hsr_p2_space[10] = 0.6, 0.5, 0.3
+_hsr_p2_tank = np.where((np.arange(12) >= 8) & (np.arange(12) <= 10), 2.0, 0.0)
+_hsr_p2_box = _hsr_om._stage_box(_hsr_p2_opt, [(0.0, 5.5)] * 12, _hsr_p2_tank)
+_hsr_p2_beside = _hsr_om._run_plans(
+    _hsr_p2_opt, _hsr_h, _hsr_p2_space, _hsr_p2_box[2], _hsr_p2_box[0], _hsr_p2_box[1], _hsr_p2_box[3])
+R.check(
+    "beside a hot-water charge a committed space step heats where the relaxed "
+    "plan asked for half the floor or more: 0.6 kW of a 1.1 kW floor runs at "
+    "the floor in every mask, 0.5 and 0.3 kW idle",
+    len(_hsr_p2_beside) >= 1
+    and all(c[8] == 1.1 and c[9] == 0.0 and c[10] == 0.0 for c in _hsr_p2_beside),
+    f"{[c.tolist() for c in _hsr_p2_beside]}",
+)
+# The stage box leaves space the room the tank does not draw
+# (REV_STAGE_BOX_TANK_ROOM): p_max less the tank's plan on a modulating
+# install, less its projection on a clamped one, a pinned floor lowered to
+# what is left; with no tank the box is the scope's own (the null).
+_hsr_p2_dhw = np.zeros(12)
+_hsr_p2_dhw[2], _hsr_p2_dhw[3], _hsr_p2_dhw[4], _hsr_p2_dhw[6] = 2.0, 5.5, 5.0, 0.5
+_hsr_p2_bounds = [(0.0, 5.5)] * 12
+_hsr_p2_bounds[4] = (1.1, 5.5)
+_hsr_p2_room = {
+    name: _hsr_om._stage_box(_hsr_opt(0.25, clamp, 1.1), _hsr_p2_bounds, tank)[:2]
+    for name, clamp, tank in (
+        ("modulating", False, _hsr_p2_dhw), ("clamped", True, _hsr_p2_dhw), ("no tank", False, None))
+}
+R.check(
+    "the stage box caps space at p_max less what the tank draws: 3.5, 0, 0.5 "
+    "and 5.0 kW beside 2.0, 5.5, 5.0 and 0.5 kW of hot water, 4.4 kW beside the "
+    "clamped projection of 0.5 kW, a pinned floor lowered to the room left, and "
+    "the scope's own box with no tank",
+    _hsr_p2_room["modulating"][1][[2, 3, 4, 6]].tolist() == [3.5, 0.0, 0.5, 5.0]
+    and _hsr_p2_room["modulating"][0][4] == 0.5
+    and abs(float(_hsr_p2_room["clamped"][1][6]) - 4.4) < 1e-12
+    and _hsr_p2_room["clamped"][1][[2, 3, 4]].tolist() == [3.5, 0.0, 0.5]
+    and _hsr_p2_room["no tank"][1].tolist() == [5.5] * 12 and _hsr_p2_room["no tank"][0][4] == 1.1,
+    f"{({k: (v[0].tolist(), v[1].tolist()) for k, v in _hsr_p2_room.items()})}",
+)
+# The re-solved candidate is polished once (REV_NO_POLISH): on an objective
+# whose weights differ by 40x across the steps, one L-BFGS-B iteration
+# stops short and the restart from its point moves on. The plan that ships
+# is the restart's, and it scores below the run it restarted from.
+_hsr_p2_weight = np.linspace(1.0, 40.0, 12)
+_hsr_p2_goal = np.where(_hsr_sel_masks[-1] > 0.0, 2.7, 0.0)
+
+
+def _hsr_p2_weighted(x, *_args, **_kw):
+    return float(np.sum(_hsr_p2_weight * (np.asarray(x, float) - _hsr_p2_goal) ** 2))
+
+
+def _hsr_p2_weighted_batch(rows, *_args, **_kw):
+    return np.sum(_hsr_p2_weight * (np.atleast_2d(rows) - _hsr_p2_goal) ** 2, axis=1)
+
+
+_hsr_p2_polished = []
+_hsr_p2_real_restart = _hsr_om._lbfgsb_restart
+
+
+def _hsr_p2_restart(best, objective, *args, **kwargs):
+    out = _hsr_p2_real_restart(best, objective, *args, **kwargs)
+    _hsr_p2_polished.append((float(objective(best.x)), float(objective(out.x)), np.array(out.x, float)))
+    return out
+
+
+_hsr_om._lbfgsb_restart = _hsr_p2_restart
+try:
+    _hsr_p2_shipped = _hsr_commit(_hsr_sel_opt, _hsr_p2_weighted, _hsr_p2_weighted_batch, _hsr_trickle, 1)
+finally:
+    _hsr_om._lbfgsb_restart = _hsr_p2_real_restart
+R.check(
+    "the best re-solved candidate is polished once from its own point: at one "
+    "iteration the plan that ships is the restart's, scoring below the run it "
+    "restarted from",
+    len(_hsr_p2_polished) == 1
+    and np.array_equal(_hsr_p2_shipped, _hsr_p2_polished[0][2])
+    and _hsr_p2_polished[0][1] < _hsr_p2_polished[0][0] - 0.01,
+    f"{[(round(a, 4), round(b, 4)) for a, b, _ in _hsr_p2_polished]}",
+)
+# Two candidates are re-solved, not one (REV_ONE_RESOLVED). Toward this
+# target the best candidate as it stands is a mask, the projection is
+# second, and only the projection's runs reach the 2.0 and 3.0 kW steps the
+# mask holds shut: re-solved, the second candidate ships.
+_hsr_p2_target = np.array([0.0, 0.0, 1.1, 0.0, 1.1, 0.0, 2.0, 0.3, 0.0, 0.0, 3.0, 0.0])
+_hsr_p2_toward = _hsr_toward(_hsr_p2_target)
+_hsr_p2_as_is = [_hsr_p2_toward[0](c) for c in (_hsr_sel_first, *_hsr_sel_masks)]
+_hsr_p2_second = _hsr_commit(_hsr_sel_opt, *_hsr_p2_toward, _hsr_trickle, 50)
+R.check(
+    "the two best candidates are re-solved: where the best as it stands is a "
+    "mask and the projection second, the projection's runs re-solved ship, "
+    "every step on and scoring below the best mask's",
+    _hsr_om._RESOLVED_CANDIDATES == 2
+    and int(np.argmin(_hsr_p2_as_is)) > 0 and sorted(_hsr_p2_as_is)[1] == _hsr_p2_as_is[0]
+    and bool(np.all(_hsr_p2_second >= 1.1 - 1e-9))
+    and _hsr_p2_toward[0](_hsr_p2_second) < min(_hsr_p2_as_is) - 1.0,
+    f"as it stands {[round(s, 3) for s in _hsr_p2_as_is]}; shipped "
+    f"{_hsr_p2_second.round(3).tolist()} scoring {_hsr_p2_toward[0](_hsr_p2_second):.3f}",
+)
+# The tie break's two halves, each pinned alone (owner ruling 2026-11-15,
+# "Keep as built, pin it"). At a flat price two masks of equal cost exist on
+# each plan below; a price 1e-5 lower on the step the shipped mask leaves
+# out ships the other, a price 1e-5 higher keeps it, so the two tie and only
+# the tie break chooses. A design choice: the mask that agrees with the
+# relaxed plan's own on/off reading ships.
+#
+# The half on a step the plan did not ask for (REV3_TIE_NOT_ASKED_SIDE_OFF):
+# both masks pause one step the plan asked for, and the other one also runs
+# step 0, which the plan leaves off.
+_hsr_p2_na = np.array([0.0, 2.2, 0.5, 0.9, 0.9])
+# The half on a step the plan asked for (REV3_TIE_ASKED_SIDE_OFF): neither
+# mask runs a step the plan leaves off, and the other one pauses two steps
+# the plan asked for where this one pauses one.
+_hsr_p2_as = np.array([0.5, 0.5, 0.5, 2.2, 0.9, 0.9])
+
+
+def _hsr_p2_masks(q, step, nudge):
+    """The stage's masks of ``q`` at a flat 0.2 with ``nudge`` on one step."""
+    prices = np.full(q.size, 0.2)
+    prices[step] += nudge
+    return [m.astype(int).tolist() for m in _hsr_runs.candidates(q, prices, 1.1, 3.0, 0.0, dt=0.25)]
+
+
+_hsr_p2_ties = {
+    name: {nudge: _hsr_p2_masks(q, step, nudge) for nudge in (0.0, -1e-5, 1e-5)}
+    for name, q, step in (("not asked", _hsr_p2_na, 0), ("asked", _hsr_p2_as, 3))
+}
+R.check(
+    "at a flat price, of two equal-cost masks that pause as many steps the "
+    "plan asked for, the one that runs no step the plan left off ships",
+    _hsr_p2_ties["not asked"] == {
+        0.0: [[0, 1, 0, 1, 1]], -1e-5: [[1, 0, 1, 1, 1]], 1e-5: [[0, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['not asked']}",
+)
+R.check(
+    "at a flat price, of two equal-cost masks that run no step the plan left "
+    "off, the one that pauses fewer steps the plan asked for ships",
+    _hsr_p2_ties["asked"] == {
+        0.0: [[1, 1, 1, 0, 1, 1]], -1e-5: [[0, 0, 1, 1, 1, 1]], 1e-5: [[1, 1, 1, 0, 1, 1]]},
+    f"{_hsr_p2_ties['asked']}",
+)
+
 
 # --- #3616: an implausible slab seed is refused --------------------------------
 R.section("#3616: a floor-return reading far above the room does not seed the slab")
@@ -94081,10 +94235,12 @@ R.check(
 
 # The month and the wear line take the edge's one stamp: a start whose first
 # reading is before midnight at a month's end and whose confirmation is after
-# it is January's, in the count and on the ledger.
+# it is February's, in the count and on the ledger. Both key the configured
+# zone's wall clock, so the midnight is that zone's, not UTC's: a UTC literal
+# lands in March under any zone east of UTC (the nightly Asia/Kolkata lane).
 _sce_mid = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, priced=True, heat_pump_power_entity="sensor.kw")
 _sce_mid.load(None)
-_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=UTC)
+_sce_mid_edge = datetime(2026, 2, 28, 23, 59, 50, tzinfo=_sce_dt.DEFAULT_TIME_ZONE)
 _sce_mid.set("sensor.kw", "2.0", _sce_mid_edge, unit="kW")
 for _sce_k in (1, 2):  # the meter's rise is held for two refreshes (S7), released in March
     _sce_mid.refresh(_sce_mid_edge + timedelta(seconds=_SCE_DEBOUNCE_S + _sce_k))
@@ -94618,20 +94774,15 @@ R.check(
     and inputs_mod._scaled(360.0, 1e9) == inputs_mod.max_age_for("indoor_temp_entity", 1e9),
     f"{inputs_mod.max_age_for('indoor_temp_entity', 2.0)}",
 )
-# The staleness scale is clamped to [STALENESS_SCALE_MIN, STALENESS_SCALE_MAX]
-# before it multiplies a limit: a stored scale outside the options slider's
-# range reads the limit at the nearer bound.
-_rm_clamp = {s: inputs_mod.max_age_for("indoor_temp_entity", s) for s in (0.1, 50.0, 2.0)}
+_rm_scaled_ends = [inputs_mod._scaled(360.0, s) for s in (0.0, 0.5, 10.0, 1e9)]
 R.check(
-    "an out-of-range staleness scale is clamped: 0.1 reads the indoor limit times "
-    "STALENESS_SCALE_MIN (360 -> 180 min), 50.0 times STALENESS_SCALE_MAX (360 -> 3600 min); "
-    "null control, an in-range 2.0 reads 720 min",
-    _rm_clamp[0.1] == 360.0 * inputs_mod.STALENESS_SCALE_MIN == 180.0
-    and _rm_clamp[50.0] == 360.0 * inputs_mod.STALENESS_SCALE_MAX == 3600.0
-    and _rm_clamp[2.0] == 720.0,
-    f"{_rm_clamp}",
+    "the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over "
+    "10 as 10; null control, the two ends themselves pass through unchanged",
+    (inputs_mod.STALENESS_SCALE_MIN, inputs_mod.STALENESS_SCALE_MAX) == (0.5, 10.0)
+    and _rm_scaled_ends == [180.0, 180.0, 3600.0, 3600.0],
+    f"{_rm_scaled_ends}",
 )
-_rm_edges ={v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
+_rm_edges = {v: inputs_mod.read_room(_rm_reader({"sensor.e": FakeState(
     str(v), unit="°C", last_updated=_RM_NOW - timedelta(minutes=1))}), "sensor.e").problem
     for v in (-30.0, 60.0, -30.1, 60.1)}
 R.check(
@@ -94645,6 +94796,427 @@ R.check(
     all(isinstance(r, _rm.RoomReading) for r in _rm.readings_of(_rm_twenty_coord))
     and len(_rm.readings_of(_rm_twenty_coord)) == 20,
     f"{_rm.readings_of(_rm_twenty_coord)[:2]}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
+
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
+# floor-margin array the solver already takes. The fixture is the design
+# note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
+# colder than A but switched off; the house reads 19.6 under a 20.0 target on
+# a 19.5 floor, so the day band is 0.5 K and the night band 1.0 K.
+from heatpump_optimizer.optimizer import OptimizationConfig as _rl_Config  # noqa: E402
+from heatpump_optimizer import const as _rl_const  # noqa: E402
+
+_RL_N = 48  # 12:00 to 24:00 at 15 min; the night floor holds from step 40 (22:00)
+_rl_cfg = _rl_Config(min_temp=19.5, max_temp=23.0, target_temp=20.0,
+                     comfort_temp_day=20.0, comfort_temp_night=20.0)
+_RL_OPEN = dict(enabled=True, economy=False, open_window=False, away=False,
+                manual_pin=False, two_zone=False)
+
+
+class _RlOwner:
+    """A stand-in coordinator: the side tables key on it weakly."""
+
+
+def _rl_room(entity, temp, target, mode="heat", problem=None):
+    return _rm.RoomReading(entity_id=entity, temperature_c=temp, target_c=target,
+                           hvac_mode=mode, problem=problem)
+
+
+_RL_A = _rl_room("climate.a", 18.0, 21.0)
+_RL_REST = (_rl_room("climate.b", 20.4, 20.0), _rl_room("climate.c", 20.4, 16.0),
+            _rl_room("climate.d", 17.0, 22.0, mode="off"))
+_RL_ROOMS = (_RL_A,) + _RL_REST
+
+
+def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None,
+              start=_RM_NOW, n=_RL_N, **signals):
+    """One scheduled solve's margins: (array or base, owner)."""
+    owner = owner or _RlOwner()
+    _rm.record(owner, readings)
+    held = _rm.hold(owner, _rm.resolve(
+        _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
+        cfg, house, start))
+    return _rm.lifted(held, base, cfg, start, n), owner
+
+
+_rl_ramped, _rl_ramped_owner = _rl_solve()
+_rl_want_ramp = np.minimum(0.5, 0.1 + 0.25 * 0.25 * np.arange(40))
+R.check(
+    "room A three kelvin under its target lifts the floor: from the house's 0.1 K margin over "
+    "the floor at step 0, rising 0.25 K an hour, to the 0.5 K day band, and to the 1.0 K cap "
+    "under the night band from 22:00",
+    _rl_ramped is not None and np.allclose(_rl_ramped[:40], _rl_want_ramp)
+    and np.allclose(_rl_ramped[40:], 1.0)
+    and _rm.lift_of(_rl_ramped_owner) == _rm.HeldLift(1.0, "climate.a", None, 19.6 - 19.5),
+    f"{None if _rl_ramped is None else np.round(_rl_ramped, 4).tolist()} {_rm.lift_of(_rl_ramped_owner)}",
+)
+_rl_flat, _ = _rl_solve(house=20.0)
+_rl_above, _ = _rl_solve(house=20.3)
+R.check(
+    "with the house at or above the lifted floor the lift is flat at the band: 0.5 K at every "
+    "day step, the night band at a night step",
+    _rl_flat is not None and np.allclose(_rl_flat[:40], 0.5) and np.allclose(_rl_flat[40:], 1.0)
+    and _rl_above is not None and np.allclose(_rl_above[:40], 0.5),
+    f"{None if _rl_flat is None else sorted(set(np.round(_rl_flat, 4).tolist()))}",
+)
+_rl_base = np.full(_RL_N, 0.3)
+_rl_conf, _ = _rl_solve(house=20.0, base=_rl_base)
+_rl_conf_low, _ = _rl_solve(house=19.9, base=_rl_base)
+R.check(
+    "a 0.3 K confidence margin leaves the lift 0.2 K, so both margins end at the comfort target "
+    "and never past it; the ramp's anchor is the house's margin over the floor with that margin "
+    "on it (19.9 over 19.8: 0.1 K at step 0)",
+    _rl_conf is not None and np.allclose(_rl_conf[:40], 0.5) and np.allclose(_rl_conf[40:], 1.0)
+    and _rl_conf is not _rl_base and np.allclose(_rl_base, 0.3)
+    and _rl_conf_low is not None and np.allclose(_rl_conf_low[:3], [0.4, 0.4625, 0.5]),
+    f"{None if _rl_conf is None else sorted(set(np.round(_rl_conf, 4).tolist()))} "
+    f"{None if _rl_conf_low is None else np.round(_rl_conf_low[:3], 4).tolist()}",
+)
+_rl_squeezed, _ = _rl_solve(house=20.0, base=np.full(_RL_N, 0.7))
+R.check(
+    "a confidence margin wider than the day band takes the whole band: no lift at a day step "
+    "(never a negative one), the rest of the night band at a night step",
+    _rl_squeezed is not None and np.allclose(_rl_squeezed[:40], 0.7)
+    and np.allclose(_rl_squeezed[40:], 1.0),
+    f"{None if _rl_squeezed is None else sorted(set(np.round(_rl_squeezed, 4).tolist()))}",
+)
+
+# -- What does not lift: each returns the base array object itself -----------
+_rl_d_heat = (_rl_room("climate.d", 17.0, 22.0, mode="heat"),) + _RL_REST[:2]
+_rl_inert = {
+    "A at its target": dict(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST),
+    "D alone short, switched off": dict(readings=_RL_REST),
+    "D switched to cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="cool"),)),
+    "D in heat_cool": dict(readings=_RL_REST[:2] + (_rl_room("climate.d", 17.0, 22.0, mode="heat_cool"),)),
+    "A stale": dict(readings=(_rl_room("climate.a", 18.0, 21.0, problem="stale"),) + _RL_REST),
+    "A a sensor, no target": dict(readings=(_rl_room("sensor.a", 18.0, None, mode=None),) + _RL_REST),
+    "empty list": dict(readings=()),
+    "flag off": dict(enabled=False),
+    "economy": dict(economy=True),
+    "open window": dict(open_window=True),
+    "away": dict(away=True),
+    "manual pin": dict(manual_pin=True),
+    "two-zone": dict(two_zone=True),
+    "holiday at the start": dict(cfg=replace(_rl_cfg, holiday_dates=frozenset({_RM_NOW.date()}))),
+    "house reading not finite": dict(house=float("nan")),
+}
+_rl_inert_got = {}
+for _rl_name, _rl_kw in _rl_inert.items():
+    _rl_got_none, _rl_o = _rl_solve(**_rl_kw)
+    _rl_got_base, _ = _rl_solve(base=_rl_base, **_rl_kw)
+    _rl_inert_got[_rl_name] = (_rl_got_none is None, _rl_got_base is _rl_base, _rm.lift_of(_rl_o).gate)
+_rl_d_heat_arr, _rl_d_heat_owner = _rl_solve(readings=_rl_d_heat)
+R.check(
+    "no lift, and the base array object itself (None stays None), for a room at its target, a "
+    "room switched off or cooling, a stale room, a sensor with no target, an empty list, the "
+    "flag off, Economy, an open window, away, a manual space pin, the two-zone model, a holiday "
+    "and an unknown house temperature; null control, room D in heat mode lifts and is named",
+    all(got[:2] == (True, True) for got in _rl_inert_got.values())
+    and {k: v[2] for k, v in _rl_inert_got.items()} == {
+        "A at its target": None, "D alone short, switched off": None, "D switched to cool": None,
+        "D in heat_cool": None, "A stale": None, "A a sensor, no target": None,
+        "empty list": "no_rooms", "flag off": "disabled", "economy": "economy",
+        "open window": "open_window", "away": "away", "manual pin": "manual_pin",
+        "two-zone": "two_zone", "holiday at the start": "holiday",
+        "house reading not finite": "house_unknown"}
+    and _rl_d_heat_arr is not None and _rm.lift_of(_rl_d_heat_owner).entity_id == "climate.d",
+    f"{_rl_inert_got} d_heat={_rm.lift_of(_rl_d_heat_owner)}",
+)
+_rl_gate_order = [_rm.gate(**dict(_RL_OPEN, **kw)) for kw in (
+    {}, dict(enabled=False, economy=True), dict(economy=True, away=True), dict(open_window=True, two_zone=True))]
+R.check(
+    "the gate names the first signal that fires and is None when none does",
+    _rl_gate_order == [None, "disabled", "economy", "open_window"],
+    f"{_rl_gate_order}",
+)
+_rl_no_target, _rl_no_target_owner = _rl_solve(readings=(_rl_room("sensor.a", 18.0, None, mode=None),))
+_rl_quorum, _rl_quorum_owner = _rl_solve(readings=(
+    _RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable"),
+    _rl_room("climate.y", None, 21.0, problem="unavailable")))
+_rl_half, _ = _rl_solve(readings=(_RL_A, _rl_room("climate.x", None, 21.0, problem="unavailable")))
+R.check(
+    "a list under its quorum lifts nothing however short its one readable room, and a list of "
+    "sensors has no target to lift by; null control, one readable room of two is a quorum",
+    _rl_quorum is None and _rm.lift_of(_rl_quorum_owner).gate == "quorum"
+    and _rl_no_target is None and _rm.lift_of(_rl_no_target_owner).gate == "no_target"
+    and _rl_half is not None,
+    f"{_rm.lift_of(_rl_quorum_owner)} {_rm.lift_of(_rl_no_target_owner)}",
+)
+
+# -- The house's own shortfall is taken off, and the cap -----------------------
+_rl_e = lambda temp: (_rl_room("climate.e", temp, 20.0),)  # noqa: E731
+_rl_same, _rl_same_owner = _rl_solve(readings=_rl_e(19.5), house=19.5)
+_rl_less, _rl_less_owner = _rl_solve(readings=_rl_e(19.25), house=19.75)
+_rl_capped, _rl_capped_owner = _rl_solve(readings=_rl_e(15.0), house=20.0)
+R.check(
+    "a room no shorter of its target than the house is of its own lifts nothing; one 0.5 K "
+    "shorter lifts 0.5 K; one five kelvin shorter lifts the 1.0 K cap",
+    _rl_same is None and _rm.lift_of(_rl_same_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner) == _rm.HeldLift(0.5, "climate.e", None, 0.25)
+    and _rm.lift_of(_rl_capped_owner).lift_c == _rm.ROOM_LIFT_CAP_C == 1.0,
+    f"{_rm.lift_of(_rl_same_owner)} {_rm.lift_of(_rl_less_owner)} {_rm.lift_of(_rl_capped_owner)}",
+)
+_rl_ahead, _rl_ahead_owner = _rl_solve(readings=_rl_e(19.8), house=19.0)
+R.check(
+    "a room less short of its target than the house is of its own holds a lift of zero, never a "
+    "negative one; null control, a room 0.5 K shorter than the house holds 0.5 K",
+    _rl_ahead is None and _rm.lift_of(_rl_ahead_owner).lift_c == 0.0
+    and _rm.lift_of(_rl_less_owner).lift_c == 0.5,
+    f"{_rm.lift_of(_rl_ahead_owner)}",
+)
+_rl_neg_base, _ = _rl_solve(house=20.0, base=np.full(_RL_N, -0.5))
+R.check(
+    "a negative confidence margin is read as zero, as the solver reads it: the lifted margins "
+    "equal those with no confidence margin at all, the night band's 1.0 K included",
+    _rl_neg_base is not None and _rl_flat is not None and np.allclose(_rl_neg_base, _rl_flat),
+    f"{None if _rl_neg_base is None else sorted(set(np.round(_rl_neg_base, 4).tolist()))}",
+)
+_rl_below, _rl_below_owner = _rl_solve(readings=_rl_e(18.0), house=19.0)
+R.check(
+    "a house under its floor starts the ramp at zero, never below: step 0 takes no lift and "
+    "step 1 one step of the rate",
+    _rl_below is not None and np.allclose(_rl_below[:3], [0.0, 0.0625, 0.125])
+    and _rm.lift_of(_rl_below_owner).anchor_c == 19.0 - 19.5,
+    f"{None if _rl_below is None else np.round(_rl_below[:3], 4).tolist()} {_rm.lift_of(_rl_below_owner)}",
+)
+
+_rl_uneven = np.concatenate(([0.3], np.zeros(_RL_N - 1)))
+_rl_uneven_got, _ = _rl_solve(readings=_rl_e(15.0), house=19.9, base=_rl_uneven)
+R.check(
+    "the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 "
+    "over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up",
+    _rl_uneven_got is not None and np.allclose(_rl_uneven_got[:3], [0.3 + 0.1, 0.1625, 0.225]),
+    f"{None if _rl_uneven_got is None else np.round(_rl_uneven_got[:3], 4).tolist()}",
+)
+_rl_half_cfg = replace(_rl_cfg, day_end_hour=21.5, comfort_temp_night=19.25)
+_rl_half_got, _ = _rl_solve(house=20.0, cfg=_rl_half_cfg)
+R.check(
+    "the band is read at each step's hour and minute, target and floor both, as the solver's "
+    "bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's "
+    "19.25 target over its 19.0 floor, 0.25 K, from 21:30",
+    _rl_half_got is not None and np.allclose(_rl_half_got[:38], 0.5)
+    and np.allclose(_rl_half_got[38:], 0.25),
+    f"{None if _rl_half_got is None else np.round(_rl_half_got[36:40], 4).tolist()}",
+)
+_, _rl_first_owner = _rl_solve(readings=_rl_e(19.125), house=20.0)
+_, _rl_edge_owner = _rl_solve(readings=(_rl_room("climate.e", 0.0, 0.2),), house=20.0)
+R.check(
+    "a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking "
+    "the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift "
+    "starts its ramp nowhere",
+    _rm.lift_of(_rl_first_owner).lift_c == 0.875
+    and _rm.lift_of(_rl_edge_owner).lift_c == _rm.ROOM_LIFT_DEADBAND_C == 0.2
+    and _rm.HeldLift().anchor_c == 0.0 and _rm.HeldLift() == _rm.HeldLift(0.0, None, None, 0.0),
+    f"{_rm.lift_of(_rl_first_owner)} {_rm.lift_of(_rl_edge_owner)} {_rm.HeldLift()}",
+)
+
+# -- Hold: the lift moves by the deadband or not at all; a gate zeroes at once --
+_rl_h1, _rl_hold = _rl_solve(readings=_rl_e(19.5), house=20.0)
+_rl_h2, _ = _rl_solve(readings=_rl_e(19.375), house=20.0, owner=_rl_hold)
+_rl_held_2 = _rm.lift_of(_rl_hold).lift_c
+_rl_h3, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold)
+_rl_held_3 = _rm.lift_of(_rl_hold).lift_c
+_rl_h4, _ = _rl_solve(readings=_rl_e(19.25), house=20.0, owner=_rl_hold, away=True)
+_rl_held_4 = _rm.lift_of(_rl_hold)
+_rl_h5, _ = _rl_solve(readings=_rl_e(19.875), house=20.0, owner=_rl_hold)
+R.check(
+    "a held 0.5 K lift stays, array and all, while the rooms ask 0.125 K more, moves to 0.75 K "
+    "when they ask 0.25 K more, drops to zero at once under a gate, and from zero ignores a "
+    "0.125 K ask",
+    np.array_equal(_rl_h1, _rl_h2) and _rl_held_2 == 0.5 and _rl_held_3 == 0.75
+    and np.allclose(_rl_h3[40:], 0.75) and _rl_h4 is None
+    and _rl_held_4 == _rm.HeldLift(gate="away") and _rl_h5 is None
+    and _rm.lift_of(_rl_hold).lift_c == 0.0,
+    f"held {_rl_held_2} {_rl_held_3} {_rl_held_4} {_rm.lift_of(_rl_hold)}",
+)
+
+# -- Holiday: treated as away, per step ----------------------------------------
+_rl_hol_cfg = replace(_rl_cfg, holiday_dates=frozenset({(_RM_NOW + timedelta(days=1)).date()}))
+_rl_hol, _ = _rl_solve(house=20.0, cfg=_rl_hol_cfg, n=60)
+R.check(
+    "a holiday date later in the horizon takes no lift at its own steps and leaves today's; "
+    "null control, the same horizon with no holiday lifts every step",
+    _rl_hol is not None and np.allclose(_rl_hol[:40], 0.5) and np.allclose(_rl_hol[40:48], 1.0)
+    and np.allclose(_rl_hol[48:], 0.0) and bool(np.all(_rl_solve(house=20.0, n=60)[0] > 0.0)),
+    f"{None if _rl_hol is None else np.round(_rl_hol[36:], 3).tolist()}",
+)
+
+# -- The what-if: the baseline's held lift and anchor, its own configuration ----
+_rl_wi_base, _rl_wi = _rl_solve()
+_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
+_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
+_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
+R.check(
+    "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
+    "configuration's (a 19.75 target leaves a 0.25 K band over the same 0.1 K anchor); an owner "
+    "never solved hands back the base; null control, a scheduled solve on the new readings "
+    "lifts nothing",
+    np.array_equal(_rl_wi_base, _rl_wi_same) and np.array_equal(_rl_wi_base, _rl_wi_after)
+    and np.allclose(_rl_wi_low[:4], [0.1, 0.1625, 0.225, 0.25]) and np.allclose(_rl_wi_low[4:40], 0.25)
+    and _rl_wi_fresh is _rl_base and _rl_wi_resolved is None,
+    f"{np.round(_rl_wi_low[:5], 4).tolist()} resolved={_rl_wi_resolved}",
+)
+
+# -- Published: the spread sensor's lift attribute -----------------------------
+_rl_pub = _rm.published(_RL_ROOMS, _rm.lift_of(_rl_ramped_owner))["rooms"]["lift"]
+_rl_pub_gate = _rm.published(_RL_ROOMS, _rm.HeldLift(gate="economy"))["rooms"]["lift"]
+R.check(
+    "the rooms block names the lift's size to a hundredth, its room (none while nothing is "
+    "lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with "
+    "no list",
+    _rl_pub == {"size": 1.0, "entity": "climate.a", "gate": None}
+    and _rl_pub_gate == {"size": 0.0, "entity": None, "gate": "economy"}
+    and _rm.published(_RL_ROOMS)["rooms"]["lift"] is None
+    and _rm.published(_RL_ROOMS, _rm.HeldLift(0.126, "climate.a"))["rooms"]["lift"]["size"] == 0.13
+    and _rm.published(_RL_ROOMS, _rm.lift_of(_rl_same_owner))["rooms"]["lift"]
+    == {"size": 0.0, "entity": None, "gate": None}
+    and _rm.lift_of(_rl_same_owner).entity_id == "climate.e"
+    and _rm.published((), _rm.HeldLift(1.0, "climate.a")) == {},
+    f"{_rl_pub} {_rl_pub_gate}",
+)
+
+# -- The coordinator: the two SolveLimits builds, and the gate signals it reads --
+# The T5 rig's solve: floor 19.0, day target 21.0, so a 2.0 K day band and the
+# 1.0 K cap is what binds.
+from heatpump_optimizer import manual_plan as _rl_mp  # noqa: E402
+from heatpump_optimizer import away as _rl_away  # noqa: E402
+
+_RL_LIST = ["climate.a", "climate.b"]
+_RL_COLD = (_rl_room("climate.a", 17.0, 21.0), _rl_room("climate.b", 20.4, 20.0))
+
+
+def _rl_coord(readings=_RL_COLD, arm=None, **config):
+    """A T5 solve with a room list: (coordinator, the margins each solve was given)."""
+    c = _t5_solve_spy(**dict({_RM_KEY: _RL_LIST, _rl_const.CONF_ROOM_LIFT_ENABLED: True}, **config))
+    _rm.record(c, readings)
+    if arm is not None:
+        arm(c)
+    c._rl_margins = []
+    inner = c._solve_record
+
+    def spy(*args, **kwargs):
+        record = inner(*args, **kwargs)
+        c._rl_margins.append(record.inputs.limits.min_temp_margins)
+        return record
+
+    c._solve_record = spy
+    return _t5_run(c)
+
+
+def _rl_plan(c):
+    return None if c._optimization_result is None else list(c._optimization_result.power_schedule)
+
+
+def _rl_arm_pin(c):
+    c._manual_override = _rl_mp.build_override(
+        dhw_slots=None, space_slots=[{"start": (_T5_NOW + timedelta(hours=2)).isoformat(),
+                                      "end": (_T5_NOW + timedelta(hours=3)).isoformat()}],
+        expires_at=_T5_NOW + timedelta(hours=10), now=_T5_NOW)
+
+
+_rl_c_on = _rl_coord()
+_rl_c_none = _t5_run(_t5_solve_spy())
+_rl_c_off = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: False})
+_rl_c_default = _rl_coord(**{_rl_const.CONF_ROOM_LIFT_ENABLED: None})
+_rl_c_absent = _t5_solve_spy(**{_RM_KEY: _RL_LIST})
+_rm.record(_rl_c_absent, _RL_COLD)
+_t5_run(_rl_c_absent)
+_rl_house = _rl_c_on._current_state.room_temperature
+_rl_on_m = _rl_c_on._rl_margins[0]
+R.check(
+    "the scheduled solve is given the lift: held at the 1.0 K cap for room A, starting from the "
+    "house's own margin over the 19.0 floor and never above 1.0",
+    _rl_c_on._t5_escaped is None and len(_rl_c_on._rl_margins) == 1 and _rl_on_m is not None
+    and _rm.lift_of(_rl_c_on) == _rm.HeldLift(1.0, "climate.a", None, _rl_house - 19.0)
+    and float(_rl_on_m[0]) == min(1.0, max(_rl_house - 19.0, 0.0))
+    and float(np.max(_rl_on_m)) == 1.0,
+    f"escaped={_rl_c_on._t5_escaped!r} house={_rl_house} held={_rm.lift_of(_rl_c_on)} "
+    f"m={None if _rl_on_m is None else np.round(_rl_on_m[:6], 3).tolist()}",
+)
+R.check(
+    "with the flag off, or never stored, a room list changes nothing: the margins stay None and "
+    "the plan is the no-list plan step for step; null control, the lifted plan differs",
+    _rl_c_off._rl_margins == [None] and _rl_c_default._rl_margins == [None]
+    and _rm.lift_of(_rl_c_off).gate == "disabled"
+    and _rm.lift_of(_rl_c_absent) == _rm.HeldLift(gate="disabled")
+    and _rl_const.DEFAULT_ROOM_LIFT_ENABLED is False
+    and _rl_plan(_rl_c_none) is not None
+    and _rl_plan(_rl_c_off) == _rl_plan(_rl_c_none) == _rl_plan(_rl_c_default)
+    and _rl_plan(_rl_c_on) != _rl_plan(_rl_c_none),
+    f"off={_rl_c_off._rl_margins} default={_rl_c_default._rl_margins} "
+    f"kWh none={None if _rl_plan(_rl_c_none) is None else round(sum(_rl_plan(_rl_c_none)), 3)} "
+    f"on={None if _rl_plan(_rl_c_on) is None else round(sum(_rl_plan(_rl_c_on)), 3)}",
+)
+_rl_c_gated = {
+    "economy": _rl_coord(arm=lambda c: setattr(c, "_mode", "economy")),
+    "open_window": _rl_coord(arm=lambda c: setattr(c._vent_cusum, "tripped", True)),
+    "open_window, relax on": _rl_coord(
+        arm=lambda c: setattr(c._vent_cusum, "tripped", True), open_window_relax_enabled=True),
+    "away": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(override_active=True))),
+    "away, recovering": _rl_coord(arm=lambda c: setattr(c, "_away_state", _rl_away.AwayState(
+        override_active=True, override_return_iso=(_T5_NOW + timedelta(minutes=30)).isoformat()))),
+    "manual_pin": _rl_coord(arm=_rl_arm_pin),
+    "two_zone": _rl_coord(arm=lambda c: setattr(
+        c, "_thermal_params", replace(c._thermal_params, two_zone_enabled=True))),
+}
+_rl_c_gates = {k: (c._t5_escaped, [m is None for m in c._rl_margins], _rm.lift_of(c) and _rm.lift_of(c).gate)
+               for k, c in _rl_c_gated.items()}
+R.check(
+    "the coordinator's signals each gate the lift, margins None: Economy, a tripped window "
+    "detector with the relax option off and on, away, away recovering, a manual space pin, the "
+    "two-zone model",
+    _rl_c_gates == {
+        "economy": (None, [True], "economy"), "open_window": (None, [True], "open_window"),
+        "open_window, relax on": (None, [True], "open_window"), "away": (None, [True], "away"),
+        "away, recovering": (None, [True], "away"), "manual_pin": (None, [True], "manual_pin"),
+        "two_zone": (None, [True], "two_zone")},
+    f"{_rl_c_gates}",
+)
+_rl_c_away = {k: (_rl_c_gated[k]._away_state.active, _rl_c_gated[k]._away_state.recovery_active)
+              for k in ("away", "away, recovering", "economy")}
+R.check(
+    "those two away solves were away, the second one recovering, and the Economy one was not",
+    _rl_c_away == {"away": (True, False), "away, recovering": (True, True), "economy": (False, False)},
+    f"{_rl_c_away}",
+)
+_rl_c_pub = _rl_c_on._build_data_dict().get("rooms", {}).get("lift")
+R.check(
+    "the coordinator publishes the lift its solve was given in the payload's rooms block",
+    _rl_c_pub == {"size": 1.0, "entity": "climate.a", "gate": None},
+    f"{_rl_c_pub}",
+)
+
+
+def _rl_whatif(c, overrides):
+    """The margins one what-if solve of ``overrides`` is given, at the baseline's instant."""
+    dt_util.freeze(_T5_NOW)
+    try:
+        horizon = c._forecast_arrays(_T5_NOW)
+        config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
+        return c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits.min_temp_margins
+    finally:
+        dt_util.freeze(None)
+
+
+_rl_wi_c = _rl_whatif(_rl_c_on, {})
+_rm.record(_rl_c_on, (_rl_room("climate.a", 21.0, 21.0), _rl_room("climate.b", 20.4, 20.0)))
+_rl_wi_c_after = _rl_whatif(_rl_c_on, {})
+_rl_wi_c_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5})
+R.check(
+    "the what-if's build takes the lift the baseline was solved with, the same after the rooms "
+    "recover, and clips it to its own configuration: a what-if at a 19.5 day target has a 0.5 K "
+    "band; null control, a coordinator with the flag off gives its what-if None",
+    _rl_wi_c is not None and np.array_equal(_rl_wi_c, _rl_on_m) and np.array_equal(_rl_wi_c_after, _rl_on_m)
+    and _rl_wi_c_target is not None and float(np.max(_rl_wi_c_target[:40])) == min(0.5, 1.0)
+    and _rl_whatif(_rl_c_off, {}) is None,
+    f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
+    f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
 )
 
 
