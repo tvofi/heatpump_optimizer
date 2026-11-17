@@ -95356,7 +95356,7 @@ _rh_back, _rh_back_p = _rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 2
 _rh_back_p, _rh_back_n = _rh.note(_rh_back, _rh_back_p, _RH_M0 - 600, [_RhReading("sensor.a", 25.0)], _rh_house())
 _rh_back_p, _rh_back_n2 = _rh.note(_rh_back, _rh_back_p, _RH_M0 + 90, [_RhReading("sensor.a", 20.0)], _rh_house())
 _rh_reload = _rh.loaded(_rh.stored(_rh_back))
-_rh_rp, _ = _rh.note(_rh_reload, None, _RH_M0 + 45, [_RhReading("sensor.a", 20.0)], _rh_house())
+_rh_rp, _ = _rh.note(_rh_reload, None, _RH_M0 + 65, [_RhReading("sensor.a", 20.0)], _rh_house())
 for _rh_m in (120, 150):
     _rh_rp, _ = _rh.note(_rh_reload, _rh_rp, _RH_M0 + _rh_m, [_RhReading("sensor.a", 20.0)], _rh_house())
 R.check(
@@ -95421,15 +95421,20 @@ _rh_owner = _RhOwner("rh_save")
 _RH_KEY = "heatpump_optimizer_rh_save_room_history"
 _rh_aio.run(_rh_cycles(_rh_owner, _rr.SAVE_EVERY_ROWS, [_RhReading("sensor.a", 20.0)]))
 _rh_before = _RH_KEY in _rh_storage._DISK
-_rh_aio.run(_rh_cycles(_rh_owner, 5, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS))
+_rh_aio.run(_rh_cycles(_rh_owner, 1, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS))
 _rh_saved = _RH_KEY in _rh_storage._DISK
 _rh_storage._DISK.clear()
 _rh_aio.run(_rr.async_flush(_rh_owner))
+_rh_clean_flush = _RH_KEY not in _rh_storage._DISK
+_rh_aio.run(_rh_cycles(_rh_owner, 3, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS + 1))
+_rh_aio.run(_rr.async_flush(_rh_owner))
 _rh_flushed = _fi_json.loads(_rh_storage._DISK.get(_RH_KEY, "{}"))
 R.check(
-    "a save every SAVE_EVERY_ROWS closed rows, not before (the 12th cycle closes the 11th row); unload's "
-    "flush writes what the last save missed",
-    _rh_before is False and _rh_saved is True
+    "a save at exactly SAVE_EVERY_ROWS closed rows, not one before (the 12th cycle closes the 11th row); "
+    "unload's flush writes nothing just after a save and what the last save missed otherwise; rows sit "
+    "on the half hours",
+    _rh_before is False and _rh_saved is True and _rh_clean_flush
+    and _rr.record_of(_rh_owner).history.times == [_RH_M0 + 30 * k for k in range(_rr.SAVE_EVERY_ROWS + 3)]
     and len(_rh_flushed.get("data", _rh_flushed).get("times", "").split(",")) == len(_rr.record_of(_rh_owner).history.times),
     f"before={_rh_before} saved={_rh_saved} flushed={sorted(_rh_flushed)}",
 )
@@ -95529,6 +95534,108 @@ R.check(
     "a calling fraction that moves, but by under FLAT_IQR between its quartiles, reads flat",
     _rh.report(_rh_iqr)["house"] == {"verdict": "calling_fraction_flat", "rows": 200},
     f"{_rh.report(_rh_iqr)['house']}",
+)
+# The boundaries each threshold and range is read at (the mutation proof's survivors).
+_rh_cyc = [_rh.House(-2.0, 30.0, 2.0, 2.0, 0.0), _rh.House(-2.0, None, 2.0, 0.5, 0.0), _rh.House(-2.0, None, 2.0, 0.0, 0.0)]
+_rh_bp = None
+_rh_bh = _rh.History()
+for _rh_k, _rh_hs in enumerate(_rh_cyc + [_rh_cyc[0]]):
+    _rh_bp, _ = _rh.note(_rh_bh, _rh_bp, _RH_M0 + 10 * _rh_k, [_RhReading("sensor.a", 20.0 + _rh_k)], _rh_hs)
+R.check(
+    "a sensor room keeps the period's first reading; a missing floor return keeps the last one read; "
+    "any space power counts the cycle as space heating and none does not",
+    _rh_bh.rooms["sensor.a"]["t"] == [2000] and _rh_bh.house["return"] == [3000] and _rh_bh.house["space"] == [6667],
+    f"{_rh_bh.rooms} {_rh_bh.house}",
+)
+R.check(
+    "the ranges are inclusive at both ends and refuse what lies past them or is not finite",
+    _rh._centi(-30.0, "t") == -3000 and _rh._centi(60.0, "t") == 6000 and _rh._centi(60.01, "t") is None
+    and _rh._centi(float("nan"), "outdoor") is None and _rh._centi(0.0, "power") == 0,
+)
+_rh_edge = {"times": "0,30", "rooms": {"climate.a": {"t": "2000,", "target": ",", "call": "0,10000"}},
+            "house": {"outdoor": "-7000,7000", "return": ",", "power": "0,10000", "space": "0,10000"}}
+R.check(
+    "a document at every range's ends loads whole; times that do not run on by a half hour, unparsable "
+    "times and a column that is not text each cost what they own",
+    _rh.stored(_rh.loaded(_rh_edge)) == _rh_edge
+    and _rh.loaded({**_rh_edge, "times": "0,30,30"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "a,b"}).times == []
+    and _rh.loaded({**_rh_edge, "rooms": {"climate.a": {**_rh_edge["rooms"]["climate.a"], "call": [0, 10000]}}}).rooms == {},
+)
+R.check(
+    "a degenerate fit reads None: as many rows as coefficients, or a design of lower rank",
+    _rh._fit(np.eye(3), np.ones(3)) is None
+    and _rh._fit(np.ones((10, 2)), np.arange(10.0)) is None
+    and _rh._fit(np.column_stack([np.arange(10.0), np.ones(10)]), np.arange(10.0) * 2 + 1) is not None,
+)
+
+
+def _rh_grid(calls, gap=30):
+    """A ring of len(calls) rows ``gap`` minutes apart: one room, outdoor 0."""
+    n = len(calls)
+    return _rh.History(
+        times=[gap * k for k in range(n)],
+        rooms={"climate.a": {"t": [2000 + (k % 7) * 10 for k in range(n)], "target": [2100] * n, "call": list(calls)}},
+        house={"outdoor": [0] * n, "return": [3000] * n, "power": [200] * n, "space": [10000] * n})
+
+
+def _rh_code(history):
+    return _rh.report(history)["rooms"]["climate.a"]
+
+
+R.check(
+    "MIN_PAIRS is a floor: 144 pairs are history enough, 143 are short; 120-minute rows still pair",
+    _rh_code(_rh_grid([0, 10000] * 72 + [0]))["code"] != "short_history"
+    and _rh_code(_rh_grid([0, 10000] * 72))["code"] == "short_history"
+    and _rh_code(_rh_grid([0, 10000] * 72, gap=120))["pairs"] == 143,
+    f"{_rh_code(_rh_grid([0, 10000] * 72 + [0]))}",
+)
+R.check(
+    "a period calling in exactly half its samples counts as calling; exactly 5 % and 95 % of periods "
+    "calling are neither never nor always calling",
+    _rh_code(_rh_grid([5000, 0] * 100))["code"] not in ("never_calling", "always_calling")
+    and _rh_code(_rh_grid([10000] * 10 + [0] * 190))["code"] != "never_calling"
+    and _rh_code(_rh_grid([0] * 10 + [10000] * 190))["code"] != "always_calling"
+    and _rh_code(_rh_grid([10000] * 7 + [0] * 194))["calling_fraction"] == 0.035,
+    f"{_rh_code(_rh_grid([10000] * 7 + [0] * 194))}",
+)
+R.check(
+    "the separable verdict publishes the simulated loss rate as a_per_h (0.05 /h) and the gain as b_k_per_h",
+    all(abs(v["a_per_h"] - 0.05) < 0.01 for v in _rh_sep["rooms"].values()),
+    f"{_rh_sep['rooms']}",
+)
+_rh_flat_edge = _rh.History(
+    times=[30 * k for k in range(200)],
+    rooms={f"climate.{c}": {"t": [2000] * 200, "target": [2100] * 200,
+                            "call": [10000] * 200 if c != "d" else [0, 10000] * 100} for c in "abcd"},
+    house={"outdoor": [0] * 200, "return": [3000] * 200, "power": [300, 400] * 100, "space": [5000] * 200})
+R.check(
+    "a calling fraction whose quartiles lie exactly FLAT_IQR apart is enough, and a period spent exactly "
+    "half on space heating counts",
+    _rh.report(_rh_flat_edge)["house"]["verdict"] == "enough",
+    f"{_rh.report(_rh_flat_edge)['house']}",
+)
+R.check(
+    "the sensor state counts the separable rooms of a report",
+    _rh.separable_count(_rh_sep) == 2 and _rh.separable_count(_rh_shuf) == 1 and _rh.separable_count(_rh_col) == 0,
+)
+_rh_cache_owner = _RhOwner("rh_cache")
+_rh_aio.run(_rh_cycles(_rh_cache_owner, 4, [_RhReading("sensor.a", 20.0)]))
+_rh_rep1, _rh_rep2 = _rr.report_of(_rh_cache_owner), _rr.report_of(_rh_cache_owner)
+_rh_aio.run(_rh_cycles(_rh_cache_owner, 1, [_RhReading("sensor.a", 20.0)], first=4))
+_rh_rep3 = _rr.report_of(_rh_cache_owner)
+R.check(
+    "the report is re-read only when the ring grows: the same object twice, a new one with a new row",
+    _rh_rep1 is _rh_rep2 and _rh_rep1["rows"] == 3 and _rh_rep3["rows"] == 4,
+    f"{_rh_rep1} {_rh_rep3}",
+)
+_rh_storage._DISK["heatpump_optimizer_rh_load_room_history"] = _fi_json.dumps(_rh.stored(_rh_two))
+_rh_load_owner = _RhOwner("rh_load")
+_rh_aio.run(_rr.async_note_cycle(_rh_load_owner, _RH_T0 + _rh_td(days=1), [_RhReading("climate.a", 20.0)], _rh_house()))
+R.check(
+    "the first cycle loads the stored ring before it notes anything: the stored rows are kept",
+    _rr.record_of(_rh_load_owner).history.times == _rh_two.times,
+    f"{_rr.record_of(_rh_load_owner).history.times[:3]}",
 )
 R.check(
     "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
