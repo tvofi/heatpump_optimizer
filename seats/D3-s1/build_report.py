@@ -117,7 +117,7 @@ def main() -> int:
         "non_findings": extra["non_findings"],
         "harnesses": [f"{REL}/{n}" for n in (
             "enumerate.py", "prescreen.py", "tabulate.py", "m5_closure_reach.py",
-            "m5_solves.py", "build_report.py")],
+            "m5_solves.py", "m5_envdrift_reach.py", "build_report.py", "finalize.py")],
         "leads": extra["leads"],
     }
     (HERE / "REPORT.json").write_text(json.dumps(rep, indent=1) + "\n")
