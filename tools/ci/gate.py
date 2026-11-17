@@ -298,6 +298,29 @@ def machinery_line(jobs: dict, owed) -> str:
     return "machinery (report-only, never gating): " + (", ".join(rest) or "no other job listed")
 
 
+#: The jobs that grade the process and never the product (owner ruling 2026-11-13, card P1). `status` is
+#: their one reader: the product jobs of an event class are its REQUIRED less this tuple, computed, never listed.
+MACHINERY_JOBS = ("tests / arch-instrument", "tests / briefs", "tests / closures", "governance / policy-docs",
+                  "governance / wave-script", "governance / env-matrix", "governance / instrument-self-tests")
+GREEN, RED, UNREAD = "green", "red", "unread"
+
+
+def status(jobs: dict, cls: str) -> tuple[str, str]:
+    """(PRODUCT, MACHINERY) of one run's latest jobs (`run_jobs`' shape) under event class `cls`, each
+    green, red or unread. It reads nothing and moves no `gate` conclusion. Red: a member that concluded
+    anything but success or cancelled, a skipped required member included (`gate`'s own rule). Unread: no
+    red, and a member absent, unfinished or cancelled; it never reads green. A skipped member `cls` does
+    not require (instrument-self-tests, when its scope chose nothing) is not applicable: the verdict is
+    over the members that ran, and unread when none did."""
+    def verdict(names) -> str:
+        ran = [jobs.get(n) for n in names
+               if n in REQUIRED[cls] or (jobs.get(n) or ("", ""))[1] != "skipped"]
+        if any(j is not None and j[0] == "completed" and j[1] not in ("success", "cancelled") for j in ran):
+            return RED
+        return GREEN if ran and all(j is not None and j[1] == "success" for j in ran) else UNREAD
+    return verdict([n for n in REQUIRED[cls] if n not in MACHINERY_JOBS]), verdict(MACHINERY_JOBS)
+
+
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
           now=time.monotonic) -> tuple[str, list[str], list[str]]:
     """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
@@ -459,6 +482,41 @@ def self_test() -> int:
     cov_red = [dict(j, conclusion="failure") if j["name"] == "tests / coverage-ratchet" else j for j in ratchet_red]
     check("a push with coverage-ratchet red still fails", judge(pctx, pclaim, fake(cov_red), cc)[0],
           "FAIL tests / coverage-ratchet: failure (this run)")
+    # R11-PRE-TOOLCHAIN-PIN: the pair of verdicts of one run. `gate`'s own conclusion is judged above and never moves.
+    pj = {x: ("completed", "success") for x in (*REQUIRED["push"], "governance / instrument-self-tests",
+                                                "tests / ci-ratchet")}
+
+    def st(cls="push", drop=(), **over):
+        named = {next(x for x in pj if x.split(" / ", 1)[1] == k.replace("_", "-") or x == k): v for k, v in over.items()}
+        return status({k: v for k, v in {**pj, **named}.items() if k not in drop}, cls)
+    red_job, running, cancelled, skipped = (("completed", "failure"), ("in_progress", None), ("completed", "cancelled"),
+                                            ("completed", "skipped"))
+    check("null: a push run with every job green reads PRODUCT green, MACHINERY green", st(), (GREEN, GREEN))
+    check("a push run red only in tests / closures reads PRODUCT green, MACHINERY red", st(closures=red_job), (GREEN, RED))
+    check("null: a push run red in tests / fast (3.14) reads PRODUCT red, MACHINERY green",
+          st(**{"tests / fast (3.14)": red_job}), (RED, GREEN))
+    check("a member absent, unfinished or cancelled is unread, never green, in either verdict",
+          [st(drop=("tests / typing",)), st(typing=running), st(typing=cancelled),
+           st(drop=("tests / briefs",)), st(briefs=running), st(briefs=cancelled)],
+          [(UNREAD, GREEN)] * 3 + [(GREEN, UNREAD)] * 3)
+    check("a red member beside an unread one is red: a concluded failure is known",
+          (st(typing=cancelled, browser=red_job), st(briefs=running, closures=red_job)), ((RED, GREEN), (GREEN, RED)))
+    check("a skipped required member is red, product or machinery (the gate's own 4.2 rule)",
+          (st(browser=skipped), st(briefs=skipped)), ((RED, GREEN), (GREEN, RED)))
+    check("a skipped instrument-self-tests (its scope chose nothing) is not applicable: MACHINERY over the rest",
+          (st(instrument_self_tests=skipped), st(instrument_self_tests=skipped, briefs=red_job)),
+          ((GREEN, GREEN), (GREEN, RED)))
+    check("null: an instrument-self-tests that ran red, absent or unfinished is read",
+          [st(instrument_self_tests=red_job)[1], st(drop=("governance / instrument-self-tests",))[1],
+           st(instrument_self_tests=running)[1]], [RED, UNREAD, UNREAD])
+    check("ci-ratchet is in neither verdict (advisory on push, owner 2026-11-11)", st(ci_ratchet=red_job), (GREEN, GREEN))
+    for cls, names in sorted(REQUIRED.items()):
+        allj = {x: ("completed", "success") for x in (*names, *MACHINERY_JOBS)}
+        moved = {x: [i for i, v in enumerate(status({**allj, x: red_job}, cls)) if v == RED] for x in allj}
+        check(f"{cls}: every required name reddens exactly one verdict, a machinery job MACHINERY and the rest PRODUCT",
+              {x: m for x, m in moved.items() if m != [1 if x in MACHINERY_JOBS else 0]}, {})
+    check("the machinery tuple names push-required jobs and the one self-tests lane prelude gates, nothing else",
+          [x for x in MACHINERY_JOBS if x not in REQUIRED["push"]], ["governance / instrument-self-tests"])
     check("on a pull request the notes stay one line per job, no machinery line",
           [x for x in judge(ctx, claim, fake(green + ratchet_red[-1:]), cc)[2] if x.startswith("machinery")], [])
     red = [dict(j, conclusion="failure") if j["name"] == "tests / closures" else j for j in green]
