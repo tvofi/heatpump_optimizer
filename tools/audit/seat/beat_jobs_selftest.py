@@ -333,6 +333,32 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain null: an applied op writes no events line; a malformed hold writes one"] = (
         ev(c) == ["ROSTER-REFUSED #1 hold only-a-path"] and c.memory("roster-refused.json", []) == ["1\thold only-a-path"])
+    import roster_lib
+    seen_held = []
+
+    def probe(argv):  # while an op runs, a fold's non-waiting take of the lease must fail
+        fd = roster_lib.writer_lease(Path(argv[argv.index("--lint-clone") + 1]).parent, 0)
+        seen_held.append(fd is None)
+        if fd is not None:
+            os.close(fd)
+        return roster("pushed 0123abcde")(argv)
+    c, f = fresh(answers={"roster_queue.py": probe})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\nset-stage G2 done\n")
+    fold_fd = roster_lib.writer_lease(c.state, 0)
+    bj.roster_drain(c)
+    yielded = f.ran("roster_queue.py") == 0 and not digest(c)
+    os.close(fold_fd)
+    bj.roster_drain(c)
+    res["roster-drain: no op starts while an out-of-queue writer holds the roster lease; the next pass runs them"] = (
+        yielded and f.ran("roster_queue.py") == 2 and seen_held == [True, True])
+    c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\nset-stage G2 done\n")
+    bj.roster_drain(c)
+    after = roster_lib.writer_lease(c.state, 0)
+    res["roster-drain null: with no fold pending every op runs, and the lease is free after the pass"] = (
+        f.ran("roster_queue.py") == 2 and after is not None)
+    if after is not None:
+        os.close(after)
     on = {"v": 1}
     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde"), "git": lambda a: (on["v"], "", "")})
     (c.state / "roster-drain.queue").write_text("hold dev/programme/triage/s9-batch1.md set-stage G3 x\n")
@@ -1280,6 +1306,11 @@ MUTANTS = {
     "owed_rc1_dropped": ("    if rc == 1:\n", "    if rc == 9:\n", "owed-check: an UNACTIONED exit lands in new.txt"),
     "roster_no_mark": ("            done.add(key)  # applied", "            pass  # applied",
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
+    "roster_lease_ignored": ("        if lease is None:\n            break", "        if lease is None:\n            lease = os.open(os.devnull, 0)",
+                             "roster-drain: no op starts while an out-of-queue writer holds the roster lease; the next pass runs them"),
+    "roster_lease_released_early": ("        lease = roster_lib.writer_lease(ctx.state, 0)\n",
+                                    "        lease = roster_lib.writer_lease(ctx.state, 0)\n        lease = lease and os.close(lease) or (None if lease is None else os.open(os.devnull, 0))\n",
+                                    "roster-drain: no op starts while an out-of-queue writer holds the roster lease; the next pass runs them"),
     "roster_refusal_no_event": ('        event(ctx, f"ROSTER-REFUSED #{n} {text}")', '        pass',
                                 "roster-drain: a refused op writes one events line that survives a following applied pass"),
     "roster_refused_as_done": ("    def refuse(key: str) -> None:  # the job file is replaced by the next pass that runs an op; events.txt is not\n        refused.add(key)",

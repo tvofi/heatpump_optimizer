@@ -65,7 +65,10 @@ ROWS (the job table's `interval_s` in brackets):
                      because the worktree is on no origin ref (an earlier
                      refusal's leftover) stays pending under one `roster:
                      CASCADE` line. The lint clone is `S/roster-lint`, the
-                     orchestrator's to provision.
+                     orchestrator's to provision. Each op runs holding
+                     roster_lib's writer lease `S/roster-writer.lease`, taken
+                     without waiting: while an out-of-queue writer (carry_fold)
+                     holds it the pass starts no further op and writes no line.
   plan-beat [1800]   replan.py `--out`, then state_docs.py `--push --mirror
                      --plan`; `plan-beat: PLAN UNAVAILABLE` on a replan failure
                      or state_docs rc 1, `plan-beat: REFUSED` on its rc 2; on
@@ -184,6 +187,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import roster_lib  # noqa: E402  the roster's one-writer lease
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
         "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
@@ -445,14 +451,20 @@ def roster_drain(ctx: Ctx) -> None:
             op = parts[2]
         if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:
             break  # beatd kills the pass at timeout_s; this op and the rest run next pass
+        lease = roster_lib.writer_lease(ctx.state, 0)
+        if lease is None:
+            break  # an out-of-queue writer (carry_fold) holds the roster: this op and the rest run next pass
         one, report = ctx.digest / "state" / "roster-one.queue", ctx.digest / "state" / "roster-report.txt"
         atomic(one, op + "\n")
         report.unlink(missing_ok=True)
         ran = True
-        rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--mark", "--queue", str(one),
-                              "--report", str(report), "--edit-checkout", str(ctx.repo),
-                              "--worktree", str(ctx.digest / "state" / "roster-wt"),
-                              "--lint-clone", str(ctx.state / "roster-lint"))
+        try:
+            rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--mark", "--queue", str(one),
+                                  "--report", str(report), "--edit-checkout", str(ctx.repo),
+                                  "--worktree", str(ctx.digest / "state" / "roster-wt"),
+                                  "--lint-clone", str(ctx.state / "roster-lint"))
+        finally:
+            os.close(lease)
         said = [ln for ln in read(report).splitlines() if ln.startswith("roster: ")]
         mark = read(one).split("\n", 1)[0]  # `--mark` rewrites the exact line `#done <op>` or `#refused <op>`
         if not said and mark == op:  # no report line and no mark: roster_queue attempted nothing
