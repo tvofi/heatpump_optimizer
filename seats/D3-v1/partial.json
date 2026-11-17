@@ -1,0 +1,28 @@
+{
+ "votes": [
+  {
+   "id": "D3-s2-01",
+   "vote": "weaken",
+   "severity": "low",
+   "value": 20,
+   "metric_definition": "(script,cell) closure pairs whose script still exits 0 and is still selected by closure.py select --files CELL after raise RuntimeError is inserted as the first statement of every function body of CELL (module code untouched)",
+   "method": "V1 finder harness re-run at baseline 92d38ecb6 worktree; V2 own all-bodies-raise harness with null and positive controls; AST function count per cell",
+   "attacks": [
+    "payload.py has 0 function definitions: its 9 pairs and the 525.7 s headline are vacuous (no function-body-only edit exists)",
+    "perturbation 29->28, 525.7->184.6 s: moves as stated",
+    "leave-one-out: boost_drift_replay is 341.1 of 525.7 s",
+    "null control: 6 scripts green unmutated",
+    "positive control: inputs.py bodies raised kills guard_pins and manual_plan (rc=1)",
+    "register tip gives 27 pairs / 535.5 of 3887.4 s: closures.json moved; claim tied to baseline"
+   ],
+   "reproduced": "29 pairs; payload 525.7 of 3051.3 s (baseline tree); perturbation 28, 184.6 s",
+   "independent_value": "20 of 20 non-payload over pairs confirmed; payload 0 real (cell has no function bodies); over seconds inputs 167.2, accuracy 166.6, snapshots 30.4, ledger 22.1, store 3.2",
+   "reachable": "CI scoped gate on every branch; not a Home Assistant runtime path; cost only, over-selection cannot hide a failure",
+   "class": "I2",
+   "seam_rule_enumerates": "partial: 22 traced scripts over en.CELLS; 11 untraced scripts (stress, edge, backtest, harness_headers, card.mjs, ...) not enumerated",
+   "load1": 0.94,
+   "thread_factor": 1.0,
+   "tree": "git worktree at baseline 92d38ecb6"
+  }
+ ]
+}

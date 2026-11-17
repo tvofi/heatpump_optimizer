@@ -1,0 +1,58 @@
+== snapshots
+RESULT functions_mutated=10
+MUT	tests/debug_collect.py	rc=0	selected=True
+MUT	tests/guard_pins.py	rc=0	selected=True
+MUT	tests/manual_plan.py	rc=0	selected=True
+MUT	tests/plan_view.py	rc=0	selected=True
+MUT	tests/solar_alignment.py	rc=0	selected=True
+MUT	tests/wood_advisor.py	rc=0	selected=True
+RESULT survive=6 of 6
+RESULT load1=0.41 thread_factor=1.00
+== ledger
+RESULT functions_mutated=32
+MUT	tests/debug_collect.py	rc=0	selected=True
+MUT	tests/guard_pins.py	rc=0	selected=True
+MUT	tests/solar_alignment.py	rc=0	selected=True
+MUT	tests/wood_advisor.py	rc=0	selected=True
+RESULT survive=4 of 4
+RESULT load1=0.46 thread_factor=1.00
+== store
+RESULT functions_mutated=26
+MUT	tests/plan_view.py	rc=0	selected=True
+MUT	tests/wood_advisor.py	rc=0	selected=True
+RESULT survive=2 of 2
+RESULT load1=0.46 thread_factor=1.00
+== accuracy
+RESULT functions_mutated=45
+MUT	tests/solar_alignment.py	rc=0	selected=True
+MUT	tests/wood_advisor.py	rc=0	selected=True
+RESULT survive=2 of 2
+RESULT load1=0.46 thread_factor=1.00
+== inputs
+RESULT functions_mutated=68
+MUT	tests/plan_view.py	rc=0	selected=True
+MUT	tests/wood_advisor.py	rc=0	selected=True
+MUT	tests/guard_pins.py	rc=1	selected=True
+MUT	tests/manual_plan.py	rc=1	selected=True
+RESULT survive=2 of 4
+RESULT load1=0.98 thread_factor=1.00
+== accuracy validate
+RESULT functions_mutated=45
+MUT	tests/validate.py	rc=0	selected=True
+RESULT survive=1 of 1
+RESULT load1=0.93 thread_factor=1.00
+== inputs validate
+RESULT functions_mutated=68
+MUT	tests/validate.py	rc=0	selected=True
+RESULT survive=1 of 1
+RESULT load1=0.94 thread_factor=1.00
+== accuracy optimality
+RESULT functions_mutated=45
+MUT	tests/optimality.py	rc=0	selected=True
+RESULT survive=1 of 1
+RESULT load1=0.93 thread_factor=1.00
+== inputs optimality
+RESULT functions_mutated=68
+MUT	tests/optimality.py	rc=0	selected=True
+RESULT survive=1 of 1
+RESULT load1=0.94 thread_factor=1.00

@@ -1,0 +1,329 @@
+tests/arch_score_head.py	sensor.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	binary_sensor.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	climate.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	switch.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	button.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	entity.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	store.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	ledger.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	snapshots.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	payload.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	inputs.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	topology.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	entry_config.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	diagnostics.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	accuracy.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	services.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	const.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/arch_score_head.py	__init__.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	sensor.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	binary_sensor.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	climate.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	switch.py	body_hits=18	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	button.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	entity.py	body_hits=41	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	store.py	body_hits=85	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	ledger.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	snapshots.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	payload.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	inputs.py	body_hits=231	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	topology.py	body_hits=3	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	entry_config.py	body_hits=31	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	diagnostics.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	accuracy.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	services.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	const.py	body_hits=20	read=True	reach_problems=0	OVER=False
+tests/block_duty.py	__init__.py	body_hits=3	read=True	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	entity.py	body_hits=11	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	store.py	body_hits=18	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	ledger.py	body_hits=43	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	snapshots.py	body_hits=62	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/boost_drift_replay.py	inputs.py	body_hits=229	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	topology.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	entry_config.py	body_hits=32	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	accuracy.py	body_hits=133	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	const.py	body_hits=25	read=False	reach_problems=0	OVER=False
+tests/boost_drift_replay.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/config_flow_steps.py	sensor.py	body_hits=255	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	binary_sensor.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	climate.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	switch.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	button.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	entity.py	body_hits=31	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	store.py	body_hits=110	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	ledger.py	body_hits=22	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	snapshots.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	payload.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	inputs.py	body_hits=335	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	topology.py	body_hits=311	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	entry_config.py	body_hits=33	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	accuracy.py	body_hits=94	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	services.py	body_hits=112	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	const.py	body_hits=35	read=True	reach_problems=0	OVER=False
+tests/config_flow_steps.py	__init__.py	body_hits=71	read=True	reach_problems=0	OVER=False
+tests/debug_collect.py	button.py	body_hits=14	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	entity.py	body_hits=33	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	store.py	body_hits=131	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	ledger.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/debug_collect.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/debug_collect.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/debug_collect.py	inputs.py	body_hits=250	read=True	reach_problems=0	OVER=False
+tests/debug_collect.py	topology.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	entry_config.py	body_hits=29	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	diagnostics.py	body_hits=141	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	accuracy.py	body_hits=101	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	const.py	body_hits=9	read=False	reach_problems=0	OVER=False
+tests/debug_collect.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/deployment_shape.py	sensor.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	binary_sensor.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	climate.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	switch.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	button.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	entity.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	store.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	ledger.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	snapshots.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	payload.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	inputs.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	topology.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	entry_config.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	diagnostics.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	accuracy.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	services.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	const.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/deployment_shape.py	__init__.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/doc_claims.py	sensor.py	body_hits=362	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	binary_sensor.py	body_hits=19	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	climate.py	body_hits=7	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	switch.py	body_hits=15	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	button.py	body_hits=21	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	entity.py	body_hits=54	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	store.py	body_hits=7	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	ledger.py	body_hits=106	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	snapshots.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	payload.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	inputs.py	body_hits=111	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	topology.py	body_hits=194	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	entry_config.py	body_hits=32	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	diagnostics.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	accuracy.py	body_hits=11	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	services.py	body_hits=112	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	const.py	body_hits=26	read=True	reach_problems=1	OVER=False
+tests/doc_claims.py	__init__.py	body_hits=6	read=True	reach_problems=1	OVER=False
+tests/entities.py	sensor.py	body_hits=681	read=True	reach_problems=2	OVER=False
+tests/entities.py	binary_sensor.py	body_hits=105	read=True	reach_problems=2	OVER=False
+tests/entities.py	climate.py	body_hits=113	read=True	reach_problems=2	OVER=False
+tests/entities.py	switch.py	body_hits=52	read=True	reach_problems=2	OVER=False
+tests/entities.py	button.py	body_hits=38	read=True	reach_problems=2	OVER=False
+tests/entities.py	entity.py	body_hits=103	read=True	reach_problems=2	OVER=False
+tests/entities.py	store.py	body_hits=99	read=True	reach_problems=2	OVER=False
+tests/entities.py	ledger.py	body_hits=148	read=True	reach_problems=2	OVER=False
+tests/entities.py	snapshots.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/entities.py	payload.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/entities.py	inputs.py	body_hits=318	read=True	reach_problems=2	OVER=False
+tests/entities.py	topology.py	body_hits=307	read=True	reach_problems=2	OVER=False
+tests/entities.py	entry_config.py	body_hits=34	read=True	reach_problems=2	OVER=False
+tests/entities.py	diagnostics.py	body_hits=105	read=True	reach_problems=2	OVER=False
+tests/entities.py	accuracy.py	body_hits=221	read=True	reach_problems=2	OVER=False
+tests/entities.py	services.py	body_hits=346	read=True	reach_problems=2	OVER=False
+tests/entities.py	const.py	body_hits=35	read=True	reach_problems=2	OVER=False
+tests/entities.py	__init__.py	body_hits=87	read=True	reach_problems=2	OVER=False
+tests/env_drift.py	sensor.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	binary_sensor.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	climate.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	switch.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	button.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	entity.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	store.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	ledger.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	snapshots.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	payload.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	inputs.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	topology.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	entry_config.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	diagnostics.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	accuracy.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	services.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	const.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/env_drift.py	__init__.py	body_hits=0	read=False	reach_problems=2	OVER=False
+tests/features.py	sensor.py	body_hits=657	read=True	reach_problems=2	OVER=False
+tests/features.py	binary_sensor.py	body_hits=95	read=True	reach_problems=2	OVER=False
+tests/features.py	climate.py	body_hits=98	read=True	reach_problems=2	OVER=False
+tests/features.py	switch.py	body_hits=49	read=True	reach_problems=2	OVER=False
+tests/features.py	button.py	body_hits=49	read=True	reach_problems=2	OVER=False
+tests/features.py	entity.py	body_hits=84	read=True	reach_problems=2	OVER=False
+tests/features.py	store.py	body_hits=152	read=True	reach_problems=2	OVER=False
+tests/features.py	ledger.py	body_hits=274	read=True	reach_problems=2	OVER=False
+tests/features.py	snapshots.py	body_hits=110	read=True	reach_problems=2	OVER=False
+tests/features.py	payload.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/features.py	inputs.py	body_hits=403	read=True	reach_problems=2	OVER=False
+tests/features.py	topology.py	body_hits=313	read=True	reach_problems=2	OVER=False
+tests/features.py	entry_config.py	body_hits=40	read=True	reach_problems=2	OVER=False
+tests/features.py	diagnostics.py	body_hits=105	read=True	reach_problems=2	OVER=False
+tests/features.py	accuracy.py	body_hits=387	read=True	reach_problems=2	OVER=False
+tests/features.py	services.py	body_hits=495	read=True	reach_problems=2	OVER=False
+tests/features.py	const.py	body_hits=35	read=True	reach_problems=2	OVER=False
+tests/features.py	__init__.py	body_hits=78	read=True	reach_problems=2	OVER=False
+tests/finite_boundary.py	sensor.py	body_hits=606	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	binary_sensor.py	body_hits=88	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	climate.py	body_hits=78	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	switch.py	body_hits=31	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	button.py	body_hits=29	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	entity.py	body_hits=90	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	store.py	body_hits=177	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	ledger.py	body_hits=189	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	snapshots.py	body_hits=68	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	payload.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	inputs.py	body_hits=200	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	topology.py	body_hits=142	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	entry_config.py	body_hits=32	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	diagnostics.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	accuracy.py	body_hits=210	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	services.py	body_hits=0	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	const.py	body_hits=35	read=True	reach_problems=0	OVER=False
+tests/finite_boundary.py	__init__.py	body_hits=3	read=True	reach_problems=0	OVER=False
+tests/frontend.py	const.py	body_hits=4	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	sensor.py	body_hits=255	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	entity.py	body_hits=22	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	store.py	body_hits=86	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	ledger.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/guard_pins.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/guard_pins.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/guard_pins.py	inputs.py	body_hits=168	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	topology.py	body_hits=218	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	entry_config.py	body_hits=29	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	accuracy.py	body_hits=20	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	const.py	body_hits=25	read=False	reach_problems=0	OVER=False
+tests/guard_pins.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	sensor.py	body_hits=275	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	entity.py	body_hits=36	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	store.py	body_hits=121	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	ledger.py	body_hits=22	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/manual_plan.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/manual_plan.py	inputs.py	body_hits=189	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	topology.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	entry_config.py	body_hits=32	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	accuracy.py	body_hits=41	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	services.py	body_hits=136	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	const.py	body_hits=18	read=False	reach_problems=0	OVER=False
+tests/manual_plan.py	__init__.py	body_hits=72	read=False	reach_problems=0	OVER=False
+tests/open_meteo.py	const.py	body_hits=4	read=False	reach_problems=0	OVER=False
+tests/optimality.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/optimality.py	inputs.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/optimality.py	entry_config.py	body_hits=26	read=False	reach_problems=0	OVER=False
+tests/optimality.py	accuracy.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/optimality.py	const.py	body_hits=25	read=False	reach_problems=0	OVER=False
+tests/optimality.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	sensor.py	body_hits=263	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	entity.py	body_hits=37	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	store.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/plan_view.py	ledger.py	body_hits=106	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/plan_view.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/plan_view.py	inputs.py	body_hits=82	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	topology.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	entry_config.py	body_hits=26	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	accuracy.py	body_hits=11	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	const.py	body_hits=9	read=False	reach_problems=0	OVER=False
+tests/plan_view.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	entity.py	body_hits=8	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	store.py	body_hits=7	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	ledger.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/solar_alignment.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/solar_alignment.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/solar_alignment.py	inputs.py	body_hits=161	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	topology.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	entry_config.py	body_hits=31	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	accuracy.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/solar_alignment.py	const.py	body_hits=18	read=False	reach_problems=0	OVER=False
+tests/solar_alignment.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/structure.py	sensor.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	binary_sensor.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	climate.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	switch.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	button.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	entity.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	store.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	ledger.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	snapshots.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	payload.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	inputs.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	topology.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	entry_config.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	diagnostics.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	accuracy.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	services.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	const.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/structure.py	__init__.py	body_hits=0	read=True	reach_problems=1	OVER=False
+tests/typing_ruler.py	sensor.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	binary_sensor.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	climate.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	switch.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	button.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	entity.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	store.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	ledger.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	snapshots.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	payload.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	inputs.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	topology.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	entry_config.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	diagnostics.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	accuracy.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	services.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	const.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/typing_ruler.py	__init__.py	body_hits=0	read=True	reach_problems=2	OVER=False
+tests/validate.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/validate.py	inputs.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/validate.py	entry_config.py	body_hits=26	read=False	reach_problems=0	OVER=False
+tests/validate.py	accuracy.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/validate.py	const.py	body_hits=25	read=False	reach_problems=0	OVER=False
+tests/validate.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	sensor.py	body_hits=445	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	binary_sensor.py	body_hits=11	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	entity.py	body_hits=62	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	store.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/wood_advisor.py	ledger.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/wood_advisor.py	snapshots.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/wood_advisor.py	payload.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/wood_advisor.py	inputs.py	body_hits=82	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	topology.py	body_hits=46	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	entry_config.py	body_hits=30	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	accuracy.py	body_hits=0	read=False	reach_problems=0	OVER=True
+tests/wood_advisor.py	const.py	body_hits=9	read=False	reach_problems=0	OVER=False
+tests/wood_advisor.py	__init__.py	body_hits=3	read=False	reach_problems=0	OVER=False
+RESULT claimed_pairs=296 pairs
+RESULT clean_pairs=170 pairs
+RESULT over_approximated_pairs=27 pairs
+RESULT over[tests/boost_drift_replay.py]=1 cells (payload.py)
+RESULT over[tests/debug_collect.py]=3 cells (ledger.py,snapshots.py,payload.py)
+RESULT over[tests/guard_pins.py]=3 cells (ledger.py,snapshots.py,payload.py)
+RESULT over[tests/manual_plan.py]=2 cells (snapshots.py,payload.py)
+RESULT over[tests/optimality.py]=3 cells (payload.py,inputs.py,accuracy.py)
+RESULT over[tests/plan_view.py]=3 cells (store.py,snapshots.py,payload.py)
+RESULT over[tests/solar_alignment.py]=4 cells (ledger.py,snapshots.py,payload.py,accuracy.py)
+RESULT over[tests/validate.py]=3 cells (payload.py,inputs.py,accuracy.py)
+RESULT over[tests/wood_advisor.py]=5 cells (store.py,ledger.py,snapshots.py,payload.py,accuracy.py)
+RESULT over_seconds[sensor.py]=0.0 s of 2833.5 s selected (0 of 19 scripts)
+RESULT over_seconds[binary_sensor.py]=0.0 s of 2636.4 s selected (0 of 14 scripts)
+RESULT over_seconds[climate.py]=0.0 s of 2635.0 s selected (0 of 13 scripts)
+RESULT over_seconds[switch.py]=0.0 s of 2635.0 s selected (0 of 13 scripts)
+RESULT over_seconds[button.py]=0.0 s of 2636.5 s selected (0 of 14 scripts)
+RESULT over_seconds[entity.py]=0.0 s of 3177.3 s selected (0 of 22 scripts)
+RESULT over_seconds[store.py]=3.2 s of 3177.3 s selected (2 of 22 scripts)
+RESULT over_seconds[ledger.py]=22.1 s of 3177.3 s selected (4 of 22 scripts)
+RESULT over_seconds[snapshots.py]=30.4 s of 3177.3 s selected (6 of 22 scripts)
+RESULT over_seconds[payload.py]=535.5 s of 3887.4 s selected (9 of 27 scripts)
+RESULT over_seconds[inputs.py]=164.0 s of 3887.4 s selected (2 of 27 scripts)
+RESULT over_seconds[topology.py]=0.0 s of 3640.3 s selected (0 of 23 scripts)
+RESULT over_seconds[entry_config.py]=0.0 s of 3887.4 s selected (0 of 27 scripts)
+RESULT over_seconds[diagnostics.py]=0.0 s of 2604.0 s selected (0 of 13 scripts)
+RESULT over_seconds[accuracy.py]=166.6 s of 3887.4 s selected (4 of 27 scripts)
+RESULT over_seconds[services.py]=0.0 s of 2641.5 s selected (0 of 14 scripts)
+RESULT over_seconds[const.py]=0.0 s of 3887.8 s selected (0 of 29 scripts)
+RESULT over_seconds[__init__.py]=0.0 s of 3887.4 s selected (0 of 27 scripts)
+RESULT thread_factor=1.00
+RESULT load1=0.32
+RESULT swapins=0
