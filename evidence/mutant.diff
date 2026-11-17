@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 876fee23ad..0db067cc13 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2751,8 +2751,6 @@ class OptimizationConfig:
+         The configured ``cycling_cost``, except on a clamped install that
+         prices no start, which plans at :data:`CLAMPED_DEFAULT_START_PRICE`.
+         """
+-        if self.clamp_planned_levels and not self.cycling_cost > 0:
+-            return CLAMPED_DEFAULT_START_PRICE
+         return self.cycling_cost
+ 
+     @property
