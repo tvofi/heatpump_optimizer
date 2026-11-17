@@ -585,6 +585,12 @@ def self_test():
         arm("score: all off breaks the floor, all on the ceiling", (L.score(sp * 0, dh)[0] > 0, L.score(sp * 0 + L.pmax, dh)[0] > 0), (True, True))
         arm("admits: greedy holds the bounds but ends colder: refused for the heat it borrowed",
             (L.score(g, dh)[0], L.admits(g, dh, ref), L.admits(g, dh, ref, terminal=False)), (0.0, False, True))
+        over = sp.copy()
+        over[-1] = L.pmax + 0.5
+        arm("admits: all on ends warmer inside the limits but leaves the ceiling: refused for the bounds",
+            (L.in_limits(sp * 0 + L.pmax), L.admits(sp * 0 + L.pmax, dh, ref)), (True, False))
+        arm("admits: a step above pmax inside the bounds, ending warmer: refused for the limits",
+            (L.score(over, dh)[0], L.admits(over, dh, ref)), (0.0, False))
         arm("in_limits: 0..pmax, nothing below or above", (L.in_limits(np.array([-EPS, L.pmax])), L.in_limits(np.array([-1e-6])),
                                                           L.in_limits(np.array([L.pmax + 1e-6]))), (True, False, False))
         last = sp.copy()
