@@ -3958,6 +3958,58 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-FIXER-CONTRACT",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/governance/roles/fixer.md",
+    "tools/audit/seat/instruments/mutant_run.py.md",
+    "tools/audit/seat/mutant_run.py",
+    "tools/audit/seat/cloud_dispatch.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Contract text owed in dev/governance/roles/fixer.md and the documents beside it: the predicate domain probe after a class opens (steps 8 and 18), the 40-mutant cap residue named at step 2, the step 17 architect note against step 14, step 6's DIRTY arm against the dispatch brief's merge-on-main rule in tools/audit/seat/cloud_dispatch.py, and mutant_run's docs (tools survivors are answered in the body, not survivor_triage). Policy: merges on the owner's approving review or under a mandate in force. Null control: for each contradiction, quote both texts at the merge base; a carry whose two texts already agree there is dismissed. Done when fixer.md and the dispatch brief agree on every named step. Sources: R11-PRE-HANDOFF-BOOKKEEPING (PR #3664), R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 17 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nCLASS-OPEN-DOMAIN-UNIT (triage seat triage-1113, proposal T23, 2026-11-13, on the root-cause analysis R10-RCA-CLASS-OPEN-BLOCKS, countermeasure C4; round 11 by the orchestrator's intake rule). POLICY: dev/governance/roles/fixer.md is policy, so the owner approves before merge (CLAUDE.md). Defect: fix-review.md step 6 (line 29 at origin/main 5345766b41) blocks class-open on \"a site or a predicate's unguarded domain\"; fixer.md step 8 (line 123) asks only to \"name a rule that enumerates the class's seams\", and fixer.md never says domain (git show origin/main:dev/governance/roles/fixer.md | grep -c -i domain prints 0). Step 18 (line 259) keeps a reviewer's driver in scratch. Evidence (the RCA, reproduced from the review bus): 9 of 28 blocked verdicts in the 24 h to 2026-11-13T06:26Z were class-open; 34 of 226 (15.0 %) over 7 days; in 8 of 9 the open seam was a point of a predicate's input domain, in 6 a predicate the fix itself added; in none did the fixer's step-8 rule return the seam; 7 of the 9 were a second or later class-open block on the same pull request (one pull request had 4, its body's enumerator line unchanged while the reviewer's probe widened). Change: (a) step 18: after a class-open block, the blocking verdict's domain probe (or its generated corpus) lands under dev/audit/harnesses/ as the repair's floor and the next body's step-8 rule runs it; (b) step 8: when the diff adds or changes a predicate (guard, classifier, allowlist, scrub), the named rule also enumerates that predicate's input domain (a generated or planted corpus run through it at the head) beside its sites. Cite fix-review.md step 6's wording, do not paraphrase it; no change to fix-review.md. fixer.md is at its cap: 315 lines against tools/audit/briefs/fixer.md 315 in dev/governance/config/policy_budgets.json (git show origin/main:dev/governance/roles/fixer.md | wc -l), so the text is paid for inside fixer.md or the raise is the owner's. Demonstration (replay, both runs in the body): at the blocked head 44e0b74b55080d829f199410c2e4861850cd7d99 of the gate-defer barrier pull request, the domain rule seeded from verdict 4ca43a35a5's evidence returns frozenset(), dict() and {} as un-dispositioned seams; at 3785b0d097bc22410f42eae7ba3129c5fece1c61 it returns none on the argument side. Null control: a diff that adds or changes no predicate owes no domain rule. Cost test and the control after merge: defect 4.09 class-open blocks per 20.2 h release cycle x 127 seat-min per repair round = 519 seat-min per cycle; standing cost 147 seat-min per cycle rests on two estimates (15 min per domain probe; one third of 29.3 reviewed pull requests add a predicate, a fraction taken from class-open pull requests and therefore biased high), so the change pays if more than 28 % of class-open rounds are averted; at 30 min per probe the threshold is 57 %, at or above the RCA's 5-of-9 (56 %) reach, so part (a), which costs minutes and targets the 7 repeat blocks, is the half the evidence supports; build (a) first and (b) only if its own demonstration holds. Re-measure the 7-day class-open share (the beat's block-class rule) two release cycles after merge; the control is the pre-merge 15.0 % (34 of 226) and the repeat-block share 7 of 9.",
+    "Moved from R11-INTAKE-R10-RESIDUE carry 38 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-SEAT-SCRIPT-OUTPUT carry 3 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\ntools/audit/seat/mutant_run.py docstring (DIFF MODE, an equivalent one still needs a survivor_triage record) and tools/audit/seat/instruments/mutant_run.py.md (an equivalent one still owes a survivor_triage record) tell a fixer to record a triage the ledger refuses for any site outside custom_components/: tests/mutation_table.py _TRIAGE_KEY admits only that prefix and any other key is MUTATION TABLE REFUSED ... malformed. Correct both to: a custom_components/ survivor owes a survivor_triage record; a tools/ survivor is answered under the body section Unpinned sites (fixer.md step 2). Source: R10-HOTFIX-MUTANT-RUN-DARWIN fixer, handoff 3dccd18a, 2026-11-12. Re-measure: grep _TRIAGE_KEY tests/mutation_table.py at your merge base.",
+    "Moved from R11-INTAKE-R10-RESIDUE carry 193 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nfixer.md: unenforced: step 2 says the diff's survivors are the fixer's before the handoff and that the mutant step draws only the first 40 mutants of added lines; nothing says a diff holding more than 40, or a line holding more than one comparison, leaves sites that step never draws. The control is `python3 tools/audit/seat/mutant_run.py --diff <merge base>...HEAD --list` against the cap, and a line of two comparisons mutated by hand as in `## Mutation proof`, \"Round 3\". Re-measure the list's length at the deciding head. Carry: R11-INTAKE-R10-RESIDUE",
+    "Moved from R10-COP-LEARNER-DRAW-FLOOR (owner-approved stale-group audit 2026-11-15): From r10-cop-learner-draw-floor, body item b4659e0c: fixer.md: contradiction: step 17 has the architect note followed and a departure raised, not made; step 14 forbids the allow-list entry that would have kept the note's call site. With no live seat to ask, the route was changed and the departure is raised in this body. Carry: R10-COP-LEARNER-DRAW-FLOOR (items b4659e0c)",
+    "From r10-draw-map-evidence-b, body item 1be53b9c: fixer.md: contradiction: step 6 merges origin/main on a merge-tree conflict \"or the head is DIRTY\"; the dispatch brief says \"Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict\". With the ledger driver installed merge-tree exits 0 on a head GitHub's driverless merge cannot merge, and `body_push.sh`'s predictor refuses that head, so the brief's arm alone leaves no handoff. This seat followed fixer.md and merged; the brief's narrower rule is recorded as pending owner confirmation. Carry: R10-DRAW-MAP-EVIDENCE (items 1be53b9c)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-fixer-contract",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-HANDOFF-BOOKKEEPING carries 13,14,15,20; R10-DRAW-MAP-EVIDENCE carries 18; overlap admitted (R11-PRE-TOKEN-LEDGER): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
