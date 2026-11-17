@@ -13,7 +13,18 @@ Alternatives not taken, and why each lost:
 
 ## Head
 
-`76c4aca7c8cfd196ed78d9fea56e73c5e03f8ca4` merges `origin/main` `513fbcd2c9efbfd576a0737f564b8663888bf1d9` (the merge base) into the authored head `719af1f4dc604cd2b65ff66babd3ff66546dd384`. The authored work was cut from `38bf516bdd`. `git merge-tree --write-tree` reported one conflict, in `roster_lib.py`'s self-test tail, where main's `architect_groups` rows and this diff's `writer_lease` rows were both appended at the same place; both blocks are kept. After the merge, every self-test this diff touches, the scoped gate, `structure.py` and `prepr.sh` were re-run at this head (`## Figures`), measured 2026-11-17.
+`044d63ce50b849dfc05490150a91b052886984c9` is this PR's head. It is one commit on the previous head `475e001874041628b919539bfdac006ba495da37`, answering the review's block (`review/3701` `e82640d464`). The merge base is `4ecca4cc580b1065e366bf12bd5a917d40d03c0e`. `git merge-tree --write-tree origin/main 044d63ce50b849dfc05490150a91b052886984c9` exited 0, so no merge of main was made. Every self-test this diff touches, the scoped gate, `structure.py` and `prepr.sh` were re-run at this head (`## Figures`), measured 2026-11-17.
+
+Block answers:
+
+1. code-defect, a clean no-group merge owed a mark. `postmerge`'s stage arm now skips to the next step when nothing is queued (a clean sync and no mark), before the no-group check. Failing test first: the new row `a clean sync with no roster group owes nothing, queues nothing and opens no ledger event` failed at `475e0018` with `['main classify said', 'OWED mark: queue: no group to queue']` and passes at this head. The new mutant `empty_queue_owed` (the guard made `if False:`) is killed by that row. The reviewer's `harness_nogroup.py` at this head: sync rc 0 prints `rc 0`, `nothing owed`, `ledger-open False`. The null control in the same harness, sync rc 1, still prints `set-stage owed no-group`, `OWED stage: rc 1: synced` and `ledger-open True`, as at both reviewed ends.
+2. mutation-vacuous, three survivors. Each now has a row that turns it red:
+   - M9 (`carry_fold.main` folding without the lease): the self-test now runs `main()` itself with `LEASE_WAIT_S` set to 0 against a lease the test holds, and checks `main folds holding the lease: a lease the drain holds refuses before any roster read` (rc 1 and the `REFUSED the roster writer lease` line). Its null control, `with the lease free, main goes on to read the roster`, runs the same argv with the lease released.
+   - M10 and M11 (`record_beat.facts` dropping `body` from its return or from the `--json` fields): the self-test's fake `gh pr view` answers a `body` only when `body` is in the requested field list, and the new row `the merged body is asked of gh and returned (postmerge derives its marks from it)` checks `facts()` returns it.
+
+The reviewer's driver `mutants.py`, run at this head in place with each file's own self-test, prints KILLED for all 16 rows M0-M15. M9: `carry_fold self-test: 11 checks, 1 failed`. M10: `record_beat self-test: 18 checks, 1 failed`. M11: `record_beat self-test: 18 checks, 1 failed`. M12: 2 failed. M13: 1 failed. M14: 2 failed. M15: 1 failed. M0, M3: 2 failed. M1: 5 failed. M2: crashed on the self-test's `TypeError`. M4: 3 failed. M5: 6 failed. M6, M7: `FAIL writer_lease: a held lease refuses a second holder, at once or after its wait`. M8: `carry_fold self-test: 11 checks, 4 failed`. The `cloud_relay` `fold_superseded` mutants are untouched by this commit and were not re-run.
+
+The review's note (stale `## Head`) is answered by this section.
 
 ## Mutation proof
 
@@ -30,6 +41,7 @@ Each mutant is a row of the named self-test's own mutant table, run in a temp co
   - `no_newline` and `stage_not_queued`: FAIL `(i) a refused or raced stage queues exactly one terminated line for the merge, owing nothing`.
   - `no_idempotence_key`: FAIL `(ii) a second postmerge run for that merge queues nothing, the first line marked or not`.
   - `marks_by_index` (the carry picked by the body's N): FAIL `(i) #3470's body yields exactly the two marks batch 236 queued by hand, keyed on text`.
+  - `empty_queue_owed` (the empty-queue guard -> `if False:`): FAIL `a clean sync with no roster group owes nothing, queues nothing and opens no ledger event`.
   - `two_hits_taken` (`len(hits) != 1` -> `not hits`): FAIL `a key hitting two carries, none, or no key is OWED and queues nothing; a marked carry is skipped`.
 - `cloud_relay.sh --self-test` with the `fold_superseded ... && continue` line's `continue` replaced by `false` (`mut:foldsuperseded`), in place at the head and restored by `git checkout`: `521 checks, 4 failed`. The failing rows are `a stop with a later handoff-body/<topic> leaves the carry-fold level (P642)`, `... and prints no OWED line`, `a stop whose fix/<topic>-pr merged into origin/main leaves the level` and `... and folds nothing, though its stop is CARRY-LANDED alone with a kept body`. Both null rows stay green.
 - Failing test first, `beat_jobs`: the head's `beat_jobs_selftest.run` against main's `beat_jobs.py` (no mutants) fails 5 rows. They are the three carry-5 rows, the lease row, and the malformed-hold row, which now reads `roster-refused.json`. The lease null row passes there.
@@ -48,35 +60,35 @@ Both kills were run by hand, each mutant in a temp copy through `beat_jobs_selft
 - `beat_jobs_selftest.py` 323, 324, 342, 343, 347 and 349: the lease rows' own scaffolding. These are the probe's and the fold stand-in's `os.close`, the probe's `if fd is not None` guard, the stand-in's `writer_lease(..., 0)` constant and its release. Each bends cleanup of the test's own lease fds, not production behaviour. The production sites are pinned by `roster_lease_ignored` and `roster_lease_released_early`.
 - `beat_jobs_selftest.py:350` `< 0.5` -> `<= 0.5`: equivalent on a measured float. The bound it guards (a 1 s wait) is killed, as above.
 
-`--list` enumerates 271 diff mutants, and the step draws the first 40 in file order, which are all in `beat_jobs.py` and its self-test. The added lines of `postmerge.py`, `carry_fold.py`, `roster_lib.py` and `record_beat.py` are pinned instead by the mutant tables and rows in `## Mutation proof`, and `cloud_relay.sh` by its `mut:foldsuperseded` run. They were not drawn by this step.
+`--list` enumerates 271 diff mutants, and the step draws the first 40 in file order, which are all in `beat_jobs.py` and its self-test. The added lines of `postmerge.py`, `carry_fold.py`, `roster_lib.py` and `record_beat.py` were not drawn by this step. They are pinned by the mutant tables and rows in `## Mutation proof` and by the review's 16 mutants, all killed at this head (`## Head`); `cloud_relay.sh` is pinned by its `mut:foldsuperseded` run.
 
 ## Null control
 
 - Carry 5: `roster-drain null: an applied op writes no events line; a malformed hold writes one` (the applied op writes nothing to `events.txt`). The pre-existing rows for drain-once, CASCADE, UNRUN, budget, hold and QUEUE-SHRANK all pass unchanged.
-- Carry 6: `(iii) null control: a sync that landed queues nothing and creates no queue`.
-- Carry 7: `roster-drain null: with no fold pending every op runs, and the lease is free after the pass`, carry_fold's `null control: a free lease runs the fold once`, and roster_lib's `writer_lease: a released lease is taken (null control)`.
+- Carry 6: `(iii) null control: a sync that landed queues nothing and creates no queue`. For the no-group fix, the reviewer's harness with sync rc 1 still owes the stage (`## Head`).
+- Carry 7: `roster-drain null: with no fold pending every op runs, and the lease is free after the pass`, carry_fold's `null control: a free lease runs the fold once` and `null control: with the lease free, main goes on to read the roster`, and roster_lib's `writer_lease: a released lease is taken (null control)`.
 - Carry 8: `(iii) null control: a body with no built or dismissed line yields no op and owes nothing` (the input holds `left for a later part` and `not built here` lines).
 - Carry 9: `null control: a handoff-body older than the stop keeps its OWED line` and `null control: a stop with no handoff-body and no merge keeps its OWED line`.
 
 ## Figures
 
 - `python3 -I tools/audit/seat/beat_jobs.py --self-test`: `beat_jobs self-test: 291 checks, 0 failed` (main: 281).
-- `python3 -I tools/audit/seat/postmerge.py --self-test`: `postmerge self-test: 38 checks, 0 failed`.
-- `python3 -I tools/audit/seat/carry_fold.py --self-test`: `carry_fold self-test: 9 checks, 0 failed`.
+- `python3 -I tools/audit/seat/postmerge.py --self-test`: `postmerge self-test: 40 checks, 0 failed`.
+- `python3 -I tools/audit/seat/carry_fold.py --self-test`: `carry_fold self-test: 11 checks, 0 failed`.
 - `python3 -I tools/audit/seat/roster_lib.py --self-test`: `roster_lib self-test: 103 checks, 0 failed`.
-- `python3 -I tools/audit/seat/record_beat.py --self-test`: `record_beat self-test: 17 checks, 0 failed`.
+- `python3 -I tools/audit/seat/record_beat.py --self-test`: `record_beat self-test: 18 checks, 0 failed`.
 - `bash tools/audit/seat/cloud_relay.sh --self-test`: `cloud_relay self-test: 521 checks, 0 failed`.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. With `PYTHONPATH=tests/hastub`, `tests/doc_claims.py` printed `ALL 410 checks PASSED` and `tests/entities.py` printed `ALL 2725 ENTITY CHECKS PASSED`.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, against `4ecca4cc58`. With `PYTHONPATH=tests/hastub`, `tests/doc_claims.py` printed `ALL 410 checks PASSED` and `tests/entities.py` printed `ALL 2725 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- Carry 8, this body's own lines. `derive_marks` (imported from `tools/audit/seat/postmerge.py`) was run over this body's five `Carry N: built here` lines against `dev/programme/rosters/wave-r10-groups.json` at `origin/handoff/audit-r10-roster` `0c8313fd16`, group `R11-PRE-HANDOFF-BOOKKEEPING`. It returns 5 ops and an empty owed list. The control is the self-test's two-hit, no-hit and no-key rows, which return owed lines.
-- Carry 6 (v), the #3447 replay: `enqueue` of `set-stage R10-OUTSIDE-DIAG-REDACT-LOCATION done --at-sha ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e` (the roster's `resume.commit` for that group, and the `Merge pull request #3447` commit on main) parses through `roster_queue.parse_line` to `("set-stage", "R10-OUTSIDE-DIAG-REDACT-LOCATION", "done", ["--at-sha", <sha>])`, and `replay_unsafe` returns `None`. This is a self-test row.
+- Carry 8, this body's own lines. `derive_marks` (imported from `tools/audit/seat/postmerge.py` at this head, through the review's `marks.py`) over this body's five `Carry N: built here` lines against `dev/programme/rosters/wave-r10-groups.json`, group `R11-PRE-HANDOFF-BOOKKEEPING`, returns 5 ops and an empty owed list at `0c8313fd16` and at `origin/handoff/audit-r10-roster` `b7f7819eaf`. The control is the self-test's two-hit, no-hit and no-key rows, which return owed lines.
+- Carry 6 (v), the #3447 replay: `enqueue` of `set-stage R10-OUTSIDE-DIAG-REDACT-LOCATION done --at-sha ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e` parses through `roster_queue.parse_line` to `("set-stage", "R10-OUTSIDE-DIAG-REDACT-LOCATION", "done", ["--at-sha", <sha>])`, and `replay_unsafe` returns `None`. This is a self-test row.
+- `PREPR_SKIP_CLOSURES=1 MUTANT_IN_PLACE=1 MUTANT_CMD=<the bash -c chain above> bash tools/pr/prepr.sh <this body>` at `044d63ce50b849dfc05490150a91b052886984c9` printed `PRE-PR: 044d63ce50b849dfc05490150a91b052886984c9 ... rc=0`. Its `ci predict` step printed `no closures, fast, governance or instrument red predicted against 4ecca4cc580b`, and `merged structure` printed `STRUCTURE RATCHET PASSED` with HEAD merged with origin/main. Its only WARN is the same 8 survivors listed under `## Unpinned sites`. The closures step was skipped by `PREPR_SKIP_CLOSURES` (tvofi, 2026-11-15).
 
-- `PREPR_SKIP_CLOSURES=1 MUTANT_IN_PLACE=1 MUTANT_CMD=<the bash -c chain above> bash tools/pr/prepr.sh <this body>` at `76c4aca7c8` printed `PRE-PR: 76c4aca7c8cfd196ed78d9fea56e73c5e03f8ca4 ... rc=0`. Its `ci predict` step printed `no closures, fast, governance or instrument red predicted against 513fbcd2c9ef`. Its only WARN is the 8 survivors under `## Unpinned sites`. The closures step was skipped by `PREPR_SKIP_CLOSURES` (tvofi, 2026-11-15).
-- The gate scope at this head is unchanged (`MODE: SCOPED -- 2 script(s) run, 31 scoped out`, against `513fbcd2c9`). After the merge, `tests/doc_claims.py` printed `ALL 410 checks PASSED`, `tests/entities.py` printed `ALL 2725 ENTITY CHECKS PASSED`, and `tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+prepr: passed rc=0 at 044d63ce50b849dfc05490150a91b052886984c9
 
 ## Red checks
 
-none
+`governance / instrument-self-tests` is red at `475e0018` and at the merge base (`merge_train.py introduced`: `introduced: 0`, head job 133816487439 failure, base job 133799884479 failure, from the review's evidence). It is inherited from main (`tools/ci/selftest_closures.json` misses reads added by recent merges; a re-record hotfix is in flight) and is not repaired here.
 
 ## Forward-carry
 
