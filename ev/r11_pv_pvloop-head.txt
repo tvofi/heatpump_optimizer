@@ -1,0 +1,13 @@
+RESULT pv day-1 01:00 null, no surplus: mean-price -56.0 own-price -26.2 thermostat at each step's surplus-aware price -336.6; inside the range False, closer end mean-price
+RESULT pv day-1 09:00 null, no surplus: mean-price -56.6 own-price -34.0 thermostat at each step's surplus-aware price -178.1; inside the range False, closer end mean-price
+RESULT pv day-1 01:00 surplus to 2.5 kW, 08..16: mean-price -56.0 own-price -14.4 thermostat at each step's surplus-aware price -331.3; inside the range False, closer end mean-price
+RESULT pv day-1 09:00 surplus to 2.5 kW, 08..16: mean-price -56.6 own-price -17.9 thermostat at each step's surplus-aware price -172.4; inside the range False, closer end mean-price
+RESULT pv day+1 01:00 null, no surplus: mean-price +66.4 own-price +29.5 thermostat at each step's surplus-aware price +187.6; inside the range False, closer end mean-price
+RESULT pv day+1 09:00 null, no surplus: mean-price +68.2 own-price +40.9 thermostat at each step's surplus-aware price +101.8; inside the range False, closer end mean-price
+RESULT pv day+1 01:00 surplus to 2.5 kW, 08..16: mean-price +66.4 own-price +17.9 thermostat at each step's surplus-aware price +175.2; inside the range False, closer end mean-price
+RESULT pv day+1 09:00 surplus to 2.5 kW, 08..16: mean-price +68.2 own-price +21.4 thermostat at each step's surplus-aware price +89.6; inside the range False, closer end mean-price
+RESULT pvloop null day-1: closed-loop steady money -24.9 a month; the estimate asked at 09:00 of each loop day, mean-price -63.2 own-price -26.8
+RESULT pvloop null day+1: closed-loop steady money +19.2 a month; the estimate asked at 09:00 of each loop day, mean-price +73.6 own-price +31.0
+RESULT pvloop pv day-1: closed-loop steady money -25.2 a month; the estimate asked at 09:00 of each loop day, mean-price -63.2 own-price -8.0
+RESULT pvloop pv day+1: closed-loop steady money -10.5 a month; the estimate asked at 09:00 of each loop day, mean-price +73.6 own-price +9.3
+rc=0
