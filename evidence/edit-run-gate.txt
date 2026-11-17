@@ -1,0 +1,8 @@
+2026-11-16T20:53:00.9612405Z  * [new tag]               archive/wip-sync/ext-upd-fix-r10-hotfix-gate-stale-jobs-f3373253 -> archive/wip-sync/ext-upd-fix-r10-hotfix-gate-stale-jobs-f3373253
+2026-11-16T20:53:00.9630397Z  * [new tag]               archive/wip-sync/ext-upd-fix-r10-raise-gate-shim-8b463f23 -> archive/wip-sync/ext-upd-fix-r10-raise-gate-shim-8b463f23
+2026-11-16T20:53:00.9632261Z  * [new tag]               archive/wip-sync/ext-upd-fix-r10-rca-gate-stale-82209de4 -> archive/wip-sync/ext-upd-fix-r10-rca-gate-stale-82209de4
+2026-11-16T20:53:01.5009832Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-16T20:53:01.6591166Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-16T20:53:01.6591587Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-16T20:53:01.6614177Z   WORKSET: arch-score budget-raise-gate
+2026-11-16T20:53:08.1729475Z FAIL pr-contract: no run at this head judged base 'main'
