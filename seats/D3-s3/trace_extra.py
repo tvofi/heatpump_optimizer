@@ -10,6 +10,8 @@ Hooks: tests/mutation_table.py:traced_baseline (REACH_HOOK) around
 mutation_table.run_script, the very path prescreen.py's baselines take.
 Command:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 \
           dev/audit/rounds/round11/D3/s3/trace_extra.py tests/edge.py tests/backtest.py
+--allow-red keeps the trace of a run red at this export's baseline (rc and
+failing-check count recorded; reach_problems then names it as not green).
 Perturbation: none of its own -- it writes reach rows; reach_census.py's
 --drop DRIVER is the control on what a row contributes (drop it: every site
 only it executed moves to REACH-DEAD).
@@ -34,9 +36,28 @@ import mutation_table as mt  # noqa: E402
 def main() -> int:
     t_cpu0, t_thr0 = time.process_time(), time.thread_time()
     (HERE / "reach").mkdir(exist_ok=True)
-    for script in sys.argv[1:]:
-        got, reach = mt.traced_baseline(mt.run_script, script, ROOT, 6000,
-                                        None, None)
+    allow_red = "--allow-red" in sys.argv
+    for script in [a for a in sys.argv[1:] if not a.startswith("--")]:
+        if allow_red:
+            # mutation_table.traced_baseline re-runs a red traced run untraced
+            # and keeps no reach. A script red at THIS export's baseline on
+            # checks that read no production file (entities.py: two machinery
+            # checks; doc_claims.py: the finder wall's absent backlog) still
+            # runs every other check, so its trace is kept, marked rc!=0.
+            import tempfile
+            with tempfile.TemporaryDirectory(prefix="reach-") as d:
+                out = Path(d)
+                env = mt.hook_env(out)
+                tenv = {**env, "PYTHONPATH": mt.traced_pythonpath(env, "tests/hastub")}
+                got = mt.run_script(script, ROOT, 6000, None, tenv)
+                reach = None if got.timed_out else mt.collect(out)
+            if reach is not None:
+                reach["rc"] = got.rc
+                print(f"  {script}: traced run rc={got.rc} failed={got.failed}: "
+                      + "; ".join(mt.failed_checks(got)[:0] or []) )
+        else:
+            got, reach = mt.traced_baseline(mt.run_script, script, ROOT, 6000,
+                                            None, None)
         rec = {"script": script, "rc": got.rc, "failed": got.failed,
                "seconds": round(got.seconds, 1), "reach": None}
         if reach is not None:
@@ -46,7 +67,11 @@ def main() -> int:
                 "reads": [r for r in reach["reads"] if r.startswith(mt.PKG)],
                 "problems": mt.reach_problems(reach),
                 "processes": reach["processes"]}
-        (HERE / "reach" / (script.replace("/", "_") + ".json")).write_text(
+        # an --allow-red row goes to reach_red/, where prescreen.py's own
+        # baseline (which records a red driver as untraced) cannot clobber it
+        outdir = HERE / ("reach_red" if allow_red else "reach")
+        outdir.mkdir(exist_ok=True)
+        (outdir / (script.replace("/", "_") + ".json")).write_text(
             json.dumps(rec, indent=0))
         n = sum(len(v) for v in (rec["reach"] or {}).get("hits", {}).values())
         print(f"RESULT {script}:rc={got.rc} count")

@@ -46,5 +46,37 @@
   "tail": [
    "5 of 2723 ENTITY CHECKS FAILED"
   ]
+ },
+ {
+  "script": "tests/arch_score.py",
+  "rc": 0,
+  "solves": 0,
+  "distinct_inputs": 0,
+  "unhashable": 0,
+  "hooked_processes": 133,
+  "asserts": 280,
+  "asserts_source": "ALL-N",
+  "asserts_per_solve": null,
+  "wall_s": 3460.8,
+  "cpu_s": 3321.7,
+  "tail": [
+   "ALL 280 ARCHITECTURE SCORE CHECKS PASSED"
+  ]
+ },
+ {
+  "script": "tests/harness_headers.py",
+  "rc": 1,
+  "solves": 5,
+  "distinct_inputs": 4,
+  "unhashable": 0,
+  "hooked_processes": 17,
+  "asserts": 112,
+  "asserts_source": "ok-lines",
+  "asserts_per_solve": 22.4,
+  "wall_s": 221.9,
+  "cpu_s": 140.9,
+  "tail": [
+   "3 of 115 HARNESS HEADER CHECKS FAILED"
+  ]
  }
 ]

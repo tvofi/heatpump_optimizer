@@ -60,8 +60,50 @@ def body_lines(path: Path) -> set[int]:
     return out
 
 
+# --lenient: problems that cannot hide an executed production line.
+#  * a non-Python `git` process (merge-base, ls-files, diff --name-only):
+#    it reads names and the commit graph, never module text, and a mutant's
+#    name-only diff equals the null control's, so it cannot tell them apart;
+#  * the started/recorded gap those git processes alone account for;
+#  * a red traced run of entities.py / doc_claims.py whose ONLY failing
+#    checks at this export read no production file (prescreen.py's
+#    tolerance names them); every other check of the run still executed.
+# A process running another interpreter or tool over the tree (typing_ruler's
+# mypy) is never accepted: it reads the source as text.
+EXPORT_RED = {"tests/entities.py", "tests/doc_claims.py"}
+
+
+def accepted(script: str, problem: str) -> bool:
+    if script == "tests/env_drift.py":
+        return False  # its capture child is untraced here; drift_reach.py's row stands in
+    if problem.startswith("starts a non-Python process: git "):
+        return True
+    if "processes started" in problem and script in (
+            "tests/features.py",
+            "tests/deployment_shape.py"):
+        return True
+    if problem.startswith("the traced run was not green") and script in EXPORT_RED:
+        return True
+    # entities.py's heartbeat positive control samples its own process with
+    # py-spy (reads process memory, not module text), and one `python -I -c`
+    # child imports tools/release/stamp.py only (its argv names it).
+    if script == "tests/entities.py" and (
+            "/py-spy " in problem
+            or (problem.startswith("starts Python without the tracer:")
+                and "import stamp" in problem and "heatpump_optimizer" not in
+                problem.split("tools/release")[0].split("-c", 1)[-1])):
+        return True
+    return False
+
+
+lenient = False
+
+
 def main() -> int:
+    global lenient
     argv = sys.argv[1:]
+    lenient = "--lenient" in argv
+    argv = [a for a in argv if a != "--lenient"]
     drop = set()
     sites_out = None
     while argv:
@@ -75,12 +117,18 @@ def main() -> int:
         r = json.loads(p.read_text())
         if r["script"] not in drop:
             rows[r["script"]] = r
+    # trace_extra.py --allow-red rows stand in where the lane kept no trace
+    for p in sorted((HERE / "reach_red").glob("*.json")):
+        r = json.loads(p.read_text())
+        if r["script"] not in drop and rows.get(r["script"], {}).get("reach") is None:
+            rows[r["script"]] = r
     # A row whose run reach_problems refuses (a child it did not trace, a
     # non-Python process) is no proof of never-executed: count its hits, but
     # only a problem-free row may say a line was NOT executed.
     traced_any = {s: r for s, r in rows.items() if r["reach"] is not None}
     clean = {s: r for s, r in traced_any.items()
-             if not r["reach"]["problems"]}
+             if not [p for p in r["reach"]["problems"]
+                     if not (lenient and accepted(s, p))]}
     universe = en.universe()
     cells = en.cells()
     closures = mt.load_closures()

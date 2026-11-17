@@ -1,6 +1,6 @@
 {
  "rc": 1,
- "wall_s": 4633.1,
+ "wall_s": 3987.6,
  "overlap": true,
  "drivers_allowed": [
   "tests/arch_score.py",
@@ -1236,98 +1236,318 @@
  "runs": [
   {
    "script": "tests/arch_score_head.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r0-140545033524928-157751496425",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r0-139656784107200-5370772640912",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 81.0,
+   "wall": 159.6,
    "timed_out": false
   },
   {
    "script": "tests/arch_score_head.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r1-140545033524928-238772197531",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r1-139656784107200-5530432225334",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 123.8,
+   "wall": 129.3,
    "timed_out": false
   },
   {
    "script": "tests/block_duty.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r2-140545033524928-362581458923",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r2-139656784107200-5659690336024",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 34.6,
+   "wall": 21.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/env_drift.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r0-139656792499904-5370769177048",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 312.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/env_drift.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r0-139656800892608-5370768220022",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 313.1,
    "timed_out": false
   },
   {
    "script": "tests/block_duty.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r3-140545033524928-397212997464",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r3-139656784107200-5681304320150",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 33.6,
-   "timed_out": false
-  },
-  {
-   "script": "tests/env_drift.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r0-140545041917632-157746894250",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 588.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/env_drift.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r0-140545085462208-157745918287",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 603.8,
+   "wall": 16.2,
    "timed_out": false
   },
   {
    "script": "tests/config_flow_steps.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r6-140545085462208-761605276835",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r6-139656784107200-5697483245953",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 55.8,
+   "wall": 48.1,
    "timed_out": false
   },
   {
    "script": "tests/config_flow_steps.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r7-140545085462208-817488205535",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r7-139656784107200-5745641753334",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 49.2,
+   "wall": 42.6,
    "timed_out": false
   },
   {
    "script": "tests/debug_collect.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r8-140545085462208-866730720765",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r8-139656784107200-5788204506295",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 3.4,
+   "wall": 2.9,
    "timed_out": false
   },
   {
    "script": "tests/debug_collect.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r9-140545085462208-870163025701",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r9-139656784107200-5791112162221",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 2.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/deployment_shape.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r10-139656784107200-5793384532251",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 4.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/deployment_shape.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r11-139656784107200-5798346334427",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 5.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r12-139656784107200-5803721466894",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 22.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r13-139656784107200-5826039861521",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 23.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/doc_claims.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r14-139656784107200-5849255779510",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 1,
+   "wall": 22.2,
+   "timed_out": false
+  },
+  {
+   "script": "tests/boost_drift_replay.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r5-139656800892608-5683884212215",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 438.0,
+   "timed_out": false
+  },
+  {
+   "script": "tests/boost_drift_replay.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r4-139656792499904-5683052408425",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 438.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r15-139656784107200-5871448448349",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 2,
+   "wall": 1249.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r16-139656800892608-6121926567507",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 2,
+   "wall": 1290.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/features.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r17-139656792499904-6122033696850",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 2037.6,
+   "timed_out": false
+  },
+  {
+   "script": "tests/finite_boundary.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r20-139656792499904-8160085708167",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 299.1,
+   "timed_out": false
+  },
+  {
+   "script": "tests/entities.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r18-139656784107200-7121864144047",
+   "mutant": "baseline-or-null",
+   "rc": 1,
+   "failed": 2,
+   "wall": 1374.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/guard_pins.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r22-139656784107200-8496831142363",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 14.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/guard_pins.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r23-139656784107200-8511220180891",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 13.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/manual_plan.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r24-139656784107200-8524573259780",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 14.4,
+   "timed_out": false
+  },
+  {
+   "script": "tests/manual_plan.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r25-139656784107200-8539017340326",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 15.5,
+   "timed_out": false
+  },
+  {
+   "script": "tests/open_meteo.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r26-139656784107200-8554486943034",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/open_meteo.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r27-139656784107200-8555344201683",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 0.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/finite_boundary.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r21-139656792499904-8459280235505",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 247.7,
+   "timed_out": false
+  },
+  {
+   "script": "tests/optimality.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r28-139656784107200-8556088415487",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 284.8,
+   "timed_out": false
+  },
+  {
+   "script": "tests/plan_view.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r30-139656784107200-8840888978241",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 2.3,
+   "timed_out": false
+  },
+  {
+   "script": "tests/plan_view.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r31-139656784107200-8843199674654",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
@@ -1335,343 +1555,123 @@
    "timed_out": false
   },
   {
-   "script": "tests/deployment_shape.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r10-140545085462208-872268594430",
+   "script": "tests/solar_alignment.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r32-139656784107200-8845307771769",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 6.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/deployment_shape.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r11-140545085462208-878984265432",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 6.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/doc_claims.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r12-140545085462208-885647042311",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 1,
-   "wall": 39.1,
-   "timed_out": false
-  },
-  {
-   "script": "tests/doc_claims.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r13-140545085462208-924808493288",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 1,
-   "wall": 39.4,
-   "timed_out": false
-  },
-  {
-   "script": "tests/boost_drift_replay.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r4-140545033524928-430799901283",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 563.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/doc_claims.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r14-140545085462208-964220248291",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 1,
-   "wall": 34.3,
-   "timed_out": false
-  },
-  {
-   "script": "tests/boost_drift_replay.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r5-140545041917632-746458914369",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 648.5,
-   "timed_out": false
-  },
-  {
-   "script": "tests/entities.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r16-140545085462208-998524208425",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 2,
-   "wall": 1825.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/entities.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r15-140545033524928-994542455246",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 3,
-   "wall": 1880.3,
-   "timed_out": false
-  },
-  {
-   "script": "tests/features.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r17-140545041917632-1394926496862",
-   "mutant": "baseline-or-null",
-   "rc": 124,
-   "failed": 0,
-   "wall": 2400.0,
-   "timed_out": true
-  },
-  {
-   "script": "tests/finite_boundary.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r20-140545041917632-3795374124929",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 279.2,
-   "timed_out": false
-  },
-  {
-   "script": "tests/entities.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r19-140545033524928-2876376086416",
-   "mutant": "baseline-or-null",
-   "rc": 1,
-   "failed": 2,
-   "wall": 1380.2,
-   "timed_out": false
-  },
-  {
-   "script": "tests/guard_pins.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r22-140545033524928-4256578953649",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 10.6,
-   "timed_out": false
-  },
-  {
-   "script": "tests/guard_pins.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r23-140545033524928-4267216241055",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 12.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/manual_plan.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r24-140545033524928-4279960707781",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 15.0,
-   "timed_out": false
-  },
-  {
-   "script": "tests/manual_plan.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r25-140545033524928-4295024193916",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 11.6,
-   "timed_out": false
-  },
-  {
-   "script": "tests/open_meteo.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r26-140545033524928-4306636494521",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 0.4,
-   "timed_out": false
-  },
-  {
-   "script": "tests/open_meteo.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r27-140545033524928-4307008217545",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 0.4,
-   "timed_out": false
-  },
-  {
-   "script": "tests/finite_boundary.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r21-140545041917632-4074628194586",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 252.6,
-   "timed_out": false
-  },
-  {
-   "script": "tests/optimality.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r28-140545033524928-4307396585061",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 228.7,
-   "timed_out": false
-  },
-  {
-   "script": "tests/plan_view.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r30-140545033524928-4536096770185",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 1.1,
-   "timed_out": false
-  },
-  {
-   "script": "tests/plan_view.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r31-140545033524928-4537176156208",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 1.0,
+   "wall": 1.5,
    "timed_out": false
   },
   {
    "script": "tests/solar_alignment.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r32-140545033524928-4538153536415",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r33-139656784107200-8846845998329",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 0.8,
+   "wall": 1.9,
    "timed_out": false
   },
   {
-   "script": "tests/solar_alignment.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r33-140545033524928-4538976213818",
+   "script": "tests/structure.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r34-139656784107200-8848752472192",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 0.8,
+   "wall": 64.9,
+   "timed_out": false
+  },
+  {
+   "script": "tests/structure.py",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r35-139656784107200-8913712186758",
+   "mutant": "baseline-or-null",
+   "rc": 0,
+   "failed": 0,
+   "wall": 52.7,
    "timed_out": false
   },
   {
    "script": "tests/optimality.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r29-140545041917632-4327240214309",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r29-139656792499904-8706993798842",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 223.4,
-   "timed_out": false
-  },
-  {
-   "script": "tests/structure.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r34-140545033524928-4539768305757",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 31.3,
-   "timed_out": false
-  },
-  {
-   "script": "tests/structure.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r35-140545041917632-4550676177766",
-   "mutant": "baseline-or-null",
-   "rc": 0,
-   "failed": 0,
-   "wall": 29.1,
+   "wall": 287.7,
    "timed_out": false
   },
   {
    "script": "tests/typing_ruler.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r36-140545033524928-4571048641873",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r36-139656784107200-8966392416893",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 27.1,
+   "wall": 58.6,
    "timed_out": false
   },
   {
    "script": "tests/typing_ruler.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r37-140545041917632-4579832191164",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r37-139656792499904-8994687779170",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 26.5,
+   "wall": 59.1,
    "timed_out": false
   },
   {
    "script": "tests/validate.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r38-140545033524928-4598135995077",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r38-139656784107200-9024953104663",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 39.6,
+   "wall": 58.2,
    "timed_out": false
   },
   {
    "script": "tests/wood_advisor.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r40-140545033524928-4637768788141",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r40-139656784107200-9083192741118",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 1.2,
+   "wall": 2.8,
    "timed_out": false
   },
   {
    "script": "tests/wood_advisor.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r41-140545033524928-4639016200269",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r41-139656784107200-9086024200080",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 1.3,
+   "wall": 2.0,
    "timed_out": false
   },
   {
    "script": "tests/validate.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r39-140545041917632-4606364203386",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r39-139656792499904-9053760170619",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 38.9,
+   "wall": 52.8,
    "timed_out": false
   },
   {
    "script": "tests/features.py",
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r18-140545085462208-2824224217366",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r19-139656800892608-7412218694007",
    "mutant": "baseline-or-null",
    "rc": 0,
    "failed": 0,
-   "wall": 1886.2,
+   "wall": 1842.3,
    "timed_out": false
   }
  ],
@@ -1680,44 +1680,33 @@
    "argv": [
     "tests/arch_score_head.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r0-140545033524928-157751496425",
-   "pid": 2360,
-   "wall": 80.908389401,
-   "cpu": 56.29546,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r0-139656784107200-5370772640912",
+   "pid": 4928,
+   "wall": 159.54002400700028,
+   "cpu": 52.933065,
    "rc": 0
   },
   {
    "argv": [
     "tests/arch_score_head.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r1-140545033524928-238772197531",
-   "pid": 3454,
-   "wall": 123.738865747,
-   "cpu": 55.552682000000004,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r1-139656784107200-5530432225334",
+   "pid": 5531,
+   "wall": 129.1389594580005,
+   "cpu": 48.976919,
    "rc": 0
   },
   {
    "argv": [
     "tests/block_duty.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r2-140545033524928-362581458923",
-   "pid": 4619,
-   "wall": 34.45753686699999,
-   "cpu": 9.807905,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/block_duty.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r3-140545033524928-397212997464",
-   "pid": 4644,
-   "wall": 33.40536175300002,
-   "cpu": 8.895290000000001,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r2-139656784107200-5659690336024",
+   "pid": 5577,
+   "wall": 21.51134416000059,
+   "cpu": 8.118173,
    "rc": 0
   },
   {
@@ -1725,11 +1714,11 @@
     "tests/env_drift.py",
     "--all"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r0-140545041917632-157746894250",
-   "pid": 2358,
-   "wall": 588.631969881,
-   "cpu": 242.609183,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r0-139656792499904-5370769177048",
+   "pid": 4926,
+   "wall": 312.1723337129997,
+   "cpu": 103.010514,
    "rc": 0
   },
   {
@@ -1737,418 +1726,440 @@
     "tests/env_drift.py",
     "--all"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r0-140545085462208-157745918287",
-   "pid": 2357,
-   "wall": 603.768493631,
-   "cpu": 241.62399200000002,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r0-139656800892608-5370768220022",
+   "pid": 4925,
+   "wall": 313.02292100499926,
+   "cpu": 103.04015799999999,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/block_duty.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r3-139656784107200-5681304320150",
+   "pid": 5595,
+   "wall": 16.093936758000382,
+   "cpu": 7.665366,
    "rc": 0
   },
   {
    "argv": [
     "tests/config_flow_steps.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r6-140545085462208-761605276835",
-   "pid": 5045,
-   "wall": 55.65059110599998,
-   "cpu": 26.539486999999998,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r6-139656784107200-5697483245953",
+   "pid": 5609,
+   "wall": 47.95704462499998,
+   "cpu": 22.092833,
    "rc": 0
   },
   {
    "argv": [
     "tests/config_flow_steps.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r7-140545085462208-817488205535",
-   "pid": 5070,
-   "wall": 49.11452247,
-   "cpu": 26.031412,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/debug_collect.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r8-140545085462208-866730720765",
-   "pid": 5123,
-   "wall": 3.187811778999958,
-   "cpu": 1.453876,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/debug_collect.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r9-140545085462208-870163025701",
-   "pid": 5135,
-   "wall": 2.0317791840000154,
-   "cpu": 1.000494,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/deployment_shape.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r10-140545085462208-872268594430",
-   "pid": 5145,
-   "wall": 6.578031323999994,
-   "cpu": 3.125936,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/deployment_shape.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r11-140545085462208-878984265432",
-   "pid": 5180,
-   "wall": 6.574861913999939,
-   "cpu": 3.216529,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/doc_claims.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r12-140545085462208-885647042311",
-   "pid": 5217,
-   "wall": 39.06922559899999,
-   "cpu": 15.55532,
-   "rc": 1
-  },
-  {
-   "argv": [
-    "tests/doc_claims.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r13-140545085462208-924808493288",
-   "pid": 5408,
-   "wall": 39.30695759299999,
-   "cpu": 14.693725,
-   "rc": 1
-  },
-  {
-   "argv": [
-    "tests/boost_drift_replay.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r4-140545033524928-430799901283",
-   "pid": 4664,
-   "wall": 563.5773954409999,
-   "cpu": 224.411471,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/doc_claims.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r14-140545085462208-964220248291",
-   "pid": 5521,
-   "wall": 34.147009142,
-   "cpu": 13.317392,
-   "rc": 1
-  },
-  {
-   "argv": [
-    "tests/boost_drift_replay.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r5-140545041917632-746458914369",
-   "pid": 5034,
-   "wall": 648.376552908,
-   "cpu": 224.89902,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/entities.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r16-140545085462208-998524208425",
-   "pid": 5631,
-   "wall": 1825.5592249329998,
-   "cpu": 610.939215,
-   "rc": 1
-  },
-  {
-   "argv": [
-    "tests/entities.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r15-140545033524928-994542455246",
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r7-139656784107200-5745641753334",
    "pid": 5629,
-   "wall": 1880.2426944979998,
-   "cpu": 631.5975960000001,
+   "wall": 42.48964673899991,
+   "cpu": 19.456585,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/debug_collect.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r8-139656784107200-5788204506295",
+   "pid": 5643,
+   "wall": 2.767282486000113,
+   "cpu": 1.119164,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/debug_collect.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r9-139656784107200-5791112162221",
+   "pid": 5651,
+   "wall": 2.180298107999988,
+   "cpu": 0.8863869999999999,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/deployment_shape.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r10-139656784107200-5793384532251",
+   "pid": 5662,
+   "wall": 4.8407324319996405,
+   "cpu": 2.3632999999999997,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/deployment_shape.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r11-139656784107200-5798346334427",
+   "pid": 5668,
+   "wall": 5.303239094999299,
+   "cpu": 2.454021,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/doc_claims.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r12-139656784107200-5803721466894",
+   "pid": 5677,
+   "wall": 22.206518756999685,
+   "cpu": 11.1556,
    "rc": 1
   },
   {
    "argv": [
-    "tests/finite_boundary.py"
+    "tests/doc_claims.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r20-140545041917632-3795374124929",
-   "pid": 18700,
-   "wall": 279.02402918000007,
-   "cpu": 104.20234,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r13-139656784107200-5826039861521",
+   "pid": 5787,
+   "wall": 23.137453716999516,
+   "cpu": 11.012666,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/doc_claims.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r14-139656784107200-5849255779510",
+   "pid": 5889,
+   "wall": 22.134411796999302,
+   "cpu": 10.535317000000001,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/boost_drift_replay.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r5-139656800892608-5683884212215",
+   "pid": 5601,
+   "wall": 437.9604528660002,
+   "cpu": 169.896739,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/boost_drift_replay.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r4-139656792499904-5683052408425",
+   "pid": 5599,
+   "wall": 438.7987393880003,
+   "cpu": 171.605472,
    "rc": 0
   },
   {
    "argv": [
     "tests/entities.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r19-140545033524928-2876376086416",
-   "pid": 4678,
-   "wall": 1380.1453134539997,
-   "cpu": 535.129049,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r15-139656784107200-5871448448349",
+   "pid": 5996,
+   "wall": 1249.2524558880004,
+   "cpu": 502.144822,
    "rc": 1
   },
   {
    "argv": [
-    "tests/guard_pins.py"
+    "tests/entities.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r22-140545033524928-4256578953649",
-   "pid": 20943,
-   "wall": 10.528865098000097,
-   "cpu": 6.184713,
-   "rc": 0
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r16-139656800892608-6121926567507",
+   "pid": 13961,
+   "wall": 1290.1366943849998,
+   "cpu": 479.12047700000005,
+   "rc": 1
   },
   {
    "argv": [
-    "tests/guard_pins.py"
+    "tests/features.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r23-140545033524928-4267216241055",
-   "pid": 21063,
-   "wall": 12.616297047999979,
-   "cpu": 5.483694000000001,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/manual_plan.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r24-140545033524928-4279960707781",
-   "pid": 21108,
-   "wall": 14.916093290999925,
-   "cpu": 6.74535,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/manual_plan.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r25-140545033524928-4295024193916",
-   "pid": 21144,
-   "wall": 11.557868273999702,
-   "cpu": 5.644088,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/open_meteo.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r26-140545033524928-4306636494521",
-   "pid": 21223,
-   "wall": 0.30536466000012297,
-   "cpu": 0.238917,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/open_meteo.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r27-140545033524928-4307008217545",
-   "pid": 21225,
-   "wall": 0.33622253100020316,
-   "cpu": 0.208668,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r17-139656792499904-6122033696850",
+   "pid": 13963,
+   "wall": 2037.4944120769997,
+   "cpu": 706.077303,
    "rc": 0
   },
   {
    "argv": [
     "tests/finite_boundary.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r21-140545041917632-4074628194586",
-   "pid": 19729,
-   "wall": 252.51111004999984,
-   "cpu": 105.810515,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r20-139656792499904-8160085708167",
+   "pid": 32267,
+   "wall": 299.0694670620005,
+   "cpu": 99.409962,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/entities.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r18-139656784107200-7121864144047",
+   "pid": 16855,
+   "wall": 1374.9063718949992,
+   "cpu": 484.567314,
+   "rc": 1
+  },
+  {
+   "argv": [
+    "tests/guard_pins.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r22-139656784107200-8496831142363",
+   "pid": 1821,
+   "wall": 14.233697074998418,
+   "cpu": 4.8350089999999994,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/guard_pins.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r23-139656784107200-8511220180891",
+   "pid": 1828,
+   "wall": 13.256290313000136,
+   "cpu": 4.398658999999999,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/manual_plan.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r24-139656784107200-8524573259780",
+   "pid": 1931,
+   "wall": 14.284403759998895,
+   "cpu": 5.118293,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/manual_plan.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r25-139656784107200-8539017340326",
+   "pid": 1941,
+   "wall": 15.365888000998893,
+   "cpu": 5.091658,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/open_meteo.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r26-139656784107200-8554486943034",
+   "pid": 1950,
+   "wall": 0.7277301239992084,
+   "cpu": 0.228934,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/open_meteo.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r27-139656784107200-8555344201683",
+   "pid": 1952,
+   "wall": 0.6645591710002918,
+   "cpu": 0.20079799999999998,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/finite_boundary.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r21-139656792499904-8459280235505",
+   "pid": 1235,
+   "wall": 247.65871254800004,
+   "cpu": 90.271514,
    "rc": 0
   },
   {
    "argv": [
     "tests/optimality.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r28-140545033524928-4307396585061",
-   "pid": 21227,
-   "wall": 228.55114808399958,
-   "cpu": 118.416404,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r28-139656784107200-8556088415487",
+   "pid": 1954,
+   "wall": 284.6600163079984,
+   "cpu": 105.617423,
    "rc": 0
   },
   {
    "argv": [
     "tests/plan_view.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r30-140545033524928-4536096770185",
-   "pid": 21337,
-   "wall": 0.99271396200038,
-   "cpu": 0.835511,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r30-139656784107200-8840888978241",
+   "pid": 2062,
+   "wall": 2.163534534000064,
+   "cpu": 0.876852,
    "rc": 0
   },
   {
    "argv": [
     "tests/plan_view.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r31-140545033524928-4537176156208",
-   "pid": 21340,
-   "wall": 0.9312515880001229,
-   "cpu": 0.778231,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r31-139656784107200-8843199674654",
+   "pid": 2065,
+   "wall": 2.001254634000361,
+   "cpu": 0.838617,
    "rc": 0
   },
   {
    "argv": [
     "tests/solar_alignment.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r32-140545033524928-4538153536415",
-   "pid": 21344,
-   "wall": 0.7704792209997322,
-   "cpu": 0.76176,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r32-139656784107200-8845307771769",
+   "pid": 2071,
+   "wall": 1.4466845460010518,
+   "cpu": 0.727544,
    "rc": 0
   },
   {
    "argv": [
     "tests/solar_alignment.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r33-140545033524928-4538976213818",
-   "pid": 21346,
-   "wall": 0.7197662139997192,
-   "cpu": 0.688966,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r33-139656784107200-8846845998329",
+   "pid": 2073,
+   "wall": 1.7918069450006442,
+   "cpu": 0.6204839999999999,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/structure.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r34-139656784107200-8848752472192",
+   "pid": 2075,
+   "wall": 64.79957939400083,
+   "cpu": 23.061420000000002,
+   "rc": 0
+  },
+  {
+   "argv": [
+    "tests/structure.py"
+   ],
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r35-139656784107200-8913712186758",
+   "pid": 2101,
+   "wall": 52.58643659500012,
+   "cpu": 20.369455000000002,
    "rc": 0
   },
   {
    "argv": [
     "tests/optimality.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r29-140545041917632-4327240214309",
-   "pid": 21236,
-   "wall": 223.35797538000043,
-   "cpu": 116.337799,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/structure.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r34-140545033524928-4539768305757",
-   "pid": 21350,
-   "wall": 31.204022650999832,
-   "cpu": 24.746503,
-   "rc": 0
-  },
-  {
-   "argv": [
-    "tests/structure.py"
-   ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r35-140545041917632-4550676177766",
-   "pid": 21357,
-   "wall": 29.074305357999947,
-   "cpu": 22.624913,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r29-139656792499904-8706993798842",
+   "pid": 2014,
+   "wall": 287.5892552139994,
+   "cpu": 105.75953299999999,
    "rc": 0
   },
   {
    "argv": [
     "tests/typing_ruler.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r36-140545033524928-4571048641873",
-   "pid": 21366,
-   "wall": 27.036865803000182,
-   "cpu": 21.424439,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r36-139656784107200-8966392416893",
+   "pid": 2126,
+   "wall": 58.46352760899936,
+   "cpu": 20.253957,
    "rc": 0
   },
   {
    "argv": [
     "tests/typing_ruler.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r37-140545041917632-4579832191164",
-   "pid": 21415,
-   "wall": 26.470343515000422,
-   "cpu": 21.096824,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r37-139656792499904-8994687779170",
+   "pid": 2177,
+   "wall": 58.976797208999415,
+   "cpu": 20.359116,
    "rc": 0
   },
   {
    "argv": [
     "tests/validate.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r38-140545033524928-4598135995077",
-   "pid": 21464,
-   "wall": 39.51974334100032,
-   "cpu": 22.281461,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r38-139656784107200-9024953104663",
+   "pid": 2261,
+   "wall": 58.12733073900017,
+   "cpu": 19.805591,
    "rc": 0
   },
   {
    "argv": [
     "tests/wood_advisor.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r40-140545033524928-4637768788141",
-   "pid": 21488,
-   "wall": 1.1484161959997436,
-   "cpu": 0.910243,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r40-139656784107200-9083192741118",
+   "pid": 2730,
+   "wall": 2.677971035000155,
+   "cpu": 0.845054,
    "rc": 0
   },
   {
    "argv": [
     "tests/wood_advisor.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w2",
-   "rid": "r41-140545033524928-4639016200269",
-   "pid": 21490,
-   "wall": 1.2601518699993903,
-   "cpu": 0.943645,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w2",
+   "rid": "r41-139656784107200-9086024200080",
+   "pid": 2732,
+   "wall": 1.929955878000328,
+   "cpu": 0.6943130000000001,
    "rc": 0
   },
   {
    "argv": [
     "tests/validate.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w1",
-   "rid": "r39-140545041917632-4606364203386",
-   "pid": 21474,
-   "wall": 38.858907562999775,
-   "cpu": 22.7686,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w1",
+   "rid": "r39-139656792499904-9053760170619",
+   "pid": 2277,
+   "wall": 52.735782480000125,
+   "cpu": 20.002892,
    "rc": 0
   },
   {
    "argv": [
     "tests/features.py"
    ],
-   "cwd": "/root/d3s3-tmp/mutation-table-tvlk1mox/w0",
-   "rid": "r18-140545085462208-2824224217366",
-   "pid": 4085,
-   "wall": 1886.186590623,
-   "cpu": 794.694975,
+   "cwd": "/root/d3s3-tmp/mutation-table-wsj7pu77/w0",
+   "rid": "r19-139656800892608-7412218694007",
+   "pid": 26185,
+   "wall": 1842.2264722500013,
+   "cpu": 692.659634,
    "rc": 0
   }
  ]

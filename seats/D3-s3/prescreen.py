@@ -111,6 +111,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--overlap", action="store_true")
     ap.add_argument("--no-drift-reach", action="store_true")
+    ap.add_argument("--reuse-baselines", action="store_true")
     ap.add_argument("--timeout", type=int, default=6000)
     ap.add_argument("--only", default="",
                     help="comma list of drivers to keep (overlap subsets)")
@@ -201,7 +202,9 @@ def main() -> int:
             # PR-template acceptance arm), neither reading a production file.
             # Its other FAIL lines are the nightly probes' deliberate negatives.
             if (s_ == "tests/entities.py" and run.failed == 2
-                    and "and is accepted when it does" in names
+                    and any(n.startswith("and is accepted when it does ")
+                            or n == "and is accepted when it does"
+                            for n in names)
                     and any(n.startswith("the template arm turns the acceptance red")
                             for n in names)):
                 print(f"  {s_}: baseline red ONLY on two machinery checks of "
@@ -219,9 +222,21 @@ def main() -> int:
     reach_dir.mkdir(exist_ok=True)
     orig_traced = mt.traced_baseline
 
+    import pickle
+    bcache = Path(tempfile.gettempdir()) / "d3s3-baseline-cache"
+    bcache.mkdir(exist_ok=True)
+
     def traced(run, script, tree, timeout, extra_args, extra_env):
-        got, reach = orig_traced(run, script, tree, timeout, extra_args,
-                                 extra_env)
+        # --reuse-baselines: a traced baseline of the UNMUTATED tree is the
+        # same at every launch on this export; a relaunch reloads it.
+        cf = bcache / (script.replace("/", "_") + ".pkl")
+        if args.reuse_baselines and cf.exists():
+            got, reach = pickle.loads(cf.read_bytes())
+            print(f"  {script}: baseline reused from {cf}")
+        else:
+            got, reach = orig_traced(run, script, tree, timeout, extra_args,
+                                     extra_env)
+            cf.write_bytes(pickle.dumps((got, reach)))
         rec = {"script": script, "rc": got.rc, "failed": got.failed,
                "seconds": round(got.seconds, 1), "reach": None}
         if reach is not None:

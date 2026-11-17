@@ -1,0 +1,6 @@
+RESULT scripts_recorded=11 count
+RESULT kept_pairs=0 count
+RESULT forced_seconds=0 s (sum over kept pairs of the script's recorded seconds: one body edit to each kept file)
+RESULT perturbed=True
+RESULT thread_factor=1.000
+RESULT load1=12.06

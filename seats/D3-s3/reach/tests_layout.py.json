@@ -1,0 +1,17 @@
+{
+"script": "tests/layout.py",
+"rc": 0,
+"failed": 0,
+"seconds": 15.9,
+"reach": {
+"hits": {},
+"reads": [],
+"problems": [
+"starts a non-Python process: git -c user.name=t -c user.email=t@t -c commit.gpgsign=false add -A (+59)"
+],
+"processes": {
+"started": 1,
+"recorded": 1
+}
+}
+}
