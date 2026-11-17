@@ -10,9 +10,9 @@ R11-OWNER-GENERIC-CONTROL-TEXT (owner item, tvofi 2026-11-15). Heat-curve contro
 
 ## Head
 
-e83eaff1977e3829fea8550fbfa72778eb3b5e11, branch `fix/r11-owner-generic-control-text-pr`, merge base `92d38ecb640bd462f2e19c0814d0f0b7df1ee692` (`origin/main` at 2026-11-16T20:44Z). Previous reviewed head `54fd5072b6b165c4bd3eab3900e5009332132d6a`. `git merge-tree --write-tree origin/main` reported a conflict at handoff time (`dev/audit/rounds/round4/D6/claims.json` and `claims.md`, the generated round-4 D6 register), so `origin/main` `92d38ecb64` is merged in (`e83eaff197`), both files re-written by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` on the merged tree (C108 now counts 98 relative links; a second run leaves `git status` clean). Every figure below was re-taken at this head after the merge.
+`4817b38ba6bf9029027b626f39074020cd992995`, branch `fix/r11-owner-generic-control-text-pr`, merge base `2d7161a4b70923da910f9997e18db632c0d4ec2d`. It is the merge-main bot's `ci: merge main` (origin/main `2d7161a4b7`) on `81ffccaa01`, the orchestrator's merge of the authored code head `e83eaff1977e3829fea8550fbfa72778eb3b5e11` with origin/main `b425502da8`. This repair adds no commit: both merges are automatic and resolved no conflict inside this PR's files, and `git merge-tree --write-tree origin/main 4817b38ba6` against origin/main `8f39313a44` (2026-11-17) reports none, so no further merge is made. The fix review returned `merge` at `81ffccaa01` (review/3663 `f08a6dc341`); no `blocked` verdict exists at this head. Figures below the figure block were taken at `e83eaff197`; the delta from it to this head is the two merges of main. Rule: `git diff --stat e83eaff197 4817b38ba6 -- $(git diff --name-only 2d7161a4b7...4817b38ba6)` lists the PR's files that those merges also changed: `dev/audit/config/scopes.json` (+124), `docs/dashboard-card.md` (+6 -2), `tests/closures.json` (+6), `tests/layout.json` (`product_reads.py` added to a `tools/audit/{...}` glob, main's line); CI re-measures that tree, and the train re-proves it on the current main.
 
-prepr: passed rc=0 at e83eaff1977e3829fea8550fbfa72778eb3b5e11
+prepr: passed rc=0 at 4817b38ba6bf9029027b626f39074020cd992995
 
 ## Block answered
 
@@ -39,7 +39,7 @@ No `.py` line outside `tests/` and `dev/` is added or changed except `narrative.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 head=e83eaff1977e3829fea8550fbfa72778eb3b5e11 -->
+<!-- figure-block: scope-line mb=2d7161a4b70923da910f9997e18db632c0d4ec2d head=4817b38ba6bf9029027b626f39074020cd992995 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -94,9 +94,13 @@ Instrument limit: the census reads a line or one JSON value at a time, so a bran
 
 ## Red checks
 
-- `governance / instrument-self-tests` (red at `c00ad6ba0a`, green at the merge base; not in the `merge_train.py owed-reds` set, answered because the step is red at the head and not at the base). Cause: this PR added `docs/heat-curve.md` (the renamed heat-curve page) without classifying it in `dev/audit/config/scopes.json`, so `tools/audit/check_scopes.py --self-test`'s live arm refused D6 with `classified in neither universe nor static: docs/heat-curve.md`. Repaired at `8241dbe5db` by adding `heat-curve` beside `ecl110` in the three globs that hold it (D5 universe, D6 universe, D6 seat s1). Cheaper detector: `python3 -I tools/audit/check_scopes.py --repo .`, about 20 s locally, exit 1 on `c00ad6ba0a` and 0 at `8241dbe5db`; `prepr.sh` does not run it, and CI reached it only inside the instrument-self-tests job (about 19 min). Standing cost if `prepr.sh` ran it on a diff adding a tracked file: about 20 s per such run. Built: nothing in this PR (the countermeasure is the root-cause seat's to price and build, `defect-root-cause.md`). The fix review re-ran `--self-test --repo .` at `54fd5072b6`: `SELF-TEST passed (every perturbed scope refused)` rc 0.
+Reds at `4817b38ba6`, from the PR's check runs (run `43986306110` attempt 3 and run `43986297330`); `python3 tools/audit/seat/merge_train.py owed-reds` prints `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / typing`, `validate / validate-hacs`, all green here, so no red below is in the owed set.
 
-At `54fd5072b6`, `python3 tools/audit/seat/merge_train.py classify 54fd5072b6... --pr 3663` printed `GREEN ... pending: none red: none`.
+- `pr-contract / pr-contract`: `figure-block scope-line names another head (81ffccaa0186, this is 4817b38ba6bf)` and the `## Head` naming `81ffcca`. A body finding: this body names `4817b38ba6`, and `body_push.sh` re-renders the scope-line block against the PR's recorded base.
+- `governance / instrument-self-tests`, step "Show the self-tests outside tools/audit/seat/ refusing their own fixtures": inherited, not introduced. The failing command is `python3 -I tools/audit/product_reads.py --self-test`, which raises `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']`. Run locally: rc 1 at this head, rc 1 with the same Refuse at the merge base `2d7161a4b7` (a worktree of the base, no file of this PR), and rc 0 `SELF-TEST passed (86 arms)` at origin/main `8f39313a44`. `git diff --name-only 2d7161a4b7...4817b38ba6` names neither `const.py`, `tools/audit/enumerate.py` nor `tools/audit/product_reads.py`. The step's other 19 commands (`governance.yml`, id `self-tests-outside-seat`, run one by one at this head) exit 0; `product_reads.py --self-test` is the only rc 1. `merge_train.py classify 4817b38ba6 --pr 3663` refused (`selftests: ... concluded failure with no red step`) on the earlier run's job `133880150908`; the later attempt's job `133869556235` names step 48 as the red step.
+- `gate`: red because the two above are.
+- `tests / replay`: `owner-2026-10-30-away.json: cycle_cost [1 offender(s): cpu_ratio 453.8 over its budget 332.8]`, `1 of 198 replay checks FAILED`, at job `133880152350`; run `43986306110` skipped the lane. This PR changes no `custom_components/` `.py` line except `narrative.py`'s one string value; not in the owed set, not repaired here.
+- `tests / nightly-status`: not in the owed set; grades `main`.
 
 ## Forward-carry
 
