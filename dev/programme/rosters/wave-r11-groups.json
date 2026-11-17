@@ -2249,7 +2249,7 @@
    "resume": {
     "stage": "done",
     "branch": "fix/r11-pre-owner-criteria-p2",
-    "commit": "367c3b9cac0f4d11cdbeee9c05ffc893f7e1390c",
+    "commit": "8221ddad447f3e85749479ce979050f52cf1615f",
     "last_step": null,
     "next_step": "fire now; merge after the review commit",
     "note": "finder-critical: tvofi 2026-11-15, verbatim: \"As soon as everything that is critical to land before the finder phase, the finding phase can start in parallel with the remaining groups.\" Owner criteria ruled \"All four before finders\"; thresholds \"Floor 0.90, rest unset (Recommended)\"; seats \"Record Fable for both (Recommended)\". Cut 2026-11-15 by the round-11 finder-roster seat from the start evaluation at 7891b714f8.; overlap admitted (R11-PRE-FINDER-CONTRACT, R11-PRE-BRIEFS-CENSUS, R11-PRE-BRIEFS-TEXT): owner criteria and objective.json values; sole owner of objective.json",
