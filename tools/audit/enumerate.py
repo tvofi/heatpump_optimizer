@@ -21,7 +21,8 @@ Usage: python3 -I tools/audit/enumerate.py <universe> [--repo DIR] [options]
   d9-collections         coordinator.py `self.<attr>` bound to a container, once per class and attribute
   d9-attributes          classes defining or assigning extra_state_attributes
   d9-solves              calls of the solver entry, then of each function holding one, to a fixed point
-  d12-cells [--pairs]    every level `check_scopes.py --population` reads, the card and the blueprints
+  d12-cells [--pairs]    every level `check_scopes.py --population` reads, each level one of its NO-READ
+                         axes declares in objective.json, the card and the blueprints
                          (--pairs: every pair of levels from two axes), each `not run` until a ledger row
   --ledger TSV           with any universe: each line beside its ledger row's asserting test, or `not run`
                          (rows: item, test; for d12-cells: cell, source, test); a row naming no item,
