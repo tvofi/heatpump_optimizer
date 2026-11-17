@@ -1,0 +1,37 @@
+KILLED  is_cause: #n pattern dropped :: loop_ledger.py rc=1: FAIL  reds: a derived word the cause test refuses reads unread, never the word (+1 more)
+KILLED  is_cause: CAUSES arm dropped :: loop_ledger.py rc=1: FAIL  a fully recorded roster reads every line (+11 more)
+KILLED  is_cause: roster-group arm dropped :: loop_ledger.py rc=1: FAIL  is_cause: a pull request, external, original or another roster group; never the group itself or a bare word | roster_edit.py rc=1: FAIL set-field caused_by is refused with no root-cause record of the group, and read back with its own (got: )
+KILLED  is_cause: own-group refusal dropped :: loop_ledger.py rc=1: FAIL  is_cause: a pull request, external, original or another roster group; never the group itself or a bare word
+SURVIVED convergence_why: is_cause call dropped
+KILLED  fetch_runs: head_sha dropped :: round_metrics.py rc=1: FAIL producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number
+KILLED  fetch_runs: event dropped :: round_metrics.py rc=1: FAIL producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number (+1 more)
+KILLED  fetch_runs: head_branch dropped :: round_metrics.py rc=1: FAIL producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number
+KILLED  fetch_runs: pr always null :: round_metrics.py rc=1: FAIL producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number
+KILLED  fetch_runs: ci_runs.json written narrow :: round_metrics.py rc=1: FAIL producer: ci_runs.json keeps head_sha, event, head_branch and the first pull request's number (+1 more)
+KILLED  green: latest attempt -> first :: loop_ledger.py rc=1: FAIL  reds: a main red with no later green and no red spell read reads uncleared, never unread
+KILLED  green: non-failure latest reads red :: loop_ledger.py rc=1: FAIL  reds: a main red with no later green and no red spell read reads uncleared, never unread
+KILLED  green: no-listing first-attempt success not green :: loop_ledger.py rc=1: FAIL  reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both mai (+3 more)
+KILLED  mains: unread main runs kept out :: loop_ledger.py rc=1: FAIL  reds: a main red with no later green and no red spell read reads uncleared, never unread (+4 more)
+KILLED  cause: main spell step removed :: loop_ledger.py rc=1: FAIL  reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both mai (+3 more)
+KILLED  cause: subject unread -> uncleared :: loop_ledger.py rc=1: FAIL  reds: a merge subject naming no pull request reads unread: the row stays and the count is whole
+KILLED  cause: head row uses own opener, not main's last :: loop_ledger.py rc=1: FAIL  reds: a red inherited from main reads the pull request merged at main's first red push run after its last green, on the head row and on both mai (+2 more)
+SURVIVED cause: main row takes head-row path
+KILLED  cause: no-pr head reads uncleared :: loop_ledger.py rc=1: FAIL  reds: a run on the branch main that is no push is a head row and opens no red spell (+2 more)
+KILLED  rows: blind run dropped :: loop_ledger.py rc=1: FAIL  reds: the same run with no job listing reads unread, the count unread with it, and is never dropped (+2 more)
+KILLED  rows: gate job counted as failed job :: loop_ledger.py rc=1: FAIL  reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread
+SURVIVED rows: failed = any conclusion
+SURVIVED owed: prelude and gate not owed
+KILLED  summary: main/heads counts swapped :: loop_ledger.py rc=1: FAIL  reds: a red and a later green run at one head_sha reads external (+4 more)
+KILLED  summary: unread causes counted as caused :: loop_ledger.py rc=1: FAIL  reds: a merge subject naming no pull request reads unread: the row stays and the count is whole
+KILLED  main(): --runs ignored :: loop_ledger.py rc=1: FAIL  reds: --runs prints the read after the roster reads; without it the read is unread
+KILLED  _when: order by id alone :: loop_ledger.py rc=1: FAIL  reds: a green run before the red at its head_sha clears nothing: uncleared, never external (+1 more)
+SURVIVED gate job name
+RESULT reviewer mutants: 28 drawn, 5 survived
+
+NOTE (reviewer, after the driver run): "convergence_why: is_cause call dropped" is NOT a survivor. The driver ran
+loop_ledger.py --self-test --no-mutants and roster_edit.py --self-test for roster_lib.py mutants; the same mutant
+under `python3 -I tools/audit/seat/roster_lib.py --self-test` ends rc=1 (TypeError: argument of type 'NoneType' is
+not a container or iterable), against `roster_lib self-test: 98 checks, 0 failed` unmutated. Killed.
+Non-equivalent survivors at 3fe03e1480a1149d529b46373a7ba275ac47681b: 4 (gate job name; rows: failed = any
+conclusion; owed: prelude and gate not owed; cause: main row takes head-row path).
+Driver: reviewer's, ev/mut.py (one exact one-occurrence text swap per row, file restored after each).
