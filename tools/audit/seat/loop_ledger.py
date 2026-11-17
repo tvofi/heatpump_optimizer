@@ -422,10 +422,11 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
         return {"id": i, "t": f"2026-11-01T{hour:02d}:00:00Z", "c": c, "attempt": attempt, "head_sha": sha,
                 "event": event, "head_branch": branch, "pr": pr}
 
-    def jobs(*gates, attempt=None, failed=()):
+    def jobs(*gates, attempt=None, failed=(), done=()):
         return {"attempt": attempt or len(gates),
                 "jobs": [{"name": "gate", "conclusion": c, "run_attempt": k + 1} for k, c in enumerate(gates)]
-                + [{"name": n, "conclusion": "failure", "run_attempt": a} for a, n in failed]}
+                + [{"name": n, "conclusion": "failure", "run_attempt": a} for a, n in failed]
+                + [{"name": n, "conclusion": c, "run_attempt": a} for a, n, c in done]}
 
     def lines(runs, listed, subjects=None):
         count[0] += 1
@@ -534,6 +535,18 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
           and red_lines(tmp / "empty", {}.get) == ["gate_reds unread (no ci_runs.json in the --runs directory)"])
     got = lines([run(3, 1, sha=A, pr=5)], {3: {"attempt": 1, "jobs": [{"name": "gate", "conclusion": "failure"}]}})
     check("reds: a gate job listed with no attempt is the run's first", bool(row(got, 3, 1)))
+    got = lines([run(50, 1, sha=A, pr=5)], {50: jobs("success", failed=((1, "zz / report"),))})
+    check("reds: a failed job that is not `gate`, at an attempt whose gate did not fail, is no red",
+          got[0].startswith("gate_reds 0 ") and len(got) == 1)
+    got = lines([run(51, 1, sha=A, pr=5)], {51: jobs("failure", failed=((1, "prelude"),), done=((1, "zz / passed", "success"),))})
+    check("reds: a failed prelude is a required failure, never a machinery job",
+          "; required failed: prelude; machinery (report-only, never gating): no other job listed; " in row(got, 51))
+    check("reds: a job that did not fail at the red attempt is on neither list of its row",
+          bool(row(got, 51)) and "zz / passed" not in row(got, 51))
+    got = lines(spell[:2] + [run(18, 3, attempt=2, sha="e" * 40, **ON_MAIN)], {11: red, 18: jobs("failure", "cancelled")}, subj)
+    check("reds: a main run red at an earlier attempt and unconcluded at its latest joins no red spell: uncleared, "
+          "never the spell's pull request",
+          " cause uncleared (no later green) found_by ci-main;" in row(got, 18) and " cause #41 " in row(got, 11))
     req = sys.modules["gate"].gate_required()[0]  # gate_reds put tools/ci on the path and imported it
     got = lines([run(40, 1, attempt=2, sha=A, pr=5)],
                 {40: jobs("failure", "failure", failed=((1, req), (1, "zz / report"), (2, "zz / report")))})
@@ -592,6 +605,15 @@ MUTANTS = {
                        "reds: a run on the branch main that is no push"),
     "main uncleared": ('        if _on_main(r):\n            return UNCLEARED, "no later green"\n', "",
                        "reds: a main red with no later green"),
+    "gate job by name": ('for j in doc["jobs"] if j.get("name") == "gate"}', 'for j in doc["jobs"]}',
+                         "reds: a failed job that is not `gate`"),
+    "failed jobs failed": ('and j.get("conclusion") == "failure" and j.get("name") != "gate"})', 'and j.get("name") != "gate"})',
+                           "reds: a job that did not fail at the red attempt"),
+    "prelude and gate owed": ('owed = set(gate.gate_required()) | {"prelude", "gate"}', "owed = set(gate.gate_required())",
+                              "reds: a failed prelude is a required failure"),
+    "main row's own spell": ('op = opener.get(r["id"]) if _on_main(r) else opener[before[-1]["id"]] if before else None',
+                             'op = opener[before[-1]["id"]] if before else None',
+                             "reds: a main run red at an earlier attempt and unconcluded at its latest"),
     "stale listing": ('doc.get("attempt") == r["attempt"]:', "True:", "reds: a listing cached at an older attempt"),
     "listing owed past one attempt": ('elif r["c"] == "success" and r["attempt"] == 1:', 'elif r["c"] == "success":',
                                       "reds: the same run with no job listing"),
