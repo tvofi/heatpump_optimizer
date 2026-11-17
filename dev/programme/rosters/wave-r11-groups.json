@@ -976,7 +976,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r11-pre-rulings-file",
-    "commit": "921214bf4246338c1a83fbc5269eaa0bfe91b7d5",
+    "commit": "d360d1c125c27caa1f13de16a6ae2c32fd84dd74",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders",
