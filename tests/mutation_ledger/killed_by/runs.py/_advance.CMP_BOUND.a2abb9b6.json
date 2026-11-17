@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:_advance CMP_BOUND a2abb9b6",
+  "killed_by": "tests/features.py",
+  "old": "        change, paid = step[0] if dest < min_on else step[1]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`change, paid = step[0] if dest <= min_on else step[1]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

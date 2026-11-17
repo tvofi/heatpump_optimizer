@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:commit BOOLOP 3f04b002",
+  "killed_by": "tests/features.py",
+  "old": "        np.all(np.abs(walk) <= half * quantum + _SLACK) and abs(walk[-1]) <= f * dt / 2.0 + _SLACK)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`np.all(np.abs(walk) <= half * quantum + _SLACK) or abs(walk[-1]) <= f * dt / 2.0 + _SLACK)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

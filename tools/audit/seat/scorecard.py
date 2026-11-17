@@ -50,7 +50,9 @@ THE LINES (rule, then the null control the self-test holds it to):
   E        escapes: roster groups whose source is `outside`, and hotfix or bug
            groups (group names HOTFIX, or kind bug|hotfix) whose files include
            the product (`custom_components/`); and how many of both are still
-           open (resume.stage not `done`).
+           open (resume.stage not `done`); beside them both sets split by
+           owning dimension (`owned_by`, card P7), unread while any of them
+           has none (loop_ledger.owned_split).
            NULL: a round with no escape adds none.
   C        detection delay: the longest run of consecutive cancelled main runs
            in the last 50 runs (cancelled runs included, ordered by stamp).
@@ -162,13 +164,31 @@ def line_hotfix(rows: list[dict]) -> str:
             f"production merges among them {prod}  (naming measure, no null control)")
 
 
-def line_escapes(groups: list[dict]) -> str:
+def escape_sets(groups: list[dict]) -> tuple[list, list]:
+    """Line E's two sets, which loop_ledger.py reads as the escapes: outside groups, and
+    hotfix or bug groups touching the product."""
     out = [x for x in groups if x.get("source") == "outside"]
     ph = [x for x in groups if ("HOTFIX" in x["group"] or x.get("kind") in ("bug", "hotfix"))
           and any(f.startswith("custom_components/") for f in (x.get("files") or []))]
+    return out, ph
+
+
+def owned_split(groups: list[dict]) -> str:
+    """loop_ledger.owned_split, imported here so this module's mutant copies, which run
+    without their siblings, still load: there the split prints unread."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script's directory
+    try:
+        import loop_ledger
+    except ImportError:
+        return "by owning dimension unread (no loop_ledger.py beside scorecard.py)"
+    return loop_ledger.owned_split(groups, {x.get("group") for x in groups})
+
+
+def line_escapes(groups: list[dict]) -> str:
+    out, ph = escape_sets(groups)
     openn = sum((x.get("resume") or {}).get("stage") != "done" for x in out + ph)
     return (f"E       roster groups from outside reports {len(out)}; hotfix or bug groups touching the product "
-            f"{len(ph)}; open among both {openn}")
+            f"{len(ph)}; open among both {openn}; " + owned_split(groups))
 
 
 def cancel_streak(runs: list) -> int:

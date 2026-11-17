@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_best_runs CLAMP_DROP baabd38e",
+  "killed_by": "tests/features.py",
+  "old": "        scoped = [(np.clip(x, *_stage_box(opt, sc[0], dhw)[:2]), sc) for x, sc in zip(plans, scopes)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`scoped = [((x), sc) for x, sc in zip(plans, scopes)]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
