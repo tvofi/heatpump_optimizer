@@ -6,13 +6,15 @@ R11-PRE-TOOLCHAIN-PIN part 3 as dispatched (carries 10-12), at the approved desi
 
 For the owner's review, because it states what a seat does: the sentence the part's design line adds (the part line is the seat's scope, the design its shape) is the reading the seats of parts 1 and 2 each took for themselves, now written in the payload. No policy file is changed: a sentence for `tests/README.md`'s BLAS kernels section naming `--kernels` was written and taken out again, because that file is the owner's to change and sits nine tokens under its `files_tokens` cap.
 
+Also repaired, refused at the first open by main's `tools/audit/seat/shell_hazard.py --check`: `cloud-setup.sh`'s `loaded_kernel` piped `sed` into `head -n 1` under `pipefail` (early-pipe); it now captures OpenBLAS's output and `sed` quits at the first `Core:` line of a here-string. `shell_hazard.py --check --base 38bf516bdd` exits 1 at 35077969fa and 0 at this head; `cloud_setup self-test: 30 checks, 0 failed` at both.
+
 Also repaired, found while re-measuring carry 11: `dev/audit/harnesses/r11_honest_starts_runs.py kernels` exited 1 on main under every kernel class, because the header it ended its second block at was named in the harness and #3616's block has since landed in front of it; the run crossed into that block and raised `NameError: name '_r9f12_seed_cfg' is not defined`. The block now ends at the first `# --- ` header after it on the tree read.
 
 Alternatives that lost. Carry 10: *the split follows the design's parts* needs a machine-readable part list in the design note (a change to the designer's and design reviewer's contracts) and has no answer for a carry that lands after the approval, as carries 9-12 of this group did. *Only name the design, say nothing of the cuts*: leaves the contradiction the carry reports for the next seat to resolve by itself a third time. Carry 11: *lift the pin* (leave `OPENBLAS_CORETYPE` unset in the seat) trades one fixed class for whichever the container's processor selects, and the golden fixtures' floats need the fixed one (`cloud-setup.sh --check`). *A new instrument file*: the pin's owner is `cloud-setup.sh`, and the verb is the pin's own exception. *A `prepr.sh` step running the scoped scripts under each class*: four times the scoped run on every handoff, for a defect class that needs a check of a solve in the diff; the verb is run when the diff adds one. *Reuse `r11_honest_starts_runs.py kernels`*: it drives two named blocks of one group.
 
 ## Head
 
-35077969fab7cd6f60183711e6de3dd5595d9f3e, merge base 38bf516bdd73f926ee9639ffda7b9ca5163fd50e with origin/main.
+a3183c1fef3a777821572a6cc20d88cb8bd7bd5e, merge base 38bf516bdd73f926ee9639ffda7b9ca5163fd50e with origin/main.
 
 ## Mutation proof
 
@@ -41,10 +43,10 @@ Predicates mutated, never tails. `python3 dev/audit/harnesses/r11_toolchain_muta
 - The roster's count behind carry 10, at `handoff/audit-r10-roster` f223cd88f6: `roster_lib.pending_carries` over this group returns all thirteen indices, and `cloud_dispatch.part_split` of them `0-4, 5-9, 10-12`, after #3645 (carries 0-4) and #3654 merged.
 - Gate scope: `python3 tests/closure.py select --diff 38bf516bdd --workdir <dir>` names `tests/doc_claims.py` and `tests/entities.py`; both exit 0 at this head with `PYTHONPATH=tests/hastub`, beside `tests/env_drift.py --claims-only`, `tests/harness_headers.py`, `python3 tests/structure.py` (`STRUCTURE RATCHET PASSED`) and `node tools/policy/policy_lint.mjs` (0 errors).
 - `python3 tools/pr/ci_predict.py`: no closures, fast, governance or instrument red predicted against the merge base.
-- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, the scoped run: prepr: passed rc=0 at 35077969fab7cd6f60183711e6de3dd5595d9f3e. The `instrument-self-tests` red the opener predicted for `selftest_wiring.py --check` does not reproduce: at this head `--check` prints `146 self-testing, 146 wired, 0 unwired` and `ci_predict.py --only step-replay` predicts no red. That replay had timed out other steps on a loaded host, and `policy_lint`'s mutant files (`tools/policy/.policy_lint.mutant-*.mjs`, each naming `--self-test`) were left on disk while it ran.
+- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, the scoped run: prepr: passed rc=0 at a3183c1fef3a777821572a6cc20d88cb8bd7bd5e. The `instrument-self-tests` red the opener predicted for `selftest_wiring.py --check` does not reproduce: at this head `--check` prints `146 self-testing, 146 wired, 0 unwired` and `ci_predict.py --only step-replay` predicts no red. That replay had timed out other steps on a loaded host, and `policy_lint`'s mutant files (`tools/policy/.policy_lint.mutant-*.mjs`, each naming `--self-test`) were left on disk while it ran.
 - Step 8, the class's seams. Carry 10's class is a generated brief line that leaves a seat to choose between two sources: `git grep -n 'parts +=\|pline\|dline' -- tools/audit/seat/cloud_dispatch.py` returns every site that appends a generated line to a fixer's brief: `roster_lib.brief_lines` (the consumers line and the enumeration line, neither of which names a second source of scope: already guarded), and the part line and the design line (closed in this diff). Carry 11's class is a variable the seat's environment fixes and CI's does not: `bash tools/audit/seat/cloud-setup.sh --variables` prints eight, of which `OPENBLAS_CORETYPE` is the one whose value CI draws per runner (closed in this diff); `PATH` and `HPO_TYPING_PYTHON` select the interpreters CI pins alike, the four `GIT_` names are identity and `RUNNER_TEMP` a directory.
 
-<!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=35077969fab7cd6f60183711e6de3dd5595d9f3e -->
+<!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=a3183c1fef3a777821572a6cc20d88cb8bd7bd5e -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
