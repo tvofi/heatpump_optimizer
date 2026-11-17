@@ -1,0 +1,5 @@
+- Carry 5: built here (S14-DRAIN-REFUSAL-NOT-DURABLE, `beat_jobs.roster_drain`). A refused op
+- Carry 6: built here (POSTMERGE-STAGE-VIA-DRAIN, `postmerge.enqueue`). The design
+- Carry 7: built here (ROSTER-PUSH-LEASE, `roster_lib.writer_lease`). This is the lease form
+- Carry 8: built here (POSTMERGE-DERIVES-CARRY-MARKS, `postmerge.derive_marks`). `record_beat.facts`
+- Carry 9: built here (CARRY-FOLD-SUPERSEDED, `cloud_relay.sh fold_superseded`). `carry_fold_arm`'s
