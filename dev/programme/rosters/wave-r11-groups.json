@@ -4382,6 +4382,51 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-ROUND-START",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/check_scopes.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "tools/audit/check_scopes.py refuses a round start while any pickup line is undispositioned. Null control: a fixture with one undispositioned pickup line refuses, the same fixture dispositioned passes. Done when built with its self-test arm. Sources: R11-PRE-ACK-COMPLETION (PR #3635). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 170 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-playbook-round-start, body item 9f33edc5: The brief asks that the round start be refused by an instrument while any pickup line is undispositioned. None exists: `audit-find.js`'s baseline step runs `check_scopes.py --round` (evaluation only, #3575). Building the refusal (an exit-1 check over the two enumerators run from `check_scopes.py` or the pickup) is a tooling change outside this one-file prose group. Carry: R11-INTAKE-R10-RESIDUE (items 9f33edc5)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-round-start",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-ACK-COMPLETION carries 13",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
