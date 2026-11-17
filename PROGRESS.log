@@ -1,3 +1,4 @@
 1794891409 INIT r11-rev-3701
 1794891418 HB alive
 1794891511 CKPT packet and body read; starting worktree runs and CI wait snapshot d47ee39edf76
+1794891857 CKPT no-group postmerge regression measured both ends; running mutants snapshot df50c8aab347
