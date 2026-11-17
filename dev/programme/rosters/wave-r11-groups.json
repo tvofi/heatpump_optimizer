@@ -1799,10 +1799,10 @@
    "carry": [
     "Owner ruling on the flat-price tie break (tvofi, 2026-11-15T11:07:35Z, decision card, verbatim choice: \"Keep as built, pin it (Recommended)\"). Of two equal-cost masks the one that agrees with the relaxed plan ships, as the design states; no production line moves. Each half of the tie break is pinned by its own check, shown failing under the reviewer's two mutants (the tie break removed from the step the plan asked for, and from the step it did not ask for; specs in the round-3 verdict's evidence on probe/rev-3602-22e68b73). Measuring whether ties move a standing run between replans was offered and not chosen. [implemented: f7146ba6bdec3dd2f2d9bbeb8fb2b6de86ef03d7]",
     "Moved from R11-OUTSIDE-CONTRIBUTOR-CYCLE-P3 (owner-approved stale-group audit 2026-11-15): Moved from R11-INTAKE-R10-RESIDUE carry 1 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P767 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-ci-priority-pause, body item 98032839: Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE (items 98032839) [dismissed: duplicate of R11-INTAKE-R10-RESIDUE carry 172]",
-    "The `median_off_s` headroom cut after a duty change is not built. Lands in `dev/programme/rosters/wave-r10-groups.json`.\nMoved from #3529 body: destination group was done"
+    "The `median_off_s` headroom cut after a duty change is not built. Lands in `dev/programme/rosters/wave-r10-groups.json`.\nMoved from #3529 body: destination group was done [dismissed: duplicate of R11-INTAKE-R10-RESIDUE carry 171]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-outside-honest-starts-runs-p2",
     "commit": "1fd0a1bb3341709867de865722991447ce811d00",
     "last_step": null,
