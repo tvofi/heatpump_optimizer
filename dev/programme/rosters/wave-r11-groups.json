@@ -4427,6 +4427,54 @@
     "pr": null
    },
    "source": "programme"
+  },
+  {
+   "group": "R11-CARRY-POLICY-BUDGETS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/governance/config/policy_budgets.json",
+    "dev/governance/config/corpus_excluded.json",
+    "dev/audit/README.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Stale corpus keys: dev/governance/config/policy_budgets.json caps keyed on the removed tools/audit/README.md path, and the README citing the census directory instead of its CENSUS.md file. Null control: policy_lint must report the orphan key before the fix and not after. Done when no cap names a path absent at the merge base. Sources: R11-PRE-MACHINERY-LIMITER (PR #3627). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 23 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nMoved from R10-ROUND-PLAYBOOK-FINAL carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:\n\n`policy_budgets.json`: stale: the README's caps are keyed `tools/audit/README.md`, a path the tree no longer has, and are matched through the move map. A reader grepping the new path finds no cap. Carry: R10-ROUND-PLAYBOOK-FINAL",
+    "Moved from R11-INTAKE-R10-RESIDUE carry 41 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P742 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-round-playbook-final-p2, body item 9502b215: The README cites the census directory, not its CENSUS.md file: policy_lint's named-docs check refuses a named file with no cap or exclusion, and dev/governance/config/corpus_excluded.json is outside this part's files. The brief asked for the file path. Carry: R11-INTAKE-R10-RESIDUE (items 9502b215)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-policy-budgets",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R11-PRE-MACHINERY-LIMITER carries 5,6",
+    "pr": null
+   },
+   "source": "programme"
   }
  ]
 }
