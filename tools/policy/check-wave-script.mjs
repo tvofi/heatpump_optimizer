@@ -1657,6 +1657,9 @@ await block('the P3 plan workflow', async () => {
   const G = (group) => ({ group, issues: [1], fixes: [], findings: ['D7-s1-01'], severity: 'medium', files: ['coordinator.py'], after: [], architect_note: '' })
   const SHA = (c) => c.repeat(40)
   // What is open when the finders finish: one card, one roster group (tvofi, 2026-11-15).
+  // The stubs carry the --open-cards listing and the plan's open_items/dropped
+  // ahead of the audit-plan.js refusal that reads them, so this grader (pinned
+  // to the base's copy in CI) passes both before and after that refusal lands.
   const OPEN = { open: { open_cards: ['E11-X'], open_groups: ['R11-G'], unmarked: [] }, open_rc: 0 }
   const MOVES = (extra = {}) => ({ groups: [{ group: 'A', findings: ['D7-s1-01'], open_items: ['E11-X'] }], moves: [{ group: 'A', adr: 'ADR-1', metrics: {}, dS: 0 }],
     dropped: [{ id: 'R11-G', reason: 'merged while the finders ran' }], projected_dS: 23, objective: { groups: { A: { rank: 1, removes: ['D7-s1-01'] } } }, critical_chain: ['A'], depth: 1, hours: 8, risks: [], ...extra })
@@ -1738,6 +1741,8 @@ await block('the P3 plan workflow', async () => {
     (ok.calls.find((c) => c.label === 'plan/write')?.prompt ?? '').includes('"removes": [\n     "D7-s1-01"'))
   t('and the publish schema requires objective_rc, so a publish that reports no check is refused',
     (ok.calls.find((c) => c.label === 'plan/publish')?.schema?.required ?? []).includes('objective_rc'))
+  t('and the moves schema requires the objective block, so a reply without one is refused',
+    (ok.calls.find((c) => c.label === 'plan/moves')?.schema?.required ?? []).includes('objective'))
   const review1 = ok.calls.find((c) => c.label === 'plan/review-1')?.prompt ?? ''
   t('the reviewer re-runs objective-check at the plan SHA', review1.includes('objective-check --ref ' + SHA('b')))
   t('the reviewer is pointed at the published plan ref and its SHA',
