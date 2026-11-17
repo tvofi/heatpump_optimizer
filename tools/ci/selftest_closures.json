@@ -8141,7 +8141,7 @@
    "git": []
   },
   "regret-oracle": {
-   "run_sha": "e100819f18effaaf7fabfeffb8b9a0429d54217476801b2e3aad544ba7980473",
+   "run_sha": "ce1dae7ef7bb16cb3968c50f47d1d326523dd6c25b2d15613a1e695508fe5675",
    "files": [
     "VERSION",
     "custom_components/heatpump_optimizer/__init__.py",
