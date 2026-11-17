@@ -148,7 +148,7 @@ def _append(history: History, start: int, rooms: Mapping[str, list[Any]] | None,
         history.house[name].append(None if house is None else house[name])
 
 
-def _close(history: History, period: Period) -> None:
+def _close_period(history: History, period: Period) -> None:
     """The open period as a row, null rows for any half hour missed before it,
     then everything older than the ring's 14 days dropped."""
     cut = period.start - (HISTORY_LENGTH - 1) * PERIOD_MIN
@@ -183,7 +183,7 @@ def note(history: History, period: Period | None, now_min: int,
         return period, 0
     closed = 0
     if period is not None and start > period.start:
-        _close(history, period)
+        _close_period(history, period)
         period, closed = None, 1
     period = period or Period(start)
     _accumulate(period, readings, house)
