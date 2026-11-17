@@ -1,4 +1,0 @@
-RESULT fused all-fixed: value 11.25, gradient [0.0, 0.0, 0.0], batch heights [1]
-head rc=0
-RESULT fused all-fixed: raised IndexError: list index out of range; batch heights []
-REV_N6_GUARD_NO_LEAD rc=1

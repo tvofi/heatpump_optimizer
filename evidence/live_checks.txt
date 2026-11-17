@@ -1,0 +1,51 @@
+## Gate digest: red
+CodeQL id=133061045086 success
+arch-score / arch-score id=133060831713 success
+arm id=133060643620 skipped
+budget-raise-gate / budget-raise-gate id=133060831732 success
+cancel-superseded id=133060653750 success
+codeql id=133060832905 skipped
+codeql / Analyze (actions) id=133060821649 success
+codeql / Analyze (javascript-typescript) id=133060821678 success
+codeql / Analyze (python) id=133060821753 success
+gate id=133061256325 failure
+governance id=133060833178 skipped
+governance / env-matrix id=133060821638 success
+governance / instrument-self-tests id=133060821572 success
+governance / policy-docs id=133060821562 success
+governance / record id=133060822784 skipped
+governance / wave-script id=133060821630 success
+hassfest id=133060833487 skipped
+hassfest / hassfest id=133060821783 success
+kernel-points id=133060833569 skipped
+pr-contract id=133061257577 skipped
+prelude id=133060654014 success
+refresh id=133060654046 success
+sweep-self id=133061500951 skipped
+tests id=133060833006 skipped
+tests / arch-instrument id=133061118769 success
+tests / briefs id=133060821573 success
+tests / browser id=133061118818 success
+tests / ci-ratchet id=133069548260 skipped
+tests / claims-autofix id=133069547636 skipped
+tests / closure-scope id=133060821637 success
+tests / closures id=133061118846 success
+tests / closures-autofix id=133069526636 skipped
+tests / coverage id=133061118826 success
+tests / coverage-ratchet id=133068477623 success
+tests / fast (3.14) id=133061118916 success
+tests / graders-head-copy id=133068477626 success
+tests / lane-proofs id=133069546334 success
+tests / mutation id=133060821536 failure
+tests / mutation-pins (1) id=133061101431 in_progress
+tests / nightly-ha id=133061120811 skipped
+tests / nightly-status id=133060821653 success
+tests / replay id=133061118799 failure
+tests / typing id=133061118903 success
+validate id=133060832765 skipped
+validate / validate-hacs id=133060821699 success
+
+## Refusals
+none
+
+## Advisories

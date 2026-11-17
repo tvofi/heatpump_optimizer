@@ -1,0 +1,18 @@
+213a214
+> +    (:func:`running_signal.running_now`); otherwise the executing step's
+244c245
+< +    The tracker's settled class where a running signal is attached and has
+---
+> +    The running signal's settled class with no change pending
+276d276
+< +    coordinator's current one) by the plan's own running rule. Never the
+390a391
+> +    own running rule. Never the
+405a407
+> +    planned draw (``action``, the coordinator's current one) by the plan's
+456c458
+< +    running = rec.tracker.settled if rec.unsub is not None else None
+---
+> +    running = running_signal.running_now(rec.signal)
+466d467
+< +    settled; otherwise the executing step's planned draw (``action``, the
