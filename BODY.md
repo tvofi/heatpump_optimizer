@@ -1,134 +1,78 @@
 Part of #3616 (phase 1 of the owner's three; the issue stays open for phases 2 and 3)
 
-R11-OUTSIDE-ROOMS-P1, built to the approved design `design/R11-OUTSIDE-ROOMS-P2` at `4784b5940e` (`Design review: approve 4784b5940e998aa8ef2d19436f763ff30daa46b2`, `design-verdict/R11-OUTSIDE-ROOMS-P2` `e59dcfd724`); design-exempt citing it. An optional list of room thermometers (room thermostats as `climate`, or `temperature` sensors, at most 32) on its own options page under **Advanced settings**. Each cycle the coordinator reads the list through `inputs.read_room`, keeps the readings in the `rooms` module's per-coordinator side table, and publishes the payload's `rooms` block: the mean and the spread (warmest less coldest, K) over the readable rooms, the valid and configured counts, the coldest and warmest room, each readable room's temperature beside a thermostat's target, call for heat and HVAC mode, and each dropped room's problem word, all keyed by entity id. Two sensors, **Room Average Temperature** and **Room Temperature Spread**, are created only when the list is non-empty; under the quorum (fewer than half the list readable, minimum one) both read unknown. The plan does not read the rooms in this phase.
+R11-OUTSIDE-ROOMS-P1. Its production code, tests, closures, ledger pins, docs and claim reached `main` through #3678 (R11-OUTSIDE-ROOMS-P2, merge `30991a6b0d`), which was built on this branch: `git log --oneline origin/main` holds `822ba6fcf2` through `71609de657`, this branch's commits. After merging `origin/main` at `8f39313a44a4baec18b239ba925f6e164eb26bd2`, the diff against main (`git diff --stat origin/main HEAD`) is two files:
 
-What it rests on:
-- **A room never enters `InputHealth`** (note point 2, item s1). `read_room` reuses the reader's entity, availability and age stages (`_begin`, `_age_gate`) and records nothing, on every path; a dead, stale or implausible room is a dropped room, never an input problem or a stale input. Age limit: `QUIET_STORE_MAX_AGE_MINUTES` times the staleness scale, through the clamp `max_age_for` applies, now one helper (`_scaled`). Range: `ROOM_AIR_RANGE_C`.
-- **A `climate`'s state is its HVAC mode**, so temperature and target are the `current_temperature` and `temperature` attributes in the instance's unit system (`setpoint_and_unit`'s rule); calling is `hvac_action == "heating"`, None where the thermostat reports no action.
-- **`rooms` has module state**: the side table (`_READINGS`, a `WeakKeyDictionary` on `boost.py`'s pattern) holding a tuple of frozen `RoomReading`s per coordinator (item r5). `rooms.published` (named `rooms.view` before `71609de657`) is a pure function of the readings.
-- **No list: byte-identical.** No read runs, the payload has no `rooms` key, no sensor is created and no option is stored (null controls below).
-- **The key joins `_WIRING`**, so a factory reset keeps it (`FACTORY_KEPT` keeps only names ending in `_entity`); an emptied submit stores None, which parses to the empty tuple (item r2).
+- `tests/features.py`, +12: one check in the `#3616 R11-OUTSIDE-ROOMS-P1` section, `a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null control, a degC sensor at 20.0 reads 20.0` (review round 1's survivor M6, `read_room`'s sensor branch). Main does not hold it.
+- `dev/programme/delivery/3667.md`, the CI-written delivery row.
 
-Departures from the note, raised here:
-1. **The read is a module function beside `InputReader`, `inputs.read_room`, not a method.** `InputReader` spans 287 lines, under `tests/structure.py`'s 300-line god-class line (`GOD_CLASS_LOC_LIMIT`); a 30-line method would put it over and grow `class_excess_loc`.
-2. **The HVAC-mode rule (note point 3) is not built here.** Its only consumer is phase 2's shortfall; phase 1 has no reader for it, and design item 5a1c0e01 requires every symbol phase 1 adds to have one. Phase 1 publishes each thermostat's HVAC mode per room, which the rule will read. Carried to P2 under `## Forward-carry`.
-3. **The coordinator's two calls are in `_update_current_state` (the read, after `observe_water`) and `_build_data_dict` (the view, after the views loop)**, re-anchored at the merge base (item r1). The note's `_solve_record` call is phase 2's.
-4. **`tests/golden/config_flow.json` is claimed**, where the note said neither claim file is touched: `GOLDEN_MODE=drift` refuses the re-recorded page as `UNCLAIMED DRIFT` (the R10-OUTSIDE-DHW-START-HYSTERESIS precedent, `26992dd46e`). Carried to P2 and P3, which add option fields too.
-5. **`RoomReading` has no age field**: nothing in phase 1 reads one.
+No production line differs from main: `git diff origin/main HEAD -- custom_components/` prints nothing. With #3678 merged, everything this PR delivers is on main except the degF check; whether that check lands here or the PR closes is the orchestrator's decision, and this diff does not make it.
 
-Payment for the structural ratchet, every row at zero headroom (item 5a1c0e01):
-- **Coordinator class, +2 lines** (the two calls), paid in the same class: the ECL110 displace read drops a default its own membership test made dead (`if "displace_value" in action: float(action.get("displace_value", 0.0))`) and its two temporaries; `max_class_loc` unchanged at the budget. No coordinator attribute, method or `tests/seam_map.json` entry is added (items 5a1c0e01, 5a1c0e02).
-- **`HeatPumpOptimizerOptionsFlow`**: the new page's step and the six existing steps that were `_page` alone (`entities_pump`, `hot_water_pumps`, `tuning`, `solar_pv`, `away`, `learning_features`) are one-line declarations through `_registry_step`; the class is 22 lines shorter and `class_excess_loc` is re-recorded down (commit `b69c03d63d`). Considered and not taken: putting the list on the existing *Sensors and entities* page, which needs no step method but departs from the note's own page; a raise, which a payment made unnecessary.
-- `RoomReading` has no `ok` property (`usable_c` instead): a property read only through untyped loads grew `name_kept_members` by one.
+The PR was `DIRTY` at `064b60f7b2`. Merge resolution (commit `8fbbe09acf`):
+- `tests/mutation_ledger/killed_by/rooms.py/published.GUARD_OFF.cdba2f29.json` and `readings_of.RETURN_DEL.627b05e8.json` (add/add): main's side. Main re-recorded both after #3678; for `readings_of`, the killer is `tests/config_flow_steps.py` on main and `tests/features.py` on this branch.
+- `tests/deployment_shape.py` (the pair-count history note): main's side. It records the same 167 pairs this branch's text did, with both rooms phases merged. `tests/entities.py` checks the note against the tree (below).
+- `tests/features.py`: both sides added a staleness-clamp check at the same place. Main's `the staleness scale is clamped at both ends ...` (`_scaled` at 0.0, 0.5, 10.0 and 1e9 against `STALENESS_SCALE_MIN`/`STALENESS_SCALE_MAX`) is kept. This branch's `an out-of-range staleness scale is clamped ...` (through `max_age_for`) is dropped, because main's check covers both of its arms (`_scaled(...)` reads 180.0 below the floor and 3600.0 above the cap). The check above it, `... max_age_for("indoor_temp_entity", 1e9)`, already ties `max_age_for` to `_scaled`.
+- `tests/mutation_ledger/killed_by/sensor.py/RoomSpreadSensor.extra_state_attributes.RETURN_DEL.c783d968.json` is deleted. Its `old` line (`return {key: block.get(key) for key in ("coldest_entity", "warmest_entity")}`) is not in main's `sensor.py` (`grep -n` prints nothing). Main pins the attribute under its own anchor, `RETURN_DEL.4b8933ea`.
+- `tests/golden/claimed_drift.txt`: merged by the `claimnotes` driver with no conflict. `git diff origin/main HEAD -- tests/golden/` prints nothing.
 
 ## Head
 
-92de1bee3b03c474bc57ca449aad1e296ef7c037 merges origin/main `92d38ecb640bd462f2e19c0814d0f0b7df1ee692` (which gained R11-OUTSIDE-HONEST-STARTS-RUNS, PR 3602, and its `runs.py`) into the previous handoff `02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8`, which `git merge-tree --write-tree origin/main 02ed2f15d8` reported conflicting in `tests/deployment_shape.py` and `dev/audit/rounds/round4/D6/claims.py`. The merge commit is the only commit past `02ed2f15d8`; it changes no production line of this branch: `git diff 92d38ecb64 92de1bee3b -- custom_components/` and `git diff $(git merge-base 92d38ecb64 02ed2f15d8) 02ed2f15d8 -- custom_components/`, `index` and `@@` lines dropped, compare equal (`PROD HUNKS EQUAL`); with those lines kept they differ only in blob ids and coordinator hunk offsets. Resolution:
+`8fbbe09acf2ef222f1df41a9bcaf9f3e6ef0bbd6`. It merges `origin/main` at `8f39313a44a4baec18b239ba925f6e164eb26bd2` into the PR head `064b60f7b25d8e92aaa843915ef1cff9feb79da4`. Merge base `8f39313a44a4baec18b239ba925f6e164eb26bd2`. Measured 2026-11-17 UTC.
 
-- `tests/deployment_shape.py` (union, by hand): main contributed the `runs.py` entry in the package's file history and the `163 before R11-OUTSIDE-HONEST-STARTS-RUNS's recordings joined config_flow_steps.py/debug_collect.py` pair history; this branch contributed the `rooms.py` entry and that it joined the same pair. Merged: `all 115 files` (`114 until R11-OUTSIDE-ROOMS-P1's rooms.py, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's runs.py`), and the pair count re-derived on the merged `tests/closures.json` by `tests/entities.py`'s own predicate (`_d308_pairs`): 167 of 528, where main alone and this branch alone each give 164; the three pairs the two sides' recordings lift only together are `card.mjs/doc_claims.py`, `card.mjs/harness_headers.py` and `config_flow_steps.py/wood_advisor.py`, named in the note and in its count history.
-- `dev/audit/rounds/round4/D6/claims.py`: main's side taken, then this branch's own +1 applied to its two header lines (`arch_modules_on_disk=96`, `arch_map_listed=96`, `95 until R11-OUTSIDE-ROOMS-P1's rooms.py; 94 until R11-OUTSIDE-HONEST-STARTS-RUNS's runs.py`); `claims.json` and `claims.md` were not hand-edited but regenerated by running the harness (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py`), and this diff owns them as before (against main: the page counts 25 and 8/17, 86 entity names, 51 selects, 96 modules).
-- `docs/architecture.md`, a semantic conflict the merge did not report: both sides made the same `95 modules` edit, so it merged clean and stale; the first regeneration printed `claims_false=1` (`C32 documented=95 measured=96`). Now `96 modules` (twice) and `The other 62 modules`; the rerun prints `claims_false=0`. Found by `comm -12` over each side's added lines in the files both sides touched (`git diff -U0 367c3b9cac origin/main` against `git diff -U0 367c3b9cac 02ed2f15d8`): `docs/architecture.md`'s three count lines, and in `tests/features.py` only syntax lines (`try:`, `finally:`, `)`), which each side's own block holds.
-
-Re-run at this head, `PYTHONPATH=tests/hastub`: `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`; `env -u BASH_ENV python3 tests/entities.py` `ALL 2728 ENTITY CHECKS PASSED`; `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/doc_claims.py` `ALL 410 checks PASSED`; `tests/harness_headers.py` `ALL 115 HARNESS HEADER CHECKS PASSED`; `tests/config_flow_steps.py` `ALL 595 checks PASSED`; this PR's block through `features_block.py` (CMD F below) `ALL 17 FEATURES BLOCK PASSED`; `tests/closure.py no-copies` `closure: no test file defines a symbol production also defines`, `tests/closure.py selftest` `ALL 118 closure shrink pins PASSED`; `GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) python3 tests/golden.py` `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 92d38ecb640bd462f2e19c0814d0f0b7df1ee692`, `NO STALE FIXTURE`.
-
-Review round 1 (`Fix review: blocked b0c7114dd6 mutation-vacuous`, verdict at `5eb9d8a0f9`) is answered by the new check below; the review named one survivor (its M6), and its two non-blocking findings stand as it wrote them.
-
-prepr: passed rc=0 at 92de1bee3b03c474bc57ca449aad1e296ef7c037
-
-The measurements below this paragraph, unless a line names this head, were taken at `71609de657` (production unchanged since: the new commit touches `tests/features.py` alone): at that head, `PYTHONPATH=tests/hastub`, one box (x86_64, 4 cores, Linux): `tests/features.py` `ALL 5735 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 2728 ENTITY CHECKS PASSED`, `tests/config_flow_steps.py` `ALL 595 checks PASSED`, `tests/golden.py --only config_flow` `ALL 1 GOLDEN SCENARIOS UNCHANGED`, `tests/structure.py` `STRUCTURE RATCHET PASSED`, `tests/typing_ruler.py` `ALL 12 typing-ruler source checks PASSED`. At `802cb17282`, whose production differs from that head only by `71609de657` (the survivor repairs below: `_registry_step`, `_room_list_errors`, `read_room`'s domain test, `rooms.view` renamed), the other 24 scripts the scope names: 22 through `tests/derive_closures.sh --scripts-from` (each `(exit 0)`), `tests/frontend.py`, `tests/open_meteo.py`, `node tests/md_tables.mjs` and `tests/deployment_shape.py` directly, each exit 0; `GOLDEN_MODE=drift` at `ee386a764d`.
+prepr: passed rc=0 at 8fbbe09acf2ef222f1df41a9bcaf9f3e6ef0bbd6
 
 ## Mutation proof
 
-Failing test first: the new `tests/features.py` block on the merge base's production code stops at its eighth line, `ImportError: cannot import name 'rooms' from 'heatpump_optimizer'`; the new `options_room_list` in `tests/config_flow_steps.py` fails there with no `async_step_rooms`.
+Against main, the diff adds one check and no production line. Its mutant, M6, was applied at this head by `sed` to `inputs.py`'s `read_room` sensor branch: `temperature_c(getattr(state, "state", None), state_unit(state))` became `..., None)`. Restored afterwards, and `git diff --quiet custom_components/` was clean.
 
-Each mutant applied to the working tree at the head's production code, the block run, the file restored. CMD F: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'exec(open("P").read())' 'R.section("#3616 R11-OUTSIDE-ROOMS-P1'`, P the prelude `features_block.py --emit-prelude P 'R.section("#3616 R11-OUTSIDE-ROOMS-P1'` writes from the tree. CMD C: `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py`. Unmutated at the head: CMD F `ALL 16 FEATURES BLOCK PASSED`, CMD C `ALL 595 checks PASSED`. The rows below were measured when the block held 13 checks (before `71609de657`); each check they name is unchanged since.
+The command is `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open('P').read())" 'R.section("#3616 R11-OUTSIDE-ROOMS-P1'`, where P is what `features_block.py --emit-prelude P` writes from the tree:
+- Unmutated: `ok   a degF sensor room converts by its own unit to degC ...`.
+- M6: `FAIL a degF sensor room converts by its own unit to degC ... [{'°F': RoomReading(entity_id='sensor.u', temperature_c=None, ...`.
 
-| mutant | command | output |
-|---|---|---|
-| quorum: `if not valid or 2 * len(valid) < len(readings):` to `if not valid:` (`rooms.summarize`) | F | `FAIL the quorum is half the list, minimum one ...`, `1 of 13 FEATURES BLOCK FAILED` |
-| no-list guard: `if not readings: return {}` to `if False:` (`rooms.view`, now `rooms.published`) | F | `FAIL no list and an empty list publish no rooms key and the same payload keys`, `1 of 13` |
-| range: the `ROOM_AIR_RANGE_C` test to `if False:` (`inputs.read_room`) | F | `FAIL a Fahrenheit instance's climate attributes convert to degC; null control, ...`, `FAIL an unavailable, missing, stale ... and implausible room ...`, `2 of 13` |
-| domain: the `climate` branch to `if False:` (then `entity_id.split(".", 1)[0] == "climate"`, now `entity_id.startswith("climate.")`) | F | `FAIL a climate room reads current_temperature and its target from attributes ...`, then `TypeError` |
-| calling: `None if action is None else action == "heating"` to `action == "heating"` | F | `FAIL a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat is unknown, not False; ...`, `1 of 13` (a survivor of the first draw, killed by that clause, commit `00373b8013`) |
-| age gate: `reader._age_gate(reading, state)` to `pass` | F | `FAIL an unavailable, missing, stale ...`, `1 of 13` |
-| age limit: `_scaled(QUIET_STORE_MAX_AGE_MINUTES, reader.scale)` to `None` | F | `FAIL an unavailable, missing, stale ...`, `1 of 13` |
-| parser: `_entities` to `tuple(value or ())` | F | `FAIL the room list parses absent, None, empty and a stored non-list ...`, `1 of 13` (a survivor of the first draw, killed by the non-list clause, `00373b8013`) |
-| parser: the `if item` filter dropped | F | the same check, `1 of 13` |
-| wiring: the `_WIRING` row deleted | F | `FAIL the room list parses ... and survives a factory reset as wiring`, `1 of 13` |
-| coordinator: the `rooms.record(...)` line deleted | F | `FAIL the payload's rooms block carries ...`, `FAIL the side table holds plain data only ...`, `2 of 13` |
-| cap: `> rooms.ROOMS_MAX` test to `if False:` (`_room_list_errors`) | C | `FAIL a list longer than 32 rooms is refused; null control, 32 saves`, `1 of 595 checks FAILED` |
-| clear: the row's `_STORED` default to `()` | C | `FAIL an emptied submit clears the stored list (null control: the list was stored)`, `1 of 592 checks FAILED` |
+Both runs stop later in the section with `IndexError: list index out of range` at block line 595 (`_rl_on_m = _rl_c_on._rl_margins[0]`). That line is #3678's room-lift check, which needs solve-spy setup the isolated prelude does not carry. The degF check runs before it. The whole script, `PYTHONPATH=tests/hastub python3 tests/features.py`, prints `ALL 5828 FEATURE CHECKS PASSED` at this head.
 
-`prepr.sh`'s diff-mutant draw (`MUTANT_CMD` CMD F then CMD C, at `8ceae5a00a`) left ten survivors; each is killed or removed at the head (`71609de657`):
-- `multiple=True` to `False` (`_room_thermometers`): `the room page renders its one list field, a selector taking several entities` reads the rendered selector's `multiple` (the stub validator passes any value, so only the config can pin it).
-- `return {}` deleted in `_room_list_errors`, and `clear=False` swapped to `True` on the `tuning` and `learning_features` steps: equivalent (None and `{}` are both no errors; neither page has a `_STORED` row for `clear` to null). Removed rather than triaged: the function returns once, and `_registry_step` derives `clear` from the page's own rows, so no step passes a constant.
-- `step.__name__ = ...` deleted: equivalent (Home Assistant dispatches by attribute name); the line is gone.
-- The ECL110 displace read the coordinator payment rewrote (`GUARD_OFF`, `CALL_DEL`): `an action carrying a displace hands it, as a number, to the ECL110 lag and the coordinator's read of it; null control, an action with no displace leaves the read where it was`, a production coordinator on the r9f12 rig.
-- `max_age_for`'s `return _scaled(base, scale)` deleted: `the room read's age limit is the indoor sensor's, the staleness scale applied through the same clamp max_age_for applies`.
-- `.split(".", 1)` to `.split(".", 2)`: equivalent; now `startswith("climate.")`.
-- The range's lower `<=` to `<`: `a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible`.
-
-
-Review round 1's survivor, at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8: `read_room`'s sensor branch converts by the sensor's own unit, `temperature_c(getattr(state, "state", None), state_unit(state))`. New check `a degF sensor room converts by its own unit to degC (68 degF reads 20.0, no problem); null control, a degC sensor at 20.0 reads 20.0`, both sensors on the block's default (Celsius-instance) reader, so the check keys on the sensor's unit and not the instance's. CMD F unmutated: `ALL 17 FEATURES BLOCK PASSED`.
-
-| mutant | command | output |
-|---|---|---|
-| M6: `state_unit(state)` to `None` | F | `FAIL a degF sensor room converts by its own unit ...  [{'°F': RoomReading(... temperature_c=None, ... problem='implausible'), '°C': RoomReading(... temperature_c=20.0, ... problem=None)}]`, `1 of 17 FEATURES BLOCK FAILED` |
-| `state_unit(state)` to `_instance_unit(reader.hass)` | F | the same `FAIL`, `1 of 17 FEATURES BLOCK FAILED` |
-
-The null control holds under both mutants: the `°C` arm reads `temperature_c=20.0, problem=None` in each failing line above, so only the unit conversion separates the two runs.
-
-`prepr.sh`'s diff-mutant draw at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8, `MUTANT_CMD` CMD F then CMD C (one script running both, CMD C only when CMD F passes): `no survivor among the diff's first 40 mutant(s)`. The same draw under CMD F alone left 17 survivors, every one in `config_flow.py`, which CMD C reads: the control that the draw separates a pinning command from one that does not reach the site.
+Review round 2's clamp mutants (`inputs.py` `_scaled` `CLAMP_DROP`) are killed on main by main's two-ended check. Main pins them in `tests/mutation_ledger/killed_by/inputs.py/_scaled.CLAMP_DROP.8c7e424f.json`, which `git diff origin/main HEAD` does not touch.
 
 ## Null control
 
-- No list, and an empty list: `no list and an empty list publish no rooms key and the same payload keys` (the production coordinator, one closed-loop cycle on the r9f12 rig); the default `collect(sensor)` roster holds neither room sensor (`a configured room list adds exactly the room average and spread sensors; null control, the default roster with no list holds neither`); an untouched page on an entry with no list leaves the options empty (`an untouched page on an entry with no list stores no key: the options stay empty`); `tests/golden.py` under `GOLDEN_MODE=drift` reads the other 55 fixtures byte-identical to the merge base.
-- Health: twenty rooms with one unavailable leave `input_problems` and `stale_inputs` equal to the no-list run; the same unavailable entity configured as the indoor thermometer does raise a problem (`twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list run; null control, ...`). `no room read records into the reader's input health, on any path` drives every problem path through one reader and reads `health.readings == {}`.
-- Units: the Fahrenheit instance reads 68 / 69.8 as 20.0 / 21.0; the same thermostat on a Celsius instance reads 68 raw, outside a room's range (`implausible`). A degF sensor room reads 68 as 20.0 on a Celsius instance; a degC sensor at 20.0 reads 20.0.
-- Stale: the room 7 h old is `stale` under the watchdog and fresh with it off.
+The unmutated run above (`ok`) against the M6 run (`FAIL`). In the failing line, the check's `°C` arm still reads `temperature_c=20.0, problem=None`, so only the unit conversion separates the runs.
 
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=e352724335c136b65562cd3e71f728549ad04a82 head=92de1bee3b03c474bc57ca449aad1e296ef7c037 -->
+<!-- figure-block: scope-line mb=cc2a14d02e0011d801d990595e6d6a34d9862134 head=8fbbe09acf2ef222f1df41a9bcaf9f3e6ef0bbd6 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
-- Closures: `rooms.py` is recorded in every closure that reaches it, by `tests/derive_closures.sh --scripts-from` over the 26 scripts whose recorded closure held `inputs.py`, `coordinator.py`, `config_flow.py`, `sensor.py` or `slab_seed.py`, then `tests/entities.py` alone (`--single --record-only`, merged with `closure.py merge --partial --allow-failures`: that recording's one red was `the deployment-shape lane's closure is the whole tracked package ...`, which reads entities.py's own unrecorded closure; the run after the merge prints `ALL 2728 ENTITY CHECKS PASSED`). The slab-seed pull request's two-step precedent (`d8bb9015dd`).
-- `tests/deployment_shape.py`'s cost note re-derived at 92de1bee3b03c474bc57ca449aad1e296ef7c037: 115 production files, 167 of 528 pairs at >= 0.80, 406 comparable (`tests/entities.py` checks the note against the tree).
-- Five closures gain `rooms.py` without a recording here, and the commit says so (`71609de657`): `tests/backtest.py`, `edge.py`, `optimality.py`, `stress.py` and `validate.py`. Their committed closures, CI's recordings, list `inputs.py` with every module it imported at the base, which `tools/pr/ci_predict.py` reads as executing it; `inputs.py` now imports `rooms.py` at top level, so it predicted `UNDER-SCOPED` for the five. This host's recording of each opens neither (`derive_closures.sh`: `would drop 3 file(s) the committed closure listed; keeping them.`, `freq_control.py`, `inputs.py`, `log_latch.py`), so `--single`, the repair it names, cannot add the entry here. An entry no run opens only selects the script for a `rooms.py` diff. After the edit: `CI PREDICT: no closures, fast, governance or instrument red predicted`.
-- `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py`: `ALL 595 checks PASSED`, `flow_checks_covered=569/569`.
-- `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 410 checks PASSED`; `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py`: `claims_false=0`, its committed output regenerated; the D5 and D6 harness headers carry the room list's field and module.
-- `GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub python3 tests/golden.py`: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc`, `NO STALE FIXTURE`; before the claim line, `1 UNCLAIMED DRIFT(S)`, `config_flow: 4 leaves moved` (`_menu.advanced: length 16 vs 17`, and `_seed.room_temperature_entities`, `_seeded.rooms`, `rooms` each `present on one side only`).
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` after `--record`; before it, `class_excess_loc 17446 -> 17424 BETTER`, every other row equal to its budget.
-- `python3 tests/typing_ruler.py`: `ALL 12 typing-ruler source checks PASSED` (`errors did not grow`).
-- Seam enumeration, every reader of the list and of a room reading, at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8: `git grep -n -E "CONF_ROOM_TEMPERATURE_ENTITIES|room_temperature_entities|read_room|rooms\.(record|published|readings_of)" -- 'custom_components/*.py'`, docstring lines aside, returns the const key, `EntryConfig`'s field, the `_WIRING` row, the options row and `_room_list_errors`, `read_room`/`read_rooms`, the coordinator's two calls (`rooms.record`, `rooms.published`) and the sensor setup's guard. None calls `InputHealth.record`; the one input read that does, `InputReader.read`, is never handed a room. The rule named `rooms\.view` before `71609de657` renamed it to `rooms.published` (the review's stale-body note); at this head `rooms\.view` matches nothing under `custom_components/`.
-- Finder's harness: none. #3616 is an outside report and the design note names none (`No finder harness: owner report.`); the reporter's twenty-thermostat house is the coordinator rig above.
-
-## Architecture score
-
-`python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS -0.0023 WORSENS (inadmissible: coord_footprint 2496->2500)`.
-
-- `coord_footprint` 2496 -> 2500: the design's seam (`rooms` owns the side table keyed by the coordinator, `boost.py`'s pattern) charges the two one-statement accessors handed the coordinator, `rooms.record` and `rooms.readings_of`, and the coordinator's two calls; the summary and the view take readings, not the coordinator (2505 before `rooms.view` was made a function of the readings, `bbc5607f63`).
-
-## Unpinned sites
-
-The one site `tools/pr/ci_predict.py` lists as `ADDED UNPINNED` at 02ed2f15d8d3ef088e9bbd48f20942efd41f1bc8 (`prepr.sh` step 6d); `mutation-autofix`'s commit `339648c0d0` pinned the other 24 that the head `71609de657` listed.
-
-- custom_components/heatpump_optimizer/inputs.py:287 CLAMP_DROP*2: pinned by mutation-autofix (its lane mutates `custom_components/`)
+- Scoped scripts, `PYTHONPATH=tests/hastub`: `python3 tests/features.py` and `python3 tests/entities.py`, the two that `scope.run` names: `ALL 5828 FEATURE CHECKS PASSED`, `ALL 2731 ENTITY CHECKS PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- Outside-seat self-tests: the 18 `--self-test` commands and `agreement_py.py --restore` of `.github/workflows/governance.yml`'s step `self-tests-outside-seat`, each run alone. Each exits 0 at this head, at `064b60f7b2`, and at CI's merge ref `00f6c8d7750fecf6f32f29b20b5f50207d02e04c` (script: one `timeout 300 <command>` per line, rc printed per line).
+- `python3 -I tools/ci/selftest_scope.py select --base origin/main --head HEAD`: selects `self-tests-outside-seat`. Its `tools/ci/selftest_closures.json` entry sets `objects: true`, which selects it on every scoped diff.
+- Architecture score: n/a, because no production line differs from main.
 
 ## Red checks
 
-- `tests / mutation`: red at the previous PR head `3193a58a41` (job 133478623774: `MUTATION TABLE REFUSED -- 2174 unpinned site(s) against 2175 at the ratchet base`, `ADDED UNPINNED custom_components/heatpump_optimizer/inputs.py:287 CLAMP_DROP*2`), the one site `## Unpinned sites` names, which `mutation-autofix` pins (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh`'s step 6d, which ran before the handoff and named the site, at no standing cost beyond the prepr run; the red is the lane's own pinning step, so none cheaper exists.
-- `tests / closures`, `tests / coverage`, `tests / coverage-ratchet`, `tests / fast (3.14)`: not red at `3193a58a41`; each completed `cancelled` (run 43916110320, 17:58:47Z to 17:59:11Z, beside that run's `mutation-pins (1)`, `replay` and autofix jobs), no step failed, so no cause is owed; this head re-runs them, and the scripts the merge reaches pass locally (`## Head`).
+- `governance / instrument-self-tests`, step 48 `Show the self-tests outside tools/audit/seat/ refusing their own fixtures` (job 133782810463, run on merge ref `00f6c8d775`, which `merge_train.py classify` reads as `INTRODUCED`). Repaired by the merge with main:
+  - Main's own run at `8f39313a44` (job 133921894551) concludes that step `success`.
+  - This head differs from main by one test check and a delivery row, and neither is a file those commands take as input.
+  - Locally, every command of the step exits 0 at this head, at `064b60f7b2` and at `00f6c8d775`, so the refusal does not reproduce outside CI.
+  - The step's own log lines were not read: `failure_logs.sh` needs `gh`, whose token is refused in this container, and the job-log download URL is refused by the proxy (403). The CI-only cause is therefore unnamed.
+  - Cheaper detector: none found. The local run of the same commands, the cheaper path, passes.
+  - CI re-proves this head.
+- `governance / instrument-self-tests`, step 129 `Refuse a self-test read set the committed table misses`: inherited. Main is red on the same step at `8f39313a44` (job 133921894551), because `tools/ci/selftest_closures.json` misses reads added by recent merges. A re-record hotfix is in flight. Not repaired here.
+- `tests / mutation` and `gate`: red at `4fba42d085` (`gate` job 133716327240: `FAIL tests / mutation: failure (this run)`), because `inputs.py` `_scaled` `CLAMP_DROP` survived every driver, so `mutation-autofix` had nothing to pin.
+  - Cause: the clamp sat untested in `max_age_for` at the merge base with no ledger row. This PR moved it into `_scaled`, which made it an added site, and the body then gave it to autofix instead of writing a killing check.
+  - Repaired at `dcedcd330c` by a killing check and the pin `tests/mutation_ledger/killed_by/inputs.py/_scaled.CLAMP_DROP.8c7e424f.json`. Both are now on main, where main's two-ended clamp check kills the mutants (`## Mutation proof`).
+  - Cheaper detector: `prepr.sh` step 6d, which already named the site `ADDED UNPINNED` before the handoff, at no standing cost beyond the prepr run. The gap was the body's disposition of the site, which `ci-autofix.md` already states (autofix pins killed mutants only). No new countermeasure is built.
+- `governance / env-matrix` and `governance / policy-docs`: red at `4fba42d085` (jobs 133754597993 and 133754598174), each on `ERROR   [budgets] ... has a cap in dev/governance/config/policy_budgets.json's files_tokens but is matched by no POLICY_GLOBS pattern` for `tools/audit/briefs/nudge.md` and `tools/audit/harnesses/README.md`.
+  - Cause, outside this diff: #3668 (`18eba6b397`) made main's `checkOrphanCaps` read `files_tokens` and deleted those two rows. CI graded the branch's older `policy_budgets.json` with main's newer grader.
+  - Cleared by merging main: `git diff origin/main HEAD -- dev/governance/config/policy_budgets.json` prints nothing at this head.
+  - Cheaper detector: none that this branch owns. A main grader that refuses data an older branch still carries is caught only by a run on the merged tree.
+- `tests / replay` and `tests / nightly-status`: red at `064b60f7b2`. Neither is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints, so neither is answered.
 
 ## Forward-carry
 
-- The HVAC-mode rule (note point 3: a room's target counts only while its HVAC mode is `heat` or `auto`) is not built in phase 1, which has no reader for it; phase 2's shortfall is its first, and it reads `RoomReading.hvac_mode`, which phase 1 fills and publishes per room. Its failing test and mutation target move with it. Carry: R11-OUTSIDE-ROOMS-P2
-- A new options field moves `tests/golden/config_flow.json`, which `GOLDEN_MODE=drift` refuses unclaimed: the note's "neither claim file is touched" does not hold; claim `config_flow` in `tests/golden/claimed_drift.txt` (this PR's line is the form). Re-measure with the drift run against the merge base. Carry: R11-OUTSIDE-ROOMS-P2
-- The same for phase 3's store and sensor, should it add an option. Carry: R11-OUTSIDE-ROOMS-P3
-- `coord_footprint` charges every module-level function handed the coordinator (`tools/audit/archscore/metrics/footprint.py`), so the rooms side table's accessors cost one statement each; phase 2's gate signals passed into a rooms function that takes the coordinator would be charged whole. Pass readings and signals, not the coordinator, and measure `score.py --diff` at both ends. Carry: R11-OUTSIDE-ROOMS-P2
+none
 
 ## Friction
 
