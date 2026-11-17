@@ -122,7 +122,7 @@
    "git": []
   },
   "bare-array-expansion": {
-   "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
+   "run_sha": "2c199f7c18c5b12ee1e2ce306df5362ca59cbb3aef50a75303ed80a751b809da",
    "files": [
     "tests/throwaway_git.py",
     "tools/audit/prepare_baseline.sh",
@@ -148,6 +148,7 @@
     "tools/audit/seat/r9_rc_bus_fetchhead.sh",
     "tools/audit/seat/remerge_main.sh",
     "tools/audit/seat/seat_venv.sh",
+    "tools/audit/seat/shell_hazard.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
