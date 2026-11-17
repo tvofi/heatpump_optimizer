@@ -41,11 +41,12 @@ Predicates mutated, never tails. `python3 dev/audit/harnesses/r11_toolchain_muta
 - The roster's count behind carry 10, at `handoff/audit-r10-roster` f223cd88f6: `roster_lib.pending_carries` over this group returns all thirteen indices, and `cloud_dispatch.part_split` of them `0-4, 5-9, 10-12`, after #3645 (carries 0-4) and #3654 merged.
 - Gate scope: `python3 tests/closure.py select --diff 38bf516bdd --workdir <dir>` names `tests/doc_claims.py` and `tests/entities.py`; both exit 0 at this head with `PYTHONPATH=tests/hastub`, beside `tests/env_drift.py --claims-only`, `tests/harness_headers.py`, `python3 tests/structure.py` (`STRUCTURE RATCHET PASSED`) and `node tools/policy/policy_lint.mjs` (0 errors).
 - `python3 tools/pr/ci_predict.py`: no closures, fast, governance or instrument red predicted against the merge base.
+- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1`, the scoped run: prepr: passed rc=0 at 35077969fab7cd6f60183711e6de3dd5595d9f3e. The `instrument-self-tests` red the opener predicted for `selftest_wiring.py --check` does not reproduce: at this head `--check` prints `146 self-testing, 146 wired, 0 unwired` and `ci_predict.py --only step-replay` predicts no red. That replay had timed out other steps on a loaded host, and `policy_lint`'s mutant files (`tools/policy/.policy_lint.mutant-*.mjs`, each naming `--self-test`) were left on disk while it ran.
 - Step 8, the class's seams. Carry 10's class is a generated brief line that leaves a seat to choose between two sources: `git grep -n 'parts +=\|pline\|dline' -- tools/audit/seat/cloud_dispatch.py` returns every site that appends a generated line to a fixer's brief: `roster_lib.brief_lines` (the consumers line and the enumeration line, neither of which names a second source of scope: already guarded), and the part line and the design line (closed in this diff). Carry 11's class is a variable the seat's environment fixes and CI's does not: `bash tools/audit/seat/cloud-setup.sh --variables` prints eight, of which `OPENBLAS_CORETYPE` is the one whose value CI draws per runner (closed in this diff); `PATH` and `HPO_TYPING_PYTHON` select the interpreters CI pins alike, the four `GIT_` names are identity and `RUNNER_TEMP` a directory.
 
 <!-- figure-block: scope-line mb=38bf516bdd73f926ee9639ffda7b9ca5163fd50e head=35077969fab7cd6f60183711e6de3dd5595d9f3e -->
 ~~~text
-MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
