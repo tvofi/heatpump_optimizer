@@ -1,0 +1,13 @@
+diff --git a/tools/audit/product_reads.py b/tools/audit/product_reads.py
+index a9d73ae8c7..4e667ea1b8 100644
+--- a/tools/audit/product_reads.py
++++ b/tools/audit/product_reads.py
+@@ -835,6 +835,8 @@ def self_test():
+             arm("token: a write outside every pass holds no token", token_holds("idle", None, None), False)
+             arm("token: a plan-state token reads the recorded plan state", (token_holds("idle", {**ps, "plan_state": "idle"}, None),
+                 token_holds("both", {**ps, "plan_state": "idle"}, None)), (True, False))
++            arm("token: off holds under duty=off on the first pass, not on a restart pass",
++                (token_holds("off", {**ps, "duty": "off"}, None), token_holds("off", {**ps, "duty": "off", "ordinal": 1}, None)), (True, False))
+             # generality
+             gl = root / "gen.tsv"
+             gen = [("level CONF_A_ENTITY=present", "has-a"), ("level CONF_B_ENTITY=present", "has-b"),

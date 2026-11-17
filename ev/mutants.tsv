@@ -1,0 +1,7 @@
+# mutants on tools/audit/product_reads.py token_holds at be2d6def14ea4d2c4c30f1016af1ab6a1b7c3592, driver: python3 -I tools/audit/product_reads.py --self-test
+M3	return first -> return False (observe/off branch)	rc=1	KILLED	token: off holds under duty=off on the first pass, not on a restart pass: got (False, False), want (True, False)
+M6	return first -> return True (observe/off branch)	rc=1	KILLED	got (True, True), want (True, False)
+M7	("observe", "off") -> ("off",)	rc=0	SURVIVED	SELF-TEST passed (86 arms)
+M8	("observe", "off") -> ("observe",)	rc=1	KILLED	got (None, None), want (True, False)
+M9	return first -> return ps["plan"]	rc=1	KILLED	got (True, True), want (True, False)
+M10	DUTY_OF guard disabled (body b)	rc=1	KILLED	planted: another duty mode differs: got False, want True
