@@ -1,0 +1,7 @@
+as generated: masks other than the realizable plan's own 2215 of 3000
+start price zero: masks other than the realizable plan's own 1801 of 3000
+flat price, start price zero: masks other than the realizable plan's own 1427 of 3000
+price zero, start price zero: masks other than the realizable plan's own 0 of 3000
+price zero, start price zero, tie break 0: masks other than the realizable plan's own 1958 of 3000
+identity arm moved, or its perturbation moved nothing 0
+rc=0
