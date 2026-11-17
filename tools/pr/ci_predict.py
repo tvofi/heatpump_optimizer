@@ -701,7 +701,10 @@ def selftest_scope_self_test() -> int:
         skip = selftest_scope_preds(root, "b", notes, fake(3, "selftest_scope precheck: skip, 1 step(s) untraced\n"))
         rc2 = selftest_scope_preds(root, "b", [], lambda argv, **kw: R(returncode=2, stderr="",
                                                                       stdout="  UNDER-SCOPED step a: files misses ['x']\n"))
-        only_ok = predict(root, "HEAD", only="selftest-scope")[:2]  # not a repository: past the arm check, no merge base
+        try:  # not a repository: past the arm check, no merge base
+            only_ok = predict(root, "HEAD", only="selftest-scope")[:2]
+        except SystemExit:
+            only_ok = None
         try:
             predict(root, "HEAD", only="no-such-arm")
             only_bad = False
