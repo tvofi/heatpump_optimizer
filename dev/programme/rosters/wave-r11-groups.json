@@ -1798,13 +1798,13 @@
     "The `median_off_s` headroom cut after a duty change is not built. Lands in `dev/programme/rosters/wave-r10-groups.json`.\nMoved from #3529 body: destination group was done"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-honest-starts-runs-p2",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M, opus) after pull request 3602 merges; item (ii) waits on its ruling, items (i) and (iii) do not",
     "note": "overlap admitted (R11-PRE-SHARED-FILES): same seam as the parent (candidate stage and runs leaf, test and harness only); shares tests/features.py with the listed groups' distinct seams, merged in train order | set-files files ['custom_components/heatpump_optimizer/optimizer.py', 'tests/features.py', 'tests/golden/claimed_drift.txt'] -> ['custom_components/heatpump_optimizer/optimizer.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'custom_components/heatpump_optimizer/runs.py', 'dev/audit/harnesses/r11_honest_starts_runs.py', 'dev/audit/harnesses/r11_honest_starts_runs_mutants.json'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
-    "pr": null
+    "pr": 3693
    }
   },
   {
@@ -1855,13 +1855,13 @@
     "From r11-outside-honest-starts-runs-p2, body item ad4f75a0: Carry 2 of the brief (the `median_off_s` headroom cut after a duty change is not built) is outside this part's seam and not built. Its own text names `dev/programme/rosters/wave-r10-groups.json` as where it lands; it goes to that group's brief in the round-11 roster on `handoff/audit-r10-roster`. Carry: R11-OUTSIDE-HONEST-STARTS-RUNS-P3 (items ad4f75a0)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-outside-honest-starts-runs-p3",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M, opus) after pull request 3602 merges: measure first, return the table to tvofi, build at his value (ruling Q2)",
     "note": "overlap admitted (R11-PRE-SHARED-FILES, R11-OUTSIDE-HONEST-STARTS-RUNS-P2): the default start price (owner ruling Q2), a distinct seam from the shared files' other owners; merged in train order | set-files files ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/configuration.md'] -> ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'tests/features.py', 'tests/golden/claimed_drift.txt', 'docs/configuration.md', 'dev/audit/harnesses/r11_honest_starts_runs.py'] (cite fix/r11-outside-honest-starts-runs@38c254f3fb)",
-    "pr": null
+    "pr": 3697
    }
   },
   {
@@ -2431,9 +2431,9 @@
    "architect_note": "",
    "source": "programme",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-round-check-gate",
-    "commit": null,
+    "commit": "4b6b576e0e5b60100489b5f9e849ab68bec11d9a",
     "last_step": null,
     "next_step": "local fixer building on topic r11-pre-round-check-gate; handoff to review at its first clean prepr",
     "note": "start-record-gating (0018:500); finder-critical: tvofi 2026-11-15 (the round-start check gates on finder-critical cards only); folds in evaluation card E11-N-NULL-REVIEWER",
