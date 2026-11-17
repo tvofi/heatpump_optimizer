@@ -260,8 +260,8 @@ def _on_main(r: dict) -> bool:
 
 
 def _gates(doc: dict) -> dict:
-    """Attempt -> the conclusion of the `gate` job there."""
-    return {j.get("run_attempt") or 0: j.get("conclusion") for j in doc["jobs"] if j.get("name") == "gate"}
+    """Attempt -> the conclusion of the `gate` job there; a job listed with no attempt is the first."""
+    return {j.get("run_attempt") or 1: j.get("conclusion") for j in doc["jobs"] if j.get("name") == "gate"}
 
 
 def gate_reds(d: Path, subject) -> "tuple[list[dict], int] | None":
@@ -416,8 +416,6 @@ def _fixture() -> list:
 
 def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     """`--runs`: one plant per clearing event, the read states, the null controls and the job split."""
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ci"))
-    import gate
     count = [0]
 
     def run(i, hour, c="failure", attempt=1, sha=None, event="pull_request", branch="b", pr=None):
@@ -534,7 +532,9 @@ def _self_test_reds(check, tmp: Path, repo: Path) -> None:
     check("NULL reds: no --runs directory reads unread, and so does a directory with no ci_runs.json",
           red_lines(None, {}.get) == ["gate_reds unread (no --runs directory)"]
           and red_lines(tmp / "empty", {}.get) == ["gate_reds unread (no ci_runs.json in the --runs directory)"])
-    req = gate.gate_required()[0]
+    got = lines([run(3, 1, sha=A, pr=5)], {3: {"attempt": 1, "jobs": [{"name": "gate", "conclusion": "failure"}]}})
+    check("reds: a gate job listed with no attempt is the run's first", bool(row(got, 3, 1)))
+    req = sys.modules["gate"].gate_required()[0]  # gate_reds put tools/ci on the path and imported it
     got = lines([run(40, 1, attempt=2, sha=A, pr=5)],
                 {40: jobs("failure", "failure", failed=((1, req), (1, "zz / report"), (2, "zz / report")))})
     check("reds: a red attempt's failed jobs split as gate.machinery_line splits them, per attempt; the column unread",
