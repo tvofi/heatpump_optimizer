@@ -1,0 +1,7 @@
+KILLED NULL
+mutant_run: the null mutant was killed, the command fails on the unedited tree
+
+real	8m45.207s
+user	8m20.197s
+sys	0m6.885s
+rc=3

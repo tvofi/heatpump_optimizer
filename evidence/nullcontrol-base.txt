@@ -1,0 +1,7 @@
+tree: sampled path
+RESULT control=3
+RESULT perturbed=3
+RESULT restored=7
+RESULT s7_60s=0
+RESULT s7_30s=0
+rc=0
