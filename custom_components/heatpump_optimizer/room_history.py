@@ -338,7 +338,7 @@ def _room_verdict(history: History, entity: str, calls: Mapping[str, np.ndarray]
     rate = np.array([(temp[j] - temp[i]) / SCALE for i, j in pairs]) / dt_h  # type: ignore[operator]
     x = np.array([[(outdoor[i] - temp[i]) / SCALE, share[i], 1.0] for i, _j in pairs])  # type: ignore[operator]
     fitted = _fit(x, rate)
-    if fitted is None or fitted[1][1] < MIN_T or fitted[0][1] <= 0.0:
+    if fitted is None or fitted[1][1] < MIN_T:  # t carries b's sign: a cooling gain fails here
         return {"code": "no_response", "pairs": len(pairs),
                 "t": None if fitted is None else round(float(fitted[1][1]), 2)}
     coef, t = fitted

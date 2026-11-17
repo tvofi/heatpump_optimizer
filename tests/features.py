@@ -95354,6 +95354,17 @@ R.check(
 _rh_back, _rh_back_p = _rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])
 _rh_back_p, _rh_back_n = _rh.note(_rh_back, _rh_back_p, _RH_M0 - 600, [_RhReading("sensor.a", 25.0)], _rh_house())
 _rh_back_p, _rh_back_n2 = _rh.note(_rh_back, _rh_back_p, _RH_M0 + 90, [_RhReading("sensor.a", 20.0)], _rh_house())
+_rh_reload = _rh.loaded(_rh.stored(_rh_back))
+_rh_rp, _ = _rh.note(_rh_reload, None, _RH_M0 + 45, [_RhReading("sensor.a", 20.0)], _rh_house())
+for _rh_m in (120, 150):
+    _rh_rp, _ = _rh.note(_rh_reload, _rh_rp, _RH_M0 + _rh_m, [_RhReading("sensor.a", 20.0)], _rh_house())
+R.check(
+    "after a reload, a sample at or before the ring's last row opens nothing: the times run on, "
+    "a null row filling the half hour no cycle reached",
+    [t - _RH_M0 for t in _rh_reload.times] == [0, 30, 60, 90, 120]
+    and _rh_reload.rooms["sensor.a"]["t"] == [2000, 2000, 2000, None, 2000],
+    f"{[t - _RH_M0 for t in _rh_reload.times]}",
+)
 R.check(
     "a clock stepped back adds no row and closes nothing; the clock passing on closes the next period",
     _rh_back_n == 0 and _rh_back_n2 == 1 and [t - _RH_M0 for t in _rh_back.times] == [0, 30, 60]
@@ -95427,7 +95438,7 @@ R.check(
 _RH_GAIN = 2.0
 
 
-def _rh_simulate(days, interval, schedule, rooms=("climate.a", "climate.b"), seed=1, sensor=()):
+def _rh_simulate(days, interval, schedule, rooms=("climate.a", "climate.b"), seed=1, sensor=(), gain=_RH_GAIN):
     rng = np.random.default_rng(seed)
     history, period = _rh.History(), None
     temps = {r: 20.0 for r in (*rooms, *sensor)}
@@ -95442,7 +95453,7 @@ def _rh_simulate(days, interval, schedule, rooms=("climate.a", "climate.b"), see
         house = _rh.House(outdoor, 30.0, 1.0 + 3.0 * fraction + rng.normal(0, 0.1), 2.0 * any(calls.values()), 0.0)
         period, _ = _rh.note(history, period, _RH_M0 + k * interval, readings, house)
         for r in temps:
-            temps[r] += interval / 60 * (0.05 * (outdoor - temps[r]) + _RH_GAIN * calls.get(r, False)) + rng.normal(0, 0.02)
+            temps[r] += interval / 60 * (0.05 * (outdoor - temps[r]) + gain * calls.get(r, False)) + rng.normal(0, 0.02)
     return history
 
 
@@ -95478,6 +95489,13 @@ R.check(
     _rh_shuf["rooms"]["climate.a"]["code"] == "no_response" and _rh_shuf["rooms"]["climate.b"]["code"] == "separable",
     f"{_rh_shuf['rooms']}",
 )
+_rh_cooling = _rh.report(_rh_simulate(5, 10, _rh_own, gain=-_RH_GAIN))
+R.check(
+    "a room that cools while it calls reads no response however clear its t-statistic: the gain must be positive "
+    "(the t-statistic carries its sign)",
+    all(v["code"] == "no_response" and v["t"] < -_rh.MIN_T for v in _rh_cooling["rooms"].values()),
+    f"{_rh_cooling['rooms']}",
+)
 _rh_short_r = _rh.report(_rh_simulate(102 * 30 / 1440, 30, _rh_own))
 _rh_sens = _rh.report(_rh_simulate(5, 10, _rh_own, sensor=("sensor.c",)))
 _rh_always = _rh.report(_rh_simulate(5, 10, lambda r, t, rng, c: True))
@@ -95500,6 +95518,16 @@ R.check(
     and _rh.report(_rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])[0])["house"]["verdict"] != "no_power_meter"
     and _rh._house_line(_rh.History(times=[0], house={f: [None] for f in _rh.HOUSE_FIELDS}), {})["verdict"] == "no_power_meter",
     f"{_rh_house30} {_rh_sep['house']} {_rh_always['house']}",
+)
+_rh_iqr = _rh.History(
+    times=[30 * k for k in range(200)],
+    rooms={"climate.a": {"t": [2000] * 200, "target": [2100] * 200, "call": [10000] * 200},
+           "climate.b": {"t": [2000] * 200, "target": [2100] * 200, "call": [8000, 10000] * 100}},
+    house={"outdoor": [0] * 200, "return": [3000] * 200, "power": [200, 300] * 100, "space": [10000] * 200})
+R.check(
+    "a calling fraction that moves, but by under FLAT_IQR between its quartiles, reads flat",
+    _rh.report(_rh_iqr)["house"] == {"verdict": "calling_fraction_flat", "rows": 200},
+    f"{_rh.report(_rh_iqr)['house']}",
 )
 R.check(
     "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
