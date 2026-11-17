@@ -101,8 +101,8 @@ gantt
 | R11-HOTFIX-FIGURE-BLOCK-BASE | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P774 at 2e17928032 Hotfix, S. |  |
 | R11-HOTFIX-SELFTEST-FLAKE-ARMS | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032 Hotfix, S (root-cause countermeasure). |  |
 | R11-HOTFIX-POLICY-DOCS-TIMEOUT | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P786 at 2e17928032 Hotfix, S (root-cause countermeasure). |  |
-| R11-OUTSIDE-HONEST-STARTS-RUNS-P2 | CORE | 2 | not-started | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 2 of R11-OUTSIDE-HONEST-STARTS-RUNS, group A of the approved design for outside pull request 3529 by Bankaifan (credit them by name), cut before pull re... |  |
-| R11-OUTSIDE-HONEST-STARTS-RUNS-P3 | CORE | 2 | not-started | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 3 of R11-OUTSIDE-HONEST-STARTS-RUNS (outside pull request 3529 by Bankaifan; credit them by name), cut before pull request 3602 merged: the parent goes... |  |
+| R11-OUTSIDE-HONEST-STARTS-RUNS-P2 | CORE | 2 | in-progress | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 2 of R11-OUTSIDE-HONEST-STARTS-RUNS, group A of the approved design for outside pull request 3529 by Bankaifan (credit them by name), cut before pull re... |  |
+| R11-OUTSIDE-HONEST-STARTS-RUNS-P3 | CORE | 2 | in-progress | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Part 3 of R11-OUTSIDE-HONEST-STARTS-RUNS (outside pull request 3529 by Bankaifan; credit them by name), cut before pull request 3602 merged: the parent goes... |  |
 | R11-OUTSIDE-HONEST-DHW-RUNS | CORE | 3 | not-started | - | fable/fable | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Group B of the approved design for outside pull request 3529 by Bankaifan: hot-water charges as runs (design/R11-OUTSIDE-HONEST-STARTS-RUNS at a63a2ca6cd, ru... |  |
 | R11-OUTSIDE-HONEST-METERED-FLOOR | CORE | 1 | in-progress | - | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor) | Group C of the approved design for outside pull request 3529 by Bankaifan: the metered floor, the note's part 3 (design/R11-OUTSIDE-HONEST-STARTS-RUNS at a63... |  |
 | R11-PRE-FINDER-CONTRACT | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
@@ -113,7 +113,7 @@ gantt
 | R11-PRE-NO-READ-BUILDERS | IN | 2 | carries-open | - | fable/fable | - | NOT finder-critical. |  |
 | R11-PRE-RCA-LATCH-CLAUSES | IN | 1 | done | - | opus/opus | - | NOT finder-critical, and HELD: tvofi has not ruled card E11-INJECTED; dispatch only on his ruling, building what it accepts. |  |
 | R11-OWNER-GENERIC-CONTROL-TEXT | DOCS | 1 | in-progress | #3643 | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11. |  |
-| R11-PRE-ROUND-CHECK-GATE | IN | 1 | in-progress | - | opus/opus | - | Finder-critical. |  |
+| R11-PRE-ROUND-CHECK-GATE | IN | 1 | carries-open | - | opus/opus | - | Finder-critical. |  |
 | R11-PRE-PRODUCT-READS | IN | 2 | carries-open | - | opus/opus | - | tvofi 2026-11-15 on evaluation card E11-N-INTAKE-BUILDER, verbatim: "New L group, design first (Recommended)" (one new group for the product reads, beside th... |  |
 | R11-OWNER-COMMUNITY-STANDARDS | DOCS | 1 | in-progress | - | opus/opus | - | Owner item, tvofi 2026-11-15, folded into round 11 (not finder-critical). |  |
 | R11-PRE-SECURITY-PRIVACY | IN | 2 | in-progress | - | fable/fable | - | Owner item, tvofi 2026-11-15, verbatim: "The new dimension should be about both security and privacy, and Scan the codebase for any security or privacy vulne... |  |
