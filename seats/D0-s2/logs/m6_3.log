@@ -11,3 +11,8 @@ RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/wood/24h|d1.0|R1
 RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/valve-storage/24h|d1.0|R16|e1.0|cell]=-0.13235145667198983 pct
 RESULT realised_gap_pct[winter_typical/winter_cold/single-zone/dhw/valve-storage/24h|d1.0|R16|e1.0|cell]=-0.3637220850822801 pct
 RESULT realised_gap_pct[winter_narrow/winter_cold/two-zone/dhw/manual-valve-buffer/24h|d1.0|R16|e1.0|cell]=0.6928744596794082 pct
+RESULT realised_gap_pct[winter_narrow/winter_cold/single-zone/no-dhw/wood/48h|d1.0|R16|e1.0|cell]=0.4030668902211883 pct
+RESULT realised_gap_pct[winter_narrow/winter_cold/two-zone/no-dhw/wood/24h|d1.0|R16|e1.0|cell]=-0.2130982027284372 pct
+RESULT thread_factor=1.000
+RESULT load1=3.01
+RESULT swapins=0

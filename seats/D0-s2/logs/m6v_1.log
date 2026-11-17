@@ -1,3 +1,7 @@
 RESULT realised_gap_pct[winter_typical/winter_cold/two-zone/dhw/plain/48h|d1.0|R16|e1.25|cell]=-0.35022404768053017 pct
 RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/no-dhw/plain/48h|d1.0|R16|e1.25|cell]=-2.617462704906835 pct
 RESULT realised_gap_pct[winter_extreme/winter_cold/two-zone/dhw/wood/48h|d1.0|R16|e1.25|cell]=1.3889695903727155 pct
+RESULT realised_gap_pct[winter_moderate/winter_cold/two-zone/dhw/wood/48h|d1.0|R16|e1.25|cell]=-0.735740465639453 pct
+RESULT thread_factor=1.000
+RESULT load1=2.37
+RESULT swapins=0
