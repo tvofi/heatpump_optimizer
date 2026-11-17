@@ -1,31 +1,33 @@
-Fix review: blocked 8daf6df1576494f49f0ac32d790dbedbb6c92d0e code-unwired: a durations-file phase_hours never reaches generated.model, so the phase figure branch is unreachable and its self-test feeds it past replan; three claimed behaviours have surviving mutants
+Fix review: merge 15a99c4ff739b8b91e89699a165cb72058e2f173
 
-bus-nonce: 3c8ff3520f2ed7a12f87327f57b324c0
-pending-ci: gate
+bus-nonce: 25a41551552a7e015f7e0e79bd08cf62
 
-## Block
-
-Round 1 (first review of #3676), measured at head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e, merge base 6f422812d5d8b918beace0283419c153f6df66ce.
-
-1. **The phase-duration path is unwired (carry 6).** `plan_page.render` hands `plan_phases.section` `phase_hours=model.get("phase_hours")`, where `model` is `plan["generated"]["model"]`. `replan.build_plan` builds that model from `sizes_hours`, `live_remaining_fraction`, `sizes_provenance` and `MODEL_FIELDS` only (tools/plan/replan.py:590 and :1531), and `MODEL_FIELDS` has no `phase_hours`. So a `phase_hours` written into `tools/plan/durations.json` never reaches the page: the "N h (plan model)" branch of `_model_duration` cannot be reached in production. `ev/phase_hours_e2e.txt`: `build_plan` over durations.json plus `phase_hours={"finders": 7.5}` gives `phase_hours in generated.model: False`. Control, `ev/phase_hours_control.txt`: the same run with `"phase_hours"` added to `MODEL_FIELDS` carries `{'finders': 7.5}` and `check_plan` returns `[]`, so the harness moves under its perturbation. The self-test arm "a phase the model prices prints its figure ..." injects `phase_hours` straight into `generated.model` and skips replan, so it tests a path production cannot reach. The body's forward-carry line, "the page prints the phases unmeasured until a measurement lands in the durations file", is false at this head: a measurement landing there changes nothing on the page. The plan_phases.py comment ("`durations.json`'s `phase_hours`") states the same unwired source. Fix: carry `phase_hours` from the durations file into the model (one `MODEL_FIELDS` entry, or a refused or validated field), and add a self-test arm that goes durations, then `build_plan`, then `render`, with that line's mutant killed.
-2. **Surviving mutants on production lines the body claims** (ev/mutants.txt, driver ev/mutation_driver.py, each mutant restored afterwards, worktree clean):
-   - M6 `check_plan`'s `next_round` recursion (`bad += [... check_plan(nxt)]` changed to `pass`) SURVIVED both `plan_page.py` and `replan.py --self-test`. The body says the next round's plan is "a full plan that `check_plan` also checks", but the only arm asserts `check_plan(p2) == []`, which a dropped recursion also satisfies. An arm with a violating sub-plan is owed.
-   - M16 `next_round_preview`'s `except PlanError` (changed to catch `ZeroDivisionError`) SURVIVED. The body says "a later round the model cannot plan is `next_round.unavailable`, drawn as an UNAVAILABLE tab". The UNAVAILABLE arm builds `next_round` by hand (`broken = {..., "unavailable": "boom"}`), so the producer that turns a `PlanError` into `unavailable` goes unchecked, and without it a later-round `PlanError` would fail the whole round's plan.
-   - M15 `"beyond": len(later) - len(mine)` changed to `0` SURVIVED. The body says "groups of rounds past the nearest are only counted (`beyond`)", and no arm has a group two rounds ahead.
+Round 2 (delta review over the reviewed head 8daf6df1576494f49f0ac32d790dbedbb6c92d0e). The delta is the fixer's commit 11e9a4e96 (merged as 6804e9c5a) plus an automatic main merge (5e2ef89b) with no resolution. `review_carry.py` prints FRESH-REVIEW because 11e9a4e96 changes content. The own delta touches only `tools/plan/replan.py`, `tools/audit/seat/plan_page.py` and `tools/audit/seat/plan_phases.py`. Nothing under `custom_components/` changed, so the scope does not widen.
 
 ## Evidence
 
-- RESULT figures re-derived at head (ev/selftests-head.txt): `plan_page self-test: 149 checks, 0 failed`; `beat_jobs self-test: 274 checks, 0 failed`; `replan self-test: 0 failed`; `STRUCTURE RATCHET PASSED`; `ALL 410 checks PASSED`. All match the body. At the base (ev/beat_jobs-base.txt): beat_jobs 271, 0 failed, matching the body; plan_page 136, 0 failed.
-- RESULT mutation proof (ev/mutants.txt): the body's five mutants re-run and all killed, M1 to M5, with the failures the body names. Reviewer-added mutants: M7 (after-edge filter), M8 (next round starts at the plan start, not the closure), M9 (`r > round_n` changed to `>=`), M10 and M11 (`one_line_brief` list marker and heading cut), M12 (snap issue filter), M13 (`part` flag) and M14 (`tabbed` without `next_round`) were all killed. M6, M15 and M16 survived (see Block).
-- RESULT null controls: the arms the body names are present at the head and pass (part of the 149). M1, M12 and M14 show that they detect a missing round filter, a missing issue filter and a tab with no `next_round`.
-- RESULT real roster: `replan.py --out` over the in-tree roster at head (ev/real-roster-plan.txt) plans round 11 with 62 groups, closure 2026-11-22T04:28:00Z, and no `next_round`, because nothing of a later round is on the roster. The tab stays absent, as the null control predicts.
-- RESULT merge: `git merge-tree --write-tree origin/main 8daf6df1576494f49f0ac32d790dbedbb6c92d0e` exits 0, no conflict (ev/merge-tree.txt).
-- RESULT VERSION, manifest, RELEASE_NOTES and claim files are untouched in the three-dot diff.
-- Finder's harness: none named. The work is an owner-directed instrument group (carries 0 to 6), so the harness is the carry's own control. The reviewer built the phase_hours end-to-end probe here; it is the reviewer's, not the finder's.
-- CI: `merge_train.py classify 8daf6df1576494f49f0ac32d790dbedbb6c92d0e --pr 3676` still prints `WAIT ... pending: gate red: none` after about 30 minutes of polling (ev/classify-last.txt). `tests / nightly-status` reads failure in the packet digest but is not in the `owed-reds` set, so it is owed no answer.
-- Head re-read: the PR head is still 8daf6df1576494f49f0ac32d790dbedbb6c92d0e, and the body's `## Head` names it.
-- Comms: seat_comms init and heartbeat ran. The inbox held no command.
+- RESULT previous block 1 (phase_hours unwired) is resolved. `MODEL_FIELDS` now names `phase_hours`, and `build_plan` copies it only when it is present (`replan.py:1537`), so it is not required. The self-test arm now goes from durations to `build_plan` to `render`. M1-unwire (drop `"phase_hours"` from `MODEL_FIELDS`) is KILLED, and so is M17-page-handoff (`phase_hours=None` at `plan_page.py:800`). Both fail on the phase arm with `got: (2, 2)` (ev/selftests-and-mutants.txt).
+- RESULT previous block 2 is resolved. Each mutant ran at the head and was restored afterwards, and the worktree was clean after the runs:
+  - M6 (`check_plan` next-round recursion changed to `pass`) is KILLED with `got: []`.
+  - M16 (`except PlanError` changed to `except ZeroDivisionError`) is KILLED.
+  - M15 (`"beyond"` changed to `0`) is KILLED with `got: 0`.
+  - Driver: ev/mutation_driver.py.
+- RESULT figures at head (ev/selftests-and-mutants.txt):
+  - `plan_page self-test: 152 checks, 0 failed` matches the body.
+  - `self-test: 0 failed` (replan) matches the body.
+  - `beat_jobs self-test: 284 checks, 0 failed`. The body says 274. The difference comes from main: main's base 5e2ef89b gives 281 (ev/beat_jobs-main-base.txt), and the PR's own +3 matches its earlier 271 to 274. See the Note.
+- RESULT merge: `git merge-tree --write-tree origin/main 15a99c4ff7` against origin/main 91674d15cd exits 0 with no conflict (ev/merge-tree.txt).
+- RESULT VERSION, manifest, RELEASE_NOTES and both claim files are untouched in the three-dot diff (ev/threedot-stat.txt).
+- RESULT CI: `merge_train.py classify 15a99c4ff7 --pr 3676` prints `GREEN 15a99c4ff739b8b91e89699a165cb72058e2f173 pending: none red: none` (ev/classify-log.txt). No owed red is open at this head, so no `## Red checks` answer is owed.
+- RESULT head re-read: the branch head is still 15a99c4ff7 (ev/head-reread.txt), and the body's `## Head` names it.
+- Finder's harness: none named. This is an owner-directed instrument group, so each carry's own control is its harness. The mutation driver and the phase_hours domain probe are the reviewer's, not the finder's.
+- Note: figure-stale: the body's `## Figures` beat_jobs line (274) is the pre-merge count; at this head it is 284, and the increase is main's, not this PR's. Carry: dismissed: paperwork at a head whose code is verified; the count is re-derived above.
 
 ## Findings
 
-none
+- Residual: the body says `_model_duration`'s guard makes a separate validator unnecessary, but the guard does not cover the whole input domain that the new durations path opens (ev/phase_hours_domain.txt).
+  - `phase_hours: {"finders": NaN}` (Python's `json` accepts `NaN`) prints `nan h (plan model)`, and `Infinity` prints `inf h (plan model)`.
+  - A non-dict `phase_hours` (a list or a number) raises `AttributeError` in `render`.
+  - `check_plan` checks none of these cases.
+  - Today the fault cannot be reached: `durations.json` has no `phase_hours`, and every malformed value fails visibly rather than as a plausible figure.
+  - Carry: dismissed: unreachable at this tree; any malformed value fails loudly or prints as nan/inf, never as a believable duration

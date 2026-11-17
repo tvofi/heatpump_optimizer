@@ -1,0 +1,26 @@
+plan_page self-test: 152 checks, 0 failed
+beat_jobs self-test: 284 checks, 0 failed
+self-test: 0 failed
+M1-unwire: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a phase durations.json prices reaches the plan's model and the page prints its figure; one it does not prints 'duration unmeasured', never a zero or a typed constant; the rest a dash (got: (2, 2))
+    tools/plan/replan.py rc 0
+M6-recursion: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL check_plan checks the next round's plan: a violation in it is the round plan's, named by the next round (null control: p2 reads [] above) (got: [])
+    tools/plan/replan.py rc 0
+M16-except: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a later round the model refuses is next_round.unavailable, the round's own plan unchanged, drawn as an UNAVAILABLE tab (got: R10-NEXT-A: savings is not a number: 'lots')
+    tools/plan/replan.py rc 0
+M15-beyond: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL groups of rounds past the nearest are counted in beyond, not scheduled, and the tab says so (null control: a roster with none counts 0 and says nothing) (got: 0)
+    tools/plan/replan.py rc 0
+M17-page-handoff: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a phase durations.json prices reaches the plan's model and the page prints its figure; one it does not prints 'duration unmeasured', never a zero or a typed constant; the rest a dash (got: (2, 2))
+    tools/plan/replan.py rc 0
+worktree diff after restore: clean
+
+[exited with code 0]
