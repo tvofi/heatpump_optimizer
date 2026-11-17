@@ -1,0 +1,4 @@
+install-1 2026-10-14 round=10 steps=M1,M2,M3,M4,M6,M7	not read: no --bundle for install-1
+MEAN model_gap=0.0000 2se=nan over 0 install-days; regret NO-READ per install-day
+RESULT read=regret-installs universe=1 examined=0 value=NO-READ
+rc=0

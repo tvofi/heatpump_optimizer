@@ -1,0 +1,5 @@
+SELF-TEST passed (64 arms)
+
+real	0m41.902s
+user	0m50.562s
+sys	0m0.993s
