@@ -1,0 +1,3 @@
+null: good round-trips: True | samples 20 engaged True floor 1.1
+draw/engaged='x': samples 20 engaged False config [0.53, 5.0] floor 1.1
+draw/config=['x', 3.3]: samples 0 engaged False config None floor None

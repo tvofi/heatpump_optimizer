@@ -1,0 +1,9 @@
+M1 floor_kw re-declared whole=_DRAW_KEY: rc=1 KILLED | 1 of 14 FEATURES BLOCK FAILED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good
+M2 floor_since re-declared whole=_DRAW_KEY: rc=1 KILLED | 1 of 14 FEATURES BLOCK FAILED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good
+M3 loader drops samples on a bad floor_kw cell (declaration left cell): rc=1 KILLED | 1 of 14 FEATURES BLOCK FAILED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good
+M4 loader zeroes engaged on a bad floor_since cell: rc=1 KILLED | 1 of 14 FEATURES BLOCK FAILED
+      FAIL metered floor, declared cost: for each bad floor_kw ('x', -1.0, True, [1]) and floor_since ('x', -3, 1.5) the record's declaration (store._ACCURACY's whole) names the cost the load measures; null control, the good
+N0 null control: comment-only edit: rc=0 SURVIVED | ALL 14 FEATURES BLOCK PASSED
