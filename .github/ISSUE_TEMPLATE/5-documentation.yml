@@ -1,0 +1,32 @@
+name: Documentation problem
+description: Something in the README or the docs is wrong, unclear or missing.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Link or path, with the section heading if you can.
+      placeholder: e.g. README.md#minimal-working-setup
+    validations:
+      required: true
+  - type: textarea
+    id: sentence
+    attributes:
+      label: The sentence
+      description: Quote the text concerned. If something is missing, say where you looked for it.
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong
+      description: What the docs say against what actually happens, or what was unclear to you.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: Optional. If the docs disagree with what your install does.
