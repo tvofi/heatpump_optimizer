@@ -14,3 +14,4 @@
 1794877388 HB alive
 1794877634 CKPT null sweep 2730/2730 pending; attack rows 0/80 selfset follows; awaiting full features survivor run + CI snapshot bdf627dda00b
 1794877992 HB alive
+1794878682 DONE verdict pushed: Fix review: merge 0cbea8f970 with pending-ci: gate, probe/rev-3662-f2fe353e at 7f0dbc0196
