@@ -498,7 +498,14 @@ def plan_beat(ctx: Ctx) -> None:
     plan, slots, seats, mirror, repo = got
     # the overlay's plan_coordinator_cap rides to replan.py; absent, replan's own default stands
     cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []
-    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats, *cap)
+    # Liveness by evidence, not the stage word (a stage-word read priced running
+    # groups as not started): the overlay's saved ref listing and in-flight PRs.
+    evidence: list = []
+    for key, flag in (("plan_live_refs", "--live-refs"), ("plan_in_flight", "--in-flight")):
+        if ctx.overlay.get(key):
+            evidence += [flag, str(ctx.overlay[key])]
+    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats,
+                        *cap, *evidence)
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])

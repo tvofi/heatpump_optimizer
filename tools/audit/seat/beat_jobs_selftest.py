@@ -495,6 +495,14 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     res["plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"] = (
         arg(f.calls[0], "--coordinator-cap") == "3")
+    res["plan-beat null: no evidence files leaves replan on the stage word"] = (
+        "--live-refs" not in a and "--in-flight" not in a)
+    c, f = fresh(overlay={"repo": "o/r", "plan_json": str(root / "pe.json"), "plan_slots": 10, "plan_seats": 99,
+                          "state_mirror": str(root / "pem"), "plan_live_refs": "/x/refs.txt",
+                          "plan_in_flight": "/x/prs.json"})
+    bj.plan_beat(c)
+    res["plan-beat: the overlay's ref listing and in-flight PRs reach replan (liveness by evidence)"] = (
+        arg(f.calls[0], "--live-refs") == "/x/refs.txt" and arg(f.calls[0], "--in-flight") == "/x/prs.json")
     c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
     bj.plan_beat(c)
     gh = [x for x in f.calls if x[0] == "gh"]
@@ -1413,8 +1421,10 @@ MUTANTS = {
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
-    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats, *cap)', '"--out", plan, *cap)',
+    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats,\n                        *cap, *evidence)', '"--out", plan,\n                        *cap, *evidence)',
                                  "plan-beat: replan is handed the plan, slots and seats"),
+    "plan_evidence_dropped": ('            evidence += [flag, str(ctx.overlay[key])]', '            pass',
+                              "plan-beat: the overlay's ref listing and in-flight PRs reach replan (liveness by evidence)"),
     "pulse_unreadable_ignored": ("    if rc not in (0, 1, 2) or not out:", "    if not out:",
                                  "pulse: an rc outside 0-2 is UNREADABLE, whatever it printed"),
     "pulse_alive_dropped": ('        args += ["--seat-alive", e]', '        pass',

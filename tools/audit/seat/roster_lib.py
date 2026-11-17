@@ -198,6 +198,31 @@ def roster_round(path: str) -> int:
     return int(m.group(1))
 
 
+_GROUP_ROUND = re.compile(r"\AR(\d+)-")
+
+
+def group_round(name: str) -> int | None:
+    """The round a group id names (`R11-PRE-X` -> 11); None for an id with no
+    round prefix. The one rule by which a group belongs to a round's plan."""
+    m = _GROUP_ROUND.match(name)
+    return int(m.group(1)) if m else None
+
+
+def next_round_groups(roster: dict, round_n: int) -> dict:
+    """{id: entry} of the groups that belong to a round after `round_n`: its
+    pre-finder groups, its intake group, the groups deferred to it. A plan of
+    round `round_n` neither draws nor counts them (owner, 2026-11-13)."""
+    return {n: g for n, g in groups_of(roster).items()
+            if (r := group_round(n)) is not None and r > round_n}
+
+
+def round_roster(roster: dict, round_n: int) -> dict:
+    """`roster` without the groups of a round after `round_n`."""
+    later = next_round_groups(roster, round_n)
+    return {**roster, "groups": [g for g in roster.get("groups", [])
+                                 if g["group"] not in later]}
+
+
 def newest_roster(names) -> str | None:
     """Of the paths or basenames given, the roster with the highest round, as
     a `ROSTERS_DIR` path; None when none of them is a roster."""
@@ -712,8 +737,14 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     """
     text = (group.get("brief") or "").strip()
     # A brief written as a markdown document opens with a heading marker; the
-    # row is plain text, so the marker goes and the lines join.
-    text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text)
+    # row is plain text, so the marker goes, and the heading line is the
+    # description: its next lines are the body, which joined on would run the
+    # title into the first loose line.
+    if re.match(r"\s*#{1,6}[ \t]", text):
+        text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text).split("\n", 1)[0]
+    # An opening list marker ("1. ", "2) ", "- ") is not a sentence end: left
+    # in, the cut below ends the description at the marker.
+    text = re.sub(r"\A\s*(?:\d+[.)]|[-*])[ \t]+", "", text)
     text = re.sub(r"\s*\n\s*", " ", text)
     text = _ATTRIBUTION.sub("", text)
     cut = re.split(r"(?<=\.)\s", text, maxsplit=1)[0]
