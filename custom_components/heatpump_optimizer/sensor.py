@@ -274,6 +274,10 @@ async def async_setup_entry(
         WoodBurnAdvisorSensor(coordinator, entry),
         ModelRestartAdvisorSensor(coordinator, entry),
     ]
+    # The room list's two sensors exist only where a list is configured
+    # (#3616); an options save reloads the entry, so the set holds for its life.
+    if EntryConfig.from_mapping(coordinator.effective_config).room_temperature_entities:
+        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry)]
 
     async_add_entities(entities)
 
@@ -724,6 +728,54 @@ class IndoorTempSensor(_PayloadNumberMixin, _MeasuredTemperatureMixin, HeatPumpO
         """
         config = self.coordinator.effective_config
         return {"source_entity": EntryConfig.from_mapping(config).indoor_temp_entity}
+
+
+class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+    """The mean over the room list's readable rooms (#3616).
+
+    Unknown under the list's quorum (``rooms.summarize``). Each readable
+    room's temperature (and a thermostat's target, whether it calls for heat
+    and its HVAC mode), and each dropped room's problem word, keyed by entity
+    id: a dead thermostat shows here, never as an input problem.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
+
+    _payload_path = ("rooms", "average")
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_average_temp", "room_average_temperature")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        block = _mapping(self._data().get("rooms"))
+        return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
+
+
+class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+    """The warmest readable room less the coldest, K (#3616).
+
+    A temperature difference: no temperature device class, which Home
+    Assistant would convert as a temperature. Unknown under the quorum.
+    ``lift`` is the floor lift the last solve was given (``rooms.HeldLift``).
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "K"
+    _attr_suggested_display_precision = 1
+
+    _payload_path = ("rooms", "spread")
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_spread", "room_temperature_spread")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        block = _mapping(self._data().get("rooms"))
+        return {key: block.get(key) for key in ("coldest_entity", "warmest_entity", "lift")}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):

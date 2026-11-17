@@ -193,7 +193,7 @@
   "source": "services.yaml",
   "claim": "every services.yaml `example` payload passes its own service schema",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "services with examples=10, failures=[]",
+  "result": "services with examples=9, failures=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -227,36 +227,36 @@
  {
   "id": "C26",
   "source": "README.md",
-  "claim": "a menu of 24 pages",
+  "claim": "a menu of 25 pages",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=24 measured=24",
+  "result": "documented=25 measured=25",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C27",
   "source": "docs/configuration.md",
-  "claim": "There are 24 pages",
+  "claim": "There are 25 pages",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=24 measured=24",
+  "result": "documented=25 measured=25",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C28",
   "source": "docs/configuration.md",
-  "claim": "eight on the first menu and sixteen more behind Advanced settings",
+  "claim": "eight on the first menu and seventeen more behind Advanced settings",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=(8, 16) measured=(8, 16)",
+  "result": "documented=(8, 17) measured=(8, 17)",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C29",
   "source": "docs/architecture.md:module map",
-  "claim": "config_flow.py -- Setup flow plus 24 option pages behind two menus",
+  "claim": "config_flow.py -- Setup flow plus 25 option pages behind two menus",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=24 measured=24",
+  "result": "documented=25 measured=25",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=95 measured=95",
+  "result": "documented=96 measured=96",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "on disk=95, listed=95, missing=[], phantom=[]",
+  "result": "on disk=96, listed=96, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (50 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (51 selects)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "50 selects, untranslated=[]",
+  "result": "51 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }
