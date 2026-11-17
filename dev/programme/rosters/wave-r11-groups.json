@@ -3351,7 +3351,7 @@
    "brief": "Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked fixture, and the schedule figure on a throttling-valve two-tank fixture, across a weekday-to-weekend change and on a PV house. Measure each; where the sign or the figure is wrong, fix it and the card text together.",
    "resume": {
     "stage": "done",
-    "commit": "c82f014a639954b0f8930f29cf30fed3f0b20a6a",
+    "commit": "c03ab4b85fd9a08ce6ecc072670a223018a808db",
     "branch": "fix/r11-advisor-measures-p2",
     "last_step": null,
     "next_step": "dispatch fixer",
