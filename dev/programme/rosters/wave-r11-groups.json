@@ -1701,11 +1701,11 @@
    "architect_note": "",
    "brief": "triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032\n\nHotfix, S (root-cause countermeasure). Freeze ground: an INTRODUCED read of a timing-dependent self-test arm on #3564 (`custom_components/` strings) blocked a production pull request. Root-cause record: `dev/audit/rca/R10-RCA-FAMILY-FLAKY-SELFTEST.md` (four instances). The fix: make the `tools/audit/seat/bus.sh` P354 concurrent-confirm arm and `tools/audit/seat/beatd.py` self-test case (9), a running instance defers the restart to the next pass, deterministic (no wall-clock race: an explicit barrier or an injected clock), and pin the clock in the `tests/entities.py` redaction check. Demonstration per arm: the arm under an injected adverse schedule fails at the base and passes at the head, and each arm's existing null control still holds; run each arm many times concurrently on one host and report the count, 0 failures being the bar.",
    "carry": [
-    "Moved from R11-INTAKE-R10-RESIDUE carry 167 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\ntests/entities.py's \"the location is redacted whole, from data and from options, not coarsened\" reads red with the wall clock (Red checks, `tests / fast (3.14)`): its not-coarsened clause substring-matches one-decimal coordinates against a payload holding an unfrozen `exported_at`. Control to carry: `dt_util.utcnow` pinned to `...T14:00:59.312345+00:00` reds the check and `...T14:00:58.312345+00:00` does not; a repair is shown red on the first and green on both. Carry: R11-INTAKE-R10-RESIDUE"
+    "Moved from R11-INTAKE-R10-RESIDUE carry 167 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P782 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\ntests/entities.py's \"the location is redacted whole, from data and from options, not coarsened\" reads red with the wall clock (Red checks, `tests / fast (3.14)`): its not-coarsened clause substring-matches one-decimal coordinates against a payload holding an unfrozen `exported_at`. Control to carry: `dt_util.utcnow` pinned to `...T14:00:59.312345+00:00` reds the check and `...T14:00:58.312345+00:00` does not; a repair is shown red on the first and green on both. Carry: R11-INTAKE-R10-RESIDUE [implemented: f38124f19c658d49741232d56cc833f4c7c281ad]"
    ],
    "source": "programme",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-hotfix-selftest-flake-arms",
     "commit": "57fd742ea9fc93372da066b1c36ae1ae10546ffd",
     "last_step": null,
