@@ -1,0 +1,40 @@
+{
+  "id": "D15-s2-05",
+  "scope": "D15-s2",
+  "step": "D15.M5",
+  "title": "debug_replay reports 5 of the lane's 8 judges and its verdict reads 4: red judges pass unseen",
+  "severity": "low",
+  "claim": "tools/replay/debug_replay.py:main prints offenders for finite, unit, no_default, agreement and cycle and grades smoke_verdict on four of them, while tests/replay.py:run_fixture returns and the lane grades eight (also not_frozen, away, cycle_cost): on the owner's window hours 7-9 not_frozen is red and never printed (unreported_red_judges=1), and on the 7-day synthetic null bundle agreement is red with 41 offenders while debug_replay prints smoke_verdict=pass (verdict_blind_red_judges=1).",
+  "mechanism": "debug_replay.main hard-codes the tuple of judges it prints and a shorter tuple its verdict reads; run_fixture's results dict is the lane's (grade_ran checks every key empty). The D15 timeline replay is graded by debug_replay's report, so judges outside its tuples, and agreement for the verdict, never reach the D15 seat.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 7 --hours 2 --offenders 4",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m5_judges.py",
+    "value": "real chunk: lane_red_judges=2 (no_default, not_frozen), unreported_red_judges=1 (not_frozen); synthetic 7-day: lane_red_judges=1 (agreement 41), debug_replay_verdict=pass, verdict_blind_red_judges=1",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 12.18,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/replay/debug_replay.py:main (its printed and verdict judge tuples, read off its source by AST) over tests/replay.py:run_fixture's verdict",
+  "perturbation": {
+    "change": "--verdict-keys all: debug_replay's verdict reads every judge run_fixture returns (the lane's rule)",
+    "expected_direction": "to_zero",
+    "observed_value": "verdict_blind_red_judges=0 (synthetic: debug_replay_verdict=fail)"
+  },
+  "metric_definition": "Judges red in run_fixture's verdict that debug_replay.main does not print (unreported) or its smoke_verdict does not read (verdict-blind).",
+  "phenomenon_property": "The D15 timeline replay reports and grades every judge the replay lane grades (run_fixture's results keys), so a lane-red judge is never a debug_replay pass.",
+  "seam_rule": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle B --hours 1   # unreported_/verdict_blind_red_judges name the judges outside debug_replay.main's tuples",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_judges.py --bundle <owner download> --from-hours 1 --hours 2",
+    "value": "lane_red_judges=0, unreported 0, verdict_blind 0",
+    "note": "a chunk where no judge is red: the two definitions agree"
+  },
+  "proposed_fix_scope": "tools/replay/debug_replay.py:main: print a RESULT per key of run_fixture's results and grade smoke_verdict on all of them (or on the lane's own grading), with a gate check that the printed set equals run_fixture's keys.",
+  "files": ["tools/replay/debug_replay.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "I4"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "D15-s2-04",
+  "scope": "D15-s2",
+  "step": "D15.M5",
+  "title": "debug_replay replays on a UTC clock, not the bundle time_zone the lane uses: 4 of 4 cycles publish differently",
+  "severity": "medium",
+  "claim": "tools/replay/debug_replay.py runs tests/replay.py:run_fixture in its own process without setting HASTUB_TZ, so a bundle whose replay half records time_zone Europe/Stockholm is replayed on the stub's UTC clock; over the owner's window's first hour every one of 4 cycles publishes differently from the same seeded replay in the lane's environment (replay.child_env(time_zone)), on 93 entity fields including Heat Pump Action's state, heat_pump_on and power_kw, the DHW schedule and the predicted indoor temperature.",
+  "mechanism": "tests/replay.py:replay_one runs each fixture in a child whose environment child_env(fixture time_zone) sets HASTUB_TZ, and the stub's homeassistant.util.dt reads HASTUB_TZ once at import. debug_replay.main and run_seeded call run_fixture in-process and never set it, so dt_util.now() is UTC: local-hour logic (comfort day/night hours, DHW windows, the recorded price walk's local day and its 13:00 tomorrow-prices rule) runs an hour off for a CET install, and the plan, the action and the published entities differ from what the install computed and from what the lane would replay.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_zone.py --bundle <owner download> --hours 1 --labels 40",
+    "harness_path": "dev/audit/rounds/round11/D15/s2/m5_zone.py",
+    "value": "differing_cycles=4 of compared_cycles=4; published_fields_differing=93",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "owner's macOS box (B8), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box at load1 ~200 (many seats); counts are contention-immune, wall 6825 s provisional",
+    "tolerance": "exact",
+    "load1": 198.17,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/replay/debug_replay.py:run_seeded over tests/replay.py:run_fixture; published records read through tests/replay.py:sweep from the production entities (heatpump_optimizer sensor/climate platforms)",
+  "perturbation": {
+    "change": "--perturb fixed: the shipped arm run with HASTUB_TZ set to the replay half's time_zone (debug_replay's one-line fix: set it from the bundle before importing the stub, or replay in replay.child_env)",
+    "expected_direction": "to_zero",
+    "observed_value": "synthetic bundle (fixture time_zone Europe/Stockholm), --hours 4: 8 of 8 differing shipped, 0 under --perturb fixed"
+  },
+  "metric_definition": "Replay cycles whose published records (instants in UTC, _ms attributes dropped) differ between debug_replay as shipped and the same replay under replay.child_env(time_zone).",
+  "phenomenon_property": "Every replay driver replays a recording on the clock zone the recording names (the replay half's time_zone), as the lane does, so a D15 timeline replay reproduces the install's local-time behaviour.",
+  "seam_rule": "grep -n 'run_fixture(' tools/replay/*.py tests/*.py dev/audit/harnesses/*.py  # every in-process caller of run_fixture outside replay_one's child_env",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m5_zone.py --bundle <dbg_bundle_gen.py --days 1 bundle.json> --hours 4 --null",
+    "value": "differing_cycles=0 of 8",
+    "note": "the shipped arm against itself: the replay is deterministic once the _ms wall-time attributes are dropped, so every difference is the zone"
+  },
+  "reproduction_steps": [
+    "... m5_zone.py --bundle B --hours 1            # 4 of 4 cycles differ, 93 fields",
+    "... m5_zone.py --bundle SYN --hours 4          # 8 of 8",
+    "... m5_zone.py --bundle SYN --hours 4 --null   # 0",
+    "... m5_zone.py --bundle SYN --hours 4 --perturb fixed   # 0"
+  ],
+  "proposed_fix_scope": "tools/replay/debug_replay.py: read the replay half's time_zone before the stub is imported and set HASTUB_TZ (or re-exec itself under replay.child_env), as tools/replay/dbg_bundle_gen.py should too for its fixture; a gate check in debug_replay.gate_checks that dt_util.DEFAULT_TIME_ZONE equals the fixture's zone during run_seeded.",
+  "files": [
+    "tools/replay/debug_replay.py",
+    "tools/replay/dbg_bundle_gen.py",
+    "tests/replay.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P7"
+}
