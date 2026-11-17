@@ -1,11 +1,3 @@
-== tools/audit/seat/plan_page.py
-wrote /tmp/tmp9p917tf5/page.html: 8 groups, closure 2026-01-06T22:04:00Z
-plan_page self-test: 149 checks, 0 failed
-== tools/audit/seat/beat_jobs.py
-  ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
-beat_jobs self-test: 274 checks, 0 failed
-== tools/plan/replan.py
-ok   self-test fails when gate-cancellation is deleted
+plan_page self-test: 152 checks, 0 failed
+beat_jobs self-test: 284 checks, 0 failed
 self-test: 0 failed
-STRUCTURE RATCHET PASSED
-ALL 410 checks PASSED

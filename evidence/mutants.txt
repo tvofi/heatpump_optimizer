@@ -1,16 +1,21 @@
-M1 round_roster dropped: KILLED :: plan_page.py rc=1 FAIL the fixture arms ran to the end (got: KeyError: 'R10-NEXT-A') | FAIL the fixture arms ran to the end (got: KeyError: 'R10-NEXT-A')
-M2 part predicate: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmpg4mrqq1_/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL the strip's part-merged count equals the rows that read part merged (an absorbed group a merged PR names is not one) (got: (2, 2, 2))
-M3 later-edge refusal: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmpyxbcmqac/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL a group of this round waiting on a later round's group is refused (got: R9-BAD: after-edge names no group: R10-NEXT-A) ;; replan.py rc=0 self-test: 0 failed | 
-M4 model_duration guard: KILLED :: plan_page.py rc=1 FAIL the fixture arms ran to the end (got: TypeError: unsupported format string passed to NoneType.__format__) | FAIL phases census: no accepted file crashes the section, no check crashes (got: [(('round',), 5, 'TypeError'), (('round',), True, 'TypeError'), (('round',), Fa / FAIL the fixture arms ran to the end (got: TypeError: unsupported format string passed to NoneType.__format__) ;; plan_phases.py rc=2 plan_phases.py: error: unrecognized arguments: --self-test | 
-M5 evidence flags: KILLED :: beat_jobs.py rc=1   <no Python frame> |   FAIL plan-beat: the overlay's ref listing and in-flight PRs reach replan (liveness by evidence) /   ok   darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
-M6 check_plan recursion: SURVIVED :: plan_page.py rc=0 plan_page: phases /tmp/tmp9_bgffqr/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start |  ;; replan.py rc=0 self-test: 0 failed | 
-M7 after filter kept all: KILLED :: plan_page.py rc=1 FAIL the fixture arms ran to the end (got: KeyError: 'plan') | FAIL the fixture arms ran to the end (got: KeyError: 'plan') ;; replan.py rc=0 self-test: 0 failed | 
-M8 next starts at plan start: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmpr1se1k_j/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL the next round is scheduled apart, from this round's closure, on the same model; an after-edge to this round's group is dropped, one inside it kept (got: { ;; replan.py rc=0 self-test: 0 failed | 
-M9 later uses >=: KILLED :: plan_page.py rc=1 FAIL the fixture arms ran to the end (got: KeyError: 'plan') | FAIL a priced row says its price is owner-stated, not measured (got: owner-stated 240 min (not measured): tvofi: Price it at 4h) / FAIL a closed issue's chip is struck (got: ) ;; replan.py rc=0 self-test: 0 failed | 
-M10 list marker not stripped: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmpyg0uwri4/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL a markdown brief renders as its title or first sentence, never a bare list marker (got: )
-M11 heading not cut to line: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmp0vctgexu/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL a markdown brief renders as its title or first sentence, never a bare list marker (got: )
-M12 snap issues not filtered: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmpq7x4cl4c/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL the current round's tab is the page without the next round's groups: strip, closure, lanes, rows and every section, though a next-round group carries an op
-M13 part flag false: KILLED :: plan_page.py rc=1 plan_page: phases /tmp/tmp1jca2jle/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start | FAIL the summary strip counts partial (got: ) / FAIL a carries-open group holding a merged part counts in the strip as its row does (got: (2, ['<b>0</b><span>part merged']))
-M14 tabbed ignores next_round: KILLED :: plan_page.py rc=1 FAIL the fixture arms ran to the end (got: KeyError: 'next_round') | FAIL the fixture arms ran to the end (got: KeyError: 'next_round')
-M15 beyond zero: SURVIVED :: plan_page.py rc=0 plan_page: phases /tmp/tmp5ohveg7f/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start |  ;; replan.py rc=0 self-test: 0 failed | 
-M16 unavailable not caught: SURVIVED :: plan_page.py rc=0 plan_page: phases /tmp/tmpovrodxu3/repo/dev/programme/round9/phases.json: phases[0] x: unknown phase (one of round-start |  ;; replan.py rc=0 self-test: 0 failed | 
+M1-unwire: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a phase durations.json prices reaches the plan's model and the page prints its figure; one it does not prints 'duration unmeasured', never a zero or a typed constant; the rest a dash (got: (2, 2))
+    tools/plan/replan.py rc 0
+M6-recursion: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL check_plan checks the next round's plan: a violation in it is the round plan's, named by the next round (null control: p2 reads [] above) (got: [])
+    tools/plan/replan.py rc 0
+M16-except: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a later round the model refuses is next_round.unavailable, the round's own plan unchanged, drawn as an UNAVAILABLE tab (got: R10-NEXT-A: savings is not a number: 'lots')
+    tools/plan/replan.py rc 0
+M15-beyond: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL groups of rounds past the nearest are counted in beyond, not scheduled, and the tab says so (null control: a roster with none counts 0 and says nothing) (got: 0)
+    tools/plan/replan.py rc 0
+M17-page-handoff: KILLED
+    tools/audit/seat/plan_page.py rc 1 
+      FAIL a phase durations.json prices reaches the plan's model and the page prints its figure; one it does not prints 'duration unmeasured', never a zero or a typed constant; the rest a dash (got: (2, 2))
+    tools/plan/replan.py rc 0
+worktree diff after restore: clean
