@@ -1,0 +1,46 @@
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 85eaf6f5cf..3d0b7bbc81 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -67,6 +67,8 @@
+ # v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
++cycling_cost  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 14 -> 0, combined draw 11 -> 0, charges 9 -> 3, starts 4 -> 3, energy 40.97 -> 42.45 kWh, predicted_cost 32.07 -> 33.76 (up: the committed charges buy what the trickles under the floor did not), worst gap under the hot-water requirement 0.557 -> 0.439 K
++everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 10 -> 0, combined draw 4 -> 0, charges 5 -> 3, starts 5 -> 3, energy 68.83 -> 68.64 kWh, predicted_cost 61.48 -> 61.83 (up), worst gap under the hot-water requirement 0.550 -> 0.438 K
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+@@ -117,13 +119,15 @@
+ # keys (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove
+ # when drift lanes are pinned or the polish improvement scale leaves
+ # 5e-5-2e-2.
+-# may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
++# (R11-OUTSIDE-HONEST-DHW-RUNS suspends cycling_cost's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+ # #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
+ # band (objective rel -1.7666e-04, deterministic on one box),
+ # runner-conditional for the same reason; judged keys still fail. Remove
+ # when drift lanes are pinned or the polish improvement scale leaves
+ # 5e-5-2e-2.
+-# may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
++# (R11-OUTSIDE-HONEST-DHW-RUNS suspends everything_on's may-drift entry for its claim below; restore it,
++#  verbatim, when the stamp empties the list) everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+ # directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
+ # the noise band (objective rel -5.2974e-03, deterministic on one box),
+ # runner-conditional for the same reason; judged keys still fail. Remove
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index bd99fb286b..13e2a10f99 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -14,8 +14,8 @@
+  "max_class_loc": 7877,
+  "max_method_loc": 373,
+  "methods_over_150": 14,
+- "methods_over_200": 7,
++ "methods_over_200": 6,
+  "name_kept_members": 38,
+- "recorded_at": "4ce615b5e6c3fe2cfdf05aae9fd81e8af896b3fc",
++ "recorded_at": "2d7161a4b70923da910f9997e18db632c0d4ec2d",
+  "seam_cut_total": 415
+ }

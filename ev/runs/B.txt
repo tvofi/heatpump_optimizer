@@ -1,0 +1,11 @@
+SURVIVED NULL
+KILLED M1a_charges_run_always_true
+KILLED M1b_floor_weakened
+KILLED M2_commit_most_expensive
+KILLED M3_refusal_none
+KILLED M4_store_margin_zero
+KILLED M5_combi_slack_x100
+KILLED M6_whole_charges_passthrough
+KILLED M7_state_moves_all_startable
+KILLED M8_coast_plus_half
+EXIT=0

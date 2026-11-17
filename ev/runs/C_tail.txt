@@ -1,0 +1,9 @@
+duty-cycle (clamped False, floor 1.5) tail refused: hot-water steps under the floor as planned 0 as shipped 0, start count combined 5.00, energy_kwh 26.04, worst gap 0.881 K
+duty-cycle (clamped False, floor 1.5) tail allowed: hot-water steps under the floor as planned 1 as shipped 1, start count combined 5.00, energy_kwh 25.97, worst gap 0.880 K
+modulating clamped (clamped True, floor 1.5) tail refused: hot-water steps under the floor as planned 0 as shipped 0, start count combined 5.00, energy_kwh 26.04, worst gap 0.881 K
+modulating clamped (clamped True, floor 1.5) tail allowed: hot-water steps under the floor as planned 1 as shipped 0, start count combined 5.00, energy_kwh 26.23, worst gap -0.221 K
+fixed-speed (clamped True, floor 5.5) tail refused: hot-water steps under the floor as planned 4 as shipped 0, start count combined 5.00, energy_kwh 27.50, worst gap -0.203 K
+fixed-speed (clamped True, floor 5.5) tail allowed: hot-water steps under the floor as planned 4 as shipped 0, start count combined 5.00, energy_kwh 27.50, worst gap -0.203 K
+combi fixture (clamped True) tail refused: hot-water steps under the floor as planned 0 as shipped 0, start count combined 6.00, energy_kwh 30.13, worst gap -1.887 K
+combi fixture (clamped True) tail allowed: hot-water steps under the floor as planned 0 as shipped 0, start count combined 6.00, energy_kwh 30.13, worst gap -1.887 K
+EXIT=0

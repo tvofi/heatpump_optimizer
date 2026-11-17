@@ -1,0 +1,28 @@
+features_block: the block raised other than a NameError:
+a returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Traceback (most recent call last):
+  File "/root/wt/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/root/wt/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 1274, in <module>
+IndexError: list index out of range
+
+emit rc=1

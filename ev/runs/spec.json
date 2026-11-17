@@ -1,0 +1,11 @@
+[
+{"name":"M1a_charges_run_always_true","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"    return not bool(np.any(low & ~(ends & tails)))","new":"    return True"},
+{"name":"M1b_floor_weakened","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"(plan < floor - 1e-9)","new":"(plan < floor - 1.0)"},
+{"name":"M2_commit_most_expensive","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"key=cost, default=plan)","new":"key=lambda c: -cost(c), default=plan)"},
+{"name":"M3_refusal_none","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"    if start_below is not None:\n        lost = np.flatnonzero","new":"    return None\n    if start_below is not None:\n        lost = np.flatnonzero"},
+{"name":"M4_store_margin_zero","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"_STORE_MARGIN_K = 0.02","new":"_STORE_MARGIN_K = 0.0"},
+{"name":"M5_combi_slack_x100","file":"custom_components/heatpump_optimizer/optimizer.py","old":"_COMBI_COMMIT_SLACK_K = 0.05","new":"_COMBI_COMMIT_SLACK_K = 5.0"},
+{"name":"M6_whole_charges_passthrough","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"    on, kept = np.r_[False, plan > 0.0, False], mask.copy()","new":"    return mask\n    on, kept = np.r_[False, plan > 0.0, False], mask.copy()"},
+{"name":"M7_state_moves_all_startable","file":"custom_components/heatpump_optimizer/runs.py","old":"        if may_start or not free:","new":"        if True:"},
+{"name":"M8_coast_plus_half","file":"custom_components/heatpump_optimizer/dhw_planner.py","old":"* self.dt / self.c_dhw + gain","new":"* self.dt / self.c_dhw + gain + 0.5"}
+]

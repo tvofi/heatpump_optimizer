@@ -1,0 +1,12 @@
+cycling_cost committed: charges 3, hot-water steps under the floor 0 (not a charge's last 0), combined 0 (0), worst gap 0.439 K, start count combined 3.00 hot water alone 3.00, published starts 3, energy_kwh 42.45, predicted_cost 33.76
+  build 0: space plan known False, uncommitted charges 9 under the floor 14, program rounds 1 of 8, shipped a committed plan at ranked cost 13.9746 (the uncommitted plan's 24.5274)
+    program candidate, charges 3: accepted, ranked cost 13.9746
+  build 1: space plan known True, uncommitted charges 9 under the floor 14, program rounds 1 of 8, shipped a committed plan at ranked cost 15.3577 (the uncommitted plan's 20.0857)
+    program candidate, charges 6: accepted, ranked cost 15.3577
+cycling_cost uncommitted: charges 9, hot-water steps under the floor 14 (not a charge's last 14), combined 11 (11), worst gap 0.557 K, start count combined 5.90 hot water alone 10.50, published starts 4, energy_kwh 40.97, predicted_cost 32.07
+everything_on committed: charges 3, hot-water steps under the floor 0 (not a charge's last 0), combined 0 (0), worst gap 0.438 K, start count combined 3.00 hot water alone 3.00, published starts 3, energy_kwh 68.64, predicted_cost 61.83
+  build 0: space plan known False, uncommitted charges 5 under the floor 10, program rounds 1 of 8, shipped a committed plan at ranked cost 9.3772 (the uncommitted plan's 11.0773)
+    program candidate, charges 3: accepted, ranked cost 9.3772
+    lifted candidate, charges 5: accepted, ranked cost 11.2648
+everything_on uncommitted: charges 5, hot-water steps under the floor 10 (not a charge's last 10), combined 4 (4), worst gap 0.550 K, start count combined 5.66 hot water alone 7.23, published starts 5, energy_kwh 68.83, predicted_cost 61.48
+EXIT=0

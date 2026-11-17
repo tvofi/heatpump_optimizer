@@ -1,0 +1,22 @@
+Fix review: merge 46ca7b5a5bd43619d681ab3c159c9f829dab9638
+
+bus-nonce: 7bb68f711bf99dd034af25d6eb84152f
+pending-ci: gate
+
+## Evidence
+
+- Head reviewed: 46ca7b5a5bd43619d681ab3c159c9f829dab9638 (`ev/HEAD.txt`). `git merge-tree --write-tree origin/main 46ca7b5a5b` exits 0 with no conflict (`ev/merge-tree.txt`); merge base a1d0b4171b.
+- Review packet: `review_packet.py render --pr 3709 --head 46ca7b5a5b` exits 3, `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r10-roster: fatal: Not a valid object name b2ce461c`, and writes nothing. Its `LANDED` regex reads the body line "Carry 3 (this pull request's own `## Forward-carry` item b2ce461c, landed on this group's row)" as a carry landed at commit b2ce461c. That hex is a Forward-carry item id, not a commit. The live checks were read through `merge_train.py classify` instead.
+- Production code read at the head: `optimizer._charge_runs`, `_combi_flux_exchange`, and `dhw_planner.charge_refusal`, `charges_run`, `whole_charges`, `_StoreProgram.accepted` and `commit_charges`. The fallback order (unengaged returns the plan as handed; no start priced and already running returns the plan as handed; otherwise the cheapest accepted candidate, else the uncommitted plan) matches the body's bindings 1 to 5.
+- Reviewer's own mutants, through `mutant_run.py` in its git-archive copy (`ev/runs/B.txt`): NULL survived and all 8 were killed. Killed: `charges_run` always True; its floor slack 1e-9 changed to 1.0; the commit ranking the dearest candidate; `charge_refusal` returning None; `whole_charges` returning the mask unchanged; `state_moves` ignoring `may_start`; `_DhwPlanContext.coast` shifted by 0.5 K. `_STORE_MARGIN_K = 0.0` and `_COMBI_COMMIT_SLACK_K` ×100 were killed by one check only, a pin by value (see Findings).
+- Harness `dev/audit/harnesses/r11_honest_dhw_runs.py` at the head: arms `fixtures`, `kernel`, `combi` and `tail` exit 0. Every quoted line re-derived equal to the body (`ev/runs/C_*.txt`). Base copy at 2d7161a4b7 with the head's harness: the kernel sha1 `c87fe02dd94b0b3ffaa19fd4f709ad8acc1b46dd` equals the head's, and the head's `uncommitted` fixture lines equal the base's (`diff` clean). The base has no `runs.advance`, so the 60-of-60 kernel lines are head-only, as the body states.
+- Group's block: emitted with the END `R.section("#3616 R11-OUTSIDE-ROOMS-P1`, the block-only run gave `1 of 32 FEATURES BLOCK FAILED` (`ev/runs/A2.txt`). With `--through` the same check passes (`ev/runs/A3_through.txt`). The two failures the prefix run prints (`D1-s2-55` pickling of `features_block._F15Optimizer`, `_bootstrap drops the package directory`) are artifacts of running under `features_block.py`, outside this group. The body's `ALL 32 FEATURES BLOCK PASSED` was not reproduced block-only (see Findings). The full-script result is CI's `gate`.
+- `tests/structure.py`: `STRUCTURE RATCHET PASSED`. The only budget change is `methods_over_200` 7 to 6, a decrease; no raise (`ev/runs/D_diff.txt`).
+- `tests/golden/claimed_drift.txt`: claims `cycling_cost` and `everything_on`, and suspends their may-drift entries. `claims-for: 10.0.3` equals `VERSION` 10.0.3. `env_drift.py --all a1d0b4171b`: `NO UNCLAIMED DRIFT: 56 scenario(s) checked`, `NO STALE FIXTURE: 56 committed fixture(s) still match`, exit 0. VERSION, the manifest and the notes heading are untouched.
+- `tools/audit/archscore/score.py --diff a1d0b4171b`: `Architecture score: dS +0.0000 NULL`, as the body states.
+- CI: `merge_train.py classify` log in `ev/classify-log.txt`.
+
+## Findings
+
+- The group's block is not self-contained. Run alone, its check `combi: the exchange leaves its rounds when a round's plan repeats the one before: the unengaged solve stops short of the cap` fails `[4 of 4; engaged 2]`; it passes when the preceding blocks run first. The body's CMD A claim (`ALL 32 FEATURES BLOCK PASSED`) therefore depends on a prelude this reviewer did not reproduce from the body's description. Carry: dismissed: the whole script, which CI's gate runs, passes the check; the dependence is a property of block-only runs, not of the shipped code
+- `_STORE_MARGIN_K` (to 0.0) and `_COMBI_COMMIT_SLACK_K` (×100) are killed only by the by-value pin of the design constants; no behavioural check moves under either. The body's null control covers the slack taken to zero, not raised. Carry: dismissed: both are design constants the note sets and the block pins by value; the slack's lower side is driven by the combi null control

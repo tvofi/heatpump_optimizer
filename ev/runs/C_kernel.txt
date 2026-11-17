@@ -1,0 +1,7 @@
+runs.commit over 1200 random cases: sha1 c87fe02dd94b0b3ffaa19fd4f709ad8acc1b46dd
+800 cells: kernel cost equals the exhaustive search's on 60 of 60 feasible cases (60 drawn), beats it on 0, finds no plan on 0
+400 cells: kernel cost equals the exhaustive search's on 59 of 60 feasible cases (60 drawn), beats it on 0, finds no plan on 0
+100 cells: kernel cost equals the exhaustive search's on 53 of 60 feasible cases (60 drawn), beats it on 0, finds no plan on 0
+20 cells: kernel cost equals the exhaustive search's on 35 of 60 feasible cases (60 drawn), beats it on 0, finds no plan on 0
+null, the search with the bounds ignored: cheaper than the kernel on 60 of 60, equal on 0
+EXIT=0

@@ -1,0 +1,4 @@
+combi, a start priced: rounds 3, committed builds 1, committed build shipped True, hot-water steps under the floor 0 (not a charge's last 0), combined 0, worst gap -1.617 K, dhw_kwh 20.59
+combi, cannot duty-cycle: rounds 3, committed builds 1, committed build shipped True, hot-water steps under the floor 0 (not a charge's last 0), combined 0, worst gap -1.887 K, dhw_kwh 20.90
+combi, null, unengaged: rounds 3, committed builds 0, committed build shipped False, hot-water steps under the floor 1 (not a charge's last 1), combined 1, worst gap -1.768 K, dhw_kwh 20.63
+EXIT=0

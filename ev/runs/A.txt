@@ -1,0 +1,101 @@
+
+=== features block ===
+
+-- R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store
+  ok   acceptance: on an install that can duty-cycle, with a start priced, no shipped hot-water step lies between the running rule and the floor but a charge's last; the same solves with the planner handed no ChargeRuns ship such steps (the plan before this group, the control)
+  ok   the committed plans hold the tank no further under its floor than the uncommitted ones (0.05 K, the planners' tolerance), and the combined draw starts no more often
+  ok   unengaged (no start priced, an install that can duty-cycle) the optimizer hands the planner no ChargeRuns, engaged it hands the cost, the running reading and the clamp; a planner handed none returns the plan it was given, the same object
+  ok   ruling b: the store program is handed where the pump would start; a charge its own walk refuses clears that step and the program runs again, and what ships is the program's last plan, committed, in more than one round and fewer than STARTABLE_ROUNDS
+  ok   with no start condition known the program runs once and its plan ships (null of the rounds above)
+  ok   the acceptance refuses a plan whose second charge opens at its start temperature on the supplied walk, at that step; one degree lower it passes
+  ok   the lifted plan ships only through the acceptance: where raising a charge to the floor leaves a later one unstartable the uncommitted plan ships, the same object; with a floor the lift does not carry that far the lifted plan ships
+  ok   the acceptance refuses a lifted plan whose clamped tail leaves the tank under a floor the uncommitted plan held, and the uncommitted plan ships; against no floor the same plan passes
+  ok   the generalised kernel's cost equals an exhaustive search's on every feasible nine-step case with two levels and hard bounds at 800 cells, and the cost of the path its read-back returns (mask and action index) is that cost; the kernel never beats the search, and declares no plan only where the search finds none
+  ok   null control: a search that ignores the bounds finds a cheaper plan than the kernel in most cases, so the agreement above is the bounds' and not the search's
+  ok   the move rule begins no run on a free step it is told the pump would not start, and still does on a forced-on step; told nothing it is the rule commit always had
+  ok   a second level at the floor: the long charge at the floor ships where it is the cheaper one (every step at the floor, more than one step), and with the floor level taken from the program the plan that ships buys more energy
+  ok   the commit ranks its candidates by energy plus the starts of the combined draw: beside a space run the charge that follows it ships though it buys more energy (no start of its own), with no space plan the cheaper late charge ships (each is one start), and with no start priced the cheaper ships beside the space run too
+  ok   the store program prices a start by the share of it the space plan's step before leaves open: beside a space run its charge begins inside or straight after the run and adds no start to the combined draw; with no space plan it stays on the plan's own steps
+  ok   the tail: on an install that can end a run at any moment a charge that would pass the ceiling ends inside its last step, under the floor, after a step at the floor; an install that cannot ships no step under the floor for the same tank
+  ok   a forced-off step stays off in the committed plan; the same tank with none forced charges on one of those steps (the control)
+  ok   at a 5-minute step every committed charge and every pause between two is at least the two steps MIN_RUN and MIN_PAUSE cover, where the uncommitted plan's charges were one step each
+  ok   with no start priced a plan whose charges already run ships as it is, the same object, and the program is not asked; one with a step under the floor, or with a start priced, is committed
+  ok   charges_run: a step under the floor is a charge that runs only as the last step of a charge whose step before ran at the floor or above, and only where a run may end inside a step
+  ok   combi: the exchange's rounds build with a planner handed no runs to commit, the same number and the same last plan as the same exchange with no ChargeRuns at all; that one and an unengaged solve make no committed build, an engaged one makes one, after the rounds
+  ok   combi: the committed build ships where the store under its own flux holds what the last round's plan held, with no step under the floor but a charge's last; refused (the slack taken away), the last round's plan ships, as it does with no ChargeRuns
+  ok   a suppression takes a committed charge whole or leaves it whole: the charge it would cut before its tail stays (no lone step under the floor), the one it covers goes, and the steps outside any charge stay suppressed; on a solve that plans no runs the mask is returned as it is, which leaves the tail alone (the control)
+  ok   the store program's grid is 0.25 K, its COP table 1 K and its margin 0.02 K, and the commit's and the combi exchange's tolerances are the planners' 0.05 K (design choices, pinned by value)
+  ok   the acceptance's floor clause passes a walk exactly the tolerance under the floor and refuses the next float down
+  ok   the program's start price is the start cost less the share of a start the space plan's step before carries: all of it after an idle step, none after a step at the floor or above, half after half the floor, and none on the first step while the compressor runs
+  ok   a store that begins over its ceiling pauses there and the program still finds its plan (the ceiling binds charging arrivals only); a tank that coasts onto its mark has no room and is not filled, one a kelvin under is
+  FAIL combi: the exchange leaves its rounds when a round's plan repeats the one before: the unengaged solve stops short of the cap  [4 of 4; engaged 2]
+  ok   from a pause the kernel tells a running and a pausing action their cells were not running, and tells the cell rule which arrival is in a run
+  ok   the shortest run and the shortest pause are held apart: with a two-step pause at a one-step run, every pause between two committed charges is two steps or more, the plan charges on its first step (the compressor runs, so that is no start and waits for no pause), and its charges hold the floors
+  ok   the store program returns no plan where a floor is over the ceiling; a program plan with a step under the floor inside a charge does not ship though it is the cheapest and holds every floor, and neither it nor one refused for a floor is asked for a second time
+  ok   a run power equal to the floor commits at that one level; a run power under the floor ships the plan as it is, the same object
+  ok   a build under external heat passes its suppression mask through whole_charges with the planner's ChargeRuns, and what comes back suppresses no step the mask did not
+
+-- #3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health
+  ok   a climate room reads current_temperature and its target from attributes, calling from hvac_action
+  ok   a climate with no current_temperature is not_numeric, and with no hvac_action its call for heat is unknown, not False; a sensor room reads its state, no target
+  ok   a Fahrenheit instance's climate attributes convert to degC; null control, a Celsius instance reads the same 68 raw, outside a room's range
+  ok   an unavailable, missing, stale (past the indoor limit, 360 min) and implausible room each carry their problem word, the implausible one no temperature; null control, the watchdog off reads the old room fresh
+  ok   no room read records into the reader's input health, on any path
+  ok   the summary is the mean and the warmest less the coldest over the readable rooms, naming the coldest and the warmest
+  ok   the quorum is half the list, minimum one: 10 of 20 and 2 of 3 summarise, 9 of 20, 1 of 3, 0 of 1 and an empty list do not
+  ok   a stale room's kept temperature never reaches the summary
+  ok   the room list parses absent, None, empty and a stored non-list to the empty tuple, a list to a tuple without its empty items, and survives a factory reset as wiring
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   twenty rooms with one unavailable leave input_problems and stale_inputs equal to the no-list run; null control, the same unavailable entity as the indoor thermometer raises a problem
+  ok   the payload's rooms block carries the average, spread, valid count, the dropped room and each readable thermostat's temperature, target, call for heat and HVAC mode
+  ok   no list and an empty list publish no rooms key and the same payload keys
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   an action carrying a displace hands it, as a number, to the ECL110 lag and the coordinator's read of it; null control, an action with no displace leaves the read where it was
+  ok   the room read's age limit is the indoor sensor's, the staleness scale applied through the same clamp max_age_for applies
+  ok   the staleness scale is clamped at both ends: a scale under 0.5 reads as 0.5 and one over 10 as 10; null control, the two ends themselves pass through unchanged
+  ok   a room's range is closed: -30 and 60 degC read, -30.1 and 60.1 are implausible
+  ok   the side table holds plain data only: a tuple of frozen readings
+
+-- #3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor
+  ok   room A three kelvin under its target lifts the floor: from the house's 0.1 K margin over the floor at step 0, rising 0.25 K an hour, to the 0.5 K day band, and to the 1.0 K cap under the night band from 22:00
+  ok   with the house at or above the lifted floor the lift is flat at the band: 0.5 K at every day step, the night band at a night step
+  ok   a 0.3 K confidence margin leaves the lift 0.2 K, so both margins end at the comfort target and never past it; the ramp's anchor is the house's margin over the floor with that margin on it (19.9 over 19.8: 0.1 K at step 0)
+  ok   a confidence margin wider than the day band takes the whole band: no lift at a day step (never a negative one), the rest of the night band at a night step
+  ok   no lift, and the base array object itself (None stays None), for a room at its target, a room switched off or cooling, a stale room, a sensor with no target, an empty list, the flag off, Economy, an open window, away, a manual space pin, the two-zone model, a holiday and an unknown house temperature; null control, room D in heat mode lifts and is named
+  ok   the gate names the first signal that fires and is None when none does
+  ok   a list under its quorum lifts nothing however short its one readable room, and a list of sensors has no target to lift by; null control, one readable room of two is a quorum
+  ok   a room no shorter of its target than the house is of its own lifts nothing; one 0.5 K shorter lifts 0.5 K; one five kelvin shorter lifts the 1.0 K cap
+  ok   a room less short of its target than the house is of its own holds a lift of zero, never a negative one; null control, a room 0.5 K shorter than the house holds 0.5 K
+  ok   a negative confidence margin is read as zero, as the solver reads it: the lifted margins equal those with no confidence margin at all, the night band's 1.0 K included
+  ok   a house under its floor starts the ramp at zero, never below: step 0 takes no lift and step 1 one step of the rate
+  ok   the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up
+  ok   the band is read at each step's hour and minute, target and floor both, as the solver's bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's 19.25 target over its 19.0 floor, 0.25 K, from 21:30
+  ok   a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift starts its ramp nowhere
+  ok   a held 0.5 K lift stays, array and all, while the rooms ask 0.125 K more, moves to 0.75 K when they ask 0.25 K more, drops to zero at once under a gate, and from zero ignores a 0.125 K ask
+  ok   a holiday date later in the horizon takes no lift at its own steps and leaves today's; null control, the same horizon with no holiday lifts every step
+  ok   a what-if's margins equal the baseline's after the readings change, and its clip is its own configuration's (a 19.75 target leaves a 0.25 K band over the same 0.1 K anchor); an owner never solved hands back the base; null control, a scheduled solve on the new readings lifts nothing
+  ok   the rooms block names the lift's size to a hundredth, its room (none while nothing is lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with no list
+Traceback (most recent call last):
+  File "/root/wt/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/root/wt/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 1274, in <module>
+IndexError: list index out of range
+EXIT=1

@@ -1,0 +1,3 @@
+cycling_cost uncommitted: charges 9, hot-water steps under the floor 14 (not a charge's last 14), combined 11 (11), worst gap 0.557 K, start count combined 5.90 hot water alone 10.50, published starts 4, energy_kwh 40.97, predicted_cost 32.07
+everything_on uncommitted: charges 5, hot-water steps under the floor 10 (not a charge's last 10), combined 4 (4), worst gap 0.550 K, start count combined 5.66 hot water alone 7.23, published starts 5, energy_kwh 68.83, predicted_cost 61.48
+EXIT=0
