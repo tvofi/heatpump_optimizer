@@ -1,3 +1,9 @@
+wrote /tmp/tmp4h29siiw/page.html: 8 groups, closure 2026-01-06T22:04:00Z
+wrote /tmp/tmp4h29siiw/page.html: 8 groups, closure 2026-01-06T22:04:00Z
 plan_page self-test: 152 checks, 0 failed
-beat_jobs self-test: 284 checks, 0 failed
+  ok   mutant no_per_run_remember killed by: darwin-selftest: a pass killed partway keeps the runs it finished
+  ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+beat_jobs self-test: 274 checks, 0 failed
+  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
+ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed

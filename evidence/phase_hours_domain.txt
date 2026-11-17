@@ -1,5 +1,0 @@
-{'finders': nan} -> nan h (plan model)
-{'finders': inf} -> inf h (plan model)
-{'finders': '7'} -> duration unmeasured
-[7.5] -> EXC AttributeError 'list' object has no attribute 'get'
-7.5 -> EXC AttributeError 'float' object has no attribute 'get'
