@@ -78,7 +78,7 @@ gantt
 | R10-CLOSEOUT-CLEANUP | C | 1 | absorbed | #2505, #2727, #2728 | sonnet/opus | yes: mandated approval under 6329234399 | Programme-closeout work, and it runs LAST: after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, after the roster and the state docs have moved into main,... |  |
 | R10-START-COUNTER-EDGES | CORE | 1 | done | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-GH-READ-RESIDUE-P3 | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/r10-round-end.md#P755 at 2e17928032 Narrowed by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C14 and O1: a... |  |
-| R10-PREPR-DARWIN-SELFTEST-LANE | IN | 2 | in-progress | - | sonnet/claude-opus-5-5 | - | triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032 Re-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). |  |
+| R10-PREPR-DARWIN-SELFTEST-LANE | IN | 2 | carries-open | - | sonnet/claude-opus-5-5 | - | triage: dev/programme/triage/r10-round-end.md#P761 at 2e17928032 Re-cut by the round-10 round-end triage (ratified by tvofi 2026-11-15, cards C7, C14 and O1). |  |
 | R10-NUDGE-RETIRE | IN | 1 | carries-open | - | opus/opus | yes: policy: merges under mandate 6715477401 | Owner instruction, tvofi, 2026-11-12, verbatim: "ok, correct any references to that script or remove it entirely". |  |
 | R11-OUTSIDE-HONEST-STARTS-RUNS | CORE | 1 | carries-open | #3529 | opus/opus | yes: merges and code-owner approvals stay with the owner (2026-11-12 ruling on the contributor); the design review rules the note's three owner decisions | Outside pull request 3529 by Bankaifan (fork head 1f9daef4d93f at acceptance; re-read it with git ls-remote origin refs/pull/3529/head), accepted for round 1... |  |
 | R10-SELFTEST-SCOPE-UNION-GUARD | IN | 1 | absorbed | - | sonnet/opus | - | AUDIT-CLASS BARRIER, part C of the root-cause analysis R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10). |  |
@@ -138,7 +138,7 @@ gantt
 | R11-START-EVALUATION-LAND | IN | 1 | done | - | opus/opus | - | Land the approved round-11 start evaluation (eval/r11, approved at the evaluation review round 4, c04cef7fca) on main so check_scopes.py --round 11 can read... |  |
 | R11-HOTFIX-MAIN-SELFTEST-DRIFT | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-RCA-SELFTEST-TABLE-DRIFT | IN | 1 | in-progress | - | opus/opus | - | Root-cause record, S. |  |
-| R11-ARCH-OBJECTIVE | IN | 1 | planned | - | opus/opus | yes: policy | Owner item (tvofi 2026-11-16 ~22:05Z): make decision 0018's objective function one of the round architect's goals beside the architecture score, so P3's plan... |  |
+| R11-ARCH-OBJECTIVE | IN | 1 | in-progress | - | opus/opus | yes: policy | Owner item (tvofi 2026-11-16 ~22:05Z): make decision 0018's objective function one of the round architect's goals beside the architecture score, so P3's plan... |  |
 
 ## ETA
 
