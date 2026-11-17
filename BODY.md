@@ -25,6 +25,25 @@ This body describes the channel only. No seat of this group looked for a finding
 
 ## Head
 
+`1455a5ad970f725ceefd883ec67cf15a9d78c545` is the code head: two commits on `f7f45193ae3c1816cd1fa63746e972a30aec7773`.
+
+- `b0a8effcd1149e6e544bd3593799c08ca628a6f3` merges origin/main `8f39313a44a4baec18b239ba925f6e164eb26bd2` into `f7f45193ae`, because the pull request was `DIRTY`: `tools/audit/seat/gh_calls.py`, `tools/audit/seat/gh_read.py` and `tools/audit/seat/shims/seat-gh` conflicted, where main's host-wide gh log (`--top` reads `$HOME/.local/state/hpo/gh-calls.log` plus a distinct `$HPO_STATE_DIR` log, with a `sources:` table and `--log`; the shim's install-fixed `loghome`; `gh_read`'s `conditional_get` self-test block) and this branch's owner-only work (`--top`'s bucket table; the shim's OWNER-ONLY MODE comment; `gh_read`'s bulk-read self-test block) sat at the same lines. Resolved by union, which changes reviewed code: `gh_calls.py`'s module docstring is rewritten to state both (the bucket rule, then main's sources), and each conflicted self-test keeps both blocks, this branch's first. Nothing else conflicted. At `b0a8effcd1149e6e544bd3593799c08ca628a6f3`: the `gh_read` self-test (`python3 -I -c "import sys; sys.path.insert(0, 'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())"`) prints `176 checks, 0 failed`; `python3 -I tools/audit/seat/gh_calls.py --self-test` prints `229 checks, 0 failed`; `python3 -I tools/audit/seat/owner_only.py --self-test` prints `ok (with mutants)`; `python3 -I dev/audit/harnesses/owner_only_channel.py` prints `RESULT arms=49 failed=0` and `OWNER-ONLY CHANNEL HELD`; `python3 -I dev/audit/harnesses/owner_only_mutants.py` prints `RESULT mutants=54 survived=0`, its `shim` group run against the merged shim.
+- `1455a5ad970f725ceefd883ec67cf15a9d78c545` repairs `tests / closures` (`## Red checks`): `dev/audit/config/scopes.json` joins `tests/closure.py`'s `INERT_EXCEPT`, and a Linux `./tests/derive_closures.sh --single tests/entities.py --record-only` recording at `b0a8effcd1149e6e544bd3593799c08ca628a6f3` is merged into `tests/closures.json` (one closure line, and that script's recorded `rc`).
+
+prepr: passed rc=0 at 1455a5ad970f725ceefd883ec67cf15a9d78c545
+
+`f7f45193ae3c1816cd1fa63746e972a30aec7773`, and `c46ed1fed26b8912e20c4171e8422bf0884fe333` before it, merge the code head `75b8f26b4c` and origin/main `2d7161a4b7` (automatic merges by the orchestrator's script, no resolution of their own).
+
+`75b8f26b4cae4e7671a364185cceb66b0b8d837b` is origin/main merged into the reviewed head `d40c045119e3dd9f00a88ded4ec109e2d617f545` (orchestrator hand-fix): one conflict, `tests/layout.json`'s `tools/audit/{...}` glob; both entries kept, `product_reads.py` where main put it (after `enumerate.py`) and `leak_detectors.py` where this branch put it (last); nothing else changed. At `75b8f26b4c`, `tests/layout.py` and `tests/structure.py` exit 0.
+
+`d40c045119e3dd9f00a88ded4ec109e2d617f545` merges the authored code head `27e47beced869de7166ef7d3ccde7207fe3584fe` and then merges origin/main `b425502da8` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`27e47beced869de7166ef7d3ccde7207fe3584fe` is the handoff code: origin/main `b425502da8` merged into `68d87a6e16` below, because main then conflicted once more, in `tools/audit/fold_ledger.py`'s self-test tail: this branch's owner-only rows and main's `_self_test_yield(expect)` call were appended at the same place. Both kept, the owner-only rows first; at `27e47beced`, `python3 tools/audit/fold_ledger.py --self-test` exits 0 with 66 rows ok, both sides' rows among them, `finder_overlap.py --self-test` still prints `ok (with mutants)`, and `tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+
+`68d87a6e16023de78432cc37b87eaf45c8b4c9f0` is origin/main `b98c78e0f6` merged into the reviewed handoff `ccf1c590e7`, by the orchestrator's landing seat, because `git merge-tree --write-tree` reported one conflict, in `tools/audit/seat/finder_overlap.py` `seat_pair`. This branch reads any dimension number there (`SEAT_RE`), so the owner-only refusal covers every dimension; main (commit `885d9c53cc`, D16/D17 scheduled) bounds seating to D0..D17, the report schema's range, and pins a D18 seat refused. Both kept: `SEAT_RE` matches, the owner-only refusal runs first, then the D0..D17 bound. The self-test's owner-only canary dimension moves from D18 to D17, so its flag-removed null stays seatable under main's bound. At `68d87a6e16`: `python3 tools/audit/seat/finder_overlap.py --self-test` prints `finder_overlap self-test: ok (with mutants)`, every mutant of both sides killed (`any dimension number` by `flag removed is admitted`, `seat bound D15/D16/D18` by `D17 seat are seated`); `tests/structure.py` `STRUCTURE RATCHET PASSED`. No other file conflicted; `tests/closures.json` was merged by its ledger driver.
+
+The review-carried code is unchanged below this line:
+
 ccf1c590e7b34f439fedb331570bb6d91dd25bf2
 
 prepr: passed rc=0 at ccf1c590e7b34f439fedb331570bb6d91dd25bf2 (scoped)
@@ -142,7 +161,7 @@ A survivor in the rule itself (an early return on an empty set, equivalent to th
 - Architecture score: `python3 tools/audit/archscore/score.py --diff origin/main` (no product module changes).
 - Not measured, and why (design figures F3 to F7): the first scan's and an incremental round's calls per bucket. This seat may call GitHub for search only and holds no read credential, so `corpus_mirror.py` has run against a stub alone. The enumerators stand: `python3 -I tools/audit/seat/corpus_mirror.py cost --private-root <dir>` and `python3 -I tools/audit/seat/gh_calls.py --top --since <scan start>`. The brief (part 2) names the floor and the batch as `gh_read.py`'s constants, never a literal.
 
-<!-- figure-block: scope-line mb=6f422812d5d8b918beace0283419c153f6df66ce head=ccf1c590e7b34f439fedb331570bb6d91dd25bf2 -->
+<!-- figure-block: scope-line mb=2d7161a4b70923da910f9997e18db632c0d4ec2d head=1455a5ad970f725ceefd883ec67cf15a9d78c545 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -150,7 +169,15 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-- `gate`: red at the pull request's head 0903ac476779878d213957751f84597c8871cf5a, its log ending `FAIL tests: no run at this head judged base 'main'`: the suite's run at that head was cancelled and none completed, while the head conflicted with main in two files. No job of the diff failed. Process state (d): main moved under an open pull request. The cheaper detector exists and is the one this round ran: `git merge-tree --write-tree origin/main HEAD`, under a second, which reports the conflict before any run is spent; the merge above is the repair. No new countermeasure: the train re-proves the head on the current main.
+The required-check reds at `f7f45193ae3c1816cd1fa63746e972a30aec7773`, each read from its job log (`gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>/logs`); the owed set is `python3 tools/audit/seat/merge_train.py owed-reds`.
+
+- `tests / closures` (job 133744284291): `INERT READS UNDER-APPROXIMATED ... tests/entities.py: dev/audit/config/scopes.json`. This branch's `check-wave-script.mjs` reads scopes.json's `owner_only` flags, and `tests/entities.py` runs it. Repaired in `1455a5ad970f725ceefd883ec67cf15a9d78c545`, as the `INERT_EXCEPT` route this file already takes for `ci_priority.json`. The other route was tried and lost: listing the file under `inert_reads` for `tests/entities.py` alone makes `python3 tests/closure.py check --in-dir <recording> --partial` print `UNDER-SCOPED: tests/entities.py really reads 1 file(s) the committed closure does not list: dev/audit/config/scopes.json` (rc 1). Control, on one recording: with `f7f45193ae`'s `closure.py` and `closures.json` the check prints `INERT READS UNDER-APPROXIMATED` for that file; at `1455a5ad970f725ceefd883ec67cf15a9d78c545` it prints `closure: committed closures cover every file this run touched` (rc 0). Process state (c): round 2 named this red and waited for `closures-autofix`, which twice ended `AUTOFIX: skip-merge-failed` because the head conflicted with main. Cheaper detector: `./tests/derive_closures.sh --single tests/entities.py` on Linux, about 25 minutes here against the closures job's 24; no saving, so no new countermeasure.
+- `tests / closures-autofix` (job 133761533313): `AUTOFIX: skip-merge-failed`: it could not merge main into the head, because of the conflict `1455a5ad970f725ceefd883ec67cf15a9d78c545`'s parent resolves. No code defect. Cheaper detector: `git merge-tree --write-tree origin/main HEAD`, which takes under a second and reports the conflict before any run is spent. Process state (d): main moved under an open pull request.
+- `governance / instrument-self-tests` (job 133737732978): its failing step's log ends `enumerate.Refuse: const.py PUMP_DUTY_MODES ['control', 'off'] are not the duty modes STATES names ['control', 'observe', 'off']`, from `tools/audit/product_reads.py --self-test`. This diff does not touch `product_reads.py`, `enumerate.py` or `const.py`, and `f7f45193ae`'s own `const.py` holds `("off", "observe", "control")`: the refusal came from the main that run merged with. Inherited, not repaired here. `python3 tools/audit/product_reads.py --self-test` prints `SELF-TEST passed (86 arms)` at origin/main `8f39313a44` and at `1455a5ad970f725ceefd883ec67cf15a9d78c545`'s parent. `merge_train.py classify f7f45193ae3c1816cd1fa63746e972a30aec7773 --pr 3679` printed no `INTRODUCED` line.
+- `gate`: red because of the reds above; nothing of its own.
+- `tests / nightly-status`: not in the owed set; not answered.
+
+The latest verdict on `review/3679`, `Fix review: blocked d40c045119 merge-conflict: tests/layout.json`, is at an earlier head. `75b8f26b4c`, below, resolved it, and `git merge-tree --write-tree origin/main HEAD` at `1455a5ad970f725ceefd883ec67cf15a9d78c545` reports no conflict.
 
 ## Forward-carry
 
@@ -164,3 +191,5 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 ## Friction
 
 none
+
+
