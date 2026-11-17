@@ -389,6 +389,22 @@ def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
 
 
+def finder_gate(group: dict) -> bool | None:
+    """A group's `gates_finders`: whether the round's finders wait for it
+    (roster_edit set-field writes it); None when it is absent or no boolean."""
+    v = group.get("gates_finders")
+    return v if isinstance(v, bool) else None
+
+
+def architect_groups(roster: dict) -> tuple[list, list]:
+    """(the open groups the finders do not wait for, those of them unmarked).
+    What is still open when the finders finish is P3's input (tvofi,
+    2026-11-15), so an unmarked group is listed, never read as gating: a group
+    read as gating would drop out of the architect's plan unseen."""
+    listed = [k for k, g in open_groups(roster).items() if finder_gate(g) is not True]
+    return listed, [k for k in listed if finder_gate(groups_of(roster)[k]) is None]
+
+
 def unfinished_groups(roster: dict) -> dict:
     """Every group whose work did not finish: `open_groups` plus the `refused`
     and `deferred` ones it drops. The closeout run reads this set, because a
@@ -1594,6 +1610,21 @@ def _self_test() -> int:
         check("an override behind an unreadable tree refuses with git's read, "
               "not 'is not a file'",
               "cannot read" in why and "is not a file" not in why, why)
+    # gates_finders (R11-PRE-ROUND-CHECK-GATE part 2, tvofi 2026-11-15): every
+    # open group the finders do not wait for is the architect's input when they
+    # finish; an unmarked one is listed and flagged, never read as gating.
+    gr = {"groups": [{"group": "C", "gates_finders": True, "resume": {"stage": "in-progress"}},
+                     {"group": "N", "gates_finders": False, "resume": {"stage": "not-started"}},
+                     {"group": "U", "resume": {"stage": "not-started"}},
+                     {"group": "Y", "gates_finders": "yes", "resume": {"stage": "design"}},
+                     {"group": "D", "gates_finders": False, "resume": {"stage": "done"}},
+                     {"group": "A", "resume": {"stage": "absorbed"}}]}
+    check("finder_gate reads only a boolean", [finder_gate(g) for g in gr["groups"]] == [True, False, None, None, False, None],
+          [finder_gate(g) for g in gr["groups"]])
+    check("architect_groups lists every open group not gating the finders and flags the unmarked",
+          architect_groups(gr) == (["N", "U", "Y"], ["U", "Y"]), architect_groups(gr))
+    check("architect_groups of a roster whose open groups all gate is empty (null control)",
+          architect_groups({"groups": gr["groups"][:1] + gr["groups"][4:]}) == ([], []))
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)
