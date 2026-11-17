@@ -11,3 +11,4 @@
 1794881175 HB alive
 1794881780 HB alive
 1794882380 CKPT CI red traced to main's product_reads self-test; writing verdict snapshot ef27e87ed4af
+1794882693 DONE verdict merge bf2b1888 pushed to probe/rev-3682-9b185788 (0fe80d87); CI red is main's product_reads self-test, noted
