@@ -951,6 +951,691 @@
           "what": "D15.md: 'No bundle value is written unless export.violations passes it'. export.violations flags any prose as 'an address-like token (a word, then a house number)': D15.md's own text fails it, and so does every field of every finding here, so it cannot grade report text; the bar needs a text-mode check."
         }
       ]
+    },
+    "D15-s1": {
+      "dimension": "D15",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D15/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D15.M1",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M1 --repo <a full checkout at the baseline> (in this walled export enumerate.py d15-installs refuses: D15-s1-01)",
+          "universe": 2,
+          "examined": 1,
+          "not_reached": [
+            "install-1 2026-10-14 round=10 steps=M1,M2,M3,M4,M6,M7 (round 10's bundle; this task named only the 2026-11-16 download)"
+          ],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B --synthetic S: rows 662, rows_without_version 0, releases 9, untagged 0, release_before_tag 0, restart_gaps 2 (1 at a release switch), gaps_with_samples_inside 2 (lead to D15-s3); anomalies of M2-M4 re-measured at the baseline by their harnesses (all run baseline code)"
+        },
+        {
+          "step": "D15.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M2",
+          "universe": 62,
+          "examined": 62,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B --synthetic S --scope whole|debug|replay: LEAK_PROBES 46/46 green; violations whole 72 synthetic / 1102 real, debug 72 / 1012, replay 0 / 0; private_hits 0; planted credential caught 5/5 sections per bundle. C1 answered: the whole-bundle refusal reproduces on the null control and is the brief's scope (D15-s1-02); the run proceeded on the replay-half gate, no bundle value written"
+        },
+        {
+          "step": "D15.M3",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M3",
+          "universe": 24,
+          "examined": 24,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --synthetic S [--corrupt accuracy] [--empty replay|cycle_rows|stores]: 11/11 ok both bundles, 0 vacuous; --corrupt accuracy refused (accuracy_samples_loaded 0, bias-rederived fails); accuracy-loaded and corruption-refused each examined in its own mode"
+        },
+        {
+          "step": "D15.M4",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/enum_s1.py --bundle B --synthetic S --step M4",
+          "universe": 22,
+          "examined": 22,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B --synthetic S [--code-version ledger]: real 16 stores, 16 loaders ran, 0 refused versions (1 under the perturbation), 0 quarantined, 103 off-domain fields, 0 load warnings; synthetic 6 stores, 192 off-domain; findings D15-s1-04, D15-s1-05"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D15-s1-01",
+          "scope": "D15-s1",
+          "step": "D15.M1",
+          "title": "The finder wall strips the evidence bundles.json cites, so D15's universe enumerator refuses in every finder tree",
+          "severity": "medium",
+          "claim": "After tools/audit/prepare_baseline.sh --strip <tree> 11, `tools/audit/enumerate.py d15-installs` refuses (exit 2) on a tree where it printed 1 line before the strip, because strip_earlier_rounds keeps only round files cited by tests/closures.json or tests/*.py|mjs|sh and bundles.json's evidence path is neither.",
+          "mechanism": "strip_earlier_rounds' keep set (closures + literal paths in tests/*) and enumerate.py:d15's existence requirement on bundles.json[].evidence are two definitions of which earlier-round files a finder tree must hold; the D15 brief names `enumerate.py d15-installs` as the universe, so the seat whose dimension it is cannot enumerate it in its own tree (observed in this seat's export: REFUSE ... round10/D15/s1/intake.py is not in the tree). Of the 19 universes enumerate.py serves, only d15-installs refuses in the walled export.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/wall_enum.py",
+            "value": "d15_installs_before_strip=1, d15_installs_after_strip=-1 (refused), evidence_survives=0",
+            "unit": "lines (-1 = refused)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, other finder seats running; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 21.97,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/enumerate.py:d15",
+          "perturbation": {
+            "change": "--cite-in-tests: plant one tests/*.py citing the evidence path (the strip's own keep rule)",
+            "expected_direction": "up",
+            "observed_value": "d15_installs_after_strip=1, evidence_survives=1"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py --round 10",
+            "value": "after=1 (no earlier round stripped)",
+            "note": "the evidence's own round is not stripped, so the enumerator answers"
+          },
+          "metric_definition": "Lines enumerate.py d15-installs prints in a planted tree after prepare_baseline.sh --strip; -1 when it refuses.",
+          "phenomenon_property": "Every path an enumerate.py universe requires to exist survives the finder wall that prepares the tree the universe's dimension runs in.",
+          "seam_rule": "for each universe U in enumerate.py's docstring: bash tools/audit/prepare_baseline.sh --strip <copy> <round> && python3 tools/audit/enumerate.py U --repo <copy> (exit 2 = a seam); at the baseline only d15-installs",
+          "stop_rule_class": "bug",
+          "class_guess": "I4",
+          "files": [
+            "tools/audit/prepare_baseline.sh",
+            "tools/audit/enumerate.py",
+            "dev/audit/config/bundles.json"
+          ],
+          "proposed_fix_scope": "Keep dev/audit/config/*.json-cited evidence paths in strip_earlier_rounds' keep set (one more glob beside tests/*), or have enumerate.py d15 read the evidence from git when the tree is walled; either way a self-test arm in prepare_baseline.sh --strip-self-test planting a bundles.json citation.",
+          "reproduction_steps": [
+            "python3 tools/audit/enumerate.py d15-installs (in the finder export): REFUSE",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/wall_enum.py"
+          ]
+        },
+        {
+          "id": "D15-s1-02",
+          "scope": "D15-s1",
+          "step": "D15.M2",
+          "title": "D15.md step 2's privacy gate over the bundle refuses its own null-control bundle, so every D15 run stops at M2",
+          "severity": "medium",
+          "claim": "export.violations over the debug bundle, the scope D15.md M2 names, returns 72 violations on the synthetic dbg_bundle_gen.py bundle (no private datum by construction) and 1102 on the owner's real download with 0 true private hits, while over the sealed replay half (the scope tools/replay/debug_ingest.py stage 2 gates) both return 0.",
+          "mechanism": "replay_doc.text_ok is the allowlist for a committed public replay fixture; the debug bundle's other sections carry text the integration itself writes (release strings in every cycle row, Home Assistant's redaction marker, insight and ledger prose that the ADDRESS regex reads as 'a word, then a house number', month keys). D15.md M2 and debug_ingest.py hold two definitions of the gate's scope; under the brief's, 'either failing stops the run' fires on every bundle including the null control (round 10 left M2 unfinished on it, item C1). The marker refusal is a second seam: _no_credential does not accept '**REDACTED**', so each redacted credential key reads as 'a credential-named key carries a value' (61 marker leaves refused in the real download).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B [--synthetic S]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+            "value": "synthetic_violations=72 (scope whole), real_violations=1102, real_private_hits=0, replay-half 0/0, leak_probe_controls_green=46/46, planted arms caught 5/5 per bundle",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "synthetic +-5 (prose varies with the fixture); real exact for this download",
+            "load1": 21.47,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/replay_doc.py:violations (via tools/replay/export.py)",
+          "perturbation": {
+            "change": "--scope replay: the gate reads debug.replay only, as debug_ingest.py stage 2 does",
+            "expected_direction": "to_zero",
+            "observed_value": "synthetic_violations=0, real_violations=0, planted arms still 5/5"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+            "value": "synthetic_private_hits=0 with synthetic_violations=72",
+            "note": "a bundle with no private datum: every violation it raises is a false refusal"
+          },
+          "metric_definition": "Strings export.violations returns over the scope named, per bundle; private_hits = credential-named keys holding anything but the redaction marker, or coordinates past the decimal cap.",
+          "phenomenon_property": "D15's privacy gate passes a bundle that carries no private datum (the synthetic null control, and a real download whose only credential-key values are the redaction marker) and refuses a planted credential in any section.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --scope whole|debug|replay (each scope whose synthetic_violations exceeds 0 is a seam)",
+          "stop_rule_class": "bug",
+          "class_guess": "I4",
+          "files": [
+            "dev/governance/dimensions/D15.md",
+            "tools/replay/debug_ingest.py",
+            "custom_components/heatpump_optimizer/replay_doc.py"
+          ],
+          "proposed_fix_scope": "D15.md step 2 names the gate debug_ingest.py already runs (export.violations over debug.replay, planted-credential arm) plus a credential-key and coordinate rule over the rest of the download that accepts Home Assistant's redaction marker; a policy edit, owner approval before merge. No production change is required for the gate itself.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B",
+            "same with --scope replay"
+          ]
+        },
+        {
+          "id": "D15-s1-03",
+          "scope": "D15-s1",
+          "step": "D15.M3",
+          "title": "debug_ingest.py's verdict line misstates what it judged: a fixed /12 denominator and a vacuous replay-clean pass",
+          "severity": "low",
+          "claim": "tools/replay/debug_ingest.py prints stages_ok=12/12 when 11 checks ran, 10/12 when 8 of 10 checks passed (stores emptied), and passes replay-clean with smoke_verdict=pass on a bundle whose replay half is empty.",
+          "mechanism": "main() prints 12 - len(fails) over a constant 12 while ingest() runs accuracy-loaded XOR corruption-refused and skips both when no accuracy store exists; replay-clean is not(export.violations({})) and carries no item count, so D15.md M3's 'a check passing on an empty section is vacuous' is left to the reader.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B [--synthetic S] [--empty replay|stores]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/ingest_checks.py",
+            "value": "checks_ok=11/11 vs tool_stages_ok=12/12 (both bundles); --empty stores: checks_ok=8/10 vs tool_stages_ok=10/12; --empty replay: vacuous_passes=1 with all checks ok",
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 21.91,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+          "perturbation": {
+            "change": "--empty replay (the replay half emptied, as a download from an install without the recorder carries it)",
+            "expected_direction": "up",
+            "observed_value": "vacuous_passes 0 -> 1, verdict still 12/12 pass"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B",
+            "value": "vacuous_passes=0 on both filled bundles",
+            "note": "the overstatement of the denominator persists (12 vs 11) even here"
+          },
+          "metric_definition": "Per bundle: checks ingest() ran and passed, against the stages_ok line main() prints; passes whose section read holds 0 items.",
+          "phenomenon_property": "debug_ingest.py's verdict counts the checks it ran and names a pass on an empty section as not judged.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --empty replay|cycle_rows|stores (each check with section_items=0 and value 1 is a seam)",
+          "stop_rule_class": "hygiene",
+          "class_guess": "N-silent-zero",
+          "files": [
+            "tools/replay/debug_ingest.py"
+          ],
+          "proposed_fix_scope": "main() prints passed/ran from Results (count checks, not fails); replay-clean reports the replay row count and reads 'skipped: replay half empty (manifest.replay names why)' when it is 0; gate_checks gains the empty-replay arm.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 tools/replay/debug_ingest.py --bundle S (11 ok lines, stages_ok=12/12)"
+          ]
+        },
+        {
+          "id": "D15-s1-04",
+          "scope": "D15-s1",
+          "step": "D15.M4",
+          "title": "store.DOMAINS declares less than the writers write; the debug ring's loader drops rows with an unpriced sample",
+          "severity": "medium",
+          "claim": "A sample the coordinator writes with predicted_cost None (no price covered the interval, #2229) is outside DOMAINS (admitted=0), so debugger._kept refuses each debugger.cycle_row row that carries it: 0 of 192 rows kept for the synthetic bundle's production-written samples; and on the owner's real download 102 healthy fields its loaders read intact are off their declaration (off_restore 1, snapshots 101).",
+          "mechanism": "DOMAINS['accuracy']['accuracy/samples/#/predicted_cost'] is _R (non-null) while AccuracySample.as_dict writes None and actual_cost beside it is _N; 'rows/#/accuracy_sample' aliases that table and debugger._repair drops a row admitted() refuses, so the ring loses those rows on the next load (restart). The same drift without a dropping reader: off_restore 'armed/*' is declared a number while its writer stores {entity_id, value} and _entry_of reads that mapping; the snapshot ring keeps the pre-R10-HOTFIX-COP-UNMEASURED learner keys cop_baseline/cop_health_cusum, which DOMAINS neither declares nor marks unread. The stores self-test (debugger.store_report) reports these as off-domain on a healthy install.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B [--synthetic S]",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/domains_drift.py",
+            "value": "sample_none_cost_admitted=0, unit_row_kept=0/1, synthetic_written_rows_kept=0/192 (192/192 unpriced), real off_domain[off_restore]=1 with loader keeping 2/2, real off_domain[snapshots]=101",
+            "unit": "rows / fields",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 22.31,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_kept",
+          "perturbation": {
+            "change": "--declare: in memory, DOMAINS accuracy samples' predicted_cost nullable (as actual_cost is) and off_restore's armed entry declared as its writer's mapping",
+            "expected_direction": "up",
+            "observed_value": "synthetic_written_rows_kept 0/192 -> 192/192, unit arm 0 -> 1, real off_domain[off_restore] 1 -> 0"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B",
+            "value": "real_written_rows_kept=192/192 and real_cycle_rows_kept=662/662, unchanged under --declare",
+            "note": "the real install priced every interval in the window, so its rows are kept either way: the drop needs an unpriced interval, which the synthetic install's store shows the coordinator writing"
+          },
+          "metric_definition": "Rows debugger._kept keeps of rows debugger.cycle_row writes from a bundle's restored accuracy samples; store.off_domain field count per store document.",
+          "phenomenon_property": "Every field a current or still-on-disk release's writer produces is declared in store.DOMAINS, in its domain or marked unread, so no reader that consults DOMAINS (admitted, _repair, the stores self-test) refuses healthy data.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B (each store with off_domain>0 over a production-written bundle is a seam; then grep -n 'admitted(' custom_components/heatpump_optimizer/*.py for the readers that drop on it)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/store.py",
+            "custom_components/heatpump_optimizer/debugger.py",
+            "custom_components/heatpump_optimizer/accuracy.py",
+            "custom_components/heatpump_optimizer/off_restore.py"
+          ],
+          "proposed_fix_scope": "store.py DOMAINS: predicted_cost -> _N; off_restore 'armed/*/entity_id' and 'armed/*/value' beside the scalar; the snapshot ring's legacy thermal_learning keys declared with unread= naming the provenance rule. A regression arm driving debugger.cycle_row with an unpriced sample through _kept.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py",
+            "same with --declare"
+          ]
+        },
+        {
+          "id": "D15-s1-05",
+          "scope": "D15-s1",
+          "step": "D15.M4",
+          "title": "A capacity-envelope bucket the fold writes with count 0 is dropped by its own loader at every restart",
+          "severity": "medium",
+          "claim": "_fold_capacity_envelope seeds a bucket as [heat_kw, 0] for a measured heat sample at partial load, _thermal_learning_payload stores it, and _load_t4b_learners refuses it through _learned_pair (count < 1): 1 bucket written, 0 reloaded; the owner's live thermal-learning store holds 1 such bucket and the loader restores 0 of it.",
+          "mechanism": "One fact decided twice: the fold (#1955 fold e) treats a measured delivered-heat sample as a floor that 'never counts towards capping' and so keeps count 0, while the loader's _learned_pair (and DOMAINS 'capacity_envelope/*/1': int >= 1) holds that a fold writes an entry only at its first counted sample. The floor learned between restarts is discarded at each load (and at a snapshot restore, which shares the parser); the next nameplate sample then starts from max(thermal_kw, nothing) instead of the remembered floor.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B",
+            "harness_path": "dev/audit/rounds/round11/D15/s1/capacity_envelope.py",
+            "value": "fold_written=1, fold_written_count_zero=1, reloaded=0, lost=1; bundle_stored=1, bundle_zero_count=1, bundle_reloaded=0; bundle_snapshot_zero_count_buckets=2",
+            "unit": "buckets",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, box B8 (shared), CI venv python3",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 22.21,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._load_t4b_learners",
+          "perturbation": {
+            "change": "--loader-accepts-zero: coordinator._learned_pair accepts a count of 0 (the one-line loader edit)",
+            "expected_direction": "to_zero",
+            "observed_value": "lost 1 -> 0; bundle_reloaded 0 -> 1"
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B --nameplate",
+            "value": "fold_written_count_zero=0, lost=0",
+            "note": "a sample at nameplate counts, so the loader keeps the bucket: the loss is confined to the partial-load floor"
+          },
+          "metric_definition": "Buckets of _capacity_envelope the fold wrote minus those a fresh coordinator holds after _load_t4b_learners reads _thermal_learning_payload's JSON.",
+          "phenomenon_property": "Every [value, count] pair a fold writes is restored by its loader: a fold's stored count domain equals its loader's.",
+          "seam_rule": "grep -nE \"setdefault\\([^)]*\\[[^]]*, *0\\]\\)\" custom_components/heatpump_optimizer/*.py, each seeded pair against the loader its store key reaches (baseline: coordinator.py capacity_envelope, a seam; freq_control.py buckets, increments before any save and its loader accepts count >= 0, not a seam)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/store.py"
+          ],
+          "proposed_fix_scope": "Decide the count's meaning once: either the loader (a capacity-envelope-specific parse) and DOMAINS accept count 0 for the measured floor, or the fold stores the floor apart from the counted envelope; a round-trip regression arm through _thermal_learning_payload and _load_t4b_learners.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py",
+            "same with --loader-accepts-zero, and with --nameplate"
+          ]
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The LEAK_PROBES controls of tests/replay.py are green on the baseline",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+          "value": "leak_probe_controls_green=46/46"
+        },
+        {
+          "claim": "The sealed replay half of the real download passes export.violations with the installed entry allowlist, and a credential planted in any of five sections is caught",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B --scope replay",
+          "value": "real_replay_violations=0 over 19471 state rows; planted arms 5/5 (synthetic 0 over 7119 rows, 5/5)"
+        },
+        {
+          "claim": "No credential or full-precision coordinate leaves in the real download: every credential-named key holds Home Assistant's redaction marker; the address-like and free-text refusals over the debug half are integration-written prose, release strings and month keys (read in memory, not written; the harness counts only the credential/coordinate class)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/privacy_gate.py --bundle B",
+          "value": "real_private_hits=0 (whole download), synthetic_private_hits=0"
+        },
+        {
+          "claim": "Every cycle row carries the release that wrote it; each of the 9 releases is tagged and none is first seen before its tag, so attribution needs no gap inference",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B",
+          "value": "rows_without_version=0, releases=9, untagged_releases=0, release_before_tag=0"
+        },
+        {
+          "claim": "The manifest's integration_version differs from the last row's release because the 7-day collection was final before the next upgrade; rows and manifest cycles agree",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/intake.py --bundle B",
+          "value": "collection_final=1, manifest_cycles_match=1, manifest_version_is_last_row_release=0"
+        },
+        {
+          "claim": "debug_ingest.py passes the real download with no vacuous check, and refuses its --corrupt accuracy perturbation",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B [--corrupt accuracy]",
+          "value": "real_checks_ok=11/11, vacuous_passes=0; corrupt: 10/11, bias-rederived fails on 0 loaded samples"
+        },
+        {
+          "claim": "The accuracy bias re-derived from the store window equals the rows' on the shared samples; the store's 67 unshared samples are newer than the finalized ring (read in memory: the tracker kept sampling after the collection closed)",
+          "command": "PYTHONPATH=tests/hastub python3 tools/replay/debug_ingest.py --bundle B",
+          "value": "accuracy_bias_delta=0.0 over shared 125/192"
+        },
+        {
+          "claim": "Every store document of the real download is at the version this release constructs its store with, none would be quarantined, and every loader (12 at coordinator init, off_restore, pump_duty, duty_switch, notifier) ran without a warning",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B",
+          "value": "real_refused_versions=0, real_quarantined=0, real_loaders_ran=16/16, real_load_warnings=0; accuracy samples 192 -> 192; off_restore armed entries 2 -> 2"
+        },
+        {
+          "claim": "The snapshots store's unhealthy_input field (round 10's carry) is declared and inside its domain on the real download",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B",
+          "value": "off_domain[snapshots]=101, all under learners/thermal_learning legacy keys and capacity_envelope; none under unhealthy_input"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D15/s1/enum_s1.py",
+        "dev/audit/rounds/round11/D15/s1/intake.py",
+        "dev/audit/rounds/round11/D15/s1/wall_enum.py",
+        "dev/audit/rounds/round11/D15/s1/privacy_gate.py",
+        "dev/audit/rounds/round11/D15/s1/ingest_checks.py",
+        "dev/audit/rounds/round11/D15/s1/store_replay.py",
+        "dev/audit/rounds/round11/D15/s1/domains_drift.py",
+        "dev/audit/rounds/round11/D15/s1/capacity_envelope.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s3",
+          "file": "custom_components/heatpump_optimizer/debugger.py",
+          "symbol": "DebugCollector.observe",
+          "what": "M1 found both restart gaps (2 of 2, one at a release switch) each holding one accuracy-sample stamp and no cycle row, i.e. the integration ran during part of each gap; the same pattern shows at release switches below the gap threshold. Either the first cycle after a load publishes no row or the collector skips it: M7/M8 to attribute and reproduce (intake.py gaps_with_samples_inside=2)."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "tools/replay/debug_replay.py",
+          "symbol": "main --bundle",
+          "what": "This download's replay half is filled (24 h window, 28 inputs, 19471 state rows, export.violations 0), so M5 can run on debug.replay without an export.py document."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "custom_components/heatpump_optimizer/snapshots.py",
+          "symbol": "SnapshotRing.from_dict",
+          "what": "Round 10's carry 'D15 reads the next bundle's unhealthy_input': the field is present on the newer snapshots and in its domain (M4); reading its content against the drift latch is M6's."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/harnesses/r10_scores_envelope.py",
+          "symbol": "--bundle arm",
+          "what": "Round 10's carry asks D15 to run r10_scores_envelope.py --bundle on the next download; it is not a step of M1-M4, so this seat did not run it."
+        }
+      ]
+    },
+    "D15-s3": {
+      "dimension": "D15",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D15/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D15.M7",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M7 --bundle B",
+          "universe": 25,
+          "examined": 24,
+          "not_reached": [
+            "redispatched:C3 solve-time outliers re-checked at baseline"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "m7_rowscan.py --bundle B: 11 row checks over all 662 rows, 7 of 7 snapshots (0 action/plan mismatches beyond user overlays), 5 of 5 self-tests re-derived (stores, sensors, feeds, solver equal; accuracy store bias within 0.006 C on 192 samples). C3: the 6.7.17 outlier rows belong to the round-10 bundle, which this seat was not given; on this bundle 0 of 652 solves exceed 3x their release median in any of 9 releases (max 49.9 s on 7.1.12, 31.7 s on 10.0.0), and a cross-host solve-time comparison has no ruler on the owner's host. Null control: the synthetic week (dbg_bundle_gen.py --days 7) ran first; its rows broke feed_health (finding D15-s3-02)."
+        },
+        {
+          "step": "D15.M8",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M8 --bundle B",
+          "universe": 12,
+          "examined": 5,
+          "not_reached": [
+            "anomaly:unsolved_publish:after_restart",
+            "anomaly:row_gaps:restart_gaps",
+            "anomaly:row_gaps:off_cadence_publishes",
+            "anomaly:accuracy_sample_lag:tracker_paused",
+            "anomaly:self_test_stores:off_domain:off_restore",
+            "anomaly:self_test_stores:off_domain:snapshots",
+            "anomaly:self_test_stores:off_domain:thermal_learning"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "m8_replay.py --bundle B --start-h 18.5 --end-h 23 (18 cycles, debug_replay seeding, three arms): solve_wall_ms:wall_twice_payload reproduced as 0.667 what-if solves per scheduled solve, 0.0 with tiles-off (seam fetch, _maybe_refresh_price_tile; design); dhw_window_floor reproduced as 5 of 12 in-window cycles under the window minimum, 0 of them not heating (seam core; holds at baseline); self_test_solver:week_solve_ms_counts_unsolved_rows reproduced at baseline by m7_rowscan.py --perturb solver-filter (finding D15-s3-01). C4: two anomalies reproduced by debug_replay over --start/--end windows with their perturbations, plus finding D15-s3-03 in the replay instrument. Not reached: the unsolved publish needs a cold restart run_fixture does not model (its reloads hand over the last payload); the store off-domain anomalies are documents, not windows (leads to D15-s1, M4); restart gaps, off-cadence publishes and sample lag were not replayed in this window."
+        },
+        {
+          "step": "D15.M9",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/s3_enumerate.py --step M9 --bundle B",
+          "universe": 8,
+          "examined": 0,
+          "not_reached": [
+            "install_day:day0",
+            "install_day:day1",
+            "install_day:day2",
+            "install_day:day3",
+            "install_day:day4",
+            "install_day:day5",
+            "install_day:day6",
+            "install_day:day7"
+          ],
+          "redispatched": [],
+          "evidence": "m9_costs.py --bundle B computes C_real and C_model per install-day from the rows' distinct accuracy samples (coverage 0.53-0.96 of a day's intervals) and the model gap |C_real-C_model|/C_real: range 0.10..1.87 over 8 days, mean 0.80, 0.90 with the most favourable day dropped; --null reads 0 on every day, --plant-scale 1.2 moves it. C_same is not computed on any day: the bundle carries the exogenous inputs at decision time for the replay half's single day only, and the tree has no measured-house plant other than the learned model the oracle excludes. No day is examined in full."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M7",
+          "what": "C3: the round-10 bundle's 6.7.17 solve-time outliers; that bundle was not an input this round."
+        },
+        {
+          "step": "D15.M8",
+          "what": "7 anomalies not reproduced through debug_replay: unsolved_publish (needs a cold-restart arm in run_fixture), restart_gaps, off_cadence_publishes, accuracy_sample_lag, and the three store off-domain anomalies (document, not window)."
+        },
+        {
+          "step": "D15.M9",
+          "what": "C_same for all 8 install-days: needs exogenous inputs per decision time beyond the replay half's one day and a measured-house plant independent of the learned model (D0 step 8's method has none for a live bundle)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D15-s3-01",
+          "scope": "D15-s3",
+          "step": "D15.M7",
+          "title": "Solver self-test counts every restart's not-run publish as a 0 ms solve",
+          "severity": "low",
+          "claim": "On the real bundle, debugger._solver_smoke's week_solve_ms spread admits 10 rows whose payload was the not-run publish (no action, solve_time_ms 0), so the self-test reports min 0 ms and n 662 where 652 solves ran.",
+          "mechanism": "_apply_unsolved_payload publishes solve_time_ms 0 for a solve that never ran (the light first refresh after each restart); cycle_row copies it into payload_solve_time_ms and _solver_smoke spreads every row carrying the key.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+            "value": 10,
+            "unit": "rows (solver_spread_unsolved_rows); solver_week_min_ms=0",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 about 22; a count",
+            "tolerance": "exact",
+            "load1": 21.84,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_solver_smoke (via debugger:spread)",
+          "perturbation": {
+            "change": "--perturb solver-filter: _solver_smoke's spread drops a row whose payload_solve_time_ms is 0 (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": "0 rows, n 652, min 9806 ms"
+          },
+          "metric_definition": "Rows the solver self-test's week_solve_ms spread admits whose payload carried no action and solve_time_ms 0 (n_spread minus rows with a positive solve time).",
+          "phenomenon_property": "A solve-time statistic over published payloads ranges only over payloads where a solve ran; the not-run payload's inert 0 is never read as a duration.",
+          "seam_rule": "grep -rn \"solve_time_ms\" custom_components/heatpump_optimizer/ tools/replay/ dev/audit/harnesses/",
+          "null_control": {
+            "command": "m7_rowscan.py --bundle <dbg_bundle_gen.py --days 7 bundle>",
+            "value": 0,
+            "note": "no restart in the synthetic week"
+          },
+          "proposed_fix_scope": "debugger._solver_smoke (or cycle_row omitting the key when optimization_status is not_run), one line and a test row.",
+          "files": [
+            "custom_components/heatpump_optimizer/debugger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-silent-zero"
+        },
+        {
+          "id": "D15-s3-02",
+          "scope": "D15-s3",
+          "step": "D15.M7",
+          "title": "dbg_bundle_gen's null-control rows are a diverged copy of cycle_row; feed self-test raises on them",
+          "severity": "medium",
+          "claim": "Every row tools/replay/dbg_bundle_gen.py writes differs from debugger.cycle_row's row for the same payload (48 of 48 in one day), and debugger.feed_health raises TypeError on them, so D15's mandated null control cannot run M7's self-test re-derivation.",
+          "mechanism": "build_bundle.recording_tick builds its row with its own dict literal: keeps None-valued keys (production drops them), no version, no t on the accuracy sample, no manifest self_tests.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+            "value": 48,
+            "unit": "rows diverging of 48 (rows_with_explicit_none=48, samples_without_t=47, feed_health_completes=False)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 about 12; counts",
+            "tolerance": "exact",
+            "load1": 11.82,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/dbg_bundle_gen.py:build_bundle against debugger:cycle_row and debugger:feed_health",
+          "perturbation": {
+            "change": "--perturb production-row: row = debugger.cycle_row(self, data, dt_util.now(), wall_ms) in build_bundle's source, in memory",
+            "expected_direction": "to_zero",
+            "observed_value": "0 diverging, 0 explicit None, feed_health completes"
+          },
+          "metric_definition": "Rows of one generated day whose keys or values differ from cycle_row's row for the same coordinator and payload at the same tick (solve_wall_ms by presence).",
+          "phenomenon_property": "The null-control bundle is produced by the production collector's own functions, so every reader of a real bundle runs unchanged on the synthetic one.",
+          "seam_rule": "grep -n \"row = {\\|payload_snapshots.append\\|\\\"manifest\\\":\" tools/replay/dbg_bundle_gen.py custom_components/heatpump_optimizer/debugger.py",
+          "null_control": {
+            "command": "m7_nullcontrol_rows.py",
+            "value": "null_feed_health_on_production_rows=True",
+            "note": "production rows for the same payloads read cleanly"
+          },
+          "proposed_fix_scope": "dbg_bundle_gen builds rows, snapshots and self_tests through debugger's functions; a gate_checks arm runs feed_health and sensor_sanity on a generated row.",
+          "files": [
+            "tools/replay/dbg_bundle_gen.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D15-s3-03",
+          "scope": "D15-s3",
+          "step": "D15.M8",
+          "title": "debug_replay seeds unmasked entity ids into a masked replay; learned heat-loss learners reset",
+          "severity": "medium",
+          "claim": "On the owner's bundle, debug_replay.seed_stores writes 4 store-held entity ids that name no entity of the masked replay half; over the 18-cycle window the replayed coordinator voids 2 learned heat-loss learners ('its zone sensor changed') and warns 1 input unreadable, and remapping the ids through the mask brings both counts to 0.",
+          "mechanism": "seed_stores remaps the store key onto test_entry but copies each document verbatim; thermal_learning's zone entities, dhw_legionella, off_restore and snapshots keep the install's real ids while the replay config holds masked ones, so _void_heat_loss_learners resets house_heat_loss_scale and lower_floor_loss_ratio and every M5/M8 reproduction plans on configuration defaults; the five replay judges stay 0, so the lane's verdict does not show it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m8_replay.py --bundle B --start-h 18.5 --end-h 23",
+            "harness_path": "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+            "value": 2,
+            "unit": "learner resets; seeded_foreign_entity_ids=4, unreadable_warnings=1",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "macOS arm64, CI venv",
+            "cpu_or_wall": "count",
+            "contention_note": "three arms in parallel beside other seats, load1 55-280; counts",
+            "tolerance": "exact",
+            "load1": 269.97,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/replay/debug_replay.py:seed_stores (counted through coordinator:HeatPumpOptimizerCoordinator._void_heat_loss_learners and the unreadable-input warning)",
+          "perturbation": {
+            "change": "--perturb remap-ids: store-held ids rewritten to the masked id of the same configuration key before seeding",
+            "expected_direction": "to_zero",
+            "observed_value": "0 foreign ids, 0 learner resets, 0 unreadable warnings"
+          },
+          "metric_definition": "Over the replay window: WARNING records voiding a learned heat-loss learner because its zone sensor changed, beside the count of seeded ids absent from the masked replay half.",
+          "phenomenon_property": "A replay seeded from a bundle's stores names only entities of the replay half it runs on, and starts from the learned state the install held.",
+          "seam_rule": "grep -n \"entity_id\\|_entities\" custom_components/heatpump_optimizer/off_restore.py custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/snapshots.py custom_components/heatpump_optimizer/coordinator.py (every store document seed_stores copies, store.DOMAINS)",
+          "null_control": {
+            "command": "same command with --perturb remap-ids",
+            "value": 0,
+            "note": "no learner voided, no input unreadable"
+          },
+          "proposed_fix_scope": "debug_replay.seed_stores maps every entity id in a seeded document through the replay half's mask (pairs from the replay entry's configuration keys), or refuses an id outside it; a gate_checks arm proves no learner is voided.",
+          "files": [
+            "tools/replay/debug_replay.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No solve failure in 662 rows",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "solve_failures_added=0, solve_failure_increments=0"
+        },
+        {
+          "claim": "No solve-time outlier: 0 solves over 3x their release median in 9 releases",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "payload_solve_outliers_over3x=0; max 49.9 s (7.1.12), 31.7 s (10.0.0)"
+        },
+        {
+          "claim": "solve_wall_ms about twice the payload solve time is the price tiles' what-if solve (price_tiles_enabled on); 10.0.0 rows follow the 2-2-1 rotation with one 4x cap refresh, 7.1.x rows an extra solve every cycle (older release only); reproduced at baseline",
+          "command": "m7_rowscan.py --bundle B; m8_replay.py --bundle B --start-h 18.5 --end-h 23 [--perturb tiles-off]",
+          "value": "wall classes 10.0.0 {1:14, 2:30, 4:1}; simulate_per_solve=0.667, tiles-off 0.0"
+        },
+        {
+          "claim": "Price feed healthy: no cycle without prices, no short horizon after 14:00 local",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "no_price_rows=0, short_horizon_after_14h=0"
+        },
+        {
+          "claim": "Weather forecast never stale",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "weather_stale_rows=0 (production omits the key when fresh)"
+        },
+        {
+          "claim": "Action fields consistent: no off action with the pump on or power drawn, no heating mode with the pump off",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "action_contradictions=0"
+        },
+        {
+          "claim": "Each payload snapshot's action equals the plan's current step except user boost overlays",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "5 agree, 2 overlay (boost_space, boost_dhw), 0 differ"
+        },
+        {
+          "claim": "Self-tests sensors, feeds, solver and stores re-derive exactly at the baseline; accuracy store window re-derived from rows",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "rederived_equal=True x4; accuracy bias delta 0.006 C on 192/192 samples"
+        },
+        {
+          "claim": "The 10 no-action rows are the not-run first publish after each restart (8 at a release change, 2 after downtime or a short restart)",
+          "command": "m7_rowscan.py --bundle B",
+          "value": "unsolved_rows=10, restart_gaps=2, release_changes=8"
+        },
+        {
+          "claim": "Hot-water tank under the window minimum inside a demand window is drawn down while the plan is heating, at baseline over the replay window",
+          "command": "m8_replay.py --bundle B --start-h 18.5 --end-h 23",
+          "value": "5 of 12 in-window cycles below the floor, 0 not heating; whole week 68 of 159 rows below floor, 4 on 10.0.0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D15/s3/s3_enumerate.py",
+        "dev/audit/rounds/round11/D15/s3/m7_rowscan.py",
+        "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+        "dev/audit/rounds/round11/D15/s3/m8_replay.py",
+        "dev/audit/rounds/round11/D15/s3/m9_costs.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s1",
+          "file": "dev/audit/harnesses/d15_restart_gaps.py",
+          "symbol": "GAP_INTERVALS rule",
+          "what": "On the owner's bundle the 3-interval rule finds 2 restart gaps while the not-run first publish (row with no action_mode and payload_solve_time_ms 0) marks 10 restarts, 8 of them upgrades with gaps of 2-28 min; M1's attribution by gap would miss them (rows here carry version, so attribution is unaffected this round)."
+        },
+        {
+          "owner_seat": "D15-s1",
+          "file": "custom_components/heatpump_optimizer/store.py",
+          "symbol": "DOMAINS['off_restore'], DOMAINS['snapshots'], DOMAINS['thermal_learning']",
+          "what": "The stores self-test re-derives 82 off-domain paths at baseline: off_restore armed/* is declared real but written as an {entity_id, value} dict, so the domain never checks the restored value; snapshots hold pre-rename learners/thermal_learning/cop_baseline and cop_health_cusum (80 paths); thermal_learning capacity_envelope/*/1 is below its declared minimum 1 in one entry."
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "tools/replay/debug_replay.py",
+          "symbol": "run_seeded",
+          "what": "Stores are seeded from the download instant, 1-2 days after the replay window: the ledger, pump_duty and duty_switch stamps are bounded as 'ahead of the clock', and learned state from after the window enters the timeline replay."
+        },
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_record_accuracy (predicted_power_kw vs actual_power_kw)",
+          "what": "Over the week's distinct accuracy samples, planned power exceeds measured by interval kind: hot_water 1.66 vs 0.72 kW mean (127 samples), user boost 4.94 vs 2.39 (102), pre_heat 3.07 vs 1.15 (11), eco 1.55 vs 1.46 (81); the per-day cost model gap is 10-187 percent (m9_costs.py)."
+        },
+        {
+          "owner_seat": "D0-s3",
+          "file": "dev/governance/dimensions/D0.md",
+          "symbol": "step 8, same-information oracle",
+          "what": "For a live bundle, C_same has no measured-house plant other than the learned model the oracle excludes, and exogenous inputs at decision time exist only for the replay half's day; D15.M9 cannot be completed until the method names that plant."
+        },
+        {
+          "owner_seat": "D9-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_maybe_refresh_price_tile",
+          "what": "On the owner's host the tile solve doubles the cycle's wall (median 19 s over the payload solve on 7.1.x); at baseline 0.667 extra solves per scheduled solve (solves_per_cycle axis)."
+        }
+      ]
     }
   }
 }
