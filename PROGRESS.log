@@ -38,3 +38,4 @@
 1794899265 HB alive
 1794899781 CKPT reviewer mutants 2/2 killed on floor block; waiting CI snapshot ecf85a35e5da
 1794899869 HB alive
+1794900522 DONE verdict merge e3857560 pending-ci: gate pushed to probe/rev-3670-0b503b2e (1a1168d270)
