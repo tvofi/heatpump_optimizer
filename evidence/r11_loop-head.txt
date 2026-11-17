@@ -1,0 +1,9 @@
+RESULT loop dhw_setpoint 55 to 50: closed-loop steady money +23.9 a month (unsettled +23.8), against the ask True
+RESULT loop dhw_setpoint 55 to 60: closed-loop steady money -0.8 a month (unsettled -13.2), against the ask True
+RESULT loop dhw_min_temperature 45 to 50: closed-loop steady money +99.8 a month (unsettled +94.8), against the ask False
+RESULT loop comfort_weight 5 to 2.5: closed-loop steady money -17.3 a month (unsettled -4.0), against the ask False
+RESULT loop comfort_weight 5 to 10: closed-loop steady money +7.9 a month (unsettled +33.2), against the ask False
+RESULT loop min_temp 17 to 16: closed-loop steady money +3.8 a month (unsettled -8.4), against the ask True
+RESULT loop min_temp 17 to 18: closed-loop steady money +10.9 a month (unsettled +26.6), against the ask False
+RESULT loop null: dhw_setpoint 55 to 55.5: closed-loop steady money -23.1 a month (unsettled +4.7), against the ask False
+rc=0

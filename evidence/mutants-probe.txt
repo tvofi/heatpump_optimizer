@@ -1,0 +1,24 @@
+== M1
+valve-one-tank night-1 21:00 figure 0.0 zero_kind binds
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind binds
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind binds
+== M2
+valve-one-tank night-1 21:00 figure 0.0 zero_kind binds
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind binds
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind binds
+== M3
+valve-one-tank night-1 21:00 figure 0.0 zero_kind idle
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind binds
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind binds
+== M4
+valve-one-tank night-1 21:00 figure 0.0 zero_kind idle
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind idle
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind idle
+== M5
+valve-one-tank night-1 21:00 figure 0.0 zero_kind idle
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind binds
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind binds
+== M6
+valve-one-tank night-1 21:00 figure 0.0 zero_kind idle
+saturated-0.05kW day-1 09:00 figure 0.0 zero_kind binds
+saturated-0.05kW day+1 09:00 figure 0.0 zero_kind binds
