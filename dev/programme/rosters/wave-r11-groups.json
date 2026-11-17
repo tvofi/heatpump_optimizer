@@ -3630,6 +3630,70 @@
     "pr": 3703
    },
    "source": "user"
+  },
+  {
+   "group": "R11-CARRY-DRAWMAP",
+   "lane": "IN",
+   "kind": "production",
+   "class": "production",
+   "severity": "high",
+   "size": "L",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/payload.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "The unbuilt parts of the approved draw-map evidence design (tag archive/design/R10-DRAW-MAP-EVIDENCE): part A (the sweep and its routing), part B (the ceiling probe and pass_origin), part F (the trace and the bundle readers). PR #3659 merged only part 1(b); origin/main holds none of last_sweep, pass_record, PassRecord or MAP_ROWS in custom_components/heatpump_optimizer/draw_range.py or pump_arbiter.py. Owner rulings S1-S4 (carry 2) gate the build: ask before the first part. Null control: the the COP gate band and pass-routing harnesses must fail with the sweep interval routed to DrawRange.observe and pass with it excluded. Done when each carry below is built with its harness at both ends or dismissed with a number, and the P7 byte budget is re-measured with stored rows. Separate seam from R11-OUTSIDE-HONEST-METERED-FLOOR, whose brief excludes the sweep. Sources: R10-DRAW-MAP-EVIDENCE (PR #3659). Every carry below is copied verbatim from its source group; re-measure each carried figure at your own merge base before building, and dismiss with the number any carry that no longer reproduces there. Created by the round-11 carry map (handoff-wip/r11-carry-map, the round-11 carry map).",
+   "carry": [
+    "Owner scope addition 2026-11-14 for part 2 (the collection and sweep design): it also enables the best possible wider debugging for the audit dimension that runs from a live diagnostics bundle (dev/governance/dimensions/D15.md). The design states what the debug-week collection and the diagnostics download must carry so a D15 seat can debug an install from the bundle alone, each field tied to the D15 question it answers, with its size and retention on a Raspberry-Pi-class host, its pass through the existing redaction, and a bundle shape marker an instrument can read; one collection mechanism, never a second recorder.",
+    "From r10-draw-map-evidence, body item 19509d31: (a) The ceiling store fills only from the system-identification ceiling probe, which runs only when the user presses Run System Identification and, while the house learner is unconverged, arms the fit instead: on the measured install 0 of 561 cycles ran the experiment and the store held 0 samples while the plan booked the configured 4.0 kW against a measured 3.21 kW mean at the ceiling. Precondition for part 2: a learned top on such an install needs the probe armed without a press, or ahead of an unconverged fit; ordinary ceiling-written intervals do not rescue it (2 of 116 window samples). Re-measure with `draw_map_linearity.py --bundle` (`experiment_cycles`, `ceiling_store_rows`). Carry: R10-DRAW-MAP-EVIDENCE (items 19509d31)",
+    "Owner rulings 2026-11-14 on the approved design (design/R10-DRAW-MAP-EVIDENCE 9aa450f5, design review approve at design-verdict f10dd418), by card id, verbatim answer line: \"S1 flat price sweep: Yes, allow on flat price (recommended) \u00b7 S2 trace text columns: Ship text columns (recommended) \u00b7 S3 probe before fit: Yes, probe first where the top is unlearned (recommended) \u00b7 S4 d15 brief line: Prepare it in the part F pull request (recommended)\". So: Part B lets the band sweep run on a flat price, shown with its upper cost bound (levels times half an hour times the band top) and the metered energy afterwards; Part B builds the ceiling-evidence change with the button arming the ceiling probe before the fit where the pump's top is unlearned, the armed result saying which kind it armed and why; Part F ships the trace's text columns in the diagnostics download through the existing redaction; Part F prepares the one line naming the trace in dev/governance/dimensions/D15.md, which is policy and merges only on the owner's approving review. The design review's non-blocking items r12 to r18 are built with the part whose lines they land on; r14 (the probe clock gets its own probe-only reader, never a change in place to the reader the learned-top lapse and the solve band use) binds Part B.",
+    "From r10-draw-map-evidence-a, body item ba6dc000: Part B: the experiment kind is already on the sysid override action and typed on `payload.CurrentAction` (commit 3aac8bc7d8); B maps the sweep kind to a sweep origin in `pump_arbiter.pass_origin` and does not add the key again. Control: `tests/features.py` check \"the experiment's override action carries its kind\". Carry: R10-DRAW-MAP-EVIDENCE (items ba6dc000)",
+    "From r10-draw-map-evidence-a, body item f60f7998: Part B: the run key (`draw_range.PassRecord.run_key`) holds the level kW, so a sweep level change closes a run with no sweep-specific code; the routing invariant (a sweep interval never reaches `DrawRange.observe` nor an idle reading) is still B's, in `draw_range.fold`. Carry: R10-DRAW-MAP-EVIDENCE (items f60f7998)",
+    "From r10-draw-map-evidence-a, body item d83e38e5: Part B, r17: the row's `drawn_mean_kw` (steady minutes only) is the value to compare with the ceiling store's close-of-interval reading on B's synthetic sweep run; A builds no sweep, so the comparison is B's. Carry: R10-DRAW-MAP-EVIDENCE (items d83e38e5)",
+    "From r10-draw-map-evidence-a, body item 74becf4c: Part B, r12, r14, r15, r16, r18: no line of Part A reaches them (sweep comfort bound, ceiling source cell and probe-only clock reader, settle re-check, held set-points on `ArbiterState`, [CE] 2 gate). Carry: R10-DRAW-MAP-EVIDENCE (items 74becf4c)",
+    "From r10-draw-map-evidence-a, body item f715deff: Part F: the stored rows at `MAP_ROWS` measure 58,058 bytes compact (`draw_map_rows.py --synthetic`, `store` line) against the note's 52.7 KB estimate, and P7's margin was 226 bytes at indent 2; F re-measures P7 with the rows as stored before choosing its drop order. F's trace reads `ArbiterState.last_pass` (`draw_range.PassRecord`: mode reading and defrost flag included). Carry: R10-DRAW-MAP-EVIDENCE (items f715deff)",
+    "From r10-draw-map-evidence-a, body item 6fb1f5b0: The design note's measure-first expectation for `r10_the COP gate band.py` on the owner's data (`fit=none`) is corrected: on the diagnostics file itself it reads `steps=0` (the harness reads `entry`/`states` at the top level, not the bundle's wrapper); on the bundle's replay half it reads `steps=13 distinct_c=10` with a flat fit. Carry: R10-DRAW-MAP-EVIDENCE (items 6fb1f5b0)",
+    "From r10-draw-map-evidence-f, body item 1db3c110: Hook owed by part A: the trace reads the arbiter's pass record through a module function `pump_arbiter.pass_record(coord)` returning a mapping (or dataclass) of the pass fields; each field becomes a column `arbiter/<field>` through the same cell rules. Until part A defines it the manifest says `arbiter: absent: this release's arbiter publishes no pass record` and `debug_ingest` reports `trace-arbiter` unfinished. Part A names the function so, or this one-line `getattr` is renamed when the two land together. Carry: R10-DRAW-MAP-EVIDENCE (items 1db3c110)",
+    "From r10-draw-map-evidence-f, body item 7384f61f: Store wear: with the option on, the hourly save rewrites the whole ring, so the trace multiplies the write volume by the day (Figures: about 9.4 to 16.7 MB on day 7 for 27 columns, against 1.8 MB for the ring without a trace). Disclosed in docs/configuration.md; a per-day trace store written once a day would cut it, at the cost of a second store document and its migration. Carry: R10-DRAW-MAP-EVIDENCE (items 7384f61f)",
+    "From r10-draw-map-evidence-b, body item 072c5e70: Part F: the diagnostics download now carries `draw_range.last_sweep` (per level: fraction, level kW, held set-point, steady minutes, drawn and inlet means; `metered_kwh`, `started_s`), the accuracy store's draw record a `sweep` key (167 bytes for five levels) and a third cell on a sweep's ceiling row; F's bundle readers and its P7 byte budget read them. Control: block checks \"the last sweep is stored beside the rows\" and \"the ceiling row's source\". Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 072c5e70)",
+    "From r10-draw-map-evidence-b, body item 64cb220e: Part A's review: at cc335482ae `mypy --strict` reads 5 errors in `draw_range.MapRows.take_pass` and `_stored_map` (command in `## Figures`), so `tests / typing` is red on Part A alone; the narrowing is in this part (commit 8b4c27bb52, `take_pass`'s early return on no pass and `_stored_map`'s filtered split), behaviour unchanged (Part A's block passes on it, 31 of 31). Either Part A takes the two hunks or the two parts merge together. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 64cb220e)",
+    "From r10-draw-map-evidence-b, body item 108e8b09: The fit's and the probe's published hold is stale after the freeze that set it ends: `stand_down` writes `held` and only a start clears it, so an armed probe reads \"an open window\" on a later cycle nothing stood down (block check \"an armed sweep's hold is the cycle's own\", its probe arm). This part re-derives the hold for a sweep only; the other two kinds are outside its brief. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 108e8b09)",
+    "From r10-draw-map-evidence-b, body item 7d9a0702: A sweep on fast-warming water keeps few running minutes at its low levels (`yield` at 0.1 and 0.2 K/min): a reader of sweep rows weighs a level by its steady minutes in `last_sweep`, never by its presence. Lands in the group's carry list, `dev/programme/rosters/wave-r10-groups.json` on handoff/audit-r10-roster, which the relay writes. Carry: R10-DRAW-MAP-EVIDENCE (items 7d9a0702)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-carry-drawmap",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch the fixer; re-measure every carry first",
+    "note": "created by the round-11 carry map from R10-DRAW-MAP-EVIDENCE carries 0,1,2,3,4,5,6,7,8,10,13,14,15,16,17; overlap admitted (R11-OUTSIDE-HONEST-DHW-RUNS): carry-map group for audit carries; shared files serialized behind their current owner by after-edge at dispatch",
+    "pr": null
+   },
+   "source": "audit"
   }
  ]
 }
