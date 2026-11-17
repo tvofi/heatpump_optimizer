@@ -136,11 +136,70 @@ def probe_plan_promise():
     return outcome(drive, base), outcome(drive, mut)
 
 
+def probe_sample_from_dict():
+    base, mut = mutated("accuracy", '''        raw = data.get("t")\n        if not raw:''',
+                        '''        raw = data.get("t")\n        if False:''')
+
+    def drive(m):
+        return [m.AccuracySample.from_dict(d) for d in
+                ({}, {"t": None}, {"t": ""}, {"t": 0}, {"t": []})]
+    return outcome(drive, base), outcome(drive, mut)
+
+
+def probe_take_fresh_handover():
+    base, mut = mutated(
+        "__init__",
+        "    if payload is None or stamped_at is None:\n        return None\n    try:",
+        "    if False:\n        return None\n    try:")
+    from datetime import datetime as _dt
+
+    def drive(m):
+        res = []
+        for pl, st in ((None, None), ({"p": 1}, None), (None, _dt.now(timezone.utc)),
+                       ({"p": 1}, _dt.now(timezone.utc))):
+            h = types.SimpleNamespace(data={})
+            m._plan_handovers(h)["e"] = pl
+            m._handover_stamps(h)["e"] = st
+            res.append(m._take_fresh_handover(h, "e", 5.0))
+        return res
+    return outcome(drive, base), outcome(drive, mut)
+
+
+def _tracker_drive(m, actual, predicted):
+    t = m.AccuracyTracker()
+    t0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
+    t.note_lead_prediction(t0, 3.0, predicted)
+    t.score_lead_predictions(t0 + timedelta(minutes=5), actual, window_hours=0.5)
+    t.note_lead_prediction(t0 + timedelta(hours=1), 3.0, 21.0)
+    t.score_lead_predictions(t0 + timedelta(hours=1, minutes=5), 21.5, window_hours=0.5)
+    return repr(t.sigma(3.0)), len(t.lead_pending)
+
+
+def probe_score_nan_actual():
+    base, mut = mutated("accuracy",
+                        "        if not np.isfinite(actual_temp):\n            return",
+                        "        if False:\n            return")
+    return (outcome(_tracker_drive, base, float("nan"), 21.0),
+            outcome(_tracker_drive, mut, float("nan"), 21.0))
+
+
+def probe_note_nan_predicted():
+    base, mut = mutated("accuracy",
+                        "        if not np.isfinite(predicted_temp):\n            return",
+                        "        if False:\n            return")
+    return (outcome(_tracker_drive, base, 21.0, float("nan")),
+            outcome(_tracker_drive, mut, 21.0, float("nan")))
+
+
 PROBES = {"setpoint_step_zero": probe_setpoint_step,
           "roll_receipts_retention": probe_roll_receipts,
           "sanitize_tuple_nan": probe_sanitize,
           "gap_rate_zero_recent": probe_gap_rate,
-          "plan_promise_zero_steps": probe_plan_promise}
+          "plan_promise_zero_steps": probe_plan_promise,
+          "sample_from_dict_falsy_t": probe_sample_from_dict,
+          "take_fresh_handover_none": probe_take_fresh_handover,
+          "score_lead_nan_actual": probe_score_nan_actual,
+          "note_lead_nan_predicted": probe_note_nan_predicted}
 
 
 def main():
