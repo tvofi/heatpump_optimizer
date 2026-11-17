@@ -1,0 +1,19 @@
+roster ref origin/handoff/audit-r10-roster bbc0d04f43d734adb199d6deec401ebf3fbfc3eb
+== R11-PRE-TOKEN-LEDGER keys ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues', 'kind', 'lane', 'model', 'owner_gate', 'rca', 'resume', 'reviewerModel', 'severity', 'size', 'wave']
+    'NO-READ-BUILDERS' 0 
+    '3696' 0 
+    'gate.status' 0 
+    'uncleared' 0 
+    'display_title' 0 
+    'product/machinery' 0 
+    'Part C' 0 
+    'part C' 3 ... y 0 (part D built in this handoff, with the verdict's notes runs-json-width, d-hotfile-enumerator and branch-reuse and the design note's [d-p2-head]; part C not built): part C of the approved design is unbuilt (the load count per rule, an instrument's refusal with its outcome, a run line per workflow script), with the design note's fixer notes [paths], [P1] and [c-deferred]: the orchestrator dispatches it once R11-PRE-TOKEN-LEDGER is on main with
+== R11-PRE-PARALLEL-PIPELINE keys ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues', 'kind', 'lane', 'model', 'owner_gate', 'rca', 'resume', 'reviewerModel', 'severity', 'size', 'wave']
+    'NO-READ-BUILDERS' 0 
+    '3696' 0 
+    'gate.status' 1 ... eplay at its own merge base. Carry: R11-PRE-PARALLEL-PIPELINE", "From r11-pre-no-read-builders, body item 6889317b: Item d-toolchain-p2-column: once `gate.status` is on main (R11-PRE-TOOLCHAIN-PIN part 2, `handoff/r11-pre-toolchain-pin-p2`), the row's `product/machinery unread` becomes that function's pair over the attempt's jobs, in `loop_ledger.red_lines`. `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`), and `pr-cc` is not deriva
+    'uncleared' 0 
+    'display_title' 1 ... es. The instrument page says so. Splitting the two needs the run's kind, which the run listing the producer caches does not keep (it is in the run's `display_title`). Lands in R11-PRE-PARALLEL-PIPELINE's row of that roster, the live group the dispatch names as this group's consumer (it holds `tools/ci/gate.py`). Carry: R11-PRE-PARALLEL-PIPELINE (items b812bd42)"], "resume": {"stage": "in-progress", "branch": "handoff/r11-pre-parallel-pipeline", "
+    'product/machinery' 1 ... em 6889317b: Item d-toolchain-p2-column: once `gate.status` is on main (R11-PRE-TOOLCHAIN-PIN part 2, `handoff/r11-pre-toolchain-pin-p2`), the row's `product/machinery unread` becomes that function's pair over the attempt's jobs, in `loop_ledger.red_lines`. `status` takes an event class (`push`, `no-pr`, `pr`, `pr-cc`), and `pr-cc` is not derivable from a cached run row: whoever wires it decides whether the run's title supplies it. Control: the s
+    'Part C' 0 
+    'part C' 0 
