@@ -754,9 +754,9 @@
     "From r11-pre-toolchain-pin-p2, body item 806e1101: After the merge the orchestrator runs `python3 -I tools/audit/seat/toolchain.py promote --init --repo tvofi/heatpump_optimizer` once from the tools checkout. Until then the beat's `toolchain-promote` row prints `toolchain-promote: rc=1: toolchain: REFUSED origin/toolchain/stable is absent ...` every pass, and nothing else reads the ref. The beat's credentials must be able to push `refs/heads/toolchain/stable`; who may push it and whether a ruleset protects it is the design's open owner decision. Carry: R11-PRE-TOOLCHAIN-PIN (item tp2) (items 806e1101)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-toolchain-pin",
-    "commit": null,
+    "commit": "2d7161a4b70923da910f9997e18db632c0d4ec2d",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move",
