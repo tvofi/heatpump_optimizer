@@ -1,0 +1,6 @@
+# D3-s3 pre-screen pool 2: the unpinned sites reach_census.py --lenient finds
+# executed by NO traced gate script (stress.py, card*.mjs excepted)
+away.py:205 RETURN_DEL
+away.py:215 GUARD_OFF
+away.py:217 RETURN_DEL
+pump_signals.py:330 RETURN_DEL

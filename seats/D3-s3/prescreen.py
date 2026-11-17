@@ -112,6 +112,8 @@ def main() -> int:
     ap.add_argument("--overlap", action="store_true")
     ap.add_argument("--no-drift-reach", action="store_true")
     ap.add_argument("--reuse-baselines", action="store_true")
+    ap.add_argument("--reach-red", action="store_true",
+                    help="stand reach_red/ rows in for red-at-export drivers")
     ap.add_argument("--timeout", type=int, default=6000)
     ap.add_argument("--only", default="",
                     help="comma list of drivers to keep (overlap subsets)")
@@ -266,6 +268,17 @@ def main() -> int:
         def traced_with_drift(run, script, tree, timeout, extra_args, extra_env):
             got, reach = inner_traced(run, script, tree, timeout, extra_args,
                                       extra_env)
+            red = HERE / "reach_red" / (script.replace("/", "_") + ".json")
+            if (args.reach_red and reach is None and red.exists()
+                    and not got.timed_out):
+                # trace_extra.py --allow-red's trace of a driver red at THIS
+                # export only on checks that read no production file (the
+                # baseline_refusal tolerance above names them): stand it in,
+                # so the driver is reach-skipped where it never executes.
+                r = json.loads(red.read_text())["reach"]
+                reach = {"hits": r["hits"], "reads": r["reads"], "foreign": [],
+                         "untraced": [], "processes": r["processes"], "rc": 0}
+                print(f"  {script}: reach = trace_extra.py --allow-red row")
             if script == "tests/env_drift.py" and got.rc == 0 and not got.timed_out:
                 r = crow["reach"]
                 reach = {"hits": r["hits"], "reads": r["reads"], "foreign": [],

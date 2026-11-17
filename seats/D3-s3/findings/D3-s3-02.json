@@ -22,11 +22,20 @@
   "perturbation": "--perturb-drop 10 removes the first 10 wasted pairs (none of them env_drift or a PRODUCERS producer) from a private closures.json patched into closure.CLOSURES: wasted_pairs 293 -> 283 and wasted_imported_pairs 265 -> 255, exactly -10 (overapprox_perturb.out). Null control --null-any-line, wasted if the run executes no line of F at all: 28 (the 21 stale entries of D3-s3-01 plus 7 env_drift belt pairs). So the body-granular excess of 265 is not file-level closure error.",
   "metric_definition": "For each production .py file F in the seat's cells and each S in closure.select([F])['run'] with a usable trace: wasted if S executes at least one line of F, no line inside any FunctionDef/AsyncFunctionDef body of F, and does not read F as text. Cost is S's recorded.seconds.",
   "phenomenon_property": "A script the scoped gate runs for a change can execute the changed lines. For a body-only diff, the selected script's measured reach covers at least one changed function body.",
-  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --json OUT lists every (file, script, seconds) wasted pair. The enumerator dev/audit/rounds/round11/D3/s3/enumerate.py --cells-files widens it to every production file once reach rows exist for every script",
-  "leave_one_out": {"cells": 65, "min": 0, "max": 907, "drop_most_favourable": 249},
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s3/overapprox.py --json OUT lists every (file, script, seconds) wasted pair over the seat's production files (the files come from tools/audit/check_scopes.py through enumerate.py:cells). Widening it to the whole package means replacing that filter once reach rows exist for every script.",
+  "leave_one_out": {
+    "cells": 65,
+    "min": 0,
+    "max": 907,
+    "drop_most_favourable": 249
+  },
   "stop_rule_class": "hygiene",
   "class_guess": "I2",
-  "files": ["tests/closure.py", "tests/closures.json", "tests/mutation_table.py"],
+  "files": [
+    "tests/closure.py",
+    "tests/closures.json",
+    "tests/mutation_table.py"
+  ],
   "proposed_fix_scope": "tests/closure.py:select: for a diff whose hunks all fall inside function bodies, skip a selected script whose recorded line reach (record it with the closure, as mutation_table.traced_baseline already does) executes none of the changed functions. Keep the file-level rule for module-level hunks, for scripts that read the file as text, and for any script without a clean reach row. The forced FULL run on main stays the backstop.",
   "reproduction_steps": [
     "python3 tests/closure.py select --files custom_components/heatpump_optimizer/plan_step.py prints 27 RUN scripts",
