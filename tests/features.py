@@ -90425,6 +90425,16 @@ R.check(
     f"mass={_pm_svc_two.runtime_data._thermal_params.room_thermal_mass} "
     f"options={dict(_pm_svc_two.options)}",
 )
+_pm_svc_slab = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"slab_thermal_mass": 41.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a two-zone entry still "
+    "takes a field both topologies read",
+    _pm_svc_slab[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.slab_thermal_mass == 41.0,
+    f"{_pm_svc_slab} slab={_pm_svc_two.runtime_data._thermal_params.slab_thermal_mass}",
+)
 _pm_svc1_hass = FakeHass()
 _seed_prices(_pm_svc1_hass)
 _asyncio.run(_ha_setup_component(_integ, _pm_svc1_hass))
