@@ -137,7 +137,11 @@
             "step": "M8",
             "what": "the per-install-day oracle for install-1 2026-10-14: enumerate.py d15-installs refuses in the export and the bundle evidence is stripped (D0-s3-01)"
           }
-        ]
+        ],
+        "yield": {
+          "M4": 2,
+          "M8": 1
+        }
       }
     }
   },
@@ -259,7 +263,15 @@
             "step": "M5",
             "what": "the handlers listed under not_reached: no lifecycle phase, no test script before its abort point, and no drivers_misc.py call reached their try bodies (services handlers, sysid, async_simulate, climate/disinfection/heat_curve writes, repairs, off_restore restore paths, diagnosis, wood-fuel view, and the rest named). Each needs a direct driver of its own; tests/entities.py's own KeyError at line 9634 and features.py's keystone exits cut the test-script arm short."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 2,
+          "M2": 4,
+          "M3": 4,
+          "M4": 1,
+          "M5": 4,
+          "M6": 3
+        }
       }
     }
   },
@@ -373,7 +385,14 @@
             "step": "M3",
             "what": "terminal-credit magnitude on the 7 cells outside the tolerance (shoulder, shoulder_two_zone, mild_windy_rain, precip_snow, cool_rainy_summer, confidence_margins: r_J 1.6-76, absolute over-credit <= 3.8 currency; direct_flow_carnot: an undersized 3 kW pump ending 10 K under the caps, where dJ=266386 is comfort penalty, not money) was measured against a same-window re-solve, a proxy continuation; a true next-window continuation was not built, so no claim is made on them"
           }
-        ]
+        ],
+        "yield": {
+          "M1": 3,
+          "M2": 1,
+          "M3": 1,
+          "M4": 6,
+          "M5": 4
+        }
       }
     }
   },
@@ -501,7 +520,10 @@
             "step": "M5",
             "what": "Kill-overlap matrix (every closure script on every mutant, no early stop) not taken (C9): ~240 h serial on this cell set. Duplicate kills therefore unmeasured. All wall/CPU numbers provisional (load 6-14); the quiet window re-takes m5_gate_table.py."
           }
-        ]
+        ],
+        "yield": {
+          "M5": 1
+        }
       }
     }
   },
@@ -592,7 +614,12 @@
             "step": "M3",
             "what": "Card states of tests/card_drift.mjs --list not rendered in Chromium (no browser driver for them here): plan_inline, plan_inline_sv, expanded_plan, what_if_off, expanded_zoomed, draft_dirty_menu_open, draft_mid_drag, whatif_edited, whatif_weekly, shared_steps, coarse_pointer, reduced_motion, layout_editing_dragged, layout_editing_tidy, picker_open_filtered, wood_whatif, away_toggle, editor_schema, history_panned, history_deep_panned, history_no_power (21 of 45; their nearest grid equivalents were rendered). The tooltip states at 375 px in de render no tooltip (the hover point lies below the 812 px viewport), so tooltip typography is unmeasured in that cell. No real Home Assistant frontend: config-flow look is inferred from strings and placeholders only (D4.md Limits)."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 2,
+          "M2": 3,
+          "M3": 7
+        }
       }
     }
   },
@@ -764,7 +791,12 @@
             "step": "M4",
             "what": "Every unit is rowed with an executed mechanical check (C2 path/symbol resolution, C5 length, cited-number-vs-constant), and C1 semantic truth was executed for the 5 hooks and 9 workflow scripts (three hook harnesses, pre_bash_claims.sh, workflow_claims.py) and for the 29 adjudicated units. Left: C1 semantic truth of the remaining docstring/comment claims in the 315 dev/audit/harnesses/** files beyond resolution (e.g. 'Expected ...' values against a re-run of each harness), and C3 (restatement) and C4 (history share) for every unit; C5's 339 long sentences are counted, not each re-read."
           }
-        ]
+        ],
+        "yield": {
+          "M2": 2,
+          "M3": 5,
+          "M4": 44
+        }
       }
     }
   },
@@ -894,7 +926,11 @@
             "step": "M2",
             "what": "569 link occurrences in the plan (447 distinct github.com pull-request URLs) were not HEAD-requested: COMMON.md forbids D6 reading GitHub and no network was used."
           }
-        ]
+        ],
+        "yield": {
+          "M2": 8,
+          "M3": 11
+        }
       }
     }
   },
@@ -1018,7 +1054,16 @@
             "step": "M5",
             "what": "Function-level deletion mutants not driven through every entering script: 102 of the 29 modules' functions (dhw_planner.py 2, draw_range.py 15, driving_grade.py 7, duty_switch.py 6, early_cutoff.py 11, entry_config.py 8, flow_meter.py 2, heat_curve.py 1, heat_energy.py 2, learner_progress.py 1, notifier.py 11, off_restore.py 2, price_tiles.py 15, quiet_windows.py 7, runs.py 4, supply_hold.py 2, whatif.py 6) and 18 of the C2 groups' (coordinator.py 1, dhw_schedule.py 2, optimizer.py 1, tariff.py 5, thermal_model.py 5, topology.py 2, wood_fuel.py 2). Each stayed green under the scripts driven so far; what is left is the 70-96 s tier where the second pass was cut (config_flow_steps.py, validate.py, edge.py, entities.py) and the long scripts never driven (tests/features.py at 6073 s here, finite_boundary.py, backtest.py, optimality.py, boost_drift_replay.py, manual_plan.py, dst_checks.py; load1 150-300); resume with `m5_train.py mutate --retry --max-script-seconds 4000 --out m5_mutants.json` (and `--c2 --out m5_c2_mutants.json`), which re-drives only the scripts not yet run. The golden differential (env_drift.py --all) was not run for any mutant: the export has no .git."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 3,
+          "M2": 1,
+          "M3": 1,
+          "M4": 1,
+          "M6": 1,
+          "M7": 3,
+          "M8": 3
+        }
       }
     }
   },
@@ -1104,7 +1149,12 @@
           ["M3"],
           ["M4", "M5"]
         ],
-        "unfinished": []
+        "unfinished": [],
+        "yield": {
+          "M2": 3,
+          "M3": 1,
+          "M5": 1
+        }
       }
     }
   },
@@ -1203,7 +1253,11 @@
             "step": "M1",
             "what": "Dynamic retained-bytes check not run for device_prefill.py, name_match.py, prefill_offer.py, quick_setup.py and repairs.py (setup and repair flows); static scan only."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 5,
+          "M2": 2
+        }
       }
     }
   },
@@ -1279,7 +1333,12 @@
           ["M1", "M2"],
           ["M1", "M2"]
         ],
-        "unfinished": []
+        "unfinished": [],
+        "yield": {
+          "M1": 8,
+          "M2": 1,
+          "M3": 1
+        }
       }
     }
   },
@@ -1385,7 +1444,13 @@
             "step": "M5",
             "what": "the same 163 rows carry no mechanisation verdict"
           }
-        ]
+        ],
+        "yield": {
+          "M1": 6,
+          "M2": 3,
+          "M3": 1,
+          "M4": 3
+        }
       }
     }
   },
@@ -1500,7 +1565,12 @@
             "step": "M4",
             "what": "the tibber and open_meteo cells (same stub gap); ha_version_floor=2025.2.0 and ha_version_typed=2026.11.1 need a real Home Assistant install of each version, which the stub cannot provide"
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1,
+          "M2": 1,
+          "M3": 3
+        }
       }
     }
   },
@@ -1596,7 +1666,11 @@
           ["M3", "M6"],
           ["M4", "M5"]
         ],
-        "unfinished": []
+        "unfinished": [],
+        "yield": {
+          "M3": 1,
+          "M6": 1
+        }
       }
     }
   },
@@ -1775,7 +1849,11 @@
             "step": "M4",
             "what": "C4: barriered/detector production classes other than N-staleness not swept through the replay for new seams; cycle_cost reds of the full lane await the quiet re-take."
           }
-        ]
+        ],
+        "yield": {
+          "M3": 2,
+          "M4": 4
+        }
       }
     }
   },
@@ -1919,7 +1997,15 @@
             "step": "M9",
             "what": "C_same for all 8 install-days: needs exogenous inputs per decision time beyond the replay half's one day and a measured-house plant independent of the learned model (D0 step 8's method has none for a live bundle)."
           }
-        ]
+        ],
+        "yield": {
+          "M2": 1,
+          "M3": 1,
+          "M4": 2,
+          "M5": 3,
+          "M6": 1,
+          "M7": 2
+        }
       }
     }
   },
@@ -1984,7 +2070,14 @@
             "step": "M6",
             "what": "pump_arbiter.py:1610's silent-switch and night-mode slots (written only with a capacity-limited switch and silent rows, or a Modbus night-mode package) were not driven; the site's four cells were examined through its mode and tank slots. The module docstring says the silent switch is not restored on Off; a next round drives heat_pump_capacity_limited_entity with silent rows through the four triggers. coordinator._async_set_pump's space circulation pump (_space_pump_to_drive) was not configured; its hot-water twin was."
           }
-        ]
+        ],
+        "yield": {
+          "M2": 5,
+          "M3": 3,
+          "M4": 1,
+          "M5": 1,
+          "M6": 3
+        }
       }
     }
   },
@@ -2043,7 +2136,12 @@
             "step": "M3",
             "what": "The restart arm (a new coordinator on the same entry) ran on 51 of 117 rows (the plan/state-observable rows); the flow-only and entity-role rows (user.*, reauth_confirm, device_prefill.*, user_sensors defrost/online/fault/switch/mode, quick_setup wood/buffer/dhw_tank/two_zone, the config-step rows) were not re-run across a restart. The holiday named state was not exercised (no field of these two kinds reads it)."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1,
+          "M2": 1,
+          "M3": 10
+        }
       }
     }
   }
