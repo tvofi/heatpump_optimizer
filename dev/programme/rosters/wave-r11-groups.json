@@ -6131,7 +6131,9 @@
     "tools/coverage/coverage_tree.sh"
    ],
    "brief": "What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory channel probes every scenario and one lane drives coordinator cycles. 4 findings (0 merged in), size L; class tags I1, I5. Plan: no ADR; point additions to the suite. No edge: nothing here waits on another group. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Moved from R11-INTAKE-R10-RESIDUE carry 118 (0-based at roster c7e683a6d4) by plan revision 4 (plan/r11 50a932de3b, dev/audit/rounds/round11/PLAN/INTAKE-TRIAGE.md): kept. Text verbatim:\n\nFrom issue 2492 (R10-SAV-COMFORT), moved here by the owner ruling of 2026-11-14 (issue-closure card I3: the test gaps go to round 11). The fix review of pull request 3195 listed test gaps outside the lines that repair touched, and no later savings pull request names them: M13, the baseline power carried end to end through the current-action read; M3, the midpoint rule; M9 and M10, the calibrated-month scaling. The behaviour is on main; these are missing pins. Control for the receiving stage: plant each mutant named in that review at the receiving stage own merge base and show which test kills it; a mutant that survives is the gap, and a mutant already killed is recorded as closed with the killing test. Re-measure at your merge base; the mutant names are the review verdict own and are not re-derived here."
+   ],
    "source": "audit",
    "resume": {
     "stage": "in-progress",
