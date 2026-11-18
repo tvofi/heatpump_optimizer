@@ -443,3 +443,4 @@
 2026-11-18T14:51:10Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override GUARD_OFF 4322fab5 L5161 by=tests/entities.py ran=13 wall=1437.1s
 2026-11-18T14:51:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND 77fcf2f4 L4696 by=- ran=17 wall=1622.5s
 2026-11-18T15:08:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification GUARD_OFF df929daf L11057 by=- ran=13 wall=1369.3s
+2026-11-18T15:12:47Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event GUARD_OFF ff55e496 L8785 by=tests/features.py ran=13 wall=1341.4s
