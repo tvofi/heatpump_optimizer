@@ -29,3 +29,4 @@
 2026-11-18T17:55:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity GUARD_OFF cdf855f8 L9931 by=- ran=15 wall=1823.3s
 2026-11-18T18:19:05Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period GUARD_OFF 769f5c2e L10984 by=tests/features.py ran=13 wall=1655.1s
 2026-11-18T18:21:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._accumulate_energy GUARD_OFF 8a2d264d L10331 by=- ran=14 wall=1872.8s
+2026-11-18T18:24:42Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostWindow._elapsed GUARD_OFF 34121f43 L729 by=tests/features.py ran=13 wall=1876.3s
