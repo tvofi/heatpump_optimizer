@@ -47,3 +47,4 @@
 2026-11-18T20:42:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe CMP_BOUND 718210d3 L188 by=- ran=12 wall=1672.0s
 2026-11-18T20:42:59Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_comfort_bounds GUARD_OFF 7b7e7d0a L4761 by=tests/features.py ran=12 wall=1554.0s
 2026-11-18T21:03:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty CMP_BOUND f555379b L434 by=- ran=12 wall=1737.8s
+2026-11-18T21:04:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_pins CMP_BOUND cccc7c43 L1649 by=- ran=13 wall=1729.8s
