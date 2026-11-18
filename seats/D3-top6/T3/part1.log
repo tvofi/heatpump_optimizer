@@ -1,1 +1,4 @@
-T3 part1 cloud box started 2026-11-18T18:51:38Z; nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz; baseline re-take running
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=1.76 at 2026-11-18T18:51:54Z
+## run.log (driver steps + controls)
+=== 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
+## prescreen.log
