@@ -13348,8 +13348,18 @@ R.check(
 )
 
 
+_WC_IDS = __import__("itertools").count()
+
+
 def _write_coord(**extra):
-    return _zone_coord(_BASE, max_temperature=23.5, **extra)
+    # The valve entity reads a value before the first write: the optimizer
+    # captures it as the baseline it restores on Off (ADR-004), and refuses
+    # a write it could not restore.
+    seen = {**_BASE, "number.valve": FakeState("21"),
+            "climate.valve": FakeState("heat", attributes={"temperature": 21.0})}
+    coord = _zone_coord(seen, max_temperature=23.5, **extra)
+    coord.entry.entry_id = f"wc{next(_WC_IDS)}"  # the persisted record is per entry id
+    return coord
 
 
 _wc = _write_coord(
@@ -13436,8 +13446,8 @@ R.check(
 R.check(
     "#2351: a write the valve refused is not remembered as commanded, so the "
     "next cycle retries it rather than skipping it as unchanged",
-    _uc._valve_commanded_target is None,
-    f"remembered {_uc._valve_commanded_target!r} after an uncommandable write",
+    _uc._valve_target.commanded_c is None,
+    f"remembered {_uc._valve_target.commanded_c!r} after an uncommandable write",
 )
 
 # With a hold schedule in force the actuator follows *it*, not the fixed
@@ -20399,13 +20409,14 @@ R.check(
     "no configured pump entities means no service call, ever",
     len(_c7v.hass.services.calls) == 0,
 )
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 _c6b = _t2_coord(vvc_pump_entity="switch.vvc")
 _c6b._thermal_params.dhw_enabled = False
-_c6b._pump_commanded["switch.vvc"] = False  # last schedule-driven command
+_circ.commanded(_c6b.entry)["switch.vvc"] = False  # last schedule-driven command
 _asyncio.run(_c6b._async_drive_pumps())
 R.check(
     "hot water disabled leaves the loop pump ON, never stuck off",
-    _c6b._pump_commanded.get("switch.vvc") is True
+    _circ.commanded(_c6b.entry).get("switch.vvc") is True
     and len(_c6b.hass.services.calls) == 1
     and _c6b.hass.services.calls[0][1] == "turn_on",
     "a configured pump abandoned in its last commanded state is a "
@@ -20422,8 +20433,8 @@ _c6c.hass.services.async_call = _failing_call
 _asyncio.run(_c6c._async_drive_pumps())
 R.check(
     "a failed pump command is retried next tick, not remembered as done",
-    "switch.vvc" not in _c6c._pump_commanded,
-    f"cache {_c6c._pump_commanded} — recording before the call succeeded "
+    "switch.vvc" not in _circ.commanded(_c6c.entry),
+    f"cache {_circ.commanded(_c6c.entry)} — recording before the call succeeded "
     "meant one unavailable moment froze the pump state forever",
 )
 
@@ -20536,7 +20547,8 @@ R.check(
 
 # The class D1-02 states, as a rule rather than an instance: every actuation
 # seam the cycle reaches (a `hass.services.async_call` whose service verb
-# writes, `async_publish_current_action`, or `_async_set_pump`) is either
+# writes, `async_publish_current_action`, or a `command` seam -- the circulation
+# pumps' and the frequency watchdog's) is either
 # gated on `_plan_is_stale` -- itself or through a module-level helper it
 # calls by name -- or is named below with the reason it is not. The rule reads
 # the source, so a write path added to the cycle is returned by it and has to
@@ -20547,18 +20559,18 @@ R.check(
 # named seams above, and a service call whose verb is not a literal counts as
 # actuation -- so an unknown call is reported rather than skipped. A read-only
 # service (weather.get_forecasts) is not an actuation, which is what keeps the
-# cycle's fetch paths out of the list. `_command_frequency` is the one seam
-# without a gate, and the reason is D1-02's: its write is keyed on
-# `_commanded_power()`, which reads the same frozen `_current_action` the
-# frequency watchdog's divergence test reads, so gating the write alone would
-# stand control down on a command the pump is entitled to ignore.
+# cycle's fetch paths out of the list. `_command_frequency` was the one seam
+# without a gate (D1-02: its write is keyed on `_commanded_power()`, which
+# reads the same frozen `_current_action` the watchdog's divergence test
+# reads); ADR-004 gates it through `_plan_let_go`, and `off_restore` hands the
+# frequency back on the stale cycle, so every seam is gated.
 import ast as _d102_ast  # noqa: E402
 import inspect as _d102_inspect  # noqa: E402
 
 from heatpump_optimizer import coordinator as _d102_mod  # noqa: E402
 
 _D102_VERBS = {"turn_on", "turn_off", "set_value", "set_temperature"}
-_D102_DIRECT = {"async_publish_current_action", "_async_set_pump"}
+_D102_DIRECT = {"async_publish_current_action", "command"}
 _D102_FUNCS = (_d102_ast.FunctionDef, _d102_ast.AsyncFunctionDef)
 
 
@@ -20642,14 +20654,14 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
 
 _d102_paths = _cycle_actuation_paths()
 R.check(
-    "every actuation seam the cycle reaches is gated on plan staleness, or is "
-    "the frequency stage whose reason D1-02 records (#1449)",
+    "every actuation seam the cycle reaches is gated on plan staleness, the "
+    "frequency stage included since the stale plan lets it go (ADR-004; #1449)",
     sorted(_d102_paths)
     == sorted(
         [
             ("_apply_action", True),
             ("_async_drive_pumps", True),
-            ("_command_frequency", False),
+            ("_command_frequency", True),
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -55825,12 +55837,13 @@ R.check(
     "the driver runs every cycle, so without the transition test a pump "
     "would take a service call every thirty seconds for as long as it runs",
 )
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 _t5_pump_fail = _t5_pumps(vvc_pump_entity="switch.vvc", fail=True)
 R.check(
     "a pump command that FAILED is not remembered as done",
-    dict(_t5_pump_fail._pump_commanded) == {}
+    dict(_circ.commanded(_t5_pump_fail.entry)) == {}
     and _t5_pump_fail._t5_escaped is None,
-    f"commanded {dict(_t5_pump_fail._pump_commanded)!r}, escaped "
+    f"commanded {dict(_circ.commanded(_t5_pump_fail.entry))!r}, escaped "
     f"{_t5_pump_fail._t5_escaped!r} -- recording before the call succeeds "
     "leaves a briefly unavailable entity in the wrong state until the next "
     "transition, which may be hours",
@@ -55842,9 +55855,9 @@ _t5_pump_plan = _t5_pumps(
 )
 R.check(
     "the space pump follows a solved plan, indexed from the plan's own clock",
-    dict(_t5_pump_plan._pump_commanded) == {"switch.space": True}
+    dict(_circ.commanded(_t5_pump_plan.entry)) == {"switch.space": True}
     and _t5_pump_plan._t5_escaped is None,
-    f"{dict(_t5_pump_plan._pump_commanded)!r} from a plan heating at the "
+    f"{dict(_circ.commanded(_t5_pump_plan.entry))!r} from a plan heating at the "
     "current step -- the index comes from the plan's first timestamp against "
     "the clock, not from position, so a stale plan cannot read as step 0",
 )
@@ -64368,6 +64381,7 @@ class _PaCoord:
         # published builder reads its own.
         return _pa.ArbiterInputs(
             hass=self.hass,
+            entry=self.entry,
             config=self._config,
             mode=self._mode,
             plan=self._optimization_result,
@@ -64398,6 +64412,24 @@ class _PaCoord:
 
 def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
+
+
+from heatpump_optimizer import off_restore as _pa_orr  # noqa: E402
+
+
+def _pa_unload(coord):
+    """The unload's two halves, as ``async_unload_entry`` runs them: the restore, which
+    writes the baseline row back (ADR-004), then the arbiter's release, which writes nothing."""
+    coord.entry.runtime_data = coord
+    _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
+    _pa_aio.run(_pa.release(coord))
+
+
+def _pa_enter_off(coord):
+    """The coordinator's own path into Off: the hook's restore, then the mode."""
+    coord.entry.runtime_data = coord
+    _pa_aio.run(_pa_orr.async_mode_change(coord.hass, coord.entry, coord._config, coord._mode, _PA_OFF))
+    coord._mode = _PA_OFF
 
 
 # #2351: the misdeclared-indoor bound is strict. An indoor entity whose minimum
@@ -64634,7 +64666,7 @@ _pa_tuya.device("select.pump_mode", "Heating + DHW")
 _pa_run(_pa_tuya, 1)
 _pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
 _pa_tuya.hass.services.calls.clear()
-_pa_aio.run(_pa.release(_pa_tuya))
+_pa_unload(_pa_tuya)
 R.check(
     "unloading writes the baseline over a mode the arbiter still owns",
     ("select", "select_option", "Heating + DHW") in _pa_tuya.writes(),
@@ -65024,13 +65056,14 @@ R.check(
 )
 _pa_offun = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_offun)
-_pa_offun._mode = _PA_OFF
-_pa_aio.run(_pa.release(_pa_offun))
+_pa_enter_off(_pa_offun)
+_pa_settled(_pa_offun)  # the Off wrote the baseline row back, and the pump took it
+_pa_unload(_pa_offun)
 _pa_onun = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_onun)
-_pa_aio.run(_pa.release(_pa_onun))
+_pa_unload(_pa_onun)
 R.check(
-    "unloading with the optimizer off writes nothing; null control: with it on, the baseline",
+    "unloading after an Off that restored writes nothing more; null control: with it on, the baseline",
     _pa_offun.writes() == []
     and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
     f"{_pa_offun.writes()} / {_pa_onun.writes()}",
@@ -65060,6 +65093,11 @@ _pa_ro = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
 _pa_ro_sent = _pa_turn_off(_pa_ro)
 _pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+_pa_ro_calls = list(_pa_ro.hass.services.calls)
+for _d, _sv, _data in _pa_ro_calls:  # the device answers each write, as _pa_settled does
+    _pa_ro.device(_data["entity_id"], str(_data.get("option", _data.get("value"))))
+_pa_ro_states = {e: _pa_ro.hass.states.get(e).state
+                 for e in ("select.pump_mode", "number.dhw_set", "number.water_set")}
 from homeassistant.helpers.storage import SAVE_COUNTS as _pa_saves  # noqa: E402
 _pa_ro_key = f"heatpump_optimizer_{_pa_ro.entry.entry_id}_pump_duty"
 _pa_ro_saved = _pa_saves.get(_pa_ro_key, 0)
@@ -65070,24 +65108,31 @@ _pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
 _pa_settled(_pa_ro_null)
 _pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
 R.check(
-    "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
-    "once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing",
-    _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
+    "R10-ARBITER-OFF-RESTORE (D16 ruling 2026-11-15): switching the optimizer off returns each entity the "
+    "arbiter wrote to its baseline once (space set-point 53, mode and tank to the baseline row), writes no "
+    "other entity, its record saved once; null control: with the arbiter not controlling, off writes nothing",
+    _pa_ro_sent == 2 and _pa_space(_pa_ro) == [53.0]
+    and sorted(_pa_ro.writes(), key=str) == [("number", "set_value", 53), ("select", "select_option", "Heating + DHW")]
+    and _pa_ro_states == {"select.pump_mode": "Heating + DHW", "number.dhw_set": "48", "number.water_set": "53"}
+    and {d["entity_id"] for _d, _sv, d in _pa_ro_calls} <= {"select.pump_mode", "number.dhw_set", "number.water_set"}
     and _pa_ro_written == {} and _pa_ro_resaved == 0
     and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
-    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} {_pa_ro_resaved=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_states=} {_pa_ro_written=} {_pa_ro_resaved=} / "
+    f"{_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
 )
 _pa_ru = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ru)
 _pa_ru.entry.runtime_data = _pa_ru
 _pa_ru_sent = _pa_aio.run(_pa_or.async_restore(_pa_ru.hass, _pa_ru.entry, _pa_ru._config, "unload"))
+_pa_ru_before = list(_pa_ru.writes())
 _pa_aio.run(_pa.release(_pa_ru))
 R.check(
-    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the "
-    "fallback row without the space set-point over it",
-    _pa_ru_sent == 1 and _pa_space(_pa_ru) == [53.0]
-    and ("select", "select_option", "Heating + DHW") in _pa_ru.writes(),
-    f"{_pa_ru_sent=} {_pa_ru.writes()=}",
+    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the baseline row (off_restore, "
+    "not the release, which writes nothing)",
+    _pa_ru_sent == 2 and _pa_space(_pa_ru) == [53.0]
+    and ("select", "select_option", "Heating + DHW") in _pa_ru_before
+    and _pa_ru.writes() == _pa_ru_before,
+    f"{_pa_ru_sent=} {_pa_ru_before=} {_pa_ru.writes()=}",
 )
 # Persisted: a restart's new coordinator, entry and hass restore the baseline
 # read before the first write, never the optimizer's own value it now reads.
@@ -65100,7 +65145,7 @@ _pa_rr2_sent = _pa_turn_off(_pa_rr2)
 R.check(
     "R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 "
     "the optimizer wrote",
-    _pa_rr2_sent == 1 and _pa_space(_pa_rr2) == [53.0],
+    _pa_rr2_sent == 2 and _pa_space(_pa_rr2) == [53.0],
     f"{_pa_rr2_sent=} {_pa_rr2.writes()=}",
 )
 
@@ -65128,11 +65173,939 @@ R.check(
     "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
     "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
     "person's own is captured, written over, and restored on off",
-    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
-    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
+    _pa_up_first == [25.0] and _pa_up_sent == 2 and _pa_space(_pa_up) == [35.0]
+    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 2 and _pa_space(_pa_up_n) == [31.0],
     f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
     f"{_pa_up_n.writes()=}",
 )
+
+
+# R11-SEAM-actuation-release (ADR-004; D16 ruling tvofi 2026-11-15): one restore owner for every written entity
+R.section("R11-SEAM-actuation-release: one restore owner for every written entity (ADR-004, D16 ruling 2026-11-15)")
+# The D16 ruling: each entity the optimizer wrote returns to the baseline it held
+# before the first write, once, when the optimizer lets go -- Off, unload and
+# remove, a stale plan for the entities cut from the plan. The plant is the
+# finder's: every actuator slot configured, the harness's own plan, the
+# service calls applied to the state machine as the device would, and every
+# assertion read from that state machine, never from a record of the calls.
+import asyncio as _r11ar_aio  # noqa: E402
+import itertools as _r11ar_it  # noqa: E402
+import json as _r11ar_json  # noqa: E402
+import logging as _r11ar_log  # noqa: E402
+from dataclasses import replace as _r11ar_replace  # noqa: E402
+
+import golden as _r11ar_golden  # noqa: E402
+import heatpump_optimizer as _r11ar_integ  # noqa: E402
+from harness import FakeEntry as _r11ar_Entry  # noqa: E402
+from homeassistant.helpers.storage import SAVE_COUNTS as _r11ar_saves  # noqa: E402
+from homeassistant.util import dt as _r11ar_dt  # noqa: E402
+try:  # a module this section's subject adds: absent, each check that needs it fails by name
+    from heatpump_optimizer import circulation as _r11ar_circ  # noqa: E402
+except ImportError:
+    _r11ar_circ = None
+from heatpump_optimizer import off_restore as _r11ar_or  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _r11ar_pa  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _R11AR_AUTO, MODE_OFF as _R11AR_OFF  # noqa: E402
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _R11arCoord  # noqa: E402
+from heatpump_optimizer.inputs import InputReader as _r11ar_Reader  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationResult as _r11ar_Result  # noqa: E402
+
+_R11AR_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=timezone.utc)
+_R11AR_IDS = _r11ar_it.count()
+_R11AR_TUYA = ["Heating", "DHW (Hot Water)", "Heating + DHW", "Cooling", "Cooling + DHW"]
+#: The Modbus select: no single heating duty, so a space-only step gates the tank set-point.
+_R11AR_MODBUS = ["Off", "Cool + DHW", "Heat + DHW"]
+#: What each entity reads before the optimizer's first write.
+_R11AR_BASE = {
+    "select.pump_mode": "Heating + DHW", "number.dhw_set": "50", "number.water_set": "45",
+    "switch.hp": "on", "number.freq": "70", "number.valve": "22", "switch.vvc": "on",
+    "number.offset": "0", "switch.dis": "off",
+    "mqtt:ecl110/displace/set": "0", "mqtt:ecl110/command": "0",
+}
+#: The four entities the cycle's own seams write (supply, frequency, valve, hot-water circulation pump).
+_R11AR_FOUR = ("switch.hp", "number.freq", "number.valve", "switch.vvc")
+
+
+def _r11ar_config(duty="control", windows="08:00-09:00"):
+    return {
+        **_r11ar_golden.coordinator_scenarios()["coord_all_features"],
+        "dhw_setpoint": 50.0, "pump_duty_mode": duty,
+        "heat_pump_mode_entity": "select.pump_mode", "dhw_setpoint_entity": "number.dhw_set",
+        "space_setpoint_entity": "number.water_set", "space_setpoint_unit": "flow",
+        "heat_pump_switch_entity": "switch.hp",
+        "compressor_freq_entity": "number.freq", "freq_control_mode": "control",
+        "mixing_valve_mode": "smart_write", "mixing_valve_write_entity": "number.valve",
+        "vvc_pump_entity": "switch.vvc", "heat_curve_displace_entity": "number.offset",
+        "ecl110_displace_set_topic": "ecl110/displace/set", "ecl110_command_topic": "ecl110/command",
+        "dhw_disinfection_switch_entity": "switch.dis", "dhw_disinfection_mode": "control",
+        "dhw_windows": windows,  # the null arm's window covers the clock: the circulation pump stays on
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    }
+
+
+def _r11ar_states(base=_R11AR_BASE, options=_R11AR_TUYA):
+    return {
+        "select.pump_mode": FakeState(base["select.pump_mode"], attributes={"options": list(options)}),
+        "number.dhw_set": FakeState(base["number.dhw_set"], attributes={"min": 40, "max": 63}),
+        "number.water_set": FakeState(base["number.water_set"], attributes={"min": 25, "max": 63}),
+        "switch.hp": FakeState(base["switch.hp"]),
+        "number.freq": FakeState(base["number.freq"], attributes={"min": 20, "max": 90}),
+        "number.valve": FakeState(base["number.valve"], attributes={"min": 15, "max": 30}),
+        "switch.vvc": FakeState(base["switch.vvc"]),
+        "number.offset": FakeState(base["number.offset"], unit="K", attributes={"min": -10, "max": 10, "step": 1}),
+        "switch.dis": FakeState(base["switch.dis"]),
+        "mqtt:ecl110/displace/set": FakeState(base["mqtt:ecl110/displace/set"]),
+        "mqtt:ecl110/command": FakeState(base["mqtt:ecl110/command"]),
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }
+
+
+def _r11ar_plan(duties, start=_R11AR_T0):
+    """The harness's own solve result: 's' space 1.5 kW, 'd' hot water 2 kW, '-' idle, from ``start``."""
+    n = len(duties)
+    return _r11ar_Result(
+        power_schedule=[1.5 if c in "sb" else 0.0 for c in duties],
+        room_temp_trajectory=[21.0] * n, slab_temp_trajectory=[21.0] * n,
+        timestamps=[start + timedelta(minutes=15 * i) for i in range(n)], prices=[1.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n, status="ok",
+        dhw_power_schedule=[2.0 if c in "db" else 0.0 for c in duties],
+    )
+
+
+def _r11ar_key(data):
+    """The written thing a call names: its entity, or ``mqtt:<topic>`` for a publish."""
+    data = data or {}
+    return data.get("entity_id") or (f"mqtt:{data['topic']}" if "topic" in data else None)
+
+
+def _r11ar_hass(base=_R11AR_BASE, options=_R11AR_TUYA):
+    """A FakeHass whose disinfection switch follows a write at once (the module reads every write back)."""
+    hass = FakeHass(_r11ar_states(base, options))
+    real = hass.services.async_call
+
+    async def device(domain, service, data=None, **kw):
+        out = await real(domain, service, data, **kw)
+        if (data or {}).get("entity_id") == "switch.dis" and service in ("turn_on", "turn_off"):
+            hass.states.get("switch.dis").state = "on" if service == "turn_on" else "off"
+        return out
+    hass.services.async_call = device
+    return hass
+
+
+def _r11ar_settle(hass):
+    """Apply every recorded call to the state machine, as the device would; return them."""
+    calls = list(hass.services.calls)
+    for _domain, service, data in calls:
+        data = data or {}
+        ent = _r11ar_key(data)
+        if service == "publish" and ent is not None:
+            payload = str(data["payload"])
+            if payload.startswith("{"):
+                payload = str(_r11ar_json.loads(payload)["command"]["displace"])
+            hass.states.get(ent).state = payload
+            continue
+        st = hass.states.get(ent) if isinstance(ent, str) else None
+        if st is None:
+            continue
+        if service == "select_option":
+            st.state = str(data["option"])
+        elif service in ("set_value", "set_temperature"):
+            v = data.get("value", data.get("temperature"))
+            st.state = str(int(v) if float(v).is_integer() else v)
+        elif service in ("turn_on", "turn_off"):
+            st.state = "on" if service == "turn_on" else "off"
+    hass.services.calls.clear()
+    return calls
+
+
+def _r11ar_n(calls, entity):
+    """The writes ``entity`` received among ``calls``."""
+    return sum(1 for _d, _s, data in calls if _r11ar_key(data) == entity)
+
+
+async def _r11ar_cycle(c, minute, post=False):
+    """The cycle's write half at T0+minute: the arbiter and supply (and the MQTT and heat-curve arms the
+    action publishes), frequency, valve, circulation pump; ``post`` adds the disinfection follower."""
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+    c._last_optimization = _R11AR_T0 + timedelta(minutes=minute)  # a fresh plan
+    await c._apply_action()
+    await c._command_frequency()
+    await c._command_valve_target()
+    await c._async_drive_pumps()
+    if post:
+        c._legionella.disinfect.observe(_r11ar_Reader(c.hass, dict(c.entry.data)))
+        await c._legionella.async_track_cycle(None)
+
+
+def _r11ar_coord(hass, entry):
+    c = _R11arCoord(hass, entry)
+    entry.runtime_data = c
+    c._freq_map.recommend = lambda *_a, **_k: 45.0  # input: a frequency map with evidence
+    c._freq_last_write = None  # input: no write inside the rate limit (construction stamps the wall clock)
+    return c
+
+
+async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=True):
+    """Write phase: a hot-water-only step, then an idle step, of the harness's plan.
+
+    Null arm: the plan starts two hours ahead, so the arbiter serves its baseline row; the action keeps the
+    supply on and the valve at its reading, the frequency map answers the reading, the circulation pump's
+    window covers the clock: every write equals the baseline, so nothing can be owed back."""
+    c._mode = _R11AR_AUTO
+    c._optimization_result = _r11ar_plan(duties, start=_R11AR_T0 + timedelta(hours=2) if null else _R11AR_T0)
+    c._current_action = {"heat_pump_on": True, "displace_value": 0.0 if null else 2.0,
+                         "valve_target": 22.0 if null else 20.0}
+    if null:
+        c._freq_map.recommend = lambda *_a, **_k: 70.0
+    written = set()
+    await _r11ar_cycle(c, 1)
+    if disinfect and not null:
+        # A planned disinfection run starts the pump's program (the integration holds the switch on); the
+        # arbiter's next pass raises the tank to the cycle temperature (pump_arbiter._dhw_target).
+        await c._legionella.disinfect.turn_on(dhw_blocked=False)
+    written |= {_r11ar_key(d) for _do, _s, d in _r11ar_settle(c.hass)}
+    if not idle:
+        return written - {None}
+    if not null:
+        c._current_action = {"heat_pump_on": False, "displace_value": 3.0, "valve_target": 18.0}
+    await _r11ar_cycle(c, 31)
+    written |= {_r11ar_key(d) for _do, _s, d in _r11ar_settle(c.hass)}
+    written.discard(None)
+    return written
+
+
+async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True):
+    """(hass, entry, coord, written) after the write phase."""
+    base = {**_R11AR_BASE, "select.pump_mode": "Heat + DHW"} if modbus else _R11AR_BASE
+    hass = _r11ar_hass(base, _R11AR_MODBUS if modbus else _R11AR_TUYA)
+    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00"),
+                         entry_id=f"r11ar_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    written = await _r11ar_drive(c, null, duties="ssssssss" if modbus else "dd--dd--", disinfect=disinfect, idle=idle)
+    return hass, entry, c, written
+
+
+def _r11ar_read(hass, entities):
+    return {e: hass.states.get(e).state for e in entities}
+
+
+def _r11ar_try(fn, *args):
+    """``fn(*args)``, or the exception it raised: a check on a missing symbol fails by name, not by crash."""
+    try:
+        return fn(*args)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _r11ar_ok(res, pred):
+    return not isinstance(res, BaseException) and bool(pred(res))
+
+
+# ---- B1/B2 (D16-s3-02): the four entities the cycle's seams write ----
+async def _r11ar_off_scn(null=False, trigger="off"):
+    hass, entry, c, written = await _r11ar_plant(null=null)
+    before = _r11ar_read(hass, _R11AR_FOUR)
+    after, calls = [], []
+    if trigger == "off":
+        await c.async_set_mode(_R11AR_OFF, refresh=False)
+        calls += _r11ar_settle(hass)
+        await _r11ar_cycle(c, 32, post=True)
+        calls += _r11ar_settle(hass)
+    else:
+        await _r11ar_integ.async_unload_entry(hass, entry)
+        calls += _r11ar_settle(hass)
+        if trigger == "remove":
+            await _r11ar_integ.async_remove_entry(hass, entry)
+            calls += _r11ar_settle(hass)
+    return before, _r11ar_read(hass, _R11AR_FOUR), {e: _r11ar_n(calls, e) for e in _R11AR_FOUR}
+
+
+_r11ar_want = {e: _R11AR_BASE[e] for e in _R11AR_FOUR}
+for _r11ar_trig in ("off", "unload", "remove"):
+    _r11ar_b, _r11ar_a, _r11ar_w = _r11ar_aio.run(_r11ar_off_scn(trigger=_r11ar_trig))
+    _r11ar_nb, _r11ar_na, _r11ar_nw = _r11ar_aio.run(_r11ar_off_scn(null=True, trigger=_r11ar_trig))
+    R.check(
+        f"D16-s3-02: after {_r11ar_trig} the supply switch, the frequency, the valve and the circulation pump "
+        "read what they read before the optimizer's first write, each written back once",
+        all(_r11ar_b[e] != _r11ar_want[e] for e in _R11AR_FOUR) and _r11ar_a == _r11ar_want
+        and all(n == 1 for n in _r11ar_w.values()),
+        f"before {_r11ar_b} after {_r11ar_a} writes {_r11ar_w}",
+    )
+    R.check(
+        f"D16-s3-02 null control ({_r11ar_trig}): commands equal to the baseline leave all four unchanged",
+        _r11ar_nb == _r11ar_want and _r11ar_na == _r11ar_want,
+        f"before {_r11ar_nb} after {_r11ar_na} writes {_r11ar_nw}",
+    )
+
+
+# ---- B3 (D16-s3-01): Off restores the arbiter's row ----
+_R11AR_ROW = ("select.pump_mode", "number.dhw_set")
+
+
+async def _r11ar_row_scn(null=False, modbus=False):
+    hass, entry, c, _written = await _r11ar_plant(null=null, modbus=modbus)
+    before = _r11ar_read(hass, _R11AR_ROW)
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    calls = _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32, post=True)
+    calls += _r11ar_settle(hass)
+    return before, _r11ar_read(hass, _R11AR_ROW), calls
+
+
+_r11ar_tuya = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn())
+_r11ar_modbus = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(modbus=True))
+_r11ar_tuya_n = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(null=True))
+_r11ar_modbus_n = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(null=True, modbus=True))
+R.check(
+    "D16-s3-01: Off returns the pump's mode select to the baseline row on the Tuya arm "
+    "(the arbiter had written the hot-water duty)",
+    _r11ar_ok(_r11ar_tuya, lambda r: r[0]["select.pump_mode"] != "Heating + DHW"
+              and r[1]["select.pump_mode"] == "Heating + DHW"),
+    f"{_r11ar_tuya!r}",
+)
+R.check(
+    "D16-s3-01: Off returns the tank set-point to the configured 50 on the Modbus arm "
+    "(space-only steps had gated it)",
+    _r11ar_ok(_r11ar_modbus, lambda r: r[0]["number.dhw_set"] != "50" and r[1]["number.dhw_set"] == "50"),
+    f"{_r11ar_modbus!r}",
+)
+R.check(
+    "D16-s3-01 null control: with the arbiter serving its baseline row (plan two hours ahead) both arms "
+    "already read the baseline and Off changes neither",
+    _r11ar_ok(_r11ar_tuya_n, lambda r: r[0] == r[1] == {"select.pump_mode": "Heating + DHW", "number.dhw_set": "50"})
+    and _r11ar_ok(_r11ar_modbus_n, lambda r: r[0] == r[1] == {"select.pump_mode": "Heat + DHW", "number.dhw_set": "50"}),
+    f"{_r11ar_tuya_n!r} / {_r11ar_modbus_n!r}",
+)
+
+
+# ---- B4 (D16-s3-03): unload under a held disinfection ----
+async def _r11ar_hold_scn(hold):
+    hass, entry, c, _written = await _r11ar_plant(disinfect=hold)
+    before = hass.states.get("number.dhw_set").state
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    _r11ar_settle(hass)
+    return before, hass.states.get("number.dhw_set").state, c
+
+
+_r11ar_held = _r11ar_try(_r11ar_aio.run, _r11ar_hold_scn(True))
+_r11ar_free = _r11ar_try(_r11ar_aio.run, _r11ar_hold_scn(False))
+R.check(
+    "D16-s3-03: unloaded while the integration holds the pump's disinfection (the arbiter raised the tank "
+    "to the cycle target 60), the tank set-point reads the configured 50 afterwards",
+    _r11ar_ok(_r11ar_held, lambda r: r[0] == "60" and r[1] == "50"),
+    f"{_r11ar_held[:2] if not isinstance(_r11ar_held, BaseException) else _r11ar_held!r}",
+)
+R.check(
+    "D16-s3-03 null control: the same drive with no hold never raised the tank to 60 and reads 50 after the unload",
+    _r11ar_ok(_r11ar_free, lambda r: r[0] != "60" and r[1] == "50"),
+    f"{_r11ar_free[:2] if not isinstance(_r11ar_free, BaseException) else _r11ar_free!r}",
+)
+
+
+def _r11ar_rows(c):
+    now = _R11AR_T0 + timedelta(minutes=31)
+    inp = _r11ar_replace(c.arbiter_inputs(), disinfecting=True)
+    return (_r11ar_pa.baseline_row(c, inp, now).dhw_setpoint,
+            _r11ar_pa.desired(c, inp, None, now).dhw_setpoint)
+
+
+_r11ar_rowpair = None if isinstance(_r11ar_held, BaseException) else _r11ar_try(_r11ar_rows, _r11ar_held[2])
+R.check(
+    "D16-s3-03: the baseline row under a disinfection hold carries the configured 50",
+    _r11ar_ok(_r11ar_rowpair, lambda r: r[0] == 50.0),
+    f"{_r11ar_rowpair!r}",
+)
+R.check(
+    "D16-s3-03 null control: the plain desired row under the same hold carries the cycle target, above 50, "
+    "so the hold flag is what moves the row",
+    _r11ar_ok(_r11ar_rowpair, lambda r: r[1] > 50.0),
+    f"{_r11ar_rowpair!r}",
+)
+
+
+# ---- B5 (D16-s1-04): a stale plan hands back what is cut from the plan ----
+async def _r11ar_stale_scn(null=False):
+    hass, entry, c, _written = await _r11ar_plant(null=null)
+    before = _r11ar_read(hass, _R11AR_FOUR)
+    now = _R11AR_T0 + timedelta(minutes=61)
+    _r11ar_dt.freeze(now)
+    c._last_optimization = now - timedelta(hours=10)
+    stale = c._plan_is_stale()
+    out = []
+    for _ in range(3):
+        await c._apply_action()
+        await c._command_frequency()
+        await c._command_valve_target()
+        await c._async_drive_pumps()
+        calls = _r11ar_settle(hass)
+        out.append((calls, _r11ar_read(hass, _R11AR_FOUR)))
+    return before, stale, out, _r11ar_or.diagnostics(entry)
+
+
+_r11ar_st = _r11ar_try(_r11ar_aio.run, _r11ar_stale_scn())
+_r11ar_stn = _r11ar_try(_r11ar_aio.run, _r11ar_stale_scn(null=True))
+R.check(
+    "D16-s1-04 precondition: the last fresh cycle left the supply off and the plan is stale",
+    _r11ar_ok(_r11ar_st, lambda r: r[0]["switch.hp"] == "off" and r[1] is True),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a stale plan returns the supply switch to on and the frequency and valve to their pre-write "
+    "readings 70 and 22, one write each in that cycle",
+    _r11ar_ok(_r11ar_st, lambda r: r[2][0][1]["switch.hp"] == "on" and r[2][0][1]["number.freq"] == "70"
+              and r[2][0][1]["number.valve"] == "22"
+              and all(_r11ar_n(r[2][0][0], e) == 1 for e in ("switch.hp", "number.freq", "number.valve"))),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a second stale cycle writes nothing to the four restored entities, and the restore is "
+    "recorded as plan_stale",
+    _r11ar_ok(_r11ar_st, lambda r: all(_r11ar_n(r[2][1][0], e) == 0 for e in _R11AR_FOUR)
+              and r[3]["last_restore"] == "plan_stale"),
+    f"the only writes in that cycle are the arbiter's own baseline row (mode select, space set-point), "
+    f"written once the switch reads on: {_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a third stale cycle writes nothing at all",
+    _r11ar_ok(_r11ar_st, lambda r: r[2][2][0] == []),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: the hot-water circulation pump (a clock, not the plan) is not written by the stale cycle's restore",
+    _r11ar_ok(_r11ar_st, lambda r: _r11ar_n(r[2][0][0], "switch.vvc") == 0),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04 null control: the supply on at the last fresh step with commands equal to the baseline, the "
+    "stale cycle writes nothing to the supply switch",
+    _r11ar_ok(_r11ar_stn, lambda r: r[1] is True and r[0]["switch.hp"] == "on"
+              and _r11ar_n(r[2][0][0], "switch.hp") == 0),
+    f"{_r11ar_stn!r}",
+)
+
+
+# ---- B6 (D16-s3-04): a restore that failed is retried until it lands ----
+async def _r11ar_retry_scn(entity, fail=True):
+    hass, entry, c, _written = await _r11ar_plant()
+    state = {"fail": fail}
+    real = hass.services.async_call
+
+    async def flaky(domain, service, data=None, **kw):
+        if state["fail"] and _r11ar_key(data) == entity:
+            raise RuntimeError("device briefly unreachable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = flaky
+    pre = hass.states.get(entity).state
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    at_off = _r11ar_settle(hass)
+    mid = hass.states.get(entity).state
+    state["fail"] = False  # the device answers again; nobody touches anything
+    for minute in range(32, 32 + 50):  # a cycle every 15 minutes, the arbiter's tick between
+        _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+        if minute % 15 == 2:
+            await _r11ar_cycle(c, minute, post=True)
+        else:
+            await _r11ar_pa.apply(c)
+    later = _r11ar_settle(hass)
+    return pre, mid, _r11ar_n(at_off, entity), _r11ar_n(later, entity), hass.states.get(entity).state
+
+
+for _r11ar_ent, _r11ar_base_v in (("number.water_set", "45"), ("number.offset", "0")):
+    _r11ar_fail = _r11ar_try(_r11ar_aio.run, _r11ar_retry_scn(_r11ar_ent))
+    _r11ar_calm = _r11ar_try(_r11ar_aio.run, _r11ar_retry_scn(_r11ar_ent, fail=False))
+    R.check(
+        f"D16-s3-04: a restore of {_r11ar_ent} that raised at the change into Off is retried by the Off "
+        f"cycles: exactly one write lands and the entity reads its baseline {_r11ar_base_v}",
+        _r11ar_ok(_r11ar_fail, lambda r: r[0] != _r11ar_base_v and r[1] == r[0] and r[3] == 1
+                  and r[4] == _r11ar_base_v),
+        f"(before Off, after the failed Off, writes at Off, writes later, final) {_r11ar_fail!r}",
+    )
+    R.check(
+        f"D16-s3-04 null control: with no failure the restore of {_r11ar_ent} lands at Off, and the Off "
+        "cycles after it write nothing to it",
+        _r11ar_ok(_r11ar_calm, lambda r: r[2] == 1 and r[3] == 0 and r[4] == _r11ar_base_v),
+        f"{_r11ar_calm!r}",
+    )
+
+
+# ---- B7 (D1-s2-04): concurrent first reads of the persisted record ----
+from unittest import mock as _r11ar_mock  # noqa: E402
+from homeassistant.helpers import storage as _r11ar_storage  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _r11ar_EC  # noqa: E402
+
+
+async def _r11ar_race_scn(serial):
+    """The persisted record holds the heat curve's baseline 3.0; its first read suspends 10 ms."""
+    entry = _r11ar_Entry(data={"heat_curve_displace_entity": "number.curve", "heat_curve_target_kind": "persistent"},
+                         entry_id=f"r11ar_race_{next(_R11AR_IDS)}")
+    key = f"heatpump_optimizer_{entry.entry_id}_off_restore"
+    _r11ar_storage._DISK[key] = _r11ar_json.dumps({"armed": {"heat_curve": {"entity_id": "number.curve", "value": 3.0}}})
+    _r11ar_storage._VERSIONS[key] = 1
+    hass = FakeHass({"number.curve": FakeState("5.0", attributes={"min": -10, "max": 10, "step": 1})})
+    config = _r11ar_EC.from_mapping(dict(entry.data))
+    loaded_in_flight = []
+    real_load = _r11ar_storage.Store.async_load
+
+    async def slow_load(self):
+        if self._key == key:
+            held = _r11ar_or._RECORDS.get(entry)
+            loaded_in_flight.append(None if held is None else held.loaded)
+            await _r11ar_aio.sleep(0.01)
+        return await real_load(self)
+
+    with _r11ar_mock.patch.object(_r11ar_storage.Store, "async_load", slow_load):
+        if serial:
+            seen = await _r11ar_or.async_armed_entry(hass, entry, "heat_curve")
+            sent = await _r11ar_or.async_restore(hass, entry, config, "mode_off")
+        else:
+            first = _r11ar_aio.ensure_future(_r11ar_or.async_armed_entry(hass, entry, "heat_curve"))
+            await _r11ar_aio.sleep(0)  # the first caller's read is in flight
+            sent = await _r11ar_or.async_restore(hass, entry, config, "mode_off")
+            seen = await first
+    writes = [(s, (d or {}).get("value")) for _do, s, d in hass.services.calls if _r11ar_key(d) == "number.curve"]
+    return sent, writes, seen, _r11ar_json.loads(_r11ar_storage._DISK[key]), loaded_in_flight
+
+
+_r11ar_race = _r11ar_try(_r11ar_aio.run, _r11ar_race_scn(False))
+_r11ar_serial = _r11ar_try(_r11ar_aio.run, _r11ar_race_scn(True))
+_r11ar_want_race = (1, [("set_value", 3.0)], {"entity_id": "number.curve", "value": 3.0}, {})
+R.check(
+    "D1-s2-04: an off restore running while another caller's first read of the record is in flight "
+    "waits for it: the baseline 3.0 is written back once, the first caller saw it, the saved record is the "
+    "restored one",
+    _r11ar_ok(_r11ar_race, lambda r: (*r[:3], r[3]['armed']) == _r11ar_want_race),
+    f"{_r11ar_race!r}",
+)
+R.check(
+    "D1-s2-04 null control: the same two calls one after the other give the same result",
+    _r11ar_ok(_r11ar_serial, lambda r: (*r[:3], r[3]['armed']) == _r11ar_want_race),
+    f"{_r11ar_serial!r}",
+)
+R.check(
+    "D1-s2-04: the record reads as not loaded while its first read is in flight",
+    _r11ar_ok(_r11ar_race, lambda r: r[4] == [False]),
+    f"{_r11ar_race!r}",
+)
+
+
+# ---- B8 (design invariant 2): a restore empties each write record ----
+async def _r11ar_again_scn(off):
+    """Cycle 1 writes the valve 20, the frequency 45 and the circulation pump off; ``off``: Off then On
+    between that and cycle 2, whose action asks for the same things."""
+    hass, entry, c, _written = await _r11ar_plant(idle=False)
+    action = {"heat_pump_on": True, "displace_value": 2.0, "valve_target": 20.0}
+    pre = (c._valve_target.commanded_c, c._freq_watchdog.commanded, dict(_r11ar_circ.commanded(entry)))
+    _r11ar_settle(hass)
+    recorded = None
+    if off:
+        await c.async_set_mode(_R11AR_OFF, refresh=False)
+        await _r11ar_cycle(c, 16)
+        _r11ar_settle(hass)
+        recorded = (c._valve_target.commanded_c, c._freq_watchdog.commanded, dict(_r11ar_circ.commanded(entry)))
+        await c.async_set_mode(_R11AR_AUTO, refresh=False)
+    c._mode, c._current_action = _R11AR_AUTO, dict(action)
+    c._freq_last_write = None  # no write inside the rate limit
+    await _r11ar_cycle(c, 31)
+    calls = _r11ar_settle(hass)
+    return pre, recorded, calls
+
+
+_r11ar_ag = _r11ar_try(_r11ar_aio.run, _r11ar_again_scn(True))
+_r11ar_ng = _r11ar_try(_r11ar_aio.run, _r11ar_again_scn(False))
+
+
+def _r11ar_vals(calls, entity):
+    return [d.get("value") for _do, _s, d in calls if _r11ar_key(d) == entity]
+
+
+R.check(
+    "design invariant 2, valve: after Off then On the same planned target 20 is sent again, and the record "
+    "of the last write is empty right after the restore",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][0] == 20.0 and r[1][0] is None and _r11ar_vals(r[2], "number.valve") == [20]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, valve null control: with no Off between, the second cycle sends no valve write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][0] == 20.0 and _r11ar_vals(r[2], "number.valve") == []),
+    f"{_r11ar_ng!r}",
+)
+R.check(
+    "design invariant 2, frequency: after Off then On the same target is sent again, and the watchdog's "
+    "commanded value is None right after the restore",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][1] is not None and r[1][1] is None
+              and _r11ar_vals(r[2], "number.freq") == [45]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, frequency null control: with no Off between, the second cycle sends no frequency write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][1] is not None and _r11ar_vals(r[2], "number.freq") == []),
+    f"{_r11ar_ng!r}",
+)
+R.check(
+    "design invariant 2, hot-water circulation pump: after Off the record has no entry for the pump, and "
+    "after On its next off command is sent again",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][2] == {"switch.vvc": False} and "switch.vvc" not in r[1][2]
+              and [s for _do, s, d in r[2] if _r11ar_key(d) == "switch.vvc"] == ["turn_off"]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, circulation pump null control: with no Off between, the second cycle sends no pump write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][2] == {"switch.vvc": False}
+              and [s for _do, s, d in r[2] if _r11ar_key(d) == "switch.vvc"] == []),
+    f"{_r11ar_ng!r}",
+)
+
+
+# ---- B9 (verdict item 9): Off taken on an idle step, the pump's switch still reading off ----
+async def _r11ar_idle_off_scn(idle):
+    hass, entry, c, _written = await _r11ar_plant(idle=idle)
+    switch_before = hass.states.get("switch.hp").state
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    in_pass = list(hass.services.calls)  # nothing settled: the switch still reads what it read
+    switch_in_pass = hass.states.get("switch.hp").state
+    armed_in_pass = _r11ar_or.diagnostics(entry)["armed"]
+    _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32, post=True)
+    _r11ar_settle(hass)
+    return (switch_before, switch_in_pass, in_pass, armed_in_pass, _r11ar_read(hass, ("select.pump_mode", "switch.hp")),
+            _r11ar_or.diagnostics(entry)["armed"])
+
+
+_r11ar_idle = _r11ar_try(_r11ar_aio.run, _r11ar_idle_off_scn(True))
+_r11ar_busy = _r11ar_try(_r11ar_aio.run, _r11ar_idle_off_scn(False))
+R.check(
+    "verdict item 9: Off taken on an idle step sends the supply switch on but writes no mode select while "
+    "the switch still reads off, and the row stays armed",
+    _r11ar_ok(_r11ar_idle, lambda r: r[1] == "off"
+              and any(s == "turn_on" and _r11ar_key(d) == "switch.hp" for _do, s, d in r[2])
+              and _r11ar_n(r[2], "select.pump_mode") == 0 and "pump_arbiter_row" in r[3]),
+    f"{_r11ar_idle!r}",
+)
+R.check(
+    "verdict item 9: once the switch reads on, the next cycle writes the baseline row (the select reads "
+    "Heating + DHW) and the row is no longer armed",
+    _r11ar_ok(_r11ar_idle, lambda r: r[4] == {"select.pump_mode": "Heating + DHW", "switch.hp": "on"}
+              and "pump_arbiter_row" not in r[5]),
+    f"{_r11ar_idle!r}",
+)
+R.check(
+    "verdict item 9 null control: with the switch on at the Off trigger (a hot-water step, not idle) the "
+    "row is written in the Off pass itself",
+    _r11ar_ok(_r11ar_busy, lambda r: r[1] == "on" and _r11ar_n(r[2], "select.pump_mode") == 1
+              and "pump_arbiter_row" not in r[3]),
+    f"{_r11ar_busy!r}",
+)
+
+
+# ---- B10 (verdict item 8): the arbiter forgets its record while the row is being written ----
+async def _r11ar_interleave_scn(interleave):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if interleave and service == "select_option" and not fired:
+            fired.append(True)
+            _r11ar_pa._forget(_r11ar_pa.state_for(c))
+            await _r11ar_pa._persist(c)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    sent = await _r11ar_or.async_restore(hass, entry, c._config, "unload")
+    return (sent, bool(fired), "pump_arbiter_row" in _r11ar_or.diagnostics(entry)["armed"],
+            sorted(set(_r11ar_pa.state_for(c).written) - {"space_setpoint"}))
+
+
+_r11ar_il = _r11ar_try(_r11ar_aio.run, _r11ar_interleave_scn(True))
+_r11ar_il0 = _r11ar_try(_r11ar_aio.run, _r11ar_interleave_scn(False))
+R.check(
+    "verdict item 8: a pass that forgets the arbiter's record between two slot writes of the row's restore "
+    "does not stop it: the restore completes, the row is disarmed and the record holds no slot but the space set-point",
+    _r11ar_ok(_r11ar_il, lambda r: r[0] >= 1 and r[1] and r[2] is False and r[3] == []),
+    f"(restores, interleaved, row still armed, leftover slots) {_r11ar_il!r}",
+)
+R.check(
+    "verdict item 8 null control: without the interleaving the end state is the same",
+    _r11ar_ok(_r11ar_il0, lambda r: r[0] >= 1 and not r[1] and r[2] is False and r[3] == []),
+    f"{_r11ar_il0!r}",
+)
+
+
+# ---- B11, B12 (design note item 3): a write racing the restore ----
+async def _r11ar_race_write_scn(race):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if race and service == "turn_on" and _r11ar_key(data) == "switch.hp" and not fired:
+            fired.append(True)
+            await _r11ar_pa.switch_supply(hass, entry, c._config, "switch.hp", False)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    calls = _r11ar_settle(hass)
+    return (hass.states.get("switch.hp").state, "pump_arbiter_supply" in _r11ar_or.diagnostics(entry)["armed"],
+            [s for _do, s, d in calls if _r11ar_key(d) == "switch.hp"], bool(fired))
+
+
+_r11ar_rw = _r11ar_try(_r11ar_aio.run, _r11ar_race_write_scn(True))
+_r11ar_rw0 = _r11ar_try(_r11ar_aio.run, _r11ar_race_write_scn(False))
+R.check(
+    "design note 3: an off write of the supply switch racing the unload's restore is refused or restored: "
+    "after the unload the switch reads on and its restore is not left armed",
+    _r11ar_ok(_r11ar_rw, lambda r: r[3] and r[0] == "on" and r[1] is False),
+    f"(switch, armed, switch calls, raced) {_r11ar_rw!r}",
+)
+R.check(
+    "design note 3 null control: with no racing write the same end state, from exactly one turn_on",
+    _r11ar_ok(_r11ar_rw0, lambda r: not r[3] and r[0] == "on" and r[1] is False and r[2].count("turn_on") == 1),
+    f"{_r11ar_rw0!r}",
+)
+
+
+async def _r11ar_guard_scn():
+    hass, entry, c, _written = await _r11ar_plant()
+    key = _r11ar_pa.SUPPLY
+    outside = await _r11ar_or.async_arm(hass, entry, c._config, key)
+    real = hass.services.async_call
+    seen = []
+
+    async def probing(domain, service, data=None, **kw):
+        if service == "turn_on" and _r11ar_key(data) == "switch.hp" and not seen:
+            seen.append(await _r11ar_or.async_arm(hass, entry, c._config, key))
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = probing
+    await _r11ar_or.async_restore(hass, entry, c._config, "mode_off")
+    after = await _r11ar_or.async_arm(hass, entry, c._config, key)
+    return outside, seen, after
+
+
+_r11ar_gd = _r11ar_try(_r11ar_aio.run, _r11ar_guard_scn())
+R.check(
+    "in-flight guard: async_arm refuses (False) a key while that key's restore write is awaited, and "
+    "accepts it again (True) once the restore has finished",
+    _r11ar_ok(_r11ar_gd, lambda r: r[1] == [False] and r[2] is True),
+    f"(outside, in flight, after) {_r11ar_gd!r}",
+)
+R.check(
+    "in-flight guard null control: called outside a restore, async_arm answers True",
+    _r11ar_ok(_r11ar_gd, lambda r: r[0] is True),
+    f"{_r11ar_gd!r}",
+)
+
+
+# ---- B13: the registry, entry-only (no coordinator) ----
+class _R11arLogs(_r11ar_log.Handler):
+    def __init__(self):
+        super().__init__(_r11ar_log.WARNING)
+        self.messages = []
+
+    def emit(self, record):
+        self.messages.append(record.getMessage())
+
+
+def _r11ar_unit(stale_a=False, stale_b=False, entry_id=None):
+    """A bare entry and hass with two throwaway consumers, ``_r11ar_a`` registered before ``_r11ar_b``."""
+    order = []
+
+    def factory(entity):
+        async def write(_hass, entity_id, value):
+            order.append(entity_id)
+        return lambda _cfg: _r11ar_or.Restorer(entity, write, neutral=1.0)
+    _r11ar_or.register_consumer("_r11ar_a", factory("number.a"), stale=stale_a)
+    _r11ar_or.register_consumer("_r11ar_b", factory("number.b"), stale=stale_b)
+    entry = _r11ar_Entry(data={}, entry_id=entry_id or f"r11ar_unit_{next(_R11AR_IDS)}")
+    return FakeHass(), entry, order
+
+
+def _r11ar_unregister(*keys):
+    for key in keys:
+        for name in ("_CONSUMERS", "_STALE", "_RELEASES", "_WRITERS"):
+            getattr(_r11ar_or, name, {}).pop(key, None)
+
+
+async def _r11ar_registry_scn():
+    out = {}
+    # (a) restores run in registration order, whatever order they were armed in
+    hass, entry, order = _r11ar_unit()
+    for key in ("_r11ar_b", "_r11ar_a"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    out["order"] = list(order)
+    # (b) a cycle with neither Off nor a stale plan restores nothing; a stale plan restores the stale keys only
+    hass, entry, order = _r11ar_unit(stale_b=True)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    none = await _r11ar_or.async_cycle(hass, entry, {}, False, False)
+    out["cycle_none"] = (none, list(order))
+    stale = await _r11ar_or.async_cycle(hass, entry, {}, False, True)
+    out["cycle_stale"] = (stale, list(order), _r11ar_or.diagnostics(entry)["armed"])
+    # (c) Off restores both
+    hass, entry, order = _r11ar_unit(stale_b=True)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    off = await _r11ar_or.async_cycle(hass, entry, {}, True, False)
+    out["cycle_off"] = (off, list(order), _r11ar_or.diagnostics(entry)["armed"])
+    # (d) a pass that restores nothing does not save; one that restores saves once
+    hass, entry, order = _r11ar_unit()
+    store_key = _r11ar_or._store(hass, entry.entry_id)._key
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    idle_saves = _r11ar_saves.get(store_key, 0)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    before = _r11ar_saves.get(store_key, 0)
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    out["saves"] = (idle_saves, _r11ar_saves.get(store_key, 0) - before)
+    # (f) removing an entry with a neutral key still armed names it
+    hass, entry, order = _r11ar_unit()
+    await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_a")
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger(_r11ar_or.__name__)
+    logger.addHandler(handler)
+    try:
+        await _r11ar_or.async_forget(hass, entry.entry_id)
+    finally:
+        logger.removeHandler(handler)
+    out["forget"] = list(handler.messages)
+    return out
+
+
+try:
+    _r11ar_reg = _r11ar_try(_r11ar_aio.run, _r11ar_registry_scn())
+finally:
+    _r11ar_unregister("_r11ar_a", "_r11ar_b")
+R.check(
+    "registry (a): restores run in registration order, though the keys were armed in reverse",
+    _r11ar_ok(_r11ar_reg, lambda r: r["order"] == ["number.a", "number.b"]),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (b): a cycle with neither Off nor a stale plan restores nothing, and a stale plan restores "
+    "the stale=True key only",
+    _r11ar_ok(_r11ar_reg, lambda r: r["cycle_none"] == (0, []) and r["cycle_stale"] == (1, ["number.b"], ["_r11ar_a"])),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (c): a cycle in Off restores both keys",
+    _r11ar_ok(_r11ar_reg, lambda r: r["cycle_off"] == (2, ["number.a", "number.b"], [])),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (d): a pass that restores nothing does not save the store, one that restores saves it once",
+    _r11ar_ok(_r11ar_reg, lambda r: r["saves"] == (0, 1)),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (f): removing an entry with a neutral key still armed logs a warning naming the key",
+    _r11ar_ok(_r11ar_reg, lambda r: len(r["forget"]) == 1 and "_r11ar_a" in r["forget"][0]),
+    f"{_r11ar_reg!r}",
+)
+
+
+async def _r11ar_release_scn():
+    out = {}
+    for name, answer in (("false", False), ("true", True), ("raises", RuntimeError("release failed"))):
+        calls = []
+
+        async def release(_hass, _entry, _config, reason, answer=answer, calls=calls):
+            calls.append(reason)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        _r11ar_or.register_release("_r11ar_rel", release)
+        hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_rel_{next(_R11AR_IDS)}")
+        await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_rel")
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+        out[name] = (sent, calls, _r11ar_or.diagnostics(entry)["armed"])
+    return out
+
+
+try:
+    _r11ar_rel = _r11ar_try(_r11ar_aio.run, _r11ar_release_scn())
+finally:
+    _r11ar_unregister("_r11ar_rel")
+R.check(
+    "registry (e): a release consumer answering False stays armed, one answering True is disarmed, and one "
+    "that raises stays armed and does not raise into the restore",
+    _r11ar_ok(_r11ar_rel, lambda r: r["false"][2] == ["_r11ar_rel"] and r["true"] == (1, ["mode_off"], [])
+              and r["raises"][2] == ["_r11ar_rel"] and r["raises"][1] == ["mode_off"]),
+    f"{_r11ar_rel!r}",
+)
+R.check(
+    "registry (e) null control: the consumer that answered False was asked, and counted no restore",
+    _r11ar_ok(_r11ar_rel, lambda r: r["false"][:2] == (0, ["mode_off"]) and r["raises"][0] == 0),
+    f"{_r11ar_rel!r}",
+)
+
+
+# ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
+def _r11ar_guard(probe=False):
+    """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
+    data = {"price_source": "entity", "price_entity": "sensor.prices", "weather_entity": "weather.home"}
+    if probe:  # the overdue notice watches only an install with a tank probe
+        data["dhw_temp_entity"] = "sensor.tank"
+    c = _R11arCoord(FakeHass(), _r11ar_Entry(data=data, entry_id=f"r11ar_lg_{next(_R11AR_IDS)}"))
+    c._thermal_params.dhw_enabled = True
+    c._thermal_params.dhw_legionella_enabled = True
+    c._thermal_params.dhw_legionella_interval_days = 7.0
+    c._legionella.last_cycle = _r11ar_dt.now() - timedelta(days=20)
+    return c
+
+
+def _r11ar_notices():
+    out = {}
+    c = _r11ar_guard()
+    guard, recorded = c._legionella, []
+    guard._interval_notice = lambda *a: recorded.append(a)
+    guard.check_mode_block(True)
+    out["mode_block"] = [(a[0], a[1], a[2]) for a in recorded]
+    c2 = _r11ar_guard(probe=True)
+    rec2 = []
+    c2._legionella._interval_notice = lambda *a: rec2.append(a)
+    c2._legionella.check_overdue()
+    out["overdue"] = [(a[0], a[1], a[2]) for a in rec2]
+    # Unpatched: the issue's placeholders for a number, and cleared for None.
+    c3 = _r11ar_guard()
+    params = c3._thermal_params
+    g = c3._legionella
+    g._interval_notice("dhw_legionella_overdue", "days", 12, params)
+    raised = [i for i in getattr(c3.hass, "issues", []) if i[1] == "dhw_legionella_overdue"]
+    out["raised"] = [i[2].get("translation_placeholders") for i in raised]
+    g._interval_notice("dhw_legionella_overdue", "days", None, params)
+    out["cleared"] = [i for i in getattr(c3.hass, "issues", []) if i[1] == "dhw_legionella_overdue"]
+    return out
+
+
+_r11ar_nt = _r11ar_try(_r11ar_notices)
+R.check(
+    "D7-s1-05: check_mode_block raises its notice through _interval_notice with the key "
+    "dhw_legionella_mode_blocked and the field overdue_days",
+    _r11ar_ok(_r11ar_nt, lambda r: len(r["mode_block"]) == 1
+              and r["mode_block"][0][:2] == ("dhw_legionella_mode_blocked", "overdue_days")
+              and isinstance(r["mode_block"][0][2], int)),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05: check_overdue raises its notice through _interval_notice with the key "
+    "dhw_legionella_overdue and the field days",
+    _r11ar_ok(_r11ar_nt, lambda r: len(r["overdue"]) == 1 and r["overdue"][0][:2] == ("dhw_legionella_overdue", "days")
+              and isinstance(r["overdue"][0][2], int)),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05: unpatched, a day count raises the issue with the count under its own name and the interval",
+    _r11ar_ok(_r11ar_nt, lambda r: r["raised"] == [{"days": "12", "interval_days": "7"}]),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05 null control: the same call with no day count clears the issue",
+    _r11ar_ok(_r11ar_nt, lambda r: r["cleared"] == []),
+    f"{_r11ar_nt!r}",
+)
+
+
+_r11ar_dt.freeze(None)
 
 
 # R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
@@ -65228,7 +66201,7 @@ R.check(
     "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
     "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
     "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
-    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+    _pa_stuck_cycle() == (0, 55.0, 2, [35.0])
     and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
     f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
 )
@@ -65236,7 +66209,7 @@ R.check(
     "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
     "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
     "restored as set",
-    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+    _pa_stuck_off() == (2, [35.0]) and _pa_stuck_off("40") == (2, [40.0]),
     f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
 )
 
@@ -65267,8 +66240,8 @@ R.check(
     "R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off "
     "restores; null controls: the reading the entity held before the write (a refused write) and a "
     "reading after the pump was switched off (its own reset) leave the baseline at 53",
-    _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
-    and _pa_between("40", switch_off=True) == (1, [53.0]),
+    _pa_between("40") == (2, [40.0]) and _pa_between("25") == (2, [53.0])
+    and _pa_between("40", switch_off=True) == (2, [53.0]),
     f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
 )
 _pa_echo = _PaCoord(_PA_TUYA, duties="dds-s")
@@ -65290,14 +66263,14 @@ _pa_same_sent = _pa_turn_off(_pa_same)
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no "
     "edit: off restores 53",
-    _pa_echo_sent == 1 and _pa_space(_pa_echo) == [53.0]
-    and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
+    _pa_echo_sent == 2 and _pa_space(_pa_echo) == [53.0]
+    and _pa_same_sent == 2 and _pa_space(_pa_same) == [53.0],
     f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
 )
 R.check(
     "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
     "second edit: off restores the first edit, 40, not 41",
-    _pa_between("40", then="41") == (1, [40.0]),
+    _pa_between("40", then="41") == (2, [40.0]),
     f"{_pa_between('40', then='41')=}",
 )
 # #3402 item 5b825bae: an adopted baseline is a value the entity takes, or
@@ -65305,7 +66278,7 @@ R.check(
 R.check(
     "R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off "
     "restores 63 for a reading of 70; null control: 40, inside it, is restored as read",
-    _pa_between("70") == (1, [63.0]) and _pa_between("40") == (1, [40.0]),
+    _pa_between("70") == (2, [63.0]) and _pa_between("40") == (2, [40.0]),
     f"{_pa_between('70')=} {_pa_between('40')=}",
 )
 
@@ -65325,7 +66298,7 @@ def _pa_at_grace(after_s):
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and "
     "adopted; null control: one a second inside it is not, and off restores 53",
-    _pa_at_grace(_pa.ECHO_GRACE_S) == (1, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (1, [53.0]),
+    _pa_at_grace(_pa.ECHO_GRACE_S) == (2, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (2, [53.0]),
     f"{_pa_at_grace(_pa.ECHO_GRACE_S)=} {_pa_at_grace(_pa.ECHO_GRACE_S - 1)=}",
 )
 # #3402 item 648c3c80, the write-ahead order: the baseline is on disk before
@@ -65918,6 +66891,8 @@ _pa_wire_hass.states.get("select.pump_mode").state = "DHW (Hot Water)"
 _pa_aio.run(_pa_wire._update_current_state())
 _pa_wire_diag = _pa_diag._coordinator_snapshot(_pa_wire)["pump_duty"]
 _pa_wire_hass.services.calls.clear()
+_pa_wire.entry.runtime_data = _pa_wire
+_pa_aio.run(_pa_orr.async_restore(_pa_wire_hass, _pa_wire.entry, _pa_wire._config, "unload"))
 _pa_aio.run(_pa_wire.async_shutdown())
 R.check(
     "the real coordinator's action pass writes a hot-water-only step to the pump",
@@ -67943,11 +68918,16 @@ def _p6_accepts():
     return acc
 
 
+_P6_IDS = __import__("itertools").count()
+
+
 def _p6_coord(states, **cfg):
     data = {"tibber_token": "x", "weather_entity": "weather.home",
             "indoor_temp_entity": "sensor.indoor",
             "outdoor_temp_entity": "sensor.outdoor", **cfg}
-    return Coord(FakeHass(states), _P6Entry(data=data))
+    # One entry id per coordinator: the off-restore record persists per id, and a
+    # census that drives many writers must not hand one's armed entity to the next.
+    return Coord(FakeHass(states), _P6Entry(data=data, entry_id=f"p6_{next(_P6_IDS)}"))
 
 
 async def _p6_switch(eid):
@@ -67963,10 +68943,13 @@ async def _p6_switch(eid):
     return coord.hass.services.calls
 
 
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 async def _p6_pump(eid):
-    coord = _p6_coord({})
-    await coord._async_set_pump(eid, True, "p6")
-    await coord._async_set_pump(eid, False, "p6")
+    key = eid.split(".p6_", 1)[1]  # the census names each entity after the slot it fills
+    coord = _p6_coord({}, **{key: eid})
+    pump = _circ.SPACE if key == hp_const.CONF_SPACE_PUMP_ENTITY else _circ.DHW
+    await _circ.command(coord.hass, coord.entry, coord._config, pump, True, "p6")
+    await _circ.command(coord.hass, coord.entry, coord._config, pump, False, "p6")
     return coord.hass.services.calls
 
 
@@ -67979,7 +68962,8 @@ async def _p6_disinfect(eid):
 
 
 async def _p6_valve(eid):
-    coord = _p6_coord({}, mixing_valve_mode="smart_write",
+    # The valve reads a value first: the baseline the optimizer restores on Off.
+    coord = _p6_coord({eid: FakeState("21", attributes={"temperature": 21.0})}, mixing_valve_mode="smart_write",
                       **{hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: eid})
     await coord._command_valve_target()
     return coord.hass.services.calls
@@ -80787,18 +81771,21 @@ R.check(
 # L1: the smart_write valve target goes through the same rule. The commanded
 # value it remembers stays degC, so the unchanged-target guard compares like
 # with like.
+_DF_IDS = __import__("itertools").count()
+
+
 def _df_valve(entity, state, instance):
     coord = Coord(FakeHass({entity: state}), _DfEntry(data={
         "tibber_token": "x", "weather_entity": "weather.home",
         "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
         "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
         "mixing_valve_write_entity": entity,
-    }))
+    }, entry_id=f"df{next(_DF_IDS)}"))  # the persisted baseline is per entry id
     coord.hass.config.units = _DfNS(temperature_unit=instance)
     _df_aio.run(coord._command_valve_target())
     _df_aio.run(coord._command_valve_target())
     data = [c[2] for c in coord.hass.services.calls]
-    return [d.get("temperature", d.get("value")) for d in data], coord._valve_commanded_target
+    return [d.get("temperature", d.get("value")) for d in data], coord._valve_target.commanded_c
 
 
 _df_valves = {
@@ -80810,10 +81797,11 @@ _df_valves = {
 }
 R.check(
     "the smart_write valve target is written in the entity's unit, once, "
-    "and remembered in degC (L1)",
+    "and remembered in degC (L1); a climate that reads no target has no baseline "
+    "to restore, so nothing is written to it and nothing remembered (ADR-004)",
     _df_valves == {
         "climate on degF": ([74], 23.5),
-        "climate on degF, no target": ([74], 23.5),
+        "climate on degF, no target": ([], None),
         "number declaring degF": ([74], 23.5),
         "climate on degC": ([23], 23.5),
         "number declaring degC": ([23], 23.5),
@@ -85621,7 +86609,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
                 await coord._apply_action()
             if m == room_cut_at:
                 # An early cut-off, as ``early_cutoff.on_room_event`` writes it.
-                await _sa_pa.switch_supply(hass, "switch.hp", False)
+                await _sa_pa.switch_supply(hass, coord.entry, coord.arbiter_inputs().config, "switch.hp", False)
             for tick in list(ticks):
                 await tick(now)
             for domain, service, _data in hass.services.calls:
@@ -86129,9 +87117,13 @@ R.section("supply switch: the cycle writes the step it lands in")
 # (a reload's cold solve, the price tile, the fuse advisor before the write):
 # it writes the plan's command for the step it lands in, not the action's.
 # The null control is the same cycle inside the action's own step.
+_MS_IDS = __import__("itertools").count()
+
+
 async def _ms_stale(minute):
     hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
+                                  entry_id=f"ms{next(_MS_IDS)}"))
     coord._mode = "auto"
     coord._optimization_result = SimpleNamespace(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
@@ -86173,7 +87165,8 @@ _ms_main = lambda _inp, _boosts, on, now=None: on
 async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=False,
                     sysid=False, age_minutes=0, main=False):
     hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
+                                  entry_id=f"ms{next(_MS_IDS)}"))  # a persisted off-restore record is per entry id
     coord._mode = mode
     coord._optimization_result = SimpleNamespace(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),

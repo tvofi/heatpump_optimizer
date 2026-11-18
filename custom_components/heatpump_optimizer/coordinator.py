@@ -205,6 +205,7 @@ from .inputs import (
     InputReturnWatch,
     age_of,
     normalize_price_per_kwh,
+    number_reading,
     parse_bool,
     read_rooms,
     read_setpoint,
@@ -784,8 +785,9 @@ def _valve_restored(entry: Any, _entity_id: str, _value: float) -> None:
 
 
 def _number_reading(hass: Any, entity_id: str) -> float | None:
-    """The entity's state as a number in its own unit, or ``None``."""
-    return finite_float(getattr(hass.states.get(entity_id), "state", None), None)
+    """The entity's state as a number in its own unit, or ``None`` (``inputs.number_reading``)."""
+    value: float | None = getattr(number_reading(hass, entity_id), "value", None)
+    return value
 
 
 _register_number_restore(FREQUENCY_RESTORE, lambda c: c.compressor_freq_entity, _frequency_restored, write_setpoint, _number_reading)

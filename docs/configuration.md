@@ -915,7 +915,17 @@ writes, at every 15-minute plan step:
   or the weather curve for a water set-point, the planned room temperature for
   an indoor one), and the optimizer writes the set-point from its first pass.
   Set it on the pump once while the optimizer is on to have your own
-  value restored instead. The mode and the hot-water set-point are not restored.
+  value restored instead.
+- **Turning it off hands the rest back too.** Turning **Optimizer active** off,
+  and every unload, sets the pump's mode back to heating both circuits and the
+  hot-water set-point back to the one you configured, switches the heat pump's
+  power switch and the circulation pumps back on, and writes the compressor
+  frequency and the mixing-valve target back to what they read before the
+  optimizer's first write. Only what the optimizer wrote is written back, once;
+  a write-back that fails is tried again every cycle while the optimizer stays
+  off. When the plan goes stale and the optimizer stops actuating, the power
+  switch, the frequency, the valve target and the space circulation pump are
+  handed back the same way.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
