@@ -1,0 +1,31 @@
+== base 
+FILE climate.py loc=355 functions=17 max_fn_loc=74 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=283 const_counted=5 const_read=5 module_level_cc=0 in_function_copies=1
+FILE optimizer.py loc=6705 functions=191 max_fn_loc=339 over_150=3 over_200=2 max_cc=41 cc_over_15=3 cc_over_25=2 max_class_loc=3330 const_counted=4 const_read=4 module_level_cc=1 in_function_copies=2
+FILE tariff.py loc=1227 functions=39 max_fn_loc=71 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=317 const_counted=0 const_read=0 module_level_cc=0 in_function_copies=2
+FILE thermal_model.py loc=5055 functions=166 max_fn_loc=332 over_150=2 over_200=1 max_cc=39 cc_over_15=1 cc_over_25=1 max_class_loc=1816 const_counted=67 const_read=135 module_level_cc=1 in_function_copies=1
+RESULT ratchet_duplication_copies=8 count
+RESULT recount_mismatches=0 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=0 count
+== base --perturb unused-import
+FILE climate.py loc=355 functions=17 max_fn_loc=74 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=283 const_counted=5 const_read=5 module_level_cc=0 in_function_copies=1
+FILE optimizer.py loc=6705 functions=191 max_fn_loc=339 over_150=3 over_200=2 max_cc=41 cc_over_15=3 cc_over_25=2 max_class_loc=3330 const_counted=4 const_read=4 module_level_cc=1 in_function_copies=2
+FILE tariff.py loc=1227 functions=39 max_fn_loc=71 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=317 const_counted=0 const_read=0 module_level_cc=0 in_function_copies=2
+FILE thermal_model.py loc=5055 functions=166 max_fn_loc=332 over_150=2 over_200=1 max_cc=39 cc_over_15=1 cc_over_25=1 max_class_loc=1816 const_counted=67 const_read=135 module_level_cc=1 in_function_copies=1
+RESULT ratchet_duplication_copies=8 count
+RESULT recount_mismatches=0 count
+RESULT in_function_copies=6 count
+RESULT unused_package_imports=15 count
+RESULT ratchet_rows_off_budget=0 count
+== base --perturb clone-same-fn
+FILE climate.py loc=355 functions=17 max_fn_loc=74 over_150=0 over_200=0 max_cc=6 cc_over_15=0 cc_over_25=0 max_class_loc=283 const_counted=5 const_read=5 module_level_cc=0 in_function_copies=1
+FILE ledger.py loc=743 functions=33 max_fn_loc=64 over_150=0 over_200=0 max_cc=15 cc_over_15=0 cc_over_25=0 max_class_loc=307 const_counted=1 const_read=1 module_level_cc=0 in_function_copies=1
+FILE optimizer.py loc=6705 functions=191 max_fn_loc=339 over_150=3 over_200=2 max_cc=41 cc_over_15=3 cc_over_25=2 max_class_loc=3330 const_counted=4 const_read=4 module_level_cc=1 in_function_copies=2
+FILE tariff.py loc=1227 functions=39 max_fn_loc=71 over_150=0 over_200=0 max_cc=12 cc_over_15=0 cc_over_25=0 max_class_loc=317 const_counted=0 const_read=0 module_level_cc=0 in_function_copies=2
+FILE thermal_model.py loc=5055 functions=166 max_fn_loc=332 over_150=2 over_200=1 max_cc=39 cc_over_15=1 cc_over_25=1 max_class_loc=1816 const_counted=67 const_read=135 module_level_cc=1 in_function_copies=1
+RESULT ratchet_duplication_copies=8 count
+RESULT recount_mismatches=0 count
+RESULT in_function_copies=7 count
+RESULT unused_package_imports=14 count
+RESULT ratchet_rows_off_budget=1 count  (dead_top_level_symbols 1->2)
