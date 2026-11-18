@@ -451,3 +451,4 @@
 2026-11-18T15:29:27Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action BOOLOP 83c9652a L6648 by=tests/features.py ran=12 wall=1772.6s
 2026-11-18T15:29:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CLAMP_DROP 83c68b4b L3654 by=- ran=16 wall=1782.0s
 2026-11-18T15:35:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab CMP_BOUND d0694ab6 L2325 by=- ran=12 wall=1782.5s
+2026-11-18T15:37:11Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps CMP_BOUND 41f5c052 L5235 by=- ran=14 wall=1917.3s
