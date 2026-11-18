@@ -1590,6 +1590,7 @@
    "custom_components/heatpump_optimizer/brand/logo.png",
    "custom_components/heatpump_optimizer/brand/logo@2x.png",
    "custom_components/heatpump_optimizer/button.py",
+   "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
@@ -5423,7 +5424,7 @@
    "seconds": 21.5
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
