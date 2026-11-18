@@ -23,3 +23,4 @@
 1794990719 HB alive
 1794991313 HB alive
 1794991342 CKPT D3-s1 136 file(s)
+1794991346 HB D3-s1 R1 done: 24 traced baselines green on this box, trace-capture procs 2/2, null LIVES (18 drivers), posctl 2/2 KILLED; starting M5(a) quiet gate table
