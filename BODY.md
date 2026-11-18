@@ -1,6 +1,6 @@
 R11-OUTSIDE-SELF-SETTING-PUMP, rebuilt on the round-3 design (`design.md` at 0acbbc8b910c57256696e0d8ff56649b71eb8bbc of design/R11-OUTSIDE-SELF-SETTING-PUMP; `Design review: approve 0acbbc8b910c57256696e0d8ff56649b71eb8bbc`, design-verdict at 7062403121b7d5399ed6fea3eff6638b18168348). It answers `Fix review: blocked 1134fe365519ce1334aa95960e19f908bb2b4f53 class-open` (verdict at ba984f3567823b3b5f0b2297aff35e6be6185fd7). Owner ruling D4 (tvofi, 2026-11-15) stands: the self-setting pump residual of #3593 is fixed, not accepted. The first body's carry answers (carries 0 to 4 of this group on handoff/audit-r10-roster) are unchanged except where a section below says so.
 
-prepr: passed rc=0 at a3bc90e2a8ea633c69f901aced0f84ce804a7b2b
+prepr: passed rc=0 at 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7
 
 By roster carry (`carry` of R11-OUTSIDE-SELF-SETTING-PUMP in `dev/programme/rosters/wave-r11-groups.json` on handoff/audit-r10-roster at 3df132ea51, 0-based); this repair changes no production line, so each status is the one the earlier heads measured:
 
@@ -64,6 +64,8 @@ Measured at this head (`## Figures`):
 5. **Null control 3 does not hold on four rows**, and cannot under decision 2. `sub_min_true_0.6_x384` and `_x480` read 118/384 at 0.611 and 150/480 at 0.603 at the blocked head and 0 folded, pending, here; `held_filling_heatled_true_0.8` reads 96/96 at 0.810 there and 0/96, pending, here; `selfset_flat` (96 intervals) ends pending at a dither level. Each has fewer than 50 admitted rows between the window turning unobtainable and the row's end. The `sub_min` rows are also a finding (`## Forward-carry`): they never decide at any length.
 
 ## Head
+
+`454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7` is the code head of this body-only repair of `Fix review: blocked 9894911a81cdceb51eecec093a2527f93576d34e red-check` (verdict on review/3662). It is the merge-main bot's `ci: merge main` over the reviewed 9894911a81; this repair adds no commit, so the diff the verdict judged is unchanged. Merge base 1da13aafb7c23cf34fbda51bb27cb95132b4089b. Measured 2026-11-18 01:16 UTC; at that time origin/main is 7ae657e0e2bf42731c902f5aebf1d20d3e76d348 and `git merge-tree --write-tree origin/main 454d4fc425` reports no conflict (rc 0), so main is not merged. `merge_train.py classify 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 --pr 3662` printed `RED ... pending: none red: gate` and no INTRODUCED line; `gate` (job 134495927170 of run 44196634218) failed only on `FAIL budget-raise-gate / budget-raise-gate: cancelled (this run)`, which this seat re-ran (`rerun_failed_jobs` on run 44196634218), not repaired. The diff only lowers `tests/structure_budgets.json`. The verdict's block, the stale `scope-line` figure block, is answered by re-rendering it at this head (`figure_block.py refresh`, through `body_push.sh`); `pr-contract / pr-contract` passed at this head in run 44194991877 (job 134492768870) on the body the orchestrator's script had already refreshed.
 
 `a3bc90e2a8ea633c69f901aced0f84ce804a7b2b` (the code head of this repair) is 948e07753393792a54faa69232562620db057365 plus one commit adding six checks to `tests/features.py` and no production line (`git diff 948e077533 a3bc90e2a8 --stat` lists that file alone). Merge base 30991a6b0d4caaf796847956ebc9977cb4656505. Measured 2026-11-17 12:22 UTC; at that time origin/main is 8f39313a44a4baec18b239ba925f6e164eb26bd2 and `git merge-tree --write-tree origin/main HEAD` reports no conflict (rc 0), so main is not merged. Since the previous body's head 0cbea8f970: 4725dffbfa and 948e077533 are `mutation-autofix` pin commits and afa6a3619b the merge-main bot's merge of origin/main 30991a6b0d. Figures other than `### Lane survivors`, the first item of `### Gate and ratchets` and `## Red checks` were taken at the earlier heads they name.
 
@@ -164,7 +166,7 @@ The same step at this head (e1fa50dd75, inside the prepr run that printed rc=0) 
 
 ## Figures
 
-<!-- figure-block: scope-line mb=30991a6b0d4caaf796847956ebc9977cb4656505 head=a3bc90e2a8ea633c69f901aced0f84ce804a7b2b -->
+<!-- figure-block: scope-line mb=1da13aafb7c23cf34fbda51bb27cb95132b4089b head=454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7 -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -342,6 +344,15 @@ Instrument: `cop_duty_floor.py`'s open loop on `selfset_2.2_flat` (672 intervals
 
 ## Red checks
 
+Reds at 454d4fc425 (fix review 3, `Fix review: blocked 9894911a81` red-check), each name in `merge_train.py owed-reds` answered:
+
+- `pr-contract / pr-contract`, red at 9894911a81 (run 44147689564) and at 454d4fc425 in run 44195004151 (job 134492004930): the body's `scope-line` figure block named head f52f265d5b / mb 30991a6b0d after the bot's main merges. Green at 454d4fc425 in run 44194991877 once the block was re-rendered; re-rendered again by this body. Cheaper detector: `figure_block.py verify`, which `tools/pr/prepr.sh`'s body check runs in seconds; the red arose because a main merge by the bot moves head and mb after the handoff without re-rendering the body; the live body at 454d4fc425 was re-rendered by the orchestrator's script without a push, and `body_push.sh` renders the block at every handoff. No further countermeasure here.
+- `gate`: red at 9894911a81 because pr-contract was; red at 454d4fc425 in run 44196634218 only on `budget-raise-gate / budget-raise-gate: cancelled (this run)`. No cause of its own.
+- `budget-raise-gate / budget-raise-gate`, cancelled at 454d4fc425 in run 44196634218 (job 134495994646, 5 min); green at the same head in runs 44194991877 and 44195004151. A cancellation, not a defect: re-run. The diff only lowers `tests/structure_budgets.json` (no raise).
+- `tests / nightly-status` and `tests / replay`, red at 454d4fc425 in run 44194991877, are outside `merge_train.py owed-reds`: not answered.
+
+Earlier record, as written for 948e077533:
+
 Reds on this pull request's commits (pr-contract's `red-history` over the 41 commits between origin/main and 948e077533), each name in `merge_train.py owed-reds` answered:
 
 - `tests / mutation`, red at 948e077533 (run 44051675045): `MUTATION TABLE REFUSED`, 7 sites this diff added that `mutation-autofix` could not kill. Repaired at a3bc90e2a8: a check for each, every mutant killed by hand (`### Lane survivors`); the lane pins them on its next pass. Cheaper detector: `prepr.sh` step 6's `mutant_run.py --diff` ran at e1fa50dd75 but draws only the first 40 mutants of the added lines, so these seven were past its cap. The detector that names exactly "no driver the lane runs kills this site" is the lane itself, at its standing cost; none cheaper exists, so no countermeasure.
@@ -365,3 +376,4 @@ Reds on this pull request's commits (pr-contract's `red-history` over the 41 com
 
 - seat-brief: stale: the brief names `DESIGN.md` at the design tip; the file there is `design.md`, and `git show <tip>:DESIGN.md` fails. Carry: dismissed: a one-off dispatch text, the file was found by listing the tree
 - seat-brief: cost: `multiprocessing` starts workers by forkserver on this interpreter (3.14), so a pool worker does not see flags the parent parsed after truncating `sys.argv`; the first `--null` sweep ran un-nulled and was discarded. The committed sweep hands the flag to its workers. Carry: dismissed: repaired in the instrument this pull request lands
+
