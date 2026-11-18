@@ -42370,10 +42370,27 @@ _R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notifie
 
 
 def _r10_unlatched_logs(sources):
-    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
-    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
-    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    """N-log-flood seams: each ``_LOGGER`` call at WARNING or above (``.warning``,
+    ``.error``, ``.exception``, ``.critical``, ``.log`` at such a level: R11
+    D14-s2-03, the barrier read two of the five) with no latch in an enclosing
+    ``if`` (a latch-named test, or a ``not in`` against a set the function
+    ``.add``s to; the R10 sweep's static rule), per (module, function). A logger
+    under another name is refused by ``_r11_logger_aliases``."""
     found = Counter()
+
+    def flood_level(call):
+        # WARNING or above; ``.log`` at a level below it is quiet, any other
+        # level, a computed one included, is counted. Kept inside this
+        # function: logflood_shape.py execs it alone.
+        if call.func.attr in ("warning", "error", "exception", "critical"):
+            return True
+        if call.func.attr != "log" or not call.args:
+            return False
+        level = call.args[0]
+        if isinstance(level, ast.Constant) and isinstance(level.value, int):
+            return level.value >= 30
+        return ast.unparse(level) not in ("logging.DEBUG", "logging.INFO", "logging.NOTSET")
+
     for name, source in sources.items():
         tree = ast.parse(source)
 
@@ -42381,8 +42398,8 @@ def _r10_unlatched_logs(sources):
             for child in ast.iter_child_nodes(node):
                 inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
                 if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
-                        and child.func.attr in ("warning", "error")
-                        and ast.unparse(child.func.value) == "_LOGGER"):
+                        and ast.unparse(child.func.value) == "_LOGGER"
+                        and flood_level(child)):
                     latched = False
                     for test in chain:
                         text = ast.unparse(test.test)
@@ -42397,6 +42414,39 @@ def _r10_unlatched_logs(sources):
 
         walk(tree, [], None)
     return found
+
+
+def _r11_logger_aliases(sources):
+    """``(module, line, binding)`` per logger bound to a name the barrier does
+    not read: anything but a module-level ``_LOGGER = logging.getLogger(...)``
+    that stores ``_LOGGER``, a ``getLogger``/``getChild`` result, or a
+    ``logging`` module alias. The barrier keys on the text ``_LOGGER``, so
+    ``log = _LOGGER; log.warning(...)`` was a site it could not see."""
+    out = []
+    for name, source in sources.items():
+        tree = ast.parse(source)
+        top = set(map(id, tree.body))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                value, targets = None, [a for a in node.names if a.name == "logging" and a.asname]
+                is_logger = True
+            elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and node.value is not None:
+                value = node.value
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                is_logger = (isinstance(value, ast.Name) and value.id == "_LOGGER") or (
+                    isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+                    and value.func.attr in ("getLogger", "getChild"))
+            else:
+                continue
+            if not is_logger or not targets:
+                continue
+            canonical = (id(node) in top and isinstance(node, ast.Assign) and len(targets) == 1
+                         and isinstance(targets[0], ast.Name) and targets[0].id == "_LOGGER"
+                         and isinstance(value, ast.Call) and value.func.attr == "getLogger")
+            if not canonical:
+                out.append((name, node.lineno, ", ".join(
+                    getattr(t, "asname", None) or ast.unparse(t) for t in targets)))
+    return out
 
 
 #: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
@@ -42426,6 +42476,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
         # named once and disarmed in the same call, so it cannot repeat.
         ("off_restore.py", "_restore_baseline"): 1,
+        # R11 D14-s2-03: a fit that raises ends the experiment in the same
+        # call (phase done, a refusal published), so it logs once per night armed.
+        ("sysid.py", "_finish"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -42476,7 +42529,22 @@ _r10_log_planted = _r10_unlatched_logs({
                   "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
     "inputs.py": _r10_sources["inputs.py"]
     + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+    # R11 D14-s2-03: each level a flood can log at is a site, a quiet one is not
+    "levels.py": "def exc(self):\n    _LOGGER.exception('x')\n"
+                 "def crit(self):\n    _LOGGER.critical('x')\n"
+                 "def at_warning(self):\n    _LOGGER.log(logging.WARNING, 'x')\n"
+                 "def at_forty(self):\n    _LOGGER.log(40, 'x')\n"
+                 "def at_debug(self):\n    _LOGGER.log(logging.DEBUG, 'x')\n"
+                 "def at_info(self):\n    _LOGGER.info('x')\n",
 })
+_r11_aliases_found = _r11_logger_aliases(_r10_sources)
+_r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
+    "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n",
+    "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
+    "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
+    "mod.py": "import logging as lg\n",
+    "field.py": "class C:\n    when: int\n    _LOGGER: object = None\n",
+})}
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
     "with its exact count -- a persisting condition goes through log_held",
@@ -42489,8 +42557,21 @@ R.check(
     # one, and a second site inside a listed function, are each refused
     and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
-    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted)
+    and all(("levels.py", f) in _r10_log_verdict(_r10_log_planted)
+            for f in ("exc", "crit", "at_warning", "at_forty"))
+    and not {("levels.py", "at_debug"), ("levels.py", "at_info")} & set(_r10_log_verdict(_r10_log_planted)),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+R.check(
+    "R11 N-log-flood barrier reach: every package logger is a module-level "
+    "``_LOGGER = logging.getLogger(...)``, the one name the barrier reads",
+    not _r11_aliases_found
+    # null control: the canonical binding is not refused; perturbation: an
+    # alias, another getLogger name, a getChild and a logging alias each are
+    and _r11_aliases_planted == {("alias.py", "log"), ("child.py", "_LOG"),
+                                 ("child.py", "CHILD"), ("mod.py", "lg")},
+    f"refused {_r11_aliases_found}; planted read {sorted(_r11_aliases_planted)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
