@@ -4326,7 +4326,7 @@
     "Plan beat items (the batch's entries P753 and P794), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P753 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\nThe plan beat passes `--live-refs` and `--in-flight` (sweep line 1131); the local render-timeout raise in $HPO_STATE_DIR/s14/beat_extras.sh (150 to 420 s, sweep line 1196) is retired by this group; the plan page's tab builder script is the REPLACE target (this group's carry 2). The PLAN-CAP3 refusal after a stamp is by design and is answered by the round-11 roster file existing, not by code."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-plan-page",
     "commit": null,
     "last_step": null,
