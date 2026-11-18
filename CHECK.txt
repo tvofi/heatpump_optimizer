@@ -1,1 +1,2 @@
 ok sweep-N-step-grid
+ok sweep-N-structure-blind
