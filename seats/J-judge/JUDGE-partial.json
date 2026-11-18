@@ -1446,5 +1446,197 @@
   "class": "I5",
   "note": "reproduced exactly. Votes: 1 verify.",
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s5-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: false_units[tools/audit/seat/merge_train.py]=1 of 689 units",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s5-06",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: false_units[tools/audit/seat/orchestrator_tick.py]=1 of 277 units",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 weaken (low).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s5-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: long_sentences_strict=483 in 60 files (raw 743)",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D5-s6-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: stamp record-class regexes 6 (comment says 3), stamp_py=3 false units; perturb -> 3 and 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s6-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: replay table is tests/replay_cost_draws.tsv (docstring names replay_draws.tsv), 1 false unit; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s6-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: row_position usage path exits rc=2, 1 false unit; perturb -> rc 0, 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced exactly; the usage line resolves a pre-move path. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s6-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: plan_audit end-to-end --target 22.7 exits rc=2, 1 false unit; perturb -> rc 0, 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s6-05",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: header names updatepr.sh, script is update_pr.sh (1 false unit); perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly; trivial maps to low. Votes: 1 verify (trivial).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s6-06",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: roster_lib_py=3 false units; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced the finder's 3; the verifier counts 2 of 3 as false (one cites history). Votes: 1 weaken (trivial).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s6-07",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: plan_table_py=1 false unit (gen_table_rev3.py); perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly. Votes: 1 verify (trivial).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D5-s7-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tests/features.py c5_fail=450, c2_fail=3, plus 1 C1 = 454; perturb c2 3 -> 2",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced exactly. Mostly C5 length, so the style class. Votes: 1 verify.",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D5-s7-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: tests/finite_boundary.py c5_fail=14 of 143 units; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced exactly. Votes: 1 verify (trivial).",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D5-s7-03",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: tests/frontend.py c5_fail=3 of 24 units; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced the finder's 3 (verifier's own splitter 2). Votes: 1 weaken (trivial).",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D5-s8-07",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: scan_c_like mislocates per file (tests/card.mjs 690, agreement.mjs 49, check-wave-script.mjs 59, ...) over 3099 comment units; verifier total 1175 of 1899 JS units",
+  "stop_rule_class": "bug",
+  "class": "N-instrument-locator",
+  "note": "reproduced the per-file counts; the total is the verifier's. An audit instrument that misreports line numbers misleads every D5 seat. Merged D5-s4-03. Votes: 1 verify (medium).",
+  "class_mechanism": "An audit instrument reports the wrong location (line number or file) for the units it counts, so every seat that cites its output cites the wrong site",
+  "nearest": "I4",
+  "differs": "the count is right and only the locator is wrong; no second definition disagrees"
+ },
+ {
+  "id": "D5-s9-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: stale_refs=17 in 3 files (14 moved), of which tests/entities.py holds the finder's 13",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced; 13 + 3 + 1 across D5-s9-01..03 equals the 17 measured. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s9-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: stale_refs=17 in 3 files, of which tests/run.sh holds the finder's 3",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced; moved paths. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s9-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: stale_refs=17 in 3 files, of which tests/structure.py holds 1 (tools/audit/README.md)",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced; moved path. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D5-s9-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: C5-long=820 sentences; perturb removes the planted unit 1 -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "N-comment-style",
+  "note": "reproduced the finder's 820 sentences (verifier's 597 counts units). Votes: 1 verify.",
+  "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
+  "nearest": "I5",
+  "differs": "the text is not false or stale, only over-long"
  }
 ]
