@@ -715,7 +715,7 @@
     "From r11-pre-security-privacy-p2, body item 164b6f2c: Carry 4, the private-fork ruleset test, which needs a scratch security advisory (design note n4), remains the owner's act. Carry: R11-INTAKE-R10-RESIDUE (items 164b6f2c)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "handoff/r11-intake-r10-residue",
     "commit": null,
     "last_step": null,
