@@ -1,0 +1,9 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /tmp/claude-0/-home-user-heatpump-optimizer/a484066d-531a-5409-823a-6abc0065e8d3/scratchpad/venv, got /tmp/claude-0/-home-user-heatpump-optimizer/a484066d-531a-5409-823a-6abc0065e8d3/scratchpad/wt/../venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /tmp/claude-0/-home-user-heatpump-optimizer/a484066d-531a-5409-823a-6abc0065e8d3/scratchpad/venv, got /tmp/claude-0/-home-user-heatpump-optimizer/a484066d-531a-5409-823a-6abc0065e8d3/scratchpad/wt/../venv
+derive ({'ref23': (19.36, 25.65), 'ref27': (25.65, 29.17), 'ref31': (29.17, 33.15), 'ref37': (33.15, 39.0), 'ref40': (39.0, 42.54), 'ref47': (42.54, 51.12), 'ref53': (51.12, 57.34)}, {'ref23': {}, 'ref27': {}, 'ref31': {}, 'ref37': {}, 'ref40': {}, 'ref47': {}, 'ref53': {}}, {'cpu_ratio': 589.6842, 'loop_cpu_ratio': 0.2154})
+budget {'cpu_ratio': 589.6842, 'peak_kib': 3740.0, 'loop_cpu_ratio': 0.2154}
+level_shift (['ref23', 'ref27', 'ref31', 'ref37', 'ref40', 'ref47', 'ref53'], [])
+pre 105 204.2286 271.1527 post 26 383.1296 453.8018
+factor 1.7719061415118516
+proj 361.87391061236735 480.4571344175206 sqrt2*gm 589.6861913141261
+controls 37 failing []
