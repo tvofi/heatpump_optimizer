@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram.plan BOOLOP b30ce7fa",
+  "killed_by": "tests/features.py",
+  "old": "                out[k] = self.levels[action[k]] if mask[k] and action[k] < len(self.levels) else float(",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`out[k] = self.levels[action[k]] if mask[k] or action[k] < len(self.levels) else float(`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
