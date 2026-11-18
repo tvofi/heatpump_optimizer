@@ -6449,6 +6449,62 @@
     "next_step": "fixer per the architect note (ADR-010)",
     "note": null
    }
+  },
+  {
+   "group": "R11-SEAM-comments-production",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "XL",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D5-s4-01",
+    "D5-s3-02"
+   ],
+   "merged": {
+    "D5-s3-03": "D5-s4-01"
+   },
+   "classes": [
+    "I5",
+    "N-comment-style"
+   ],
+   "seam": "production comments",
+   "hot_files": [
+    "custom_components/heatpump_optimizer/*.py",
+    "www/heatpump-optimizer-card.js"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010. No edge: the order against the behaviour groups is a hot-file order. The fixer cuts it into parts by seam, one PR per part; the part for a file is released when the last group in that file's row of PLAN.md's hot-file order has merged, and files no other group names are released at the first dispatch. The card's script is released after R11-SEAM-card and R11-SEAM-product-text.",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/*.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "brief": "Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. Text only. A sentence-length count recorded as a ratchet lets it be paid per file. 2 findings (1 merged in), size XL; class tags I5, N-comment-style. Plan: ADR-010. No edge: the order against the behaviour groups is a hot-file order. The fixer cuts it into parts by seam, one PR per part; the part for a file is released when the last group in that file's row of PLAN.md's hot-file order has merged, and files no other group names are released at the first dispatch. The card's script is released after R11-SEAM-card and R11-SEAM-product-text. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-comments-production",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-010)",
+    "note": "overlap admitted (R11-SEAM-card, R11-SEAM-product-text): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
