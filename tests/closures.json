@@ -1872,6 +1872,7 @@
    "tests/config_flow_steps.py",
    "tests/coverage_budgets.json",
    "tests/coverage_ratchet.py",
+   "tests/cycle_lane.py",
    "tests/debug_collect.py",
    "tests/delivery_status.py",
    "tests/deployment_shape.py",
@@ -5546,7 +5547,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 327.6
+   "seconds": 159.7
   },
   "tests/layout.py": {
    "rc": 0,
@@ -5586,7 +5587,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 20.8
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,
