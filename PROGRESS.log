@@ -8,42 +8,51 @@
 1794988643 INIT box D3-u1a
 1794988694 CKPT D3-s1 126 file(s)
 1794989077 HB alive
-1794989681 HB alive
-1794989699 HB cannot: CMD 1 arrived after D3-s1 had already started (frugal:builder subagent at model opus = claude-opus-5-5; no FRUGAL_ALLOW_EXPENSIVE set). Brief step 3 forbids killing a running subagent, so it runs to completion; no further Agent spawns will be made. Inline execution is pending owner confirmation.
-1794989773 CKPT D3-s1 134 file(s)
-1794990278 HB alive
-1794990884 HB alive
-1794991186 CKPT D3-s1 160 file(s)
-1794991489 HB alive
-1794992083 HB alive
-1794992301 CKPT D3-s1 185 file(s)
-1794992688 HB alive
-1794993294 HB alive
-1794993552 CKPT D3-s1 210 file(s)
-1794993887 HB alive
-1794994492 HB alive
-1794994964 CKPT D3-s1 235 file(s)
-1794995098 HB alive
-1794995691 HB alive
-1794996054 CKPT D3-s1 260 file(s)
-1794996296 HB alive
-1794996903 HB alive
-1794997467 CKPT D3-s1 285 file(s)
-1794997495 HB alive
-1794998100 HB alive
-1794998706 HB alive
-1794998718 CKPT D3-s1 310 file(s)
-1794999299 HB alive
-1794999910 HB alive
-1794999950 CKPT D3-s1 335 file(s)
-1795000516 HB alive
-1795001103 HB alive
-1795001222 CKPT D3-s1 360 file(s)
-1795001709 HB alive
-1795002314 HB alive
-1795002535 CKPT D3-s1 386 file(s)
-1795002907 HB alive
-1795003514 HB alive
-1795003826 CKPT D3-s1 410 file(s)
-1795004119 HB alive
-1795004712 HB alive
+1794989477 RESUMED from e73ec4902167
+1794989477 INIT box D3-u1a
+1794989499 HB alive
+1794989540 HB re-fired: inline seat per inbox 1; export+worktree rebuilt on fresh container; evidence restored
+1794990103 HB alive
+1794990709 HB alive
+1794990930 CKPT D3-s1 135 file(s)
+1794990934 HB R1 done on this box: baselines 21/21 retaken, null LIVES (16 drivers), posctl 2/2 KILLED; K0 keys 309 sha 8f30aae5ec9f17c0 OK
+1794991308 HB alive
+1794991913 HB alive
+1794992520 HB alive
+1794992692 CKPT D3-s1 163 file(s)
+1794992701 HB K1 pre 25/309 free=27G load1=4.06
+1794993125 HB alive
+1794993730 HB alive
+1794994088 CKPT D3-s1 188 file(s)
+1794994093 HB K1 pre 50/309 free=27G load1=4.11
+1794994336 HB alive
+1794994940 HB alive
+1794995546 HB alive
+1794995779 CKPT D3-s1 213 file(s)
+1794995785 HB K1 pre 75/309 free=27G load1=4.27
+1794996152 HB alive
+1794996758 HB alive
+1794997364 HB alive
+1794997712 CKPT D3-s1 239 file(s)
+1794997718 HB K1 pre 101/309 free=27G load1=4.33
+1794997969 HB alive
+1794998575 HB alive
+1794999181 HB alive
+1794999225 CKPT D3-s1 263 file(s)
+1794999229 HB K1 pre 125/309 free=27G load1=4.13
+1794999787 HB alive
+1795000393 HB alive
+1795000999 HB alive
+1795001156 CKPT D3-s1 290 file(s)
+1795001162 HB K1 pre 152/309 free=27G load1=4.19
+1795001605 HB alive
+1795002211 HB alive
+1795002818 HB alive
+1795002850 CKPT D3-s1 313 file(s)
+1795002855 HB K1 pre 175/309 free=27G load1=4.11
+1795003424 HB alive
+1795004031 HB alive
+1795004638 HB alive
+1795004661 CKPT D3-s1 338 file(s)
+1795004666 HB K1 pre 200/309 free=27G load1=3.97
+1795005243 HB alive
