@@ -69,7 +69,9 @@ INPUTS under D, written by `produce` (one REST batch: the CI run listing since t
 open round's start, and each completed run's job listing not yet cached, at most
 JOB_FETCH_MAX per pass):
   runs.json       [{id, t, c, attempt}] main `CI` push runs (scorecard.py's A lines)
-  ci_runs.json    [{id, t, c, attempt}] every completed `CI` run
+  ci_runs.json    [{id, t, c, attempt, head_sha, event, head_branch, pr}] every completed
+                  `CI` run; pr is the first pull request the run lists, else null
+                  (the four fields are loop_ledger.py --runs's: a cause per red run)
   jobs/jobs_<id>.json  {"attempt", "jobs": [{name, conclusion, started_at, completed_at, run_attempt}]}
   merges.tsv      sha, pr, ct, class, tokens, group, entered (scorecard.py's H line)
   entries.json    {"tip", "entered": {group: epoch}} the roster-entry scan's cache
@@ -535,8 +537,11 @@ def fetch_runs(d: Path, gh_repo: str, since: float, paginate) -> list[str]:
     """runs.json, ci_runs.json and the job listings not yet cached at a run's latest attempt."""
     listed = paginate(f"repos/{gh_repo}/actions/workflows/ci.yml/runs",
                       {"created": f">={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(since))}", "status": "completed"})
-    ci = [{"id": r["id"], "t": r["created_at"], "c": r["conclusion"], "attempt": r["run_attempt"]} for r in listed]
-    main = [x for x, r in zip(ci, listed) if r["event"] == "push" and r["head_branch"] == "main"]
+    narrow = [{"id": r["id"], "t": r["created_at"], "c": r["conclusion"], "attempt": r["run_attempt"]} for r in listed]
+    # ci_runs.json alone is widened (loop_ledger.py --runs reads the four fields); runs.json keeps scorecard.py's row
+    ci = [{**x, "head_sha": r.get("head_sha"), "event": r.get("event"), "head_branch": r.get("head_branch"),
+           "pr": next((q.get("number") for q in r.get("pull_requests") or []), None)} for x, r in zip(narrow, listed)]
+    main = [x for x, r in zip(narrow, listed) if r["event"] == "push" and r["head_branch"] == "main"]
     write(d / "ci_runs.json", json.dumps(ci))
     write(d / "runs.json", json.dumps(main))
     todo = [r for r in ci if (read_json(d / "jobs" / f"jobs_{r['id']}.json") or {}).get("attempt") != r["attempt"]]
