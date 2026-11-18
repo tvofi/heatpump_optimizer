@@ -23,3 +23,4 @@
 2026-11-18T15:16:25Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power CLAMP_DROP 1d68a67f L1573 by=- ran=12 wall=1328.4s
 2026-11-18T15:16:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_fd_steps CMP_BOUND 4b490ea1 L1582 by=- ran=17 wall=1514.4s
 2026-11-18T15:17:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CLAMP_DROP bd87497f L4019 by=- ran=13 wall=1237.8s
+2026-11-18T15:34:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 463ef486 L169 by=- ran=12 wall=1345.3s
