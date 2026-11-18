@@ -1,5 +1,0 @@
-2026-11-18T12:50:36Z COMPLETE queued=245 from=pre
-2026-11-18T13:11:57Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:<module> CONST d4d92013 L106 by=tests/features.py ran=19 wall=1279.7s
-2026-11-18T13:13:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable CMP_BOUND 9330e956 L1708 by=- ran=12 wall=1361.8s
-2026-11-18T13:16:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.seasonal_inlet_temp CMP_BOUND 855229b8 L835 by=- ran=15 wall=1545.7s
-2026-11-18T13:16:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_savings_percentage CMP_BOUND 8d209fd1 L2144 by=- ran=17 wall=1552.3s
