@@ -1,0 +1,16 @@
+
+=== features block ===
+  FAIL solve_gate: an idle request is not absorbed and sets nothing; one during a refresh trails it once; a second solve start is refused and recorded as one re-run, taken once  [idle=False (False, False) refreshing=False starts=(True, False) ends=(True, False) trails=(False, False)]
+  ok   D9-s1-02: one background what-if per main solve -- the second is denied, and the next solve opens a fresh budget
+  ok   D9-s1-03: of four overlapping user what-ifs only the one in flight and the newest solve; the two overtaken are held, a background caller never waits, and the slot is freed; null control, one ask solves
+  ok   D9-s1-04: the reference days are one shippable function of the two sides, and the schedule branch reads them -- a moved setpoint prices the pair, an unmoved one is None
+  FAIL D1-s1-03: a request during a refresh trails it, one during a solve re-runs it, and only an idle one reaches the debouncer -- which drops a call made while it executes  [((1, False), (1, True), 2)]
+  ok   D1-s1-03: a request landing while a refresh runs is answered by one more debounced refresh once it ends, and the trailing mark is spent
+  ok   D9-s1-01: a diagnose press republishes the insight view with the advisor ranking kept, and requests no refresh -- so no solve
+  ok   D1-s3-04: the fault arms' reap of a kill-deaf worker is bounded by the shutdown timeout and does not raise
+  ok   D1-s1-01: a worker the stop killed raises no fallback notice and runs no in-process solve; null control, the same death while running falls back with its notice
+  ok   D1-s1-01: a healthy solve clears a fallback notice restored from before a restart, with no cause latched in this process; null control, another entry's latched cause keeps it
+  ok   D1-s1-01: a solve the stop broke answers 'shutdown', counts no solve failure and frees the gate
+  ok   the published optimization_running view reads the solve gate
+
+2 of 12 FEATURES BLOCK FAILED

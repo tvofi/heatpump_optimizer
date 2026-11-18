@@ -1,0 +1,9 @@
+
+=== features block ===
+RV origin=debounced debouncer_refreshes=1 writes=1
+  FAIL RV debounced: the write mid-refresh is followed by one more refresh  [(1, 1)]
+RV origin=direct debouncer_refreshes=1 writes=1
+  ok   RV direct: the write mid-refresh is followed by one more refresh
+
+1 of 2 FEATURES BLOCK FAILED
+run_rc=1

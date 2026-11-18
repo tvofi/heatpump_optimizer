@@ -1,0 +1,5 @@
+clean rc=0 0 FAIL
+begin_solve_reset_deleted rc=1 1 FAIL
+refreshing_arm_deleted rc=1 2 FAIL
+supersede_off rc=1 1 FAIL
+done
