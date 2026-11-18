@@ -51,3 +51,4 @@
 2026-11-18T20:44:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF ddd90b1f L3177 by=- ran=13 wall=1566.2s
 2026-11-18T20:45:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 68bf32a9 L2782 by=- ran=12 wall=1670.5s
 2026-11-18T20:49:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 22a69ea5 L2796 by=- ran=13 wall=1896.8s
+2026-11-18T20:58:01Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF a6a225bf L4604 by=tests/features.py ran=12 wall=807.5s
