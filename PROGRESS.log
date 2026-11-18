@@ -4,3 +4,4 @@
 1794988485 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
 1794988490 HB prepared
 1794988505 SEAT D3-s1 running
+1794988634 HB D3-s1 started (frugal:builder, model opus; general-purpose and sage agents refused by the frugal routing guard)
