@@ -2111,6 +2111,17 @@ def _better_objective(
     return left
 
 
+
+def _lower_bound_start(bounds: list[tuple[float, float]]) -> np.ndarray:
+    """The all-off start: every step at its lower bound (D0-s3-02).
+
+    Zero where a step is free, a forced-on pin's running floor where one
+    holds. Every other start buys energy, so without this one a day whose
+    optimum is to buy none -- negative prices on a storage plant, a house
+    the wood tank already carries -- is reached only if a descent finds it.
+    """
+    return np.array([low for low, _ in bounds], dtype=float)
+
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
 ) -> np.ndarray:
@@ -2887,6 +2898,9 @@ class _Horizon:
     """
 
     initial_state: ThermalState
+    #: The prices the objective weighs: the input plus the risk premium
+    #: ``_stash_price_horizon`` adds on guessed steps (#34). Never a money
+    #: figure: those read ``money_prices``.
     prices: np.ndarray
     outdoor_temps: np.ndarray
     wind_speeds: np.ndarray
@@ -2973,6 +2987,19 @@ class _Horizon:
     comfort_floors: np.ndarray | None = None
     mold_floors: np.ndarray | None = None
     away_floor_drops: np.ndarray | None = None
+    #: The input prices before the risk premium, what a bill pays (D2-s3-01).
+    #: ``None`` means ``prices`` carries no premium.
+    raw_prices: np.ndarray | None = None
+
+    @property
+    def money_prices(self) -> np.ndarray:
+        """The prices every published money figure is booked on: the input's.
+
+        The premium is a solver preference, not a price anyone pays, so it
+        stays in the objective and out of the plan's cost, the reference's,
+        the settlement and the published price series.
+        """
+        return self.prices if self.raw_prices is None else self.raw_prices
     #: ``SolveInputs.compressor_running``.
     compressor_running: bool = False
 
@@ -3887,7 +3914,7 @@ class HeatPumpOptimizer:
             ),
             objective_value=objective_value,
             timestamps=h.timestamps,
-            prices=h.prices.tolist(),
+            prices=h.money_prices.tolist(),
             outdoor_temps=h.outdoor_temps.tolist(),
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
@@ -4385,9 +4412,9 @@ class HeatPumpOptimizer:
         if start_time is None:
             start_time = datetime.now()
 
-        prices = prices[:n_steps]
+        raw_prices = np.asarray(prices[:n_steps], dtype=float)
         prices = self._stash_price_horizon(
-            initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
+            initial_state, n_steps, price_known, price_sigma, raw_prices, pv_surplus
         )
         # One hot-water planner per solve, from this solve's inputs (#1743).
         planner = DhwPlanner(
@@ -4506,6 +4533,7 @@ class HeatPumpOptimizer:
                 comfort_floors=floors[0],
                 mold_floors=floors[1],
                 away_floor_drops=away_drops,
+                raw_prices=raw_prices,
                 compressor_running=inputs.compressor_running,
             )
             if dhw_enabled:
@@ -4990,6 +5018,7 @@ class HeatPumpOptimizer:
                     headroom,
                 )
             )
+            starts.append(_lower_bound_start(bounds))
         descent = _descent_pair(self, objective, objective_batch)[0]
         try:
             res, relaxed = _relaxed_plans(self, rescope, scope, headroom, starts, dhw_plan)
@@ -5323,6 +5352,8 @@ class HeatPumpOptimizer:
     ]:
         """Both solve paths' trajectory, objective, batch twin and price (#1743).
 
+        The price is the bill's: a closure on ``h.money_prices``, so the risk
+        premium the objective weighs is never booked as money (D2-s3-01).
         The DHW path passes its fixed plan as ``dhw_plan_power``; with
         ``None`` the arithmetic is the space-only path's, operand for operand.
         """
@@ -5458,7 +5489,10 @@ class HeatPumpOptimizer:
                 comfort_band=comfort_band,
             )
 
-        return _space_traj, objective, objective_batch, energy_cost_of
+        return (
+            _space_traj, objective, objective_batch,
+            self._energy_cost_fn(h.money_prices, dt),
+        )
 
     def _optimize_space_only(self, h: _Horizon) -> OptimizationResult:
         """Optimize space heating only (no DHW)."""
@@ -5484,7 +5518,7 @@ class HeatPumpOptimizer:
         anticipatory_weights = self._anticipatory_weights(
             n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
         )
-        _space_traj, objective, objective_batch, energy_cost_of = (
+        _space_traj, objective, objective_batch, paid_cost_of = (
             self._solve_objectives(h)
         )
 
@@ -5525,9 +5559,11 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             weather, initial_state, dt, comfort_targets,
         )
-        seed_power = baseline_power * (1.0 - _wood_covered_share(
-            self.model, initial_state, float(np.sum(baseline_power) * dt), self.config.target_temp,
-        ))
+        reference_kwh = float(np.sum(baseline_power) * dt)
+        covered = _wood_covered_share(
+            self.model, initial_state, reference_kwh, self.config.target_temp,
+        )
+        seed_power = baseline_power * (1.0 - covered)
         baseline_energy = float(np.sum(seed_power) * dt)
         starts = [
             initial_power,
@@ -5551,6 +5587,13 @@ class HeatPumpOptimizer:
                     dt,
                 )
             )
+        if covered > 0.0:
+            # Every seed above scales with the wood-covered share, so a tank
+            # covering the reference whole collapses them onto zero (D0-s2-01).
+            # One start keeps the reference's own energy: the set brackets the
+            # wood-covered optimum from above as the all-off start does below.
+            starts.append(_price_ranked_start(prices, reference_kwh, p_max, dt))
+        starts.append(_lower_bound_start(bounds))
         descent, descent_batch = _descent_pair(self, objective, objective_batch)
 
         def move_starts(
@@ -5620,8 +5663,8 @@ class HeatPumpOptimizer:
         # (#2255): a counterfactual that runs all along must not depend on where
         # the optimiser left the house, so the booked baseline is not the plan's
         # own recovery transient.
-        baseline_cost = float(energy_cost_of(baseline_power))
-        predicted_cost = float(energy_cost_of(optimal_power))
+        baseline_cost = float(paid_cost_of(baseline_power))
+        predicted_cost = float(paid_cost_of(optimal_power))
 
         optimized_end = self._replay_end_state(
             initial_state, optimal_power, outdoor_temps, wind_speeds,
@@ -5795,7 +5838,7 @@ class HeatPumpOptimizer:
         # profile it actually has to share the pump with.
 
         # ``_solve_objectives`` builds the objective both paths share.
-        _, objective, objective_batch, energy_cost_of = (
+        _, objective, objective_batch, paid_cost_of = (
             self._solve_objectives(h)
         )
 
@@ -5895,7 +5938,7 @@ class HeatPumpOptimizer:
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             planner._baseline_dhw_economics(
                 initial_state, outdoor_temps, n_steps, dhw_setpoint,
-                energy_cost_of, baseline_power, heat_space, optimal_dhw, h.humidity,
+                paid_cost_of, baseline_power, heat_space, optimal_dhw, h.humidity,
             )
         )
 
@@ -5911,7 +5954,7 @@ class HeatPumpOptimizer:
         # cold tank at midnight is not treated as borrowed heat.
         deferred_cost = self._settle_horizon(
             h, weather, comfort_targets, _sharing_wood_side(baseline_end, optimized_end), optimized_end,
-            float(energy_cost_of(baseline_power)),
+            float(paid_cost_of(baseline_power)),
             dhw_caps=self._settlement_caps(
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
             ),
@@ -6337,15 +6380,15 @@ class HeatPumpOptimizer:
         """
         caps = self._settlement_caps(h.outdoor_temps, humidity=h.humidity)
         house_end = self._deferred_energy_cost(
-            baseline_end, optimized_end, h.prices, h.outdoor_temps,
+            baseline_end, optimized_end, h.money_prices, h.outdoor_temps,
             caps=caps, humidity=h.humidity,
         )
         end = house_end if dhw_caps is None else self._deferred_energy_cost(
-            baseline_end, optimized_end, h.prices, h.outdoor_temps,
+            baseline_end, optimized_end, h.money_prices, h.outdoor_temps,
             include_dhw=True, caps=dhw_caps, humidity=h.humidity,
         )
         return end - self._start_gap_cost(
-            h.initial_state, weather, reference_targets, h.prices, h.outdoor_temps,
+            h.initial_state, weather, reference_targets, h.money_prices, h.outdoor_temps,
             caps, h.humidity, space_baseline_cost, house_end,
         )
 

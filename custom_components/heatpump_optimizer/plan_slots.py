@@ -83,8 +83,10 @@ def plan_slots(
             ]
             if codes:
                 # The most frequent code within the slot, which reads
-                # better than a list when a slot spans two motivations.
-                slot["reason"] = max(set(codes), key=codes.count)
+                # better than a list when a slot spans two motivations; a tie
+                # goes to the code the slot reached first, not to a set's
+                # hash-seeded order (D1-s1-51).
+                slot["reason"] = max(dict.fromkeys(codes), key=codes.count)
                 slot["reasons"] = sorted(set(codes))
         slots.append(slot)
 
