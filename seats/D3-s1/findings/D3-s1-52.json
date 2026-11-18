@@ -31,11 +31,12 @@
  "null_control": {
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
   "value": "base arm moved=0 identical=45; card arm moved=44 (the gate moves when the thing it compares moves); card.mjs, the non-differential consumer of the same payload, keeps its producer edge (it reads payload values absolutely)",
-  "note": "The two production arms change the payload (sha256 f769f5bd... -> 8cee8f3f... and df892bf5...), so the zero is not an unchanged input."
+  "note": "The two production arms change the payload (sha256 f769f5bd... -> 8cee8f3f... and df892bf5...), so the zero is not an unchanged input. Kill matrix corroboration (m5_matrix.py table, every closure script on 38 cell mutants, no early stop): card_drift.mjs ran on the 10 whose line plan_view executes (28 reach-skipped) and killed 0; card.mjs likewise 0 of 10; plan_view.py 0 of 10."
  },
  "reproduction_steps": [
   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
-  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py --select-only"
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py --select-only",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table -v | grep card_drift"
  ],
  "proposed_fix_scope": "tests/closure.py: keep card_drift.mjs's PRODUCERS entry for selection ORDER (a card diff still runs plan_view first) but stop _widen from unioning the producer's closure into card_drift.mjs's; re-derive its closures.json entry (its raw trace was 6 files, #527). Verify with this harness's --select-only (11 -> 0) and the card arm (still 44).",
  "files": [

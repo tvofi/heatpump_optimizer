@@ -1,121 +1,122 @@
-# D3-s1 round 11 report (baseline 92d38ecb)
+# D3-s1, box D3-m5: D3.M5 resource use (round 11, resume slice)
 
-Seat D3-s1, two runs. Run 1: box B1, local run on the orchestrator machine (macOS arm64), resumed after a reboot at about 17:40Z; contention load1 30-300 with other seats. Run 2: box D3R (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, alone, load1 0.2-4.2), run inline in the box session: evidence restored (sha256 e2264708...), every driver's traced baseline re-taken, null and positive controls re-run, C3C6 M22 re-driven, U1 started; halted by orchestrator STOP (inbox command 1) after 4 U1 mutants.
-
-Verdicts and counts are contention-immune; every wall/CPU number is provisional.
+Baseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`. box D3-m5: Linux 6.18 x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), node v22.23.5, alone on the box. Every wall/CPU/RSS figure is
+**provisional** (the judge re-takes it); counts are final. D3-s1-01 (env_drift's capture
+child drops the reach hook) is already judged and is cited here, not re-reported.
 
 ## Method
 
-Universe: tests/mutation_table.py unpinned inventory sites in the 12 cell files (enumerate.py --unpinned). Pre-screen (prescreen.py): each mutant driven over the fast scripts of its measured closure (recorded < 120 s) plus tests/env_drift.py --all against HEAD^1 (production byte-identical to the baseline); reach-skip by traced baselines. Survivors then go to a full-net complete (every closure script, no early stop). Null control LIVES; positive control 2/2 killed.
+R0 restored the carried evidence from `c0adbc19` (no box checkpoint existed). R1 re-took
+every driver's traced baseline on this box (21/21 green), re-traced env_drift's capture
+child, and re-ran both controls: null LIVES over 16 drivers, positive 2/2 KILLED by
+`tests/manual_plan.py`. Then D3.M5 (a) to (e), with nothing else running during (a).
 
-## Coverage
+Universe: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts`, 27 closure scripts reaching the cells; all 27 examined.
+Redispatched C1, C4, C7, C9: examined.
 
-- D3.M1: universe 1260, examined 1260, not reached 0 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`
-- D3.M2: universe 1260, examined 34, not reached 10 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`
-- D3.M3: universe 35, examined 2, not reached 33 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\tSURVIVED\t'`
-- D3.M4: universe 35, examined 35, not reached 0 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\tSURVIVED\t'`
-- D3.M5: universe 27, examined 23, not reached 4 item line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts`
+## Rows carried for D3.M1 to D3.M4
+
+M1 1260/1260 and M4 35/35 as carried. M2 34/1260 as carried; the remainder is assigned to boxes D3-u1a, D3-u1b, D3-u1c, D3-u1d. M3: this box's matrix is the full net on all 35 survivors (19 killed, 16 survive); C3, the top-six full gate, is assigned to box D3-top6.
+
+Full net, no early stop, every closure script of the file (27 incl. stress alone, golden strict, card scripts behind plan_view), on all 35 survivors: it is box D3-m5's M5(b) kill matrix, whose mutant set contains every SURVIVED verdict under results/{pre,c2,c3c6} (PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table -v; drives under state/results/matrix and matrix-stress, D3S1_RELAX=0). 19 of 35 killed (features.py 18 of them; harness_headers.py alone kills thermal_model.py:270, by SIGXCPU in an audit harness, features.py timing out on it), 16 survive every script: coordinator.py:8806 M04, dhw_planner.py:1559 M19, flow_lift.py:47 CONST, :183 GUARD_OFF, :188 M35, grid_fee.py:173 GUARD_OFF, :355 M36, :383 M21, optimizer.py:773 GUARD_OFF, price_model.py:252 M34, :337 M25, sysid.py:610 GUARD_OFF, tariff.py:744 M31, thermal_model.py:169 GUARD_OFF, :835 M03, :2593 M07. Of the carried top six, tariff.py:64, price_model.py:201, coordinator.py:539, sysid.py:2246 M27 and sysid.py:1549 M26 are KILLED by tests/features.py; tariff.py:744 M31 survives. C3, the GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six, is not driven here (assigned to box D3-top6). C5 answered by the carried run's REPORT.md. Counts exact; seconds provisional. 
+
+## (a) Quiet-box gate table
+
+`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py` (one script at a time, GATE_JOBS=1 shape, fresh worktree of HEAD,
+GOLDEN_REF=HEAD^1; .mjs rows after their producer plan_view.py, timed separately).
+
+| script | rc | wall s | CPU s | recorded s | wall/recorded | load1 |
+|---|---|---|---|---|---|---|
+| tests/arch_score_head.py | 0 | 43.4 | 42.8 | 31.8 | 1.36 | 0.73 |
+| tests/backtest.py | 0 | 56.7 | 55.6 | 61.6 | 0.92 | 0.87 |
+| tests/block_duty.py | 0 | 7.3 | 7.0 | 8.3 | 0.88 | 0.95 |
+| tests/boost_drift_replay.py | 0 | 178.7 | 153.7 | 341.1 | 0.52 | 0.96 |
+| producer:tests/plan_view.py | 0 | 0.7 | 0.7 | 1.8 | 0.39 | 0.81 |
+| tests/card.mjs | 0 | 87.0 | 93.5 | 82.3 | 1.06 | 0.81 |
+| producer:tests/plan_view.py | 0 | 0.8 | 0.8 | 1.8 | 0.44 | 1.04 |
+| tests/card_drift.mjs | 0 | 4.0 | 5.1 | 6.0 | 0.67 | 1.04 |
+| tests/config_flow_steps.py | 0 | 17.5 | 17.1 | 32.5 | 0.54 | 1.04 |
+| tests/debug_collect.py | 0 | 1.1 | 0.9 | 1.5 | 0.73 | 1.1 |
+| tests/deployment_shape.py | 0 | 2.2 | 2.1 | 3.3 | 0.67 | 1.1 |
+| tests/doc_claims.py | 0 | 9.6 | 9.6 | 11.4 | 0.84 | 1.1 |
+| tests/edge.py | 0 | 21.6 | 20.7 | 21.5 | 1.0 | 1.08 |
+| tests/entities.py | 0 | 507.7 | 512.3 | 867.9 | 0.58 | 1.06 |
+| tests/env_drift.py | 0 | 96.4 | 92.8 | 1.0 | 96.4 | 1.04 |
+| tests/features.py | 0 | 790.6 | 732.5 | 473.9 | 1.67 | 0.93 |
+| tests/finite_boundary.py | 0 | 90.6 | 89.8 | 90.4 | 1.0 | 0.92 |
+| tests/golden.py | 1 | 96.9 | 94.3 | 1.2 | 80.75 | 0.98 |
+| tests/guard_pins.py | 0 | 4.5 | 4.4 | 8.2 | 0.55 | 0.91 |
+| tests/harness_headers.py | 0 | 144.0 | 138.5 | 327.6 | 0.44 | 0.91 |
+| tests/manual_plan.py | 0 | 5.8 | 4.9 | 6.5 | 0.89 | 0.94 |
+| tests/optimality.py | 0 | 101.1 | 95.9 | 142.5 | 0.71 | 0.94 |
+| tests/plan_view.py | 0 | 0.8 | 0.7 | 1.8 | 0.44 | 0.99 |
+| tests/solar_alignment.py | 0 | 0.6 | 0.6 | 1.2 | 0.5 | 0.99 |
+| tests/stress.py | 0 | 285.6 | 296.5 | 463.0 | 0.62 | 0.99 |
+| tests/structure.py | 0 | 18.7 | 18.5 | 21.1 | 0.89 | 1.04 |
+| tests/typing_ruler.py | 0 | 18.5 | 18.7 | 20.8 | 0.89 | 1.03 |
+| tests/validate.py | 0 | 21.0 | 20.0 | 21.5 | 0.98 | 1.02 |
+| tests/wood_advisor.py | 0 | 0.6 | 0.6 | 1.4 | 0.43 | 1.01 |
+| tests/env_drift.py[strict] | 0 | 61.9 | 59.8 | 1.0 | 61.9 | 1.01 |
+| tests/env_drift.py[nocache] | 0 | 197.2 | 191.4 | 1.0 | 197.2 | 0.92 |
+
+(a) PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py --out dev/audit/rounds/round11/D3/s1/state/gate_table.jsonl (GATE_JOBS=1 shape, one script at a time, fresh worktree of HEAD, GOLDEN_REF=HEAD^1): all 27 closure scripts timed; sum wall 2612.5 s, CPU 2529.1 s vs closures.json recorded 3051.3 s; load1 0.73-1.10 per row; thread_factor 1.00; nproc 4, Intel Xeon @ 2.10GHz. Outside closure.py's SECONDS_BAND (0.5x-2x): env_drift.py 1.0 s recorded vs 96.4 s measured warm --all (61.9 s strict form, 197.2 s cold DRIFT_NO_CACHE), golden.py 1.2 s vs 96.9 s strict (both record the documented stub, #934), harness_headers.py 0.44x, plan_view.py 0.44x, wood_advisor.py 0.43x; every other row 0.52x-1.67x. Top costs: features 790.6 s wall / 732.5 s CPU, entities 507.7/512.3, stress 285.6/296.5, boost_drift_replay 178.7/153.7, harness_headers 144.0/138.5. golden.py strict is red at baseline here (55 of 56 GOLDEN SCENARIOS CHANGED: fixtures from another machine); all other 26 rc=0. All seconds provisional. 
+
+## (b) Kill-overlap matrix
+
+(b) PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table -v (drives: D3S1_RELAX=0 prescreen.py run --full --mutants dev/audit/rounds/round11/D3/s1/matrix_mutants.json --sub matrix, 4 workers, then --sub matrix-stress, stress.py alone): 38 mutants (C2 12, C3/C6 8, every SURVIVED under results/{pre,c2,c3c6}, de-duplicated) x every closure script of each mutant's file, 27 script columns incl. golden.py strict, card.mjs/card_drift.mjs behind plan_view.py, edge, backtest, stress: 921 pairs = 33 killed, 587 ran-and-survived, 300 reach-skipped (gate's own reach_skip), 1 timeout (features.py on thermal_model.py:270), 0 relaxed skips. 22 mutants killed, 16 survive every closure script; duplicate kills 11 (mutants with 1/2/3/6 killers: 16/4/1/1). Kills: features 21 (15 unique), harness_headers 4 (1 unique: thermal_model.py:270, SIGXCPU in an audit harness), entities 3, env_drift 2, finite_boundary 1, optimality 1, stress 1 (0 unique each). 25 of 27 scripts kill no mutant another script misses on this sample (incl. entities.py 20550 s summed over 38 runs, env_drift.py 3952 s, golden.py 3838 s, stress.py 4692 s over 17). Perturbation: --drop tests/features.py raises survivors 16 -> 31 (its 15 unique kills); --drop tests/entities.py leaves 16 (null). env_drift ran on 21 mutants whose line its --capture --all child never executes and killed 0 of them (D3-s1-01, cited, not re-reported). Survivors of the full no-early-stop net (data for the boxes owning M3): coordinator.py:8806 M04, dhw_planner.py:1559 M19, flow_lift.py:47 CONST, :183 GUARD_OFF, :188 M35, grid_fee.py:173, :355 M36, :383 M21, optimizer.py:773, price_model.py:252 M34, :337 M25, sysid.py:610, tariff.py:744 M31, thermal_model.py:169, :835 M03, :2593 M07. Counts exact; seconds provisional. 
+
+Per-script columns: `state/m5box-matrix-table.out`.
+
+## (c) Checks per solve
+
+(c) PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --hastub-hook --scripts tests/stress.py,tests/env_drift.py (+ plain arm, + --double-solve arm): stress.py 116 checks / 240 HeatPumpOptimizer.optimize solves = 0.48 checks per solve (21 processes; the gate's PYTHONPATH-prepended hook sees 140, the parent's own: 100 solves run in children that rebuild PYTHONPATH); env_drift.py --all 112 checks (56 scenarios + 56 committed fixtures) / 100 solves cold (50 per side) = 1.12, warm cache (tree side only) 112/50 = 2.24; plain hook sees 0 solves. Perturbation --double-solve: env_drift 100 -> 200 solves, checks flat. Carried (state/solves.jsonl): boost_drift_replay 46/789 = 0.058, edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5. 
+
+## (d) Closure over-approximation, boost_drift_replay and stress
+
+(d) PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_hastub.py --scripts tests/stress.py,tests/env_drift.py,tests/golden.py,tests/boost_drift_replay.py (+ --plain arm) and PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py: boost_drift_replay's closure holds all 12 cell files and its traced run executes lines in all 12 (5849 lines; reach clean, 2 processes 2 recorded); stress.py's closure holds 6 cell files (optimizer, thermal_model, flow_lift, batchmath, tariff, dhw_planner) and its run executes all 6 (5189 lines; 21/21 processes recorded under the hastub hook, 24 started / 12 recorded under the gate's own hook). over_approx_pairs 0 for both; 0 of 245 closure pairs over the 22 traced drivers (m5_closure_reach.py, baselines re-taken on this box). File-level closures do not over-approximate for these two; the gate reach row of stress.py is refused (children uncounted), a further seam of D3-s1-01's property. 
+
+## (e) card.mjs, card_drift.mjs, golden.py, stress.py
+
+(e) card.mjs executes no Python (its cell reach is its producer plan_view.py's, 5144 cell lines), costs 87.0 s wall / 93.5 s CPU (+0.7 s producer), killed 0 of the 10 matrix mutants plan_view executes; card_drift.mjs: same producer reach, 4.0 s / 5.1 s, killed 0 of 10, and PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py shows it cannot move on a production edit (finding D3-s1-52); golden.py strict executes 7969 cell lines in all 12 files (same set as env_drift's capture), costs 96.9 s / 94.3 s, red at baseline here (55/56), killed 0 of 38 (CI runs drift mode: tests.yml:374, nightly.yml:496); stress.py executes 5189 lines in its 6 cell files, costs 285.6 s / 296.5 s, 0.48 checks per solve, killed 1 of 17 (thermal_model.py:730 M01, which 5 other scripts also kill).
 
 ## Findings
 
-- D3-s1-01 (D3.M5, medium): Mutation lane drives env_drift --all on every cell mutant, though its capture never executes 681 of the 1260 unpinned sites
+### D3-s1-52 (low, hygiene): card_drift.mjs inherits plan_view's closure though its verdict is a two-card diff over one payload: no cell edit can move it
 
-## Pre-screen tables (tabulate.py)
+tests/closure.py's _widen unions tests/plan_view.py's closure into tests/card_drift.mjs's, so 11 of the 12 D3-s1 cell files schedule card_drift on every one-file diff (closure.select), yet card_drift renders the working tree's card and the ref's card against ONE shared plan payload, so a production edit that changes that payload (sha256 differs) leaves 0 of its 45 states moved, while a one-token card edit moves 44.
 
-```
-RESULT pre_driven=24
-RESULT pre_killed=6
-RESULT pre_survived=18
-RESULT pre_timeout=0
-  pre CONST SURVIVED 1
-  pre GUARD_OFF KILLED 6
-  pre GUARD_OFF SURVIVED 17
-RESULT c2_driven=12
-RESULT c2_killed=1
-RESULT c2_survived=11
-RESULT c2_timeout=0
-  c2 R10C2 KILLED 1
-  c2 R10C2 SURVIVED 11
-RESULT c3c6_driven=8
-RESULT c3c6_killed=2
-RESULT c3c6_survived=6
-RESULT c3c6_timeout=0
-  c3c6 R10C2 KILLED 2
-  c3c6 R10C2 SURVIVED 6
-RESULT posctl_driven=2
-RESULT posctl_killed=2
-RESULT posctl_survived=0
-RESULT posctl_timeout=0
-  posctl GUARD_OFF KILLED 1
-  posctl RETURN_DEL KILLED 1
-RESULT complete_driven=2
-RESULT complete_killed=2
-RESULT complete_survived=0
-RESULT complete_timeout=0
-  first-kill tests/env_drift.py 6
-  first-kill tests/finite_boundary.py 2
-  first-kill tests/deployment_shape.py 1
-  complete-kill tests/features.py 2
-RESULT load1=0.53
-RESULT thread_factor=1.00
-```
+Mechanism: PRODUCERS = {'tests/card.mjs': [plan_view], 'tests/card_drift.mjs': [plan_view]} is used twice: as a selection-ordering edge (a selected card script needs its producer first: sound) and, in _widen, as a closure union ('anything that can change the payload can change what they test'). The union is sound for card.mjs, whose checks are absolute assertions over the payload, and unsound for card_drift.mjs, whose verdict is byte-equality of two card renders that both read the same payload in one process (tests/card_drift.mjs header, renderAll over makeSide(treeSrc) and makeSide(baseSrc)). A cell-file diff changes only the payload, which both sides share, and touches neither the card source nor a solver fixture (claimsAreThisBranchs), so the comparison is an identity.
 
-## M4: the verifier's question per survivor
-
-- `0318c921405fefbe`: dhw_planner.py:473 DhwPlanner._dhw_planning_prices, `if space_demand is not None:` off: the co-optimisation replan no longer subtracts the space profile from the PV surplus, so DHW is priced against surplus the space heating already took. Should fail: a features.py DHW-PV check with a known space_demand that consumes part of the surplus (DHW blended price must rise vs the no-space arm).
-- `050fdc4a20eba212`: thermal_model.py:169 _holiday_dhw_windows, `if not spec:` off: an unset holiday window spec reaches parse_windows; if that returns [] for an empty spec the holiday day gets NO DHW windows instead of falling back. Should fail: a from_config check with holiday DHW windows unset and a holiday date in the horizon (windows on that day equal the default).
-- `0c3e91a6a349409a`: flow_lift.py:47 FLOW_BIAS_ALPHA 0.1 -> 0.2: the seeded EWMA weights each new residual twice as hard. Should fail: a FlowCurveBias.observe check past FLOW_BIAS_MIN_SAMPLES that pins bias_k after one more residual to (1-alpha)*b + alpha*r.
-- `121362d48b408236`: grid_fee.py:173 _parse_rule, `if not sep:` off: a rule line with no '= rate' no longer raises GridFeeError; rate_token is the whole line and float() raises ValueError -> 'Bad rate' instead. Error class unchanged, message changes; near-equivalent. Should fail: a config-flow validation check asserting the 'has no = rate part' message for 'Mon 06-22'.
-- `3885e472b8297a90`: flow_lift.py:183 FlowCurveBias.observe, non-finite guard off: a NaN/inf supply reading is folded; np.clip(NaN) is NaN, so bias_k becomes NaN. Should fail: a check feeding observe(nan, 35.0) and asserting bias_k unchanged and finite (finite_boundary.py drives persisted leaves, not live observations).
-- `460217277822d5bd`: sysid.py:610 slab_mode_tau_fast, unset-constant guard off: with c_r/c_s/k_s zero the expression divides by zero (ZeroDivisionError or inf) instead of returning 0.0. Should fail: slab_mode_tau_fast(0,0,0) == 0.0 and the #991 gate refusing an unconfigured slab plant with its own reason.
-- `4b3795aece73ba73`: price_model.py:201 PriceShapeModel.observe_day, non-finite day guard off: a day with a NaN/inf hour is folded and the shape goes non-finite. Should fail: observe_day(day, [..nan..]) returns False and leaves shapes/days unchanged.
-- `4e2df5f23e4eff29`: coordinator.py:422 _plain_types dict branch off. Full net: KILLED by tests/features.py ('numpy scalars and arrays are flattened to plain Python, recursively'). No gap; the fast closure scripts do not pin it.
-- `61f74c4474262dad`: coordinator.py:687 fenced-step logging, first-occurrence test off: every failure logs at DEBUG, never the first WARNING. Should fail: a check that a fenced step's first exception logs one WARNING and a repeat logs DEBUG.
-- `639d439d71b731ce`: dhw_planner.py:75 _dhw_windows_at, holiday flag lookup off: holiday is always False, so holiday DHW windows never apply in the planner. Should fail: a planner run with holiday_flags True on a step and holiday windows differing from the default (features.py tests windows_for_day directly, not this lookup).
-- `65f121eb047174ad`: optimizer.py:773 _holiday_flags_for, empty-set early return off: returns an all-False array instead of None. Downstream an all-False flag array selects the same windows as None: equivalent in the plan, differs only in object identity. Equivalent.
-- `73bc722df73caecb`: price_model.py:198 observe_day, 24-hour length guard off: a 23- or 25-hour (DST) day is folded; values.reshape/shape update then misaligns or raises. Should fail: observe_day on a 23-value list returns False (the docstring's partial-day rule).
-- `a0605da712a6a070`: defrost.py:419 DefrostDerate.observe_duty range guard off. Full net: KILLED by tests/features.py ('a duty outside [0, 1] is refused, not folded into the bucket'). No gap; only features.py pins it.
-- `a35e03bd09f563c7`: sysid.py:677 slab_mode_one_state_identifiability, unset-constant guard off: an unconfigured slab plant is evaluated (division by zero or a wrong verdict) instead of refused with 'slab constants not configured'. Should fail: the identifiability check on c_r=c_s=k_s=0 returns (False, that reason).
-- `bdcf7589b0a0a6df`: coordinator.py:539 _parse_ecl110_state, nested command.displace fallback off: an ECL110 payload carrying displace only under 'command' parses to None. Should fail: a parse check on {'command': {'displace': 3}} returning displace 3.0.
-- `fb16c7b0cbbfc63d`: tariff.py:64 _window_slot, fold transfer off for sub-hour/hourly windows: both passes of the autumn DST repeated hour get the same window key, one accumulator swallows two metered hours and the peak is diluted (the comment's own failure). Ledger: the CMP_BOUND sibling on this line is killed_by tests/features.py (dst_checks.py runs under it); this GUARD_OFF is unpinned. Should fail: a features/dst_checks check that the two passes of 02:00-03:00 on the autumn change get distinct keys at window 60.
-- `0e172028a23d9372`: sysid.py:2246 (R10 M27) `and` -> `or`: the drift refusal fires whenever ua_ss > 0, so every completed step test is refused as 'sensor drift collapsed into heat-loss'. Should fail: a sysid step-test check whose steady-state UA agrees within 10 % completes.
-- `2719aef4cbb8b464`: price_model.py:337 (R10 M25) `level <= 0.0` -> `< 0.0`: at level exactly 0 the gate returns 0 x min-shape instead of None. Should fail: expected-minimum check at level 0.0 returning None.
-- `66f8a4fb50e0b1f3`: defrost.py:783 (R10 M32) `and not` -> `or not`: a defrost flag seen while already defrosting counts a new event each observation. Ledger pins this site killed_by tests/features.py; fast net cannot see it.
-- `8e82d7a0b3617003`: sysid.py:1549 (R10 M26) `hour >= start` -> `hour > start`: the first hour of a midnight-wrapping night window is excluded. Should fail: a gate check at now.hour == cfg.start_hour for a wrapping window returning in_window True.
-- `aae7c9c380c3c5cf`: sysid.py:1593 (R10 M28) `and` -> `or`: a step size passes if either the peak or the final excursion fits. Ledger pins this BOOLOP killed_by tests/features.py.
-- `ad5900dadd86e9f9`: tariff.py:64 (R10 M29) `window <= 60` -> `< 60`: hourly windows (the common DSO case) lose the DST fold transfer. Ledger pins this CMP_BOUND killed_by tests/features.py.
-- `d931ab195b940b0c`: tariff.py:744 (R10 M31) `k <= 0` -> `k < 0`: k == 0 proceeds to max(1, ...) and returns the top-1 sum instead of 0.0. Should fail: top_k_sum(values, 0) == 0.0.
-- `fc395b83eeb1ddbf`: price_model.py:532 (R10 M33) min -> max over known_count/len: indexes past step_start_times when known_count exceeds it (IndexError) or reads unknown steps. Should fail: a shape-mean check with known_count > len(step_start_times).
-- `0911281eca895664`: dhw_planner.py:1559 (R10 M19) max -> min in the shortfall price: shortfall slack priced 1000 x (min|price| + 1) instead of max. Equivalent while 1000 x (min + 1) still exceeds every real price/COP; differs only when the cheapest step is near zero and a step price exceeds 1000. Should fail: an LP check with a price spread above 1000x the minimum where the shortfall must stay last resort.
-- `22b5ec8775d5bd50`: thermal_model.py:2593 (R10 M07) max(dt, 1e-6) -> min(dt, 1e-6): buffer availability divided by 1e-6 h, so the draw is never scaled down. Should fail: a buffer-draw check where drawn exceeds available heat and the floor/radiator draws must be scaled.
-- `5cc84148fa68bda1`: grid_fee.py:383 (R10 M21) `rate < lowest` -> `<=`: on a tie the source label flips 'fixed' -> 'rules' with the same value. Should fail: a lowest-fee check on a schedule whose rule rate equals the fixed fee asserting source 'fixed'.
-- `5e8d48eff7e4fa8d`: coordinator.py:8806 (R10 M04) `tariff.enabled and factor > 0` -> `or`: a disabled tariff with factor > 0 adds a peak-threshold candidate to the guard. Should fail: a power-guard check with the tariff disabled asserting only the fuse candidate applies.
-- `a4b00ac3ca662eec`: thermal_model.py:835 (R10 M03) `swing <= 0` -> `< 0`: at swing 0 the cosine term is multiplied by 0, so the result is identical. Equivalent.
-- `c38d53ab787ddbfa`: price_model.py:252 (R10 M34) mean <= 1e-6 -> < 1e-6: only a day whose mean is exactly 1e-6 is now folded (dividing hour means by ~1e-6). Near-equivalent boundary. Should fail: observe_quarter_day on a 96-value day with mean exactly 1e-6 returns False.
-- `a0b3b28854fa500c`: flow_lift.py:188 (R10 M35) samples < MIN -> <= MIN: the sample at index FLOW_BIAS_MIN_SAMPLES still uses the running mean instead of the EWMA, so the switch to EWMA is one sample late. Should fail: a FlowCurveBias.observe check that pins bias_k after exactly MIN+1 samples to the EWMA update.
-- `95779f9d6d71c50d`: grid_fee.py:355 (R10 M36) abs(rate) > worst -> >=: on a tie between a rule rate and the fixed fee, source flips 'fixed' -> 'rules' with the same value (sibling of M21 at L383). Should fail: a worst-fee check on a schedule whose rule rate equals the fixed fee asserting source 'fixed'.
-- `acc8fa3942789f45`: thermal_model.py:270 ThermalParameters.clamp, the non-finite/below-floor thermal-mass guard off (`if False:`): a NaN, inf or sub-floor house/lower-floor thermal mass is kept instead of clamped to THERMAL_MASS_FLOOR. Should fail: a clamp check that sets thermal_mass to NaN and to 0 and asserts both come back as THERMAL_MASS_FLOOR (finite_boundary.py or a thermal_model unit check). Survived 15 fast drivers incl. finite_boundary.py and env_drift.py --all on this box.
-- `23621370731667b7`: defrost.py:559 DefrostDerate.from_dict, the `elif any(k in data for k in ("duty", "duty_counts"))` corrupt-v2 branch off: a v2 store whose measured half is unreadable is read as a v1 store, so `reset` stays 0 and `migrated` follows the factors list -- the corrupt store is reported as an upgrade and its reset count is lost. Should fail: a from_dict check feeding a v2 payload with an unreadable duty table and asserting reset == n_t*n_h and migrated is False. env_drift.py was relaxed-skipped (its capture never executes the line); the deferred slow drivers (harness_headers, boost_drift_replay, entities, features) are owed to the full net.
-- `6e6026d857732e96`: tariff.py:595 mask_active (R10 C3/C6 M22), `or` -> `and`: a tariff with only a month mask (months set, no peak_hours/weekdays_only offpeak mask) reads as mask-inactive, so the #13 month mask stops changing what a window counts at. Should fail: a capacity-tariff check with months=[...] only, asserting mask_active is True and that an out-of-month window counts at the reduced factor. Re-driven on this box: SURVIVED 12 fast drivers incl. env_drift.py --all in 442.5 s (provisional); the local 17:20Z TIMEOUT is dropped.
+Evidence: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py`: base moved 0/45; prod_small and prod_large
+(payload sha256 changed) moved 0/45; card arm moved 44/45 (rc 0 -> 1).
+`--select-only`: 11 of 12 single-cell-file diffs schedule card_drift.mjs. Matrix: card_drift
+0 kills of 10 driven. Cost 4.0 s wall per cell diff (provisional). Fix scope:
+tests/closure.py: keep card_drift.mjs's PRODUCERS entry for selection ORDER (a card diff still runs plan_view first) but stop _widen from unioning the producer's closure into card_drift.mjs's; re-derive its closures.json entry (its raw trace was 6 files, #527). Verify with this harness's --select-only (11 -> 0) and the card arm (still 44).
 
 ## Non-findings
 
-- defrost.py:419 DefrostDerate.observe_duty range guard is pinned by the suite (fast net blind, full net kills): KILLED by tests/features.py, wall 6678 s (provisional) (`cat dev/audit/rounds/round11/D3/s1/state/results/complete/a0605da712a6a070.json`)
-- coordinator.py:422 _plain_types dict branch is pinned by the suite: KILLED by tests/features.py, wall 6735 s (provisional) (`cat dev/audit/rounds/round11/D3/s1/state/results/complete/4e2df5f23e4eff29.json`)
-- optimizer.py:773 _holiday_flags_for empty-set early return off is equivalent in the plan: survived fast net; all-False flags select the same windows as None (`cat dev/audit/rounds/round11/D3/s1/m4_answers.json`)
-- thermal_model.py:835 (R10 M03) swing <= 0 -> < 0 is equivalent: survived; at swing 0 the cosine term is multiplied by 0 (`cat dev/audit/rounds/round11/D3/s1/m4_answers.json`)
-- The pre-screen harness can kill: positive control on two ledger-pinned sites: 2/2 KILLED by tests/manual_plan.py (`cat dev/audit/rounds/round11/D3/s1/state/posctl.out`)
+- boost_drift_replay.py's and stress.py's measured closures do not over-approximate for the cell files: every cell file in each closure is executed by the traced run. `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_trace_hastub.py --scripts tests/stress.py,tests/boost_drift_replay.py` -> boost_drift_replay 12/12 files executed (5849 lines), stress 6/6 (5189 lines); over_approx_pairs=0; m5_closure_reach.py: 0 of 245 pairs over 22 traced drivers
+- closures.json recorded.seconds stays inside closure.py's 2x SECONDS_BAND for 22 of the 27 cell-closure scripts on a quiet box; the two differential guards record their documented stub (#934) and mutation_table keeps env_drift eager for that reason. `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_gate_table.py` -> in band 22/27; out: env_drift 96.4x, golden 80.8x (stubs), harness_headers 0.44x, plan_view 0.44x, wood_advisor 0.43x (all provisional, load1 0.7-1.1)
+- boost_drift_replay.py's low checks-per-solve (46/789) is not unasserted work: its solves drive the 9-day closed-loop replay whose learner trajectory the checks read. `cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl; sed -n 1,40p tests/boost_drift_replay.py` -> 0.058 checks per solve; 3 arms x 9 days of 30-minute cycles, each cycle's solve adopted and actuated (header); no perturbation showing a check independent of the solves was found
+- stress.py and env_drift.py assert at a density of the same order as the other solve-heavy scripts. `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py --hastub-hook --scripts tests/stress.py,tests/env_drift.py` -> stress 0.48, env_drift 1.12 cold / 2.24 warm checks per solve, against edge 0.95, backtest 2.27, optimality 3.65
+- harness_headers.py's matrix kills are behavioural, not contention artefacts of its CPU bounds. `python3 -c "import json,glob;[print(k,j['checks'][:2]) for f in glob.glob('dev/audit/rounds/round11/D3/s1/state/results/matrix/*.json') for k,j in json.load(open(f))['runs'].items() if k=='tests/harness_headers.py' and j['killed']]"` -> 4 kills: 3 are RESULT-header mismatches of audit harnesses driving production (sysid_estimator_frontier, dst_window_factors); 1 (thermal_model.py:270) a SIGXCPU at the 480 CPU-s bound that features.py also timed out on (2314 s)
+- golden.py's closure edges cost the CI gate nothing: CI runs GOLDEN_MODE=drift, which skips golden.py; its strict mode (run.sh's local default) is red at baseline on a non-canonical machine and can kill no cell mutant here. `grep -rn GOLDEN_MODE .github/workflows/; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table | grep golden` -> tests.yml:374 and nightly.yml:496 set drift; strict baseline 55 of 56 changed; 0 of 38 mutants killed
+- The mutation-lane cost D3-s1-01 names shows in the no-early-stop matrix: env_drift kills nothing on lines its capture never executes (cited, not re-reported). `matrix rows of dev/audit/rounds/round11/D3/s1/state/results/matrix/ against baselines.json capture_reach (see REPORT.md, (b))` -> 21 of 38 matrix mutants on lines the capture never executes; env_drift killed 0 of those 21 (2 of the other 17)
+- Pre-screen instrument controls hold on this box. `cat dev/audit/rounds/round11/D3/s1/state/m5box-null.out dev/audit/rounds/round11/D3/s1/state/m5box-posctl.out` -> null LIVES over 16 drivers; positive 2/2 KILLED by tests/manual_plan.py
+
+## Leads (outside the cells)
+
+- D3-s3 `tests/gate_lock.py` `needs_lease / _recorded_seconds`: Classifies a SCOPE_RUN as light ('none', unleased) when every name's closures.json recorded.seconds is under SLOT_MIN_SECONDS=69, but tests/env_drift.py (1.0 s) and tests/golden.py (1.2 s) record a stub invocation (#934) while a real run measured 96-197 s and 97 s here (m5_gate_table.py); a scope that selects only those two plus light scripts would run unleased.
+- D3-s3 `tests/card_drift.mjs` `the closing process.exit(1) after console.log`: Exiting with process.exit right after console.log truncates a PIPED stdout: captured through subprocess capture_output, a card edit's run showed 1 of 44 DRIFT lines and no summary, a file redirect all 44 (measured while building m5_card_drift_payload.py). Any instrument reading card_drift's (or card.mjs's) verdict through a pipe reads a truncated count.
+
+## Harnesses (new on this box)
+
+- `m5_gate_table.py` (a); `m5_matrix.py` (b, tabulation + drop-one perturbation);
+  `m5_trace_hastub.py` (d/e, child-inclusive reach via a hastub sitecustomize and a
+  synthetic HEAD^1+hook ref); `m5_card_drift_payload.py` (e, finding D3-s1-52).
+- Extended: `prescreen.py` (D3S1_EXTRA_DRIVERS / D3S1_ONLY, golden strict spec, node
+  drivers behind their producer), `m5_solves.py` (`--hastub-hook`, env_drift tally).
 
 ## Unfinished
 
-- D3.M2: Orchestrator STOP (inbox command 1, 19:35:56Z) halted U1 after 4 of 1240 not-yet-driven inventory mutants: 1226 remain (state/u1_keys.txt minus state/results/pre). Resume: PYTHONPATH=tests/hastub D3S1_FRESH_TREE=1 python3 dev/audit/rounds/round11/D3/s1/prescreen.py run --anchors dev/audit/rounds/round11/D3/s1/state/u1_keys.txt --sub pre --workers 4 (done keys are skipped). About 7 min per mutant per worker on this 4-core box.
-- D3.M3: Full net (prescreen.py complete, no early stop) done on 2 of 35 survivors; 33 owed, plus every U1 survivor. The quiet-window GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> gate for the top six (tariff.py:64, price_model.py:201, coordinator.py:539, sysid.py:2246 M27, tariff.py:744 M31, sysid.py:1549 M26) and down the survivors by consequence: not run (C3).
-- D3.M5: Not built (STOP): (a) quiet-box per-script CPU/wall table vs closures.json; (b) kill-overlap matrix, every closure script on every C2, C3/C6 mutant and survivor, no early stop (C9); (c) checks per solve for stress.py and env_drift.py (C4); (d) closure over-approximation of boost_drift_replay and stress for the cell files (C4/C7); (e) tests/card.mjs, card_drift.mjs, golden.py, stress.py traced and measured.
-
-## Redispatched (C1-C9)
-
-- D3.M1: C8 examined
-- D3.M2: C2 examined, C6 examined
-- D3.M3: C3 not_reached, C5 examined
-- D3.M4: 
-- D3.M5: C1 examined, C4 not_reached, C7 not_reached, C9 not_reached
+None for this box's slice.

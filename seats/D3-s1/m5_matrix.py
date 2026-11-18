@@ -16,6 +16,12 @@ by prescreen.py's key -> matrix_mutants.json. The drives themselves are
 prescreen.py's (`run --full --mutants matrix_mutants.json --sub matrix...`,
 D3S1_RELAX=0, so only the gate's own reach rule skips a pair).
 
+golden.py (driven in run.sh's default strict mode) prints `N of M GOLDEN
+SCENARIOS CHANGED`, which mutation_table.failing_count does not read: its
+column is re-judged here on that count against its own baseline's.
+tests/stress.py's column is driven alone afterwards (`--sub matrix-stress`,
+one worker), as the brief's quiet-window rule requires.
+
 Instrumented symbol: tests/mutation_table.py:killed / reach_skip over
 prescreen.py:drive's per-driver runs of each mutated production line.
 Perturbation: `--drop SCRIPT` removes one script's column -> `survivors`
