@@ -1638,5 +1638,147 @@
   "class_mechanism": "Comment or doc sentences exceed the D5 readability criterion (C5, over 40 words), so a reader must parse run-ons to reach the fact",
   "nearest": "I5",
   "differs": "the text is not false or stale, only over-long"
+ },
+ {
+  "id": "D6-s1-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: claims.py false_claims=3 (legionella default 10 days vs doc 7, echo grace const 20 s vs doc 60 s with 6 contradictions, learner converges)",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced the 3 false rows; the chained ledger step exits 1 on its TREE.txt/REPO placeholders, after the claims step printed. Votes: 1 verify (low).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s1-02",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "planted copy: false_claims include legionella_default (10 vs 7 days) and learner_converges_35pct, the two README rows",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced; same claims run as D6-s1-01. The learner row hints at a production defect the verifier flagged; it stays a docs finding here. Votes: 1 verify (medium).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s2-01",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: strings rows_claim_false=6, stale 2, across 3 files; perturb -> 0 and 0",
+  "stop_rule_class": "bug",
+  "class": "I5",
+  "note": "reproduced exactly. Five user-facing claims contradict the production symbol that decides them; high as the verifier. Class I5 (docs drift against code). Merged D6-s3-02. Votes: 1 verify (high).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s2-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: gov_paths=2 dangling decision paths, one at dev/governance/roles/fixer.md:104",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced; the header perturbation flag is not this script's (argparse refused 'models'), so the perturbation was by-hand on the verifier's record. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: gov_paths=2 dangling decision paths, one at dev/governance/roles/orchestrator.md:73",
+  "stop_rule_class": "hygiene",
+  "class": "N-move-stale-path",
+  "note": "reproduced; perturbation by-hand as D6-s2-02. Votes: 1 verify.",
+  "class_mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move"
+ },
+ {
+  "id": "D6-s3-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: config_refusal_missing=2 placeholders (1 unrenderable unit), options page 0; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced exactly; the sibling options page keeps them. Placeholder-set mismatch, I4, as the other placeholder findings. Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D6-s4-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: unresolved_sv=1 ({minuter}), en/de 0; perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I4",
+  "note": "reproduced exactly; the runner in the worktree read en only. Votes: 1 verify.",
+  "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D6-s4-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: over_text at B=1, 2 and 12 is 1 each (B=0 0); perturb -> 0",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced the verifier's B=1,2,12; B=0 reads 0 here. Votes: 1 verify (low).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D6-s6-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: de.json false=2, stale=16, false_plus_stale=18; perturb -> 17",
+  "stop_rule_class": "hygiene",
+  "class": "I5",
+  "note": "reproduced exactly; runner too. Votes: 1 verify (low).",
+  "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
+ },
+ {
+  "id": "D7-s1-01",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: ratchet const_modules_over_50=3; read-count null 4; respell perturbation -> 2",
+  "stop_rule_class": "hygiene",
+  "class": "N-structure-blind",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured"
+ },
+ {
+  "id": "D7-s1-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: holes_clone1=95 files; duplication_copies 18 base vs 113 planted",
+  "stop_rule_class": "hygiene",
+  "class": "N-structure-blind",
+  "note": "reproduced the 95; null arm text was prose (by-hand on the verifier's 8 -> 8 same-function clone). Votes: 1 verify.",
+  "class_mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured"
+ },
+ {
+  "id": "D7-s1-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: unused_package_imports=14; adding one -> 15 with the ratchet unchanged",
+  "stop_rule_class": "hygiene",
+  "class": "N-structure-blind",
+  "note": "reproduced exactly. Votes: 1 verify.",
+  "class_mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured"
+ },
+ {
+  "id": "D7-s1-04",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "planted copy: coordinator_py_unpriced_loc=2980; module-growth perturbation -> 4403 with ratchet_class_excess_loc flat at 17407",
+  "stop_rule_class": "hygiene",
+  "class": "N-structure-blind",
+  "note": "reproduced exactly; class-growth null moves the ratchet (18807). Votes: 1 verify.",
+  "class_mechanism": "A structural ratchet or dead-code metric measures a name or regex proxy instead of the property it gates, so dead production members or cross-seam coupling pass it unmeasured"
+ },
+ {
+  "id": "D7-s1-05",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "planted copy: duplication_copies -> 9 with the ten prototypes, dS +9.2671 (verifier +8.2671); fold alone 17",
+  "stop_rule_class": "hygiene",
+  "class": "N-duplicated-rule",
+  "note": "reproduced the 18 -> 9 opportunity. An improvement opportunity, not a defect the score hides (verifier: P2 not shown). Votes: 1 verify (class none).",
+  "class_mechanism": "One rule is written as several agreeing copies where a single-owner prototype is admissible, so a later fix to one copy silently forks the rule",
+  "nearest": "P2",
+  "differs": "the copies agree today: the defect is the unowned duplication, not a divergence already present"
  }
 ]
