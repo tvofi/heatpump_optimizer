@@ -460,3 +460,4 @@
 2026-11-18T16:25:20Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_valve_target GUARD_OFF 84888766 L7733 by=- ran=13 wall=1390.6s
 2026-11-18T16:40:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps CLAMP_DROP 7ca4fcf9 L4528 by=- ran=13 wall=1392.5s
 2026-11-18T16:40:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_comfort_bounds GUARD_OFF 22347724 L4766 by=- ran=12 wall=1286.3s
+2026-11-18T16:43:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 1bac3001 L1138 by=- ran=16 wall=1401.5s
