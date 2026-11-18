@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_room_verdict GUARD_OFF d531875c",
+  "killed_by": "tests/features.py",
+  "old": "    if (twin := _collinear(list(calls).index(entity), list(calls), r)) is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
