@@ -135,4 +135,6 @@
 2026-11-18T08:35:06Z POSCTL-D3-TOP6 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=7.4s
 2026-11-18T08:35:16Z RUN c3c6-redrive queued=1 workers=1
 2026-11-18T08:40:12Z C3C6-REDRIVE SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=- ran=12 skip=4 wall=293.0s
-2026-11-18T15:13:21Z COMPLETE queued=16 from=pre
+2026-11-18T15:14:03Z RUN posctl-D3-top6-r2 queued=2 workers=3
+2026-11-18T15:14:16Z POSCTL-D3-TOP6-R2 KILLED custom_components/heatpump_optimizer/optimizer.py:_wood_covered_share GUARD_OFF 74b19240 L1052 by=tests/manual_plan.py ran=2 skip=5 wall=9.3s
+2026-11-18T15:14:16Z POSCTL-D3-TOP6-R2 KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._manual_pins RETURN_DEL c528be6f#2 L8535 by=tests/manual_plan.py ran=2 skip=5 wall=9.6s
