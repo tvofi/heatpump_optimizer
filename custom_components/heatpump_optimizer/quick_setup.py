@@ -229,8 +229,9 @@ def derive(answers: dict[str, Any]) -> dict[str, Any]:
         } if answers.get(
             FIELD_WOOD_BUFFER_TANK, SHIPPED_ANSWERS[FIELD_WOOD_BUFFER_TANK]
         ) else {}),
-        # The probes are the two-tank model's own gate, so they are written
-        # whenever the user picked them; the volume alone changes nothing.
+        # A probe is part of the two-tank model's gate (with a throttling
+        # valve, set in Options), so they are written whenever the user
+        # picked them; the volume alone changes nothing.
         **({CONF_WOOD_TANK_TOP_ENTITY: wood_top} if wood_top else {}),
         **({CONF_WOOD_TANK_BOTTOM_ENTITY: wood_bottom} if wood_bottom else {}),
         **derived,

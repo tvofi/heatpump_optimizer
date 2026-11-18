@@ -1297,9 +1297,10 @@ def _quick_setup_schema(
     options flow would then have to un-write. The building questionnaire is the
     same field list the ``building_describe`` and ``building_preset`` pages use,
     so a house answered here derives the identical physics as one answered
-    there. The two wood-tank probe pickers ride the same page because they are
-    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
-    nothing the model reads. Both callers share the field list: the initial
+    there. The two wood-tank probe pickers ride the same page because a probe
+    is part of the two-tank model's gate: the wood-buffer-tank toggle alone
+    changes nothing the model reads, and the plan uses that model only on a
+    throttling mixing valve, which the Options pages set (D17-s2-03). Both callers share the field list: the initial
     flow over its accumulating wizard data (which never holds the probes), and
     the Configure page over the entry's effective config, where a stored probe
     is suggested back rather than shown empty (#1258).

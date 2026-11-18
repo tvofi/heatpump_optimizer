@@ -8576,6 +8576,7 @@ class _PredGate:
             upper_temp_trajectory = []
             # The production selection, as _predicted_next_room_temp is above.
             sensor_trajectory = _O.sensor_trajectory
+            zone_trajectories = _O.zone_trajectories
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -23522,6 +23523,9 @@ def _nf_settled(sun):
     coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
         _OptResult.sensor_trajectory, coord._optimization_result
     )
+    coord._optimization_result.zone_trajectories = _types_mod.MethodType(
+        _OptResult.zone_trajectories, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -23965,6 +23969,9 @@ _fake_plan = _NS(
 # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
 _fake_plan.sensor_trajectory = _types_mod.MethodType(
     _OptResult.sensor_trajectory, _fake_plan
+)
+_fake_plan.zone_trajectories = _types_mod.MethodType(
+    _OptResult.zone_trajectories, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(

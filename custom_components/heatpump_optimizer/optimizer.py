@@ -2635,9 +2635,9 @@ class OptimizationResult:
         model's ``two_zone_enabled``; a two-zone plan missing either list
         has no floors to show either.
         """
-        if two_zone and self.upper_temp_trajectory and self.lower_temp_trajectory:
-            return self.upper_temp_trajectory, self.lower_temp_trajectory
-        return None
+        if not (two_zone and self.upper_temp_trajectory and self.lower_temp_trajectory):
+            return None
+        return self.upper_temp_trajectory, self.lower_temp_trajectory
 
     def sensor_trajectory(self, two_zone: bool) -> list[float]:
         """The trajectory the indoor sensor reads (#2238 P3's one owner).
