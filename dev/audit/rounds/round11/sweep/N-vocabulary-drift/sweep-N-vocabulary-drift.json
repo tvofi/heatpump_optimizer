@@ -1,0 +1,121 @@
+{
+ "class": "N-vocabulary-drift",
+ "instances": 5,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift.py  (controls: bash dev/audit/rounds/round11/D14/sweep/vocabulary_drift_controls.sh -> positive 3/3 judged sites, plus the R10 drift re-found at pre-fix 21b1ed140 (replan LIVE_STAGES <> roster_sync DERIVABLE_STAGES); null 0; perturb 23->24)",
+ "seams_total": 23,
+ "instance_list": [
+  {
+   "file": "tools/audit/seat/bus.sh:672 <> .claude/workflows/web-fix-wave.js:175",
+   "symbol": "MECHANICAL_CLASSES vs VERDICT_CLASSES",
+   "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read (D13-s2-01: 214 of 448 untaught)",
+   "beyond_finding": false
+  },
+  {
+   "file": ".claude/workflows/web-fix-wave.js:272",
+   "symbol": "VERDICT_RE free class word [a-z][a-z0-9-]* routed to `other`",
+   "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read (D13-s2-01)",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/policy/policy_lint.mjs:6658",
+   "symbol": "FRICTION_ID free rule id, never resolved to a policy file",
+   "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs (D13-s2-02: 105 of 174 name no file)",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/plan/replan.py:116 <> .claude/workflows/web-fix-wave.js:164",
+   "symbol": "LIVE_STAGES / roster_lib.STAGE_KIND vs KNOWN_STAGES: the roster writer accepts 15 stage words (incl. live 'fixing','in-progress') the wave refuses with a throw",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py stage_vocab",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/proof_watch.py:108",
+   "symbol": "VERDICT_BLOCKED requires `<class>: why`, [a-z-] only; the wave's VERDICT_RE accepts bare `blocked <sha>`, `blocked <sha>: why`, digit classes, so merge_train/orchestrator_tick/review_packet read None for a verdict the wave reads as blocked",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py blocked_grammar",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/owed_watch.py:66",
+   "symbol": "DESIGN_VERDICT ([a-z-]+): a word other than approve/revise (e.g. a misspelt 'aprove') matches and raises neither FIXER-OWED nor DESIGN-REVIEW-OWED",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py design_verdict",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/review_strength.py:118 <> tools/policy/policy_lint.mjs:2827",
+   "symbol": "REAL_CATCH vs FRICTION_FAMILIES: defect, figures-false, mutation-untriaged, policy-regression are REAL to one reader and in no family of the other (mutation-survivor vs mutation-survivors spelt apart)",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py friction_family",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/ci_priority.py:42/48",
+   "symbol": "check_setting admits GUARDS ('train-head') in never_cancel, a word tier() never yields, so is_priority can never close it",
+   "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py ci_priority_guard",
+   "beyond_finding": true
+  }
+ ],
+ "not_instances": [
+  {
+   "seam": "tools/audit/round4/D11/governance_cost.py:62 GOV <> tools/audit/seat/ci-watch.sh:106 ABSENT5",
+   "disposition": "not applicable",
+   "reason": "ABSENT5 is a five-name self-test fixture (ci-watch.sh:132); the live check reads the ruleset"
+  },
+  {
+   "seam": "tools/audit/round4/D11/governance_cost.py:62 GOV <> tools/ci/prelude.py:53 BODY_UNITS",
+   "disposition": "guarded",
+   "reason": "different concepts; GOV is pinned both ways to the workflow files by tests/entities.py:31837-31843 and tools/policy/agreement.mjs:481-488"
+  },
+  {
+   "seam": "tools/audit/seat/ci-watch.sh:106 ABSENT5 <> tools/ci/prelude.py:53 BODY_UNITS",
+   "disposition": "not applicable",
+   "reason": "fixture versus CI unit list; no shared channel"
+  },
+  {
+   "seam": "tools/audit/seat/owed_watch.py:57/68/69 SEAT_KINDS, FAMILIES, RETURN_FAMILIES (3 pairs)",
+   "disposition": "not applicable",
+   "reason": "nested subsets in one file by design"
+  },
+  {
+   "seam": "tools/audit/seat/ref_privacy.py:233 CLASSES <> :358 BODY_CLASSES",
+   "disposition": "not applicable",
+   "reason": "BODY_CLASSES is the in-file subset for bodies"
+  },
+  {
+   "seam": "tools/audit/seat/review_strength.py:118 REAL_CATCH <> web-fix-wave.js:175 VERDICT_CLASSES",
+   "disposition": "guarded",
+   "reason": "the untaught-real split is printed and asserted (review_strength.py:912-914, :724-725); teaching is D13-s2-01's own fix scope"
+  },
+  {
+   "seam": "tools/audit/seat/review_strength.py:140 STRATA <> :148 FACT_STRATA",
+   "disposition": "not applicable",
+   "reason": "in-file subset"
+  },
+  {
+   "seam": "tools/audit/seat/round_metrics.py:100 CLASSES <> tools/plan/replan.py:303 WORK_CLASSES",
+   "disposition": "not applicable",
+   "reason": "merge kind versus group work class; no shared channel"
+  },
+  {
+   "seam": "tools/policy/brief_lint.mjs:67 CODE_EXTS <> tools/policy/policy_lint.mjs:692 NOT_A_DOCUMENT",
+   "disposition": "not applicable",
+   "reason": "file-extension sets for different questions"
+  },
+  {
+   "seam": "tools/policy/figure_census.mjs:42/100, figure_lint.mjs:168 PROGRAMS vs CLASSES (2 pairs)",
+   "disposition": "not applicable",
+   "reason": "an interpreter list versus a figure class list"
+  },
+  {
+   "seam": ".claude/workflows/web-fix-wave.js:175 VERDICT_CLASSES <> :210 ROOT_CAUSE_CLASSES",
+   "disposition": "not applicable",
+   "reason": "a derived subset"
+  },
+  {
+   "seam": "tools/audit/fold_ledger.py:114 CLASS_ID",
+   "disposition": "guarded",
+   "reason": "an unknown id is minted with nearest/differs/mechanism or refused (fold_ledger.py:403-425); none is dropped"
+  }
+ ],
+ "ledger_note": "bugclasses.json carries N-vocabulary-drift as barriered for the roster stage/size pair (roster_lib.py registry); that barrier covers roster_edit/roster_sync only, and web-fix-wave.js KNOWN_STAGES and replan.LIVE_STAGES do not derive from it",
+ "proposed_barrier": "one vocabulary module per record (verdict, stage, design verdict, friction family) that writers, readers and the wave script import or extract, plus a tests/ check built on vocabulary_drift.py that refuses an R1 pair absent from an allow-list of deliberate subsets; cost one scan, about 2 s of gate time"
+}

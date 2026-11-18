@@ -1,0 +1,419 @@
+{
+  "box": "SW6",
+  "missing": [],
+  "reports": {
+    "sweep-N-untranslated-splice": {
+      "class": "N-untranslated-splice",
+      "instances": 10,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice.py  (controls: bash dev/audit/rounds/round11/D14/sweep/untranslated_splice_controls.sh -> positive 10/10 seam_rule sites, null 0, perturb 21->22)",
+      "seams_total": 21,
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11038",
+          "symbol": "L('advisor.apply_failed') param `(err && err.message) || String(err)`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11082",
+          "symbol": "L('advisor.apply_failed') param `(err && err.message) || String(err)`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11091",
+          "symbol": "L('advisor.apply_failed') param `(err && err.message) || String(err)`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11641",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11660",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:13332",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:13437",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:13937",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14173",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:15098",
+          "symbol": "L(...) failure line param `(err && err.message) || err`",
+          "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail (the finding's harness; 24 sv/de cells)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:439",
+          "symbol": "_refuse_quiet {error}=str(DHWWindowError)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py quiet_windows  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:672",
+          "symbol": "handle_set_thermal_params {error}=str(DHWWindowError)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py dhw_windows_set_thermal  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:1006",
+          "symbol": "handle_apply_schedule {error}=str(DHWWindowError)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py dhw_windows_apply  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:810",
+          "symbol": "handle_simulate_plan {error}=Refused('invalid_windows: ...') tail",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py dhw_windows_simulate  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:818",
+          "symbol": "handle_simulate_plan {error}=str(Refused|Exception)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py simulate_failed  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:1157",
+          "symbol": "handle_apply_manual_plan {error}=str(ManualPlanError) (sv/de template is bare '{error}')",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py manual_plan  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py:1285",
+          "symbol": "handle_diagnose_interval {error}=str(ProcessWorkerUnavailable)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py diagnose_failed  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/store.py:798",
+          "symbol": "_surface_version {detail}=English literal (store.py:786)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py store_version  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py:1552",
+          "symbol": "_not_held {detail}=f'{entity}: {observed} (set by the optimizer: {value})' (pump_arbiter.py:1519)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py pump_write_ignored  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/issues.py:88",
+          "symbol": "note_price_outage {error}=reason, f'Error fetching Tibber prices: {err}' (coordinator.py:6981/6984)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/untranslated_splice_probe.py price_feed_stale  (exit 1 = English fragment in sv and de)",
+          "beyond_finding": true
+        }
+      ],
+      "not_instances": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py:2249",
+          "symbol": "_note_worker_fallback {cause}=f'{type(err).__name__}: {err}'",
+          "disposition": "not applicable",
+          "reason": "an arbitrary upstream exception (type name and message) with no translated counterpart; the sv/de template frames it as the reported line to attach to a bug report, and the finding's own null control counts no rejection without a translation"
+        }
+      ],
+      "proposed_barrier": "a tests/ lint over translation_placeholders/description_placeholders values and card L() params: refuse an exception-derived value (except-bound name, str(err), err.message) unless it passes through a translated mapping (exception subclasses carrying translation_key + placeholders; card helper reading err.translation_key via hass.localize); cost: one AST pass, under 1 s of gate time"
+    },
+    "sweep-N-vocabulary-drift": {
+      "class": "N-vocabulary-drift",
+      "instances": 5,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift.py  (controls: bash dev/audit/rounds/round11/D14/sweep/vocabulary_drift_controls.sh -> positive 3/3 judged sites, plus the R10 drift re-found at pre-fix 21b1ed140 (replan LIVE_STAGES <> roster_sync DERIVABLE_STAGES); null 0; perturb 23->24)",
+      "seams_total": 23,
+      "instance_list": [
+        {
+          "file": "tools/audit/seat/bus.sh:672 <> .claude/workflows/web-fix-wave.js:175",
+          "symbol": "MECHANICAL_CLASSES vs VERDICT_CLASSES",
+          "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read (D13-s2-01: 214 of 448 untaught)",
+          "beyond_finding": false
+        },
+        {
+          "file": ".claude/workflows/web-fix-wave.js:272",
+          "symbol": "VERDICT_RE free class word [a-z][a-z0-9-]* routed to `other`",
+          "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/block_classes.mjs --no-window-read (D13-s2-01)",
+          "beyond_finding": false
+        },
+        {
+          "file": "tools/policy/policy_lint.mjs:6658",
+          "symbol": "FRICTION_ID free rule id, never resolved to a policy file",
+          "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs (D13-s2-02: 105 of 174 name no file)",
+          "beyond_finding": false
+        },
+        {
+          "file": "tools/plan/replan.py:116 <> .claude/workflows/web-fix-wave.js:164",
+          "symbol": "LIVE_STAGES / roster_lib.STAGE_KIND vs KNOWN_STAGES: the roster writer accepts 15 stage words (incl. live 'fixing','in-progress') the wave refuses with a throw",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py stage_vocab",
+          "beyond_finding": true
+        },
+        {
+          "file": "tools/audit/seat/proof_watch.py:108",
+          "symbol": "VERDICT_BLOCKED requires `<class>: why`, [a-z-] only; the wave's VERDICT_RE accepts bare `blocked <sha>`, `blocked <sha>: why`, digit classes, so merge_train/orchestrator_tick/review_packet read None for a verdict the wave reads as blocked",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py blocked_grammar",
+          "beyond_finding": true
+        },
+        {
+          "file": "tools/audit/seat/owed_watch.py:66",
+          "symbol": "DESIGN_VERDICT ([a-z-]+): a word other than approve/revise (e.g. a misspelt 'aprove') matches and raises neither FIXER-OWED nor DESIGN-REVIEW-OWED",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py design_verdict",
+          "beyond_finding": true
+        },
+        {
+          "file": "tools/audit/seat/review_strength.py:118 <> tools/policy/policy_lint.mjs:2827",
+          "symbol": "REAL_CATCH vs FRICTION_FAMILIES: defect, figures-false, mutation-untriaged, policy-regression are REAL to one reader and in no family of the other (mutation-survivor vs mutation-survivors spelt apart)",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py friction_family",
+          "beyond_finding": true
+        },
+        {
+          "file": "tools/audit/seat/ci_priority.py:42/48",
+          "symbol": "check_setting admits GUARDS ('train-head') in never_cancel, a word tier() never yields, so is_priority can never close it",
+          "probe": "python3 dev/audit/rounds/round11/D14/sweep/vocabulary_drift_probe.py ci_priority_guard",
+          "beyond_finding": true
+        }
+      ],
+      "not_instances": [
+        {
+          "seam": "tools/audit/round4/D11/governance_cost.py:62 GOV <> tools/audit/seat/ci-watch.sh:106 ABSENT5",
+          "disposition": "not applicable",
+          "reason": "ABSENT5 is a five-name self-test fixture (ci-watch.sh:132); the live check reads the ruleset"
+        },
+        {
+          "seam": "tools/audit/round4/D11/governance_cost.py:62 GOV <> tools/ci/prelude.py:53 BODY_UNITS",
+          "disposition": "guarded",
+          "reason": "different concepts; GOV is pinned both ways to the workflow files by tests/entities.py:31837-31843 and tools/policy/agreement.mjs:481-488"
+        },
+        {
+          "seam": "tools/audit/seat/ci-watch.sh:106 ABSENT5 <> tools/ci/prelude.py:53 BODY_UNITS",
+          "disposition": "not applicable",
+          "reason": "fixture versus CI unit list; no shared channel"
+        },
+        {
+          "seam": "tools/audit/seat/owed_watch.py:57/68/69 SEAT_KINDS, FAMILIES, RETURN_FAMILIES (3 pairs)",
+          "disposition": "not applicable",
+          "reason": "nested subsets in one file by design"
+        },
+        {
+          "seam": "tools/audit/seat/ref_privacy.py:233 CLASSES <> :358 BODY_CLASSES",
+          "disposition": "not applicable",
+          "reason": "BODY_CLASSES is the in-file subset for bodies"
+        },
+        {
+          "seam": "tools/audit/seat/review_strength.py:118 REAL_CATCH <> web-fix-wave.js:175 VERDICT_CLASSES",
+          "disposition": "guarded",
+          "reason": "the untaught-real split is printed and asserted (review_strength.py:912-914, :724-725); teaching is D13-s2-01's own fix scope"
+        },
+        {
+          "seam": "tools/audit/seat/review_strength.py:140 STRATA <> :148 FACT_STRATA",
+          "disposition": "not applicable",
+          "reason": "in-file subset"
+        },
+        {
+          "seam": "tools/audit/seat/round_metrics.py:100 CLASSES <> tools/plan/replan.py:303 WORK_CLASSES",
+          "disposition": "not applicable",
+          "reason": "merge kind versus group work class; no shared channel"
+        },
+        {
+          "seam": "tools/policy/brief_lint.mjs:67 CODE_EXTS <> tools/policy/policy_lint.mjs:692 NOT_A_DOCUMENT",
+          "disposition": "not applicable",
+          "reason": "file-extension sets for different questions"
+        },
+        {
+          "seam": "tools/policy/figure_census.mjs:42/100, figure_lint.mjs:168 PROGRAMS vs CLASSES (2 pairs)",
+          "disposition": "not applicable",
+          "reason": "an interpreter list versus a figure class list"
+        },
+        {
+          "seam": ".claude/workflows/web-fix-wave.js:175 VERDICT_CLASSES <> :210 ROOT_CAUSE_CLASSES",
+          "disposition": "not applicable",
+          "reason": "a derived subset"
+        },
+        {
+          "seam": "tools/audit/fold_ledger.py:114 CLASS_ID",
+          "disposition": "guarded",
+          "reason": "an unknown id is minted with nearest/differs/mechanism or refused (fold_ledger.py:403-425); none is dropped"
+        }
+      ],
+      "ledger_note": "bugclasses.json carries N-vocabulary-drift as barriered for the roster stage/size pair (roster_lib.py registry); that barrier covers roster_edit/roster_sync only, and web-fix-wave.js KNOWN_STAGES and replan.LIVE_STAGES do not derive from it",
+      "proposed_barrier": "one vocabulary module per record (verdict, stage, design verdict, friction family) that writers, readers and the wave script import or extract, plus a tests/ check built on vocabulary_drift.py that refuses an R1 pair absent from an allow-list of deliberate subsets; cost one scan, about 2 s of gate time"
+    },
+    "sweep-N-wrong-law": {
+      "class": "N-wrong-law",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/wrong_law.py  (controls: bash dev/audit/rounds/round11/D14/sweep/wrong_law_controls.sh -> positive: the planted D2-s2-02 sign is listed PINNED at defrost.py:205; null: clean fixture pinned 0; perturb: a sign flipped at dhw_planner.py:105 moves pinned 0 -> 1)",
+      "seams_total": 28,
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/defrost.py:205",
+          "symbol": "derate_from_duty (planted `1.0 + duty * DEFROST_LOSS_MULTIPLIER` under min(DERATE_MAX=1.0, ...))",
+          "probe": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s2/m2_cop_laws.py on the planted copy (duty_law_mismatch 60/61); python3 dev/audit/rounds/round11/D14/sweep/wrong_law.py <planted copy> lists it PINNED",
+          "beyond_finding": false
+        }
+      ],
+      "not_instances": [
+        {
+          "seam": "custom_components/heatpump_optimizer/accuracy.py:408 trust",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: trust falls as MAE rises: 1 - (mae-0.25)/1.75 clipped [0,1]"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/boost.py:101 settle_tail",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tail + tau*ln(boosted/window): ln<0 below the window, so a shorter boost owes a shorter tail, as documented (boost.py:88-96)"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/coordinator.py:4456 _dhw_setpoint_sweep",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank mean minus room ambient, floored at 0: standby loss driver"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/dhw_learning.py:476 _standby_rate",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank minus ambient, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/dhw_planner.py:105 _tank_decay",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: explicit-Euler retention 1 - UA dt / C in [0,1]"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/dhw_planner.py:509 _baseline_dhw_economics",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: setpoint minus ambient, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/dhw_planner.py:2243 retained_fraction",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: 1 - loss rate x elapsed, floored at 0.15"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/dhw_planner.py:1041 _dhw_window_floors",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: tank mean minus ambient, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/external_heat.py:470 _decay",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: linear decay 1 - elapsed/decay, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/flow_lift.py:197 observe",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: bias clipped to [-K, supply ceiling - curve]: the headroom shrinks as the curve rises"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/optimizer.py:2083 _price_guess_weights",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: weight falls as price rises above the mean, band [0.2, 1.0] (documented at optimizer.py:2075-2080)"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/optimizer.py:1366 _thermostat_demand",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: buffer minus ambient, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/optimizer.py:3406 _anticipatory_weights",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: more forecast solar means less anticipatory weight: 1 - 0.3 x solar, floored at 0.6"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/optimizer.py:6089 net",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: temp minus ambient, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/thermal_model.py:3019 dhw_draw_scale",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: mixed-use temp minus inlet, positive denominator"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/thermal_model.py:3327 _cop_law",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: COP factor rises with outdoor temp above the reference: 1 + 0.025 x delta, floor 0.3, cap 1.5"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/thermal_model.py:4450 _batch_cop",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: the same law as _cop_law, pinned bitwise to it by the batch/scalar parity contract (m2_cop_laws.py batch_parity_maxabs)"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/thermal_model.py:4000 _simulate_step_two_zone",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: wood-tank headroom WOOD_TANK_MAX - temp, floored at 0"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/thermal_model.py:3621 dhw_hold_hours",
+          "disposition": "not applicable",
+          "reason": "the sign agrees with the documented law, and wrong_law.py does not list it as pinned: a lower bound of one kelvin above the floor, not a law term"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/coordinator.py:1726",
+          "disposition": "not applicable",
+          "reason": "not a physical law: sample count beyond a minimum"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/debugger.py:383",
+          "disposition": "not applicable",
+          "reason": "not a physical law: timestamp arithmetic"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/heat_energy.py:132",
+          "disposition": "not applicable",
+          "reason": "not a physical law: time-span arithmetic"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/ledger.py:739",
+          "disposition": "not applicable",
+          "reason": "not a physical law: retention count"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/ledger.py:274",
+          "disposition": "not applicable",
+          "reason": "not a physical law: retention count"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/wear.py:193",
+          "disposition": "not applicable",
+          "reason": "not a physical law: retention count"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/running_signal.py:193",
+          "disposition": "not applicable",
+          "reason": "not a physical law: remaining debounce seconds"
+        },
+        {
+          "seam": "custom_components/heatpump_optimizer/sysid.py:2037",
+          "disposition": "not applicable",
+          "reason": "not a physical law: degrees of freedom"
+        }
+      ],
+      "site_note": "D2-s2-02 was judged on a planted copy: defrost.py:205 reads `1.0 - duty * DEFROST_LOSS_MULTIPLIER` at the baseline 92d38ecb and at the register head",
+      "proposed_barrier": "run dev/audit/rounds/round11/D14/sweep/wrong_law.py as a tests/ check refusing any PINNED seam (a clamp whose bound equals the affine constant on the side the operator pushes, which makes the term dead), at under 1 s of gate time; m2_cop_laws.py's duty-law identity as a unit pin on derate_from_duty"
+    }
+  }
+}
