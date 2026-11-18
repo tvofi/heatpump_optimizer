@@ -31,3 +31,4 @@
 2026-11-18T18:48:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start GUARD_OFF 26c7dead L2130 by=- ran=17 wall=2158.6s
 2026-11-18T18:50:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_better_objective GUARD_OFF 26cd5e23 L2111 by=- ran=12 wall=1913.1s
 2026-11-18T19:07:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_power_fraction CMP_BOUND 5c0bd2a0 L2172 by=- ran=12 wall=1889.3s
+2026-11-18T19:08:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CMP_BOUND 2befee09 L2285 by=- ran=16 wall=1893.4s
