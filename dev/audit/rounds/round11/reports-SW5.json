@@ -1,0 +1,266 @@
+{
+  "box": "SW5",
+  "missing": [],
+  "reports": {
+    "sweep-N-uncleared-issue": {
+      "class": "N-uncleared-issue",
+      "instances": 3,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/enum_uncleared_issue.py  (seams=10, restart_gated=3 at origin/handoff/audit-r11-register); controls: bash dev/audit/rounds/round11/D14/sweep/controls_uncleared_issue.sh",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_clear_worker_fallback",
+          "issue_id": "solve_worker_fallback",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py worker_fallback  (fails: 1 left)",
+          "beyond_finding": false,
+          "finding": "D1-s1-01"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization",
+          "issue_id": "solve_failures",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py solve_failures  (fails: clear gated on in-memory _solve_failures>=3, counter not restored)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._audit_grid_fee",
+          "issue_id": "grid_fee_magnitude, grid_fee_sign",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py grid_fee  (fails: the only audit path runs behind schedule.active, so an inactive fee layer never clears the persistent notices)",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/legionella.py",
+          "symbol": "LegionellaGuard._drive_switch",
+          "issue_id": "dhw_disinfection_switch_lost_<entity>",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py switch_lost  (fails: 0 clear sites)",
+          "beyond_finding": true
+        }
+      ],
+      "controls": {
+        "positive": "re-finds solve_worker_fallback (D1-s1-01) as persistent,restart_gated",
+        "null": "clean fixture (raise + unconditional clear, non-persistent): seams=0",
+        "perturbation": "drop the price_currency clear (one line): seams 10 -> 11; ungate _clear_worker_fallback: restart_gated 3 -> 2"
+      },
+      "dispositions": [
+        {
+          "seam": "accuracy_drift",
+          "disposition": "guarded",
+          "reason": "cleared in _async_watch_learning_drift on a changed verdict with the ring not alarmed; the ring is persisted (_async_save_snapshots), so a fresh process can clear it"
+        },
+        {
+          "seam": "cop_degradation",
+          "disposition": "guarded",
+          "reason": "cleared in _observe_cop_health; the CUSUM state it gates on is persisted (load ~4594, save ~4729)"
+        },
+        {
+          "seam": "freq_watchdog",
+          "disposition": "guarded",
+          "reason": "enumerator flags it restart_gated (_freq_fallback initialised False) but the latch is restored from the store (coordinator.py:4623) and saved (4763): heuristic false positive; the notice tracks a latched fallback that is still in force"
+        },
+        {
+          "seam": "dhw_legionella_unreachable",
+          "disposition": "guarded",
+          "reason": "clear_unreachable_issue runs on every credited cycle (legionella.py async_track), with last_cycle persisted; also cleared by OffStepNotice"
+        },
+        {
+          "seam": "dhw_legionella_unverified",
+          "disposition": "guarded",
+          "reason": "clear_unverified_issue runs on the first credited cycle once a tank probe exists; while no probe is configured the reported condition still holds"
+        },
+        {
+          "seam": "ConfigNotices: floor_return_implausible, lower_floor_modelled, comfort_band_contradiction, valve_target_above_comfort",
+          "disposition": "guarded",
+          "reason": "ConfigNotices.report(None) clears every cycle, unconditionally (its _raised dict only suppresses a repeat create, so an empty dict after restart does not block the clear)"
+        },
+        {
+          "seam": "store_version_<where>",
+          "disposition": "not applicable",
+          "reason": "non-persistent: HA drops it at restart, and the condition is a load-time event that changes only across a restart"
+        },
+        {
+          "seam": "non-persistent issues (pump_mode_unreadable, price_feed_stale, pump_write_ignored, dhw_* in-memory-deduped notices, price_unit_*, price_currency, setpoint_check set_issue ids, floor_return_silent)",
+          "disposition": "not applicable",
+          "reason": "not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (reviewed site by site: 25 raised ids, every create and delete call in the package)"
+        }
+      ],
+      "ledger_status": "absent: N-uncleared-issue is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+      "baseline": "origin/handoff/audit-r11-register"
+    },
+    "sweep-N-unordered-tiebreak": {
+      "class": "N-unordered-tiebreak",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/enum_unordered_tiebreak.py  (seams=1 at origin/handoff/audit-r11-register); controls: bash dev/audit/rounds/round11/D14/sweep/controls_unordered_tiebreak.sh",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/plan_slots.py",
+          "symbol": "plan_slots (slot['reason'] = max(set(codes), key=codes.count), line 87)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/leads/slot_reason_hashseed.py  (fails: distinct_tie=2 over PYTHONHASHSEED 1..12; null 1; --perturb 1)",
+          "beyond_finding": false,
+          "finding": "D1-s1-51"
+        }
+      ],
+      "controls": {
+        "positive": "re-finds plan_slots.py:87 (D1-s1-51)",
+        "null": "clean fixture (max(dict.fromkeys(..)), sorted(set(..))): seams=0",
+        "perturbation": "one-line fix of plan_slots.py:87 to dict.fromkeys: 1 -> 0; one-line re-introduction at coordinator.py sorted(set(day_types)) -> max(set(..), key=..): 1 -> 2"
+      },
+      "dispositions": [
+        {
+          "seam": "device_prefill.py:231 _matched_keys max(pairs, key=len(pair[1])) over a comprehension of the set `keys`",
+          "disposition": "not applicable",
+          "reason": "pair order is hash order (keys is set(table) | {...} of (str,str)), but a tie needs two distinct candidate keys of equal length that are both suffixes of the same unique id -- the same string -- so no two candidates tie; found by review, not by the static enumerator (keys arrives as an Iterable parameter)"
+        },
+        {
+          "seam": "coordinator.py:8815 max(candidates, key=...)",
+          "disposition": "not applicable",
+          "reason": "list built in fixed code order (tariff, then fuse); a tie resolves to the first"
+        },
+        {
+          "seam": "coordinator.py:10449 min(costs, key=...)",
+          "disposition": "not applicable",
+          "reason": "dict, insertion-ordered by code (hourly_spot, monthly_avg_spot, fixed)"
+        },
+        {
+          "seam": "notifier.py:133, optimizer.py:637, optimizer.py:699",
+          "disposition": "not applicable",
+          "reason": "lists in schedule / stable-argsort / relaxed-plan order"
+        },
+        {
+          "seam": "open_meteo.py:249 min(gaps, key=(-count, gap))",
+          "disposition": "guarded",
+          "reason": "the key includes the gap itself, a total order: no tie"
+        },
+        {
+          "seam": "store.py:668 max(names, key=len)",
+          "disposition": "not applicable",
+          "reason": "list from the DOMAINS dict literal; distinct equal-length names cannot both suffix one key"
+        },
+        {
+          "seam": "disinfection.py:265, optimizer.py:1767, pump_arbiter.py:2151, services.py:783/1280",
+          "disposition": "not applicable",
+          "reason": "list or insertion-ordered dict, not a set"
+        },
+        {
+          "seam": "coordinator.py:2399 peak_months frozenset[int] published unsorted",
+          "disposition": "not applicable",
+          "reason": "int hashes are not randomised, so the order is stable across restarts; no tie-break involved"
+        },
+        {
+          "seam": "other set/frozenset sites (inputs.py:1356 _pending, optimizer.py excused/unheld, dhw_planner unreachable, price_model days_seen, away days, _background_tasks, ...)",
+          "disposition": "not applicable",
+          "reason": "membership, add or bookkeeping iteration with no single-element pick and no ordered published output (inputs.py:1364 stamps every pending id with one time)"
+        }
+      ],
+      "ledger_status": "absent: N-unordered-tiebreak is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+      "baseline": "origin/handoff/audit-r11-register"
+    },
+    "sweep-N-unreleased-hold": {
+      "class": "N-unreleased-hold",
+      "instances": 1,
+      "barriered": false,
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/enum_unreleased_hold.py  (8 write sites x 9 exit arms + stale plan + failed restore; held_cells=51, seams=24 at origin/handoff/audit-r11-register); --null: 0; --perturb all: 9",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "release",
+          "exits": "unload, remove (and the unload inside a duty-mode change) while the disinfection hold is live",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  RESULT unrestored_unload_disinfecting__number.dhw_set=1 and unrestored_remove_disinfecting__number.dhw_set=1 (fail; tank left at 60); null_unrestored_*=0; --perturb memo -> 0",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "switch_supply (stale-plan exit, via coordinator._apply_action)",
+          "exits": "stale plan",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates  RESULT baseline_switch_off=5 (fail)",
+          "beyond_finding": false,
+          "finding": "D16-s1-04"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_arbitrate (MODE_OFF branch) / _write",
+          "exits": "off (Tuya, Modbus, disinfecting)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_off__select.pump_mode=1, unrestored_off_disinfecting__number.dhw_set=1, unrestored_off_modbus__number.dhw_set=1",
+          "beyond_finding": false,
+          "finding": "D16-s3-01"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "switch_supply",
+          "exits": "off, unload, remove, duty-mode change",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<off|unload|remove|duty_change>__switch.hp=1",
+          "beyond_finding": false,
+          "finding": "D16-s3-02"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+          "exits": "off, unload, remove, duty-mode change",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__number.freq=1",
+          "beyond_finding": false,
+          "finding": "D16-s3-02"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_valve_target",
+          "exits": "off, unload, remove, duty-mode change",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__number.valve=1",
+          "beyond_finding": false,
+          "finding": "D16-s3-02"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_set_pump",
+          "exits": "off, unload, remove, duty-mode change",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__switch.vvc=1",
+          "beyond_finding": false,
+          "finding": "D16-s3-02"
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/off_restore.py",
+          "symbol": "async_restore (failed restore, no retry while Off)",
+          "exits": "failed restore",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m5_holds.py  writes_again_off_restore_failed_while_off=0 and writes_again_off_restore_neutral_failed_while_off=0 (fail; heat-curve offset left at 3 K too)",
+          "beyond_finding": false,
+          "finding": "D16-s3-04"
+        }
+      ],
+      "controls": {
+        "positive": "re-finds every judged cell: D16-s1-04 (stale_plan switch.hp), D16-s3-01 (off select.pump_mode, off_disinfecting number.dhw_set), D16-s3-02 (switch.hp, number.freq, number.valve, switch.vvc on off/unload/remove), D16-s3-04 (failed_restore_while_off space set-point)",
+        "null": "--null (the harnesses' null arms: a plan whose commands equal each baseline): held_cells=0 seams=0",
+        "perturbation": "--perturb all (m6's in-memory fix of the arbiter, the consumers and the hold order): seams 24 -> 9; m6 --perturb memo alone moves unrestored_unload_disinfecting__number.dhw_set 1 -> 0"
+      },
+      "dispositions": [
+        {
+          "seam": "heat_curve.publish_ecl110_topics / heat_curve.write_persistent x duty-mode change (mqtt ecl110 topics, number.offset)",
+          "disposition": "not applicable",
+          "reason": "the unload inside the change restores them (unload arm: 0); the harness's reloaded observe-mode coordinator, given the old plan, writes them again. That is a question of what observe mode may write, not a hold left without a release owner; left as a lead for D16, not counted"
+        },
+        {
+          "seam": "heat curve, heat-curve MQTT, space set-point x off / unload / remove",
+          "disposition": "guarded",
+          "reason": "off_restore consumers registered at import (heat_curve, heat_curve_mqtt, pump_arbiter_space); m6 arms 0 for these entities"
+        },
+        {
+          "seam": "disinfection switch (switch.dis) x every exit",
+          "disposition": "guarded",
+          "reason": "DisinfectionSwitch.release / release_blind on every _drive_switch pass and on unload; m6 arms 0"
+        },
+        {
+          "seam": "arbiter slots (mode, tank, water set-point) x unload / remove outside disinfection",
+          "disposition": "guarded",
+          "reason": "pump_arbiter.release writes the baseline row on unload; m6 unload/remove arms 0 for the arbiter slots"
+        },
+        {
+          "seam": "other actuators x stale plan",
+          "disposition": "guarded",
+          "reason": "cells.py: clause_stale=0, clause_freq/valve/circ/mqtt=0 rows; only the supply switch holds (judged)"
+        }
+      ],
+      "ledger_status": "absent: N-unreleased-hold is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+      "baseline": "origin/handoff/audit-r11-register"
+    }
+  }
+}
