@@ -81,7 +81,7 @@ Per-script columns: `state/m5box-matrix-table.out`.
 
 ## Findings
 
-### D3-s1-52 (low, hygiene): card_drift.mjs inherits plan_view's closure though its verdict is a two-card diff over one payload: no cell edit can move it
+### D3-s1-52 (low, hygiene): card_drift.mjs inherits plan_view.py closure, yet compares two cards over one payload: no cell edit can move it
 
 tests/closure.py's _widen unions tests/plan_view.py's closure into tests/card_drift.mjs's, so 11 of the 12 D3-s1 cell files schedule card_drift on every one-file diff (closure.select), yet card_drift renders the working tree's card and the ref's card against ONE shared plan payload, so a production edit that changes that payload (sha256 differs) leaves 0 of its 45 states moved, while a one-token card edit moves 44.
 
