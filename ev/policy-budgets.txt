@@ -1,0 +1,23 @@
+== ae0ed64af898d8923ac35afe6e9c031ac1e6b111 (ae0ed64af898d8923ac35afe6e9c031ac1e6b111)
+dev/audit/README.md                              309  321     5934  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      594   594 
+corpus:        ~71371 tokens, cap 71212 +band 500 = 71712
+TOTAL: 0 error(s) across 57 policy file(s)
+== 8e0363b8902905a78733e8f0fe7a2b27fd8c3211 (8e0363b8902905a78733e8f0fe7a2b27fd8c3211)
+dev/audit/README.md                              315  321     6072  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      589   594 
+corpus:        ~71504 tokens, cap 71212 +band 500 = 71712
+  ERROR   [budgets] tools/audit/README.md: about 6072 tokens across its lines exceeds its cap of 6059 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 57 policy file(s)
+== origin/main (1723f9fdc9d8a6e6987190d2887686297a621dd4)
+dev/audit/README.md                              309  321     5915  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      594   594 
+corpus:        ~71273 tokens, cap 71212 +band 500 = 71712
+TOTAL: 0 error(s) across 57 policy file(s)
+== 35221607675c98c69e4622433a7dcb9d2d429939 (35221607675c98c69e4622433a7dcb9d2d429939)
+dev/audit/README.md                              315  321     6052  6059   key tools/audit/README.md
+dev/governance/roles/proposal-triage.md           42   42      589   594 
+corpus:        ~71405 tokens, cap 71212 +band 500 = 71712
+TOTAL: 0 error(s) across 57 policy file(s)
+
+[exited with code 0]
