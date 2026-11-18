@@ -4,3 +4,4 @@
 1795004869 DONE blocked: frugal inline-read guard refuses reads; brief forbids subagents and FRUGAL_ALLOW_INLINE; Question in BLOCKED.md on handoff-wip/r11-seam-inputs-guards
 1795006394 HB alive
 1795006400 INBOX acked through 1
+1795006402 CKPT setup done, worktree cut from origin/main snapshot 9ba18361ad53
