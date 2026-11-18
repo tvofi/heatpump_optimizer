@@ -421,7 +421,7 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "commit": "2c84a85c8cb3fdbcdffa581c337ed168ad848d5c",
     "last_step": null,
