@@ -4056,7 +4056,7 @@
     "From r10-draw-map-evidence-b, body item 89be1787: ci-autofix.md: unclear: `ci_predict.py --base <stack head>` reports the stack's own merges as `merge-subject-pr` refusals, because the guard walks to the merge base of HEAD with the ref it is told is main's. Carry: R10-DRAW-MAP-EVIDENCE (items 89be1787)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-predict",
     "commit": null,
     "last_step": null,
