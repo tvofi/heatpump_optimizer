@@ -1,0 +1,9 @@
+2026-11-18T19:14:29Z COMPLETE queued=11 from=c2
+2026-11-18T19:32:04Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M26 L1549 by=tests/harness_headers.py,tests/features.py ran=12 wall=1054.6s
+2026-11-18T19:37:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M25 L337 by=- ran=12 wall=1362.7s
+2026-11-18T19:37:15Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M27 L2246 by=tests/features.py ran=12 wall=1365.5s
+2026-11-18T19:37:15Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:R10-C2 M32 L783 by=tests/features.py ran=12 wall=1366.0s
+2026-11-18T19:53:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=12 wall=1274.5s
+2026-11-18T19:59:29Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:R10-C2 M28 L1593 by=tests/features.py ran=12 wall=1333.8s
+2026-11-18T19:59:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=12 wall=1337.9s
+2026-11-18T20:02:53Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:R10-C2 M29 L64 by=tests/features.py ran=17 wall=1537.9s
