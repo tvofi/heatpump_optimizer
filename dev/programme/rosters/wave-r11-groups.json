@@ -2600,7 +2600,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "branch": "handoff/r11-pre-security-privacy",
+    "branch": "fix/r11-pre-security-privacy-p2",
     "commit": "99a4010e479f04af984c30a4b5cfc2f98d3736ad",
     "last_step": null,
     "next_step": "designer revise running (23:11); owner 2026-11-15 ~23:25Z: the dimension is named DX0, outside the D0..Dn sequence, not D18; the design and every id pattern carry DX0 explicitly",
