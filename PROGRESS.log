@@ -1,3 +1,4 @@
 1795004760 INIT r11-seam-ratchets
 1795004774 HB alive
 1795004911 CKPT BLOCKED.md pushed to handoff-wip/r11-seam-ratchets snapshot 6d300f257287
+1795004916 DONE blocked: frugal inline-read hook vs no-subagent brief; BLOCKED.md on handoff-wip/r11-seam-ratchets
