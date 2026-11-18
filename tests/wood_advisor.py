@@ -225,7 +225,7 @@ R.check(
     repr(_lighting(_lead90)),
 )
 _lead_views = {}
-for _lead in ("0", "240", "1e12", "-5", "nan"):
+for _lead in ("0", "240", "1440", "1440.5", "1e12", "-5", "nan"):
     try:
         _lead_views[_lead] = _lighting(
             _wood_view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": float(_lead)})
@@ -233,14 +233,16 @@ for _lead in ("0", "240", "1e12", "-5", "nan"):
     except (OverflowError, ValueError) as _exc:
         _lead_views[_lead] = repr(_exc)
 R.check(
-    "a lead inside [0, a day] is its own: 0 lights at the window's start, 240 four hours before",
-    _lead_views["0"] == (_at(6), _at(6)) and _lead_views["240"] == (_at(2), _at(6)),
+    "a lead inside [0, a day] is its own: 0 lights at the window's start, 240 four hours "
+    "before, and a day's lead lights now",
+    _lead_views["0"] == (_at(6), _at(6)) and _lead_views["240"] == (_at(2), _at(6))
+    and _lead_views["1440"] == (_at(0), _at(6)),
     repr(_lead_views),
 )
 R.check(
     "a stored lead outside [0, a day] is the default 60 min: 1e12 does not overflow "
     "the window's datetime, and a negative or NaN lead is not one",
-    all(_lead_views[_bad] == (_at(5), _at(6)) for _bad in ("1e12", "-5", "nan")),
+    all(_lead_views[_bad] == (_at(5), _at(6)) for _bad in ("1440.5", "1e12", "-5", "nan")),
     repr(_lead_views),
 )
 _now_open = _wood_view({0, 1})
