@@ -8,27 +8,40 @@
 1794988527 SEAT D3-s1 running
 1794988611 HB D3-s1 started (claude-code-toolkit:coder at opus; general-purpose refused by the frugal guard)
 1794989051 HB alive
-1794989658 HB alive
-1794989674 HB cannot: CMD 1 is outside the box command set (STOP/RESUME/SKIP/NOTE) and changes step 3 of PROMPT.md, so it is recorded as pending owner confirmation. Status: D3-s1 was already started at 08:0x as an Agent subagent of type claude-code-toolkit:coder with model opus (not a generic type, so the guard did not refuse it; FRUGAL_ALLOW_EXPENSIVE was never set). A running seat is never killed, so it runs to its report; if it fails or is refused, this session takes the seat inline as CMD 1 asks.
-1794989942 CKPT D3-s1 143 file(s)
-1794990251 HB alive
-1794990857 HB alive
-1794991463 HB alive
-1794992055 HB alive
-1794992661 HB alive
-1794992847 CKPT D3-s1 145 file(s)
-1794993266 HB alive
-1794993859 HB alive
-1794994465 HB alive
-1794995070 HB alive
-1794995662 HB alive
-1794996269 HB alive
-1794996875 HB alive
-1794997072 CKPT D3-s1 163 file(s)
-1794997466 HB alive
-1794998071 HB alive
-1794998676 HB alive
-1794999269 HB alive
-1794999875 HB alive
-1795000481 HB alive
-1795001073 HB alive
+1794989476 RESUMED from e47cef28ab74
+1794989476 INIT box D3-m5
+1794989508 HB alive
+1794989573 HB re-fire: container fresh, PREPARE re-run; drift warm skipped: HEAD is the baseline
+1794989578 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1794989583 HB prepared
+1794989603 SEAT D3-s1 running
+1794989607 HB D3-s1 started inline in this session per inbox 1 (orchestrator: no Agent spawn)
+1794989616 CKPT D3-s1 125 file(s)
+1794990114 HB alive
+1794990115 HB D3-s1 R1: machine nproc 4, Xeon 2.30GHz, 16GB, 28G free, load1 0.05; traced baselines re-taking; M5 harnesses m5_gate_table.py, m5_trace_extra.py, m5_matrix.py written; matrix sample 38 mutants
+1794990120 CKPT D3-s1 131 file(s)
+1794990719 HB alive
+1794991313 HB alive
+1794991342 CKPT D3-s1 136 file(s)
+1794991346 HB D3-s1 R1 done: 24 traced baselines green on this box, trace-capture procs 2/2, null LIVES (18 drivers), posctl 2/2 KILLED; starting M5(a) quiet gate table
+1794991919 HB alive
+1794992524 HB alive
+1794993130 HB alive
+1794993735 HB alive
+1794993783 CKPT D3-s1 141 file(s)
+1794993786 HB D3-s1 M5(a) gate table done: 27 scripts green, alone on box; perturbation plan_view +5s sleep moved wall 0.9->5.8; running M5(c) solves
+1794994340 HB alive
+1794994946 HB alive
+1794995373 CKPT D3-s1 149 file(s)
+1794995378 HB D3-s1 M5(c)(d)(e) done; D3-s1-01 reproduced (681/0); starting M5(b) matrix: 38 mutants x every driver, 4 workers
+1794995550 HB alive
+1794996155 HB alive
+1794996761 HB alive
+1794997367 HB alive
+1794997973 HB alive
+1794998578 HB alive
+1794999185 HB alive
+1794999790 HB alive
+1795000396 HB alive
+1795001002 HB alive
+1795001607 HB alive
