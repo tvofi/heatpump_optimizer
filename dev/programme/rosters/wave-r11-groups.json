@@ -5903,6 +5903,69 @@
      "avail"
     ]
    }
+  },
+  {
+   "group": "R11-SEAM-card",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D4-s1-01",
+    "D4-s1-03",
+    "D4-s3-01",
+    "D4-s3-02",
+    "D4-s3-03",
+    "D4-s3-04",
+    "D4-s3-05",
+    "D6-s4-01",
+    "D9-s2-01"
+   ],
+   "merged": {},
+   "classes": [
+    "I4",
+    "N-unbounded-retention",
+    "N-untranslated-splice",
+    "P9"
+   ],
+   "seam": "card",
+   "hot_files": [
+    "www/heatpump-optimizer-card.js"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).",
+   "effort": "high",
+   "model": {
+    "designer": "opus",
+    "design_reviewer": "opus",
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "brief": "Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork may only fall), translated failure lines, bounded history rows. 9 findings (0 merged in), size L; class tags I4, N-unbounded-retention, N-untranslated-splice, P9. Size L with no approved design: a design is owed (designer.md) before the fixer (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-card",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "designer (designer.md) first; design review; fixer only on approve",
+    "note": null
+   }
   }
  ]
 }
