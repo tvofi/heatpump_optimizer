@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_building_preset_warning GUARD_OFF fdd718d3",
+  "killed_by": "tests/entities.py",
+  "old": "    if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
