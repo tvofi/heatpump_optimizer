@@ -12,3 +12,4 @@
 1795007124 CKPT mutation proof 5/5 killed; waiting D0 harnesses + golden drift snapshot 0229cec5a87a
 1795007569 HB alive
 1795008169 HB alive
+1795008727 CKPT commit-stage off plan: offstart 0/60; golden clean with 2 claims; pushed wip snapshot 8726645ead10
