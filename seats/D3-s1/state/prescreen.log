@@ -472,3 +472,4 @@
 2026-11-18T17:34:19Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling CMP_BOUND 343ca3c4 L5663 by=- ran=13 wall=1348.8s
 2026-11-18T17:48:29Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 64f3736a#2 L4748 by=tests/features.py ran=14 wall=1321.2s
 2026-11-18T17:49:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:mold_safe_room_floor CLAMP_DROP b6999962 L2851 by=- ran=12 wall=1318.9s
+2026-11-18T17:54:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CMP_BOUND 253672a0 L4271 by=- ran=17 wall=1506.2s
