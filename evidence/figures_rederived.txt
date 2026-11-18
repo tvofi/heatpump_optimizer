@@ -1,41 +1,7 @@
-## head 3fe03e1480a1149d529b46373a7ba275ac47681b: select --change M:tools/ci/gate.py
-1
-MODE: SCOPED -- 36 step(s) run
-  run policy-lint-mutants
-  run fragment-check
-  run toolchain
-  run loop-ledger
-  run field-coverage
-  run push-script-decisions
-  run app-push
-  run dependency-graph-census
-  run verdict-bus
-  run codeql-leg-scope
-  run temp-or-machine-path
-  run push-names-the-host
-  run orchestrator-tick
-  run selftest-wiring
-  run critical-path-and-flow
-  run self-tests-outside-seat
-  run proof-watcher
-  run record-row-generator
-  run review-packet
-  run outside-contract
-  run tick-loop
-  run beat-job-rows
-  run throwaway-git-helper
-  run merge-train
-  run gate-predicate
-  r
-## unchanged-checks figure, against merge base 38bf516bdd and the body's 54cb721164
-0
-0
-## d-p2-head
-0
-## token-ledger refs / nested_memory
-0
-0
-## loop_ledger --repo . tail
-gate_reds unread (no --runs directory)
-## VERSION/manifest/notes/claims/goldens in diff
-0
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+STRUCTURE RATCHET PASSED
+38bf516bdd:tools/ci/gate.py:303:MACHINERY_JOBS = ("tests / arch-instrument", "tests / briefs", "tests / closures", "governance / policy-docs",
+38bf516bdd:tools/ci/gate.py:308:def status(jobs: dict, cls: str) -> tuple[str, str]:
+loop-ledger
+tools/audit/seat/instruments/loop_ledger.py.md
+tools/audit/seat/loop_ledger.py
