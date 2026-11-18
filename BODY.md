@@ -2,13 +2,16 @@ R11-SEAM-ratchets (ADR-009; D7-s1-02, D7-s1-03, D14-s2-03): two `tests/structure
 
 - `in_function_copies` (D7-s1-02): a statement window written at two or more non-overlapping places of ONE function and in no other function. The row counts places past the first, the rule `duplication_copies` uses for members ("a third copy costs one more"). `duplicate_clones` joins functions, so such a copy moved no row. Both rows read one window enumerator, `function_windows`, which was cut out of `duplicate_clones`' body. `duplicate_clones`' window and output are unchanged (Null control). ADR-009 part 3's list of functions the score reads is therefore untouched in behaviour.
 - `unused_package_imports` (D7-s1-03): a `from .<module> import N [as A]` binding that the importing module never loads, that no module re-imports from it, and that no string in it names. The re-export arm reads `import_bindings`' own symbol bindings. Under ADR-009 part 1 this PR deletes nothing; `R11-SEAM-dead-state`'s deletions re-record this row downward.
-- N-log-flood barrier (D14-s2-03): `_r10_unlatched_logs` counts every `_LOGGER` call at WARNING or above. Before, it counted only `.warning` and `.error`; it now also counts `.warn` (the WARNING alias), `.exception`, `.critical`, `.fatal` (the CRITICAL alias), and `.log` at an int level of at least 30 or at any level other than `logging.DEBUG`, `INFO` or `NOTSET`. The level test is nested inside the function because `logflood_shape.py` execs that function alone.
-- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses every way a package line can log through anything else. It refuses:
-  - a name bound to `_LOGGER`, to a `getLogger` or `getChild` result, or to `import logging as x`;
-  - any other `getLogger` or `getChild` call, bound or inline, with an Attribute or a bare-Name callee (`from logging import getLogger`);
-  - an import of `_LOGGER` from anywhere, and an import of `logging`'s level functions, `getLogger`, `root`, `Logger` or `LoggerAdapter`;
-  - a root-logger call or reference: `logging.<level>`, `logging.root`, `logging.Logger`, `logging.LoggerAdapter`;
-  - any use of `_LOGGER` other than `_LOGGER.<method>(...)`: passed as an argument, returned, put in a container, or a bound method taken. That is the only way a logger reaches a parameter, because every other source of one is refused above.
+- N-log-flood barrier (D14-s2-03): `_r10_unlatched_logs` counts every `_LOGGER` call at WARNING or above. Before, it counted only `.warning` and `.error`; it now also counts `.warn` (the WARNING alias), `.exception`, `.critical`, `.fatal` (the CRITICAL alias), and `.log` at an int level of at least 30 or at any level other than `logging.DEBUG`, `INFO` or `NOTSET`. The level is the first positional or the `level=` keyword; a level behind `*args` or `**kwargs` is unknown and counted. The level test is nested inside the function because `logflood_shape.py` execs that function alone.
+- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses every way a package line can log through anything else. It reads both logging surfaces by allow-list, so a spelling nobody listed is refused, not missed. It refuses:
+  - a name bound to `_LOGGER` or to a `getLogger`/`getChild` result, and `import logging as x`;
+  - any other `getLogger` or `getChild` call, bound or inline, with an Attribute or a bare-Name callee;
+  - an import of `_LOGGER` or of a module named `logging` from anywhere, and an import from `logging` of anything but its level numbers (`*` included);
+  - the name `logging` used other than as `logging.<level number>` or a `logging.getLogger(...)` call: `logging.warning`, `logging.root`, `logging.Logger`, `logging.makeLogRecord`, an uncalled `logging.getLogger`, `lg = logging`, `(lg := logging)`, `getattr(logging, ...)`;
+  - the text `'logging'` (`__import__`, `importlib.import_module`, `sys.modules`), and an attribute named `logging` or `logger` (Home Assistant's coordinator exposes the handed-over `_LOGGER` as `self.logger`);
+  - `_LOGGER.<method>(...)` for any method but the level calls and `isEnabledFor` (`_log`, `handle`, `makeRecord`, `getChild`);
+  - any other use of `_LOGGER`: passed as an argument, returned, put in a container, or a bound method taken. That is the only way a logger reaches a parameter, because every other source of one is refused above.
+- Not read, stated in the docstring: a module name computed at run time (`import_module('log' + 'ging')`). No syntactic rule names it; the string-constant arm is the bound.
 - One live escape is listed with its reason and exact count in `_R11_LOGGER_HANDOVERS`: `coordinator.py` hands `_LOGGER` to Home Assistant's `DataUpdateCoordinator.__init__`. That class logs a failed refresh at ERROR only on the success-to-failure transition (its `last_update_success` latch), so it cannot flood. A stale or extra entry fails the check, as the R10 lists do. The one live site the barrier was blind to, `sysid.py` `_finish`, joins the once-per-event group: the raising fit sets the phase done and publishes a refusal in the same call.
 
 Design choices a later seat should not read as bugs:
@@ -24,16 +27,15 @@ Alternatives not taken:
 
 ## Review block repaired
 
-Two commits answer the review and the red at fc2daf48: f027a1b2 (the barrier and the comment) and c8950908 (a census for the new `unused_package_imports` row in `tools/policy/field_coverage.mjs`; see Red checks).
-
-Review at fc2daf48 (round 1, class-open): the barrier did not read `_LOGGER.warn`, `_LOGGER.fatal`, a bare-callee `getLogger` binding, an inline `logging.getLogger(...).warning`, a root `logging.warning`, a from-import alias of `_LOGGER`, or a logger passed as a parameter.
-- Every shape is now closed and pinned by a planted control in the existing checks, as listed above. No shape is left open.
-- The test-side note is also fixed. The `# One window, three spellings` comment returns to `DUP_SELF_CHECK_BODY`, which it describes. `IN_FUNCTION_SELF_CHECK_SOURCES` gets a comment of its own. `UNUSED_IMPORT_SELF_CHECK_SOURCES`' comment now says five names, the count it lists.
-- Probe: the reviewer's shapes, plus a keyword-argument handover, were planted in the live `coordinator.py`. Each is seen by the barrier or the binding check at head (warn, fatal, from_logging_getLogger, inline_getLogger, root_warning, from_import_alias, param, kwparam = 1). Controls: `_LOGGER.warning` is seen (1) and `_LOGGER.info` is not (0).
+Round 2 at 5fe13702 (class-open): `_LOGGER.log(level=...)`, the `logging` module rebound by assignment or walrus, `_LOGGER._log` and `_LOGGER.handle`, and reflective lookups (`getattr(logging, ...)`, `__import__('logging')`, `import_module('logging')`) were seen by neither check. d983acca closes the class rather than the four shapes: the `_LOGGER` method set, the `logging` attribute set and the from-`logging` import set each became an allow-list, and the module object reaching any other expression is refused.
+- Each reviewed shape is planted in the existing checks (`levels.py` `at_kw_error`, `at_star`, `at_kwargs`; `rebind.py`, `record.py`, `reflect.py`), beside new shapes of the same class (`surface.py`: `from logging import makeLogRecord`, `from homeassistant import logging as hl`, `logging.Logger.error(self, ...)`, `self.logger.error`; `star.py`; `getref.py`: `make = logging.getLogger`). Null controls: `_LOGGER.log(level=logging.DEBUG, ...)` is no site; `from logging import DEBUG`, `_LOGGER.log(level=DEBUG, msg='see logging')` and the canonical binding are not refused.
+- Enumeration (fixer.md step 8): `_r11_unread` drives every callable of `logging.Logger`, called at ERROR on `_LOGGER`, and every name in `dir(logging)` through both checks. The reach check asserts what neither reads is exactly `_LOGGER.debug`, `.info`, `.isEnabledFor` and the eight level numbers, so a method or helper a Python release adds is refused. Corpus size: `python3 -c "import logging; print(sum(callable(getattr(logging.Logger, a)) for a in dir(logging.Logger)) + len(dir(logging)))"`.
+- The reach check also asserts the package is flat (`rglob('*.py')` reads as many modules as the glob), the glob's precondition: a `sub/x.py` added to a copy of the package fails it, the unperturbed copy passes (Mutation proof).
+- The reviewer's probe `ev/probe_shapes.py` (verdict/3729 8ebf85a6), run at d983acca: every row it printed unread at 5fe13702 is now seen: `log_kw_level barrier=1`, `private_log ['_LOGGER -> _LOGGER._log']`, `handle_record ['_LOGGER -> _LOGGER.handle', 'logging.makeLogRecord']`, `module_assign_alias ['logging -> Assign']`, `walrus_alias ['logging -> NamedExpr']`, `getattr_root ['logging -> getattr']`, `importlib` and `dunder_import ["'logging'"]`. Its controls are unchanged (`ctl_info barrier=0 alias=[]`, `ctl_warning barrier=1`).
 
 ## Head
 
-c8950908d2858a6d5791e97c7aad30cc87e20193, measured on base `origin/main` ae0ed64af898d8923ac35afe6e9c031ac1e6b111 at 2026-11-18T15:40:00Z.
+d983accaba170804bf48e101efc1de8b116a02e5, measured on base `origin/main` ae0ed64af898d8923ac35afe6e9c031ac1e6b111 at 2026-11-18T15:40:00Z.
 
 ## Mutation proof
 
@@ -61,6 +63,11 @@ The review repair at f027a1b2 adds six more mutants. Each was run by exec'ing `t
 - R5 the `_LOGGER` escape rule disabled: `FAIL R11 N-log-flood barrier reach`.
 - R6 the `DataUpdateCoordinator` handover entry deleted: `FAIL R11 N-log-flood barrier reach`.
 
+The repair at d983acca adds ten mutants, run by `ev/mutants.py` (in scratch): it execs `tests/entities.py`'s barrier block verbatim under each edit and prints the failing N-log-flood checks. Unmutated: none fail.
+- K1 the `level=` keyword ignored, K2 an unknown level read as quiet: `R10 N-log-flood barrier`.
+- K3 any `_LOGGER` method admitted, K4 the `logging` attribute allow-list back to a level denylist, K5 the name `logging` as a value admitted, K6 the text `'logging'` admitted, K7 `.logger`/`.logging` admitted, K8 the from-`logging` allow-list back to a denylist, K9 an uncalled `getLogger` admitted: `R11 N-log-flood barrier reach`.
+- K10 the flat-package precondition dropped: no check fails on the live package, which is flat; the precondition's own control is a package copy with `sub/x.py`, which fails `R11 N-log-flood barrier reach` while the unperturbed copy fails nothing.
+
 `prepr.sh`'s `MUTANT_CMD` draws only added `.py` lines outside `tests/` and `dev/`, and this diff has none.
 
 ## Null control
@@ -76,7 +83,7 @@ The review repair at f027a1b2 adds six more mutants. Each was run by exec'ing `t
 
 ## Figures
 
-Harnesses are run from `git archive 819aa2e354b4e5baaf824b8568fd72bea8168a75 dev/audit/rounds/round11` exported to `$EXPORT`, at the base worktree (bc658f9d) and at head (d99bc4bc; the logflood figures re-run at f027a1b2), with `PYTHONPATH=tests/hastub`:
+Harnesses are run from `git archive 819aa2e354b4e5baaf824b8568fd72bea8168a75 dev/audit/rounds/round11` exported to `$EXPORT`, at the base worktree (bc658f9d) and at head (d99bc4bc; the logflood figures re-run at f027a1b2 and again at d983acca, unchanged: barrier_sites_baseline=72, counted_alias=0, live_blind_sites=1), with `PYTHONPATH=tests/hastub`:
 - `$EXPORT/dev/audit/rounds/round11/D14/s2/logflood_shape.py` (sha1 ef9a2072891916165b2096e6613d0d4637ad6dfd). Key: the barrier function's own Counter total over each planted shape.
   - Base: counted_warning=1, counted_exception=0, counted_critical=0, counted_log_level=0, counted_alias=0, barrier_sites_baseline=71.
   - Head: counted_warning=1, counted_exception=1, counted_critical=1, counted_log_level=1, counted_alias=0, barrier_sites_baseline=72. The +1 is `sysid.py:1850`, now dispositioned on the once-per-event list.
@@ -91,9 +98,9 @@ Harnesses are run from `git archive 819aa2e354b4e5baaf824b8568fd72bea8168a75 dev
   - `unused_package_imports` matches the harness's 14.
 - Budgets: `python3 tests/structure.py --record` at head adds both keys at their measured value. `regression_rows` reports no loosening, and every other key is unchanged (`git diff origin/main...HEAD -- tests/structure_budgets.json`).
 - Architecture score: `python3 tools/audit/archscore/score.py --diff bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f` printed `Architecture score: dS +0.0000 NULL`. The repair at f027a1b2 edits only `tests/`.
-- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: SCOPED`. Every script `scope.run` names passed at d99bc4bc: `tests/arch_score.py`, `tests/arch_score_head.py`, `tests/doc_claims.py`, `tests/entities.py`, `tests/features.py`, `tests/harness_headers.py`, `tests/stress.py`, `tests/structure.py`. The repair at f027a1b2 edits only `tests/entities.py` and `tests/structure.py`, and both were re-run there: `ALL 2733 ENTITY CHECKS PASSED` and `STRUCTURE RATCHET PASSED`.
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: SCOPED`. Every script `scope.run` names passed at d99bc4bc: `tests/arch_score.py`, `tests/arch_score_head.py`, `tests/doc_claims.py`, `tests/entities.py`, `tests/features.py`, `tests/harness_headers.py`, `tests/stress.py`, `tests/structure.py`. The repair at f027a1b2 edits only `tests/entities.py` and `tests/structure.py`, and both were re-run there: `ALL 2733 ENTITY CHECKS PASSED` and `STRUCTURE RATCHET PASSED`. The repair at d983acca edits only `tests/entities.py`; at d983acca `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2733 ENTITY CHECKS PASSED` (both N-log-flood checks `ok`) and `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
 
-<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=c8950908d2858a6d5791e97c7aad30cc87e20193 -->
+<!-- figure-block: scope-line mb=ae0ed64af898d8923ac35afe6e9c031ac1e6b111 head=d983accaba170804bf48e101efc1de8b116a02e5 -->
 ~~~text
 MODE: SCOPED -- 8 script(s) run, 25 scoped out.
 ~~~
@@ -118,4 +125,6 @@ none
 
 ## Friction
 
-dispatch-brief-inline: contradiction: the brief's "Do your work inline, with no subagents" met the frugal PreToolUse hook's per-prompt inline-read cap, and the first fire stopped (BLOCKED.md at b430bc7e); the orchestrator's inbox ruling (mandate 6893738184) corrected the brief for this seat. Carry: dismissed: corrected by that ruling before this run, pending owner confirmation as the ruling states
+dispatch-brief-inline: contradiction: on this fire the hook refused a read of the `tests/entities.py` run log at its sixth inline op; one `frugal:scout` read that log, the route the hook names. Carry: dismissed: the orchestrator's ruling below covers it, pending owner confirmation
+
+dispatch-brief-inline: contradiction: (first fire) the brief's "Do your work inline, with no subagents" met the frugal PreToolUse hook's per-prompt inline-read cap, and the first fire stopped (BLOCKED.md at b430bc7e); the orchestrator's inbox ruling (mandate 6893738184) corrected the brief for this seat. Carry: dismissed: corrected by that ruling before this run, pending owner confirmation as the ruling states
