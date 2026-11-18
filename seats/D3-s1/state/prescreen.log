@@ -452,3 +452,5 @@
 2026-11-18T15:39:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CMP_BOUND bf407db9 L683 by=- ran=12 wall=1360.8s
 2026-11-18T15:54:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views GUARD_OFF 29e1e3b4 L4945 by=- ran=14 wall=1358.7s
 2026-11-18T15:56:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction GUARD_OFF 356d41c6 L2998 by=- ran=12 wall=1279.1s
+2026-11-18T16:02:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains GUARD_OFF 9f0fd699 L9440 by=- ran=13 wall=1354.1s
+2026-11-18T16:02:12Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND f030484a L2038 by=- ran=12 wall=1362.3s
