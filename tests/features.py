@@ -77125,13 +77125,13 @@ def _ss_hold_horizon(hours):
     return round(first, 4), round(second, 4), [round(x, 4) for x in seen], sd.pair
 
 
-_ss_hh = [_ss_hold_horizon(h) for h in ((24, 168), (168 + 1 / 3600, 169), (-1, 2))]
+_ss_hh = [_ss_hold_horizon(h) for h in ((0, 24, 168), (168 + 1 / 3600, 169, 170), (-1, 2, 3))]
 R.check(
     "a pair holding for its second row voids once COP_HOLD_HORIZON_S has "
     "passed from its first (the bound inclusive) or its age is unknowable: "
     "the scale returns to the base and stays there with no row read",
-    _ss_hh[0][2] == [_ss_hh[0][1]] * 2 and _ss_hh[0][3] is not None and _ss_hh[0][0] * _ss_hh[0][1] > 0
-    and [x[2] for x in _ss_hh[1:]] == [[1.0, 1.0]] * 2 and [x[3] for x in _ss_hh[1:]] == [None] * 2
+    _ss_hh[0][2] == [_ss_hh[0][1]] * 3 and _ss_hh[0][3] is not None and _ss_hh[0][0] * _ss_hh[0][1] > 0
+    and [x[2] for x in _ss_hh[1:]] == [[1.0, 1.0, 1.0]] * 2 and [x[3] for x in _ss_hh[1:]] == [None] * 2
     and _ss_hh[0][1] != _ss_hh[0][0] and 1.0 not in _ss_hh[0][:2],
     f"{_ss_hh}",
 )
@@ -77301,6 +77301,68 @@ R.check(
     "does_not_follow over 672 cycles and folds nothing",
     {x[2] for x in _ss_rep} == {"pending"} and _ss_rep[-1][1] == 0,
     f"{sorted({x[2] for x in _ss_rep})}; {_ss_rep[-1]}; scales {sorted({x[0] for x in _ss_rep})}",
+)
+# A pair whose first slot never reads a row is bounded too: from when it was
+# handed out, not from each later step.
+def _ss_first_hold(hours):
+    sd = _ss_SD()
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))
+    first = sd.step(1.0, True, _CF_T0)
+    return round(first, 4), [round(sd.step(1.0, True, _CF_T0 + _cf_td(hours=h)), 4) for h in hours]
+
+
+_ss_fh = _ss_first_hold((1, 100, 168, 168 + 1 / 3600, 169))
+R.check(
+    "a first slot no row is read under: the step after it hands out the "
+    "second ahead (the miss is not known yet), then the first is held from "
+    "when it was handed out until COP_HOLD_HORIZON_S has passed (inclusive), "
+    "then the scale returns to the base and stays there",
+    _ss_fh[1][1:] == [_ss_fh[0]] * 2 + [1.0, 1.0]
+    and {_ss_fh[0], _ss_fh[1][0]} == {0.9325, 1.0724},
+    f"{_ss_fh}",
+)
+
+
+# clear() ends the pair in flight, and a void forgets a row read before it:
+# after either, the scale waits at the base until a row is read again.
+def _ss_cleared():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.clear()
+    return sd.pair, sd.first, sd.reading, sd.ahead, sd.step(1.0, True, _CF_T0 + _cf_td(hours=2))
+
+
+def _ss_after_void():
+    sd = _ss_SD()
+    _ss_levels_read(sd, 3)
+    sd.take(_cf_row(1.5, 1.5, at=_CF_T0))  # a row read, then a frozen cycle
+    return [sd.step(1.0, read, _CF_T0 + _cf_td(hours=h)) for h, read in ((2, False), (3, True), (4, True))]
+
+
+R.check(
+    "clear() leaves no pair, row or slot and the next step is at the base; "
+    "a frozen cycle voids the pair and drops the row read before it, so "
+    "with no row read since, the steps after it stay at the base",
+    _ss_cleared() == (None, None, None, None, 1.0) and _ss_after_void() == [1.0, 1.0, 1.0],
+    f"{_ss_cleared()} / {_ss_after_void()}",
+)
+
+
+# The probe consumes the row-read flag on every cycle, also where it hands
+# out no dither level (parked): a row read on a parked cycle does not start
+# a pair days later at the re-arm.
+def _ss_stale_admit():
+    probe = _df_acc.ScaleProbe(base=1.0, parked_at=_CF_T0, level=1.0)
+    probe.dither.admitted = True
+    probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(hours=1))
+    return probe.owed_scale(lambda: 1.0, _CF_T0 + _cf_td(days=8)), probe.parked_at, probe.dither.pair
+
+
+R.check(
+    "a row read on a parked cycle is forgotten by the next cycle: at the "
+    "re-arm with no row read since, the scale stays at the base and no pair starts",
+    _ss_stale_admit() == (None, None, None),
+    f"{_ss_stale_admit()}",
 )
 # Carry 6 (BLOCKED.md departure B1, approved on inbox/r11-outside-self-setting-pump
 # line 2): under that plan the dither spans the window by its own step, the

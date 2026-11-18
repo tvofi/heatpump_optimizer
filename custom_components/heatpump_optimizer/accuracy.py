@@ -1042,7 +1042,6 @@ class ScaleDither:
         if self.reading is None or self.reading != self._want():
             return
         number, coin, second = self.reading
-        self.holding = False
         if not second:
             self.first = row
             return

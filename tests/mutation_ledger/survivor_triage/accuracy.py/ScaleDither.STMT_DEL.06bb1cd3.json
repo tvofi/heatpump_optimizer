@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither STMT_DEL 06bb1cd3",
+  "old": "    holding: bool = False",
+  "reason": "Equivalent (STMT_DEL of the `holding` field declaration). As the CONST_SWAP twin: `step` assigns `holding` in its `running != want` arm before the `running == want` arm can read it, on every path from construction or `_void`, and no caller passes `holding=`; without the field the attribute is created by that first assignment. Driven by mutant_run.py over the tests/features.py block from `COP learner duty floor keys` to `R.section(\"R10-HOTFIX-COP-UNMEASURED`: the mutant survived.",
+  "verdict": "equivalent"
+}
