@@ -1,0 +1,86 @@
+{
+ "class": "N-uncleared-issue",
+ "instances": 3,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/enum_uncleared_issue.py  (seams=10, restart_gated=3 at origin/handoff/audit-r11-register); controls: bash dev/audit/rounds/round11/D14/sweep/controls_uncleared_issue.sh",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_clear_worker_fallback",
+   "issue_id": "solve_worker_fallback",
+   "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py worker_fallback  (fails: 1 left)",
+   "beyond_finding": false,
+   "finding": "D1-s1-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization",
+   "issue_id": "solve_failures",
+   "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py solve_failures  (fails: clear gated on in-memory _solve_failures>=3, counter not restored)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._audit_grid_fee",
+   "issue_id": "grid_fee_magnitude, grid_fee_sign",
+   "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py grid_fee  (fails: the only audit path runs behind schedule.active, so an inactive fee layer never clears the persistent notices)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "LegionellaGuard._drive_switch",
+   "issue_id": "dhw_disinfection_switch_lost_<entity>",
+   "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep/probe_uncleared_issue.py switch_lost  (fails: 0 clear sites)",
+   "beyond_finding": true
+  }
+ ],
+ "controls": {
+  "positive": "re-finds solve_worker_fallback (D1-s1-01) as persistent,restart_gated",
+  "null": "clean fixture (raise + unconditional clear, non-persistent): seams=0",
+  "perturbation": "drop the price_currency clear (one line): seams 10 -> 11; ungate _clear_worker_fallback: restart_gated 3 -> 2"
+ },
+ "dispositions": [
+  {
+   "seam": "accuracy_drift",
+   "disposition": "guarded",
+   "reason": "cleared in _async_watch_learning_drift on a changed verdict with the ring not alarmed; the ring is persisted (_async_save_snapshots), so a fresh process can clear it"
+  },
+  {
+   "seam": "cop_degradation",
+   "disposition": "guarded",
+   "reason": "cleared in _observe_cop_health; the CUSUM state it gates on is persisted (load ~4594, save ~4729)"
+  },
+  {
+   "seam": "freq_watchdog",
+   "disposition": "guarded",
+   "reason": "enumerator flags it restart_gated (_freq_fallback initialised False) but the latch is restored from the store (coordinator.py:4623) and saved (4763): heuristic false positive; the notice tracks a latched fallback that is still in force"
+  },
+  {
+   "seam": "dhw_legionella_unreachable",
+   "disposition": "guarded",
+   "reason": "clear_unreachable_issue runs on every credited cycle (legionella.py async_track), with last_cycle persisted; also cleared by OffStepNotice"
+  },
+  {
+   "seam": "dhw_legionella_unverified",
+   "disposition": "guarded",
+   "reason": "clear_unverified_issue runs on the first credited cycle once a tank probe exists; while no probe is configured the reported condition still holds"
+  },
+  {
+   "seam": "ConfigNotices: floor_return_implausible, lower_floor_modelled, comfort_band_contradiction, valve_target_above_comfort",
+   "disposition": "guarded",
+   "reason": "ConfigNotices.report(None) clears every cycle, unconditionally (its _raised dict only suppresses a repeat create, so an empty dict after restart does not block the clear)"
+  },
+  {
+   "seam": "store_version_<where>",
+   "disposition": "not applicable",
+   "reason": "non-persistent: HA drops it at restart, and the condition is a load-time event that changes only across a restart"
+  },
+  {
+   "seam": "non-persistent issues (pump_mode_unreadable, price_feed_stale, pump_write_ignored, dhw_* in-memory-deduped notices, price_unit_*, price_currency, setpoint_check set_issue ids, floor_return_silent)",
+   "disposition": "not applicable",
+   "reason": "not a seam: non-persistent issues do not outlive a restart and each has an in-process clear on its recovery branch (the extractor's raise/clear table in the .md)"
+  }
+ ],
+ "ledger_status": "absent: N-uncleared-issue is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+ "baseline": "origin/handoff/audit-r11-register"
+}
