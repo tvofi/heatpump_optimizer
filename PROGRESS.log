@@ -51,3 +51,4 @@
 1795018395 HB LOCAL seat not blocked: T2 running (null re-run with lease label; fb16 KILLED, 4b37 KILLED by features.py). BLOCKED.md deleted. NOTE: a stale cloud box loop (HB alive pairs every 10 min) keeps re-pushing its old tree incl. BLOCKED.md over this ref.
 1795018402 CKPT D3-s1 162 file(s)
 1795019548 HB gate done: null RESULT gate_rc=1 code 
+1795019556 CKPT D3-s1 162 file(s)
