@@ -1,1 +1,2 @@
 ok sweep-N-restore-race
+ok sweep-N-shared-config
