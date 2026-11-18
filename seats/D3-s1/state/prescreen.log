@@ -489,3 +489,4 @@
 2026-11-18T20:17:05Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF 32465940 L846 by=tests/harness_headers.py,tests/features.py ran=12 wall=1594.3s
 2026-11-18T20:34:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:extend_price_series CMP_BOUND 4c916e3a L544 by=- ran=12 wall=1688.7s
 2026-11-18T20:35:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF 1dc96d9b L1606 by=- ran=12 wall=1688.9s
+2026-11-18T20:42:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe CMP_BOUND 718210d3 L188 by=- ran=12 wall=1672.0s
