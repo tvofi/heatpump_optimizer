@@ -527,3 +527,13 @@
 2026-11-18T20:38:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 81b4199d L4752 by=- ran=13 wall=1271.8s
 2026-11-18T20:45:31Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_storable_sample_count CMP_BOUND 713016cb L467 by=tests/features.py ran=14 wall=1518.7s
 2026-11-18T20:48:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._mixing_valve_view CMP_BOUND f91a6b56 L8176 by=- ran=13 wall=1334.9s
+2026-11-18T20:52:52Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF d0694ab6 L2325 by=tests/features.py ran=12 wall=1352.5s
+2026-11-18T21:00:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._publish_breach_reports CLAMP_DROP 499eb4d6 L4914 by=- ran=12 wall=1338.5s
+2026-11-18T21:06:32Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop CMP_BOUND 50c75e1d L4482 by=- ran=13 wall=1261.5s
+2026-11-18T21:10:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 1c5445b4 L2223 by=- ran=12 wall=1351.0s
+2026-11-18T21:15:24Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling GUARD_OFF 299483cd L5647 by=tests/features.py ran=13 wall=1351.4s
+2026-11-18T21:22:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 20f2f43d L2114 by=- ran=12 wall=1339.3s
+2026-11-18T21:28:50Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day_quarters CMP_BOUND 21234498 L252 by=- ran=12 wall=1337.7s
+2026-11-18T21:33:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor CLAMP_DROP 388b55d0 L1871 by=- ran=16 wall=1342.9s
+2026-11-18T21:40:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._anticipatory_weights CMP_BOUND 5cc529ac L3405 by=- ran=17 wall=1499.3s
+2026-11-18T21:43:24Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom CMP_BOUND ab7034b4 L8900 by=- ran=13 wall=1229.7s
