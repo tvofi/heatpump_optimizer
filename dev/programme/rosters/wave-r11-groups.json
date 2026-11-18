@@ -3845,7 +3845,7 @@
     "Sweep candidates at sweep.md lines 1495, 1513 and 1520 (the batch's entry P785; 1520 measured one drain batch at about 90 min), routed here by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P749 at 2e17928032; ratified by tvofi 2026-11-15). Re-measure every figure at this group's own base. Source text, verbatim:\n\n- 2026-11-13T07:11:02Z postmerge stage steps for #3510 and #3377 lost the roster race (beat draining ~90 lines); queued set-stage R10-ROUND-PLAYBOOK-FINAL carries-open and R10-ROSTER-BATCH24 done through the drain instead. PROPOSAL CANDIDATE: postmerge's roster_sync should enqueue to roster-drain.queue when the drain is busy rather than race it\n\n- 2026-11-13T08:10:47Z SLIP: cloud fixer for R10-HOTFIX-CARRY-1412-CONTROL pushed BLOCKED.md at 07:28Z (bootstrap: grader+data change, base grader red by construction) and it sat 40 min; the carry-fold board line was the only signal. Local opus seat (seat/carry-1412) takes over: tests a data-only route first, else the bootstrap route. PROPOSAL CANDIDATE: a BLOCKED.md on a handoff-wip ref should raise its own digest line\n\n- 2026-11-13T08:42:55Z direct roster batch failed (rc=3, then refused: wt-now HEAD on no origin ref) and fought the beat's drain; stopped it. PLAYBOOK-FINAL in-progress queued through the drain instead (~90 min: each op runs a full brief_lint, 1.5-4 min). PROPOSAL CANDIDATE: roster drain lints once per pass, not once per op. ci-priority-pause reopen waits for that line"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-roster-write",
     "commit": null,
     "last_step": null,
