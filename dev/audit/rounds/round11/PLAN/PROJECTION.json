@@ -1,0 +1,88 @@
+{
+ "a": {
+  "closure": "2026-11-28T14:32:00Z",
+  "critical_path_hours": 139.68,
+  "lead_time_p50_hours": 70.2,
+  "lead_time_p90_hours": 209.45,
+  "wall_hours": 243.53
+ },
+ "b": {
+  "closure": "2026-11-27T03:00:00Z",
+  "critical_path_hours": 104.15,
+  "dropped": [
+   "R11-ARCH-cycle-surface",
+   "R11-ARCH-fabric-learner",
+   "R11-SEAM-comments-production",
+   "R11-SEAM-comments-tests",
+   "R11-SEAM-dead-state",
+   "R11-SEAM-docs",
+   "R11-SEAM-governance-text",
+   "R11-SEAM-kernel-layering",
+   "R11-SEAM-ratchet-raise"
+  ],
+  "wall_hours": 208.0
+ },
+ "floor_cost": {
+  "critical_path_hours": 35.53,
+  "delay_hours": {
+   "R11-SEAM-actuation-release": 0.0,
+   "R11-SEAM-actuation-writes": 0.0,
+   "R11-SEAM-card": 0.0,
+   "R11-SEAM-config": 0.0,
+   "R11-SEAM-cycle-reporting": 0.0,
+   "R11-SEAM-cycle-solve": 0.0,
+   "R11-SEAM-entity-service": 0.0,
+   "R11-SEAM-inputs-freshness": 0.0,
+   "R11-SEAM-inputs-guards": 0.0,
+   "R11-SEAM-kernel-step": 0.0,
+   "R11-SEAM-learners": 0.0,
+   "R11-SEAM-money": 0.0,
+   "R11-SEAM-plant-model": 0.0,
+   "R11-SEAM-product-text": 0.0,
+   "R11-SEAM-ratchets": 0.0,
+   "R11-SEAM-solver": 0.0,
+   "R11-SEAM-store": 33.95,
+   "R11-SEAM-tests": 0.0
+  },
+  "wall_hours": 35.53
+ },
+ "pin": {
+  "caps": {
+   "batch_window_minutes": 0,
+   "coordinator_cap": 2,
+   "provenance": "tvofi 2026-11-07 (#201 comment 6707334933, superseding 6544047621): 20 open pull requests; replan.py DEFAULT_CAPS",
+   "seats": 20,
+   "slots": 20,
+   "stamp_every": 3
+  },
+  "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176",
+  "roster_blob": "decf00d4fe77f91471dfc7e181cc679dd2324582",
+  "roster_path": ".claude/workflows/wave-r11-groups.json",
+  "start": "2026-11-18T11:00:00Z"
+ },
+ "production": [
+  "R11-ARCH-cycle-surface",
+  "R11-ARCH-fabric-learner",
+  "R11-SEAM-actuation-release",
+  "R11-SEAM-actuation-writes",
+  "R11-SEAM-card",
+  "R11-SEAM-comments-production",
+  "R11-SEAM-config",
+  "R11-SEAM-cycle-reporting",
+  "R11-SEAM-cycle-solve",
+  "R11-SEAM-dead-state",
+  "R11-SEAM-entity-service",
+  "R11-SEAM-inputs-freshness",
+  "R11-SEAM-inputs-guards",
+  "R11-SEAM-kernel-layering",
+  "R11-SEAM-kernel-step",
+  "R11-SEAM-learners",
+  "R11-SEAM-money",
+  "R11-SEAM-plant-model",
+  "R11-SEAM-product-text",
+  "R11-SEAM-ratchets",
+  "R11-SEAM-solver",
+  "R11-SEAM-store",
+  "R11-SEAM-tests"
+ ]
+}
