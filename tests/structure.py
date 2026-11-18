@@ -4158,8 +4158,9 @@ ROLE_SELF_CHECK_SOURCES = {
         "        return 4\n",
 }
 
-# One window, three spellings of it: a second copy in another module is a
-# copy, and a third costs one more, not two more.
+# One window written twice in one function is an in-function copy; the same
+# window in a second function is a clone class, and three consecutive copies
+# of one statement are a run, so neither of those is.
 IN_FUNCTION_SELF_CHECK_SOURCES = {
     "twice": (
         "def twice(xs, k):\n"
@@ -4189,7 +4190,7 @@ IN_FUNCTION_SELF_CHECK_SOURCES = {
         "    return t\n"),
 }
 
-#: ``reader.py`` binds four names: one loaded, one only named in a string, one
+#: ``reader.py`` binds five names: one loaded, one only named in a string, one
 #: re-imported from it by ``user.py``, and two read nowhere (one through ``as``).
 UNUSED_IMPORT_SELF_CHECK_SOURCES = {
     "const.py": "READ = 1\nNAMED = 2\nPASSED = 3\nUNREAD = 4\nORIGINAL = 5\n",
@@ -4201,6 +4202,8 @@ UNUSED_IMPORT_SELF_CHECK_SOURCES = {
     "user.py": "from .reader import PASSED\nprint(PASSED)\n",
 }
 
+# One window, three spellings of it: a second copy in another module is a
+# copy, and a third costs one more, not two more.
 DUP_SELF_CHECK_BODY = (
     "def {name}({a}, {b}):\n"
     "    {t} = sum(v * {b} for v in {a} if v > 0)\n"
