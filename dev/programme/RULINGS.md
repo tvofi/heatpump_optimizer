@@ -134,6 +134,20 @@ orchestrator's.
   instrument groups. The policy change (playbook, `proposal-triage.md`,
   `plan_phases` PHASES) is its own pull request; round 11's instance runs about
   24 hours before its closure.
+- 2026-11-18, #3708 design decision D1/D2 (as recorded): option (b). The part-1
+  job goes in `governance.yml` with its read-only grant, its code under the
+  code-owned `tools/ci/`; the `record-autofix` write set stays delivery rows
+  only; mandate 6893738184 applies to the code-owned approval.
+- 2026-11-18 (as recorded), `R11-ARCH-OBJECTIVE` carry 390ea33c: the settlement
+  rows stay UNDECIDED in the 0018 record, with no policy change.
+- 2026-11-18 (as recorded), D3 in round 11: the late-intake D3-s1 finding or
+  findings go through verifier and judge into the register, and the remainder
+  runs on cloud boxes, with results to the plan as an addendum and deviation. The
+  late finding was judged by one seat acting as verifier and judge, a recorded
+  deviation; an independent re-judge is owed at plan review, then a plan
+  amendment.
+- 2026-11-18 (as recorded): issues for the round-11 groups are filed as planned,
+  after #3723 lands: "Let them land as planned".
 
 ## The instrument freeze, proposals and root cause
 
