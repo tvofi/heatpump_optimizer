@@ -26,6 +26,7 @@ Kept free of Home Assistant imports so it can be unit-tested directly.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections.abc import Awaitable
 from typing import Any, Callable
 
 import numpy as np
@@ -305,6 +306,27 @@ class FrequencyWatchdog:
     def note_command(self, hz: float) -> None:
         self.commanded = float(hz)
         self.grace = True
+
+    async def command(
+        self, hz: float, arm: Callable[[], Awaitable[bool]], send: Callable[[float], Awaitable[Any]],
+    ) -> bool:
+        """The write's tail: dedupe against the last command, arm, send, record; True when sent.
+
+        ``arm`` arms the entity's restore and False refuses the write;
+        ``send`` writes ``hz`` and raises where it fails, which nothing here
+        catches and nothing records.
+        """
+        if self.commanded is not None and abs(hz - self.commanded) < FREQ_WRITE_EPSILON_HZ:
+            return False
+        if not await arm():
+            return False
+        await send(hz)
+        self.note_command(hz)
+        return True
+
+    def released(self) -> None:
+        """A restore wrote the entity's baseline: no command stands; a trip does."""
+        self.commanded, self.strikes, self.grace = None, 0, False
 
     def note_report(self, reported: float | None, active: bool = True) -> bool:
         """Fold one reported frequency; True when this tick trips it.

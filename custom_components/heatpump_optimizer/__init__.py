@@ -423,10 +423,12 @@ async def async_unload_entry(
         await (await _async_lazy(hass, "debugger")).async_unload_debugger(coordinator)
         # The off rule's unload half (tvofi, 2026-11-07): what the optimizer
         # wrote is restored as it lets go, a Home Assistant stop included.
-        await (await _async_lazy(hass, "off_restore")).async_restore(
-            hass, entry, coordinator.effective_config, "unload"
-        )
+        restore = (await _async_lazy(hass, "off_restore")).async_restore
+        await restore(hass, entry, coordinator.effective_config, "unload")
         await coordinator.async_shutdown()
+        # Once more behind the released latch: a write that raced the first
+        # pass armed again, and nothing can arm after it.
+        await restore(hass, entry, coordinator.effective_config, "unload")
 
     return unload_ok
 

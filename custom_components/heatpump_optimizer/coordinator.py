@@ -105,7 +105,6 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
-    MIXING_VALVE_WRITE_EPSILON,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
@@ -206,12 +205,14 @@ from .inputs import (
     normalize_price_per_kwh,
     parse_bool,
     read_rooms,
+    read_setpoint,
     read_start_hysteresis,
     price_per_kwh,
     stale_summary,
     state_power_kw,
     state_unit,
     temperature_c,
+    write_setpoint,
     write_setpoint_c,
 )
 from .external_heat import (
@@ -222,6 +223,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import boost
+from . import circulation
 from . import driving_grade
 from . import battery as battery_view
 from . import comfort_band
@@ -317,7 +319,6 @@ from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
-    FREQ_WRITE_EPSILON_HZ,
     FREQ_WRITE_MIN_INTERVAL_S,
     FrequencyMap,
     FrequencyWatchdog,
@@ -748,6 +749,35 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
         return f"could not be commanded: {err}"
     return (f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
             "number, input_number and climate entities")
+
+
+#: The off-restore keys of the two numbers the cycle writes: each is restored
+#: to its reading before the first write, on a stale plan too (ADR-004).
+FREQUENCY_RESTORE = "compressor_frequency"
+VALVE_RESTORE = "mixing_valve_target"
+
+
+def _register_number_restore(key: str, field: str, owner: str, write: Any, reading: Any) -> None:
+    """Register config ``field``'s entity under ``key``; its restore empties coordinator ``owner``'s record."""
+    def restored(entry: Any, _entity_id: str, _value: float) -> None:
+        coord = getattr(entry, "runtime_data", None)
+        if coord is not None:
+            getattr(coord, owner).released()
+
+    def restorer(config: Any) -> off_restore.Restorer | None:
+        entity_id = getattr(EntryConfig.from_mapping(config), field)
+        return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None
+
+    off_restore.register_consumer(key, restorer, write, stale=True)
+
+
+def _number_reading(hass: Any, entity_id: str) -> float | None:
+    """The entity's state as a number in its own unit, or ``None``."""
+    return finite_float(getattr(hass.states.get(entity_id), "state", None), None)
+
+
+_register_number_restore(FREQUENCY_RESTORE, "compressor_freq_entity", "_freq_watchdog", write_setpoint, _number_reading)
+_register_number_restore(VALVE_RESTORE, "mixing_valve_write_entity", "_valve_target", write_setpoint_c, read_setpoint)
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -3474,10 +3504,20 @@ def _space_pump_to_drive(coord: Any) -> str | None:
     The VVC's half of the same method is not held: it follows the user's DHW
     window schedule, which cannot go stale.
     """
-    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():
+    if _plan_let_go(coord):
         return None
     entity = getattr(coord, "_ctx", coord)._config.space_circulation_pump_entity
     return str(entity) if entity else None
+
+
+def _plan_let_go(coord: Any) -> bool:
+    """Whether the cycle has stopped actuating: a plan mode whose plan is stale.
+
+    The one let-go predicate: the supply, the space circulation pump, the
+    frequency and the valve are all cut from the plan, so all stop being
+    written on it, and ``off_restore.async_cycle`` hands them back.
+    """
+    return coord._mode in (MODE_AUTO, MODE_ECONOMY) and bool(coord._plan_is_stale())
 
 
 def _tail_freeze(coord: Any) -> str | None:
@@ -3712,10 +3752,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entry through the constructor (#1739); everything else starts empty.
         """
         self._mode: str = MODE_AUTO
-        # #6: last commanded pump states, so actuation is transitions-only.
-        # Initialised here since W5-G9: it is core state and was misplaced in
-        # the dhw init, which is the S5 finding once more.
-        self._pump_commanded: dict[str, bool] = {}
         # Populated during setup from the manifest so the device registry
         # reports the real integration version.
         self.integration_version: str | None = None
@@ -3962,9 +3998,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         self._external_heat = ExternalHeatDetector(self._external_heat_config())
         self._external_heat_active: bool = False
-        # Last valve target actually written in smart_write mode, so identical
-        # answers on consecutive cycles do not re-command the device.
-        self._valve_commanded_target: float | None = None
+        # The valve target's write record (smart_write), so identical answers
+        # on consecutive cycles do not re-command the device.
+        self._valve_target = mixing_valve.ValveTarget()
         self._away_state = away_mode.AwayState()
 
         # --- Closed-loop accuracy (item 11) --------------------------------
@@ -4136,6 +4172,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = _ctx_of(self)
         return pump_arbiter.ArbiterInputs(
             hass=self.hass,
+            entry=self.entry,
             config=ctx._config,
             mode=self._mode,
             plan=self._optimization_result,
@@ -4495,12 +4532,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """#6: follow the plan with the circulation pumps, transitions only.
 
         Only entities the user explicitly configured are ever touched, and
-        each is commanded exactly once per state change.
+        each is commanded exactly once per state change (``circulation``
+        owns the write, its record and its restore). Off writes nothing.
         """
         ctx = getattr(self, "_ctx", self)
         vvc_entity = ctx._config.vvc_pump_entity
         space_entity = _space_pump_to_drive(self)
-        if not vvc_entity and not space_entity:
+        if self._mode == MODE_OFF or (not vvc_entity and not space_entity):
             return
         now = dt_util.now()
         params = ctx._thermal_params
@@ -4519,7 +4557,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 windows,
                 ctx._config.vvc_lead_minutes,
             )
-            await self._async_set_pump(vvc_entity, on, reason)
+            await circulation.command(self.hass, self.entry, ctx._config, circulation.DHW, on, reason)
 
         if space_entity:
             result = self._optimization_result
@@ -4554,26 +4592,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 floor_temp=float(ctx._opt_config.min_temp),
                 outdoor_temp=state.outdoor_temperature,
             )
-            await self._async_set_pump(space_entity, on, reason)
-    async def _async_set_pump(
-        self, entity_id: str, on: bool, reason: str
-    ) -> None:
-        previous = self._pump_commanded.get(entity_id)
-        if self._mode == MODE_OFF or (previous is not None and previous == on):  # off writes nothing
-            return
-        service = "turn_on" if on else "turn_off"
-        try:
-            await self.hass.services.async_call(
-                "homeassistant", service, {"entity_id": entity_id}
-            )
-            _LOGGER.info("Pump %s → %s: %s", entity_id, service, reason)
-        except Exception as err:  # noqa: BLE001 - a pump must never kill the cycle
-            _LOGGER.warning("Could not command pump %s: %s", entity_id, err)
-            return
-        # Recorded only AFTER the call succeeded: a command that failed
-        # (entity briefly unavailable) must be retried next tick, not
-        # remembered as done.
-        self._pump_commanded[entity_id] = on
+            await circulation.command(self.hass, self.entry, ctx._config, circulation.SPACE, on, reason)
 
     # ------------------------------------------------------------------
     # Buffer tank and building fabric learning
@@ -7726,13 +7745,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         Commands the plan's target (static target or comfort ceiling), never
         the read-back entity, so a changed comfort band still reaches it.
-        Skipped when unchanged by less than ``MIXING_VALVE_WRITE_EPSILON``
-        (avoids flash wear on every cycle); write failures are logged and
+        The write's tail (dedupe, arm, send, record) is
+        ``mixing_valve.ValveTarget``'s; write failures are logged and
         swallowed so a balky valve never breaks planning.
         """
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
-        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF:
+        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF or _plan_let_go(self):
             return
         entity_id = ctx._config.mixing_valve_write_entity
         if not entity_id:
@@ -7756,21 +7775,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if kind == mixing_valve.WRITE_TARGET_FLOW:
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
-        if (
-            self._valve_commanded_target is not None
-            and abs(target - self._valve_commanded_target)
-            < MIXING_VALVE_WRITE_EPSILON
+        valve = self._valve_target
+        if not await valve.command(
+            target, lambda: off_restore.async_arm(self.hass, self.entry, ctx._config, VALVE_RESTORE),
+            lambda target_c: _valve_write_problem(self.hass, entity_id, target_c),
         ):
             return
         # One latch for both failures: its text says which, and the next
         # successful write clears it, so a valve that fails again warns again.
-        why = await _valve_write_problem(self.hass, entity_id, target)
-        if log_held(self, "valve_write", why is not None, "Valve write entity %s %s", entity_id, why):
+        if log_held(self, "valve_write", valve.problem is not None, "Valve write entity %s %s", entity_id, valve.problem):
             return
         _LOGGER.info(
             "Commanded mixing valve target %.1f °C via %s", target, entity_id
         )
-        self._valve_commanded_target = target
     def _plan_age_minutes(self) -> float | None:
         """Minutes since the last successful solve; None before the first."""
         if self._last_optimization is None:
@@ -7794,9 +7811,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
         await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
-        if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
+        # Off and a stale plan write nothing but the restore of what is still
+        # armed: the retry of one that failed, and the hand-back on staleness.
+        stale = _plan_let_go(self)
+        await off_restore.async_cycle(self.hass, self.entry, _ctx_of(self)._config, self._mode == MODE_OFF, stale)
+        if not self._current_action or self._mode == MODE_OFF:
             return
-        if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
+        if stale:
             # The action was cut from a plan whose horizon has slid out from
             # under it — its "cheap hour" may be the current peak. Stop
             # actuating, exactly as when no plan exists: the pump's own
@@ -10846,11 +10867,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """The control stage's single write path — every rail in one place.
 
         Rate-limited to one write per five minutes, clamped to the
-        entity's own range, deduplicated against the last command, and a
+        entity's own range, deduplicated against the last command
+        (``FrequencyWatchdog.command``, the write's tail), and a
         map with no evidence writes NOTHING: None is never a frequency.
         """
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
+        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self):
             return
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
@@ -10866,24 +10888,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             < FREQ_WRITE_MIN_INTERVAL_S
         ):
             return
-        if (
-            self._freq_watchdog.commanded is not None
-            and abs(target - self._freq_watchdog.commanded)
-            < FREQ_WRITE_EPSILON_HZ
-        ):
-            return
         try:
-            await self.hass.services.async_call(
-                "number",
-                "set_value",
-                {"entity_id": entity_id, "value": round(target, 1)},
-                blocking=True,
-            )
+            if not await self._freq_watchdog.command(
+                target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, FREQUENCY_RESTORE),
+                lambda hz: self.hass.services.async_call(
+                    "number", "set_value", {"entity_id": entity_id, "value": round(hz, 1)}, blocking=True),
+            ):
+                return
         except Exception as err:  # noqa: BLE001 - never break the cycle
             _LOGGER.error("Error commanding compressor frequency: %s", err)
             return
         self._freq_last_write = now
-        self._freq_watchdog.note_command(target)
         _LOGGER.info(
             "Commanded compressor frequency %.1f Hz via %s", target, entity_id
         )
