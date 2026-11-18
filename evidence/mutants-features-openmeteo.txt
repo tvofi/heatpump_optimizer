@@ -1,0 +1,9 @@
+(driver: ev/mutation-driver.py, run in a detached worktree at 40328a85d4e17e5c30284b34fd55cee8655f858a; porcelain '' after)
+M1 parse_bool float revert: KILLED: FAIL parse_bool reads no non-finite number as a flag (D1-s3-01); 1 of 44 FEATURES BLOCK FAILED
+M2 _begin str guard deleted: KILLED: TypeError: cannot use 'dict' as a dict key
+M3 open_meteo kept=all: KILLED: FAIL a stamp with no representable span is dropped...; FAIL the floor keeps a stamp exactly one resolution past year 1...
+M10 D7 pin temperature_from_c multiplies: KILLED: FAIL temperature_from_c inverts every unit row the reader converts (D7-s3-01)
+M11 D2 pin minor /100 removed: KILLED: FAIL normalize_price_per_kwh takes each unit to major currency per kWh (+3 more)
+M12 D1-s2-51 pin plausible_c one-sided: KILLED: FAIL every plausible window refuses a reading one degree past either end (D1-s2-51)
+M13 open_meteo floor without +resolution: KILLED: same two open_meteo checks
+M14 open_meteo `len(kept) < 2` -> `< 1`: SURVIVED (rc=0)
