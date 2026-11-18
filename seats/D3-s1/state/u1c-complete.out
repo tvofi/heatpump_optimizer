@@ -24,3 +24,4 @@
 2026-11-18T17:24:54Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor GUARD_OFF ddf2c5be L9022 by=tests/features.py ran=13 wall=1720.9s
 2026-11-18T17:25:00Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins GUARD_OFF 789d92ca L9153 by=- ran=13 wall=1715.5s
 2026-11-18T17:50:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF aba82b00 L9386 by=- ran=13 wall=1715.0s
+2026-11-18T17:51:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF 97281aaf L9390 by=- ran=13 wall=1713.9s
