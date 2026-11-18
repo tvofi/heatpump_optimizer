@@ -8,7 +8,4 @@
 1794988643 INIT box D3-u1a
 1794988694 CKPT D3-s1 126 file(s)
 1794989077 HB alive
-1794989477 RESUMED from e73ec4902167
-1794989477 INIT box D3-u1a
-1794989499 HB alive
-1794989540 HB re-fired: inline seat per inbox 1; export+worktree rebuilt on fresh container; evidence restored
+1794989681 HB alive
