@@ -38018,10 +38018,14 @@ R.check(
 
 _ss_cold, _, _ = _ss_run([0.0, 0.0, 0.0])
 R.check(
-    "the first solve (no warm start) adds the three structural seeds",
-    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 4,
+    "the first solve (no warm start) adds the three structural seeds and "
+    "the all-off start (D0-s3-02)",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 5
+    and list(_ss_calls[0]["starts"][-1])
+    == [low for low, _ in _ss_calls[0]["bounds"]],
     f"nstarts={len(_ss_calls[0]['starts']) if _ss_calls else 0} — 1 means "
-    f"the warm-start gate was inverted and the D0-01 seeds never ran",
+    f"the warm-start gate was inverted and the D0-01 seeds never ran; 4 "
+    f"means the all-off start was dropped",
 )
 
 _ss_pin_h = _SsNS(
@@ -94563,22 +94567,44 @@ R.check(
     "the fixture has something to commit: the unpriced duty-cycle plan runs steps "
     "under the floor, and every engaged solve was handed a relaxed plan that does",
     _hsr_under(_hsr_free.space, 1.1) > 0 and not _hsr_free.plans
-    and all(v.plans and _hsr_under(v.relaxed[-1], k[2]) > 0 for k, v in _hsr_engaged.items()),
+    and all(v.plans and _hsr_under(v.relaxed[0], k[2]) > 0 for k, v in _hsr_engaged.items()),
     f"free {_hsr_under(_hsr_free.space, 1.1)}; "
-    f"{({k: _hsr_under(v.relaxed[-1], k[2]) if v.relaxed else None for k, v in _hsr_engaged.items()})}",
+    f"{({k: _hsr_under(v.relaxed[0], k[2]) if v.relaxed else None for k, v in _hsr_engaged.items()})}",
 )
-R.check(
-    "acceptance: an engaged plan ships no step between the running rule and the "
-    "floor, on a priced modulating install at both floors and on a clamped one",
-    all(_hsr_under(v.space, k[2]) == 0 for k, v in _hsr_engaged.items()),
-    f"{({k: _hsr_under(v.space, k[2]) for k, v in _hsr_engaged.items()})}",
-)
+# Since D0-s3-02 the space-only stage is handed the all-off plan beside the
+# descent's run, so ``relaxed[0]`` and ``first[0]`` are the descent's plan and
+# its projection (candidate 1) and the last entries are the all-off plan's. On
+# this mild day the true objective ranks the all-off plan lowest in every
+# priced cell; the same house on a colder day is the priced cell that commits
+# a run, and carries the start-pricing identity and the floor acceptance.
+_hsr_cold = _hsr_solve(0.25, False, 1.1, out_mean=5.0)
+_hsr_cold_free = _hsr_solve(0.0, False, 1.1, out_mean=5.0)
 
 
 def _hsr_scores(seen):
     """The true-objective score of the shipped plan and of candidate (1)."""
     _, objective, _, _ = seen.objectives[-1]
-    return float(objective(seen.space)), float(objective(seen.first[-1]))
+    return float(objective(seen.space)), float(objective(seen.first[0]))
+
+
+R.check(
+    "a priced engaged solve on the mild day ships the all-off plan, which the "
+    "true objective scores below candidate 1, the descent's projection (D0-s3-02)",
+    all(
+        not np.any(v.space > 0) and _hsr_scores(v)[0] < _hsr_scores(v)[1] - 1e-6
+        for k, v in _hsr_engaged.items() if k[0] > 0
+    ),
+    f"{({k: (round(float(np.sum(v.space)) * 0.25, 3), tuple(round(x, 4) for x in _hsr_scores(v))) for k, v in _hsr_engaged.items() if k[0] > 0})}",
+)
+R.check(
+    "acceptance: an engaged plan ships no step between the running rule and the "
+    "floor, on a priced modulating install at both floors and on a clamped one, "
+    "and on the colder day's priced install, which ships a run",
+    all(_hsr_under(v.space, k[2]) == 0 for k, v in _hsr_engaged.items())
+    and _hsr_under(_hsr_cold.space, 1.1) == 0 and _hsr_count(_hsr_cold.space, 1.1) >= 1.0,
+    f"{({k: _hsr_under(v.space, k[2]) for k, v in _hsr_engaged.items()})}; cold "
+    f"{_hsr_under(_hsr_cold.space, 1.1)} under, {_hsr_count(_hsr_cold.space, 1.1)} starts",
+)
 
 
 # The energy half of this acceptance is restated (``tests/README.md``, "A
@@ -94656,12 +94682,12 @@ R.check(
     "published objective of a priced plan less the same plan's unpriced score is "
     "cycling_cost x its start count",
     abs(
-        float(_hsr_cells[(0.25, False, 1.1)].result.objective_value)
-        - float(_hsr_free.objectives[-1][1](_hsr_cells[(0.25, False, 1.1)].space))
-        - 0.25 * _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1)
+        float(_hsr_cold.result.objective_value)
+        - float(_hsr_cold_free.objectives[-1][1](_hsr_cold.space))
+        - 0.25 * _hsr_count(_hsr_cold.space, 1.1)
     ) < 1e-9
-    and _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1) >= 1.0,
-    f"{_hsr_cells[(0.25, False, 1.1)].result.objective_value}",
+    and _hsr_count(_hsr_cold.space, 1.1) >= 1.0,
+    f"{_hsr_cold.result.objective_value}, {_hsr_count(_hsr_cold.space, 1.1)} starts",
 )
 _hsr_obj, _hsr_obj_batch = _hsr_cells[(0.25, False, 1.1)].objectives[-1][1:3]
 _hsr_rows = np.stack([_hsr_cells[(0.25, False, 1.1)].space, _hsr_free.space, _hsr_trickle.repeat(8)])
