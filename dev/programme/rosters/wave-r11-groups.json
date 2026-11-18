@@ -370,9 +370,7 @@
    "severity": "medium",
    "size": "XL",
    "wave": 8,
-   "issues": [
-    3529
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "files": [
