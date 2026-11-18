@@ -1,0 +1,2 @@
+  custom_components/heatpump_optimizer/entry_config.py: 3
+RESULT const_modules_over_50=3 count

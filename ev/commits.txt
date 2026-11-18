@@ -1,0 +1,21 @@
+e0769b570ebe94ac3200fc420c86ed159c3f5a0c tvofi
+record: the delivery row for #3735
+
+045f358a4f4f74f5e216ec4b1fee50e15271acf4 hpo-fixer
+structure: count const fan-out by names read, price module spans past 2000 lines
+
+D7-s1-01: const_fanout counted names on `from .const import` statements, so
+entry_config.py's 120 reads through its `const` binding counted 3 and a
+re-spelling lowered the row with the coupling unchanged. const_names_read()
+keys on the distinct .const names read by either spelling.
+
+D7-s1-04: no row priced a module's lines outside its classes. module_excess_loc
+sums each module's span past MODULE_LOC_LIMIT (2000, the owner's limit).
+
+Budget raise, owner's ruling 2026-11-18 ("Yes to both"; R11-SEAM-ratchet-raise,
+ADR-009 part 2): const_modules_over_50 3 -> 4 because the repaired measure
+reads entry_config.py over the limit; module_excess_loc recorded at its value
+measured at ae0ed64af8. No payment improves the code: narrowing
+entry_config.py's reads hides its fan-out without lowering it (ADR-009,
+Alternatives), and the other three modules read 424, 135 and 100 names.
+
