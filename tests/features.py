@@ -94573,10 +94573,13 @@ R.check(
 )
 # Since D0-s3-02 the space-only stage is handed the all-off plan beside the
 # descent's run, so ``relaxed[0]`` and ``first[0]`` are the descent's plan and
-# its projection (candidate 1) and the last entries are the all-off plan's. On
-# this mild day the true objective ranks the all-off plan lowest in every
-# priced cell; the same house on a colder day is the priced cell that commits
-# a run, and carries the start-pricing identity and the floor acceptance.
+# its projection (candidate 1) and the last entries are the all-off plan's.
+# Which of the two ships on this mild day is a knife edge across OpenBLAS
+# kernels: the 0.53 kW priced cell ships the all-off plan under all four, the
+# 1.1 kW priced cells under Haswell alone and a run under the other three. So
+# the check below asks what the stage holds on every kernel, and the same
+# house on a colder day is the priced cell that commits a run, carrying the
+# start-pricing identity and the floor acceptance.
 _hsr_cold = _hsr_solve(0.25, False, 1.1, out_mean=5.0)
 _hsr_cold_free = _hsr_solve(0.0, False, 1.1, out_mean=5.0)
 
@@ -94588,13 +94591,15 @@ def _hsr_scores(seen):
 
 
 R.check(
-    "a priced engaged solve on the mild day ships the all-off plan, which the "
-    "true objective scores below candidate 1, the descent's projection (D0-s3-02)",
+    "every engaged space-only stage is handed the descent's plan and the all-off "
+    "plan, and ships a plan the true objective scores no higher than the all-off "
+    "plan (D0-s3-02)",
     all(
-        not np.any(v.space > 0) and _hsr_scores(v)[0] < _hsr_scores(v)[1] - 1e-6
-        for k, v in _hsr_engaged.items() if k[0] > 0
+        len(v.relaxed) == 2 and not np.any(v.relaxed[-1] > 0)
+        and _hsr_scores(v)[0] <= float(v.objectives[-1][1](v.relaxed[-1])) + 1e-12
+        for v in _hsr_engaged.values()
     ),
-    f"{({k: (round(float(np.sum(v.space)) * 0.25, 3), tuple(round(x, 4) for x in _hsr_scores(v))) for k, v in _hsr_engaged.items() if k[0] > 0})}",
+    f"{({k: (len(v.relaxed), round(float(np.sum(v.space)) * 0.25, 3), round(_hsr_scores(v)[0], 4), round(float(v.objectives[-1][1](v.relaxed[-1])), 4)) for k, v in _hsr_engaged.items()})}",
 )
 R.check(
     "acceptance: an engaged plan ships no step between the running rule and the "
@@ -94614,11 +94619,12 @@ R.check(
 # and the levels of the best candidates are re-solved inside their runs.
 # Under three of four OpenBLAS kernels the 1.1 kW cell ships one run where
 # the fourth ships two, almost two floor steps under its relaxed plan, at a
-# lower true objective: the plan a priced start is meant to buy. What the
-# stage does hold is asked in its place, a quantity of one solve: the shipped
-# plan scores no higher on its own objective than the projection of the
-# relaxed plan it was committed from. The energy difference is reported in
-# the detail and asserted nowhere.
+# lower true objective: the plan a priced start is meant to buy. (Measured
+# before D0-s3-02 handed the stage the all-off plan too; since then Haswell
+# ships the all-off plan in this cell.) What the stage does hold is asked in
+# its place, a quantity of one solve: the shipped plan scores no higher on its
+# own objective than the projection of the descent's relaxed plan, candidate
+# 1. The energy difference is reported in the detail and asserted nowhere.
 R.check(
     "acceptance: a priced plan holds no more starts than the unpriced plan of the "
     "same install by the same count, and scores no higher on its own objective "
@@ -94629,7 +94635,7 @@ R.check(
         for k, v in _hsr_engaged.items() if k[0] > 0 and not k[1]
     ),
     f"starts, scores (shipped, projection), kWh against the relaxed plan: "
-    f"{({k: (round(_hsr_count(v.space, k[2]), 3), tuple(round(x, 4) for x in _hsr_scores(v)), round(float(np.sum(v.space - v.relaxed[-1])) * 0.25, 3)) for k, v in _hsr_engaged.items()})}",
+    f"{({k: (round(_hsr_count(v.space, k[2]), 3), tuple(round(x, 4) for x in _hsr_scores(v)), round(float(np.sum(v.space - v.relaxed[0])) * 0.25, 3)) for k, v in _hsr_engaged.items()})}",
 )
 R.check(
     "selection: the shipped plan never scores above the projection (candidate 1) "
@@ -94672,7 +94678,7 @@ _hsr_failed = _hsr_solve(0.25, False, 1.1, raises=True)
 R.check(
     "selection: a stage that raises ships the projection, and the solve still "
     "reports its own status",
-    np.array_equal(_hsr_failed.space, _hsr_failed.first[-1])
+    np.array_equal(_hsr_failed.space, _hsr_failed.first[0])
     and not np.array_equal(_hsr_failed.space, _hsr_cells[(0.25, False, 1.1)].space)
     and _hsr_failed.result.status == _hsr_cells[(0.25, False, 1.1)].result.status,
     f"{_hsr_failed.result.status}",
@@ -94958,7 +94964,7 @@ R.check(
     "than any candidate the stage scored",
     all(
         float(v.objectives[-1][1](v.space))
-        <= min(float(v.objectives[-1][1](c)) for c in (v.first[-1], *v.plans[-1])) + 1e-12
+        <= min(float(v.objectives[-1][1](c)) for c in (*v.first, *(c for p in v.plans for c in p))) + 1e-12
         for v in _hsr_engaged.values()
     ),
 )
