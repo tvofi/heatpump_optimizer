@@ -1,7 +1,0 @@
-# synthetic ref f9f9ca89e778182f8c151f1064a28d71e20fc33f (HEAD^1 + tests/hastub/sitecustomize.py)
-{"script": "tests/env_drift.py", "rc": 0, "checks": 112, "solves": 200, "ref": "f9f9ca89e778182f8c151f1064a28d71e20fc33f", "hastub_hook": true, "per_proc": [100, 100, 0], "stdout_tail": "33f here\n  ok    winter_single_no_dhw is byte-identical to f9f9ca89e778182f8c151f1064a28d71e20fc33f here\n  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)\n  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)\n  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 56 scenario(s) checked against f9f9ca89e778182f8c151f1064a28d71e20fc33f\nNO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes\n", "multi_starts": 240, "procs_recorded": 3, "cpu_s": 389.2, "wall_s": 399.5, "checks_per_solve": 0.56}
-RESULT env_drift_solves=200
-RESULT env_drift_checks=112
-RESULT env_drift_cpu_s=389.2 s (provisional)
-RESULT load1=1.00
-RESULT thread_factor=1.00
