@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_usable_day GUARD_OFF fc735ea9",
+  "killed_by": "tests/features.py",
+  "old": "    if not np.all(np.isfinite(values)) or float(np.mean(values)) <= 1e-6:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}
