@@ -5038,6 +5038,90 @@
     "next_step": "fixer per the architect note (none)",
     "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-inputs-freshness",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "high",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D1-s2-03",
+    "D1-s2-02",
+    "D14-s2-02",
+    "D14-s2-01",
+    "D17-s2-02",
+    "D1-s2-52",
+    "D1-s3-02"
+   ],
+   "merged": {},
+   "classes": [
+    "N-dead-input",
+    "N-no-expiry",
+    "N-staleness",
+    "P1",
+    "P2"
+   ],
+   "seam": "input boundary",
+   "hot_files": [
+    "coordinator.py",
+    "inputs.py",
+    "const.py",
+    "tests/entities.py",
+    "binary_sensor.py",
+    "tests/features.py",
+    "strings.json",
+    "docs/configuration.md"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge from R11-SEAM-kernel-step. 7 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P1, P2. Plan: it also carries the reader arm of D7-s1-05 (ADR-001) and the reader's clock of ADR-002 part 2, which leaves inputs.py with no Home Assistant import, and D1-s3-02, a guard finding of this seam whose one edit is in coordinator.py.",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-kernel-step"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "tests/entities.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "tests/features.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "docs/configuration.md"
+   ],
+   "brief": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge from R11-SEAM-kernel-step. 7 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P1, P2. Plan: it also carries the reader arm of D7-s1-05 (ADR-001) and the reader's clock of ADR-002 part 2, which leaves inputs.py with no Home Assistant import, and D1-s3-02, a guard finding of this seam whose one edit is in coordinator.py. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-inputs-freshness",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-001, ADR-002)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "reader"
+    ],
+    "D7-s1-06": [
+     "clock (ADR-002 part 2)"
+    ]
+   }
   }
  ]
 }
