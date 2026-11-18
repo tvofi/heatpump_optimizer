@@ -97139,6 +97139,44 @@ R.check(
     float(np.max(_hdr_v_rig.temps(_hdr_v_plan))) > 55.0 and np.array_equal(_hdr_v_max, _hdr_v_plan),
     f"walk max {float(np.max(_hdr_v_rig.temps(_hdr_v_plan))):.2f}; ships {np.flatnonzero(_hdr_v_max).tolist()}",
 )
+# The commit's early returns: a store with no capacity, and a plan that
+# charges nowhere, ship the plan given, the same object, unwalked (no walk
+# divides by a capacity of zero) and the program unasked; the null control,
+# the same rig and a plan that charges, walks it and asks the program.
+_hdr_x_rig = _hdr_rig()
+_hdr_x_empty = dataclasses.replace(
+    _hdr_x_rig.ctx, store=dataclasses.replace(_hdr_x_rig.ctx.store, capacity_kwh_per_c=0.0))
+
+
+def _hdr_x_commit(ctx, plan):
+    real, walks = DhwPlanner._ctx_temps, []
+
+    def walk(self, *a, **k):
+        walks.append(1)
+        return real(self, *a, **k)
+
+    DhwPlanner._ctx_temps = walk
+    try:
+        out, seen = _hdr_programs(lambda: _hdr_dp.commit_charges(
+            _hdr_x_rig.planner, plan, (ctx, *_hdr_x_rig.tank), (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)),
+            None, None, None))
+    finally:
+        DhwPlanner._ctx_temps = real
+    return out, len(seen) + len(walks)
+
+
+_hdr_x_zero = np.zeros(_HDR_N)
+(_hdr_x_a, _hdr_x_a_seen), (_hdr_x_b, _hdr_x_b_seen), (_hdr_x_c, _hdr_x_c_seen) = (
+    _hdr_x_commit(_hdr_x_empty, _hdr_l_plan), _hdr_x_commit(_hdr_x_rig.ctx, _hdr_x_zero),
+    _hdr_x_commit(_hdr_x_rig.ctx, _hdr_l_plan))
+R.check(
+    "commit_charges ships the plan given, unwalked and with the store program unasked, for a store with no "
+    "capacity and for a plan that charges nowhere; the same rig with a plan that charges walks it and asks",
+    _hdr_x_empty.c_dhw == 0.0 and _hdr_x_a is _hdr_l_plan and _hdr_x_a_seen == 0
+    and _hdr_x_b is _hdr_x_zero and _hdr_x_b_seen == 0 and _hdr_x_c_seen > 0,
+    f"no capacity: same {_hdr_x_a is _hdr_l_plan}, walks and programs {_hdr_x_a_seen}; nowhere: same "
+    f"{_hdr_x_b is _hdr_x_zero}, {_hdr_x_b_seen}; control: {_hdr_x_c_seen}",
+)
 
 
 R.section("#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health")
