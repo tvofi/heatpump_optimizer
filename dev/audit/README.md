@@ -42,7 +42,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201; the round's objective record |
 
 **Phase 12b**: one Fable seat (else opus) consolidates instrument proposals and
-`proto/` overlays and plans each ACCEPT as the batch's `## Plan`, shaped as
+the prototype overlays in the state directory's per-round prototype folder and plans each ACCEPT as the batch's `## Plan`, shaped as
 `architect-planner.md`'s; on another seat's `Plan review: approve <sha>`
 (`plan-review.md`) the orchestrator creates its groups.
 
