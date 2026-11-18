@@ -16,7 +16,7 @@ Haswell.
 |---|---|---|---|---|
 | D10-s1-05 | `D10/s1/cfg_recovery.py` `unrecovered_triples` of `error_triples` | 51 of 53 | 52 of 54 (config 16, options 34, reconfigure 2); `never_stepped_past` 49; `--perturb` 48 | yes |
 | D10-s1-06 | CI `tests / coverage-ratchet` on main 7938522854 (job 134841972572) | 34 modules < 95 % on an export where most traced scripts exited non-zero | `every module >= 95.0 % (0 below)`, package 99.02 %, `config_flow.py` 100.00 % | **no** |
-| D9-s3-01 | `D9/s3/mem_confined.py --jobs 2` `blind_confined` | 48 | 48 (`probed_by_gate` 6 of 54, `flagged_if_probed` 54; traced 1.538-3.290×); null not run here | yes |
+| D9-s3-01 | `D9/s3/mem_confined.py --jobs 2` `blind_confined` | 48 | 48 (`probed_by_gate` 6 of 54, `flagged_if_probed` 54; traced 1.538-3.290×); null `--ballast-factor 0`: `detected_confined` 0, `flagged_if_probed` 9, all unprobed (traced up to 2.323× clean) | yes |
 | D9-s3-02 | `D9/s3/percycle.py`; `D9/s3/reach.py` | gate dev 0.0000; `coordinator_executed` 0 | clean 2.00 solves, 88180 B, 8094 B/cycle retained, 422 yields; each arm moves its own metric (4.00; 175804 B; 210628 B/cycle; 0 yields), gate deviations 0.0000 on counts, traced at most 0.0005; `coordinator_executed` 0 of 836, `files_blind` 81 of 97 | yes |
 
 D10-s1-06 is not live on a full tree. The judge already ruled it "not shown
@@ -234,9 +234,10 @@ unchanged. No budget row anywhere loosens without §7's owner step.
   that row (tests, then cycle-reporting).
 - **Other hot files.** `tests/stress.py` and `tests/stress_budgets.json` are
   this group's alone. No `after` edge.
-- **Owner-gated part, C's re-record.** On the finder's box, 9 of the 48
-  unprobed rows read 1.6-2.3× their record clean (`mem_confined.py` null; not
-  re-run at the base by this seat, so the fixer's CI run is the reading). If
+- **Owner-gated part, C's re-record.** At the base, the `mem_confined.py` null
+  flags 9 unprobed rows on a clean tree (traced up to 2.323× record), the finder's
+  same 9 `*/space` and `winter_mild` rows. Probing all rows will be red on a clean
+  tree here, so a re-record is expected; the CI-platform run decides which rows rise. If
   the all-row check is red on a clean CI run, the memory half needs a
   re-record on the CI platform. Any row that rises is a raise under
   `budget-raise-gate` (0013), and the owner's confirmation is needed before
