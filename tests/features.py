@@ -35092,6 +35092,16 @@ for _fl_zone in ("off", "on"):
         _fl_v = _fl_coord(two_zone_mode=_fl_zone, mixing_valve_mode=_fl_mode)
         _fold_flow_lift(_fl_v, _T6)
         _fl_valve[(_fl_zone, _fl_mode)] = _fl_v._flow_bias.samples
+# The other end of the learner's range: a bias already on its clamp, learned
+# before the valve was configured, is held as it was, not moved.
+_fl_clamped = _fl_coord(two_zone_mode="off", mixing_valve_mode="manual")
+_fl_clamped._flow_bias.observe(_fl_expected_curve - 50.0, _fl_expected_curve)
+_fl_held = _fl_clamped._flow_bias.as_dict()
+_fold_flow_lift(_fl_clamped, _T6)
+_fl_valve["clamped held"] = (
+    _fl_clamped._flow_bias.as_dict() == _fl_held
+    and abs(_fl_held["bias_k"]) == flow_lift.FLOW_BIAS_CLAMP_K
+)
 R.check(
     "R11-VALVE-REFERENCE r1: a single-zone house behind a throttling valve folds "
     "nothing; with no valve, and every two-zone install, it folds (null control)",
@@ -35100,6 +35110,7 @@ R.check(
         ("off", "smart_read"): 0, ("off", "smart_write"): 0,
         ("on", "none"): 1, ("on", "manual"): 1,
         ("on", "smart_read"): 1, ("on", "smart_write"): 1,
+        "clamped held": True,
     },
     f"{_fl_valve!r}",
 )
