@@ -4,3 +4,5 @@
 1794988530 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
 1794988534 HB prepared
 1794988543 SEAT D3-s1 running
+1794988643 RESUMED from 9a27058dac4f
+1794988643 INIT box D3-u1a
