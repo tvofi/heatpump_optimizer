@@ -1,4 +1,4 @@
-# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.43 at 2026-11-18T20:28:11Z
+# box: nproc=4 cpu=Intel(R) Xeon(R) Processor @ 2.10GHz load1=2.19 at 2026-11-18T20:33:15Z
 ## run.log (driver steps + controls)
 === 2026-11-18T18:51:31Z nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' load1=1.18 :: STEP baseline
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
@@ -62,6 +62,7 @@ RESULT thread_factor=1.00
 2026-11-18T19:57:16Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=13 wall=1680.1s
 2026-11-18T20:24:52Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=12 wall=1664.9s
 2026-11-18T20:25:12Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/features.py ran=16 wall=1675.9s
+2026-11-18T20:28:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1871.2s
 ## prescreen.log
 2026-11-18T18:55:06Z BASELINE tests/boost_drift_replay.py rc=0 failed=0 wall=214.7s reach_ok=True
 2026-11-18T18:57:42Z BASELINE tests/harness_headers.py rc=0 failed=0 wall=155.7s reach_ok=False
@@ -93,3 +94,4 @@ RESULT thread_factor=1.00
 2026-11-18T19:57:16Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=13 wall=1680.1s
 2026-11-18T20:24:52Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=12 wall=1664.9s
 2026-11-18T20:25:12Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/features.py ran=16 wall=1675.9s
+2026-11-18T20:28:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=tests/features.py ran=17 wall=1871.2s
