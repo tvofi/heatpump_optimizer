@@ -123,6 +123,29 @@ def block(start_hour: int, values, step_minutes: int = 60) -> dict:
 
 print("== parsing ==")
 
+# D1-s3-03: a year-1 stamp has no representable span, so mean_over raised
+# OverflowError for every plan step and every solve failed.
+_y1 = block(0, [100.0, 200.0, 300.0, 400.0])
+_y1 = {
+    "time": ["0001-01-01T00:00", "0001-01-01T01:00"] + _y1["time"],
+    "shortwave_radiation": [500.0, 500.0] + _y1["shortwave_radiation"],
+}
+_y1_series = om._parse_block(_y1, "shortwave_radiation")
+_y1_start = datetime(2026, 8, 21, 0, 0, tzinfo=UTC)
+try:
+    _y1_mean = _y1_series.mean_over(_y1_start, _y1_start + timedelta(hours=3))
+except OverflowError as exc:  # the defect
+    _y1_mean = exc
+_y1_clean = om._parse_block(block(0, [100.0, 200.0, 300.0, 400.0]), "shortwave_radiation")
+check(
+    "a stamp with no representable span is dropped, and the block still averages",
+    datetime(1, 1, 1, 0, 0, tzinfo=UTC) not in _y1_series.times
+    and all(t - _y1_series.resolution < t for t in _y1_series.times)
+    and _y1_series.resolution == timedelta(hours=1)
+    and approx(_y1_mean, _y1_clean.mean_over(_y1_start, _y1_start + timedelta(hours=3))),
+    f"times={_y1_series.times[:2]} mean={_y1_mean!r}",
+)
+
 hourly = om._parse_block(block(0, [0.0, 0.0, 100.0, 300.0, 500.0]), "shortwave_radiation")
 check("parses an hourly block", len(hourly.times) == 5)
 check("infers hourly resolution", hourly.resolution == timedelta(hours=1))

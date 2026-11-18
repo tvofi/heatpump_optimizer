@@ -15572,6 +15572,35 @@ R.check(
     and _old.data == _old_data,
     "every option is read with a default, so only the stamp moves",
 )
+# D1-s2-05: an earlier release's non-number under a numeric option raised in
+# the thermal table or the comfort band at setup or on every cycle.
+from heatpump_optimizer.entry_config import EntryConfig as _MigEC  # noqa: E402
+from dataclasses import fields as _mig_fields  # noqa: E402
+
+_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200"}
+_mig_bad_options = {"target_temperature": None, "comfort_weight": {"v": 1.0}, "price_weight": "nan",
+                    "cop_scale": True, "silent_mode_power_fraction": "abc"}
+_mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
+_mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+R.check(
+    "an old entry's non-numbers under numeric options are repaired",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _mig_bad)) is True
+    and _mig_bad.version == const.CONFIG_ENTRY_VERSION
+    and _mig_bad.data == {"dhw_tank_volume": 200.0}
+    and _mig_bad.options == {"silent_mode_power_fraction": "abc"},
+    f"data={_mig_bad.data} options={_mig_bad.options}",
+)
+_mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_moved = [
+    f.name for f in _mig_fields(_MigEC)
+    if f.metadata and getattr(_mig_before, f.name) != getattr(_mig_after, f.name)
+]
+R.check(
+    "and the repair moves no parsed field (refused-number keys are left alone)",
+    not _mig_moved,
+    f"moved: {_mig_moved}",
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
