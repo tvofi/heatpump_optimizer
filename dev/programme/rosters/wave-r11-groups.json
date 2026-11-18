@@ -5419,6 +5419,74 @@
      "fdjac"
     ]
    }
+  },
+  {
+   "group": "R11-SEAM-actuation-release",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "high",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D16-s1-04",
+    "D16-s3-01",
+    "D16-s3-02",
+    "D16-s3-03",
+    "D16-s3-04",
+    "D1-s2-04"
+   ],
+   "merged": {},
+   "classes": [
+    "N-order-coupling",
+    "N-restore-race",
+    "N-unreleased-hold"
+   ],
+   "seam": "actuation",
+   "hot_files": [
+    "pump_arbiter.py",
+    "off_restore.py",
+    "coordinator.py",
+    "legionella.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR. It also carries the notice arm of D7-s1-05, legionella.py's interval notice (ADR-001), as the actuation seam's first group on that file. The circ term (shared_inplace_writes 3 to 2 and its six coord_footprint statements) is banked only when the PR registers the real restoring owner with off_restore.py, the one that restores on Off, stale plan, unload and remove; a class that only holds the dict is metric-gamed and banks nothing (decided 2026-11-18, orchestrator under mandate, pending owner confirmation).",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/legionella.py"
+   ],
+   "brief": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR. It also carries the notice arm of D7-s1-05, legionella.py's interval notice (ADR-001), as the actuation seam's first group on that file. The circ term (shared_inplace_writes 3 to 2 and its six coord_footprint statements) is banked only when the PR registers the real restoring owner with off_restore.py, the one that restores on Off, stale plan, unload and remove; a class that only holds the dict is metric-gamed and banks nothing (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-actuation-release",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-004, ADR-001)",
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "notice"
+    ]
+   }
   }
  ]
 }
