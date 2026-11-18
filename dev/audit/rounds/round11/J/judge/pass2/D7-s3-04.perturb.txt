@@ -1,0 +1,53 @@
+#tree planted-copy rc=0 s=3.2
+RESULT temperature_roundtrip_probes=35 probes
+RESULT temperature_roundtrip_disagreements=0 probes
+RESULT dhw_store_tap_probes=24 probes
+RESULT dhw_store_tap_disagreements=0 probes
+RESULT step_covering_now_probes=8 probes
+RESULT step_covering_now_disagreements=0 probes
+RESULT no_value_state_probes=5 probes
+RESULT no_value_state_disagreements=0 probes
+RESULT naive_instant_probes=3 probes
+RESULT naive_instant_disagreements=0 probes
+RESULT stored_number_probes=13 probes
+RESULT stored_number_disagreements=0 probes
+RESULT finite_number_probes=17 probes
+RESULT finite_number_disagreements=0 probes
+RESULT soc_probes=5 probes
+RESULT soc_disagreements=0 probes
+RESULT water_heat_probes=1 probes
+RESULT water_heat_disagreements=0 probes
+RESULT buffer_prior_in_bounds_probes=8 probes
+RESULT buffer_prior_in_bounds_disagreements=0 probes
+RESULT effective_probes=4 probes
+RESULT effective_disagreements=0 probes
+RESULT ua_from_rate_probes=3 probes
+RESULT ua_from_rate_disagreements=0 probes
+RESULT window_mean_probes=8 probes
+RESULT window_mean_disagreements=0 probes
+RESULT twin_wood_share_probes=24 probes
+RESULT twin_wood_share_disagreements=0 probes
+RESULT twin_topk_probes=24 probes
+RESULT twin_topk_disagreements=0 probes
+RESULT twin_day_peaks_probes=4 probes
+RESULT twin_day_peaks_disagreements=0 probes
+RESULT twin_peak_cost_probes=4 probes
+RESULT twin_peak_cost_disagreements=0 probes
+RESULT twin_switch_weight_probes=3 probes
+RESULT twin_switch_weight_disagreements=0 probes
+RESULT twin_trajectory_probes=42 probes
+RESULT twin_trajectory_disagreements=0 probes
+RESULT twin_objective_probes=8 probes
+RESULT twin_objective_disagreements=0 probes
+RESULT parse_format_probes=146 probes
+RESULT parse_format_disagreements=0 probes
+RESULT as_from_dict_probes=29 probes
+RESULT as_from_dict_disagreements=0 probes
+RESULT families=22 families
+RESULT disagreements_total=0 probes
+RESULT thread_factor=1.002 ratio
+RESULT load1=1.24 load
+RESULT swapins=0 count
+
+#STDERR
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty

@@ -1,0 +1,79 @@
+#tree planted-copy rc=0 s=3.4
+RESULT ref_paths=908
+RESULT ref_now=680
+RESULT ref_moved=176
+RESULT ref_gone=31
+RESULT ref_never=8
+RESULT ref_unknown=13
+RESULT ref_shas=717
+RESULT ref_sha_ok=673
+RESULT ref_sha_missing=44
+NEVER dev/programme/plan-2026-09-open-issues.md#389090c33a docs/img/a.svg
+NEVER dev/programme/plan-2026-09-open-issues.md#5faa51088f docs/arch.md
+NEVER dev/programme/plan-2026-09-open-issues.md#abaee7deb6 docs/decisions/0002
+NEVER dev/programme/plan-2026-09-open-issues.md#1211f3a6f0 docs/COMMON.md
+NEVER dev/programme/plan-2026-09-open-issues.md#1211f3a6f0 docs/Zednotes.md
+NEVER dev/programme/plan-2026-09-open-issues.md#1211f3a6f0 docs/fixer.md
+NEVER dev/programme/plan-2026-09-open-issues.md#1211f3a6f0 docs/gate-scoping.md
+NEVER dev/programme/plan-2026-09-open-issues.md#5b638c2239 tools/audit/round2/anything.py
+NOSHA dev/programme/plan-2026-09-open-issues.md#d1a85a25bc 258b245
+NOSHA dev/programme/plan-2026-09-open-issues.md#d1a85a25bc 341c596
+NOSHA dev/programme/plan-2026-09-open-issues.md#69057bd651 c969e97
+NOSHA dev/programme/plan-2026-09-open-issues.md#8045109e79 a01d738
+NOSHA dev/programme/plan-2026-09-open-issues.md#8045109e79 af8f0a3
+NOSHA dev/programme/plan-2026-09-open-issues.md#dd4503ad1d b96794f
+NOSHA dev/programme/plan-2026-09-open-issues.md#69a436b2ce 3a562d80
+NOSHA dev/programme/plan-2026-09-open-issues.md#428a5bd504 99dd454
+NOSHA dev/programme/plan-2026-09-open-issues.md#5cc1b38b80 b63470b
+NOSHA dev/programme/plan-2026-09-open-issues.md#dd9dc62068 30ac80e
+NOSHA dev/programme/plan-2026-09-open-issues.md#37848b01ae bfecbb4
+NOSHA dev/programme/plan-2026-09-open-issues.md#cee3b58fac ca366bd
+NOSHA dev/programme/plan-2026-09-open-issues.md#6701d02539 a0a573d
+NOSHA dev/programme/plan-2026-09-open-issues.md#6701d02539 cd26dd8
+NOSHA dev/programme/plan-2026-09-open-issues.md#7001a7f32c 284d6c1
+NOSHA dev/programme/plan-2026-09-open-issues.md#c845cbcf57 973c45b
+NOSHA dev/programme/plan-2026-09-open-issues.md#ae308a9113 930abac
+NOSHA dev/programme/plan-2026-09-open-issues.md#ad6445bb4f 5c75cce
+NOSHA dev/programme/plan-2026-09-open-issues.md#7c276c1639 67c55c8
+NOSHA dev/programme/plan-2026-09-open-issues.md#7883a6db7c 725a7b8
+NOSHA dev/programme/plan-2026-09-open-issues.md#18dd8874d4 e27b532
+NOSHA dev/programme/plan-2026-09-open-issues.md#0e872b905c e84ba35
+NOSHA dev/programme/plan-2026-09-open-issues.md#05f38f0eff 67e92f7
+NOSHA dev/programme/plan-2026-09-open-issues.md#7c2c5f6f15 7d36a37
+NOSHA dev/programme/plan-2026-09-open-issues.md#c452087003 ce59b5a
+NOSHA dev/programme/plan-2026-09-open-issues.md#d3e9f74595 88e35a7
+NOSHA dev/programme/plan-2026-09-open-issues.md#6fadc21e68 0d8fadc
+NOSHA dev/programme/plan-2026-09-open-issues.md#2058e3aeaf db19d29
+NOSHA dev/programme/plan-2026-09-open-issues.md#bd21b99ab2 6ce7b79
+NOSHA dev/programme/plan-2026-09-open-issues.md#c17c9fe9d3 a3d113f
+NOSHA dev/programme/plan-2026-09-open-issues.md#06ba03ca19 7c2d92c
+NOSHA dev/programme/plan-2026-09-open-issues.md#628b492c63 877a0d5
+NOSHA dev/programme/plan-2026-09-open-issues.md#5d5dc7191e 076e76c
+NOSHA dev/programme/plan-2026-09-open-issues.md#245c487cc0 1782a8b
+NOSHA dev/programme/plan-2026-09-open-issues.md#2e4c31982d 5188db3
+NOSHA dev/programme/plan-2026-09-open-issues.md#522dd61610 588c389
+NOSHA dev/programme/plan-2026-09-open-issues.md#b6b7fab842 a62e174
+NOSHA dev/programme/plan-2026-09-open-issues.md#c91e49f5a3 8e41252
+NOSHA dev/programme/plan-2026-09-open-issues.md#db1571857a 22c037bb
+NOSHA dev/programme/plan-2026-09-open-issues.md#db1571857a ef4d8da
+WRONG dev/programme/plan-2026-09-open-issues.md#de0a470338 line 2062 stale: Both forms the sentence gives are refused by verdict_sha(): a verdict line now names the 40-hex head, and a blocked one a class (`Fix review: blocked 
+WRONG dev/programme/plan-2026-09-open-issues.md#b180263d06 line 2078 stale: cross_seam_fraction is budgeted nowhere and tests/structure.py holds neither FRACTION_METRICS nor NEVER_RERECORDED: the metric and its band were retir
+WRONG dev/programme/plan-2026-09-open-issues.md#89b9bdce98 line 2142 stale: .cursor/rules holds 10 alwaysApply:true policies, not three, and Claude Code loads more than CLAUDE.md: 10 .claude/rules/*.md files load on their path
+WRONG dev/programme/plan-2026-09-open-issues.md#2450097ed2 line 2142 stale: 'all three' -- the set is 10 files, generated from dev/governance/rules/ by rules_sync.mjs.
+WRONG dev/programme/plan-2026-09-open-issues.md#531c99db25 line 2170 stale: fixer.md step 5 no longer mentions the gate lock at all: it measures the scope with closure.py select and runs what it names; the lease is gate-scopin
+WRONG dev/programme/plan-2026-09-open-issues.md#3a15803efb line 2190 false: web-fix-wave.js logs `MAIN IS RED after <group> ... stop and repair` but its merge chain (mergeGroup's mergeChain.then) never reads the previous gate:
+WRONG dev/programme/plan-2026-09-open-issues.md#3d35add018 line 2282 stale: the badge's target is now absolute (https://github.com/.../LICENSE), the repair the paragraph's own control names; it is no longer 'still unfixed'.
+WRONG dev/programme/plan-2026-09-open-issues.md#af4cfd50a9 line 2296 stale: docs/architecture.md no longer reads that text; tests/entities.py now checks architecture.md's opening counts (#939 block).
+WRONG dev/programme/plan-2026-09-open-issues.md#65c5554e89 line 2296 stale: 'no check reads it -- tests/entities.py's census covers README.md only': tests/entities.py now reads docs/architecture.md and checks its counts.
+RESULT units=2628 rows=2628
+RESULT curated_rows=30
+RESULT no_claim_rows=593
+RESULT unverifiable_rows=1976
+RESULT true_rows=21
+RESULT d2_path_rows=29
+RESULT wrong_rows=9 rows
+RESULT thread_factor=1.000
+RESULT load1=1.28
+RESULT swapins=0
+
+#STDERR

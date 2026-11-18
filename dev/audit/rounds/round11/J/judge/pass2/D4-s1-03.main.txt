@@ -1,0 +1,30 @@
+#tree planted-copy rc=0 s=81.7
+perturbations applied: 0
+media probe {"fine/reduce":[false,true],"coarse/reduce":[true,true],"fine/no-preference":[false,false],"coarse/no-preference":[true,false]}
+chromium renders written to /tmp/d4s1-qzjGQq/renders.jsonl
+RESULT renders=72 renders
+RESULT items=3 state x language items
+RESULT threw=0 renders
+RESULT missed_steps=0 steps
+RESULT contrast=0 text runs
+RESULT overflow=0 text runs
+RESULT overlap=0 run pairs
+RESULT small=0 targets
+RESULT popups=0 pop-ups
+RESULT options=0 options
+RESULT console_errors=0 messages
+RESULT strict_small=72 targets under 24 px (44 coarse), no spacing exception (D4-criteria F1)
+RESULT tab_unreached=0 elements
+RESULT focus_no_indicator=0 tab stops
+RESULT focus_invisible=0 tab stops
+RESULT tab_backward=0 consecutive Tab steps against visual order (pre-focus layout positions)
+RESULT hover_shift_renders=0 renders
+RESULT hover_shift_targets=0 hovered targets that moved other elements >0.5 px
+RESULT hover_shift_sum=0.0000 CLS
+RESULT wall=78.9 s provisional
+RESULT thread_factor=n/a (node + chromium processes; no BLAS)
+RESULT load1=1.41
+RESULT host_cpu=9.4 s provisional
+RESULT swapins=0
+
+#STDERR

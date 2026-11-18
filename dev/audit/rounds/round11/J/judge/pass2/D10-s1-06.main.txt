@@ -1,0 +1,168 @@
+#tree planted-copy rc=0 s=1783.8
+tree rc=0 log=/tmp/d10s1cov.UPpyzc/tree.log
+RESULT late_files=0 count
+script	exit	wall_s
+entities	1	34
+block_duty	1	8
+doc_claims	1	4
+wood_advisor	0	1
+config_flow_steps	1	26
+structure	0	22
+typing_ruler	0	23
+ha_contract	0	1
+manual_plan	1	49
+open_meteo	0	0
+solar_alignment	0	1
+guard_pins	1	5
+debug_collect	1	1
+finite_boundary	1	98
+deployment_shape	1	0
+golden	1	526
+validate	0	33
+boost_drift_replay	1	852
+edge	0	81
+features	1	1073
+backtest	0	170
+optimality	1	299
+plan_view	1	2
+frontend	0	0
+stress	1	389
+MODULE duty_legs.py 31.78 stmts=107 missing=73
+MODULE heat_curve.py 38.28 stmts=256 missing=158
+MODULE repairs.py 44.12 stmts=34 missing=19
+MODULE disinfection.py 47.66 stmts=128 missing=67
+MODULE services.py 56.06 stmts=355 missing=156
+MODULE draw_range.py 66.05 stmts=271 missing=92
+MODULE process_worker.py 67.31 stmts=52 missing=17
+MODULE off_restore.py 71.02 stmts=176 missing=51
+MODULE notifier.py 74.32 stmts=148 missing=38
+MODULE pump_arbiter.py 75.08 stmts=923 missing=230
+MODULE heat_energy.py 75.26 stmts=291 missing=72
+MODULE wood_fuel.py 76.16 stmts=302 missing=72
+MODULE duty_switch.py 76.59 stmts=299 missing=70
+MODULE sysid.py 77.04 stmts=823 missing=189
+MODULE supply_hold.py 80.36 stmts=56 missing=11
+MODULE climate.py 83.33 stmts=150 missing=25
+MODULE away.py 84.32 stmts=287 missing=45
+MODULE __init__.py 85.12 stmts=121 missing=18
+MODULE early_cutoff.py 85.71 stmts=154 missing=22
+MODULE switch.py 86.41 stmts=103 missing=14
+MODULE flow_meter.py 87.50 stmts=40 missing=5
+MODULE accuracy.py 89.63 stmts=434 missing=45
+MODULE slab_seed.py 89.66 stmts=29 missing=3
+MODULE price_model.py 90.23 stmts=389 missing=38
+MODULE datetime.py 91.67 stmts=24 missing=2
+MODULE coordinator.py 91.67 stmts=4118 missing=343
+MODULE dhw_learning.py 91.91 stmts=272 missing=22
+MODULE boost.py 92.64 stmts=394 missing=29
+MODULE manual_plan.py 93.98 stmts=133 missing=8
+MODULE slot_drivers.py 94.12 stmts=68 missing=4
+MODULE issues.py 94.29 stmts=35 missing=2
+MODULE mixing_valve.py 94.59 stmts=37 missing=2
+MODULE dhw_schedule.py 94.72 stmts=303 missing=16
+MODULE comfort_band.py 94.92 stmts=59 missing=3
+MODULE snapshots.py 95.24 stmts=126 missing=6
+MODULE topology.py 95.28 stmts=233 missing=11
+MODULE freq_control.py 95.30 stmts=149 missing=7
+MODULE optimizer.py 95.32 stmts=2030 missing=95
+MODULE entity.py 95.59 stmts=136 missing=6
+MODULE whatif.py 95.59 stmts=68 missing=3
+MODULE running_signal.py 95.83 stmts=96 missing=4
+MODULE wear.py 96.52 stmts=115 missing=4
+MODULE presets.py 96.77 stmts=124 missing=4
+MODULE thermal_model.py 96.78 stmts=1491 missing=48
+MODULE dhw_planner.py 96.80 stmts=687 missing=22
+MODULE battery.py 97.09 stmts=103 missing=3
+MODULE setpoint_check.py 97.22 stmts=72 missing=2
+MODULE legionella.py 97.41 stmts=309 missing=8
+MODULE debugger.py 97.49 stmts=358 missing=9
+MODULE ledger.py 97.49 stmts=279 missing=7
+MODULE tariff.py 97.53 stmts=446 missing=11
+MODULE button.py 97.56 stmts=82 missing=2
+MODULE learner_progress.py 97.75 stmts=89 missing=2
+MODULE quiet_windows.py 97.94 stmts=243 missing=5
+MODULE inputs.py 98.04 stmts=510 missing=10
+MODULE grid_fee.py 98.06 stmts=206 missing=4
+MODULE name_match.py 98.15 stmts=108 missing=2
+MODULE defrost.py 98.18 stmts=274 missing=5
+MODULE diagnosis.py 98.31 stmts=59 missing=1
+MODULE flow_lift.py 98.31 stmts=59 missing=1
+MODULE replay_doc.py 98.42 stmts=380 missing=6
+MODULE external_heat.py 98.71 stmts=232 missing=3
+MODULE dhw_draws.py 98.75 stmts=80 missing=1
+MODULE modbus_prefill.py 98.84 stmts=86 missing=1
+MODULE diagnostics.py 99.08 stmts=109 missing=1
+MODULE comfort_learning.py 99.10 stmts=111 missing=1
+MODULE runs.py 99.14 stmts=116 missing=1
+MODULE config_flow.py 99.21 stmts=1010 missing=8
+MODULE pump_signals.py 99.26 stmts=135 missing=1
+MODULE sensor.py 99.40 stmts=1160 missing=7
+MODULE const.py 99.54 stmts=656 missing=3
+MODULE store.py 99.62 stmts=263 missing=1
+MODULE batchmath.py 100.00 stmts=26 missing=0
+MODULE binary_sensor.py 100.00 stmts=131 missing=0
+MODULE currency.py 100.00 stmts=20 missing=0
+MODULE curve_learning.py 100.00 stmts=89 missing=0
+MODULE device_prefill.py 100.00 stmts=73 missing=0
+MODULE drift.py 100.00 stmts=153 missing=0
+MODULE driving_grade.py 100.00 stmts=58 missing=0
+MODULE entry_config.py 100.00 stmts=220 missing=0
+MODULE frontend.py 100.00 stmts=83 missing=0
+MODULE log_latch.py 100.00 stmts=22 missing=0
+MODULE narrative.py 100.00 stmts=41 missing=0
+MODULE open_meteo.py 100.00 stmts=221 missing=0
+MODULE payload.py 100.00 stmts=677 missing=0
+MODULE plan_slots.py 100.00 stmts=37 missing=0
+MODULE plan_step.py 100.00 stmts=8 missing=0
+MODULE power_guard.py 100.00 stmts=64 missing=0
+MODULE prefill_offer.py 100.00 stmts=18 missing=0
+MODULE price_tiles.py 100.00 stmts=105 missing=0
+MODULE pump_mode.py 100.00 stmts=61 missing=0
+MODULE pump_schedule.py 100.00 stmts=38 missing=0
+MODULE pv.py 100.00 stmts=35 missing=0
+MODULE quick_setup.py 100.00 stmts=44 missing=0
+MODULE silent_mode.py 100.00 stmts=38 missing=0
+RESULT package_percent=91.38 %
+RESULT modules=95 count
+RESULT modules_below_95=34 count
+RESULT lowest_module=duty_legs.py:31.78 %
+RESULT below_95 duty_legs.py=31.78 %
+RESULT below_95 heat_curve.py=38.28 %
+RESULT below_95 repairs.py=44.12 %
+RESULT below_95 disinfection.py=47.66 %
+RESULT below_95 services.py=56.06 %
+RESULT below_95 draw_range.py=66.05 %
+RESULT below_95 process_worker.py=67.31 %
+RESULT below_95 off_restore.py=71.02 %
+RESULT below_95 notifier.py=74.32 %
+RESULT below_95 pump_arbiter.py=75.08 %
+RESULT below_95 heat_energy.py=75.26 %
+RESULT below_95 wood_fuel.py=76.16 %
+RESULT below_95 duty_switch.py=76.59 %
+RESULT below_95 sysid.py=77.04 %
+RESULT below_95 supply_hold.py=80.36 %
+RESULT below_95 climate.py=83.33 %
+RESULT below_95 away.py=84.32 %
+RESULT below_95 __init__.py=85.12 %
+RESULT below_95 early_cutoff.py=85.71 %
+RESULT below_95 switch.py=86.41 %
+RESULT below_95 flow_meter.py=87.50 %
+RESULT below_95 accuracy.py=89.63 %
+RESULT below_95 slab_seed.py=89.66 %
+RESULT below_95 price_model.py=90.23 %
+RESULT below_95 datetime.py=91.67 %
+RESULT below_95 coordinator.py=91.67 %
+RESULT below_95 dhw_learning.py=91.91 %
+RESULT below_95 boost.py=92.64 %
+RESULT below_95 manual_plan.py=93.98 %
+RESULT below_95 slot_drivers.py=94.12 %
+RESULT below_95 issues.py=94.29 %
+RESULT below_95 mixing_valve.py=94.59 %
+RESULT below_95 dhw_schedule.py=94.72 %
+RESULT below_95 comfort_band.py=94.92 %
+RESULT thread_factor=1.0
+RESULT load1=1.00
+RESULT swapins=0
+data root: /tmp/d10s1cov.UPpyzc
+
+#STDERR

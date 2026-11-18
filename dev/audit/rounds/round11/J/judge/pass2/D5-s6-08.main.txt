@@ -1,0 +1,21 @@
+#tree planted-copy rc=0 s=12.8
+RESULT units=3781 count
+RESULT claim_rows=840 count
+RESULT false_rows=263 count
+RESULT C1-flag=1 count
+RESULT C1-count=1 count
+RESULT C2-path=9 count
+RESULT C2-cite=0 count
+RESULT C2-call=0 count
+RESULT C5-len=404 count
+RESULT C1-flag-dismissed=9 count
+RESULT C1-count-dismissed=28 count
+RESULT C2-path-dismissed=178 count
+RESULT C5_files=99 count
+RESULT C5_per_file_min=1 max=35 total_drop_max_file=369 count
+RESULT files_with_false=100 count
+RESULT thread_factor=1.00
+RESULT load1=1.32
+RESULT swapins=0
+
+#STDERR

@@ -1,0 +1,245 @@
+#tree worktree rc=0 s=0.3
+WINDOW v7.1.0..92d38ecb640b merges=569 api_failures=0
+
+(a) blocked verdicts by class word (statsHistogram key)
+  class-open                     84 verdicts   55 PRs  taught  -> engineering
+RESULT class_class-open=84 verdicts
+  mutation-vacuous               79 verdicts   59 PRs  taught  -> engineering
+RESULT class_mutation-vacuous=79 verdicts
+  ci-red                         63 verdicts   49 PRs  taught  -> orchestration
+RESULT class_ci-red=63 verdicts
+  carry-missing                  21 verdicts   19 PRs  taught  -> record-and-body
+RESULT class_carry-missing=21 verdicts
+  root-cause-unanswered          12 verdicts   12 PRs  taught  -> record-and-body
+RESULT class_root-cause-unanswered=12 verdicts
+  root-cause-detectable          11 verdicts   11 PRs  taught  -> record-and-body
+RESULT class_root-cause-detectable=11 verdicts
+  mutation-survivor               9 verdicts    9 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_mutation-survivor=9 verdicts
+  introduced-red                  8 verdicts    7 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_introduced-red=8 verdicts
+  root-cause-unrecorded           7 verdicts    6 PRs  taught  -> record-and-body
+RESULT class_root-cause-unrecorded=7 verdicts
+  harness                         7 verdicts    6 PRs  taught  -> engineering
+RESULT class_harness=7 verdicts
+  body-stale                      7 verdicts    6 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_body-stale=7 verdicts
+  mutation-survivors              5 verdicts    4 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_mutation-survivors=5 verdicts
+  architecture-unsound            5 verdicts    4 PRs  taught  -> engineering
+RESULT class_architecture-unsound=5 verdicts
+  merge-conflict                  5 verdicts    5 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_merge-conflict=5 verdicts
+  defect                          5 verdicts    4 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_defect=5 verdicts
+  metric-gamed                    5 verdicts    3 PRs  taught  -> engineering
+RESULT class_metric-gamed=5 verdicts
+  claim-refuted                   4 verdicts    4 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_claim-refuted=4 verdicts
+  ci-cancelled                    4 verdicts    4 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-cancelled=4 verdicts
+  self-test-red                   3 verdicts    2 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_self-test-red=3 verdicts
+  regression                      3 verdicts    3 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_regression=3 verdicts
+  figure-wrong                    3 verdicts    3 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_figure-wrong=3 verdicts
+  gate-red                        3 verdicts    3 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_gate-red=3 verdicts
+  policy-unapproved               3 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_policy-unapproved=3 verdicts
+  figures-uncited                 3 verdicts    2 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_figures-uncited=3 verdicts
+  tests-gap                       2 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_tests-gap=2 verdicts
+  evidence-cut                    2 verdicts    2 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_evidence-cut=2 verdicts
+  doc-claim-false                 2 verdicts    2 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_doc-claim-false=2 verdicts
+  main-conflict                   2 verdicts    2 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_main-conflict=2 verdicts
+  census-misclassified            2 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_census-misclassified=2 verdicts
+  head-moved                      2 verdicts    2 PRs  taught  -> orchestration
+RESULT class_head-moved=2 verdicts
+  ci-pending                      2 verdicts    2 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-pending=2 verdicts
+  red-checks                      2 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_red-checks=2 verdicts
+  owner-words                     2 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_owner-words=2 verdicts
+  caused-by-unwritable            1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_caused-by-unwritable=1 verdicts
+  caused-by-overbroad             1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_caused-by-overbroad=1 verdicts
+  scope-overlap                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_scope-overlap=1 verdicts
+  findings-unresolved             1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_findings-unresolved=1 verdicts
+  sufficiency                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_sufficiency=1 verdicts
+  mutant-committed                1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_mutant-committed=1 verdicts
+  figure-mislabelled              1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_figure-mislabelled=1 verdicts
+  conflict                        1 verdicts    1 PRs  taught  -> orchestration
+RESULT class_conflict=1 verdicts
+  equivalence-refuted             1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_equivalence-refuted=1 verdicts
+  evidence-comment                1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_evidence-comment=1 verdicts
+  comment-evidence                1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_comment-evidence=1 verdicts
+  reference-basis-unbumped        1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_reference-basis-unbumped=1 verdicts
+  red-unanswered                  1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_red-unanswered=1 verdicts
+  body                            1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_body=1 verdicts
+  under-scoped                    1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_under-scoped=1 verdicts
+  pin-missing                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_pin-missing=1 verdicts
+  claim-false                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_claim-false=1 verdicts
+  dropped-entries                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_dropped-entries=1 verdicts
+  carry-dismissal-unsupported     1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_carry-dismissal-unsupported=1 verdicts
+  body-not-applied                1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_body-not-applied=1 verdicts
+  prior-findings-open             1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_prior-findings-open=1 verdicts
+  harness-vacuous                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_harness-vacuous=1 verdicts
+  regression-unmeasured           1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_regression-unmeasured=1 verdicts
+  trace-gap                       1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_trace-gap=1 verdicts
+  null-control-leak               1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_null-control-leak=1 verdicts
+  selftest-scope-ungated          1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_selftest-scope-ungated=1 verdicts
+  part-topic-collision            1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_part-topic-collision=1 verdicts
+  flaky-harness                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_flaky-harness=1 verdicts
+  scope-rule-widened              1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_scope-rule-widened=1 verdicts
+  stale-base                      1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_stale-base=1 verdicts
+  config-attack                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_config-attack=1 verdicts
+  own-row-not-generated           1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_own-row-not-generated=1 verdicts
+  robustness                      1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_robustness=1 verdicts
+  resolution-ungated-step         1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_resolution-ungated-step=1 verdicts
+  ci-incomplete                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-incomplete=1 verdicts
+  semantic-conflict               1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_semantic-conflict=1 verdicts
+  ci-unsettled                    1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-unsettled=1 verdicts
+  ci-deferral-red                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-deferral-red=1 verdicts
+  mutant-survives                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_mutant-survives=1 verdicts
+  rule-conflict                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_rule-conflict=1 verdicts
+  carry-unmet                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_carry-unmet=1 verdicts
+  countermeasure-unsound          1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_countermeasure-unsound=1 verdicts
+  settle-unjudged                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_settle-unjudged=1 verdicts
+  instrument-broken               1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_instrument-broken=1 verdicts
+  citation-false                  1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_citation-false=1 verdicts
+  wait-cycle                      1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_wait-cycle=1 verdicts
+  selftest-red                    1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_selftest-red=1 verdicts
+  carry-unanswered                1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_carry-unanswered=1 verdicts
+  over-fire                       1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_over-fire=1 verdicts
+  owner-ruling-contradicted       1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_owner-ruling-contradicted=1 verdicts
+  beyond-card                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_beyond-card=1 verdicts
+  pr-closed                       1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_pr-closed=1 verdicts
+  citation-wrong                  1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_citation-wrong=1 verdicts
+  ci-red-cancelled                1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_ci-red-cancelled=1 verdicts
+  ratchet-grown                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_ratchet-grown=1 verdicts
+  pr-contract-red                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_pr-contract-red=1 verdicts
+  owner-stale                     1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_owner-stale=1 verdicts
+  merge-semantics                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_merge-semantics=1 verdicts
+  requirement-unmet               1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_requirement-unmet=1 verdicts
+  body-carry-missing              1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_body-carry-missing=1 verdicts
+  carry-over-wide                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_carry-over-wide=1 verdicts
+  unpinned-site                   1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_unpinned-site=1 verdicts
+  suite-red                       1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_suite-red=1 verdicts
+  rule-lost                       1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_rule-lost=1 verdicts
+  claim-stronger-than-check       1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_claim-stronger-than-check=1 verdicts
+  raise-unjustified               1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_raise-unjustified=1 verdicts
+  scope-incomplete                1 verdicts    1 PRs  UNTAUGHT (own row)  -> orchestration
+RESULT class_scope-incomplete=1 verdicts
+  swap-void-undone                1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_swap-void-undone=1 verdicts
+  mutation-unpinned               1 verdicts    1 PRs  UNTAUGHT (own row)  -> engineering
+RESULT class_mutation-unpinned=1 verdicts
+  figure-false                    1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_figure-false=1 verdicts
+  stale-reference                 1 verdicts    1 PRs  UNTAUGHT (own row)  -> record-and-body
+RESULT class_stale-reference=1 verdicts
+  null-control                    0
+  claims                          0
+  version                         0
+  preflight-mismatch              0
+  other                           0
+  product-tradeoff-regression     0
+
+(b) by bucket
+  engineering              259
+RESULT bucket_engineering=259 verdicts
+  orchestration            95
+RESULT bucket_orchestration=95 verdicts
+  record-and-body          94
+RESULT bucket_record_and_body=94 verdicts
+RESULT blocked_verdicts=448 verdicts
+RESULT untaught_blocked=151 verdicts
+RESULT untaught_share=0.337 ratio
+RESULT untaught_words=92 words
+RESULT untaught_prs=119 pull_requests
+  bus.sh MECHANICAL_CLASSES (12): ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated
+  of them outside VERDICT_CLASSES (8): ci-wait ci-pending ci-cancelled red-unanswered body contract carry ungated
+RESULT bus_mechanical_not_in_wave=8 words
+RESULT untaught_in_bus_vocabulary=8 verdicts (ci-cancelled:4 ci-pending:2 red-unanswered:1 body:1)
+RESULT class_other_routed=151 verdicts (parseVerdict routes an untaught word to `other`)
+RESULT merge_verdicts=647 verdicts
+RESULT outside_grammar=0 lines
+RESULT engineering_max_class=84 verdicts
+RESULT record_and_body_total=94 verdicts
+RESULT thread_factor=1.00
+RESULT load1=2.66
+RESULT swapins=0
+
+#STDERR

@@ -1,0 +1,10 @@
+#tree worktree rc=0 s=22.4
+RESULT cycles=96 unit=count
+RESULT observe_bias_calls=0 unit=count
+RESULT ring_days_counted=0 unit=count
+RESULT stored_last_day_set=0 unit=flag
+RESULT thread_factor=1.000 unit=ratio
+RESULT load1=2.03 unit=load
+RESULT swapins=n/a unit=count
+
+#STDERR

@@ -1,0 +1,52 @@
+#tree worktree rc=0 s=4.9
+partial k_lift=2.0: {"k_lift": 2.0, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 3.229, "power_error": 0.0764, "starts": 1, "planned_runs": 1, "per_step_kw": [3.99, 5.0, 4.666, 3.326, 2.846, 2.995, 3.0, 3.0, 3.0, 3.0]}
+partial k_lift=3.5: {"k_lift": 3.5, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 3.142, "power_error": 0.0475, "starts": 1, "planned_runs": 1, "per_step_kw": [3.416, 3.468, 3.139, 3.143, 3.143, 3.143, 3.143, 3.143, 3.143, 3.143]}
+partial k_lift=5.0: {"k_lift": 5.0, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 3.0, "power_error": -0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [2.669, 2.998, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]}
+partial k_lift=6.5: {"k_lift": 6.5, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 2.769, "power_error": -0.0769, "starts": 1, "planned_runs": 1, "per_step_kw": [2.206, 2.736, 2.769, 2.769, 2.769, 2.769, 2.769, 2.769, 2.769, 2.769]}
+partial k_lift=8.0: {"k_lift": 8.0, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 2.738, "power_error": -0.0873, "starts": 1, "planned_runs": 1, "per_step_kw": [1.842, 2.287, 2.656, 2.749, 2.75, 2.75, 2.75, 2.75, 2.75, 2.75]}
+partial k_lift=10.0: {"k_lift": 10.0, "h_start": 2.0, "kind": "partial", "booked_kw": 3.0, "measured_kw": 2.445, "power_error": -0.1848, "starts": 1, "planned_runs": 1, "per_step_kw": [1.51, 1.834, 2.135, 2.43, 2.499, 2.5, 2.5, 2.5, 2.5, 2.5]}
+min-cold-tank k_lift=2.0: {"k_lift": 2.0, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 1.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [1.79, 1.358, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
+min-cold-tank k_lift=3.5: {"k_lift": 3.5, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 1.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [1.241, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
+min-cold-tank k_lift=5.0: {"k_lift": 5.0, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 1.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [1.005, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
+min-cold-tank k_lift=6.5: {"k_lift": 6.5, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 1.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [0.951, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
+min-cold-tank k_lift=8.0: {"k_lift": 8.0, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 0.602, "power_error": -0.3985, "starts": 30, "planned_runs": 1, "per_step_kw": [0.606, 0.602, 0.602, 0.602, 0.602, 0.602, 0.602, 0.602, 0.602, 0.602]}
+min-cold-tank k_lift=10.0: {"k_lift": 10.0, "h_start": 2.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 0.5, "power_error": -0.5, "starts": 38, "planned_runs": 1, "per_step_kw": [0.533, 0.467, 0.467, 0.533, 0.533, 0.467, 0.467, 0.533, 0.533, 0.467]}
+full k_lift=2.0: {"k_lift": 2.0, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 5.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [4.238, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]}
+full k_lift=3.5: {"k_lift": 3.5, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 5.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [4.217, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]}
+full k_lift=5.0: {"k_lift": 5.0, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 5.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [4.195, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]}
+full k_lift=6.5: {"k_lift": 6.5, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 3.846, "power_error": -0.2308, "starts": 1, "planned_runs": 1, "per_step_kw": [3.48, 3.848, 3.846, 3.846, 3.846, 3.846, 3.846, 3.846, 3.846, 3.846]}
+full k_lift=8.0: {"k_lift": 8.0, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 3.125, "power_error": -0.375, "starts": 1, "planned_runs": 1, "per_step_kw": [2.901, 3.128, 3.125, 3.125, 3.125, 3.125, 3.125, 3.125, 3.125, 3.125]}
+full k_lift=10.0: {"k_lift": 10.0, "h_start": 2.0, "kind": "full", "booked_kw": 5.0, "measured_kw": 2.5, "power_error": -0.5, "starts": 1, "planned_runs": 1, "per_step_kw": [2.376, 2.499, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5]}
+min-cold-tank h_start=7.0 hysteresis entity=False: {"k_lift": 5.0, "h_start": 7.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 0.0, "power_error": -1.0, "starts": 0, "planned_runs": 1, "per_step_kw": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+min-cold-tank h_start=7.0 hysteresis entity=True: {"k_lift": 5.0, "h_start": 7.0, "kind": "min-cold-tank", "booked_kw": 1.0, "measured_kw": 1.0, "power_error": 0.0, "starts": 1, "planned_runs": 1, "per_step_kw": [1.165, 1.002, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
+RESULT partial_abs_power_error_mean=0.0788 ratio over 6 plants
+RESULT partial_loo_min=0.0000 partial_loo_max=0.1848 partial_loo_drop_most_favourable=0.0576
+RESULT partial_null_k5_power_error=-0.0000 ratio
+RESULT partial_starts_over_runs=6/6 count
+RESULT partial_k2.0_starts=1 count measured_kw=3.229
+RESULT partial_k3.5_starts=1 count measured_kw=3.142
+RESULT partial_k5.0_starts=1 count measured_kw=3.0
+RESULT partial_k6.5_starts=1 count measured_kw=2.769
+RESULT partial_k8.0_starts=1 count measured_kw=2.738
+RESULT partial_k10.0_starts=1 count measured_kw=2.445
+RESULT min-cold-tank_abs_power_error_mean=0.1498 ratio over 6 plants
+RESULT min-cold-tank_loo_min=0.0000 min-cold-tank_loo_max=0.5000 min-cold-tank_loo_drop_most_favourable=0.0797
+RESULT min-cold-tank_null_k5_power_error=0.0000 ratio
+RESULT min-cold-tank_starts_over_runs=72/6 count
+RESULT min-cold-tank_k2.0_starts=1 count measured_kw=1.0
+RESULT min-cold-tank_k3.5_starts=1 count measured_kw=1.0
+RESULT min-cold-tank_k5.0_starts=1 count measured_kw=1.0
+RESULT min-cold-tank_k6.5_starts=1 count measured_kw=1.0
+RESULT min-cold-tank_k8.0_starts=30 count measured_kw=0.602
+RESULT min-cold-tank_k10.0_starts=38 count measured_kw=0.5
+dhw-only tank=47.0 hysteresis entity=False: {"tank0": 47.0, "hyst_entity": false, "booked_kwh": 1.25, "delivered_kwh": 0.0, "dhw_starts": 0, "dhw_setpoint_written": "50", "ledger": ["delivered", "idle-instead", "idle-instead"]}
+RESULT dhw_only_tank47_ent0_delivered_share=0.0000 ratio starts=0
+dhw-only tank=47.0 hysteresis entity=True: {"tank0": 47.0, "hyst_entity": true, "booked_kwh": 1.25, "delivered_kwh": 0.0, "dhw_starts": 0, "dhw_setpoint_written": "50", "ledger": ["delivered", "not-startable", "not-startable"]}
+RESULT dhw_only_tank47_ent1_delivered_share=0.0000 ratio starts=0
+dhw-only tank=40.0 hysteresis entity=False: {"tank0": 40.0, "hyst_entity": false, "booked_kwh": 1.25, "delivered_kwh": 0.792, "dhw_starts": 1, "dhw_setpoint_written": "50", "ledger": ["delivered", "delivered", "delivered"]}
+RESULT dhw_only_tank40_ent0_delivered_share=0.6336 ratio starts=1
+RESULT thread_factor=1.000
+RESULT load1=1.95
+RESULT swapins=0
+
+#STDERR

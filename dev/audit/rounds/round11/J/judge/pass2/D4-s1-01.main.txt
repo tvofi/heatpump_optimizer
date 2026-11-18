@@ -1,0 +1,22 @@
+#tree planted-copy rc=0 s=57.9
+total 152
+drwx------    2 root root   4096 Nov 18 05:46 .
+drwxrwxrwt 2557 root root 102400 Nov 18 05:46 ..
+-rw-r--r--    1 root root  41860 Nov 18 05:46 plan.json
+  1280/coarse: pipes 96, band 0..5.75 px
+  1280/fine: pipes 96, band 0..5.75 px
+  375/coarse: pipes 96, band 0..2.75 px
+  375/fine: pipes 96, band 0..2.75 px
+  768/coarse: pipes 96, band 0..3.25 px
+  768/fine: pipes 96, band 0..3.25 px
+RESULT renders=144 renders
+RESULT pipes=576 pipe targets
+RESULT pipe_hit_under_floor=576 pipes under 24 px (44 coarse)
+RESULT pipe_hit_min_px=0 px
+RESULT pipe_hit_max_px=5.75 px
+RESULT port_hit_median_px=30.5 px (null control: the layout-port-hit targets the card sized, same scan)
+RESULT thread_factor=1 (no BLAS; node + chromium)
+RESULT load1=2.29
+RESULT swapins=0
+
+#STDERR
