@@ -25,3 +25,4 @@
 1795015546 CKPT census registered c8950908d2 snapshot 9f417c7350af
 1795015766 DONE returned c8950908: barrier reach closed for all 7 review shapes, census for unused_package_imports
 1795025173 HB alive
+1795025177 CKPT resumed at 5fe13702; reading verdict/3729 block snapshot 5d5cb5cdb0ba
