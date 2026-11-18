@@ -95010,11 +95010,13 @@ _hdr_trickle = np.zeros(_HDR_N)
 _hdr_trickle[[6, 14, 22, 29]] = 0.6
 R.check(
     "unengaged (no start priced, an install that can duty-cycle) the optimizer hands the planner no "
-    "ChargeRuns, engaged it hands the cost, the running reading and the clamp; a planner handed none "
-    "returns the plan it was given, the same object",
+    "ChargeRuns, engaged it hands the start price the solve plans with (a clamped install configured "
+    "at zero: the clamped default, never the raw configured zero), the running reading and the clamp; a "
+    "planner handed none returns the plan it was given, the same object",
     _hdr_om._charge_runs(_hdr_free_opt, True) is None
     and _hdr_om._charge_runs(_hsr_opt(0.25, False, 1.1), True) == (0.25, True, False)
-    and _hdr_om._charge_runs(_hsr_opt(0.0, True, 1.1), False) == (0.0, False, True)
+    and _hdr_om._charge_runs(_hsr_opt(0.0, True, 1.1), False)
+    == (_hdr_om.CLAMPED_DEFAULT_START_PRICE, False, True)
     and _hdr_commit(_hdr_none, _hdr_trickle, 50.0) is _hdr_trickle,
     f"{_hdr_om._charge_runs(_hsr_opt(0.25, False, 1.1), True)}",
 )
