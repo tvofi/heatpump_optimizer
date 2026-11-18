@@ -5301,15 +5301,14 @@ _HA_FREE_CLAIM = re.compile(
 #: A claim whose subject is another module: config_flow's ``_device_records``
 #: docstring says ``device_prefill`` stays free of Home Assistant imports.
 _HA_FREE_SUBJECT = {"config_flow": "device_prefill"}
-#: ADR-002 part 1 (round 11, D7-s1-06): the pure modules that reached Home
-#: Assistant only through accuracy.py's re-export of drift's clock helper, its
-#: HISTORY_LENGTH constant, or currency.py's annotation-only import -- and the
-#: three owners they now import from. sysid stays out: it still rides on
-#: quiet_windows -> inputs, ADR-002 part 2's (R11-SEAM-inputs-freshness).
-_KERNEL_PURE = (
-    "comfort_learning", "external_heat", "power_guard", "tariff", "optimizer",
-    "topology", "grid_fee", "currency", "drift", "const",
-)
+#: ADR-002 (round 11, D7-s1-06): a module that imports no Home Assistant
+#: itself imports without it, through its whole closure. Part 3 keeps two that
+#: reach it through glue imported at module level: setpoint_check (issues) and
+#: snapshots (store). Part 2's four ride on inputs.py's function-scope clock
+#: import, which an import does not execute, so they import cleanly here; the
+#: architecture score's layering metric counts them. An entry that imports
+#: cleanly is stale and refused, so the set only shrinks.
+_HA_REACHED_THROUGH_GLUE = frozenset({"setpoint_check", "snapshots"})
 #: Null control: a module that imports Home Assistant itself must fail under
 #: the same refusal, or the refusal is not running.
 _HA_GLUE_ANCHOR = "accuracy"
@@ -5354,6 +5353,30 @@ def _imports_without_ha(modules):
     return out
 
 
+def _imports_ha_itself(path):
+    """Does the module import ``homeassistant`` anywhere in its own source,
+    an import under ``if TYPE_CHECKING:`` (annotation only) excepted?"""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    typing_only = set()
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.If) and isinstance(node.test, ast.Name)
+                and node.test.id == "TYPE_CHECKING"):
+            for sub in node.body:
+                typing_only.update(id(n) for n in ast.walk(sub))
+    for node in ast.walk(tree):
+        if id(node) in typing_only:
+            continue
+        if isinstance(node, ast.Import):
+            names = [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            names = [node.module or ""]
+        else:
+            continue
+        if any(n == "homeassistant" or n.startswith("homeassistant.") for n in names):
+            return True
+    return False
+
+
 def check_ha_free_imports():
     """D5-s3-01, D7-s1-06: a module said to be free of Home Assistant imports
     imports with Home Assistant absent, through its whole import closure.
@@ -5373,7 +5396,16 @@ def check_ha_free_imports():
         "grid_fee" in claimed,
         f"claimed={sorted(claimed)}",
     )
-    modules = sorted(set(claimed) | set(_KERNEL_PURE) | {_HA_GLUE_ANCHOR})
+    own_free = sorted(
+        path.stem for path in pkg.glob("*.py")
+        if path.stem != "__init__" and not _imports_ha_itself(path)
+    )
+    R.check(
+        "the own-import-free set is derived (anchors: grid_fee in it, accuracy out)",
+        "grid_fee" in own_free and _HA_GLUE_ANCHOR not in own_free,
+        f"{len(own_free)} modules",
+    )
+    modules = sorted(set(claimed) | set(own_free) | {_HA_GLUE_ANCHOR})
     got = _imports_without_ha(modules)
     R.check(
         "null control: a module importing Home Assistant itself fails under the refusal",
@@ -5386,12 +5418,19 @@ def check_ha_free_imports():
             got.get(mod) == "OK",
             f"{mod}: {got.get(mod)!r}",
         )
-    for mod in _KERNEL_PURE:
-        R.check(
-            f"{mod} imports without Home Assistant: its clock, constants and currency come from pure owners (ADR-002 part 1, D7-s1-06)",
-            got.get(mod) == "OK",
-            f"{mod}: {got.get(mod)!r}",
-        )
+    reached = sorted(m for m in own_free if got.get(m) != "OK")
+    R.check(
+        "a module importing no Home Assistant itself imports without it, but for "
+        "ADR-002's named glue-reached set (D7-s1-06)",
+        set(reached) <= _HA_REACHED_THROUGH_GLUE,
+        f"reached beyond the set: {sorted(set(reached) - _HA_REACHED_THROUGH_GLUE)}",
+    )
+    R.check(
+        "every entry of ADR-002's glue-reached set still needs Home Assistant "
+        "(a cleared entry leaves the set)",
+        _HA_REACHED_THROUGH_GLUE <= set(reached),
+        f"cleared, remove from the set: {sorted(_HA_REACHED_THROUGH_GLUE - set(reached))}",
+    )
 
 
 def main() -> int:
