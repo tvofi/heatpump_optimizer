@@ -1,0 +1,12 @@
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index b274738b50..69931d4e2e 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -2011,7 +2011,6 @@ _A6_GONE = object()  # a leaf the load dropped
+ #: that costs any other leaf, one listed here whose cost grew past its entry,
+ #: and an entry whose field no longer costs one (stale: delete it).
+ _A6_CELL_SPENT = {
+-    "accuracy:accuracy/draw/idle/#": 1,
+     "accuracy:accuracy/lead_pending/#/#": 2,
+     "accuracy:accuracy/samples/#/t": 11,
+     "accuracy:comfort/configured_weight": 8,
