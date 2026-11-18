@@ -64,7 +64,6 @@ receives the coordinator itself, except :func:`state_for`, which keys on it.
 """
 from __future__ import annotations
 
-import bisect
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -80,6 +79,7 @@ from .boost import CHANNEL_DHW, CHANNEL_SPACE, BoostState
 from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
+from .plan_step import plan_step_index
 from .pump_arbiter import ArbiterInputs, step_duty, supply_switch, switch_supply
 from .runs import MIN_PAUSE, MIN_RUN
 from .supply_hold import switch_age, tank_reason
@@ -256,9 +256,9 @@ def _planned_room(plan: Any, now: datetime) -> list[float]:
     solve measured, so a room already warm at the solve would raise its own
     threshold and the cut-off could never act on it.
     """
-    i = bisect.bisect_right(list(getattr(plan, "timestamps", None) or []), now) - 1
+    i = plan_step_index(plan, now)
     trajectory = list(getattr(plan, "room_temp_trajectory", None) or [])
-    return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else []
+    return [float(trajectory[i + 1])] if i is not None and i < len(trajectory) - 1 else []
 
 
 def _cycle_guard(inp: ArbiterInputs, held: CutoffState, now: datetime) -> str | None:

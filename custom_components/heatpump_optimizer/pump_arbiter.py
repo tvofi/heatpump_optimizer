@@ -147,7 +147,6 @@ what the plan wanted.
 from __future__ import annotations
 
 import asyncio
-import bisect
 import logging
 import math
 from collections import Counter, deque
@@ -199,7 +198,7 @@ from .inputs import (
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
-from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
+from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -527,7 +526,7 @@ def step_duty(result: Any, now: datetime) -> str | None:
     the loop, so the harm was the channel and the second piece of state that
     kept it clean, not a live race.
     """
-    i = _step_index(result, now)
+    i = plan_step_index(result, now)
     if i is None:
         return None
     space = list(result.power_schedule or [])
@@ -538,19 +537,6 @@ def step_duty(result: Any, now: datetime) -> str | None:
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
-
-
-def _step_index(result: Any, now: datetime) -> int | None:
-    """The index of the plan step covering ``now``, or ``None`` outside the plan.
-
-    A step covers [stamp, stamp + one plan step): the last one ends where the
-    next would start, the same half-open rule bisect gives every other step.
-    """
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
-        return None
-    return i
 
 
 def own(coord: Any, signals: Any) -> Any:
@@ -611,11 +597,10 @@ def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
 def _planned_room(
     result: Any, now: datetime, attr: str = "optimal_setpoints"
 ) -> float | None:
-    """The plan series ``attr`` for the step covering ``now``."""
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
+    """The plan series ``attr`` for the step covering ``now``, ``None`` outside the plan."""
+    i = plan_step_index(result, now)
     points = list(getattr(result, attr, None) or [])
-    return points[i] if 0 <= i < len(points) else None
+    return points[i] if i is not None and i < len(points) else None
 
 
 def _space_target(
@@ -1939,7 +1924,9 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
             or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
         return duty
     result = inp.plan
-    i = bisect.bisect_right(result.timestamps, now) - 1
+    i = plan_step_index(result, now)
+    if i is None:
+        return duty
     start = result.timestamps[i]
     return duty_switch.both_step_duty(
         duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
@@ -2011,7 +1998,7 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
         return None
     if boosts.active(boost.CHANNEL_SPACE, now) or boosts.active(boost.CHANNEL_DHW, now):
         return True
-    i = _step_index(inp.plan, now)
+    i = plan_step_index(inp.plan, now)
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 

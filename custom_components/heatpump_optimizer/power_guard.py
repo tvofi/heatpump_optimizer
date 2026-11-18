@@ -33,6 +33,7 @@ from datetime import datetime
 import numpy as np
 
 from .accuracy import utc_elapsed_seconds
+from .drift import EvidenceNotes
 
 #: Consecutive agreeing projections needed to engage or release.
 HYSTERESIS_SAMPLES = 2
@@ -67,7 +68,7 @@ def project_window_mean(
 
 
 @dataclass
-class GuardState:
+class GuardState(EvidenceNotes):
     """The guard's memory between meter events."""
 
     #: Whether electric DHW is currently being held back.
@@ -153,7 +154,3 @@ class GuardState:
                 )
                 return True
         return window_changed
-
-    def _note(self, now: datetime, text: str) -> None:
-        self.evidence.append(f"{now.isoformat(timespec='seconds')}: {text}")
-        del self.evidence[:-6]

@@ -40,6 +40,7 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
     SOLAR_APERTURE_MIN_SAMPLES,
+    WATER_SPECIFIC_HEAT,
 )
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
@@ -3017,7 +3018,7 @@ def _gap_probe_terms(
     terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
     terms["outdoor_hours"] = 24.0 * 30.0 * duty
     terms["outdoor_price"] = rate
-    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    terms["dhw_extra_kwh"] = volume * band * WATER_SPECIFIC_HEAT * 30.0
     terms["dhw_price"] = rate
     return terms
 

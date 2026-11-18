@@ -26,10 +26,10 @@ Three things carry subtle intent and are worth stating once here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
-from .drift import utc_shift
+from .drift import utc_instant, utc_shift
 from .const import MANUAL_PLAN_WINDOW_HOURS
 from .payload import ReleasedStep
 
@@ -64,9 +64,7 @@ class ManualPlanError(ValueError):
 
 def _instant(when: datetime) -> float:
     """``when`` as epoch seconds; a naive stamp keeps its wall order (read as UTC)."""
-    if when.tzinfo is not None:
-        return when.timestamp()
-    return when.replace(tzinfo=timezone.utc).timestamp()
+    return utc_instant(when).timestamp()
 
 
 def _coerce_awareness(value: datetime, reference: datetime) -> datetime:

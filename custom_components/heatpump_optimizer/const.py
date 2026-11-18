@@ -201,8 +201,13 @@ POWER_UNIT_TO_KW: Final = {
 
 #: Water density the flow conversion uses, kg per litre (#2016).
 WATER_KG_PER_L: Final = 0.998
-#: Water's specific heat, kJ per kg per K (#2016).
-WATER_CP_KJ_PER_KG_K: Final = 4.186
+#: The heat that warms one litre of water by one kelvin, kWh per litre per K:
+#: the package's one value of it (round-11 D7-s3-04). The tank-geometry helpers
+#: and ``thermal_model`` read it here rather than the reverse.
+WATER_SPECIFIC_HEAT: Final = 0.00116
+#: The same heat per kilogram in kJ, for a flow read in kg/s (#2016): derived,
+#: never a second value -- a literal 4.186 here read 0.04 % off the tank's.
+WATER_CP_KJ_PER_KG_K: Final = WATER_SPECIFIC_HEAT * 3600.0 / WATER_KG_PER_L
 #: Flow units the flow meter may report in, normalised to kg/s: a volume rate
 #: goes through :data:`WATER_KG_PER_L`. An unlisted unit is no reading, never
 #: a guess.
@@ -1451,9 +1456,8 @@ BUFFER_COOLING_RATE_MAX: Final = 30.0  # °C/h
 # six hours from a 26.1 kWh charge -- 168 % of the charge. The clamp floor is
 # worse than the default, because it stops the *learner* from ever finding the
 # truth: at 0.5 °C/h a 750 L tank still models 17 W/K against a real ~2 W/K.
-# Canonical home for this: the tank-geometry helpers below need it, and
-# `thermal_model` imports from here rather than the reverse.
-WATER_SPECIFIC_HEAT: Final = 0.00116  # kWh per litre per K
+# The heat capacity these tanks are modelled with is :data:`WATER_SPECIFIC_HEAT`,
+# defined once beside the water density above.
 
 
 # Bounds on how well or badly a tank can physically be insulated, in W/m2K.

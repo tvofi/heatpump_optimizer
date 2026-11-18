@@ -36,8 +36,14 @@ STAT_CAP_FACTOR = 1.5
 REFERENCE_PRIOR_COV = 1.0
 
 
-def _as_utc(value: datetime) -> datetime:
-    """Home Assistant's ``as_utc`` rule: naive is UTC, aware is converted."""
+def utc_instant(value: datetime) -> datetime:
+    """``value`` as an aware UTC instant: naive is read as UTC, aware is converted.
+
+    The package's one reading of a naive instant's zone (round-11 D7-s3-04):
+    the stored and solver stamps are UTC-walked, so a naive one is UTC, never
+    the host's zone -- ``open_meteo`` read it with ``astimezone`` and landed
+    nine hours off under a Tokyo host.
+    """
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
@@ -51,7 +57,7 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
     both to UTC first measures the instants. A naive pair keeps its wall
     difference, which is what the identity-zone test clock means by it.
     """
-    return (_as_utc(newer) - _as_utc(older)).total_seconds()
+    return (utc_instant(newer) - utc_instant(older)).total_seconds()
 
 
 def utc_shift(when: datetime, delta: timedelta) -> datetime:
@@ -126,8 +132,28 @@ def stored_age_seconds(raw: Any, now: datetime) -> float | None:
     return age if age >= 0.0 else None
 
 
+#: Evidence lines a detector keeps, newest last.
+EVIDENCE_KEEP = 6
+
+
+class EvidenceNotes:
+    """The evidence log a detector publishes: timestamped lines, the newest few kept.
+
+    The one owner of the line's shape and of the cap (round-11 D7-s1-05, the
+    ``note`` arm). The drift detectors and the peak guard publish the same
+    list, so they write it through the same method; each subclass declares
+    its own ``evidence`` field.
+    """
+
+    evidence: list[str]
+
+    def _note(self, when: datetime, text: str) -> None:
+        self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
+        del self.evidence[:-EVIDENCE_KEEP]
+
+
 @dataclass
-class Cusum:
+class Cusum(EvidenceNotes):
     """A one-sided CUSUM with a drift allowance and hysteresis release.
 
     ``update`` folds one residual; the statistic accumulates
@@ -283,10 +309,6 @@ class Cusum:
         )
         return True
 
-    def _note(self, when: datetime, text: str) -> None:
-        self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
-        del self.evidence[:-6]
-
     def as_dict(self) -> dict[str, Any]:
         data = {
             "stat": round(self.stat, 4),
@@ -322,7 +344,7 @@ class Cusum:
         self.tripped = data.get("tripped") is True
         raw = data.get("evidence")
         if isinstance(raw, list):
-            self.evidence = [str(e) for e in raw[-6:]]
+            self.evidence = [str(e) for e in raw[-EVIDENCE_KEEP:]]
         raw_fed = data.get("last_fed")
         if isinstance(raw_fed, str):
             self.last_fed = stored_instant(raw_fed)

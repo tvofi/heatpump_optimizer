@@ -284,7 +284,7 @@ from .price_model import (
 from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
-from .plan_step import PLAN_STEP_MINUTES, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -590,24 +590,6 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     return ts
 
 
-def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
-    """The index of the entry whose ``[start, end)`` covers ``now``, or None.
-
-    ``starts`` is sorted. An entry ends where the next begins; the last ends
-    one predecessor's span after its own start (``lone_span`` when it is the
-    only entry), so a series its source stopped extending stops covering now
-    (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
-    entry current forever, and a stale price was published and booked). Before
-    the first entry nothing covers ``now`` either; a caller wanting the head
-    there says so itself. ``_known_prices_for``'s end rule, extracted.
-    """
-    i = bisect_right(starts, now) - 1
-    if i < 0 or i + 1 < len(starts):
-        return None if i < 0 else i
-    span = starts[i] - starts[i - 1] if i > 0 else lone_span
-    return i if now < starts[i] + span else None
-
-
 #: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
 #: leaf module, so the pump arbiter and the input reader can route a persisting
 #: condition through it without importing this module (which imports them all).
@@ -784,7 +766,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
     )
     if timed:
         starts = [ts for ts, _ in timed]
-        index = 0 if now < starts[0] else _covering_index(starts, now, timedelta(hours=1))
+        index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
         if index is None:
             return None
         entry = timed[index][1]
@@ -2546,7 +2528,7 @@ def _open_loop_plan_value(
         return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
     # The step covering ``now``; past the plan's last step the plan says
     # nothing (#2229: it seeded a 47 h old prediction as the tank's state).
-    index = _covering_index(starts, now_s, FORECAST_STEP.total_seconds())
+    index = covering_index(starts, now_s, FORECAST_STEP.total_seconds())
     return None if index is None else float(trajectory[index])
 
 
@@ -7293,7 +7275,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         starts = [ts for ts, _ in entries]
         known: list[float] = []
         for step_start in step_starts:
-            idx = _covering_index(starts, step_start, timedelta(hours=1))
+            idx = covering_index(starts, step_start, timedelta(hours=1))
             if idx is None:
                 break
             known.append(entries[idx][1])

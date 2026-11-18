@@ -3897,6 +3897,21 @@ def _p2_proxies(sources):
     return out
 
 
+#: Water's heat capacity as a literal, in any unit the package has spelled it:
+#: kJ per kg per K, kJ per litre, kWh per litre per K (D7-s3-04).
+_P2_WATER_HEAT = re.compile(r"^(4\.1[89]\d*|1\.16\d*|0\.0011[56]\d*)$")
+
+
+def _p2_match_water_heat(n, parents):
+    """A float literal that reads as water's heat capacity, outside const.py."""
+    return (isinstance(n, ast.Constant) and isinstance(n.value, float)
+            and not isinstance(n.value, bool)
+            and bool(_P2_WATER_HEAT.match(repr(n.value))))
+
+
+_p2_match_water_heat.live = True
+
+
 def _p2_registry(sources):
     """owners: ``file.py::Qual.name`` where the shape may live. dispositions:
     sites the shape returns that are not the fact's decision, with why."""
@@ -4254,6 +4269,31 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D7-s3-04 (R11-SEAM-kernel-step): the heat that warms a litre of
+        # water by one kelvin is const.WATER_SPECIFIC_HEAT, and the per-kg
+        # form is derived from it there (const.py is not scanned). Any
+        # water-heat literal elsewhere is a second value: the sensor-gap
+        # advisor's 4.187 / 3600 read 0.26 % off the tank model's.
+        dict(fact="water_heat_capacity", finding="D7-s3-04",
+             match=_p2_match_water_heat, owners=[], dispositions={}),
+        # D7-s3-04: a naive instant's zone is UTC, decided by drift.utc_instant;
+        # open_meteo's own reading (astimezone: the host's zone) and
+        # manual_plan's copy read it there now. The shape is the naive-to-UTC
+        # relabel; every other site it returns is dispositioned.
+        dict(fact="naive_instant_zone", finding="D7-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"\.replace\(tzinfo=(timezone\.utc|UTC|dt_timezone\.utc)\)$",
+                 lambda n: getattr(n.func, "attr", None) == "replace"
+                 and any(k.arg == "tzinfo" for k in n.keywords)),
+             owners=["drift.py::utc_instant"], dispositions={}),
+        # D7-s1-05 (the note arm): the evidence line's cap is EVIDENCE_KEEP,
+        # written by EvidenceNotes._note alone; the guard and the CUSUM
+        # each trimmed their own list to a literal 6 before.
+        dict(fact="evidence_cap", finding="D7-s1-05",
+             match=_p2_match_node(
+                 (ast.Delete,), r"evidence\[:-",
+                 lambda n: True),
+             owners=["drift.py::EvidenceNotes._note"], dispositions={}),
     ]
 
 
@@ -4297,6 +4337,16 @@ _P2_CENSUSES = {
     "finite_float_owner": (
         "tests/finite_boundary.py",
         "every finite-float coercion is const.finite_float or a dispositioned site"),
+    # D7-s3-04 (R11-SEAM-kernel-step): replay_doc.numeric is finite_float's
+    # domain, written out because the export loads that file with no sibling.
+    "replay_numeric_domain": (
+        "tests/debug_collect.py",
+        "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # D7-s3-03: every reader of the plan step covering now takes plan_step's
+    # index; the census drives the four on one plan, past its end included.
+    "plan_step_covering": (
+        "tests/features.py",
+        "D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree"),
     # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
@@ -42326,17 +42376,15 @@ def _r10_covering_lookups(sources):
     return found
 
 
-#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
-#: it may hold its last entry open (the R10 sweep's dispositions).
+#: Every covering lookup that is not ``plan_step.covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions). The plan's
+#: readers (``pump_arbiter`` and ``early_cutoff``) take their index from
+#: ``plan_step.plan_step_index`` since round 11 (ADR-001 part 2, D7-s3-03), so
+#: none of them bisects on its own.
 _R10_COVERING_ALLOWED = {
-    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("plan_step.py", "covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
     ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
                                                "entry is documented extrapolation, never published as current"),
-    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
-    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
-                                             "step_duty and step_supply read it (#2492)"),
-    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 
 

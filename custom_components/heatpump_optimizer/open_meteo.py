@@ -52,6 +52,7 @@ from .const import (
     OPEN_METEO_SATELLITE_URL,
     OPEN_METEO_TIMEOUT_SECONDS,
 )
+from .drift import utc_instant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,20 +75,6 @@ _VARIABLE_SNOWFALL = "snowfall"
 _MAX_PLAUSIBLE_GHI = 1400.0
 
 
-def _ensure_utc(value: datetime) -> datetime:
-    """Normalise a caller-supplied instant to UTC.
-
-    Home Assistant's ``dt_util.now()`` normally returns an aware local
-    datetime, but it yields a naive one when no timezone is configured. Naive
-    values are interpreted as system local time, which is what that function
-    means by them; the alternative, comparing a naive and an aware datetime,
-    raises TypeError inside the coordinator's update loop and takes the whole
-    optimization down over a timezone detail.
-    """
-    # astimezone() interprets a naive datetime as system local time, which is
-    # exactly what dt_util.now() means by one, and is a no-op relabelling for
-    # an aware one.
-    return value.astimezone(timezone.utc)
 
 
 class SolarDiagnostics(TypedDict):
@@ -140,8 +127,8 @@ class IrradianceSeries:
         """
         if not self.times:
             return None
-        start = _ensure_utc(start)
-        end = _ensure_utc(end)
+        start = utc_instant(start)
+        end = utc_instant(end)
         if end <= start:
             return None
 
@@ -168,7 +155,7 @@ class IrradianceSeries:
 
     def latest_before(self, when: datetime, max_age: timedelta) -> float | None:
         """Most recent sample at or before ``when``, if fresh enough."""
-        when = _ensure_utc(when)
+        when = utc_instant(when)
         best: tuple[datetime, float] | None = None
         for t, v in zip(self.times, self.values):
             if t <= when and (best is None or t > best[0]):
