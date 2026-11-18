@@ -1,16 +1,31 @@
-== GATED_ARMS drops selftest-scope: ci_predict self-test: 1 failed
-  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
-== ARMS drops selftest-scope: ci_predict self-test: 2 failed
-  FAIL selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)
-  FAIL gated arms: --only selftest-scope runs that arm alone
-== rc!=1 check loosened: ci_predict self-test: 1 failed
-  FAIL selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable
-== run_arms record->True: ci_predict self-test: 1 failed
-  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
-== arm_runs default True: ci_predict self-test: 1 failed
-  FAIL gated arms: a default call runs every ungated arm and no gated one, the selftest-scope arm among them
-== arm_runs only ignored: 
-== predict passes record=True: ci_predict self-test: 0 failed
-== GATED_ARMS drops graders: ci_predict self-test: 0 failed
-
-[exited with code 0]
+== baseline
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
+== self-test-reads out of GATED_ARMS
+  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
+  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 2 failed
+== graders out of GATED_ARMS
+  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
+  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 2 failed
+== step-replay out of GATED_ARMS
+  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
+  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 2 failed
+== selftest-scope out of GATED_ARMS
+  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
+  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 2 failed
+== orphans added to GATED_ARMS
+  FAIL gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope
+  FAIL gated arms: a default call runs every ungated arm and none of the four named gated ones
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 2 failed
+== set-equality case made True (with graders still gated: null)
+  ok   predict with a body refreshes the round rosters and notes a failed refresh
+ci_predict self-test: 0 failed
