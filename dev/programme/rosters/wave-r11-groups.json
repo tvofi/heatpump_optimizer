@@ -5817,6 +5817,92 @@
     "next_step": "designer (designer.md) first; design review; fixer only on approve",
     "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards, R11-SEAM-inputs-freshness, R11-SEAM-money): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-entity-service",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D10-s1-02",
+    "D10-s2-04",
+    "D8-s1-03",
+    "D8-s2-02",
+    "D8-s3-01",
+    "D15-s3-01",
+    "D14-s1-01",
+    "D17-s3-51"
+   ],
+   "merged": {},
+   "classes": [
+    "N-entity-metadata",
+    "N-name-sort",
+    "N-silent-zero",
+    "N-step-grid",
+    "P2"
+   ],
+   "seam": "entity and service surface",
+   "hot_files": [
+    "sensor.py",
+    "button.py",
+    "services.yaml",
+    "debugger.py",
+    "coordinator.py",
+    "sysid.py",
+    "const.py",
+    "entity.py",
+    "config_flow.py",
+    "binary_sensor.py",
+    "climate.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. Plan: It also carries the avail arm of D7-s1-05: the three available properties that gate on one payload flag take entity.py's one owner (ADR-001).",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py",
+    "custom_components/heatpump_optimizer/climate.py"
+   ],
+   "brief": "Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors sit on their grid. D8-s2-02 changes no entity id without a registry migration. 8 findings (0 merged in), size M; class tags N-entity-metadata, N-name-sort, N-silent-zero, N-step-grid, P2. Plan: It also carries the avail arm of D7-s1-05: the three available properties that gate on one payload flag take entity.py's one owner (ADR-001). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-entity-service",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-001)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-config): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "avail"
+    ]
+   }
   }
  ]
 }
