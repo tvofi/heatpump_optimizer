@@ -4420,7 +4420,7 @@
     "Moved from R11-INTAKE-R10-RESIDUE carry 170 (0-based at roster f6ff22c373) by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P751 at 2e17928032; ratified by tvofi 2026-11-15). Text verbatim:\n\nFrom r10-playbook-round-start, body item 9f33edc5: The brief asks that the round start be refused by an instrument while any pickup line is undispositioned. None exists: `audit-find.js`'s baseline step runs `check_scopes.py --round` (evaluation only, #3575). Building the refusal (an exit-1 check over the two enumerators run from `check_scopes.py` or the pickup) is a tooling change outside this one-file prose group. Carry: R11-INTAKE-R10-RESIDUE (items 9f33edc5)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": "fix/r11-carry-round-start",
     "commit": null,
     "last_step": null,
