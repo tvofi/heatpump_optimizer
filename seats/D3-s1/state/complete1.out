@@ -1,0 +1,3 @@
+2026-11-17T13:14:16Z COMPLETE queued=4 from=pre
+2026-11-17T15:05:34Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty GUARD_OFF 1bf142a4 L419 by=tests/features.py ran=12 wall=6677.6s
+2026-11-17T15:06:36Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=tests/features.py ran=13 wall=6735.1s
