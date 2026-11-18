@@ -2122,6 +2122,52 @@ def _lower_bound_start(bounds: list[tuple[float, float]]) -> np.ndarray:
     """
     return np.array([low for low, _ in bounds], dtype=float)
 
+
+def _space_only_starts(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    initial_power: np.ndarray,
+    reference_power: np.ndarray,
+    prices: np.ndarray,
+    bounds: list[tuple[float, float]],
+    p_max: float,
+    dt: float,
+) -> list[np.ndarray]:
+    """The space-only solve's multi-start set, the initial guess first.
+
+    The smooth price-weighted guess, a bang-bang schedule that buys the
+    cheapest steps first, the reference thermostat's own schedule, and the
+    low-energy bang-bang seeds (R1-D0-01 and R7-D0-01 -- see the two
+    fractions' comments for why the same-energy candidates all refine into
+    one basin on arbitrage prices, and why 0.35x alone does not bracket the
+    optimum's energy); the deep low-energy anchor is two-zone only, see its
+    own comment for why the reach is deliberately this narrow. See
+    ``_multi_start_minimize`` for why one guess is not enough.
+
+    The seeds scale with the share of the reference the wood tank covers,
+    so a tank covering it whole collapses them onto zero (D0-s2-01): one
+    start then keeps the reference's own energy, and the all-off start
+    brackets the set from below (D0-s3-02).
+    """
+    reference_kwh = float(np.sum(reference_power) * dt)
+    covered = _wood_covered_share(model, state, reference_kwh, target)
+    seed_power = reference_power * (1.0 - covered)
+    energy = float(np.sum(seed_power) * dt)
+    fractions = (_LOW_ENERGY_START_FRACTION,) + (
+        (_DEEP_LOW_ENERGY_START_FRACTION,) if model.params.two_zone_enabled else ()
+    )
+    starts = [
+        initial_power,
+        _price_ranked_start(prices, energy, p_max, dt),
+        seed_power,  # inside the bounds: the reference never passes the pump
+        *(_price_ranked_start(prices, energy * f, p_max, dt) for f in fractions),
+    ]
+    if covered > 0.0:
+        starts.append(_price_ranked_start(prices, reference_kwh, p_max, dt))
+    starts.append(_lower_bound_start(bounds))
+    return starts
+
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
 ) -> np.ndarray:
@@ -5547,53 +5593,15 @@ class HeatPumpOptimizer:
         bounds = _apply_pins_to_bounds(bounds, h.space_pins, self._pin_on_power(p_max))
         initial_power = self._seed_pinned_guess(initial_power, bounds)
 
-        # Multiple starting points: the smooth price-weighted guess above, a
-        # bang-bang schedule that buys the cheapest steps first, a flat
-        # schedule, and the low-energy bang-bang seeds (R1-D0-01 and R7-D0-01
-        # -- see the two fractions' comments for why the same-energy
-        # candidates all refine into one basin on arbitrage prices, and why
-        # 0.35x alone does not bracket the optimum's energy). See
-        # _multi_start_minimize for why one guess is not enough.
         # Computed once and reused below for the savings reference; the same
         # simulation also makes a good solver start.
         baseline_power, baseline_end = self._compute_baseline_power(
             weather, initial_state, dt, comfort_targets,
         )
-        reference_kwh = float(np.sum(baseline_power) * dt)
-        covered = _wood_covered_share(
-            self.model, initial_state, reference_kwh, self.config.target_temp,
+        starts = _space_only_starts(
+            self.model, initial_state, self.config.target_temp, initial_power,
+            baseline_power, prices, bounds, p_max, dt,
         )
-        seed_power = baseline_power * (1.0 - covered)
-        baseline_energy = float(np.sum(seed_power) * dt)
-        starts = [
-            initial_power,
-            _price_ranked_start(prices, baseline_energy, p_max, dt),
-            seed_power,  # inside the bounds: the reference never passes the pump
-            _price_ranked_start(
-                prices,
-                baseline_energy * _LOW_ENERGY_START_FRACTION,
-                p_max,
-                dt,
-            ),
-        ]
-        if self.model.params.two_zone_enabled:
-            # The deep low-energy anchor, two-zone only -- see its own
-            # comment for why the reach is deliberately this narrow.
-            starts.append(
-                _price_ranked_start(
-                    prices,
-                    baseline_energy * _DEEP_LOW_ENERGY_START_FRACTION,
-                    p_max,
-                    dt,
-                )
-            )
-        if covered > 0.0:
-            # Every seed above scales with the wood-covered share, so a tank
-            # covering the reference whole collapses them onto zero (D0-s2-01).
-            # One start keeps the reference's own energy: the set brackets the
-            # wood-covered optimum from above as the all-off start does below.
-            starts.append(_price_ranked_start(prices, reference_kwh, p_max, dt))
-        starts.append(_lower_bound_start(bounds))
         descent, descent_batch = _descent_pair(self, objective, objective_batch)
 
         def move_starts(
