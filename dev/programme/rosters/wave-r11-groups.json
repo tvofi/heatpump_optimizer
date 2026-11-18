@@ -5338,6 +5338,87 @@
     "next_step": "fixer per the architect note (none)",
     "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-plant-model): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-learners",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D12-s3-03",
+    "D2-s3-08",
+    "D2-s3-09",
+    "D2-s3-10",
+    "D2-s3-11",
+    "D7-s2-01",
+    "D7-s2-02",
+    "D5-s4-02"
+   ],
+   "merged": {},
+   "classes": [
+    "I5",
+    "N-confounded-learner",
+    "N-event-misattribution",
+    "P5"
+   ],
+   "seam": "learners",
+   "hot_files": [
+    "sysid.py",
+    "accuracy.py",
+    "dhw_learning.py",
+    "heat_energy.py",
+    "draw_range.py",
+    "coordinator.py",
+    "dhw_draws.py",
+    "tests/features.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call. It also carries the fdjac arm of D7-s1-05: sysid.py's forward-difference Jacobian gets one owner (ADR-001).",
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-plant-model"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/heat_energy.py",
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "tests/features.py"
+   ],
+   "brief": "One freeze predicate owns which interval a learner may ingest (away, unplanned charge, load-limited probe, charge-start dip); the sysid adoption interval covers quantised readings. After the plant model: its law fixes move the residual every learner fits. 8 findings (0 merged in), size L; class tags I5, N-confounded-learner, N-event-misattribution, P5. Plan: ADR-008 (one freeze predicate) is the approved design; ADR-003 moves the identification switch from a per-cycle store on the collaborator to an argument of the arm call. It also carries the fdjac arm of D7-s1-05: sysid.py's forward-difference Jacobian gets one owner (ADR-001). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-learners",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-003, ADR-008, ADR-001)",
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   },
+   "arms": {
+    "D7-s1-05": [
+     "fdjac"
+    ]
+   }
   }
  ]
 }
