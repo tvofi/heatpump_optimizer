@@ -57,7 +57,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "idle_other_channel": "idle for {hours} h because the other channel has the capacity",
         "idle_fuse": "idle for {hours} h, capped by the fuse",
         "idle_solar": "idle for {hours} h, waiting for solar",
-        "idle_dearer": "idle for {hours} h, dearer than the hours used",
+        "idle_dearer": "idle for {hours} h, more expensive than the hours used",
         "idle_coasting": "idle for {hours} h, above the floor and coasting",
         "pump_mode": "blocked by the heat pump's operating mode for {hours} h",
         "untagged": "{kwh} kWh outside the plan ({cost} {currency})",

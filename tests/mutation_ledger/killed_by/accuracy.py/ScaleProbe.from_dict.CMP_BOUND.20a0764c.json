@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe.from_dict CMP_BOUND 20a0764c",
+  "killed_by": "tests/features.py",
+  "old": "            probe.base = base if base is not None and COP_SCALE_MIN <= base <= COP_SCALE_MAX else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`probe.base = base if base is not None and COP_SCALE_MIN < base <= COP_SCALE_MAX else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

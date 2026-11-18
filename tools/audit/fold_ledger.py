@@ -49,6 +49,13 @@ second) and refuses, printing one line each:
                       while not barriered, or any instance of a barriered
                       class) and carries neither a barrier nor an rca whose
                       document is in dev/audit/rca;
+  OWNER-ONLY          a record of a dimension whose dev/audit/config/scopes.json
+                      entry carries `owner_only: true`: a verdict of any kind in
+                      an in-tree JUDGE.json, a class instance, or an
+                      `_unclassified` row. Such a dimension publishes nothing,
+                      so the line names the file or the class and the
+                      dimension, never the id; `fold` refuses the same round
+                      before it writes;
   UNKNOWN-RCA/DANGLING  a cited rca not in `_rca`, or an `in_tree_home` that is
                       not an existing file under dev/audit/rca;
   MISSING-PATH        a path-shaped token of a class's `barrier` or `detector`
@@ -117,6 +124,8 @@ RCA_DIR = "dev/audit/rca"
 LEDGER = "dev/audit/config/bugclasses.json"
 SCHEMA = "dev/audit/config/finding.schema.json"
 FIND_WORKFLOW = ".claude/workflows/audit-find.js"
+SCOPES = "dev/audit/config/scopes.json"
+DIM_OF = re.compile(r"^(D[0-9]+)(?:[-.]|$)")
 BLOCK_BEGIN = "// FINDING-SCHEMA:BEGIN"
 BLOCK_END = "// FINDING-SCHEMA:END"
 RULES_DIR = "dev/governance/rules"
@@ -195,6 +204,44 @@ def refresh(root):
     return 0
 
 
+def owner_only(root):
+    """The dimensions `root`'s scopes.json declares owner-only (`owner_only: true`): the one declaration.
+    A tree with no scopes.json declares none."""
+    try:
+        table = json.load(open(os.path.join(root, SCOPES)))
+    except (OSError, ValueError):
+        return set()
+    return {d for d, e in table.items() if isinstance(e, dict) and e.get("owner_only") is True} if isinstance(table, dict) else set()
+
+
+def owner_only_dim(text, dims):
+    """The owner-only dimension a finding id, a seat or a step names, or None."""
+    m = DIM_OF.match(str(text or ""))
+    return m.group(1) if m and m.group(1) in dims else None
+
+
+def owner_only_records(root, led, judge_files=None):
+    """One line per place the tree holds a record of an owner-only dimension: where and which dimension, never the id."""
+    dims = owner_only(root)
+    out = set()
+    files = judge_files if judge_files is not None else sorted(glob.glob(os.path.join(root, "dev/audit/rounds/round*/JUDGE.json")))
+    for f in files:
+        for v in json.load(open(f)).get("verdicts", []):
+            for d in {owner_only_dim(v.get(k), dims) for k in ("id", "into", "scope", "step", "dimension")} - {None}:
+                out.add(f"OWNER-ONLY: {os.path.relpath(f, root)} holds a verdict of {d}, an owner-only dimension: no tree carries one")
+    for cid, e in classes(led).items():
+        for s in e.get("instances", []):
+            p = parse(s)
+            d = owner_only_dim(p[1], dims) if p else None
+            if d:
+                out.add(f"OWNER-ONLY: class {cid} holds an instance of {d}, an owner-only dimension: no tree carries one")
+    for u in led.get("_unclassified", []):
+        d = owner_only_dim(u.get("finding_id"), dims)
+        if d:
+            out.add(f"OWNER-ONLY: _unclassified holds a row of {d}, an owner-only dimension: no tree carries one")
+    return sorted(out)
+
+
 def survivors(root, judge_files=None):
     """{(round, id): file} of every judge survivor in the tree."""
     out = {}
@@ -221,8 +268,11 @@ def check(root, ledger_path=None, judge_files=None):
     for u in led.get("_unclassified", []):
         if _has(u.get("reason")):
             where.setdefault((int(u["round"][1:]), u["finding_id"]), []).append("_unclassified")
+    bad += owner_only_records(root, led, judge_files)
     surv = survivors(root, judge_files)
     for (r, i), f in sorted(surv.items()):
+        if owner_only_dim(i, owner_only(root)):
+            continue  # refused above, by dimension: an UNPLACED line would print its id
         w = where.get((r, i), [])
         if not w:
             bad.append(f"UNPLACED: R{r} {i} ({os.path.relpath(f, root)}) is in no class")
@@ -396,6 +446,9 @@ def fold(root, rnd, dry=False):
     j = json.load(open(jp))
     if int(j.get("round", -1)) != rnd:
         raise SystemExit(f"REFUSE: {jp} is round {j.get('round')}, not {rnd}")
+    private = owner_only_records(root, led, [jp])
+    if private:
+        raise SystemExit("REFUSE: " + "; ".join(private) + " (nothing written)")
     surv = [v for v in j.get("verdicts", []) if v.get("verdict") in SURVIVES]
     new = {}
     for v in surv:
@@ -762,6 +815,58 @@ def self_test():
            err is None and "\nconst CLASS_GUESS = /^((P1|P2|new))$/\n" in wf)
     err, *_ = run_sync(base, mint, wf="const a = 1\n")
     expect("a workflow with no generated block is refused, never skipped", err and "no // FINDING-SCHEMA:BEGIN" in err)
+
+    # OWNER-ONLY (row P4 of the owner-only channel). The dimension, the finding number and the
+    # nonce are drawn per run: no fixed id of an owner-only dimension sits in this file.
+    import contextlib
+    import io
+    import secrets
+    odim, nn, nonce = f"D{200 + secrets.randbelow(700)}", f"{secrets.randbelow(100):02d}", secrets.token_hex(12)
+
+    def owned(flag, dim, verdict="verified", ledger=None, mode="check"):
+        """check or fold over a tree whose scopes declare `odim` by `flag` and whose JUDGE.json holds one verdict of `dim`."""
+        fid = f"{dim}-s1-{nn}"
+        jv = {"round": 2, "verdicts": [{"id": fid, "verdict": verdict, "class": "P1", "note": nonce, "title": nonce}]}
+        led = ledger(fid) if ledger else _settle({"P1": _entry([f"R2 {fid}"] if mode == "check" and verdict in SURVIVES else []),
+                                                  "_rca": {}, "_unclassified": [], "_excluded": []})
+        with tempfile.TemporaryDirectory() as t:
+            _plant(t, led, jv)
+            os.makedirs(os.path.dirname(os.path.join(t, SCOPES)), exist_ok=True)
+            json.dump({"_note": ["x"], "D15": {"seats": {}}, odim: {"seats": {}, **({} if flag is None else {"owner_only": flag})}},
+                      open(os.path.join(t, SCOPES), "w"))
+            before = open(os.path.join(t, LEDGER)).read()
+            buf, err = io.StringIO(), ""
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                try:
+                    rc = check(t) if mode == "check" else fold(t, 2)
+                except SystemExit as e:
+                    rc, err = 1, str(e)
+            return rc, buf.getvalue() + err, fid, open(os.path.join(t, LEDGER)).read() != before
+
+    rc, out, fid, _ = owned(True, odim)
+    expect("check refuses a judge verdict of an owner-only dimension, naming the file and the dimension and never the id or its text",
+           rc == 1 and "OWNER-ONLY: dev/audit/rounds/round2/JUDGE.json holds a verdict of " + odim in out
+           and fid not in out and nonce not in out and "UNPLACED" not in out)
+    rc, out, fid, _ = owned(True, odim, ledger=lambda f: _settle({"P1": _entry([]), "_rca": {}, "_unclassified": []}))
+    expect("...and a survivor of one that no class holds is not listed UNPLACED under its id",
+           rc == 1 and "OWNER-ONLY" in out and fid not in out and "UNPLACED" not in out)
+    rc, out, fid, _ = owned(True, odim, verdict="refuted")
+    expect("...whatever the verdict: a refuted one is a record too", rc == 1 and "OWNER-ONLY" in out and fid not in out)
+    rc, out, fid, _ = owned(True, "D15", ledger=lambda f: _settle({"P1": _entry([f"R2 {f}", f"R1 {odim}-{nn}"]), "_rca": {},
+                                                                   "_unclassified": [{"round": "R1", "finding_id": f"{odim}-s2-{nn}", "reason": "r"}]}))
+    expect("...and a class instance or an _unclassified row of one, by class and by dimension",
+           rc == 1 and f"OWNER-ONLY: class P1 holds an instance of {odim}" in out and f"OWNER-ONLY: _unclassified holds a row of {odim}" in out
+           and f"{odim}-{nn}" not in out and f"{odim}-s2-{nn}" not in out)
+    rc, out, fid, wrote = owned(True, odim, mode="fold")
+    expect("fold refuses the round before it writes, by the same line",
+           rc == 1 and "REFUSE: OWNER-ONLY:" in out and not wrote and fid not in out and nonce not in out)
+    for label, flag in (("removed", None), ("false", False)):
+        rc, out, fid, _ = owned(flag, odim)
+        expect(f"null control: the same record with the flag {label} passes check", rc == 0 and "OWNER-ONLY" not in out and "0 violation" in out)
+    rc, out, fid, _ = owned(True, "D15")
+    rc2, out2, fid2, wrote2 = owned(True, "D15", mode="fold")
+    expect("null control: a D15 record beside an owner-only dimension passes check, and fold writes it",
+           rc == 0 and "0 violation" in out and rc2 == 0 and wrote2 and "OWNER-ONLY" not in out2)
     _self_test_yield(expect)
     return 1 if fails else 0
 
