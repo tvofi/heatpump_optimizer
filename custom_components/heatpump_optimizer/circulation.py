@@ -67,7 +67,7 @@ async def command(hass: HomeAssistant, entry: Any, config: Any, pump: str, on: b
     record[entity_id] = on
 
 
-def _restored(entry: Any, entity_id: str, _value: float) -> None:
+def _pump_restored(entry: Any, entity_id: str, _value: float) -> None:
     """The restore switched the pump on: the record of it goes."""
     commanded(entry).pop(entity_id, None)
 
@@ -75,7 +75,7 @@ def _restored(entry: Any, entity_id: str, _value: float) -> None:
 def _register(pump: str, stale: bool) -> None:
     def restorer(config: Any) -> off_restore.Restorer | None:
         entity_id = _ENTITY_OF[pump](EntryConfig.from_mapping(config))
-        return off_restore.Restorer(str(entity_id), _send, neutral=1.0, restored=_restored) if entity_id else None
+        return off_restore.Restorer(str(entity_id), _send, neutral=1.0, restored=_pump_restored) if entity_id else None
 
     off_restore.register_consumer(pump, restorer, stale=stale)
 
