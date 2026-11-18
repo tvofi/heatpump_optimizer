@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.step RETURN_DEL 113f2cbb",
+  "killed_by": "tests/features.py",
+  "old": "        return self.levels(base)[(coin > 0) != second]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}

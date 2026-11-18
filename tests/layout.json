@@ -31,7 +31,7 @@
    "name": "docs",
    "why": "product documentation, read by users; the page URLs stay stable for users and HACS",
    "globs": [
-    "docs/{setup,configuration,automations,dashboard-card,ecl110,how-it-works,architecture,CONTRIBUTING}.md",
+    "docs/{setup,configuration,automations,dashboard-card,ecl110,heat-curve,how-it-works,architecture,CONTRIBUTING}.md",
     "docs/img/brand/*",
     "docs/img/card/*",
     "docs/img/model/*",
@@ -112,7 +112,7 @@
     "tools/policy/**",
     "tools/pr/**",
     "tools/ci/**",
-    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,regret_oracle.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py}",
+    "tools/audit/{judge_batch.py,check_scopes.py,enumerate.py,product_reads.py,regret_oracle.py,text_ledger.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,machinery_ratchet.py,worktree_gc.sh,prose_counts_census.py,leak_detectors.py}",
     "tools/audit/seat/**",
     "tools/audit/archscore/**",
     "tools/plan/**",

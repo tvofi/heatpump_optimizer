@@ -355,6 +355,7 @@ from .thermal_model import (
     learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
+    levels_clamped,
     immersion_level_kw,
     immersion_over,
     plan_step_runs,
@@ -2431,14 +2432,18 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
 
 
 def _solve_band(draw: draw_range.DrawRange, hub: ThermalParameters, config: Any) -> draw_range.SolveBand:
-    """This moment's ``draw_range.solve_band`` from the hub and the store."""
-    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())
+    """This moment's ``draw_range.solve_band`` from the hub and the store;
+    the learned floor applies where the plan's levels are clamped to the band."""
+    return draw_range.solve_band(
+        draw, hub, probe_install(config), dt_util.now().timestamp(),
+        applies_floor=levels_clamped(config),
+    )
 
 
 def _band_fields(band: draw_range.SolveBand) -> dict[str, float]:
-    """The solve copy's power range under ``band``; none where configured,
-    so a configured band leaves the copy the hub's figures byte for byte."""
-    if band.source == "configured":
+    """The solve copy's power range under ``band``; none where both ends are
+    configured, so such a band leaves the copy the hub's figures byte for byte."""
+    if band.source == "configured" and band.min_source == "configured":
         return {}
     return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
 
@@ -5330,11 +5335,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
-        params = ctx._thermal_params
-        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release`` lets out.
-        for row in self._measured_cop.release(draw, params, dt_util.now()):
+        params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
+        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
+        # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4).
+        for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
-        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
+        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
+            self._apply_cop_scale(owed)
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5358,14 +5366,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # v4.0.5: without a heat reading this ratio trains the scale only while the pump
         # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
         # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
-        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), self._cop_scale, dt_util.now())
+        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), priced, dt_util.now())
         ewma = self._measured_cop.walk_ratio(row.ratio)
-        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
-            _LOGGER.debug(
-                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
-                "against the running ratio %.2f -- not an efficiency reading",
-                refusal, commanded, self._measured_power, ewma,
-            )
+        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw, measured_heat)):
             return refusal
         return self._fold_cop_evidence(commanded, row.drawn_kw, heat_kw, row.reference)
 

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleProbe.reset BOOLOP fb08584a",
+  "killed_by": "tests/features.py",
+  "old": "        self.restore_due = self.restore_due and not measured_heat",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`self.restore_due = self.restore_due or not measured_heat`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

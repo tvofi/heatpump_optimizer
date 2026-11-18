@@ -64,6 +64,15 @@ hostname):
                   (an author only). GitHub credits an unnumbered login to
                   whoever holds it; a placeholder (`t@t`, `seat@users.noreply...`)
                   credits nobody right. History is not rewritten; only added commits are judged.
+  owner-only-id   a finding id of a dimension whose dev/audit/config/scopes.json
+                  entry carries `owner_only: true` (`D<k>-<nn>` or
+                  `D<k>-s<n>-<nn>`, any case): such a dimension publishes
+                  nothing, and the id is the join key every public record
+                  of a finding uses. A tripwire on that key, not a content
+                  filter: its seat ids and its name stay public, and a
+                  finding described without its id is not caught. The set
+                  is read from this checkout's scopes.json; one that cannot
+                  be read declares none.
 Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
 (a session link, a session or co-author trailer, the generated-by footer): no
 host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
@@ -121,7 +130,9 @@ inside an encoded run, as a .har or an HTML report embeds one, is judged as the
 encoded text, which spells no path; no decoder is run, since decoding every
 base64-looking run is not sound); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
 and another machine's account name, unless it sits in a `/Users/`, `/home/` or
-`Users-` shape.
+`Users-` shape; an owner-only finding described without its id, or under an id
+written with a separator other than `-`; and any owner-only id when this
+checkout's scopes.json cannot be read.
 """
 
 from __future__ import annotations
@@ -186,6 +197,10 @@ class Identity:
     names: tuple[str, ...]
     uid: int | None
     hosts: tuple[str, ...] = ()
+    #: Not the host's own: the owner-only dimensions of this checkout's
+    #: scopes.json, carried here because every judged text already passes an
+    #: Identity. Empty for an identity built by `made` without it.
+    owner_only: tuple[str, ...] = ()
 
     @staticmethod
     def of_host() -> "Identity":
@@ -208,16 +223,42 @@ class Identity:
         homes = {h for h in homes if not _public_home(h)}
         names.update(os.path.basename(h.rstrip("/")) for h in homes)
         import socket
-        return Identity.made(homes, names, uid, {socket.gethostname()})
+        return Identity.made(homes, names, uid, {socket.gethostname()}, owner_only_dims())
 
     @staticmethod
-    def made(homes, names, uid, hosts=()) -> "Identity":
+    def made(homes, names, uid, hosts=(), owner_only=()) -> "Identity":
         hs = tuple(sorted({h.rstrip("/") for h in homes if h and h.rstrip("/")}))
         ns = tuple(sorted({n.casefold() for n in names
                            if len(n) >= MIN_NAME and n.casefold() not in PUBLIC_ACCOUNTS}))
         hn = {h.casefold().rstrip(".") for h in hosts if h}
         hn |= {h.split(".", 1)[0] for h in hn}
-        return Identity(hs, ns, uid, tuple(sorted(h for h in hn if h and h != "localhost")))
+        return Identity(hs, ns, uid, tuple(sorted(h for h in hn if h and h != "localhost")),
+                        tuple(sorted(d for d in owner_only if _DIM.fullmatch(d))))
+
+
+SCOPES = "dev/audit/config/scopes.json"
+_DIM = re.compile(r"D[0-9]+")
+
+
+def owner_only_dims(root: Path | None = None) -> tuple[str, ...]:
+    """The dimensions `root`'s scopes.json declares owner-only (`owner_only: true`), the one
+    declaration; () when the file cannot be read, which the docstring states as a blind spot."""
+    import json
+    try:
+        table = json.loads(((root or ROOT) / SCOPES).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ()
+    if not isinstance(table, dict):
+        return ()
+    return tuple(sorted(d for d, e in table.items() if isinstance(e, dict) and e.get("owner_only") is True))
+
+
+def owner_only_id(text: str, dims) -> bool:
+    """Whether `text` holds a finding id of one of `dims`: the dimension, an optional seat, two digits."""
+    if not dims:
+        return False
+    return re.search(r"(?<![A-Za-z0-9])(?:" + "|".join(re.escape(d) for d in dims) + r")(?:-s[0-9]+)?-[0-9]{2}(?![0-9])",
+                     text, re.I) is not None
 
 
 def leaks(text: str, ident: Identity) -> list[str]:
@@ -230,7 +271,7 @@ def leaks(text: str, ident: Identity) -> list[str]:
     return [c for c in CLASSES if c in both]
 
 
-CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "host-path")
+CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "host-path", "owner-only-id")
 
 #: TOOL ATTRIBUTION (R10-FLY-NO-FOOTERS). The owner's ruling (tvofi,
 #: 2026-10-22): "please have your seats not post claude code footers,
@@ -294,6 +335,8 @@ def _leaks(text: str, ident: Identity) -> list[str]:
         found.append("scratch-root")
     if _HOST_PATH.search(text):
         found.append("host-path")
+    if owner_only_id(text, ident.owner_only):
+        found.append("owner-only-id")
     return found
 
 
@@ -355,7 +398,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=(), ado
 #: The classes a comment body is judged on: this host's own identity, and any
 #: session temp root. A comment may quote another home (a planted fixture's
 #: home under another account), so the generic host-path class is a ref-name rule only.
-BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
+BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "owner-only-id")
 
 
 def body_refusal(text: str, ident: Identity | None = None) -> str | None:
@@ -494,7 +537,10 @@ PUSHERS = {
                                            "handoff-wip/<topic> step pushes, judged by the seat's own guard "
                                            "like any push"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
-                                        "refs from round and box numbers"),
+                                        "refs from round and box numbers; its owner-only prompts "
+                                        "name a push only to forbid it"),
+    ".claude/workflows/audit-verify.js": ("prompt", "its owner-only prompts name a push only to forbid "
+                                          "it: that branch composes no ref and pushes nothing"),
     ".claude/workflows/audit-plan.js": ("prompt", "an agent prompt naming the constant plan/r<round> "
                                          "ref from the round number, and telling it to run ref_privacy's "
                                          "guard first"),
@@ -1308,6 +1354,49 @@ def self_test() -> int:
        body_lines(vbody.replace(fake_home, "~"), fid) == [])
     ok("body_lines still names a host path on the first line",
        body_lines("Fix review: blocked x h: " + fake_home + "/x\n", fid) == ["line 1: home-directory, account-name in the body"])
+    # owner-only-id (row P7 of the owner-only channel): the join key of a finding of a
+    # dimension scopes.json declares owner-only. The dimension and the nonce are drawn
+    # per run, so no fixed id of one sits in the tree for a scan to find.
+    import json as _json
+    import secrets
+    odim, pdim = f"D{200 + secrets.randbelow(700)}", "D15"
+    oid_ = Identity.made({fake_home}, {fake_name}, 4242, {"example-mbp.local"}, (odim,))
+    nonce = secrets.token_hex(8)
+    own_id, seat_id, pub_id = f"{odim}-s3-07", f"{odim}-s3", f"{pdim}-s3-07"
+    ok("an owner-only finding id is refused in a ref name, a message, a body and an added line",
+       (refusal(f"handoff/fix-{own_id}", (), oid_) or "").startswith("owner-only-id in the ref name")
+       and refusal("handoff/x", [("the message", f"closes {own_id} {nonce}")], oid_) == "owner-only-id in the message"
+       and body_refusal(f"- {own_id}: {nonce}", oid_) == "owner-only-id in the body"
+       and body_lines(f"ok\n\n- {own_id}: {nonce}\n", oid_) == ["line 3: owner-only-id in the body"]
+       and len(content_refusals([("dev/x.md", 4, f"| {own_id} | {nonce} |")], oid_)) == 1,
+       str([refusal(f"handoff/fix-{own_id}", (), oid_), body_refusal(f"- {own_id}", oid_)]))
+    ok("...in any case, without a seat, and URL-encoded; and no refusal quotes the text it matched",
+       all(leaks(t, oid_) == ["owner-only-id"] for t in (own_id.lower(), f"{odim}-07", f"x%20{own_id}", f"({own_id})", f"{own_id}."))
+       and nonce not in (body_refusal(f"- {own_id}: {nonce}", oid_) or "")
+       and own_id not in content_refusals([("dev/x.md", 4, f"| {own_id} | {nonce} |")], oid_)[0],
+       str([leaks(t, oid_) for t in (own_id.lower(), f"{odim}-07", f"x%20{own_id}")]))
+    ok("its seat id and its name stay public, and so does a longer number or a longer word (null control)",
+       all(leaks(t, oid_) == [] for t in (seat_id, odim, f"{odim}.M2", f"round11/{odim}/s3", f"{odim}-s3-071", f"X{own_id}", f"{odim}0-07")),
+       str([leaks(t, oid_) for t in (seat_id, odim, f"{odim}-s3-071", f"X{own_id}")]))
+    ok("the same id under a public dimension passes everywhere (null control: the class is keyed on the declaration)",
+       leaks(pub_id, oid_) == [] and refusal(f"handoff/fix-{pub_id}", [("the message", pub_id)], oid_) is None
+       and body_refusal(pub_id, oid_) is None and leaks(own_id, fid) == [], str(leaks(pub_id, oid_)))
+    with tempfile.TemporaryDirectory() as td:
+        sc = Path(td) / SCOPES
+        sc.parent.mkdir(parents=True)
+        sc.write_text(_json.dumps({"_note": ["x"], pdim: {"seats": {}}, odim: {"owner_only": True, "seats": {}},
+                                   "D7": {"owner_only": "true"}, "D8": {"owner_only": False}, "D9": None}))
+        ok("the set is read off scopes.json: true declares, a string, false, a null entry or an underscore key does not",
+           owner_only_dims(Path(td)) == (odim,), str(owner_only_dims(Path(td))))
+        sc.write_text("{ not json")
+        ok("an unreadable or absent scopes.json declares none, rather than raising",
+           owner_only_dims(Path(td)) == () and owner_only_dims(Path(td) / "absent") == ())
+    with mock.patch.object(sys.modules[__name__], "owner_only_dims", return_value=(odim,)):
+        wired = Identity.of_host()
+    ok("of_host carries the declaration to every guard that builds its own identity, and both class lists name the class",
+       wired.owner_only == (odim,) and refusal("handoff/x", [("the message", own_id)], wired) == "owner-only-id in the message"
+       and Identity.of_host().owner_only == owner_only_dims() and "owner-only-id" in CLASSES and "owner-only-id" in BODY_CLASSES,
+       str(wired.owner_only))
     print(f"ref_privacy self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
