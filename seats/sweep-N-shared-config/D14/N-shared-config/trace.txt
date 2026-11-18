@@ -1,0 +1,4 @@
+SEAM custom_components/heatpump_optimizer/coordinator.py:4259 async_set_target_temperature _opt_config.target_temp writes=1 steps=set_target
+SEAM custom_components/heatpump_optimizer/coordinator.py:10944 _apply_comfort_weight _opt_config.comfort_weight writes=6 steps=comfort_weight,cycle0,cycle1,cycle2,cycle3,cycle4
+SEAM custom_components/heatpump_optimizer/thermal_model.py:420 topology_layout _thermal_params._layout_cache writes=2 steps=cycle0,cycle4
+RESULT published_member_write_sites=3 fields=3 published_members=14

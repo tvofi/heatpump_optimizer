@@ -1,0 +1,2 @@
+SEAM assign  custom_components/fixture/fix.py:12 plant _opt_config :: cfg.min_temp
+RESULT seams=1 assign=1

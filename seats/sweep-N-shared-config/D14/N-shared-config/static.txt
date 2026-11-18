@@ -1,0 +1,3 @@
+SEAM assign  custom_components/heatpump_optimizer/coordinator.py:4259 HeatPumpOptimizerCoordinator.async_set_target_temperature _opt_config :: ctx._opt_config.target_temp
+SEAM assign  custom_components/heatpump_optimizer/coordinator.py:10944 HeatPumpOptimizerCoordinator._apply_comfort_weight _opt_config :: getattr(self, '_ctx', self)._opt_config.comfort_weight
+RESULT seams=2 assign=2
