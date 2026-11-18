@@ -4,7 +4,10 @@ Architect note, extended (`dev/governance/roles/designer.md`). Plan of record
 `plan/r11` at 819aa2e354b4e5baaf824b8568fd72bea8168a75; `PLAN.md` names no ADR,
 only "owed: designer.md, for the one in-flight guard and budget (S14, T14)".
 Code read at `origin/main` bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f; no `after`
-edge, so no predecessor head. No production code on this ref.
+edge, so no predecessor head. No production code on this ref. Revision 2,
+answering `design-verdict/R11-SEAM-cycle-solve` 4f955bdd67 (`revise`, round 1):
+the finalize self-test's what-if is disposed in E, §5 searches the whole
+package, and D1-s1-01 stays a fix (§1).
 
 ## 1. Findings (harnesses under `dev/audit/rounds/round11/`)
 
@@ -20,8 +23,12 @@ edge, so no predecessor head. No production code on this ref.
 | D1-s1-01 (weakened) | `D1/s1/m1_stop_midsolve.py --arm stop_midsolve` | 1 | 0 |
 
 The judge (`JUDGE.json`) reproduced D9-s1-02's stacking but not its B1 breach,
-so the budget is a count (§4). D1-s1-01 read 0 on the judge's planted copy and
-1 on its runner: the fixer re-takes it at both ends; §6's test does not lean on it.
+so the budget is a count (§4). D1-s1-01 reproduces at main: the design
+reviewer read `--arm stop_midsolve` 1 and `--arm stop_idle` 0 at 8f39313a44,
+whose worker path in `coordinator.py` is bc658f9's. H stays a fix. The fixer
+re-takes the harness at both ends; if the fixer's own base reads 0, H's
+D1-s1-01 parts (`_WORKER_STOPPING`, the restored-notice delete) become
+regression pins and nothing more.
 
 ## 2. Owning seam
 
@@ -65,7 +72,10 @@ solve there); then `await self.async_refresh()`; returns `gate.reason`, which
 `async_run_optimization` records at each return, or on a failed refresh
 `"no_prices"` for the price-coverage `UpdateFailed`, else `"solve_failed"`.
 `handle_run_optimization` and `ForceOptimizationButton.async_press` both await
-it; the button drops its second solve. Translation keys unchanged.
+it; the button drops its second solve. Translation keys unchanged. The press
+may await the refresh because 6c1834977a set the button platform's
+`PARALLEL_UPDATES` to 0 (#1641's reason, a held slot, is gone): it stays 0,
+pinned, and `off_the_action`'s docstring says the press now awaits.
 
 **D. Diagnose publishes (D9-s1-01).** `_republish()`: `async_set_updated_data`
 of `_build_data_dict()` with the last payload's `sensor_advisor` carried;
@@ -75,6 +85,13 @@ of `_build_data_dict()` with the last payload's `sensor_advisor` carried;
 `_maybe_run_fuse_advisor` asks `admit_background` just before its
 `async_simulate` (after its weekly gate); `_maybe_refresh_price_tile` asks
 before `price_tiles.take`, so a denied tile does not move the rotation.
+`debugger.py`'s `_solver_smoke` (the debug collection's finalize self-test,
+`async_simulate({}, limited=False)`) is exempt and does not call
+`admit_background`, so it neither asks nor takes the slot: it runs once per
+finalize, never per cycle; `run_self_tests` already cuts it off at
+`SELF_TEST_BUDGET`; and the self-test exists to report whether a what-if
+equals the live plan, which a denial would replace with no answer. Being
+`limited=False`, it never enters F's user slot either.
 
 **F. User what-ifs (D9-s1-03).** The `limited` path keeps
 `whatif.limited_answer`, then awaits `user_slot`; a superseded ask returns
@@ -121,7 +138,7 @@ causes keep their meaning.
 ## 5. Sibling sites (commands)
 
 - `grep -n 'async_request_refresh()' custom_components/heatpump_optimizer/*.py`:
-  22 lines, all reach B's override.
+  18 lines at bc658f9, all reach B's override.
 - `grep -n 'async_run_optimization()' custom_components/heatpump_optimizer/*.py`:
   button and service (C); the cycle's two kept.
 - `grep -n 'worker.wait()' custom_components/heatpump_optimizer/coordinator.py`:
@@ -130,8 +147,9 @@ causes keep their meaning.
   six; `solve_worker_fallback`, `solve_failures` covered; `_audit_grid_fee`
   (money) and `legionella.py` (actuation) out of scope, already in the
   register's N-uncleared-issue sweep.
-- `grep -n 'async_simulate(' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/services.py`:
-  fuse, tile (E), service (F).
+- `grep -n 'async_simulate(' custom_components/heatpump_optimizer/*.py`:
+  four calls and the definition: fuse, tile (E, budgeted), `debugger.py`
+  `_solver_smoke` (E, exempt), service (F).
 - The D14 probes `ISSUES.json` cites (`n_dropped_refresh`, P10 reach,
   N-solve-recompute enumerator) are in neither `plan/r11` nor
   `handoff/audit-r11-register` e7a8c56f51; the greps stand in.
@@ -141,9 +159,12 @@ causes keep their meaning.
 - Failing tests first. `tests/features.py`: a write during a debounced
   in-flight solve builds one more `_solve_record`; the action publishes the
   raised price and moves `last_optimization`; a press solves as often as one
-  cycle; a diagnose press enters `_multi_start_minimize` 0 times and publishes
+  cycle, and a reset pressed while an optimize-now press awaits is not
+  queued behind it (`PARALLEL_UPDATES` 0); a diagnose press enters `_multi_start_minimize` 0 times and publishes
   `last_diagnosis` and `sensor_advisor`; a fuse cycle with tiles runs one
-  background what-if and leaves the tile cursor; K=4 user asks start <= 6 jobs
+  background what-if and leaves the tile cursor; a finalize self-test run
+  after the cycle's background slot is taken still returns a `cost_delta` and
+  leaves `background_taken` as it found it; K=4 user asks start <= 6 jobs
   and the last is answered fresh; a steady schedule ask makes 0 loop
   `simulate_step` calls. `tests/worker_deadlines.py`: the transport arm frees
   the lock on a kill-deaf child; a stop mid-solve raises no notice and runs no
@@ -178,8 +199,9 @@ split. `solve_gate.py` is a new tracked file: a measured closure
 - `async_refresh` during the scheduled refresh starts a second
   `_async_update_data`, whose solve meets `gate.solving` and returns None
   (today's "re-run recorded"); pin it. Carry: R11-SEAM-cycle-solve (item overlap-refresh)
-- #1641 took the button's cycle off the press; read it before C makes the
-  press await the fetch, and report rather than drop C if it must not. Carry: R11-SEAM-cycle-solve (item button-1641)
+- #1641 took the button's cycle off the press for the held slot that
+  `PARALLEL_UPDATES` 0 removed (ruled in review). Report back only if a test
+  shows that cancelling the press cancels the cycle mid-actuation. Carry: R11-SEAM-cycle-solve (item button-1641)
 - Tests set `_optimization_running` directly:
   `grep -rn '_optimization_running\|_optimization_rerun_requested' tests/`,
   move them to the gate. Carry: R11-SEAM-cycle-solve (item flag-readers)
