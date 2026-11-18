@@ -1,0 +1,2 @@
+SEAM D2  tools/fixture/fix.py:29 clean2 :: bundle.get('replay') or {} -- an absent section reads as an empty clean one
+RESULT seams=1 D2=1

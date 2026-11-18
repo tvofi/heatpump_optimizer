@@ -1,0 +1,2 @@
+SEAM C1  tools/fixture/fix.py:29 unsolved2 :: "solve_time_ms": 0 beside a not-run status
+RESULT seams=1 C1=1

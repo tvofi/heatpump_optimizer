@@ -1,0 +1,20 @@
+{
+ "class": "N-shared-config",
+ "instances": 0,
+ "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/N-shared-config/ctx_inplace_seams.py [--null] [--plant]; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-shared-config/ctx_write_trace.py [--perturb] [--plant]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_target_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py -> holder_torn_fields=2 (--perturb-ctx 0); ctx_write_trace.py lists the site as a write into a published _opt_config",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._apply_comfort_weight",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py -> holder_torn_fields=2 (--perturb-ctx 0); ctx_write_trace.py lists the site as a write into a published _opt_config",
+   "beyond_finding": false
+  }
+ ]
+}

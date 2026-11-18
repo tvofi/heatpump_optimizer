@@ -1,0 +1,6 @@
+ARM valid last_cycle=2026-01-10T12:00:00+00:00 equals_now=0 saved=0 warnings=0
+ARM absent last_cycle=2026-01-20T12:00:00+00:00 equals_now=1 saved=1 warnings=0
+ARM garbage last_cycle=2026-01-20T12:00:00+00:00 equals_now=1 saved=1 warnings=1
+ARM garbage2 last_cycle=2026-01-20T12:00:00+00:00 equals_now=1 saved=1 warnings=1
+RESULT unparseable_read_as_fresh=0 count
+RESULT valid_kept=1 count

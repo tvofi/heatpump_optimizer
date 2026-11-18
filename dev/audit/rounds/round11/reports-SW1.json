@@ -1,0 +1,108 @@
+{
+  "box": "SW1",
+  "missing": [],
+  "reports": {
+    "sweep-N-restore-race": {
+      "class": "N-restore-race",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/N-restore-race/restore_race.py [--clean] [--plant]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/off_restore.py",
+          "symbol": "_armed_record",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py -> consequences=2 (restore_writes_sent=0, doc_after {\"armed\": {}}); --serial 0; --fix 0. Enumerator: the only unlocked flag_before_await seam",
+          "beyond_finding": false
+        }
+      ]
+    },
+    "sweep-N-shared-config": {
+      "class": "N-shared-config",
+      "instances": 0,
+      "barriered": true,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/N-shared-config/ctx_inplace_seams.py [--null] [--plant]; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-shared-config/ctx_write_trace.py [--perturb] [--plant]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_set_target_temperature",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py -> holder_torn_fields=2 (--perturb-ctx 0); ctx_write_trace.py lists the site as a write into a published _opt_config",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._apply_comfort_weight",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py -> holder_torn_fields=2 (--perturb-ctx 0); ctx_write_trace.py lists the site as a write into a published _opt_config",
+          "beyond_finding": false
+        }
+      ]
+    },
+    "sweep-N-silent-zero": {
+      "class": "N-silent-zero",
+      "instances": 3,
+      "barriered": true,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/N-silent-zero/silent_zero_seams.py [--null] [--plant A|B|C1|C2|D1|D2]; probes: section_drop_probe.py, replay_unloaded.py [--perturb], legionella_unparseable.py [--perturb], defrost_unreadable_grid.py [--perturb]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/away.py",
+          "symbol": "_parse_return_time",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/svc_set_away.py (acknowledged_unparseable=6, --perturb 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/button.py",
+          "symbol": "SystemIdentificationButton.async_press",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/btn_actions.py (silent_refusals=2, --perturb 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/button.py",
+          "symbol": "DiagnoseIntervalButton.async_press",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s1/btn_actions.py (silent_refusals=2, --perturb 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_apply_unsolved_payload",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_rowscan.py --bundle B (not-run rows folded as 0 ms solves; --perturb solver-filter 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/snapshots.py",
+          "symbol": "SnapshotRing.best_restore",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py (1, --perturb 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "tools/replay/debug_ingest.py",
+          "symbol": "ingest / main",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-silent-zero/section_drop_probe.py BUNDLE (drop replay -> pass 12/12); D15/s1/ingest_checks.py --empty replay vacuous_passes=1",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_watch_learning_drift",
+          "probe": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D15/s2/m6_null_ring.py --days 2 (observe_bias_calls=0 of 96)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/legionella.py",
+          "symbol": "LegionellaGuard.async_load",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-silent-zero/legionella_unparseable.py -> unparseable_read_as_fresh=2 (valid_kept=1); --perturb 0",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/defrost.py",
+          "symbol": "DefrostDerate.from_dict",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/N-silent-zero/defrost_unreadable_grid.py -> unreadable_read_as_absent=5 (valid_kept=1); --perturb 0",
+          "beyond_finding": true
+        },
+        {
+          "file": "tools/replay/debug_replay.py",
+          "symbol": "main",
+          "probe": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/rounds/round11/D14/N-silent-zero/replay_unloaded.py FULL.json NOSTORES.json -> observe_bias 96 -> 0 with identical RESULT lines, unloaded_replay_reads_clean=1; --perturb 0",
+          "beyond_finding": true
+        }
+      ]
+    }
+  }
+}

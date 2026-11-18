@@ -1,0 +1,14 @@
+{
+ "class": "N-restore-race",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/N-restore-race/restore_race.py [--clean] [--plant]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/off_restore.py",
+   "symbol": "_armed_record",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/off_restore_race.py -> consequences=2 (restore_writes_sent=0, doc_after {\"armed\": {}}); --serial 0; --fix 0. Enumerator: the only unlocked flag_before_await seam",
+   "beyond_finding": false
+  }
+ ]
+}

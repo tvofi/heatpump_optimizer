@@ -1,0 +1,2 @@
+SEAM C2  tools/fixture/fix.py:31 pick2 :: if bias is not None: <reject> -- None passes
+RESULT seams=1 C2=1

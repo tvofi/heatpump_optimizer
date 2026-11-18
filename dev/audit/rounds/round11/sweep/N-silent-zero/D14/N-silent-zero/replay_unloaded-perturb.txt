@@ -1,0 +1,7 @@
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+RUN seeded   observe_bias_calls=96 result_lines=15
+RUN nostores observe_bias_calls=96 result_lines=15
+RESULT nostores_result_lines_identical=1 count
+RESULT nostores_names_loads_off=0 count
+RESULT unloaded_replay_reads_clean=0 count

@@ -1,0 +1,2 @@
+SEAM locked       flag_before_await=0 custom_components/clean/fixture.py:8 load writes=['rec.data', 'rec.loaded']
+RESULT seams=1 unlocked=0 flag_before_await_unlocked=0
