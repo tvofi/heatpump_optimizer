@@ -8,3 +8,4 @@
 1794989484 RESUMED from c1d7caa19173
 1794989484 INIT box D3-top6
 1794989515 HB alive
+1794989522 HB inbox cmd 1 (malformed, parser refused) read by hand: orchestrator says run D3-s1 inline in this opus session, no Agent spawn, no FRUGAL_ALLOW_EXPENSIVE; obeying. New container: PREPARE re-run.
