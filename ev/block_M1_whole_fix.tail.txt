@@ -1,0 +1,5 @@
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 1520, in <module>
+  File "tests/features.py[block]", line 1512, in _ss_levels_read
+TypeError: ScaleDither.step() takes 3 positional arguments but 4 were given
+rc=1
