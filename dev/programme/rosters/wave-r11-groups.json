@@ -4799,6 +4799,88 @@
     "next_step": "fixer per the architect note (ADR-002)",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
    }
+  },
+  {
+   "group": "R11-SEAM-dead-state",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "D7-s3-05"
+   ],
+   "merged": {},
+   "classes": [
+    "N-structure-blind"
+   ],
+   "seam": "no owning seam (deletion in the module that holds the state)",
+   "hot_files": [
+    "config_flow.py",
+    "modbus_prefill.py",
+    "pump_arbiter.py",
+    "tests/guard_pins.py",
+    "const.py",
+    "optimizer.py",
+    "tariff.py",
+    "sysid.py",
+    "dhw_planner.py",
+    "coordinator.py",
+    "curve_learning.py",
+    "pv.py",
+    "thermal_model.py",
+    "accuracy.py",
+    "external_heat.py",
+    "dhw_learning.py",
+    "flow_lift.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only tests read, each deleted in the module that holds it and at its callers, and the fourteen import bindings D7-s1-03 lists. No owner is created or moved and no behaviour changes, so this one group is cut by kind of edit and not by seam; dev/audit/rounds/round11/PLAN/COMPONENTS.md at 819aa2e354b4 states the deviation. 1 finding (0 merged in), size M; class tags N-structure-blind. Plan: ADR-001 part 4. It is the prerequisite of R11-SEAM-ratchets, which records the import row at the value these deletions leave. A parameter a caller still computes is removed at the caller too; a field a stored document carries is left.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/modbus_prefill.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "tests/guard_pins.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/curve_learning.py",
+    "custom_components/heatpump_optimizer/pv.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/flow_lift.py"
+   ],
+   "brief": "State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only tests read, each deleted in the module that holds it and at its callers, and the fourteen import bindings D7-s1-03 lists. No owner is created or moved and no behaviour changes, so this one group is cut by kind of edit and not by seam; dev/audit/rounds/round11/PLAN/COMPONENTS.md at 819aa2e354b4 states the deviation. 1 finding (0 merged in), size M; class tags N-structure-blind. Plan: ADR-001 part 4. It is the prerequisite of R11-SEAM-ratchets, which records the import row at the value these deletions leave. A parameter a caller still computes is removed at the caller too; a field a stored document carries is left. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
+   "carry": [],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-dead-state",
+    "commit": null,
+    "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
+    "next_step": "fixer per the architect note (ADR-001)",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+   }
   }
  ]
 }
