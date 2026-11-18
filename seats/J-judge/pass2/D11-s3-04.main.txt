@@ -1,0 +1,18 @@
+#tree worktree rc=0 s=727.3
+arm null                   tally=(570, 0) []
+arm version_edit_gutted    tally=(561, 9) ['FAIL a pull request editing VERSION is refused (got 0:, wanted 1:VERSION)', 'FAIL a pull request editing the manifest version is refused (got 0:, wanted 1:custom_components/heatpump_optimizer/manifest.json(version))', 'FAIL a pull request adding a notes heading is refused (got 0:, wanted 1:RELEASE_NOTES.md(heading))', 'FAIL a manifest version edit hidden by a .gitattributes -diff line is still refused (got 0:, wanted 1:custom_components/heatpump_optimizer/manifest.json(version))', 'FAIL a notes heading hidden by a .gitattributes -diff line is still refused (got 0:, wanted 1:RELEASE_NOTES.md(heading))']
+arm step5_wiring_gutted    tally=(570, 0) []
+RESULT null_passed=570 count
+RESULT null_failed=0 count
+RESULT version_edit_gutted_passed=561 count
+RESULT version_edit_gutted_failed=9 count
+RESULT step5_wiring_gutted_passed=570 count
+RESULT step5_wiring_gutted_failed=0 count
+RESULT mutants=2 count
+RESULT mutants_killed=1 count
+RESULT worker_thread_cpu=0.098 s
+RESULT thread_factor=1.404 ratio
+RESULT load1=2.66
+RESULT swapins=0 count
+
+#STDERR

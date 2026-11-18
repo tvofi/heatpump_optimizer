@@ -273,12 +273,12 @@
  },
  {
   "id": "D10-s1-06",
-  "verdict": "unreproduced",
+  "verdict": "weakened",
   "severity": "low",
-  "value": "planted copy: cov_modules.sh all timed out at 600 s; runner (worktree) late_files=0",
+  "value": "planted copy (2400 s re-take): modules_below_95=34 of 95, package 91.38 %, config_flow.py 99.21 % (8 missed); but 15 of 25 traced scripts exit non-zero on the export",
   "stop_rule_class": "hygiene",
   "class": "I5",
-  "note": "not measured to completion here. The verifier was unresolved: 15 of 25 scripts exit non-zero on the export, so the 34/95 may be an export artefact. Re-measure on a full tree owed. Votes: 1 unresolved.",
+  "note": "finder number reproduced exactly; with 15/25 scripts failing on the export the per-module figures are a lower bound, not the gate's coverage, as the verifier warned. The done row's claim is not shown false on a full tree. Votes: 1 unresolved.",
   "class_mechanism": "Docs, comments or a compliance checklist drift stale against the code"
  },
  {
@@ -454,6 +454,16 @@
   "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
  },
  {
+  "id": "D11-s3-04",
+  "verdict": "weakened",
+  "severity": "low",
+  "value": "worktree (1500 s re-take): step5_wiring_gutted 570 passed, 0 failed; version_edit_gutted 9 failed; null 570/0; mutants_killed 1 of 2",
+  "stop_rule_class": "bug",
+  "class": "I1",
+  "note": "reproduced (finder 553 passed on its tree, same 0 failures); runner tf 1.397 re-taken here at load1 ~1. Votes: 1 weaken (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
+ },
+ {
   "id": "D12-s1-01",
   "verdict": "weakened",
   "severity": "low",
@@ -502,6 +512,16 @@
   "class": "N-confounded-learner",
   "note": "reproduced with a larger count than the finder's 1 (this arm adds the DHW timer); perturbation to zero. The fabric learner absorbs a mis-attributed DHW charge, N-confounded-learner. Votes: 1 verify.",
   "class_mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns"
+ },
+ {
+  "id": "D13-s2-01",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: untaught_share=0.478, 214 verdicts routed to other; --perturb teach-ci-red -> 0.337, 151",
+  "stop_rule_class": "hygiene",
+  "class": "N-vocabulary-drift",
+  "note": "reproduced exactly on a full-output re-run (the first pass truncated the headline). Votes: 1 verify.",
+  "class_mechanism": "A record's writer holds one vocabulary and its reader holds another, so the writer accepts a word no read can close: roster_edit.py wrote stages as free strings (`459ef684a` appended a group in `in-review`; `94ece3d08` set R10-HOUSE-GRADE to `in-review` again) while roster_sync.p"
  },
  {
   "id": "D13-s2-02",
@@ -632,6 +652,16 @@
   "class": "I4",
   "note": "bundle: local re-run owed. Judged on record. Votes: 1 verify (low, I4).",
   "class_mechanism": "Two independent parsers or definitions of one concept disagree"
+ },
+ {
+  "id": "D15-s2-03",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: observe_bias_calls=0 over the --days 2 null bundle (96 cycles)",
+  "stop_rule_class": "hygiene",
+  "class": "N-silent-zero",
+  "note": "reproduced exactly without the owner bundle (the null bundle is generated); perturbation 0 -> 96 on the verifier's record. Votes: 1 verify.",
+  "class_mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero"
  },
  {
   "id": "D15-s2-04",
@@ -780,6 +810,52 @@
   "class": "P2",
   "note": "reproduced exactly. Votes: 1 verify (P2).",
   "class_mechanism": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling"
+ },
+ {
+  "id": "D16-s2-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: min-cold-tank arm k_lift 8.0 -> 30 starts at 0.602 kW measured vs 1.0 booked; partial arm 1 start per run; null power error 0",
+  "stop_rule_class": "bug",
+  "class": "P3",
+  "note": "reproduced the verifier's 30 starts at 0.602 kW. The floor-level step and the minimum-lift-plus-hysteresis floor disagree, P3. Votes: 1 verify (medium).",
+  "class_mechanism": "A capacity floor or divisor applied inconsistently across sibling formulas"
+ },
+ {
+  "id": "D16-s3-01",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "worktree: on Off select.pump_mode stays at the optimizer's write (1); during disinfection Off leaves number.dhw_set at 60 (1); unrestored_off=5 entities",
+  "stop_rule_class": "bug",
+  "class": "N-unreleased-hold",
+  "note": "reproduced both halves on a full-output re-run. Votes: 1 verify (high).",
+  "class_mechanism": "An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write",
+  "nearest": "N-no-expiry",
+  "differs": "the stale thing is a physical actuator state left held, not a published value read past its age"
+ },
+ {
+  "id": "D16-s3-02",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "worktree: 4 actuators unregistered on off, unload and remove each (supply switch, frequency, valve, circulation); perturb -> 0",
+  "stop_rule_class": "bug",
+  "class": "N-unreleased-hold",
+  "note": "reproduced exactly. Votes: 1 verify (high).",
+  "class_mechanism": "An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write",
+  "nearest": "N-no-expiry",
+  "differs": "the stale thing is a physical actuator state left held, not a published value read past its age"
+ },
+ {
+  "id": "D16-s3-04",
+  "verdict": "verified",
+  "severity": "medium",
+  "value": "worktree: writes_again_off_restore_failed_while_off=0; perturb (retry) -> 1",
+  "stop_rule_class": "bug",
+  "class": "N-unreleased-hold",
+  "note": "reproduced exactly; a failed restore leaves the hold with no retry owner. Votes: 1 verify (medium).",
+  "class_mechanism": "An actuator the optimizer took over has no release or restore owner on some exit (stale plan, Off, unload, remove, failed restore), so the device keeps the optimizer's last write",
+  "nearest": "N-no-expiry",
+  "differs": "the stale thing is a physical actuator state left held, not a published value read past its age"
  },
  {
   "id": "D17-s1-01",
@@ -940,6 +1016,18 @@
   "class_mechanism": "A constant in a production data table (preset, coefficient, rule) is wrong, so every install that selects it computes from a false number",
   "nearest": "I5",
   "differs": "the false value is production data the code computes with, not prose describing it"
+ },
+ {
+  "id": "D2-s2-02",
+  "verdict": "verified",
+  "severity": "high",
+  "value": "planted copy: duty_law_mismatch=60 of 61 grid points; at duty 0.2 the code gives 1.0 vs documented 0.7",
+  "stop_rule_class": "bug",
+  "class": "N-wrong-law",
+  "note": "reproduced exactly (worktree runner 0: planted seam). Votes: 1 verify (high).",
+  "class_mechanism": "A physical law is coded with the wrong operator or sign (a derate added instead of subtracted, then clamped), so the effect it models never acts on any input",
+  "nearest": "P2",
+  "differs": "no second copy disagrees: the single implementation contradicts the law it documents"
  },
  {
   "id": "D2-s3-01",
@@ -1930,5 +2018,15 @@
   "class_mechanism": "A buffer or cache that serves a fixed time window never evicts rows older than the window, so retained memory grows linearly with uptime",
   "nearest": "N-no-expiry",
   "differs": "nothing stale is published; the cost is memory growth on a long-lived client"
+ },
+ {
+  "id": "D9-s3-02",
+  "verdict": "verified",
+  "severity": "low",
+  "value": "worktree: clean arm 2.00 solves/cycle, payload 87816 B, 533 yields/cycle; solves2x arm 4.00 solves/cycle; the stress gate runs no coordinator cycle",
+  "stop_rule_class": "hygiene",
+  "class": "I1",
+  "note": "arms reproduced before my 420 s cap (remaining arms and gate deviations on the verifier's record: gate dev 0.0000). A doubled per-cycle cost the gate cannot see is a regression it lets through, I1. Votes: 1 verify (low).",
+  "class_mechanism": "A mutation kill miscounted, or a guard whose deletion leaves the gate green"
  }
 ]
