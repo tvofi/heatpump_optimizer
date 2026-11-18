@@ -64,7 +64,7 @@ sys.argv = _argv
 BUDGETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cycle_budgets.json")
 LABELS = ["winter/1z/space", "winter/1z/dhw", "winter/2z/dhw",
           "heavy_old/shoulder", "winter/cycle"]
-CHANNELS = ("solves", "payload_b", "retained_b_per_cycle", "yields", "loop_calls")
+LANE_CHANNELS = ("solves", "payload_b", "retained_b_per_cycle", "yields", "loop_calls")
 ARMS = ("clean", "solves2x", "payload2x", "retain", "noyield")
 OWN_CHANNEL = {"solves2x": "solves", "payload2x": "payload_b",
                "retain": "retained_b_per_cycle", "noyield": "yields"}
@@ -250,7 +250,7 @@ def run(arm_name: str, record: bool) -> tuple[int, int, list]:
         for label in LABELS:
             out[label] = measure_label(label)
     for label in LABELS:
-        for ch in CHANNELS:
+        for ch in LANE_CHANNELS:
             v = out[label][ch]
             if record:
                 continue
