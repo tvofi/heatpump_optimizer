@@ -1,0 +1,11 @@
+  ERROR   [citations] tools/audit/README.md:293: path `round2/HARNESSES.md`: not in the tree, and no tag SHA is cited alongside it
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 6 error(s) across 57 policy file(s)
+  skip     checkProvenance-pin    this clone is shallow, so a "no" from --is-ancestor may be the boundary rather than the graph, so neither direction can be driven
+
+FIXTURE ok: 93 error(s) hold 275 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+
+RULES-SYNC ok: every generated rule is the generated form of its source

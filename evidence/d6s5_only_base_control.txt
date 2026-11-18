@@ -1,0 +1,40 @@
+## c_mock
+CHECK false  dev/audit/README.md#5424e120d8 c_mock: 5: tests/doc_claims.py, tests/dst_checks.py, tests/entities.py, tests/features.py, tests/optimality.py
+RESULT mock_users=5
+RESULT false_or_stale[dev/audit/README.md]=1
+RESULT checked_units=1
+## c_fix_review_j5
+CHECK stale  dev/audit/README.md#ea91491c6d c_fix_review_j5: briefs/fix-review.md exists=False; contracts naming j5_gil=[]
+RESULT fix_review_j5_refs=0
+RESULT false_or_stale[dev/audit/README.md]=1
+RESULT checked_units=1
+## c_round4_d6
+CHECK stale  dev/governance/rules/gate-scoping.md#9f6bfa808b c_round4_d6: ['dev/audit/rounds/round4/D6/claims.json', 'dev/audit/rounds/round4/D6/claims.md']
+RESULT round4_d6_rewritten_at_doc_path=0
+RESULT false_or_stale[dev/governance/rules/gate-scoping.md]=1
+RESULT checked_units=1
+## c_brief_exclude
+RESULT claude_symbol_found_null_control=0
+RESULT round2_symbol_found=1
+RESULT false_or_stale[dev/governance/rules/brief-citations.md]=1
+RESULT checked_units=1
+## c_unleased
+CHECK false  tests/README.md#cb6b45f9a0 c_unleased: besides stress.py: lease=['tests/harness_headers.py'] slot=8 (tests/arch_score.py, tests/boost_drift_replay.py, tests/card.mjs, tests/entities.py, tests/feature
+RESULT leased_or_slotted_besides_stress=9
+RESULT false_or_stale[tests/README.md]=1
+RESULT checked_units=1
+## c_instrument_dirs
+RESULT instrument_record_dirs_absent=19
+RESULT instrument_record_dirs_listed=19
+RESULT false_or_stale[tools/audit/seat/INSTRUMENTS.md]=1
+RESULT checked_units=1
+## c_worktree_apply
+CHECK stale  dev/programme/HANDOVER.md#e7c5d9400d c_worktree_apply: rc=2 worktree_gc: REFUSE: unknown option '--apply'
+RESULT worktree_gc_apply_refused=1
+RESULT false_or_stale[dev/programme/HANDOVER.md]=1
+RESULT checked_units=1
+## c_handover_docs
+CHECK false  dev/governance/rules/writing-for-agents.md#d18caca3b8 c_handover_docs: handovers=['dev/programme/HANDOVER.md']; under docs/=[]
+RESULT handovers_under_docs=0
+RESULT false_or_stale[dev/governance/rules/writing-for-agents.md]=1
+RESULT checked_units=1
