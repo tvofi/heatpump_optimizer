@@ -1,4 +1,0 @@
-2026-11-17T19:34:47Z RUN c3c6 queued=1 workers=1
-2026-11-17T19:42:13Z C3C6 SURVIVED custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22 L595 by=- ran=12 skip=4 wall=442.5s
-RESULT load1=1.00
-RESULT thread_factor=1.00

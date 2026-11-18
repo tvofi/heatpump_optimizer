@@ -8,12 +8,4 @@
 1794988527 SEAT D3-s1 running
 1794988611 HB D3-s1 started (claude-code-toolkit:coder at opus; general-purpose refused by the frugal guard)
 1794989051 HB alive
-1794989476 RESUMED from e47cef28ab74
-1794989476 INIT box D3-m5
-1794989508 HB alive
-1794989573 HB re-fire: container fresh, PREPARE re-run; drift warm skipped: HEAD is the baseline
-1794989578 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
-1794989583 HB prepared
-1794989603 SEAT D3-s1 running
-1794989607 HB D3-s1 started inline in this session per inbox 1 (orchestrator: no Agent spawn)
-1794989616 CKPT D3-s1 125 file(s)
+1794989658 HB alive
