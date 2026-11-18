@@ -935,9 +935,8 @@ def _cop_fold_blocked(coord: Any) -> bool:
 def _fold_flow_lift(coord: Any, now: datetime) -> None:
     """#1067: fold this interval's supply-vs-curve residual into the bias.
 
-    Module-level on ``_cop_fold_blocked``'s precedent: a method here would
-    cost ``coordinator_methods`` and a seam edge for a function that reads
-    four things off the coordinator and calls one learner.
+    Module-level on ``_cop_fold_blocked``'s precedent: as a method it would cost
+    ``coordinator_methods`` and a seam edge for four reads and one learner call.
 
     Six gates, and each is somebody else's question already answered:
 
@@ -957,16 +956,17 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
       interval runs the supply at the tank's charge temperature;
     * no throttling valve on a single-zone house: its supply is the valve's tank charge.
 
-    ``now`` is unused and taken anyway: called from ``_record_accuracy``'s
-    per-cycle block beside ``_observe_frequency``, the one place a cycle's
-    observations are booked, where every observer carries the cycle's
-    timestamp so none of them can disagree about when "this cycle" was.
+    ``now`` is unused and taken anyway: ``_record_accuracy``'s per-cycle block,
+    the one place a cycle's observations are booked, gives every observer the
+    cycle's timestamp so none can disagree about when "this cycle" was.
     """
     del now  # the fold is not time-weighted; see the docstring
     ctx = getattr(coord, "_ctx", coord)
-    params = ctx._thermal_params
     supply = coord._flow_bias.last_supply_c
-    if supply is None or (mixing_valve.is_throttling(params.mixing_valve_mode) and not params.two_zone_enabled):
+    if supply is None:
+        return
+    params = ctx._thermal_params
+    if mixing_valve.is_throttling(params.mixing_valve_mode) and not params.two_zone_enabled:
         return
     commanded = coord._commanded_power()
     if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
