@@ -86,7 +86,7 @@ workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scop
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
-wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift unread "' 'UNTRACED=" scope strace launch unread "'
+wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift absorb unread "' 'UNTRACED=" scope strace launch absorb unread "'
 scope_mutant "prune goes on over an unreadable table" '        if table is None:
             print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
             return 1

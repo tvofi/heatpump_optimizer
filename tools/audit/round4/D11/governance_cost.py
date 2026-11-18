@@ -61,7 +61,7 @@ import d11lib as L  # noqa: E402
 # named `<unit> / <job>` (`bare` strips the unit), so GOV stays keyed by job id.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
        "briefs",
-       "instrument-self-tests", "selftest-absorb", "budget-raise-gate", "sweep"}
+       "instrument-self-tests", "budget-raise-gate", "sweep"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 

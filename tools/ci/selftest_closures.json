@@ -9285,7 +9285,8 @@
     "tools/ci"
    ],
    "dirs": [
-    "tests"
+    "tests",
+    "tools/ci"
    ],
    "index": true,
    "objects": true,
@@ -9322,7 +9323,8 @@
     "tools/ci"
    ],
    "dirs": [
-    "tests"
+    "tests",
+    "tools/ci"
    ],
    "index": true,
    "objects": false,
