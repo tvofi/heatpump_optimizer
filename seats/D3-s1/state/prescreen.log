@@ -457,3 +457,4 @@
 2026-11-18T16:03:38Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_comfort_bounds CMP_BOUND 50a41fb9 L4745 by=tests/features.py ran=17 wall=1587.1s
 2026-11-18T16:09:34Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CMP_BOUND fc7a9935 L2126 by=- ran=17 wall=2070.2s
 2026-11-18T16:30:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF 3b62d281 L6550 by=- ran=12 wall=1850.5s
+2026-11-18T16:32:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:<module> CONST 86d160d0 L1651 by=- ran=19 wall=1978.9s
