@@ -16,9 +16,9 @@
  "summary": [
   "1 TEST SCRIPT(S) FAILED"
  ],
- "wall_s": 3029.9,
- "child_cpu_s": 4168.1,
- "load1_start": 0.03,
+ "wall_s": 2994.0,
+ "child_cpu_s": 4092.0,
+ "load1_start": 0.0,
  "load1_end": 0.0,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
