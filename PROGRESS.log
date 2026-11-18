@@ -133,3 +133,4 @@
 1795045312 HB alive
 1795045510 HB alive
 1795045517 CKPT D3-s1 533 file(s)
+1795045574 HB container rebooted 23:44Z; box restored 4 mutated worker trees (git checkout) and relaunched K2 complete (162 queued, 82 done); D3-s1 subagent lost in an earlier restart, re-dispatch after K2 ends
