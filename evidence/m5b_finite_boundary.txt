@@ -93,7 +93,7 @@ RESULT class_unseeded_sections=30 count
   UNSEEDED thermal_learning:cop_baseline_measured
   UNSEEDED thermal_learning:cop_health_cusum_measured/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=42.5
+RESULT class_arm_seconds=38.2
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
@@ -102,9 +102,46 @@ RESULT domain_fields=1381 count
 RESULT domain_probes=1038 count
 RESULT domain_refused=0 count
 RESULT domain_unreached=0 count
+  COST accuracy:accuracy/draw/ceiling/#/# 1 other leaves (whole)
+  COST accuracy:accuracy/draw/config/# 17 other leaves (whole)
+  COST accuracy:accuracy/draw/samples/#/# 9 other leaves (whole)
+  COST dhw_profile:hourly_profile/# 23 other leaves (whole)
+  COST dhw_profile:profile_weekday/# 23 other leaves (whole)
+  COST dhw_profile:profile_weekend/# 23 other leaves (whole)
+  COST duty_switch:directions/dhw_space/censored 6 other leaves (whole)
+  COST duty_switch:directions/dhw_space/decayed_at 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/first_day 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/k 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/kept 6 other leaves (whole)
+  COST duty_switch:directions/dhw_space/kept_w 6 other leaves (whole)
+  COST duty_switch:directions/dhw_space/last_day 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/off_s/# 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/stopped 5 other leaves (whole)
+  COST duty_switch:directions/dhw_space/usable 6 other leaves (whole)
+  COST duty_switch:directions/dhw_space/void 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/censored 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/decayed_at 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/first_day 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/k 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/kept 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/kept_w 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/last_day 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/stopped 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/usable 6 other leaves (whole)
+  COST duty_switch:directions/space_dhw/void 6 other leaves (whole)
+  COST price_model:model/days/# 1 other leaves (whole)
+  COST price_model:model/quarter_days/# 1 other leaves (whole)
+  COST price_model:model/quarter_factors/#/# 96 other leaves (whole)
+  COST price_model:model/residual_var/#/# 24 other leaves (whole)
+  COST price_model:model/shapes/#/# 24 other leaves (whole)
+  COST thermal_learning:internal_gains_profile/# 24 other leaves (whole)
 RESULT domain_whole_fields=33 count
 RESULT domain_whole_unused=0 count
-RESULT domain_arm_seconds=9.7
+  CELL accuracy:accuracy/draw/engaged costs 16 other leaves, declared cell-only (recorded 0)
+RESULT domain_cell_fields=232 count
+RESULT domain_cell_spent=87 count
+RESULT domain_cell_refused=1 count
+RESULT domain_arm_seconds=13.0
   ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
   ok   a planted undeclared field is refused (the coverage check's own control)
   ok   the healthy rich seed round-trips unchanged through every loader and saver (null control)
@@ -113,6 +150,8 @@ RESULT domain_arm_seconds=9.7
   ok   no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)
   ok   every whole= declaration is used: some bad value of the field costs more than its own cell through the real loader (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)
   ok   the whole sweep refuses a whole planted on a cell-only leaf (the overdraw count), and measures a cost on the configuration that keys the draw record (its own control)
+  FAIL no cell-only declaration costs another leaf beyond its recorded entry: a bad value the declaration says costs only its cell keeps every other leaf (#3714 review)  [cell=232 refused=['accuracy:accuracy/draw/engaged costs 16 other leaves, declared cell-only (recorded 0)']]
+  ok   the cell sweep refuses the configuration that keys the draw record when it is planted cell-only (its own control)
   ok   every in-domain probe reaches live state (the out-probes are not vacuous)
   ok   the DHW profile's declared ceiling is dhw_learning's own (a literal, since that module imports the store)
   ok   an int past a double refuses as unreadable at each attribute- or service-fed float() site
@@ -188,5 +227,5 @@ RESULT number_state_escapes=0 count
   ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
 RESULT store_version_unsurfaced=0 count
 
-ALL 116 FINITE BOUNDARY CHECKS PASSED
-rc=0
+1 of 118 FINITE BOUNDARY CHECKS FAILED
+rc=1

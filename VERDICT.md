@@ -1,35 +1,24 @@
-Fix review: blocked 2469c52668c90af0c143b6905c9ee6e25e140add class-open: draw/engaged cell-only cost unguarded, a loader dropping the samples on a non-bool latch survives every check
+Fix review: merge ec8b7300e74f082ce236604d4fe8ff3294e7f69b
 
-bus-nonce: 9368deadf31262f71ae698980b80ac80
+bus-nonce: 885d0efce37d5a0d3aaee0c552b84705
 
-Round 1 (first review, no --reviewed-head).
+Round 2 (delta over reviewed head 2469c52668c90af0c143b6905c9ee6e25e140add).
 
-## Block
+## Previous findings
 
-- The body's class rule measures one direction of "a declaration's cost is what the real loader measures": a `whole=` that no bad value uses is refused. It does not measure the other direction: a cell-only declaration (no `whole`) whose bad value costs other leaves. The PR's one production line sits on that direction. `draw/engaged` becomes `_FLAG`, and its new comment claims "costs only itself; the samples stay". No check holds that claim.
-- Mutant M5b (`ev/m5b.diff`), in `DrawRange.from_dict` right after the latch read: `if "engaged" in data and not isinstance(data["engaged"], bool): return out`. This drops the samples whenever the stored latch is present and not a bool, while the store still declares `draw/engaged` as `_FLAG`. Results at the head with M5b applied: `tests/finite_boundary.py` gives `ALL 116 FINITE BOUNDARY CHECKS PASSED` rc 0, with `RESULT domain_refused=0` and `domain_whole_unused=0`. `tests/features.py` gives `ALL 5857 FEATURE CHECKS PASSED` rc 0. The broader M5 also fires on an absent key. It passes `tests/edge.py` (rc 0) and `tests/stress.py` (rc 0). Only features.py kills it, through two idle-window checks, and those checks reach it through the absent-key path, not through a bad value.
-- What resolves it: extend Arm 6's cost probe to every declared non-key field, or to a disposition the body states, and refuse a cell-only declaration when some bad value changes another leaf. Then M5b must fail. The over-broad half and its control stay as they are.
-
-## Notes
-
-- Note: figure: the body says `draw/config/#` is used with "every refused bad value costs 19 other leaves". The in-tree rule at the head measures 17, and the control prints `config=17` (`ev/probe_whole_costs.txt`).
-- Note: figure: the body gives `duty_switch` fields as "6 or 7". The in-tree rule at the head measures 5 or 6. The body attributes the per-field list to a `/tmp` scratch probe at the merge base, so the in-tree numbers are the ones re-derived here.
+- Block (class-open, `draw/engaged` cell-only cost unguarded): resolved. Arm 6's cost probe now covers every non-key field. A cell-only field that costs another leaf is refused unless `_A6_CELL_SPENT` records it. I re-applied the round-1 mutant M5b (`ev/m5b.diff`) at the head: `tests/finite_boundary.py` gives rc 1, `1 of 118 FINITE BOUNDARY CHECKS FAILED`, `CELL accuracy:accuracy/draw/engaged costs 16 other leaves, declared cell-only (recorded 0)` (`ev/m5b_finite_boundary.txt`). In round 1 the same mutant passed all 116.
+- Note: figure `draw/config/#`: the body now says 17, and the head prints `COST accuracy:accuracy/draw/config/# 17 other leaves (whole)`. Resolved.
+- Note: figure `duty_switch`: the body now says 5 or 6, taken from the in-tree `COST` lines. Resolved, and the `/tmp` figures are dropped.
 
 ## Evidence
 
-- HEAD.txt names the head. The head matches the PR body's head line and the live PR head. Its three-dot diff touches `store.py` (1 line), `tests/finite_boundary.py` and `dev/programme/delivery/3714.md`.
-- Merge: `git merge-tree --write-tree origin/main 2469c526` exits 0 and the head is 0 commits behind origin/main. No role-contract drift (`git diff mb...origin/main -- dev/governance/roles/` is empty).
-- CI: `merge_train.py classify 2469c52668c90af0c143b6905c9ee6e25e140add --pr 3714` printed `GREEN 2469c52668c90af0c143b6905c9ee6e25e140add pending: none red: none`, rc 0. `tests / nightly-status` is a failure, but it is not in `owed-reds`, so it needs no answer.
-- At the head, `PYTHONPATH=tests/hastub python3 tests/finite_boundary.py` gives `ALL 116 FINITE BOUNDARY CHECKS PASSED` rc 0, with `RESULT domain_whole_fields=33` and `domain_whole_unused=0`. At merge base 99a4010e it gives `ALL 114 FINITE BOUNDARY CHECKS PASSED` rc 0. Both match the body.
-- Mutation proof re-run, all fail at the head:
-  - Base `store.py` (`ev/base.diff`): rc 1. Fails `every whole= declaration is used [whole=34 unused=['accuracy:accuracy/draw/engaged']]`, so the body's figures 34 and 1 are re-derived.
-  - M1 (`ev/m1.diff`): rc 1, control fails with `overdraws=1 config=18`.
-  - M2 (`ev/m2.diff`): rc 1, two checks fail.
-  - M3 (`ev/m3.diff`): rc 1, control fails with `overdraws=1 config=1`.
-  - The body's 4-of-4 kill is confirmed.
-- The null control is green at the head (`overdraws=0`, `config=17`). The in-tree per-field costs are in `ev/probe_whole_costs.txt`, from an instrument the reviewer built: a print-only patch of the head's own check.
-- `features.py` at the head (null control for M5): `ALL 5857 FEATURE CHECKS PASSED` rc 0.
-- VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched (empty diff from the merge base). No claim file is touched, and no golden moves.
-- Finder's harness: the packet names none. The instrument here is the fixer's in-tree Arm 6 check, so the harness is the fixer's, not the finder's.
-- Carry 3 is routed to R11-OUTSIDE-HONEST-DHW-RUNS (carry_audit: 3 routed, 0 unrouted). It was not re-measured here, because nothing for it is built in this PR. Figures for it that were not re-derived: the tail-arm counts 4/0, 9/0 and 9/9.
-- I did not re-run the heavy gate or the mutation table. CI's `gate` and `tests / mutation` are success at this head.
+- Scope: the delta `git diff 2469c526 ec8b7300` touches only `tests/finite_boundary.py` (+155 / -7). It has no `custom_components/` delta, so nothing widens the review (step 12). The head is the live PR head and the body's head line. `ev/HEAD.txt` names it.
+- Merge: `git merge-tree --write-tree origin/main ec8b7300` exits 0. The head is 76 commits behind origin/main and merges cleanly. The role pack was rendered from origin/main.
+- CI: `merge_train.py classify ec8b7300e74f082ce236604d4fe8ff3294e7f69b --pr 3714` printed `GREEN ec8b7300e74f082ce236604d4fe8ff3294e7f69b pending: none red: none`, rc 0 (`ev/classify.log`). `tests / nightly-status` is a failure, but it is not in `owed-reds`, so it needs no answer.
+- Head run (`ev/head_finite_boundary.txt`): `PYTHONPATH=tests/hastub python3 tests/finite_boundary.py` gives `ALL 118 FINITE BOUNDARY CHECKS PASSED` rc 0. It also prints `domain_whole_fields=33`, `domain_whole_unused=0`, `domain_cell_fields=232`, `domain_cell_spent=86` and `domain_cell_refused=0`. Every one matches the body. `_A6_CELL_SPENT` has 86 entries, counted by parsing the literal, which matches `domain_cell_spent`.
+- My own mutant L1 (`ev/l1.diff`) deletes the `draw/idle/#` entry from the table: rc 1, `1 of 118 FINITE BOUNDARY CHECKS FAILED`, `CELL accuracy:accuracy/draw/idle/# costs 1 other leaves, declared cell-only (recorded 0)` (`ev/l1_finite_boundary.txt`). This matches the body's L1. I did not re-run the body's other mutants (M1, M2', M3', L2, L3, L4). Their figures are the fixer's.
+- The table is a ratchet: a listed field may cost up to its recorded number of other leaves. A regression inside a recorded cost is not caught. That limit is the body's stated disposition, and the 86 fields are carried by the body to R11-INTAKE-R10-RESIDUE.
+- Not re-derived: carry 3's tail-arm counts (4/0, 9/0, 9/9). Nothing for carry 3 is built here.
+- I did not re-run the gate, the mutation table, `structure.py` or archscore. CI's `gate`, `tests / mutation` and `arch-score` are success at this head.
+- Finder's harness: the packet names none. The instrument is the fixer's in-tree Arm 6, so it is the fixer's harness, not a finder's.
+- Self-audit: `carry_audit.py check` was run over this verdict as the comment, with an empty body file. It gave rc 0 and `0 finding item(s)` (`ev/carry_audit.txt`). The packet's own run over the PR body at the head reported 5 routed, 0 unrouted.
