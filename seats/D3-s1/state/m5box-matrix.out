@@ -1,0 +1,26 @@
+2026-11-18T10:23:26Z RUN matrix queued=38 workers=4
+2026-11-18T10:54:33Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=tests/entities.py,tests/features.py ran=14 skip=8 wall=1863.6s
+2026-11-18T10:54:38Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=tests/features.py ran=14 skip=8 wall=1867.7s
+2026-11-18T10:54:45Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=tests/features.py ran=14 skip=8 wall=1875.3s
+2026-11-18T10:54:55Z MATRIX KILLED custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M08 L6995 by=tests/finite_boundary.py,tests/entities.py,tests/features.py ran=14 skip=8 wall=1885.1s
+2026-11-18T11:26:04Z MATRIX KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty GUARD_OFF 1bf142a4 L419 by=tests/features.py ran=13 skip=9 wall=1885.1s
+2026-11-18T11:26:09Z MATRIX KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 7b8dda16 L559 by=tests/features.py ran=13 skip=9 wall=1881.8s
+2026-11-18T11:26:10Z MATRIX SURVIVED custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M04 L8806 by=- ran=14 skip=8 wall=1894.8s
+2026-11-18T11:26:26Z MATRIX KILLED custom_components/heatpump_optimizer/defrost.py:R10-C2 M32 L783 by=tests/features.py ran=13 skip=9 wall=1889.4s
+2026-11-18T11:57:57Z MATRIX KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices GUARD_OFF 54e620e3 L473 by=tests/features.py ran=13 skip=13 wall=1906.5s
+2026-11-18T12:02:16Z MATRIX KILLED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=tests/features.py ran=20 skip=6 wall=2169.3s
+2026-11-18T12:02:32Z MATRIX SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:R10-C3C6 M19 L1559 by=- ran=20 skip=6 wall=2179.0s
+2026-11-18T12:07:15Z MATRIX SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST 17af2c12 L47 by=- ran=26 skip=0 wall=2447.0s
+2026-11-18T12:30:29Z MATRIX SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 336a6ca0 L183 by=- ran=13 skip=13 wall=1949.9s
+2026-11-18T12:34:44Z MATRIX SURVIVED custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35 L188 by=- ran=13 skip=13 wall=1945.9s
+2026-11-18T12:35:08Z MATRIX SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=13 skip=9 wall=1954.7s
+2026-11-18T12:39:47Z MATRIX SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36 L355 by=- ran=13 skip=9 wall=1950.0s
+2026-11-18T12:54:29Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF ed095cbf L198 by=tests/features.py ran=15 skip=7 wall=1158.6s
+2026-11-18T13:02:44Z MATRIX SURVIVED custom_components/heatpump_optimizer/grid_fee.py:R10-C3C6 M21 L383 by=- ran=13 skip=9 wall=1932.3s
+2026-11-18T13:12:32Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 3dbd4039 L201 by=tests/features.py ran=15 skip=7 wall=1962.4s
+2026-11-18T13:16:36Z MATRIX SURVIVED custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6 L773 by=- ran=22 skip=4 wall=2508.9s
+2026-11-18T13:27:21Z MATRIX SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M34 L252 by=- ran=13 skip=9 wall=1970.1s
+2026-11-18T13:35:21Z MATRIX SURVIVED custom_components/heatpump_optimizer/price_model.py:R10-C2 M25 L337 by=- ran=13 skip=9 wall=1954.9s
+2026-11-18T13:44:43Z MATRIX KILLED custom_components/heatpump_optimizer/price_model.py:R10-C2 M33 L532 by=tests/features.py ran=13 skip=9 wall=1929.3s
+2026-11-18T13:48:50Z MATRIX SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=13 skip=9 wall=1932.4s
+2026-11-18T13:59:14Z MATRIX KILLED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability GUARD_OFF f4619cef L677 by=tests/features.py ran=13 skip=9 wall=1910.4s
