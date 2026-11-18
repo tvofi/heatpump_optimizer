@@ -1,0 +1,69 @@
+{
+ "class": "N-unordered-tiebreak",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/enum_unordered_tiebreak.py  (seams=1 at origin/handoff/audit-r11-register); controls: bash dev/audit/rounds/round11/D14/sweep/controls_unordered_tiebreak.sh",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/plan_slots.py",
+   "symbol": "plan_slots (slot['reason'] = max(set(codes), key=codes.count), line 87)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/leads/slot_reason_hashseed.py  (fails: distinct_tie=2 over PYTHONHASHSEED 1..12; null 1; --perturb 1)",
+   "beyond_finding": false,
+   "finding": "D1-s1-51"
+  }
+ ],
+ "controls": {
+  "positive": "re-finds plan_slots.py:87 (D1-s1-51)",
+  "null": "clean fixture (max(dict.fromkeys(..)), sorted(set(..))): seams=0",
+  "perturbation": "one-line fix of plan_slots.py:87 to dict.fromkeys: 1 -> 0; one-line re-introduction at coordinator.py sorted(set(day_types)) -> max(set(..), key=..): 1 -> 2"
+ },
+ "dispositions": [
+  {
+   "seam": "device_prefill.py:231 _matched_keys max(pairs, key=len(pair[1])) over a comprehension of the set `keys`",
+   "disposition": "not applicable",
+   "reason": "pair order is hash order (keys is set(table) | {...} of (str,str)), but a tie needs two distinct candidate keys of equal length that are both suffixes of the same unique id -- the same string -- so no two candidates tie; found by review, not by the static enumerator (keys arrives as an Iterable parameter)"
+  },
+  {
+   "seam": "coordinator.py:8815 max(candidates, key=...)",
+   "disposition": "not applicable",
+   "reason": "list built in fixed code order (tariff, then fuse); a tie resolves to the first"
+  },
+  {
+   "seam": "coordinator.py:10449 min(costs, key=...)",
+   "disposition": "not applicable",
+   "reason": "dict, insertion-ordered by code (hourly_spot, monthly_avg_spot, fixed)"
+  },
+  {
+   "seam": "notifier.py:133, optimizer.py:637, optimizer.py:699",
+   "disposition": "not applicable",
+   "reason": "lists in schedule / stable-argsort / relaxed-plan order"
+  },
+  {
+   "seam": "open_meteo.py:249 min(gaps, key=(-count, gap))",
+   "disposition": "guarded",
+   "reason": "the key includes the gap itself, a total order: no tie"
+  },
+  {
+   "seam": "store.py:668 max(names, key=len)",
+   "disposition": "not applicable",
+   "reason": "list from the DOMAINS dict literal; distinct equal-length names cannot both suffix one key"
+  },
+  {
+   "seam": "disinfection.py:265, optimizer.py:1767, pump_arbiter.py:2151, services.py:783/1280",
+   "disposition": "not applicable",
+   "reason": "list or insertion-ordered dict, not a set"
+  },
+  {
+   "seam": "coordinator.py:2399 peak_months frozenset[int] published unsorted",
+   "disposition": "not applicable",
+   "reason": "int hashes are not randomised, so the order is stable across restarts; no tie-break involved"
+  },
+  {
+   "seam": "other set/frozenset sites (inputs.py:1356 _pending, optimizer.py excused/unheld, dhw_planner unreachable, price_model days_seen, away days, _background_tasks, ...)",
+   "disposition": "not applicable",
+   "reason": "membership, add or bookkeeping iteration with no single-element pick and no ordered published output (inputs.py:1364 stamps every pending id with one time)"
+  }
+ ],
+ "ledger_status": "absent: N-unordered-tiebreak is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+ "baseline": "origin/handoff/audit-r11-register"
+}
