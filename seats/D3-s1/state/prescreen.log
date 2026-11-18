@@ -435,3 +435,4 @@
 2026-11-18T14:02:33Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:wood_share RETURN_DEL c44bae08 L2907 by=tests/features.py ran=12 wall=1385.1s
 2026-11-18T14:03:21Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._accumulate_energy CLAMP_DROP 02ce7259 L10315 by=tests/features.py ran=14 wall=1665.1s
 2026-11-18T14:22:06Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._spawn RETURN_DEL 81b870b5 L3628 by=tests/features.py ran=13 wall=1512.7s
+2026-11-18T14:24:15Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows CLAMP_DROP 20b0b7a8 L547 by=- ran=12 wall=1441.9s
