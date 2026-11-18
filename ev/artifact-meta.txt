@@ -1,0 +1,1 @@
+{"digest":"sha256:75e5b4d3782f30a388279da8877fb2682fa0abca476e0e97fdae06bed14e10de","name":"selftest-closures","size_in_bytes":52617,"workflow_run":{"head_branch":"main","head_repository_id":1341087606,"head_sha":"7c2f4c30cab5610cf8f5b040c326836ab544d27d","id":44242125570,"repository_id":1341087606}}
