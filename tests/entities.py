@@ -4287,13 +4287,14 @@ def _p2_registry(sources):
                  and any(k.arg == "tzinfo" for k in n.keywords)),
              owners=["drift.py::utc_instant"], dispositions={}),
         # D7-s1-05 (the note arm): the evidence line's cap is EVIDENCE_KEEP,
-        # written by EvidenceNotes._note alone; the guard and the CUSUM
-        # each trimmed their own list to a literal 6 before.
+        # written by EvidenceNotes.note alone; the guard, the CUSUM and the
+        # coordinator's immersion trail each trimmed their own list to a
+        # literal 6 before.
         dict(fact="evidence_cap", finding="D7-s1-05",
              match=_p2_match_node(
                  (ast.Delete,), r"evidence\[:-",
                  lambda n: True),
-             owners=["drift.py::EvidenceNotes._note"], dispositions={}),
+             owners=["drift.py::EvidenceNotes.note"], dispositions={}),
     ]
 
 

@@ -6,6 +6,7 @@ them, so the finder's harness reads the fixed tree unchanged.
 
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r11_kernel_step_agree.py \
         $EXPORT/dev/audit/rounds/round11/D7/s3/m8_agree.py --only step_covering_now
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r11_kernel_step_agree.py --seams
 
 ``$EXPORT`` is a ``git archive`` of plan/r11 (819aa2e354b4e5baaf824b8568fd72bea8168a75);
 m8_agree.py is the D7-s3 finder's harness (sha1 aaef9a3b34b9c3d8a523eb24410ff97f7ce6b0d1),
@@ -24,6 +25,7 @@ reads exactly what the harness alone reads.
 from __future__ import annotations
 
 import os
+import re
 import runpy
 import sys
 
@@ -48,7 +50,48 @@ BINDINGS = (
 )
 
 
+#: ``--seams``: the D7-s3-04 finder's D002 seam rule (m8_enum.py), every line of
+#: the package matching it, each classed by the rule it applies. Only the
+#: naive-to-UTC relabel is "the zone of a naive instant"; P2's
+#: ``naive_instant_zone`` registry entry holds that class to drift.utc_instant.
+D002 = re.compile(r"tzinfo is None|\.replace\(tzinfo=|\.astimezone\(|as_utc\(")
+CLASSES = (
+    ("text", lambda s: s.startswith(("#", '"')) or "``" in s),
+    ("naive-to-UTC relabel: the naive-zone fact",
+     lambda s: re.search(r"replace\(tzinfo=(timezone\.utc|UTC)\)", s)),
+    ("Home Assistant's dt_util.as_utc", lambda s: "dt_util.as_utc(" in s),
+    ("a naive stamp aligned to a reference's zone, for comparison",
+     lambda s: re.search(r"replace\(tzinfo=(naive_zone|(\w+\.)?tzinfo|tz)\b", s)),
+    ("a zone stripped after conversion, for a naive reference", lambda s: "replace(tzinfo=None)" in s),
+    ("an aware conversion", lambda s: ".astimezone(" in s),
+    ("a naive test guarding one of the above", lambda s: "tzinfo is None" in s),
+)
+
+
+def seams() -> None:
+    """Print every D002 site with its class; a site in no class prints UNCLASSED."""
+    pkg = os.path.join(ROOT, "custom_components", "heatpump_optimizer")
+    counts: dict[str, int] = {}
+    for name in sorted(os.listdir(pkg)):
+        if not name.endswith(".py"):
+            continue
+        with open(os.path.join(pkg, name), encoding="utf-8") as fh:
+            for no, line in enumerate(fh, 1):
+                if not D002.search(line):
+                    continue
+                text = line.strip()
+                cls = next((c for c, test in CLASSES if test(text)), "UNCLASSED")
+                counts[cls] = counts.get(cls, 0) + 1
+                print(f"SITE {name}:{no} [{cls}] {text[:100]}")
+    for cls, n in counts.items():
+        print(f"RESULT {cls}={n}")
+    print(f"RESULT total={sum(counts.values())}")
+
+
 def main() -> None:
+    if sys.argv[1:2] == ["--seams"]:
+        seams()
+        return
     if len(sys.argv) < 2:
         raise SystemExit("usage: r11_kernel_step_agree.py <m8_agree.py> [m8_agree args]")
     bound = []
