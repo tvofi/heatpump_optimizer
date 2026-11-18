@@ -1,0 +1,55 @@
+SEAM CUR heatpump_optimizer/config_flow.py:619 _money | currency = resolve_currency(hass)
+SEAM CUR heatpump_optimizer/config_flow.py:620 _money | return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
+SEAM CUR heatpump_optimizer/config_flow.py:2106 _fee_placeholders | currency = resolve_currency(hass)
+SEAM CUR heatpump_optimizer/config_flow.py:3973 HeatPumpOptimizerOptionsFlow._grid_fee_errors | submit.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+SEAM TEMP heatpump_optimizer/coordinator.py:2844 _entity_price | return None if state is None else price_per_kwh(state.state, state_unit(state))
+SEAM TEMP heatpump_optimizer/coordinator.py:2862 _audit_price_units | unit = state_unit(state)
+SEAM PRICE heatpump_optimizer/coordinator.py:2863 _audit_price_units | if state is None or normalize_price_per_kwh(1.0, unit) is not None:
+SEAM CUR heatpump_optimizer/coordinator.py:2879 _audit_price_units | declared = _feed_currency(hass, cfg)
+SEAM CUR heatpump_optimizer/coordinator.py:2880 _audit_price_units | if declared is None or declared == resolve_currency(hass):
+SEAM CUR heatpump_optimizer/coordinator.py:2893 _audit_price_units | "configured": resolve_currency(hass),
+SEAM TEMP heatpump_optimizer/coordinator.py:2910 _dhw_inlet_c | value = temperature_c(state.state, state_unit(state))
+SEAM TEMP heatpump_optimizer/coordinator.py:2950 _forecast_in_model_units | to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
+SEAM TEMP heatpump_optimizer/coordinator.py:2958 _forecast_in_model_units | value = temperature_c(entry.get("temperature"), unit) if to_c else None
+SEAM TEMP heatpump_optimizer/coordinator.py:3078 _fabricated_forecast | "temperature": temperature_c(attrs.get("temperature"), None),
+SEAM CUR heatpump_optimizer/coordinator.py:3413 _feed_currency | return declared_currency(attrs.get("unit_of_measurement"), attrs)
+SEAM CUR heatpump_optimizer/coordinator.py:3532 HeatPumpOptimizerCoordinator.__init__ | self.currency = _feed_currency(hass, config) or resolve_currency(hass)
+SEAM CUR heatpump_optimizer/coordinator.py:6647 HeatPumpOptimizerCoordinator._update_current_state | self.currency = _feed_currency(self.hass, ctx._config) or self.currency
+SEAM CUR heatpump_optimizer/currency.py:43 resolve_currency | return getattr(getattr(hass, "config", None), "currency", None) or (
+SEAM TEMP heatpump_optimizer/early_cutoff.py:291 _reading | room = temperature_c(getattr(new_state, "state", None), unit)
+SEAM CUR heatpump_optimizer/grid_fee.py:81 fee_bound | return IMPLAUSIBLE_FEE_SEK_PER_KWH * money_scale(currency)
+SEAM TEMP heatpump_optimizer/inputs.py:374 normalize_temperature_c | spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+SEAM TEMP heatpump_optimizer/inputs.py:420 state_power_kw | kw = normalize_power_kw(value, state_unit(state))
+SEAM TEMP heatpump_optimizer/inputs.py:439 temperature_c | converted = normalize_temperature_c(value, unit)
+SEAM TEMP heatpump_optimizer/inputs.py:446 temperature_from_c | spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+SEAM TEMP heatpump_optimizer/inputs.py:488 setpoint_unit | return _instance_unit(hass)
+SEAM TEMP heatpump_optimizer/inputs.py:489 setpoint_unit | return state_unit(state)
+SEAM TEMP heatpump_optimizer/inputs.py:505 setpoint_and_unit | unit = setpoint_unit(hass, entity_id, state)
+SEAM TEMP heatpump_optimizer/inputs.py:506 setpoint_and_unit | value = temperature_c(raw, unit)
+SEAM TEMP heatpump_optimizer/inputs.py:508 setpoint_and_unit | unit = _instance_unit(hass)
+SEAM TEMP heatpump_optimizer/inputs.py:510 setpoint_and_unit | value = temperature_c(attrs.get("temperature"), unit)
+SEAM TEMP heatpump_optimizer/inputs.py:537 read_temperature_delta_k | unit = str(state_unit(state) or "").strip()
+SEAM TEMP heatpump_optimizer/inputs.py:538 read_temperature_delta_k | scale = (TEMPERATURE_UNIT_TO_C.get(unit) or (None, None))[1] if unit else 1.0
+SEAM TEMP heatpump_optimizer/inputs.py:576 setpoint_range_c | unit = setpoint_unit(hass, entity_id, state)
+SEAM TEMP heatpump_optimizer/inputs.py:577 setpoint_range_c | return temperature_c(attrs.get(low_key), unit), temperature_c(attrs.get(high_key), unit)
+SEAM TEMP heatpump_optimizer/inputs.py:616 _setpoint_unit_of | else setpoint_unit(hass, entity_id, hass.states.get(entity_id))
+SEAM TEMP heatpump_optimizer/inputs.py:650 SetpointGrid.on_step | out = _on_step(temperature_from_c(value_c, self.unit), self.step, rounding)
+SEAM TEMP heatpump_optimizer/inputs.py:652 SetpointGrid.on_step | out = max(out, _on_step(temperature_from_c(lo_c, self.unit), self.step, "up"))
+SEAM TEMP heatpump_optimizer/inputs.py:654 SetpointGrid.on_step | out = min(out, _on_step(temperature_from_c(hi_c, self.unit), self.step, "down"))
+SEAM TEMP heatpump_optimizer/inputs.py:655 SetpointGrid.on_step | converted = temperature_c(out, self.unit)
+SEAM TEMP heatpump_optimizer/inputs.py:777 write_setpoint_c | return await write_setpoint(hass, entity_id, temperature_from_c(on_step, unit))
+SEAM PRICE heatpump_optimizer/inputs.py:814 price_per_kwh | converted = normalize_price_per_kwh(value, unit)
+SEAM TEMP heatpump_optimizer/inputs.py:832 _value_in_model_units | unit = state_unit(state)
+SEAM TEMP heatpump_optimizer/inputs.py:843 _value_in_model_units | converted = normalize_temperature_c(value, unit)
+SEAM TEMP heatpump_optimizer/inputs.py:1229 InputReader.read_power_kw | converted = normalize_power_kw(reading.value, state_unit(state))
+SEAM TEMP heatpump_optimizer/inputs.py:1247 InputReader.read_flow_kg_s | converted = normalize_flow_kg_s(reading.value, state_unit(state))
+SEAM TEMP heatpump_optimizer/inputs.py:1282 read_room | unit = _instance_unit(reader.hass)
+SEAM TEMP heatpump_optimizer/inputs.py:1283 read_room | value = temperature_c(attrs.get("current_temperature"), unit)
+SEAM TEMP heatpump_optimizer/inputs.py:1284 read_room | target = temperature_c(attrs.get("temperature"), unit)
+SEAM TEMP heatpump_optimizer/inputs.py:1289 read_room | value = temperature_c(getattr(state, "state", None), state_unit(state))
+SEAM PRICE heatpump_optimizer/price_model.py:793 prices_from_entity_attributes | scale = normalize_price_per_kwh(1.0, attrs.get("unit_of_measurement")) or 1.0
+SEAM TEMP heatpump_optimizer/setpoint_check.py:183 _dhw | value = round(temperature_from_c(on_step_c, unit), 6)
+SEAM CARD heatpump_optimizer/www/heatpump-optimizer-card.js:6916 card | currency(own) {
+SEAM CARD heatpump_optimizer/www/heatpump-optimizer-card.js:6921 card | this.config.currency ||
+SEAM CARD heatpump_optimizer/www/heatpump-optimizer-card.js:6922 card | (hass.config && hass.config.currency) ||
+RESULT seams=54 CUR=12 TEMP=36 PRICE=3 CARD=3
