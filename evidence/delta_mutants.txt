@@ -1,0 +1,6 @@
+SURVIVED control (unmutated) | loop_ledger self-test: 0 failed | []
+KILLED event != pull_request | loop_ledger self-test: 2 failed | ['FAIL  NULL reds: a merge_group run reads the column unread, never a verdict of the push class', 'FAIL  NULL reds: a workflow_dispatch run reads the column unread, never a verdict of the push class']
+KILLED headline product counts machinery | loop_ledger self-test: 1 failed | ['FAIL  reds: the summary counts a verdict red only where it reads red: an unread verdict is no red, and the product count reads the product verdict']
+KILLED headline product != GREEN | loop_ledger self-test: 1 failed | ['FAIL  reds: the summary counts a verdict red only where it reads red: an unread verdict is no red, and the product count reads the product verdict']
+KILLED headline machinery != GREEN | loop_ledger self-test: 1 failed | ['FAIL  reds: the summary counts a verdict red only where it reads red: an unread verdict is no red, and the product count reads the product verdict']
+KILLED unread count over rows | loop_ledger self-test: 1 failed | ["FAIL  reds: the summary's unread column counts the reds read, never a run with no job listing"]
