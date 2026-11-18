@@ -13223,7 +13223,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
-        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
+        "pump_max_power_reason", "pump_max_power_source", "pump_min_power",
+        "pump_min_power_reason", "pump_min_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({

@@ -67,6 +67,11 @@
 # v10.0.3: Self-test hotfix and round-11 preparation. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+coord_all_features  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_dhw  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_grid_fee  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_minimal  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
+coord_two_zone  # R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): three pump floor keys added (null), nothing else moves
 cycling_cost  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 14 -> 0, combined draw 11 -> 0, charges 9 -> 3, starts 4 -> 3, energy 40.97 -> 42.45 kWh, predicted_cost 32.07 -> 33.76 (up: the committed charges buy what the trickles under the floor did not), worst gap under the hot-water requirement 0.557 -> 0.439 K
 everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 10 -> 0, combined draw 4 -> 0, charges 5 -> 3, starts 5 -> 3, energy 68.83 -> 68.64 kWh, predicted_cost 61.48 -> 61.83 (up), worst gap under the hot-water requirement 0.550 -> 0.438 K
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
@@ -790,3 +795,12 @@ everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as run
 # the running rule and the 1.0 kW floor, starts by the edge count
 # (`runs.edge_count`), energy, predicted_cost, lowest room. Hot-water levels
 # under the floor are the planner's and are not committed here.
+# R11-OUTSIDE-HONEST-METERED-FLOOR (Bankaifan, #3529): the model status sensor
+# publishes which electrical minimum the plan used, so every coord capture gains,
+# under `sensors.model_status.extra_state_attributes`, `pump_min_power`,
+# `pump_min_power_reason` and `pump_min_power_source`. Those three leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# against the merge base, one environment). Claimed rather than re-recorded, as
+# R10-COP-GATE-D's keys were: the committed files were patched in those three
+# paths alone, each null because a coord fixture holds no plan.

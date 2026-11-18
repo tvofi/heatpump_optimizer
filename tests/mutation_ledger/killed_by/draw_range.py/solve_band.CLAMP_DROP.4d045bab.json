@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:solve_band CLAMP_DROP 4d045bab",
-  "killed_by": "tests/features.py",
-  "old": "        cfg_max, learned, min(cfg_min, learned), \"ceiling_probe\",",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`cfg_max, learned, (cfg_min), \"ceiling_probe\",`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}
