@@ -188,10 +188,10 @@ def scan_module(rel, src):
                         break
         # opt-float
         for n in own:
-            if _is_float_call(n) and n.args and isinstance(n.args[0], ast.Call):
-                g = n.args[0]
-                if isinstance(g.func, ast.Attribute) and g.func.attr == "get" and isinstance(g.func.value, ast.Name) \
-                   and g.func.value.id in CFG_NAMES:
+            if _is_float_call(n) and n.args:
+                if any(isinstance(g, ast.Call) and isinstance(g.func, ast.Attribute) and g.func.attr == "get"
+                       and isinstance(g.func.value, ast.Name) and g.func.value.id in CFG_NAMES
+                       for g in ast.walk(n.args[0])):
                     seams.append(("opt-float", q, not _try_guarded(parents, n), n.lineno)); break
         # window
         logged = {id(x) for c in own if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
