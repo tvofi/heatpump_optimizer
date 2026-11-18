@@ -967,8 +967,8 @@
   "source": "README.md + docs/*.md",
   "claim": "every relative link resolves (93 links)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "93 links, broken=[], of which removed-by-the-export=[]",
-  "verdict": "true",
+  "result": "93 links, broken=[('docs/how-it-works.md', '../dev/archive/backlog.md')], of which removed-by-the-export=[]",
+  "verdict": "false",
   "truth": ""
  },
  {
