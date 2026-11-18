@@ -54,3 +54,4 @@
 1795005837 HB alive
 1795006130 CKPT D3-s1 437 file(s)
 1795006147 HB K1 done; K2 full net starting
+1795006354 HB K1 done: 309 driven, 76 KILLED, 233 SURVIVED, 0 TIMEOUT; K2 full net started on 233
