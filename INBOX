@@ -46,3 +46,4 @@
       - `gate` reads failure, and its log says `FAIL run(s) [44323789715] at this head are still being judged`. That is an interim exit, not a defect red.
       - tests/closures, coverage, fast and instrument-self-tests were still in_progress.
       - No red is owed an answer yet. A re-cut head is re-read anyway.
+2026-11-18T18:59:55Z ORCHESTRATOR: Besides the class-open block, governance / policy-docs is red because of this branch: tools/policy/field_coverage.mjs refuses the census registry: 'row unused_package_imports counts unreached definitions and no census plants it (register one in CENSUSES, or exempt it with a reason)'. Your branch adds that row (field_coverage.mjs:494, tests/structure.py, tests/structure_budgets.json). Register a planting census for it, or exempt it with a reason, in the same handoff. Then answer in ## Red checks: tests / nightly-status (not a required check), and code-scanning alerts 57/58 (inherited from main) if they show at your head.
