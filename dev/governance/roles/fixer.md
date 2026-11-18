@@ -101,7 +101,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    head goes to `handoff/<topic>`, the body to the orphan `handoff-body/<topic>`
    by `seat/body_push.sh`, whose offline `review_packet.py handoff` refusals you
    answer first. That push is the handoff; `handoff_push.sh` opens
-   the PR (`dev/governance/decisions/0011-app-authored-identity.md`).
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
