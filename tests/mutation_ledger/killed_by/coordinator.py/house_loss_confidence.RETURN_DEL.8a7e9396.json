@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:house_loss_confidence RETURN_DEL 8a7e9396",
-  "killed_by": "tests/features.py",
-  "old": "    return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

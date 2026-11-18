@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CLAMP_DROP 6523b9c6",
-  "killed_by": "tests/features.py",
-  "old": "        idle_min_temp = min(store.store_temp_for_tap(params.dhw_idle_min_temp), dhw_min_temp)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`idle_min_temp = (store.store_temp_for_tap(params.dhw_idle_min_temp))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

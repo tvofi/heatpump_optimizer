@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:compose_scores BOOLOP 58685ad7",
-  "killed_by": "tests/features.py",
-  "old": "    if machine[0] is None and machine_waits_on is not None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if machine[0] is None or machine_waits_on is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}
