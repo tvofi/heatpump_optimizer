@@ -4632,7 +4632,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch the fixer after R11-CARRY-MERGE-TRAIN merges; re-measure every carry first",
-    "note": "created by the round-11 carry map from R11-PRE-TOOLCHAIN-PIN carries 7,9,11,12; overlap admitted (R11-INTAKE-R10-RESIDUE, R11-CARRY-MERGE-TRAIN): instrument carry group, deferred to the round-11 end-of-round triage (owner ruling 2026-11-17); scope reconciled with the sharing groups there, nothing built this round",
+    "note": "deferred to the round-11 end-of-round triage with the proposals (owner ruling 2026-11-17); survivors are built in R12; local overlays meanwhile",
     "pr": null
    },
    "source": "programme"
