@@ -497,3 +497,4 @@
 2026-11-18T20:01:49Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 6bee434a L747 by=- ran=12 wall=1290.0s
 2026-11-18T20:10:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost GUARD_OFF 97b4d8d0 L1546 by=- ran=16 wall=1355.1s
 2026-11-18T20:13:55Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF d7b50097 L6853 by=tests/features.py ran=15 wall=1522.3s
+2026-11-18T20:18:18Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP a8295e2d L3329 by=- ran=12 wall=1338.5s
