@@ -89,7 +89,7 @@ Two families stand out:
   boost, away and the pump arbiter), thermal learning, manual plan, DHW profile, duty switch and legionella.
   A persistently failing load restarts the learner or the state from defaults with no visible record. This is
   the load-side twin of D1-s3-05's saves.
-- **Feature passes** (13). A solver or advisor pass that fails on every cycle and falls back at DEBUG: the
+- **Feature passes** (12). A solver or advisor pass that fails on every cycle and falls back at DEBUG: the
   DHW LP's greedy fallback, co-optimization, run commitment, the set-point check, the sensor advisor, learning
   replay and the Open-Meteo fetch.
 
