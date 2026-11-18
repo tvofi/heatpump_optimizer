@@ -1,0 +1,73 @@
+##### wtb (bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f)
+--- m7_layer_edges
+CARRIER comfort_learning (0 -> 2): edges accuracy | of which glue themselves: accuracy
+CARRIER disinfection (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER external_heat (0 -> 2): edges accuracy | of which glue themselves: accuracy
+CARRIER grid_fee (0 -> 2): edges currency | of which glue themselves: currency
+CARRIER optimizer (1 -> 2): edges tariff | of which glue themselves: -
+CARRIER power_guard (0 -> 2): edges accuracy | of which glue themselves: accuracy
+CARRIER price_model (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER quiet_windows (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER setpoint_check (0 -> 2): edges inputs, issues, quiet_windows | of which glue themselves: inputs, issues
+CARRIER snapshots (0 -> 2): edges store | of which glue themselves: store
+CARRIER sysid (0 -> 2): edges accuracy, quiet_windows | of which glue themselves: accuracy
+CARRIER tariff (0 -> 2): edges accuracy | of which glue themselves: accuracy
+CARRIER topology (0 -> 2): edges tariff | of which glue themselves: -
+RESULT cut=none label
+RESULT layer_violations=13 count
+RESULT single_carrier_violations=11 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=0.71 load
+RESULT swapins=0 count
+--- m7_layer_edges --cut issues
+RESULT cut=issues label
+RESULT layer_violations=13 count
+RESULT single_carrier_violations=11 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=0.73 load
+RESULT swapins=0 count
+--- ha_free
+RESULT claimed=11 modules
+RESULT claimed_but_needs_ha=1 modules grid_fee
+RESULT thread_factor=0.504
+RESULT load1=0.73
+RESULT swapins=0
+--- ha_free --perturb
+RESULT claimed=11 modules
+RESULT claimed_but_needs_ha=0 modules 
+RESULT thread_factor=0.507
+RESULT load1=0.73
+RESULT swapins=0
+##### wt (f0068ae2fcd781d34d56320bec51432d2b71432b)
+--- m7_layer_edges
+CARRIER disinfection (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER price_model (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER quiet_windows (0 -> 2): edges inputs | of which glue themselves: inputs
+CARRIER setpoint_check (0 -> 2): edges inputs, issues, quiet_windows | of which glue themselves: inputs, issues
+CARRIER snapshots (0 -> 2): edges store | of which glue themselves: store
+CARRIER sysid (0 -> 2): edges quiet_windows | of which glue themselves: -
+RESULT cut=none label
+RESULT layer_violations=6 count
+RESULT single_carrier_violations=5 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=0.73 load
+RESULT swapins=0 count
+--- m7_layer_edges --cut issues
+RESULT cut=issues label
+RESULT layer_violations=6 count
+RESULT single_carrier_violations=5 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=0.76 load
+RESULT swapins=0 count
+--- ha_free
+RESULT claimed=11 modules
+RESULT claimed_but_needs_ha=0 modules 
+RESULT thread_factor=0.497
+RESULT load1=0.76
+RESULT swapins=0
+--- ha_free --perturb
+RESULT claimed=11 modules
+RESULT claimed_but_needs_ha=0 modules 
+RESULT thread_factor=0.518
+RESULT load1=0.76
+RESULT swapins=0

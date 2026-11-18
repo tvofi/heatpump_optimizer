@@ -1,0 +1,9 @@
+
+=== doc claims vs code facts (#1413) ===
+narrow 24 ['comfort_band', 'config_flow', 'device_prefill', 'diagnosis', 'disinfection', 'flow_lift', 'flow_meter', 'freq_control', 'grid_fee', 'heat_energy', 'inputs', 'ledger', 'mixing_valve', 'modbus_prefill', 'name_match', 'narrative', 'prefill_offer', 'quick_setup', 'quiet_windows', 'silent_mode', 'slab_seed', 'slot_drivers', 'topology', 'wear']
+missed by narrow ['duty_switch', 'entity', 'manual_plan', 'rooms', 'snapshots']
+duty_switch imports-HA-itself NEEDS_HA homeassistant refused: homeassistant
+entity imports-HA-itself NEEDS_HA homeassistant refused: homeassistant
+manual_plan own-HA-free OK
+rooms own-HA-free OK
+snapshots own-HA-free NEEDS_HA homeassistant refused: homeassistant
