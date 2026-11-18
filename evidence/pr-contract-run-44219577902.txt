@@ -1,0 +1,11 @@
+pr-contract / pr-contract job 134518677096 (run 44219577902), head 454d4fc425a98e3bfbc8ab30c17d914f6f89b8c7, excerpt:
+code-scanning alerts the body must answer: code-scanning alert 57 (py/overly-permissive-file),code-scanning alert 58 (py/overly-permissive-file)
+red checks the body must answer: code-scanning alert 57 (py/overly-permissive-file),code-scanning alert 58 (py/overly-permissive-file),tests / nightly-status,tests / replay
+  ERROR   [pr-body] /tmp/pr-body.md: check `code-scanning alert 57 (py/overly-permissive-file)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+  ERROR   [pr-body] /tmp/pr-body.md: check `code-scanning alert 58 (py/overly-permissive-file)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 2 error(s) in /tmp/pr-body.md
+figure_block verify: 1 block(s), 0 refused
+CARRY-AUDIT: 10 finding item(s): 10 routed, 0 unrouted, 0 bad destination(s)
+
+gate job 134520105095 (run 44219013946): FAIL pr-contract / pr-contract: failure (run 44219577902)
+gate job 134519357204 (run 44219577902): FAIL pr-contract / pr-contract: failure (this run)

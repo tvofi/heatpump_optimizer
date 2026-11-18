@@ -1,7 +1,0 @@
-RESULT selfset_2.2_swing0_control_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_swing0.15_p64_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_swing0.15_p80_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_swing0.3_p96_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_swing0.15_p120_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_mix_daily0.1_5day0.2_phasepi_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
-RESULT selfset_2.2_mix_daily0.1_5day0.2_phase0_s1=0/672_scale=1.000 lowest=1.000 highest=1.000 off5=0 probes=1 band=0.000 verdict=pending
