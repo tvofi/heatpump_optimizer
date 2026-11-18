@@ -71,3 +71,4 @@
 2026-11-18T22:53:24Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF 5385dd51 L1779 by=tests/harness_headers.py,tests/entities.py,tests/features.py ran=12 wall=1143.5s
 2026-11-18T23:00:02Z COMPLETE KILLED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step GUARD_OFF b5e82f97 L1759 by=tests/features.py ran=12 wall=1647.6s
 2026-11-18T23:09:02Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF d2773033 L1922 by=- ran=12 wall=1662.3s
+2026-11-18T23:12:39Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 3e0642e4 L1942 by=- ran=12 wall=1659.6s
