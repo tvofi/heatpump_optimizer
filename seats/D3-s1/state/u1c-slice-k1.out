@@ -1,0 +1,56 @@
+RESULT keys=309
+RESULT unparseable=0
+RESULT driven=309
+RESULT killed=64
+RESULT survived=245
+RESULT timeout=0
+RESULT all_drivers_reach_skipped=0
+RESULT driver_skips_by_reach=1600
+RESULT driver_skips_relaxed=152
+  first-kill tests/typing_ruler.py 26
+  first-kill tests/env_drift.py 11
+  first-kill tests/plan_view.py 7
+  first-kill tests/solar_alignment.py 6
+  first-kill tests/manual_plan.py 6
+  first-kill tests/structure.py 4
+  first-kill tests/finite_boundary.py 2
+  first-kill tests/doc_claims.py 1
+  first-kill tests/block_duty.py 1
+  kind BOOLOP KILLED 8
+  kind BOOLOP SURVIVED 12
+  kind CLAMP_DROP KILLED 8
+  kind CLAMP_DROP SURVIVED 37
+  kind CMP_BOUND KILLED 2
+  kind CMP_BOUND SURVIVED 101
+  kind CONST KILLED 1
+  kind CONST SURVIVED 5
+  kind GUARD_OFF KILLED 26
+  kind GUARD_OFF SURVIVED 83
+  kind RETURN_DEL KILLED 19
+  kind RETURN_DEL SURVIVED 7
+  file coordinator.py KILLED 22
+  file coordinator.py SURVIVED 68
+  file defrost.py KILLED 1
+  file defrost.py SURVIVED 10
+  file dhw_planner.py KILLED 8
+  file dhw_planner.py SURVIVED 23
+  file flow_lift.py KILLED 2
+  file grid_fee.py KILLED 2
+  file grid_fee.py SURVIVED 9
+  file optimizer.py KILLED 17
+  file optimizer.py SURVIVED 50
+  file price_model.py KILLED 4
+  file price_model.py SURVIVED 10
+  file sysid.py KILLED 2
+  file sysid.py SURVIVED 41
+  file tariff.py KILLED 3
+  file tariff.py SURVIVED 7
+  file thermal_model.py KILLED 3
+  file thermal_model.py SURVIVED 27
+RESULT complete_driven=0
+RESULT complete_killed=0
+RESULT complete_survived=0
+RESULT complete_timeout=0
+RESULT survivors_answered=245
+RESULT load1=2.12
+RESULT thread_factor=1.00
