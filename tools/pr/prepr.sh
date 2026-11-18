@@ -261,7 +261,7 @@ pinned_touched() { # file of changed paths, pins (one per line)
 # from the base's registry at HEAD and compared (read-only, offline; pr-contract
 # runs the same verify). A body with no block passes untouched.
 figure_block_check() { # body file
-  python3 -I tools/pr/figure_block.py verify "$1" --base origin/main --head HEAD
+  python3 -I tools/pr/figure_block.py verify "$1" --base "${HPO_FIGURE_BASE:-origin/main}" --head HEAD  # local overlay 2026-11-18: verify against the PR recorded base, as update_pr/pr-contract render
 }
 
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
