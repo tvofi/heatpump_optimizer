@@ -24,7 +24,7 @@ import numpy as np
 from .const import FLOOR_WATER_RANGE_C, OUTDOOR_AIR_RANGE_C, ROOM_AIR_RANGE_C
 from .rooms import RoomReading, usable_c
 
-#: One row per half hour whatever the entry's interval (10 to 120 min), so the
+#: One row per half hour whatever the entry's interval (10 to 120 min), so the (null control)
 #: row count, and the 14 days the ring spans, never depend on it.
 PERIOD_MIN = 30
 #: 14 days of half hours: the span accuracy.HISTORY_LENGTH keeps of a 30-minute entry.
