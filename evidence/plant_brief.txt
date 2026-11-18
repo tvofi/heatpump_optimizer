@@ -1,4 +1,0 @@
-  FAIL a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract
-  FAIL the designer's text allows design/<group> alone and no pull request, in its own words
-  FAIL a design reviewer pins the design tip and the base, names its contract and its one ref
-  FAIL a fixer dispatched design-exempt, and one of a group that takes no design, is given no such line (null control)
