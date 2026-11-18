@@ -526,3 +526,4 @@
 2026-11-18T20:23:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF 97281aaf L9390 by=- ran=13 wall=1339.3s
 2026-11-18T20:24:29Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND 83c9652a L6648 by=- ran=12 wall=1348.4s
 2026-11-18T20:35:11Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor GUARD_OFF ddf2c5be L9022 by=tests/features.py ran=13 wall=1338.4s
+2026-11-18T20:42:09Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF ee9a2c4c L4497 by=- ran=13 wall=1339.1s
