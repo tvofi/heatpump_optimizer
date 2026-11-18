@@ -2,7 +2,7 @@
  "a": {
   "closure": "2026-11-26T16:59:00Z",
   "critical_path_hours": 139.68,
-  "lead_time_p50_hours": 27.32,
+  "lead_time_p50_hours": 35.1,
   "lead_time_p90_hours": 162.87,
   "wall_hours": 190.78
  },
@@ -37,7 +37,7 @@
  "floor_cost": {
   "critical_path_hours": 35.53,
   "delay_hours": {
-   "R11-READS-RESIDUE": 23.77,
+   "R11-READS-RESIDUE": 0.0,
    "R11-SEAM-actuation-release": 0.0,
    "R11-SEAM-actuation-writes": 0.0,
    "R11-SEAM-card": 0.0,
@@ -69,7 +69,7 @@
    "stamp_every": 3
   },
   "durations_blob": "d6ece5958f6b8f3e720ae3cf6faba16574294176",
-  "roster_blob": "edfafffad479628c84bdcdeaa4fff58b25707c21",
+  "roster_blob": "94e1b9e5732712a3c181836a8f56f6f8049ac662",
   "roster_path": "dev/audit/rounds/round11/PLAN/wave-r11-groups.json",
   "start": "2026-11-18T18:12:00Z"
  },

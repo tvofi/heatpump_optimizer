@@ -762,3 +762,72 @@ the objective ranks them behind every bug fix, and the floor still needs them.
   it lapses if its predecessor is stopped or deferred.
 - **Eleven open cards name no group** (`check_scopes.py --round 11
   --open-cards` lists twelve; one is keyed above). They stay the owner's.
+
+## Revision 4, 2026-11-18: the plan review's `revise fd5b78c0ff` (1 of 2)
+
+`REVIEW-R3.md` on `plan-verdict/r11` at `14f1e8a2b3`. Revision 3's section
+stands except where a row of `CHANGES-R4.md` names it; that file answers the
+review point by point. What changed, in the order of the review:
+
+1. **`R11-INTAKE-R10-RESIDUE` is triaged (point 5, route (i)).** Its design
+   `af8f7048ad` is a designer stop and its fixer blocked at `a12c4c2ccc`, so
+   revision 3 ranked and moved a group that could build nothing.
+   `INTAKE-TRIAGE.md` gives each of its 41 open carries one verdict and one
+   owner. The group becomes `deferred`: it holds six carries for round 12's
+   architect and no round-11 work, so it is unranked and leaves the projection.
+2. **Card `E11-N-INTAKE-BUILDER` is keyed to the group that builds the reads.**
+   The reads the card names landed with `R11-PRE-PRODUCT-READS` (#3665) and
+   `R11-PRE-NO-READ-BUILDERS` (#3683), both done, and a done group takes no
+   rank. Two reads stay open: carries 169 and 170. They are cut as
+   `R11-READS-RESIDUE` (S, instrument), rank 1 by the card, in the first wave.
+   `objective.terms` still names the holding group as builder of six terms,
+   because that field is the baseline record's own
+   (`dev/audit/yardstick/round10/OBJECTIVE.json`) and is not this plan's to
+   re-word.
+3. **`D5-s3-01` belongs to `R11-SEAM-kernel-layering` (point 6)**, by the
+   owner's ruling of 2026-11-18, and is credited there. No rank and no dS
+   moves.
+4. **The draft is re-synced against the refs (point 8).** `build_objective.py`
+   sets `R11-SEAM-cycle-solve` to `in-progress` (pull request 3738). The
+   designs of `R11-SEAM-tests`, `R11-SEAM-actuation-release`,
+   `R11-SEAM-config` and `R11-ARCH-fabric-learner` are approved.
+   `R11-SEAM-card` is blocked on its seat's environment and the projection
+   cannot say so: the roster has no stage for a blocked group.
+5. **Rank orders the hot files too (point 9).** A rank-1 pull request lands
+   before a rank-2 one sharing its file; the pairs are in `CHANGES-R4.md`.
+6. **Rank 2 is not a cut list (points 10 and 11).** Outside-contributor groups
+   keep their standing priority. `R11-ARCH-fabric-learner` and
+   `R11-ARCH-cycle-surface` carry the floor and are not cut at closure without
+   an owner ruling.
+
+### The projection at the new pin
+
+| reading | figure |
+|---|---|
+| pin start | 2026-11-18T18:12Z |
+| projection A: critical path, wall | 139.68 h, 190.78 h |
+| projection A: closure | 2026-11-26T16:59Z |
+| projection A: `lead_time` p50, p90 over production groups | 35.1 h, 162.87 h |
+| floor cost, A less B: critical path, wall | 35.53 h, 50.68 h |
+| largest delay of a rank-1 group against B | 0.2 h |
+
+Rank 1: 19 groups (18 seam groups and `R11-READS-RESIDUE`). Rank 2: 21.
+
+### Limits of this revision
+
+- **The drift gate was not run.** `REVIEW-R3.md` point 2 names
+  `plan_objective_gate.py`, a round-11 prototype. No ref on origin holds a
+  file of that name, so this seat could not run it. What stands in for it:
+  `objective-check` passes at the plan SHA, and `git diff origin/main --
+  tools/` is empty at that SHA. The reviewer re-runs the gate.
+- **A carry moves no rank.** The six kept carries are not register findings,
+  so `removes` does not name them and the settlement will not credit them.
+  Carry 165 (a defrost derate learnt as 0.684 against a control of 1.000) is
+  the one that reads as a product defect; round 12's finders meet it as code,
+  not as a carry.
+- **Added scope is not priced.** `R11-SEAM-learners`, `R11-SEAM-tests` and
+  `R11-SEAM-docs` each take a carry at an unchanged size.
+- **Pending owner confirmation.** The new group, the slot it takes from
+  `R11-PRODUCT-TEXT-PINS`, and the deferral of carries 177 and 182 (each a
+  decision its carry gives the orchestrator or the owner) are this plan's
+  proposals; the roster is the orchestrator's to edit from `CHANGES-R4.md`.
