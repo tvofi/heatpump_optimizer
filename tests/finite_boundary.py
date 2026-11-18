@@ -1999,11 +1999,42 @@ def _a6_sampled(seed, path) -> bool:
     return True
 
 
+#: Bad values for a ``whole`` cost probe, kept where the field's domain refuses them.
+_A6_WRONG = (None, "x", [1])
+_A6_GONE = object()  # a leaf the load dropped
+
+
+def _a6_whole_cost(store: str, seed, path, domain, savers) -> int:
+    """The most leaves of ``store`` other than ``path`` that one bad value at
+    ``path`` changes through the real loader and saver: what a ``whole``
+    declaration licenses, measured (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)."""
+    cost = 0
+    before = dict(_leaf_paths(seed))
+    for sub in [v for v in _a6_probes(domain)[0] + list(_A6_WRONG) if not _store.in_domain(domain, v)]:
+        mutant = json.loads(json.dumps(seed))
+        _set_path(mutant, path, sub)
+        after, esc = _a6_roundtrip(store, mutant, savers)
+        if esc or after is None:
+            return len(before)
+        now = dict(_leaf_paths(after))
+        cost = max(cost, sum(1 for k in before.keys() | now.keys()
+                             if k != tuple(path) and before.get(k, _A6_GONE) != now.get(k, _A6_GONE)))
+    return cost
+
+
 def _a6_store(store, seed, savers, out):
     """Drive one store's declared fields; append refusals to ``out``."""
     for path, is_key, domain, value in _store.stored_fields(store, seed):
         if domain is None or not _a6_sampled(seed, path):
             continue
+        # A ``whole`` declaration is a licence for a bad cell to cost its
+        # neighbours, so one no bad value uses is over-broad. The snapshot
+        # ring is skipped: its learner leaves alias the stores measured here,
+        # and a restore writes those stores, not the ring.
+        if domain.whole and not is_key and store != "snapshots":
+            label = f"{store}:{'/'.join('#' if isinstance(p, int) else str(p) for p in path)}"
+            cost = _a6_whole_cost(store, seed, path, domain, savers)
+            out["whole"][label] = max(out["whole"].get(label, 0), cost)
         outs, ins = _a6_probes(domain)
         label = f"{store}:{'/'.join('#' if isinstance(p, int) else str(p) for p in path)}"
         label += "~" if is_key else ""
@@ -2050,7 +2081,7 @@ def _domain_arm() -> None:
     _dt_util.DEFAULT_TIME_ZONE = ZoneInfo("Europe/Stockholm")
     _dt_util.freeze(_A4_NOW)
     savers = _a6_savers()
-    out = {"driven": 0, "refused": set(), "unreached": set()}
+    out = {"driven": 0, "refused": set(), "unreached": set(), "whole": {}}
     try:
         disk = _a4_seed(enrich=_a6_enrich)
         seeds = {k.replace(const.DOMAIN + "_" + ENTRY_ID + "_", ""): v for k, v in disk.items()}
@@ -2071,6 +2102,13 @@ def _domain_arm() -> None:
         streak_back = (_a6_roundtrip("ledger", streak, savers)[0] or {}).get("score_day")
         for store in sorted(seeds):
             _a6_store(store, seeds[store], savers, out)
+        # The cost probe's own control: a cell-only leaf (the overdraw count)
+        # measures 0 under a planted ``whole``, a keying cell (the
+        # configuration) more.
+        whole_control = [_a6_whole_cost("accuracy", seeds["accuracy"], ("accuracy", "draw", leaf),
+                                        _store.DOMAINS["accuracy"][f"accuracy/draw/{decl}"]._replace(
+                                            whole="planted"), savers)
+                         for leaf, decl in (("overdraws", "overdraws"), ("config", "config/#"))]
     finally:
         _dt_util.freeze(None)
         _dt_util.DEFAULT_TIME_ZONE = zone_before
@@ -2084,6 +2122,11 @@ def _domain_arm() -> None:
     print(f"RESULT domain_probes={out['driven']} count")
     print(f"RESULT domain_refused={len(out['refused'])} count")
     print(f"RESULT domain_unreached={len(out['unreached'])} count")
+    unused = sorted(k for k, v in out["whole"].items() if not v)
+    for line in unused:
+        print(f"  WHOLE {line} declared whole, and no bad value costs more than the cell")
+    print(f"RESULT domain_whole_fields={len(out['whole'])} count")
+    print(f"RESULT domain_whole_unused={len(unused)} count")
     print(f"RESULT domain_arm_seconds={time.monotonic() - t_start:.1f}")
     R.check(
         "every store the rich seed writes is seeded, and every field it writes is declared "
@@ -2116,6 +2159,18 @@ def _domain_arm() -> None:
         "no one bad grid cell costs its neighbours (class P1, card C1)",
         not out["refused"],
         f"refused={len(out['refused'])}",
+    )
+    R.check(
+        "every whole= declaration is used: some bad value of the field costs more than its own "
+        "cell through the real loader (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)",
+        out["whole"] and not unused,
+        f"whole={len(out['whole'])} unused={unused}",
+    )
+    R.check(
+        "the whole cost probe reads 0 on a cell-only leaf under a planted whole, and more on "
+        "the configuration that keys the draw record (its own control)",
+        whole_control[0] == 0 and whole_control[1] > 0,
+        f"overdraws={whole_control[0]} config={whole_control[1]}",
     )
     R.check(
         "every in-domain probe reaches live state (the out-probes are not vacuous)",
