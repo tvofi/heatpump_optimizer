@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index cb4cbad3bc..9a0a0ed457 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6120,7 +6120,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 self._record_accuracy, "Accuracy pairing skipped: %s"
+             )
+             await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
+-                ctx._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
++                self._floor_return_temp, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
+             await _best_effort_cycle_step(
+                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
+             )

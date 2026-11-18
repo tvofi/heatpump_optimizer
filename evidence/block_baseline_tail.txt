@@ -1,0 +1,5 @@
+  ok   an exact fit (a residual sum of exactly zero) keeps finite t-statistics, which the report rounds and diagnostics serialise
+  ok   a pair needs the room's temperature and the outdoor temperature in both rows: 200 rows missing one or the other every fifth row step 159 times
+  ok   a period after an outage longer than the ring fills only the ring's 14 days with null rows, not the whole outage
+
+ALL 40 FEATURES BLOCK PASSED
