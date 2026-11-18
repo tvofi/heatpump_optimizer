@@ -1,0 +1,5 @@
+2026-11-18T17:14:31Z COMPLETE queued=16 from=pre
+2026-11-18T17:35:36Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=12 wall=1264.1s
+2026-11-18T17:35:42Z COMPLETE KILLED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices GUARD_OFF 54e620e3 L473 by=tests/features.py ran=12 wall=1270.9s
+2026-11-18T17:40:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST 17af2c12 L47 by=- ran=21 wall=1529.5s
+2026-11-18T17:40:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8 L169 by=- ran=19 wall=1533.9s
