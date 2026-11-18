@@ -1,0 +1,12 @@
+  fields single-zone holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.00
+  fields single-zone zeros: idle on every moved step none; binding none
+RESULT fields single-zone: rows 72 missed 0 (reading the pair 0, against the ask 0, at 0 where the ask binds 0), at 0 and idle on every step the ask moves (a correct zero) 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
+  fields two-zone holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.33
+  fields two-zone zeros: idle on every moved step none; binding none
+RESULT fields two-zone: rows 72 missed 0 (reading the pair 0, against the ask 0, at 0 where the ask binds 0), at 0 and idle on every step the ask moves (a correct zero) 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.15, buffer 55 0.22, wood tank 75 0.00
+  fields valve, one tank holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.00
+  fields valve, one tank zeros: idle on every moved step ['night-1 21:00']; binding none
+RESULT fields valve, one tank: rows 72 missed 0 (reading the pair 0, against the ask 0, at 0 where the ask binds 0), at 0 and idle on every step the ask moves (a correct zero) 1; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
+  fields two-zone valve two-tank holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.01
+  fields two-zone valve two-tank zeros: idle on every moved step none; binding none
+RESULT fields two-zone valve two-tank: rows 72 missed 0 (reading the pair 0, against the ask 0, at 0 where the ask binds 0), at 0 and idle on every step the ask moves (a correct zero) 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
