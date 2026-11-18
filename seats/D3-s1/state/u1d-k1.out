@@ -1,0 +1,8 @@
+2026-11-18T08:38:51Z RUN pre queued=309 workers=4
+2026-11-18T08:39:39Z PRE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._power_to_setpoints RETURN_DEL 635013c9 L6466 by=tests/config_flow_steps.py ran=7 skip=4 wall=47.0s
+2026-11-18T08:42:31Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_watch_learning_drift GUARD_OFF b45239e0 L9695 by=- ran=9 skip=5 wall=218.3s
+2026-11-18T08:44:10Z PRE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CLAMP_DROP a586f6d3 L658 by=- ran=10 skip=6 wall=317.0s
+2026-11-18T08:44:11Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_effective_windows GUARD_OFF 077aa3ea L6031 by=- ran=10 skip=5 wall=318.5s
+RESULT load1=2.12
+RESULT thread_factor=1.00
+2026-11-18T08:44:18Z RUN pre queued=305 workers=4
