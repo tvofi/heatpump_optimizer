@@ -293,6 +293,40 @@ class EntryConfig(Mapping[str, Any]):
         return len(self.raw)
 
 
+#: The parses that read a value they refuse as the key's default, so a refused
+#: stored value and an absent key parse alike.
+_DEFAULTED_NUMBERS: tuple[Parse, ...] = (finite_float, _nonzero_number)
+
+
+def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
+    """Each defaulted numeric key ``stored`` holds a non-number for: its number, or None.
+
+    An earlier release could store text, a list, a dict or ``None`` under a
+    numeric option (D1-s2-05). The parse reads numeric text as its number and
+    anything else as the default, but the thermal table and the comfort band
+    read the stored value and raised on it at setup or on every cycle.
+    Storing the number, and dropping a key mapped to None, changes no parsed
+    field, and every raw reader then reads what the parse does.
+    """
+    return {
+        f.name: finite_float(value)
+        for f in fields(EntryConfig)
+        if f.metadata
+        and f.metadata["parse"] in _DEFAULTED_NUMBERS
+        and f.name in stored
+        and (isinstance(value := stored[f.name], bool) or not isinstance(value, (int, float)))
+    }
+
+
+def repaired_numbers(stored: Mapping[str, Any], repairs: Mapping[str, float | None]) -> dict[str, Any]:
+    """``stored`` with ``repairs`` applied: a number replaces its text, None drops the key."""
+    return {
+        key: repairs.get(key, value)
+        for key, value in stored.items()
+        if key not in repairs or repairs[key] is not None
+    }
+
+
 def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
     """``EntryConfig.__reduce__``'s constructor: the stored values and their parse."""
     return EntryConfig(raw=MappingProxyType(raw), **parsed)

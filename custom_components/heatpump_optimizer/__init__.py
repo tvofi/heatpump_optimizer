@@ -32,7 +32,7 @@ from .const import (
     CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
-from .entry_config import EntryConfig
+from .entry_config import EntryConfig, number_repairs, repaired_numbers
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -203,8 +203,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
-    entries only need their version stamped forward. Without this handler Home
-    Assistant refuses to load entries created before the current
+    entries need their version stamped forward and any numeric option stored
+    as a non-number repaired: numeric text stored as its number, anything else
+    dropped for its default (``entry_config.number_repairs``). Without this
+    handler Home Assistant refuses to load entries created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
@@ -223,7 +225,19 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
             entry.version,
             CONFIG_ENTRY_VERSION,
         )
-        hass.config_entries.async_update_entry(entry, version=CONFIG_ENTRY_VERSION)
+        repairs = number_repairs({**entry.data, **entry.options})
+        if repairs:
+            _LOGGER.warning(
+                "Stored options that are not numbers: %s; text is stored as its number, "
+                "anything else is dropped and its default applies",
+                ", ".join(sorted(repairs)),
+            )
+        hass.config_entries.async_update_entry(
+            entry,
+            data=repaired_numbers(entry.data, repairs),
+            options=repaired_numbers(entry.options, repairs),
+            version=CONFIG_ENTRY_VERSION,
+        )
 
     return True
 

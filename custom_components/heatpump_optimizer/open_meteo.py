@@ -248,8 +248,18 @@ def _parse_block(
         return _EMPTY
     resolution = timedelta(seconds=min(gaps, key=lambda gap: (-gaps[gap], gap)))
 
+    # A sample covers ``(t - resolution, t]``. A stamp within one resolution
+    # of year 1 has no representable span, and ``mean_over`` raised
+    # OverflowError on it for every plan step, failing every solve (D1-s3-03).
+    floor = datetime.min.replace(tzinfo=timezone.utc) + resolution
+    kept = [i for i, t in enumerate(times) if t >= floor]
+    if len(kept) < 2:
+        return _EMPTY
+
     return IrradianceSeries(
-        times=tuple(times), values=tuple(values), resolution=resolution
+        times=tuple(times[i] for i in kept),
+        values=tuple(values[i] for i in kept),
+        resolution=resolution,
     )
 
 
