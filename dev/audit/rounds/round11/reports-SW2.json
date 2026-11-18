@@ -1,0 +1,114 @@
+{
+  "box": "SW2",
+  "missing": [],
+  "reports": {
+    "sweep-N-solve-recompute": {
+      "class": "N-solve-recompute",
+      "instances": 2,
+      "barriered": true,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/enumerate.py (controls: --controls; probe: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py TRIGGER [--perturb])",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_diagnose_interval (-> async_request_refresh, coordinator.py:10686)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py diagnose",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/button.py",
+          "symbol": "ForceOptimizationButton.async_press (async_run_optimization at :109, then async_request_refresh at :110)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py force_button",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/entity.py",
+          "symbol": "publish_then_refresh._refresh (entity.py:339) reached from switch.py TimedDutySwitch._press (Boost DHW/Space, Block DHW/Space -> boost.set_channel/set_block, refresh=False)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-solve-recompute/probe.py boost_dhw; same with block_space",
+          "beyond_finding": true
+        }
+      ]
+    },
+    "sweep-N-stale-step-actuation": {
+      "class": "N-stale-step-actuation",
+      "instances": 1,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-stale-step-actuation/enumerate.py (controls: --controls)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_frequency (via _commanded_power -> _commanded_split -> _current_action)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/timing.py (stale_share_frequency=0.4480; null --interval 15 --phases 0 -> 0)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_publish_current_action -> async_publish_ecl110_command (ECL110 MQTT displace and heat-curve offset, from _apply_action)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/timing.py (stale_share_mqtt_displace=0.5732, curve_offset=0.4644)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/legionella.py",
+          "symbol": "LegionellaGuard.async_track_cycle (commanded from self._action(), the previous solve's cut)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/disinfect.py (on_in_window=0 of 30)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._async_peak_guard_transition (engage and release publish the cut action's displace_value, no step lookup)",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-stale-step-actuation/probe_peak_guard.py (rc=1: published 4, step's own 6; --at 5 and --recut rc=0)",
+          "beyond_finding": true
+        }
+      ]
+    },
+    "sweep-N-staleness": {
+      "class": "N-staleness",
+      "instances": 1,
+      "barriered": true,
+      "enumerator": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/enumerate.py (controls: --controls)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_FAULT_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_FAULT_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DEFROST_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_DEFROST_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_ONLINE_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_ONLINE_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_SOLAR_RADIATION_ENTITY]",
+          "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-N-staleness/probe.py CONF_SOLAR_RADIATION_ENTITY",
+          "beyond_finding": true
+        }
+      ]
+    }
+  }
+}

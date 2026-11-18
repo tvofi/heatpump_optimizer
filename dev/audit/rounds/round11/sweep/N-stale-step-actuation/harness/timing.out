@@ -1,0 +1,24 @@
+RESULT stale_share_supply=0.0000 ratio (stale=0 graded=1434)
+RESULT loo_supply_min=0.0000 loo_supply_max=0.0000 loo_supply_drop_most_favourable=0.0000
+RESULT stale_share_mode=0.0000 ratio (stale=0 graded=906)
+RESULT loo_mode_min=0.0000 loo_mode_max=0.0000 loo_mode_drop_most_favourable=0.0000
+RESULT stale_share_flow_class=0.0000 ratio (stale=0 graded=906)
+RESULT loo_flow_class_min=0.0000 loo_flow_class_max=0.0000 loo_flow_class_drop_most_favourable=0.0000
+RESULT stale_share_mqtt_displace=0.5732 ratio (stale=822 graded=1434)
+RESULT loo_mqtt_displace_min=0.4135 loo_mqtt_displace_max=0.7303 loo_mqtt_displace_drop_most_favourable=0.6057
+RESULT stale_share_curve_offset=0.4644 ratio (stale=666 graded=1434)
+RESULT loo_curve_offset_min=0.2954 loo_curve_offset_max=0.6722 loo_curve_offset_drop_most_favourable=0.4964
+RESULT stale_share_frequency=0.4480 ratio (stale=293 graded=654)
+RESULT loo_frequency_min=0.2000 loo_frequency_max=0.6939 loo_frequency_drop_most_favourable=0.4921
+RESULT stale_share_space_pump=0.0000 ratio (stale=0 graded=906)
+RESULT loo_space_pump_min=0.0000 loo_space_pump_max=0.0000 loo_space_pump_drop_most_favourable=0.0000
+RESULT switch_on_with_wrong_mode=0 count (of 60 switch-on writes)
+RESULT cell3478_step_k_off_row=0 minutes (of 13)
+RESULT cell3478_late_channels=2 count ['frequency', 'mqtt_displace']
+RESULT cell3530_mode_led=1 bool
+RESULT cell3530_record_wrong_mode_at_on=1 bool (null arm 0)
+RESULT cell3512_short_runs=0 count
+RESULT cell3512_short_pauses=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.18
+RESULT swapins=0
