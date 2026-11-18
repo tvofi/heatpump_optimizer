@@ -5,3 +5,4 @@
 2026-11-18T14:52:48Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.__init__ GUARD_OFF 6335be05 L3560 by=tests/features.py ran=15 wall=1832.6s
 2026-11-18T15:19:56Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription GUARD_OFF 0284e2d5 L4168 by=tests/features.py ran=13 wall=1759.1s
 2026-11-18T15:20:06Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF ee9a2c4c L4497 by=- ran=13 wall=1740.8s
+2026-11-18T15:21:54Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps GUARD_OFF 8817ad76 L4538 by=- ran=13 wall=1751.9s
