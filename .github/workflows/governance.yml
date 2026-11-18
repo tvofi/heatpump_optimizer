@@ -307,10 +307,10 @@ jobs:
     # drift check and the selftest-closures artifact per shard. Re-derive,
     # never carry: list the job in main's ci.yml push runs, duration =
     # completed_at - started_at, and the mutant step's started_at.
-    timeout-minutes: ${{ github.event_name == 'push' && 90 || 30 }}
+    timeout-minutes: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 90 || 30 }}
     env:
       HPO_JOB_GRADES: nothing
-      SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}
+      SELFTEST_TRACE: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '1' || '' }}
     defaults:
       run:
         shell: bash --noprofile --norc tools/ci/selftest_step.sh {0}

@@ -532,6 +532,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.cmd == "self-test":
+        open("VERSION").read()  # DEMO ONLY: planted unrecorded read
         return self_test()
     if args.cmd == "decide":
         return _decide_cmd(args.lane, args.diff_ref, args.state_file,
